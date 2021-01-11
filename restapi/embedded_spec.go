@@ -4075,7 +4075,7 @@ func init() {
     },
     "/openshift_versions": {
       "get": {
-        "description": "Retrieves the list of OpenShift supported versions",
+        "description": "Retrieves the list of OpenShift supported versions.",
         "tags": [
           "versions"
         ],
@@ -4089,6 +4089,104 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators": {
+      "get": {
+        "description": "Retrieves the list of supported operators.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListSupportedOperators",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/supported-operators-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators/{operator_type}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator type.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "enum": [
+              "lso",
+              "ocs"
+            ],
+            "type": "string",
+            "description": "The operator type.",
+            "name": "operator_type",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -4355,9 +4453,13 @@ func init() {
           "type": "string"
         },
         "operators": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:operators_\"",
-          "x-nullable": true,
-          "$ref": "#/definitions/operators"
+          "description": "Operators that are associated with this cluster and their properties.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cluster-operator"
+          },
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
         },
         "org_id": {
           "type": "string"
@@ -4503,8 +4605,7 @@ func init() {
           "type": "string"
         },
         "operators": {
-          "x-nullable": true,
-          "$ref": "#/definitions/operators"
+          "$ref": "#/definitions/list-operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -4538,6 +4639,28 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
+      }
+    },
+    "cluster-operator": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "operator_type": {
+          "$ref": "#/definitions/operator-type"
+        },
+        "properties": {
+          "description": "JSON-formatted string containing the properties for each operator",
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "status_info": {
+          "type": "string"
+        }
       }
     },
     "cluster-progress-info": {
@@ -4698,8 +4821,7 @@ func init() {
           "x-nullable": true
         },
         "operators": {
-          "x-nullable": true,
-          "$ref": "#/definitions/operators"
+          "$ref": "#/definitions/list-operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -4746,7 +4868,9 @@ func init() {
         "sufficient-masters-count",
         "dns-domain-defined",
         "pull-secret-set",
-        "ntp-server-configured"
+        "ntp-server-configured",
+        "lso-requirements-satisfied",
+        "ocs-requirements-satisfied"
       ]
     },
     "completion-params": {
@@ -5820,6 +5944,14 @@ func init() {
         "$ref": "#/definitions/manifest"
       }
     },
+    "list-operators": {
+      "type": "array",
+      "items": {
+        "description": "Operators that are associated with this cluster and their properties.",
+        "x-nullable": true,
+        "$ref": "#/definitions/operator"
+      }
+    },
     "list-versions": {
       "type": "object",
       "properties": {
@@ -5839,15 +5971,6 @@ func init() {
         "all",
         ""
       ]
-    },
-    "lso": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false
-        }
-      }
     },
     "managed-domain": {
       "type": "object",
@@ -5957,14 +6080,28 @@ func init() {
         "$ref": "#/definitions/openshift-version"
       }
     },
-    "operators": {
+    "operator": {
       "type": "object",
       "properties": {
-        "lso": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:lso_\"",
-          "$ref": "#/definitions/lso"
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "operator_type": {
+          "$ref": "#/definitions/operator-type"
+        },
+        "properties": {
+          "description": "JSON-formatted string containing the properties for each operator",
+          "type": "string"
         }
       }
+    },
+    "operator-type": {
+      "type": "string",
+      "enum": [
+        "lso",
+        "ocs"
+      ]
     },
     "presigned": {
       "type": "object",
@@ -6111,6 +6248,12 @@ func init() {
         "$ref": "#/definitions/step-reply"
       }
     },
+    "supported-operators-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-type"
+      }
+    },
     "system_vendor": {
       "type": "object",
       "properties": {
@@ -6184,6 +6327,10 @@ func init() {
     {
       "description": "Manifests for customizing a cluster installation.",
       "name": "manifests"
+    },
+    {
+      "description": "Information regarding supported operators.",
+      "name": "operators"
     },
     {
       "description": "Information regarding versions.",
@@ -10249,7 +10396,7 @@ func init() {
     },
     "/openshift_versions": {
       "get": {
-        "description": "Retrieves the list of OpenShift supported versions",
+        "description": "Retrieves the list of OpenShift supported versions.",
         "tags": [
           "versions"
         ],
@@ -10263,6 +10410,104 @@ func init() {
           },
           "503": {
             "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators": {
+      "get": {
+        "description": "Retrieves the list of supported operators.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListSupportedOperators",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/supported-operators-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators/{operator_type}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator type.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "enum": [
+              "lso",
+              "ocs"
+            ],
+            "type": "string",
+            "description": "The operator type.",
+            "name": "operator_type",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -10617,9 +10862,13 @@ func init() {
           "type": "string"
         },
         "operators": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:operators_\"",
-          "x-nullable": true,
-          "$ref": "#/definitions/operators"
+          "description": "Operators that are associated with this cluster and their properties.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/cluster-operator"
+          },
+          "x-go-custom-tag": "gorm:\"-\"",
+          "x-nullable": true
         },
         "org_id": {
           "type": "string"
@@ -10765,8 +11014,7 @@ func init() {
           "type": "string"
         },
         "operators": {
-          "x-nullable": true,
-          "$ref": "#/definitions/operators"
+          "$ref": "#/definitions/list-operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -10800,6 +11048,28 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
+      }
+    },
+    "cluster-operator": {
+      "type": "object",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "operator_type": {
+          "$ref": "#/definitions/operator-type"
+        },
+        "properties": {
+          "description": "JSON-formatted string containing the properties for each operator",
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "status_info": {
+          "type": "string"
+        }
       }
     },
     "cluster-progress-info": {
@@ -10920,8 +11190,7 @@ func init() {
           "x-nullable": true
         },
         "operators": {
-          "x-nullable": true,
-          "$ref": "#/definitions/operators"
+          "$ref": "#/definitions/list-operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -10968,7 +11237,9 @@ func init() {
         "sufficient-masters-count",
         "dns-domain-defined",
         "pull-secret-set",
-        "ntp-server-configured"
+        "ntp-server-configured",
+        "lso-requirements-satisfied",
+        "ocs-requirements-satisfied"
       ]
     },
     "completion-params": {
@@ -12043,6 +12314,14 @@ func init() {
         "$ref": "#/definitions/manifest"
       }
     },
+    "list-operators": {
+      "type": "array",
+      "items": {
+        "description": "Operators that are associated with this cluster and their properties.",
+        "x-nullable": true,
+        "$ref": "#/definitions/operator"
+      }
+    },
     "list-versions": {
       "type": "object",
       "properties": {
@@ -12062,15 +12341,6 @@ func init() {
         "all",
         ""
       ]
-    },
-    "lso": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false
-        }
-      }
     },
     "managed-domain": {
       "type": "object",
@@ -12180,14 +12450,28 @@ func init() {
         "$ref": "#/definitions/openshift-version"
       }
     },
-    "operators": {
+    "operator": {
       "type": "object",
       "properties": {
-        "lso": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:lso_\"",
-          "$ref": "#/definitions/lso"
+        "enabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "operator_type": {
+          "$ref": "#/definitions/operator-type"
+        },
+        "properties": {
+          "description": "JSON-formatted string containing the properties for each operator",
+          "type": "string"
         }
       }
+    },
+    "operator-type": {
+      "type": "string",
+      "enum": [
+        "lso",
+        "ocs"
+      ]
     },
     "presigned": {
       "type": "object",
@@ -12334,6 +12618,12 @@ func init() {
         "$ref": "#/definitions/step-reply"
       }
     },
+    "supported-operators-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-type"
+      }
+    },
     "system_vendor": {
       "type": "object",
       "properties": {
@@ -12407,6 +12697,10 @@ func init() {
     {
       "description": "Manifests for customizing a cluster installation.",
       "name": "manifests"
+    },
+    {
+      "description": "Information regarding supported operators.",
+      "name": "operators"
     },
     {
       "description": "Information regarding versions.",

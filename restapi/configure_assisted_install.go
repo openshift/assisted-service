@@ -21,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
 	"github.com/openshift/assisted-service/restapi/operations/manifests"
+	"github.com/openshift/assisted-service/restapi/operations/operators"
 	"github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
@@ -220,6 +221,17 @@ type ManifestsAPI interface {
 	ListClusterManifests(ctx context.Context, params manifests.ListClusterManifestsParams) middleware.Responder
 }
 
+//go:generate mockery -name OperatorsAPI -inpkg
+
+/* OperatorsAPI  */
+type OperatorsAPI interface {
+	/* ListOperatorProperties Lists properties for an operator type. */
+	ListOperatorProperties(ctx context.Context, params operators.ListOperatorPropertiesParams) middleware.Responder
+
+	/* ListSupportedOperators Retrieves the list of supported operators. */
+	ListSupportedOperators(ctx context.Context, params operators.ListSupportedOperatorsParams) middleware.Responder
+}
+
 //go:generate mockery -name VersionsAPI -inpkg
 
 /* VersionsAPI  */
@@ -227,7 +239,7 @@ type VersionsAPI interface {
 	/* ListComponentVersions List of component versions. */
 	ListComponentVersions(ctx context.Context, params versions.ListComponentVersionsParams) middleware.Responder
 
-	/* ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions */
+	/* ListSupportedOpenshiftVersions Retrieves the list of OpenShift supported versions. */
 	ListSupportedOpenshiftVersions(ctx context.Context, params versions.ListSupportedOpenshiftVersionsParams) middleware.Responder
 }
 
@@ -239,6 +251,7 @@ type Config struct {
 	InstallerAPI
 	ManagedDomainsAPI
 	ManifestsAPI
+	OperatorsAPI
 	VersionsAPI
 	Logger func(string, ...interface{})
 	// InnerMiddleware is for the handler executors. These do not apply to the swagger.json document.
@@ -505,10 +518,20 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.ManagedDomainsAPI.ListManagedDomains(ctx, params)
 	})
+	api.OperatorsListOperatorPropertiesHandler = operators.ListOperatorPropertiesHandlerFunc(func(params operators.ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.ListOperatorProperties(ctx, params)
+	})
 	api.VersionsListSupportedOpenshiftVersionsHandler = versions.ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.VersionsAPI.ListSupportedOpenshiftVersions(ctx, params)
+	})
+	api.OperatorsListSupportedOperatorsHandler = operators.ListSupportedOperatorsHandlerFunc(func(params operators.ListSupportedOperatorsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.ListSupportedOperators(ctx, params)
 	})
 	api.InstallerPostStepReplyHandler = installer.PostStepReplyHandlerFunc(func(params installer.PostStepReplyParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

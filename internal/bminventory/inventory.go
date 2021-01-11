@@ -569,13 +569,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
-	if params.NewClusterParams.Operators == nil || params.NewClusterParams.Operators.Lso == nil {
-		params.NewClusterParams.Operators = &models.Operators{
-			Lso: &models.Lso{
-				Enabled: swag.Bool(false),
-			},
-		}
-	}
 
 	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		log.Infof("HA mode is None, seeting UserManagedNetworking to true ")
@@ -628,7 +621,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 			UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
 			AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
-			Operators:                params.NewClusterParams.Operators,
+			Operators:                convertToClusterOperators(params.NewClusterParams.Operators),
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 		},
 		KubeKeyName:      kubeKey.Name,
@@ -678,6 +671,18 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	success = true
 	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion), *cluster.ID, cluster.EmailDomain)
 	return &cluster, nil
+}
+
+func convertToClusterOperators(operators models.ListOperators) []*models.ClusterOperator {
+	if operators == nil {
+		return nil
+	} else {
+		var clusterOperators []*models.ClusterOperator
+		for _, operator := range operators {
+			clusterOperators = append(clusterOperators, &models.ClusterOperator{OperatorType: operator.OperatorType, Enabled: operator.Enabled, Properties: operator.Properties})
+		}
+		return clusterOperators
+	}
 }
 
 func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
@@ -1754,9 +1759,9 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if params.ClusterUpdateParams.Operators != nil && params.ClusterUpdateParams.Operators.Lso != nil {
-		updates["operators_lso_enabled"] = *params.ClusterUpdateParams.Operators.Lso.Enabled
-		cluster.Operators = params.ClusterUpdateParams.Operators
+	if params.ClusterUpdateParams.Operators != nil {
+		updates["operators"] = convertToClusterOperators(params.ClusterUpdateParams.Operators)
+		cluster.Operators = convertToClusterOperators(params.ClusterUpdateParams.Operators)
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {

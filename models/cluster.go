@@ -138,8 +138,8 @@ type Cluster struct {
 	// Version of the OpenShift cluster.
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
 
-	// operators
-	Operators *Operators `json:"operators,omitempty" gorm:"embedded;embedded_prefix:operators_"`
+	// Operators that are associated with this cluster and their properties.
+	Operators []*ClusterOperator `json:"operators" gorm:"-"`
 
 	// org id
 	OrgID string `json:"org_id,omitempty"`
@@ -629,13 +629,20 @@ func (m *Cluster) validateOperators(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if m.Operators != nil {
-		if err := m.Operators.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("operators")
-			}
-			return err
+	for i := 0; i < len(m.Operators); i++ {
+		if swag.IsZero(m.Operators[i]) { // not required
+			continue
 		}
+
+		if m.Operators[i] != nil {
+			if err := m.Operators[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("operators" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

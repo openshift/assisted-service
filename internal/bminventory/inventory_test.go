@@ -1800,7 +1800,7 @@ var _ = Describe("cluster", func() {
 				})
 				Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 				actual := reply.(*installer.RegisterClusterCreated)
-				Expect(actual.Payload.Operators.Lso.Enabled).To(Equal(swag.Bool(false)))
+				Expect(actual.Payload.Operators).To(BeNil())
 			})
 
 			It("LSO install non default value", func() {
@@ -1816,16 +1816,15 @@ var _ = Describe("cluster", func() {
 						Name:             swag.String("some-cluster-name"),
 						OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
 						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-						Operators: &models.Operators{
-							Lso: &models.Lso{
-								Enabled: swag.Bool(true),
-							},
+						Operators: []*models.Operator{
+							{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
 						},
 					},
 				})
 				Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 				actual := reply.(*installer.RegisterClusterCreated)
-				Expect(actual.Payload.Operators.Lso.Enabled).To(Equal(swag.Bool(true)))
+				Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
+				Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
 			})
 
 			It("Update Install LSO", func() {
@@ -1840,16 +1839,15 @@ var _ = Describe("cluster", func() {
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
 					ClusterUpdateParams: &models.ClusterUpdateParams{
-						Operators: &models.Operators{
-							Lso: &models.Lso{
-								Enabled: swag.Bool(true),
-							},
+						Operators: []*models.Operator{
+							{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
 						},
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 				actual := reply.(*installer.UpdateClusterCreated)
-				Expect(actual.Payload.Operators.Lso.Enabled).To(Equal(swag.Bool(true)))
+				Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
+				Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
 			})
 
 			It("ssh key with newline", func() {

@@ -23,6 +23,8 @@ tags:
     description: Managed dns domains for a cluster installation.
   - name: manifests
     description: Manifests for customizing a cluster installation.
+  - name: operators
+    description: Information regarding supported operators.
   - name: versions
     description: Information regarding versions.
 
@@ -2510,7 +2512,7 @@ paths:
       tags:
         - versions
       operationId: ListSupportedOpenshiftVersions
-      description: Retrieves the list of OpenShift supported versions
+      description: Retrieves the list of OpenShift supported versions.
       responses:
         "200":
           description: Success.
@@ -2518,6 +2520,67 @@ paths:
             $ref: '#/definitions/openshift-versions'
         "503":
           description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /supported-operators:
+    get:
+      tags:
+        - operators
+      operationId: ListSupportedOperators
+      description: Retrieves the list of supported operators.
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/supported-operators-list'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /supported-operators/{operator_type}:
+    get:
+      tags:
+        - operators
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Lists properties for an operator type.
+      operationId: ListOperatorProperties
+      parameters:
+        - in: path
+          name: operator_type
+          description: The operator type.
+          type: string
+          enum: ['lso', 'ocs']
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            type: string
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
           schema:
             $ref: '#/definitions/error'
 
@@ -2728,19 +2791,38 @@ paths:
             $ref: '#/definitions/error'
 
 definitions:
-  lso:
+  operator:
     type: object
     properties:
+      operator_type:
+        $ref: '#/definitions/operator-type'
       enabled:
         type: boolean
         default: false
+      properties:
+        type: string
+        description: JSON-formatted string containing the properties for each operator
 
-  operators:
+  cluster-operator:
     type: object
     properties:
-      lso:
-        $ref: '#/definitions/lso'
-        x-go-custom-tag: gorm:"embedded;embedded_prefix:lso_"
+      operator_type:
+        $ref: '#/definitions/operator-type'
+      enabled:
+        type: boolean
+        default: false
+      status:
+        type: string
+      status_info:
+        type: string
+      properties:
+        type: string
+        description: JSON-formatted string containing the properties for each operator
+
+  supported-operators-list:
+    type: array
+    items:
+      $ref: '#/definitions/operator-type'
 
   list-managed-domains:
     type: array
@@ -3217,8 +3299,7 @@ definitions:
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
         x-nullable: true
       operators:
-        $ref: '#/definitions/operators'
-        x-nullable: true
+        $ref: '#/definitions/list-operators'
 
   cluster-update-params:
     type: object
@@ -3355,8 +3436,7 @@ definitions:
         description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
         x-nullable: true
       operators:
-        $ref: '#/definitions/operators'
-        x-nullable: true
+        $ref: '#/definitions/list-operators'
 
   add-hosts-cluster-create-params:
     type: object
@@ -3583,8 +3663,11 @@ definitions:
         $ref: '#/definitions/cluster-progress-info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
       operators:
-        $ref: '#/definitions/operators'
-        x-go-custom-tag: gorm:"embedded;embedded_prefix:operators_"
+        type: array
+        items:
+          $ref: '#/definitions/cluster-operator'
+        x-go-custom-tag: gorm:"-"
+        description: Operators that are associated with this cluster and their properties.
         x-nullable: true
 
   image_info:
@@ -4205,6 +4288,8 @@ definitions:
       - 'dns-domain-defined'
       - 'pull-secret-set'
       - 'ntp-server-configured'
+      - 'lso-requirements-satisfied'
+      - 'ocs-requirements-satisfied'
 
   logs_type:
     type: string
@@ -4213,6 +4298,19 @@ definitions:
       - 'controller'
       - 'all'
       - ''
+
+  operator-type:
+    type: string
+    enum:
+      - 'lso'
+      - 'ocs'
+
+  list-operators:
+    type: array
+    items:
+      $ref: '#/definitions/operator'
+      x-nullable: true
+      description: Operators that are associated with this cluster and their properties.
 
   list-manifests:
     type: array

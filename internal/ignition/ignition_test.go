@@ -716,21 +716,17 @@ var _ = Describe("Lso manifests creation Test", func() {
 	})
 	Describe("Lso Manifests", func() {
 		It("lsoEnabled", func() {
-			cluster.Operators = &models.Operators{
-				Lso: &models.Lso{
-					Enabled: swag.Bool(true),
-				},
-			}
+			cluster.Operators = []*models.ClusterOperator{
+				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
+
 			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
 			lsoEnabled = g.checkLsoEnabled()
 			Expect(lsoEnabled).To(Equal(true))
 		})
 		It("lso manifests creation with lso enabled", func() {
-			cluster.Operators = &models.Operators{
-				Lso: &models.Lso{
-					Enabled: swag.Bool(true),
-				},
-			}
+			cluster.Operators = []*models.ClusterOperator{
+				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
+
 			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
 			lsoErr = g.createLsoManifests()
 			Expect(lsoErr).NotTo(HaveOccurred())
