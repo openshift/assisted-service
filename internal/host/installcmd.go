@@ -142,6 +142,15 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--agent-image", i.instructionConfig.InventoryImage,
 	}
 
+	/*
+		boolean flag must be used either without value (flag present means True) or in the format of <flag>=True|False.
+		format <boolean flag> <value> is not supported by golang flag package and will cause the flags processing to finish
+		before processing the rest of the input flags
+	*/
+	if i.instructionConfig.SkipCertVerification {
+		installerCmd = append(installerCmd, "--insecure")
+	}
+
 	if i.hasCACert() {
 		podmanCmd = append(podmanCmd, "--volume", fmt.Sprintf("%s:%s:rw", common.HostCACertPath, common.HostCACertPath))
 		installerCmd = append(installerCmd, "--cacert", common.HostCACertPath)
@@ -168,13 +177,6 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 	if i.instructionConfig.ServiceIPs != "" {
 		installerCmd = append(installerCmd, "--service-ips", i.instructionConfig.ServiceIPs)
 	}
-
-	/*
-	  Setting the insecure flag last, since currently there is an issue with flag package: when processing
-	  input arguments, in case the argument is boolean and comes in the form of "--arg-name arg-value", the processing
-	  stops right after it and the rest of the flag are not processed. "--arg-name=arg-value" form does not have this issue
-	*/
-	installerCmd = append(installerCmd, "--insecure", strconv.FormatBool(i.instructionConfig.SkipCertVerification))
 
 	return fmt.Sprintf("%s %s %s", shellescape.QuoteCommand(podmanCmd), i.instructionConfig.InstallerImage,
 		shellescape.QuoteCommand(installerCmd)), nil

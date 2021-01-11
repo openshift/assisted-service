@@ -278,7 +278,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(false), 2)
+			Expect(strings.Contains(stepReply[0].Args[1], "--insecure")).Should(BeFalse())
 		})
 
 		It("insecure_cert_is_set_to_false", func() {
@@ -289,7 +289,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(false), 2)
+			Expect(strings.Contains(stepReply[0].Args[1], "--insecure")).Should(BeFalse())
 		})
 
 		It("insecure_cert_is_set_to_true", func() {
@@ -300,7 +300,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--insecure", strconv.FormatBool(true), 2)
+			Expect(strings.Contains(stepReply[0].Args[1], "--insecure")).Should(BeTrue())
 		})
 
 		It("target_url_is_passed", func() {
@@ -472,7 +472,7 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket " +
 		"--env PULL_SECRET_TOKEN --env HTTP_PROXY --env HTTPS_PROXY --env NO_PROXY --env http_proxy --env https_proxy --env no_proxy " +
 		"quay.io/ocpmetal/assisted-installer-agent:latest fio_perf_check " +
-		fmt.Sprintf("--url %s --cluster-id %s --host-id %s --agent-version quay.io/ocpmetal/assisted-installer-agent:latest --insecure false ", installCmd.instructionConfig.ServiceBaseURL, string(clusterId), string(hostId)) +
+		fmt.Sprintf("--url %s --cluster-id %s --host-id %s --agent-version quay.io/ocpmetal/assisted-installer-agent:latest ", installCmd.instructionConfig.ServiceBaseURL, string(clusterId), string(hostId)) +
 		fmt.Sprintf("\"{\\\"duration_threshold_ms\\\":10,\\\"exit_code\\\":222,\\\"path\\\":\\\"%s\\\"}\" ; ", bootDevice)
 
 	installCommandPrefix := fioPerfCheckCmd
