@@ -143,7 +143,7 @@ var _ = Describe("Leader tests", func() {
 	}
 
 	client := clientset.NewForConfigOrDie(config)
-	cf := leader.Config{LeaseDuration: 1 * time.Second, RenewDeadline: 800 * time.Millisecond, RetryInterval: 500 * time.Millisecond,
+	cf := leader.Config{LeaseDuration: 2 * time.Second, RenewDeadline: 1900 * time.Millisecond, RetryInterval: 200 * time.Millisecond,
 		Namespace: namespace}
 
 	var tests []*Test
