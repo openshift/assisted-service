@@ -5711,6 +5711,11 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
+        "image_type": {
+          "description": "Type of image that should be generated.",
+          "type": "string",
+          "$ref": "#/definitions/image_type"
+        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -5753,8 +5758,19 @@ func init() {
         "static_ips_config": {
           "description": "statip ips configuration string in the format expected by discovery ignition",
           "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "$ref": "#/definitions/image_type"
         }
       }
+    },
+    "image_type": {
+      "type": "string",
+      "enum": [
+        "full-iso",
+        "minimal-iso"
+      ]
     },
     "infra_error": {
       "type": "object",
@@ -12080,6 +12096,11 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
+        "image_type": {
+          "description": "Type of image that should be generated.",
+          "type": "string",
+          "$ref": "#/definitions/image_type"
+        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -12123,8 +12144,19 @@ func init() {
         "static_ips_config": {
           "description": "statip ips configuration string in the format expected by discovery ignition",
           "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "$ref": "#/definitions/image_type"
         }
       }
+    },
+    "image_type": {
+      "type": "string",
+      "enum": [
+        "full-iso",
+        "minimal-iso"
+      ]
     },
     "infra_error": {
       "type": "object",
