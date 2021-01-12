@@ -226,6 +226,13 @@ func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1
 		}
 	}
 
+	updatePString := func(new *string, old string, target **string) {
+		if new != nil && *new != old {
+			*target = new
+			update = true
+		}
+	}
+
 	updateString(spec.Name, c.Name, &params.Name)
 
 	if spec.OpenshiftVersion != c.OpenshiftVersion {
@@ -244,7 +251,7 @@ func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1
 	updateString(spec.APIVip, c.APIVip, &params.APIVip)
 	updateString(spec.APIVipDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName)
 	updateString(spec.IngressVip, c.IngressVip, &params.IngressVip)
-	updateString(spec.MachineNetworkCidr, c.MachineNetworkCidr, &params.MachineNetworkCidr)
+	updatePString(spec.MachineNetworkCidr, c.MachineNetworkCidr, &params.MachineNetworkCidr)
 	updateString(spec.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
 
 	if spec.VIPDhcpAllocation != swag.BoolValue(c.VipDhcpAllocation) {
