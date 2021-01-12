@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -158,6 +159,8 @@ func main() {
 		"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
 
 	log.Println(fmt.Sprintf("Started service with OCP versions %v", openshiftVersionsMap))
+
+	failOnError(os.MkdirAll(Options.BMConfig.ISOCacheDir, 0700), "Failed to create ISO cache directory %s", Options.BMConfig.ISOCacheDir)
 
 	// Connect to db
 	db := setupDB(log)
