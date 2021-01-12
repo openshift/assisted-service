@@ -77,29 +77,25 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 		return "", err
 	}
 
+	e.log.Info("Creating minimal ISO template")
+	return e.create()
+}
+
+func (e *rhcosEditor) create() (string, error) {
 	isoPath, err := tempFileName()
 	if err != nil {
 		return "", err
 	}
 
-	e.log.Infof("Creating minimal ISO template: %s", isoPath)
-	if err := e.create(isoPath); err != nil {
+	volumeID, err := e.isoHandler.VolumeIdentifier()
+	if err != nil {
+		return "", err
+	}
+	if err = e.isoHandler.Create(isoPath, volumeID); err != nil {
 		return "", err
 	}
 
 	return isoPath, nil
-}
-
-func (e *rhcosEditor) create(outPath string) error {
-	volumeID, err := e.isoHandler.VolumeIdentifier()
-	if err != nil {
-		return err
-	}
-	if err = e.isoHandler.Create(outPath, volumeID); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (e *rhcosEditor) fixTemplateConfigs(serviceBaseURL string) error {
