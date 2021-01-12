@@ -151,6 +151,10 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		installerCmd = append(installerCmd, "--insecure")
 	}
 
+	if i.instructionConfig.CheckClusterVersion {
+		installerCmd = append(installerCmd, "--check-cluster-version")
+	}
+
 	if i.hasCACert() {
 		podmanCmd = append(podmanCmd, "--volume", fmt.Sprintf("%s:%s:rw", common.HostCACertPath, common.HostCACertPath))
 		installerCmd = append(installerCmd, "--cacert", common.HostCACertPath)

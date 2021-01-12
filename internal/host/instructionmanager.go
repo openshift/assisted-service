@@ -59,6 +59,7 @@ type InstructionConfig struct {
 	NtpSynchronizerImage         string `envconfig:"NTP_SYNCHRONIZER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	FioPerfCheckImage            string `envconfig:"FIO_PERF_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification         bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	CheckClusterVersion          bool   `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
 	SupportL2                    bool   `envconfig:"SUPPORT_L2" default:"true"`
 	InstallationTimeout          uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 	ReleaseImageMirror           string
