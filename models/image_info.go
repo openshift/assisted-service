@@ -40,6 +40,9 @@ type ImageInfo struct {
 
 	// statip ips configuration string in the format expected by discovery ignition
 	StaticIpsConfig string `json:"static_ips_config,omitempty"`
+
+	// type
+	Type ImageType `json:"type,omitempty"`
 }
 
 // Validate validates this image info
@@ -55,6 +58,10 @@ func (m *ImageInfo) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateSizeBytes(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateType(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -97,6 +104,22 @@ func (m *ImageInfo) validateSizeBytes(formats strfmt.Registry) error {
 	}
 
 	if err := validate.MinimumInt("size_bytes", "body", int64(*m.SizeBytes), 0, false); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *ImageInfo) validateType(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Type) { // not required
+		return nil
+	}
+
+	if err := m.Type.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("type")
+		}
 		return err
 	}
 

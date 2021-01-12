@@ -2923,6 +2923,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/static-ip-config'
+      image_type:
+        type: string
+        description: Type of image that should be generated.
+        $ref: '#/definitions/image_type'
 
   assisted-service-iso-create-params:
     type: object
@@ -3695,6 +3699,13 @@ definitions:
       static_ips_config:
         type: string
         description: statip ips configuration string in the format expected by discovery ignition
+      type:
+        type: string
+        $ref: '#/definitions/image_type'
+
+  image_type:
+    type: string
+    enum: [full-iso, minimal-iso]
 
   free-addresses-list:
     type: array
