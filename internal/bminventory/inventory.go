@@ -187,6 +187,15 @@ const ignitionConfigFormat = `{
       },
       "contents": { "source": "data:,{{.AGENT_MOTD}}" }
 	},
+    {
+      "overwrite": true,
+      "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.IPv6_CONF}}" }
+    },
 	{
 		"overwrite": true,
 		"path": "/root/.docker/config.json",
@@ -380,6 +389,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		"clusterId":            cluster.ID.String(),
 		"PullSecretToken":      pullSecretToken,
 		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
+		"IPv6_CONF":            url.PathEscape(common.Ipv6DuidDiscoveryConf),
 		"PULL_SECRET":          url.PathEscape(cluster.PullSecret),
 		"RH_ROOT_CA":           rhCa,
 		"PROXY_SETTINGS":       proxySettings,
@@ -1488,7 +1498,6 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	var cluster common.Cluster
 	var err error
 	log.Info("update cluster ", params.ClusterID)
-
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
 		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
 		if err != nil {
@@ -1649,7 +1658,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
+func (b *bareMetalInventory) updateDhcpOrSNONetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	if params.ClusterUpdateParams.APIVip != nil {
 		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set API VIP")
@@ -1669,6 +1678,26 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
 	}
 	return nil
+}
+
+func (b *bareMetalInventory) updateMachineCidrOrVips(userManagedNetworking, vipDhcpAllocation bool, cluster *common.Cluster, updates map[string]interface{},
+	params installer.UpdateClusterParams, machineCidr *string, log logrus.FieldLogger) error {
+	var (
+		err                           error
+		userManagedNetworkingIPv6Only bool
+	)
+	if userManagedNetworking {
+		userManagedNetworkingIPv6Only, err = network.AreIpv6OnlyHosts(cluster.Hosts, log)
+		if err != nil {
+			return err
+		}
+	}
+	if !userManagedNetworking && vipDhcpAllocation || userManagedNetworkingIPv6Only {
+		err = b.updateDhcpOrSNONetworkParams(updates, cluster, params, log, machineCidr)
+	} else if !userManagedNetworking {
+		err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, machineCidr)
+	}
+	return err
 }
 
 func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
@@ -1749,15 +1778,8 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		machineCidr = ""
 		setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	}
-	if !userManagedNetworking {
-		if vipDhcpAllocation {
-			err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
-		} else {
-			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
-		}
-		if err != nil {
-			return err
-		}
+	if err = b.updateMachineCidrOrVips(userManagedNetworking, vipDhcpAllocation, cluster, updates, params, &machineCidr, log); err != nil {
+		return err
 	}
 
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {

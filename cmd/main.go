@@ -272,9 +272,9 @@ func main() {
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
-	ntpUtils := network.NewNtpUtils(manifestsApi)
+	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, ntpUtils, lead)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
