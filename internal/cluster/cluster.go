@@ -443,7 +443,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := "Update cluster installation progress"
+	eventInfo := fmt.Sprintf("Update cluster installation progress: %s", progress)
 	defer func() {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
 	}()
