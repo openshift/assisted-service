@@ -2,7 +2,6 @@ package hardware
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/openshift/assisted-service/internal/common"
@@ -74,15 +73,14 @@ var _ = Describe("Disk eligibility", func() {
 
 var _ = Describe("hardware_validator", func() {
 	var (
-		hwvalidator     Validator
-		host1           *models.Host
-		host2           *models.Host
-		host3           *models.Host
-		inventory       *models.Inventory
-		cluster         *common.Cluster
-		validDiskSize   = int64(128849018880)
-		invalidDiskSize = int64(200)
-		status          = models.HostStatusKnown
+		hwvalidator   Validator
+		host1         *models.Host
+		host2         *models.Host
+		host3         *models.Host
+		inventory     *models.Inventory
+		cluster       *common.Cluster
+		validDiskSize = int64(128849018880)
+		status        = models.HostStatusKnown
 	)
 	BeforeEach(func() {
 		var cfg ValidatorCfg
@@ -121,16 +119,25 @@ var _ = Describe("hardware_validator", func() {
 
 	It("validate_disk_list_return_order", func() {
 		nvmename := "nvme01fs"
+
+		eligible := models.DiskInstallationEligibility{
+			Eligible: true,
+		}
+
 		inventory.Disks = []*models.Disk{
 			// Not disk type
 			{
 				DriveType: "ODD", Name: "aaa",
+				InstallationEligibility: models.DiskInstallationEligibility{
+					Eligible:           false,
+					NotEligibleReasons: []string{"Reason"},
+				},
 			},
-			{DriveType: "SSD", Name: nvmename, SizeBytes: validDiskSize + 1},
-			{DriveType: "SSD", Name: "stam", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 2},
-			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize + 100},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize + 1},
+			{DriveType: "SSD", Name: nvmename, SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
+			{DriveType: "SSD", Name: "stam", SizeBytes: validDiskSize, InstallationEligibility: eligible},
+			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize + 2, InstallationEligibility: eligible},
+			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize + 100, InstallationEligibility: eligible},
+			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize + 1, InstallationEligibility: eligible},
 		}
 		hw, err := json.Marshal(&inventory)
 		Expect(err).NotTo(HaveOccurred())
@@ -145,51 +152,20 @@ var _ = Describe("hardware_validator", func() {
 		Expect(disks[4].Name).To(HavePrefix("nvme"))
 	})
 
-	It("validate_disk_old_inventory_backwards_compatibility", func() {
-		// Disks that don't have an eligibility struct should have their eligibility re-evaluated for backwards compat
-		validDiskJson := fmt.Sprintf(`
-		{
-			"name": "aValidDiskWithoutEligibility",
-			"drive_type": "HDD",
-			"size_bytes": %d
-		}`, validDiskSize)
-
-		invalidDiskJson := fmt.Sprintf(`
-		{
-			"name": "anInvalidDiskWithoutEligibility",
-			"drive_type": "SSD",
-			"size_bytes": %d
-		}`, invalidDiskSize)
-
-		host1.Inventory = fmt.Sprintf(`
-{
-	"disks": [
-		%s,
-		%s
-	]
-}`, validDiskJson, invalidDiskJson)
-
-		disks, err := hwvalidator.GetHostValidDisks(host1)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(len(disks)).Should(Equal(1))
-		Expect(disks[0].Name).Should(Equal("aValidDiskWithoutEligibility"))
-		Expect(disks[0].InstallationEligibility.Eligible).To(BeFalse())
-		Expect(disks[0].InstallationEligibility.NotEligibleReasons).To(BeEmpty())
-	})
-
 	It("validate_aws_disk_detected", func() {
 		inventory.Disks = []*models.Disk{
 			{
-				Name:      "xvda",
-				SizeBytes: 128849018880,
-				ByPath:    "",
-				DriveType: "SSD",
-				Hctl:      "",
-				Model:     "",
-				Path:      "/dev/xvda",
-				Serial:    "",
-				Vendor:    "",
-				Wwn:       "",
+				Name:                    "xvda",
+				SizeBytes:               128849018880,
+				ByPath:                  "",
+				DriveType:               "SSD",
+				Hctl:                    "",
+				Model:                   "",
+				Path:                    "/dev/xvda",
+				Serial:                  "",
+				Vendor:                  "",
+				Wwn:                     "",
+				InstallationEligibility: models.DiskInstallationEligibility{Eligible: true},
 			},
 		}
 		hw, err := json.Marshal(&inventory)

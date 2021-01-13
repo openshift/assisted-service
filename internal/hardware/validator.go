@@ -98,12 +98,6 @@ func (v *validator) DiskIsEligible(disk *models.Disk) []string {
 
 func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {
 	eligibleDisks := funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-		// TODO: Remove this check in a future version once all inventories have been migrated
-		if !DiskEligibilityInitialized(disk) {
-			// That means that we haven't already checked the eligibility of this disk in UpdateInventory and we must check it now
-			return len(v.DiskIsEligible(disk)) == 0
-		}
-
 		return disk.InstallationEligibility.Eligible
 	}).([]*models.Disk)
 
