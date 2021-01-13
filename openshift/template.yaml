@@ -108,6 +108,8 @@ parameters:
   required: false
 - name: PUBLIC_CONTAINER_REGISTRIES
   value: ""
+- name: CHECK_CLUSTER_VERSION
+  value: "false"
 apiVersion: v1
 kind: Template
 metadata:
@@ -317,6 +319,8 @@ objects:
                 value: ${ADMIN_USERS}
               - name: PUBLIC_CONTAINER_REGISTRIES
                 value: ${PUBLIC_CONTAINER_REGISTRIES}
+              - name: CHECK_CLUSTER_VERSION
+                value: ${CHECK_CLUSTER_VERSION}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

@@ -303,6 +303,37 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(strings.Contains(stepReply[0].Args[1], "--insecure")).Should(BeTrue())
 		})
 
+		It("check_cluster_version_is_false_by_default", func() {
+			config := &InstructionConfig{}
+			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			Expect(strings.Contains(stepReply[0].Args[1], "--check-cluster-version")).Should(BeFalse())
+		})
+
+		It("check_cluster_version_is_set_to_false", func() {
+			config := &InstructionConfig{
+				CheckClusterVersion: false,
+			}
+			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			Expect(strings.Contains(stepReply[0].Args[1], "--check-cluster-version")).Should(BeFalse())
+		})
+
+		It("check_cluster_version_is_set_to_true", func() {
+			config := &InstructionConfig{
+				CheckClusterVersion: true,
+			}
+			installCmd := NewInstallCmd(getTestLog(), db, validator, mockRelease, *config, mockEvents, mockVersions)
+			stepReply, err := installCmd.GetSteps(ctx, &host)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(stepReply).NotTo(BeNil())
+			Expect(strings.Contains(stepReply[0].Args[1], "--check-cluster-version")).Should(BeTrue())
+		})
+
 		It("target_url_is_passed", func() {
 			config := &InstructionConfig{
 				ServiceBaseURL: "ws://remote-host:8080",
