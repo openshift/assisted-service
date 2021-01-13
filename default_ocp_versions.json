@@ -8,7 +8,7 @@
 	"4.7": {
 		"display_name": "4.7-pre-release",
 		"release_image": "quay.io/openshift-release-dev/ocp-release@sha256:2419f9cd3ea9bd114764855653012e305ade2527210d332bfdd6dbdae538bd66",
-		"rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.7.0-fc.0/rhcos-4.7.0-fc.0-x86_64-live.x86_64.iso",
+		"rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.7.0-fc.2/rhcos-4.7.0-fc.2-x86_64-live.x86_64.iso",
 		"support_level": "beta"
 	}
 }
