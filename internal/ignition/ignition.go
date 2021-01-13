@@ -205,7 +205,16 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
 func (g *installerGenerator) checkLsoEnabled() bool {
-	return g.cluster.Operators != nil && g.cluster.Operators.Lso != nil && *g.cluster.Operators.Lso.Enabled
+	result := false
+	if g.cluster.Operators != nil {
+		for _, operator := range g.cluster.Operators {
+			if operator.OperatorType == models.OperatorTypeLso && swag.BoolValue(operator.Enabled) {
+				result = true
+				break
+			}
+		}
+	}
+	return result
 }
 
 func (g *installerGenerator) createManifestDirectory(installerPath string, envVars []string) error {

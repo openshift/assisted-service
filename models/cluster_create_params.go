@@ -68,7 +68,7 @@ type ClusterCreateParams struct {
 	OpenshiftVersion *string `json:"openshift_version"`
 
 	// operators
-	Operators *Operators `json:"operators,omitempty"`
+	Operators ListOperators `json:"operators,omitempty"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	// Required: true
@@ -252,13 +252,11 @@ func (m *ClusterCreateParams) validateOperators(formats strfmt.Registry) error {
 		return nil
 	}
 
-	if m.Operators != nil {
-		if err := m.Operators.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("operators")
-			}
-			return err
+	if err := m.Operators.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("operators")
 		}
+		return err
 	}
 
 	return nil

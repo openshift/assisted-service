@@ -31,7 +31,7 @@ func NewListSupportedOpenshiftVersions(ctx *middleware.Context, handler ListSupp
 
 /*ListSupportedOpenshiftVersions swagger:route GET /openshift_versions versions listSupportedOpenshiftVersions
 
-Retrieves the list of OpenShift supported versions
+Retrieves the list of OpenShift supported versions.
 
 */
 type ListSupportedOpenshiftVersions struct {
