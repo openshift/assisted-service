@@ -2,7 +2,6 @@ package s3wrapper
 
 import (
 	"bytes"
-	"compress/gzip"
 	"context"
 	"encoding/binary"
 	"fmt"
@@ -11,11 +10,10 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/cavaliercoder/go-cpio"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -384,45 +382,19 @@ func (m *multiUpload) uploadPartCopy(c chunk) error {
 }
 
 func (m *multiUpload) uploadIgnition(log logrus.FieldLogger, partNum int64, ignitionConfig string) error {
-	ignitionBytes := []byte(ignitionConfig)
-
-	// Create CPIO archive
-	archiveBuffer := new(bytes.Buffer)
-	cpioWriter := cpio.NewWriter(archiveBuffer)
-	if err := cpioWriter.WriteHeader(&cpio.Header{Name: "config.ign", Mode: 0o100_644, Size: int64(len(ignitionBytes))}); err != nil {
-		m.log.WithError(err).Errorf("Failed to write CPIO header")
-		return err
-	}
-	if _, err := cpioWriter.Write(ignitionBytes); err != nil {
-		m.log.WithError(err).Errorf("Failed to write CPIO archive")
-		return err
-	}
-	if err := cpioWriter.Close(); err != nil {
-		m.log.WithError(err).Errorf("Failed to close CPIO archive")
-		return err
-	}
-
-	// Run gzip compression
-	compressedBuffer := new(bytes.Buffer)
-	gzipWriter := gzip.NewWriter(compressedBuffer)
-	if _, err := gzipWriter.Write(archiveBuffer.Bytes()); err != nil {
-		err = errors.Wrapf(err, "Failed to gzip ignition config")
-		m.log.Error(err)
-		return err
-	}
-	if err := gzipWriter.Close(); err != nil {
-		err = errors.Wrapf(err, "Failed to gzip ignition config")
+	imageBytes, err := isoeditor.IgnitionImageArchive(ignitionConfig)
+	if err != nil {
 		m.log.Error(err)
 		return err
 	}
 
-	if int64(len(compressedBuffer.Bytes())) > m.isoInfo.areaLengthBytes {
-		err := errors.New(fmt.Sprintf("Ignition is too long to be embedded (%d > %d)", len(compressedBuffer.Bytes()), m.isoInfo.areaLengthBytes))
+	if int64(len(imageBytes)) > m.isoInfo.areaLengthBytes {
+		err = errors.New(fmt.Sprintf("Ignition is too long to be embedded (%d > %d)", len(imageBytes), m.isoInfo.areaLengthBytes))
 		m.log.Error(err)
 		return err
 	}
 
-	copy(*m.origContents, compressedBuffer.Bytes())
+	copy(*m.origContents, imageBytes)
 
 	contentLength := int64(len(*m.origContents))
 	completedPartCopy, err := m.uploader.s3client.UploadPart(&s3.UploadPartInput{
