@@ -1,6 +1,8 @@
 package isoeditor
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,6 +10,9 @@ import (
 
 	"github.com/openshift/assisted-service/internal/isoutil"
 	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
+
+	"github.com/cavaliercoder/go-cpio"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -147,4 +152,34 @@ func tempFileName() (string, error) {
 	}
 
 	return path, nil
+}
+
+func IgnitionImageArchive(ignitionConfig string) ([]byte, error) {
+	ignitionBytes := []byte(ignitionConfig)
+
+	// Create CPIO archive
+	archiveBuffer := new(bytes.Buffer)
+	cpioWriter := cpio.NewWriter(archiveBuffer)
+	if err := cpioWriter.WriteHeader(&cpio.Header{Name: "config.ign", Mode: 0o100_644, Size: int64(len(ignitionBytes))}); err != nil {
+		return nil, errors.Wrap(err, "Failed to write CPIO header")
+	}
+	if _, err := cpioWriter.Write(ignitionBytes); err != nil {
+
+		return nil, errors.Wrap(err, "Failed to write CPIO archive")
+	}
+	if err := cpioWriter.Close(); err != nil {
+		return nil, errors.Wrap(err, "Failed to close CPIO archive")
+	}
+
+	// Run gzip compression
+	compressedBuffer := new(bytes.Buffer)
+	gzipWriter := gzip.NewWriter(compressedBuffer)
+	if _, err := gzipWriter.Write(archiveBuffer.Bytes()); err != nil {
+		return nil, errors.Wrap(err, "Failed to gzip ignition config")
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return nil, errors.Wrap(err, "Failed to gzip ignition config")
+	}
+
+	return compressedBuffer.Bytes(), nil
 }
