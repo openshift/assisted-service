@@ -30,24 +30,24 @@ type ClusterSpec struct {
 	// Cluster name
 	Name string `json:"name"`
 	// Installation will start once cluster is in known state and approved
-	Approved                 bool   `json:"approved,omitempty"`
-	OpenshiftVersion         string `json:"openshiftVersion"`
-	BaseDNSDomain            string `json:"baseDNSDomain,omitempty"`
-	ClusterNetworkCidr       string `json:"clusterNetworkCIDR,omitempty"`
-	ClusterNetworkHostPrefix int64  `json:"clusterNetworkHostPrefix,omitempty"`
-	ServiceNetworkCidr       string `json:"serviceNetworkCIDR,omitempty"`
-	APIVip                   string `json:"apiVIP,omitempty"`
-	APIVipDNSName            string `json:"apiVIPdnsName,omitempty"`
-	IngressVip               string `json:"ingressVIP,omitempty"`
-	MachineNetworkCidr       string `json:"machineNetworkCIDR,omitempty"`
-	SSHPublicKey             string `json:"sshPublicKey,omitempty"`
-	VIPDhcpAllocation        bool   `json:"vipDHCPAllocation,omitempty"`
-	HTTPProxy                string `json:"httpProxy,omitempty"`
-	HTTPSProxy               string `json:"httpsProxy,omitempty"`
-	NoProxy                  string `json:"noProxy,omitempty"`
-	UserManagedNetworking    bool   `json:"userManagedNetworking,omitempty"`
-	AdditionalNtpSource      string `json:"additionalNtpSource,omitempty"`
-	InstallConfigOverrides   string `json:"installConfigOverrides,omitempty"`
+	Approved                 bool    `json:"approved,omitempty"`
+	OpenshiftVersion         string  `json:"openshiftVersion"`
+	BaseDNSDomain            string  `json:"baseDNSDomain,omitempty"`
+	ClusterNetworkCidr       string  `json:"clusterNetworkCIDR,omitempty"`
+	ClusterNetworkHostPrefix int64   `json:"clusterNetworkHostPrefix,omitempty"`
+	ServiceNetworkCidr       string  `json:"serviceNetworkCIDR,omitempty"`
+	APIVip                   string  `json:"apiVIP,omitempty"`
+	APIVipDNSName            string  `json:"apiVIPdnsName,omitempty"`
+	IngressVip               string  `json:"ingressVIP,omitempty"`
+	MachineNetworkCidr       *string `json:"machineNetworkCIDR,omitempty"`
+	SSHPublicKey             string  `json:"sshPublicKey,omitempty"`
+	VIPDhcpAllocation        bool    `json:"vipDHCPAllocation,omitempty"`
+	HTTPProxy                string  `json:"httpProxy,omitempty"`
+	HTTPSProxy               string  `json:"httpsProxy,omitempty"`
+	NoProxy                  string  `json:"noProxy,omitempty"`
+	UserManagedNetworking    bool    `json:"userManagedNetworking,omitempty"`
+	AdditionalNtpSource      string  `json:"additionalNtpSource,omitempty"`
+	InstallConfigOverrides   string  `json:"installConfigOverrides,omitempty"`
 	// A reference to the secret containing the pull secret
 	PullSecretRef *corev1.SecretReference `json:"pullSecretRef"`
 }
