@@ -4962,6 +4962,57 @@ func init() {
         }
       }
     },
+    "container_image_availability": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A fully qualified image name (FQIN).",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/definitions/container_image_availability_result"
+        }
+      }
+    },
+    "container_image_availability_request": {
+      "type": "object",
+      "required": [
+        "images"
+      ],
+      "properties": {
+        "images": {
+          "description": "List of image names to be checked.",
+          "type": "array",
+          "items": {
+            "description": "A fully qualified image name (FQIN).",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "container_image_availability_response": {
+      "type": "object",
+      "required": [
+        "images"
+      ],
+      "properties": {
+        "images": {
+          "description": "List of images that were checked.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container_image_availability"
+          }
+        }
+      }
+    },
+    "container_image_availability_result": {
+      "description": "Image availability result.",
+      "type": "string",
+      "enum": [
+        "success",
+        "failure"
+      ]
+    },
     "cpu": {
       "type": "object",
       "properties": {
@@ -6240,7 +6291,8 @@ func init() {
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
         "ntp-synchronizer",
-        "fio-perf-check"
+        "fio-perf-check",
+        "container-image-availability"
       ]
     },
     "steps": {
@@ -11355,6 +11407,57 @@ func init() {
         }
       }
     },
+    "container_image_availability": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "A fully qualified image name (FQIN).",
+          "type": "string"
+        },
+        "result": {
+          "$ref": "#/definitions/container_image_availability_result"
+        }
+      }
+    },
+    "container_image_availability_request": {
+      "type": "object",
+      "required": [
+        "images"
+      ],
+      "properties": {
+        "images": {
+          "description": "List of image names to be checked.",
+          "type": "array",
+          "items": {
+            "description": "A fully qualified image name (FQIN).",
+            "type": "string"
+          }
+        }
+      }
+    },
+    "container_image_availability_response": {
+      "type": "object",
+      "required": [
+        "images"
+      ],
+      "properties": {
+        "images": {
+          "description": "List of images that were checked.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container_image_availability"
+          }
+        }
+      }
+    },
+    "container_image_availability_result": {
+      "description": "Image availability result.",
+      "type": "string",
+      "enum": [
+        "success",
+        "failure"
+      ]
+    },
     "cpu": {
       "type": "object",
       "properties": {
@@ -12634,7 +12737,8 @@ func init() {
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
         "ntp-synchronizer",
-        "fio-perf-check"
+        "fio-perf-check",
+        "container-image-availability"
       ]
     },
     "steps": {

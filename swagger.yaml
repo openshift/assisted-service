@@ -3152,6 +3152,7 @@ definitions:
       - api-vip-connectivity-check
       - ntp-synchronizer
       - fio-perf-check
+      - container-image-availability
 
   step:
     type: object
@@ -4250,6 +4251,43 @@ definitions:
       source_state:
         description: Indication of state of an NTP source.
         $ref: "#/definitions/source_state"
+
+  container_image_availability_request:
+    type: object
+    required:
+      - images
+    properties:
+      images:
+        type: array
+        description: List of image names to be checked.
+        items:
+          type: string
+          description: A fully qualified image name (FQIN).
+
+  container_image_availability_response:
+    type: object
+    required:
+      - images
+    properties:
+      images:
+        type: array
+        description: List of images that were checked.
+        items:
+          $ref: '#/definitions/container_image_availability'
+
+  container_image_availability:
+    type: object
+    properties:
+      name:
+        type: string
+        description: A fully qualified image name (FQIN).
+      result:
+        $ref: '#/definitions/container_image_availability_result'
+
+  container_image_availability_result:
+    type: string
+    enum: ['success', 'failure']
+    description: Image availability result.
 
   source_state:
     type: string
