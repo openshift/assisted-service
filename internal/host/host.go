@@ -533,7 +533,11 @@ func (m *Manager) UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h
 				hostStatus, hostStatusesBeforeInstallation[:]))
 	}
 
-	validDisks, _ := m.hwValidator.GetHostValidDisks(h)
+	validDisks, err := m.hwValidator.GetHostValidDisks(h)
+	if err != nil {
+		return err
+	}
+
 	matchedInstallationDisk := funk.Find(validDisks, func(disk *models.Disk) bool {
 		return hostutil.GetDeviceFullName(disk.Name) == installationDiskPath
 	})
@@ -692,9 +696,15 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 	//get the boot disk
 	var boot *models.Disk
 	disks, err := m.hwValidator.GetHostValidDisks(h)
-	if err == nil && len(disks) > 0 {
+	if err != nil {
+		log.WithError(err).Errorf("failed to get host valid disks %s", h.ClusterID)
+		return
+	}
+
+	if len(disks) > 0 {
 		boot = disks[0]
 	}
+
 	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
 }
 
