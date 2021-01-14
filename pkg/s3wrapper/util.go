@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
 
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/isoutil"
 	"github.com/pkg/errors"
 )
@@ -124,4 +125,22 @@ func DoAllBootFilesExist(ctx context.Context, isoObjectName string, api API) (bo
 		}
 	}
 	return true, nil
+}
+
+func CreateAndUploadMinimalIso(ctx context.Context, log logrus.FieldLogger,
+	isoPath, minimalIsoObject, openshiftVersion, serviceBaseURL string, api API) error {
+
+	editor := isoeditor.CreateEditor(isoPath, openshiftVersion, log)
+
+	log.Infof("Extracting rhcos ISO (%s)", isoPath)
+	minimalIsoPath, err := editor.CreateMinimalISOTemplate(serviceBaseURL)
+	if err != nil {
+		log.Errorf("Error extracting rhcos ISO (%v)", err)
+		return err
+	}
+	defer os.Remove(minimalIsoPath)
+
+	// upload the minimal iso
+	log.Infof("Uploading minimal ISO (%s)", minimalIsoPath)
+	return api.UploadFileToPublicBucket(ctx, minimalIsoPath, minimalIsoObject)
 }

@@ -362,7 +362,7 @@ func main() {
 				currVresion := version
 				errs.Go(func() error {
 					return errors.Wrapf(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
-						return objectHandler.UploadBootFiles(context.Background(), currVresion)
+						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL)
 					}), "Failed uploading boot files for OCP version %s", currVresion)
 				})
 			}
@@ -370,7 +370,7 @@ func main() {
 			for version := range openshiftVersionsMap {
 				currVresion := version
 				errs.Go(func() error {
-					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion),
+					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL),
 						"Failed uploading boot files for OCP version %s", currVresion)
 				})
 			}
