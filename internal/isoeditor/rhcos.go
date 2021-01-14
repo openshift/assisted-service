@@ -23,6 +23,7 @@ const (
 
 type Editor interface {
 	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
+	CreateClusterMinimalISO(ignition string) (string, error)
 }
 
 type rhcosEditor struct {
@@ -84,6 +85,32 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 
 	e.log.Info("Creating minimal ISO template")
 	return e.create()
+}
+
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string) (string, error) {
+	if err := e.isoHandler.Extract(); err != nil {
+		return "", err
+	}
+	defer func() {
+		if err := e.isoHandler.CleanWorkDir(); err != nil {
+			e.log.WithError(err).Warnf("Failed to clean isoHandler work dir")
+		}
+	}()
+
+	if err := e.addIgnitionArchive(ignition); err != nil {
+		return "", err
+	}
+
+	return e.create()
+}
+
+func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
+	archiveBytes, err := IgnitionImageArchive(ignition)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644)
 }
 
 func (e *rhcosEditor) create() (string, error) {
