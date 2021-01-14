@@ -157,7 +157,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	mockUploadIso := func(cluster *common.Cluster, returnValue error) {
 		srcIso := "rhcos"
-		mockS3Client.EXPECT().GetBaseIsoObject(cluster.OpenshiftVersion).Return(srcIso).Times(1)
+		mockS3Client.EXPECT().GetBaseIsoObject(cluster.OpenshiftVersion).Return(srcIso, nil).Times(1)
 		mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), srcIso,
 			fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())).Return(returnValue).Times(1)
 	}

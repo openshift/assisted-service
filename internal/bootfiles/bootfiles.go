@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/bootfiles"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,7 +33,12 @@ type BootFiles struct {
 func (b *BootFiles) DownloadBootFiles(ctx context.Context, params operations.DownloadBootFilesParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	srcObjectName := b.objectHandler.GetBaseIsoObject(params.OpenshiftVersion)
+	srcObjectName, err := b.objectHandler.GetBaseIsoObject(params.OpenshiftVersion)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to get source object name for ocp version %s", params.OpenshiftVersion)
+		log.Error(err)
+		return common.GenerateErrorResponder(err)
+	}
 
 	// If we're working with AWS, redirect to download directly from there
 	if b.objectHandler.IsAwsS3() {
@@ -41,7 +47,8 @@ func (b *BootFiles) DownloadBootFiles(ctx context.Context, params operations.Dow
 
 	reader, objectName, contentLength, err := b.objectHandler.DownloadBootFile(ctx, srcObjectName, params.FileType)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get %s PXE artifact from object %s", params.FileType, srcObjectName)
+		err = errors.Wrapf(err, "Failed to get %s PXE artifact from object %s", params.FileType, srcObjectName)
+		log.Error(err)
 		return common.GenerateErrorResponder(err)
 	}
 

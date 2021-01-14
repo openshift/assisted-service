@@ -6051,6 +6051,13 @@ func init() {
     },
     "openshift-version": {
       "type": "object",
+      "required": [
+        "display_name",
+        "release_image",
+        "rhcos_image",
+        "rhcos_version",
+        "support_level"
+      ],
       "properties": {
         "display_name": {
           "description": "Name of the version to be presented to the user.",
@@ -6062,6 +6069,10 @@ func init() {
         },
         "rhcos_image": {
           "description": "The base RHCOS image used for the discovery iso.",
+          "type": "string"
+        },
+        "rhcos_version": {
+          "description": "Build ID of the RHCOS image.",
           "type": "string"
         },
         "support_level": {
@@ -12421,6 +12432,13 @@ func init() {
     },
     "openshift-version": {
       "type": "object",
+      "required": [
+        "display_name",
+        "release_image",
+        "rhcos_image",
+        "rhcos_version",
+        "support_level"
+      ],
       "properties": {
         "display_name": {
           "description": "Name of the version to be presented to the user.",
@@ -12432,6 +12450,10 @@ func init() {
         },
         "rhcos_image": {
           "description": "The base RHCOS image used for the discovery iso.",
+          "type": "string"
+        },
+        "rhcos_version": {
+          "description": "Build ID of the RHCOS image.",
           "type": "string"
         },
         "support_level": {

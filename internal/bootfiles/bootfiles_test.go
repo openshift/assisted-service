@@ -59,7 +59,7 @@ var _ = Describe("BootFilesTests", func() {
 
 	downloadBootFiles := func(isAws bool, fileType string) middleware.Responder {
 		mockS3Client.EXPECT().IsAwsS3().Return(isAws).Times(1)
-		mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(defaultBaseIso).Times(1)
+		mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(defaultBaseIso, nil).Times(1)
 
 		if isAws {
 			mockS3Client.EXPECT().GetS3BootFileURL(defaultBaseIso, fileType).Return(defaultURL).Times(1)
@@ -88,7 +88,7 @@ var _ = Describe("BootFilesTests", func() {
 			fileType := "vmlinuz"
 			baseIso := "livecd.iso"
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(baseIso)
+			mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(baseIso, nil)
 			mockS3Client.EXPECT().DownloadBootFile(ctx, baseIso, fileType).Return(nil, "", int64(0), errors.New("Whoops"))
 			response := bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{
 				FileType: fileType, OpenshiftVersion: common.DefaultTestOpenShiftVersion,

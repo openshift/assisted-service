@@ -156,13 +156,22 @@ var _ = Describe("s3filesystem", func() {
 	Context("upload boot files", func() {
 		It("all exist", func() {
 			for _, fileType := range BootFileExtensions {
-				err := ioutil.WriteFile(filepath.Join(baseDir, BootFileTypeToObjectName(client.GetBaseIsoObject(defaultTestOpenShiftVersion), fileType)),
+
+				srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				err = ioutil.WriteFile(filepath.Join(baseDir, BootFileTypeToObjectName(srcObject, fileType)),
 					[]byte("Hello world"), 0600)
 				Expect(err).Should(BeNil())
 			}
-			err := ioutil.WriteFile(filepath.Join(baseDir, client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion)),
+
+			minimalIso, err := client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			err = ioutil.WriteFile(filepath.Join(baseDir, minimalIso),
 				[]byte("minimal iso"), 0600)
 			Expect(err).Should(BeNil())
+
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
 			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
@@ -190,7 +199,9 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = ioutil.WriteFile(filepath.Join(baseDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0664)
 			Expect(err).ToNot(HaveOccurred())
-			isoPath := filepath.Join(baseDir, client.GetBaseIsoObject(defaultTestOpenShiftVersion))
+			srcObject, err := client.GetBaseIsoObject(defaultTestOpenShiftVersion)
+			Expect(err).ToNot(HaveOccurred())
+			isoPath := filepath.Join(baseDir, srcObject)
 			cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", "volumeID", "-o", isoPath, filepath.Join(baseDir, "files"))
 			err = cmd.Run()
 			Expect(err).ToNot(HaveOccurred())
@@ -201,7 +212,9 @@ var _ = Describe("s3filesystem", func() {
 			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 
-			data, err := ioutil.ReadFile(filepath.Join(baseDir, BootFileTypeToObjectName(client.GetBaseIsoObject(defaultTestOpenShiftVersion), "rootfs.img")))
+			srcObject, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion)
+			Expect(err).ShouldNot(HaveOccurred())
+			data, err := ioutil.ReadFile(filepath.Join(baseDir, BootFileTypeToObjectName(srcObject, "rootfs.img")))
 			Expect(err).ToNot(HaveOccurred())
 			Expect(string(data)).To(Equal("this is rootfs"))
 		})

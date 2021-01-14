@@ -25,7 +25,7 @@ const (
 	// fsBaseISOName is the filename for the base ISO
 	fsBaseISOName = "livecd.iso"
 	// fsMinimalBaseISOName is the filename for the minimal base ISO
-	fsMinimalBaseISOName = "livecd-%s-minimal.iso"
+	fsMinimalBaseISOName = "livecd-minimal.iso"
 )
 
 type FSClient struct {
@@ -304,8 +304,15 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 
 func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error {
 	log := logutil.FromContext(ctx, f.log)
-	isoObjectName := f.GetBaseIsoObject(openshiftVersion)
-	minimalIsoObject := f.GetMinimalIsoObjectName(openshiftVersion)
+	isoObjectName, err := f.GetBaseIsoObject(openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	minimalIsoObject, err := f.GetMinimalIsoObjectName(openshiftVersion)
+	if err != nil {
+		return err
+	}
 
 	rhcosImageURL, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
 	if err != nil {
@@ -367,11 +374,12 @@ func (f *FSClient) GetS3BootFileURL(isoObjectName, fileType string) string {
 	return ""
 }
 
-func (f *FSClient) GetBaseIsoObject(openshiftVersion string) string {
-	// TODO: Need to support different versions
-	return fsBaseISOName
+func (f *FSClient) GetBaseIsoObject(openshiftVersion string) (string, error) {
+	// TODO: MGMT-3621 Need to support different versions
+	return fsBaseISOName, nil
 }
 
-func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) string {
-	return fmt.Sprintf(fsMinimalBaseISOName, openshiftVersion)
+func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
+	// TODO: MGMT-3621 Need to support different versions
+	return fsMinimalBaseISOName, nil
 }

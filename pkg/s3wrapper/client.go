@@ -59,7 +59,8 @@ type API interface {
 	DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error)
 	DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error)
 	GetS3BootFileURL(isoObjectName, fileType string) string
-	GetBaseIsoObject(openshiftVersion string) string
+	GetBaseIsoObject(openshiftVersion string) (string, error)
+	GetMinimalIsoObjectName(openshiftVersion string) (string, error)
 
 	CreatePublicBucket() error
 	UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error
@@ -478,8 +479,16 @@ func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 		return err
 	}
 
-	baseIsoObject := c.GetBaseIsoObject(openshiftVersion)
-	minimalIsoObject := GetMinimalIsoObjectName(openshiftVersion)
+	baseIsoObject, err := c.GetBaseIsoObject(openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	minimalIsoObject, err := c.GetMinimalIsoObjectName(openshiftVersion)
+	if err != nil {
+		return err
+	}
+
 	return c.uploadBootFiles(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, serviceBaseURL)
 }
 
@@ -552,10 +561,20 @@ func (c *S3Client) GetS3BootFileURL(isoObjectName, fileType string) string {
 	}
 }
 
-func (c *S3Client) GetBaseIsoObject(openshiftVersion string) string {
-	return fmt.Sprintf(rhcosObjectTemplate, openshiftVersion)
+func (c *S3Client) GetBaseIsoObject(openshiftVersion string) (string, error) {
+	rhcosVersion, err := c.versionsHandler.GetRHCOSVersion(openshiftVersion)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf(rhcosObjectTemplate, rhcosVersion), nil
 }
 
-func GetMinimalIsoObjectName(openshiftVersion string) string {
-	return fmt.Sprintf(rhcosMinimalObjectTemplate, openshiftVersion)
+func (c *S3Client) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
+	rhcosVersion, err := c.versionsHandler.GetRHCOSVersion(openshiftVersion)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion), nil
 }
