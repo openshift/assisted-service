@@ -558,7 +558,7 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 				log.WithError(vipMismatchError(apiVip, ingressVip, c)).Warn("VIPs changed")
 			}
 			m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo,
-				fmt.Sprintf("Cluster %s was updated with api-vip %s, ingress-vip %s", c.ID.String(), apiVip, ingressVip), time.Now())
+				fmt.Sprintf("Cluster was updated with api-vip %s, ingress-vip %s", apiVip, ingressVip), time.Now())
 		}
 
 	case models.ClusterStatusInstalling, models.ClusterStatusPreparingForInstallation, models.ClusterStatusFinalizing:
