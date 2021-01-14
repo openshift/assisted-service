@@ -30,6 +30,7 @@ var _ = Describe("GetFile", func() {
 	AfterEach(func() {
 		ctrl.Finish()
 		os.RemoveAll(cacheDir)
+		ClearFileCache()
 	})
 
 	It("Downloads files only when not present in the cache", func() {
@@ -45,22 +46,43 @@ var _ = Describe("GetFile", func() {
 		r2 := ioutil.NopCloser(strings.NewReader(content2))
 		mockAPI.EXPECT().Download(ctx, objName2).Times(1).Return(r2, int64(len(content2)), nil)
 
-		path1, err := GetFile(ctx, mockAPI, objName1, cacheDir)
+		path1, err := GetFile(ctx, mockAPI, objName1, cacheDir, false)
 		Expect(err).ToNot(HaveOccurred())
 		validateFileContent(path1, content1)
 
-		path2, err := GetFile(ctx, mockAPI, objName2, cacheDir)
+		path2, err := GetFile(ctx, mockAPI, objName2, cacheDir, false)
 		Expect(err).ToNot(HaveOccurred())
 		validateFileContent(path2, content2)
 
 		// get both files again to ensure download isn't called more than once
-		path1, err = GetFile(ctx, mockAPI, objName1, cacheDir)
+		path1, err = GetFile(ctx, mockAPI, objName1, cacheDir, false)
 		Expect(err).ToNot(HaveOccurred())
 		validateFileContent(path1, content1)
 
-		path2, err = GetFile(ctx, mockAPI, objName2, cacheDir)
+		path2, err = GetFile(ctx, mockAPI, objName2, cacheDir, false)
 		Expect(err).ToNot(HaveOccurred())
 		validateFileContent(path2, content2)
+	})
+
+	It("Keeps separate cache entries for public vs private", func() {
+		ctx := context.Background()
+
+		objName := "my-test-object"
+		content := "hello world"
+		r := ioutil.NopCloser(strings.NewReader(content))
+		mockAPI.EXPECT().Download(ctx, objName).Times(1).Return(r, int64(len(content)), nil)
+
+		contentPub := "HELLO WORLD"
+		rPub := ioutil.NopCloser(strings.NewReader(contentPub))
+		mockAPI.EXPECT().DownloadPublic(ctx, objName).Times(1).Return(rPub, int64(len(contentPub)), nil)
+
+		path, err := GetFile(ctx, mockAPI, objName, cacheDir, false)
+		Expect(err).ToNot(HaveOccurred())
+		validateFileContent(path, content)
+
+		pathPub, err := GetFile(ctx, mockAPI, objName, cacheDir, true)
+		Expect(err).ToNot(HaveOccurred())
+		validateFileContent(pathPub, contentPub)
 	})
 })
 
