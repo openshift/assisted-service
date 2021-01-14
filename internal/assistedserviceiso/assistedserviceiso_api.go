@@ -2,7 +2,6 @@ package assistedserviceiso
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -89,7 +89,13 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 	ignitionConfig := reIgnition.Replace(ignitionConfigSource)
 
 	username := auth.UserNameFromContext(ctx)
-	srcISOName := a.objectHandler.GetBaseIsoObject(params.AssistedServiceIsoCreateParams.OpenshiftVersion)
+	srcISOName, err := a.objectHandler.GetBaseIsoObject(params.AssistedServiceIsoCreateParams.OpenshiftVersion)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to get source object name for ocp version %s", params.AssistedServiceIsoCreateParams.OpenshiftVersion)
+		log.Error(err)
+		return assisted_service_iso.NewCreateISOAndUploadToS3BadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
 	destISOName := fmt.Sprintf("%s%s", imgexpirer.AssistedServiceLiveISOPrefix, username)
 
 	if err = a.objectHandler.UploadISO(ctx, ignitionConfig, srcISOName, destISOName); err != nil {

@@ -941,7 +941,6 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
 		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig {
-		var err error
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
@@ -966,14 +965,14 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		msg := "Failed to generate image: error committing the transaction"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 	txSuccess = true
-	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		msg := "Failed to generate image: error fetching updated cluster metadata"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
@@ -981,7 +980,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	if imageExists {
-		if err := b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 
@@ -997,12 +996,18 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, formatErr)
 	}
 
-	if err := b.objectHandler.Upload(ctx, []byte(ignitionConfig), fmt.Sprintf("%s/discovery.ign", cluster.ID)); err != nil {
+	if err = b.objectHandler.Upload(ctx, []byte(ignitionConfig), fmt.Sprintf("%s/discovery.ign", cluster.ID)); err != nil {
 		log.WithError(err).Errorf("Upload discovery ignition failed for cluster %s", cluster.ID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if err := b.objectHandler.UploadISO(ctx, ignitionConfig, b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion),
+	srcObject, err := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	if err := b.objectHandler.UploadISO(ctx, ignitionConfig, srcObject,
 		fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())); err != nil {
 		log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())

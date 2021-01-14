@@ -5,6 +5,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/sirupsen/logrus"
@@ -22,8 +23,16 @@ func TestHandler_ListComponentVersions(t *testing.T) {
 }
 
 var defaultOpenShiftVersions = models.OpenshiftVersions{
-	"4.5": models.OpenshiftVersion{DisplayName: "4.5.1", ReleaseImage: "release_4.5", RhcosImage: "rhcos_4.5"},
-	"4.6": models.OpenshiftVersion{DisplayName: "4.6-candidate", ReleaseImage: "release_4.6", RhcosImage: "rhcos_4.6"},
+	"4.5": models.OpenshiftVersion{
+		DisplayName: swag.String("4.5.1"), ReleaseImage: swag.String("release_4.5"),
+		RhcosImage: swag.String("rhcos_4.5"), RhcosVersion: swag.String("version-45.123-0"),
+		SupportLevel: swag.String("oldie"),
+	},
+	"4.6": models.OpenshiftVersion{
+		DisplayName: swag.String("4.6-candidate"), ReleaseImage: swag.String("release_4.6"),
+		RhcosImage: swag.String("rhcos_4.6"), RhcosVersion: swag.String("version-46.123-0"),
+		SupportLevel: swag.String("newbie"),
+	},
 }
 
 var _ = Describe("list versions", func() {
@@ -103,6 +112,11 @@ var _ = Describe("list versions", func() {
 	})
 
 	Context("GetReleaseImage", func() {
+		var (
+			releaseImage string
+			err          error
+		)
+
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
 			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
@@ -110,9 +124,9 @@ var _ = Describe("list versions", func() {
 
 		It("default", func() {
 			for key := range *openshiftVersions {
-				releaseImage, err := h.GetReleaseImage(key)
+				releaseImage, err = h.GetReleaseImage(key)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(releaseImage).Should(Equal((*openshiftVersions)[key].ReleaseImage))
+				Expect(releaseImage).Should(Equal(*(*openshiftVersions)[key].ReleaseImage))
 			}
 		})
 
@@ -121,20 +135,25 @@ var _ = Describe("list versions", func() {
 			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, overrideRelaseImage, "")
 
 			for key := range *openshiftVersions {
-				releaseImage, err := h.GetReleaseImage(key)
+				releaseImage, err = h.GetReleaseImage(key)
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(releaseImage).Should(Equal(overrideRelaseImage))
 			}
 		})
 
 		It("unsupported_key", func() {
-			releaseImage, err := h.GetReleaseImage("unsupported")
+			releaseImage, err = h.GetReleaseImage("unsupported")
 			Expect(err).Should(HaveOccurred())
 			Expect(releaseImage).Should(BeEmpty())
 		})
 	})
 
 	Context("GetRHCOSImage", func() {
+		var (
+			rhcosImage string
+			err        error
+		)
+
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
 			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
@@ -142,16 +161,42 @@ var _ = Describe("list versions", func() {
 
 		It("default", func() {
 			for key := range *openshiftVersions {
-				rhcosImage, err := h.GetRHCOSImage(key)
+				rhcosImage, err = h.GetRHCOSImage(key)
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(rhcosImage).Should(Equal((*openshiftVersions)[key].RhcosImage))
+				Expect(rhcosImage).Should(Equal(*(*openshiftVersions)[key].RhcosImage))
 			}
 		})
 
 		It("unsupported_key", func() {
-			rhcosImage, err := h.GetRHCOSImage("unsupported")
+			rhcosImage, err = h.GetRHCOSImage("unsupported")
 			Expect(err).Should(HaveOccurred())
 			Expect(rhcosImage).Should(BeEmpty())
+		})
+	})
+
+	Context("GetRHCOSVersion", func() {
+		var (
+			rhcosVersion string
+			err          error
+		)
+
+		BeforeEach(func() {
+			openshiftVersions = &defaultOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "", "")
+		})
+
+		It("default", func() {
+			for key := range *openshiftVersions {
+				rhcosVersion, err = h.GetRHCOSVersion(key)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(rhcosVersion).Should(Equal(*(*openshiftVersions)[key].RhcosVersion))
+			}
+		})
+
+		It("unsupported_key", func() {
+			rhcosVersion, err = h.GetRHCOSVersion("unsupported")
+			Expect(err).Should(HaveOccurred())
+			Expect(rhcosVersion).Should(BeEmpty())
 		})
 	})
 

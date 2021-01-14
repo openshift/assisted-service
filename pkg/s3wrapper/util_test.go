@@ -2,7 +2,9 @@ package s3wrapper
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -17,7 +19,15 @@ func TestJob(t *testing.T) {
 }
 
 const (
-	defaultTestRhcosURL = "rhcosURL"
+	defaultTestOpenShiftVersion = "4.6"
+	defaultTestRhcosURL         = "rhcosURL"
+	defaultTestServiceBaseURL   = "http://1.1.1.1:6000"
+)
+
+var (
+	defaultTestRhcosVersion       = fmt.Sprintf("%s.00.000000000000-0", strings.ReplaceAll(defaultTestOpenShiftVersion, ".", ""))
+	defaultTestRhcosObject        = fmt.Sprintf("rhcos-%s.iso", defaultTestRhcosVersion)
+	defaultTestRhcosObjectMinimal = fmt.Sprintf("rhcos-%s-minimal.iso", defaultTestRhcosVersion)
 )
 
 var _ = Describe("FixEndpointURL", func() {

@@ -27,13 +27,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	defaultTestOpenShiftVersion   = "4.6"
-	defaultTestRhcosObject        = "rhcos-4.6.iso"
-	defaultTestRhcosObjectMinimal = "rhcos-4.6-minimal.iso"
-	defaultTestServiceBaseURL     = "http://1.1.1.1:6000"
-)
-
 var _ = Describe("s3client", func() {
 	var (
 		ctx            = context.Background()
@@ -346,6 +339,9 @@ var _ = Describe("s3client", func() {
 				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz"))}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
+
+			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
+			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 
 			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())

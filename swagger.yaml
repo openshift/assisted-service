@@ -4382,6 +4382,12 @@ definitions:
 
   openshift-version:
     type: object
+    required:
+      - display_name
+      - release_image
+      - rhcos_image
+      - rhcos_version
+      - support_level
     properties:
       display_name:
         type: string
@@ -4392,6 +4398,9 @@ definitions:
       rhcos_image:
         type: string
         description: The base RHCOS image used for the discovery iso.
+      rhcos_version:
+        type: string
+        description: Build ID of the RHCOS image.
       support_level:
         type: string
         enum: [beta, production]

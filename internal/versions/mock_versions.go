@@ -50,6 +50,21 @@ func (mr *MockHandlerMockRecorder) GetRHCOSImage(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSImage", reflect.TypeOf((*MockHandler)(nil).GetRHCOSImage), arg0)
 }
 
+// GetRHCOSVersion mocks base method
+func (m *MockHandler) GetRHCOSVersion(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRHCOSVersion", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRHCOSVersion indicates an expected call of GetRHCOSVersion
+func (mr *MockHandlerMockRecorder) GetRHCOSVersion(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSVersion", reflect.TypeOf((*MockHandler)(nil).GetRHCOSVersion), arg0)
+}
+
 // GetReleaseImage mocks base method
 func (m *MockHandler) GetReleaseImage(arg0 string) (string, error) {
 	m.ctrl.T.Helper()

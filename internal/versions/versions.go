@@ -25,6 +25,7 @@ type Handler interface {
 	restapi.VersionsAPI
 	GetReleaseImage(openshiftVersion string) (string, error)
 	GetRHCOSImage(openshiftVersion string) (string, error)
+	GetRHCOSVersion(openshiftVersion string) (string, error)
 	IsOpenshiftVersionSupported(openshiftVersion string) bool
 }
 
@@ -69,18 +70,38 @@ func (h *handler) GetReleaseImage(openshiftVersion string) (pullSpec string, err
 	}
 
 	if !h.IsOpenshiftVersionSupported(openshiftVersion) {
-		return "", errors.Errorf("No release image for openshift version %s", openshiftVersion)
+		return "", errors.Errorf("No release image for unsupported openshift version %s", openshiftVersion)
 	}
 
-	return h.openshiftVersions[openshiftVersion].ReleaseImage, nil
+	if h.openshiftVersions[openshiftVersion].ReleaseImage == nil {
+		return "", errors.Errorf("Release image was missing for openshift version %s", openshiftVersion)
+	}
+
+	return *h.openshiftVersions[openshiftVersion].ReleaseImage, nil
 }
 
-func (h *handler) GetRHCOSImage(openshiftVersion string) (pullSpec string, err error) {
+func (h *handler) GetRHCOSImage(openshiftVersion string) (string, error) {
 	if !h.IsOpenshiftVersionSupported(openshiftVersion) {
-		return "", errors.Errorf("No rhcos image for openshift version %s", openshiftVersion)
+		return "", errors.Errorf("No rhcos image for unsupported openshift version %s", openshiftVersion)
 	}
 
-	return h.openshiftVersions[openshiftVersion].RhcosImage, nil
+	if h.openshiftVersions[openshiftVersion].RhcosImage == nil {
+		return "", errors.Errorf("RHCOS image was missing for openshift version %s", openshiftVersion)
+	}
+
+	return *h.openshiftVersions[openshiftVersion].RhcosImage, nil
+}
+
+func (h *handler) GetRHCOSVersion(openshiftVersion string) (string, error) {
+	if !h.IsOpenshiftVersionSupported(openshiftVersion) {
+		return "", errors.Errorf("No rhcos version for unsupported openshift version %s", openshiftVersion)
+	}
+
+	if h.openshiftVersions[openshiftVersion].RhcosVersion == nil {
+		return "", errors.Errorf("RHCOS version was missing for openshift version %s", openshiftVersion)
+	}
+
+	return *h.openshiftVersions[openshiftVersion].RhcosVersion, nil
 }
 
 func (h *handler) IsOpenshiftVersionSupported(openshiftVersion string) bool {

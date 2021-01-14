@@ -149,6 +149,10 @@ func main() {
 
 	var openshiftVersionsMap models.OpenshiftVersions
 
+	if Options.OpenshiftVersions == "" {
+		log.Fatal("OpenShift versions is empty")
+	}
+
 	failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
 		"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
 
@@ -197,7 +201,7 @@ func main() {
 	}
 
 	for _, ocpVersion := range openshiftVersionsMap {
-		images = append(images, ocpVersion.ReleaseImage)
+		images = append(images, *ocpVersion.ReleaseImage)
 	}
 
 	pullSecretValidator, err := validations.NewPullSecretValidator(Options.ValidationsConfig, images...)
