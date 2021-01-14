@@ -108,7 +108,20 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string) (string, error) {
 		return "", err
 	}
 
+	if err := e.addIgnitionArchive(ignition); err != nil {
+		return "", err
+	}
+
 	return e.create()
+}
+
+func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
+	archiveBytes, err := IgnitionImageArchive(ignition)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644)
 }
 
 func addFile(w *cpio.Writer, f config_31_types.File) error {
@@ -190,6 +203,16 @@ func (e *rhcosEditor) addIgnitionFiles(ignition string) error {
 	}
 
 	if err = w.Close(); err != nil {
+		return err
+	}
+
+	err = editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), ` coreos.liveiso=\S+`, "")
+	if err != nil {
+		return err
+	}
+
+	err = editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), ` coreos.liveiso=\S+`, "")
+	if err != nil {
 		return err
 	}
 

@@ -18,6 +18,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -42,6 +43,7 @@ import (
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -96,6 +98,7 @@ type Config struct {
 	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
 	DeletedUnregisteredAfter time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
 	DefaultNTPSource         string            `envconfig:"NTP_DEFAULT_SERVER"`
+	ISOCacheDir              string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
 }
 
 const agentMessageOfTheDay = `
@@ -943,7 +946,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
-		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig {
+		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig &&
+		cluster.ImageInfo.Type == params.ImageCreateParams.ImageType {
 		var err error
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
@@ -1005,16 +1009,38 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	baseISOName := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
-	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
-		baseISOName = s3wrapper.GetMinimalISOObjectName(cluster.OpenshiftVersion)
-	}
 	objectPrefix := fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())
 
-	if err := b.objectHandler.UploadISO(ctx, ignitionConfig, baseISOName, objectPrefix); err != nil {
-		log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
+		baseISOName := s3wrapper.GetMinimalIsoObjectName(cluster.OpenshiftVersion)
+		isoPath, err := s3wrapper.GetFile(ctx, b.objectHandler, baseISOName, b.ISOCacheDir, true)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to download minimal ISO template %s", baseISOName)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
+		clusterISOPath, err := isoeditor.CreateEditor(isoPath, cluster.OpenshiftVersion, log).CreateClusterMinimalISO(ignitionConfig)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to create minimal discovery ISO for cluster %s", cluster.ID)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		log.Infof("Uploading minimal ISO for cluster %s", cluster.ID)
+		if err := b.objectHandler.UploadFile(ctx, clusterISOPath, fmt.Sprintf("%s.iso", objectPrefix)); err != nil {
+			os.Remove(clusterISOPath)
+			log.WithError(err).Errorf("Failed to upload minimal discovery ISO for cluster %s", cluster.ID)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+		os.Remove(clusterISOPath)
+	} else {
+		baseISOName := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
+
+		if err := b.objectHandler.UploadISO(ctx, ignitionConfig, baseISOName, objectPrefix); err != nil {
+			log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 
 	if err := b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash, params.ImageCreateParams.ImageType); err != nil {

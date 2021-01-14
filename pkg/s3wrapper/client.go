@@ -65,6 +65,7 @@ type API interface {
 	UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error
 	UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error
 	DoesPublicObjectExist(ctx context.Context, objectName string) (bool, error)
+	DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error)
 }
 
 var _ API = &S3Client{}
@@ -279,6 +280,10 @@ func (c *S3Client) download(ctx context.Context, objectName, bucket string, clie
 
 func (c *S3Client) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
 	return c.download(ctx, objectName, c.cfg.S3Bucket, c.client)
+}
+
+func (c *S3Client) DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
+	return c.download(ctx, objectName, c.cfg.PublicS3Bucket, c.client)
 }
 
 func (c *S3Client) doesObjectExist(ctx context.Context, objectName, bucket string, client s3iface.S3API) (bool, error) {

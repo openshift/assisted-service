@@ -177,6 +177,10 @@ func (f *FSClient) Download(ctx context.Context, objectName string) (io.ReadClos
 	return ioutils.NewReadCloserWrapper(fp, fp.Close), info.Size(), nil
 }
 
+func (f *FSClient) DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
+	return f.Download(ctx, objectName)
+}
+
 func (f *FSClient) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
 	filePath := filepath.Join(f.basedir, objectName)
 	info, err := os.Stat(filePath)
