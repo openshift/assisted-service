@@ -157,6 +157,22 @@ func (mr *MockAPIMockRecorder) DownloadBootFile(arg0, arg1, arg2 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadBootFile", reflect.TypeOf((*MockAPI)(nil).DownloadBootFile), arg0, arg1, arg2)
 }
 
+// DownloadPublic mocks base method
+func (m *MockAPI) DownloadPublic(arg0 context.Context, arg1 string) (io.ReadCloser, int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadPublic", arg0, arg1)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DownloadPublic indicates an expected call of DownloadPublic
+func (mr *MockAPIMockRecorder) DownloadPublic(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadPublic", reflect.TypeOf((*MockAPI)(nil).DownloadPublic), arg0, arg1)
+}
+
 // ExpireObjects mocks base method
 func (m *MockAPI) ExpireObjects(arg0 context.Context, arg1 string, arg2 time.Duration, arg3 func(context.Context, logrus.FieldLogger, string)) {
 	m.ctrl.T.Helper()
