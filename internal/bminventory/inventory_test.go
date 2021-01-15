@@ -132,6 +132,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
+		mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
+		bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
 	})
 
 	AfterEach(func() {
@@ -162,8 +164,179 @@ var _ = Describe("GenerateClusterISO", func() {
 			fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())).Return(returnValue).Times(1)
 	}
 
-	RunGenerateClusterISOTests := func() {
-		It("success", func() {
+	It("success", func() {
+		cluster := registerCluster(true)
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+		mockUploadIso(cluster, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ID).To(Equal(clusterId))
+	})
+
+	It("success with proxy", func() {
+		cluster := registerClusterWithHTTPProxy(true, "http://1.1.1.1:1234")
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+		mockUploadIso(cluster, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
+			"is not set)", gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+
+	})
+
+	It("image already exists", func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{Cluster: models.Cluster{
+			ID:            &clusterId,
+			PullSecretSet: true,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
+		cluster.ImageInfo = &models.ImageInfo{}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterId}).(*installer.GetClusterOK)
+		Expect(*getReply.Payload.ID).To(Equal(clusterId))
+	})
+
+	It("image expired", func() {
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterId,
+			PullSecretSet:    true,
+			OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
+		cluster.ImageInfo = &models.ImageInfo{}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+		mockUploadIso(&cluster, nil)
+		mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterId}).(*installer.GetClusterOK)
+		Expect(*getReply.Payload.ID).To(Equal(clusterId))
+	})
+
+	It("success with AWS S3", func() {
+		cluster := registerCluster(true)
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().IsAwsS3().Return(true)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+		mockUploadIso(cluster, nil)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ID).To(Equal(clusterId))
+	})
+
+	It("cluster_not_exists", func() {
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         strfmt.UUID(uuid.New().String()),
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		verifyApiError(generateReply, http.StatusNotFound)
+	})
+
+	It("failed_to_upload_iso", func() {
+		cluster := registerCluster(true)
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+		mockUploadIso(cluster, errors.New("failed"))
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		verifyApiError(generateReply, http.StatusInternalServerError)
+	})
+
+	It("failed_missing_pull_secret", func() {
+		clusterId := registerCluster(false).ID
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		verifyApiError(generateReply, http.StatusBadRequest)
+	})
+
+	It("failed_missing_openshift_token", func() {
+		cluster := registerCluster(true)
+		cluster.PullSecret = "{\"auths\":{\"another.cloud.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+		mockUploadIso(cluster, errors.New("failed"))
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		verifyApiError(generateReply, http.StatusInternalServerError)
+	})
+
+	It("fails when the ignition upload fails", func() {
+		clusterId := registerCluster(true).ID
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
+		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		verifyApiError(generateReply, http.StatusInternalServerError)
+	})
+
+	Context("status ip", func() {
+		staticIPsConfig := []*models.StaticIPConfig{{DNS: "dns1",
+			Gateway: "gateway1",
+			IP:      "IP1",
+			Mac:     "mac1",
+			Mask:    "mask1",
+		},
+			{DNS: "dns2",
+				Gateway: "gateway2",
+				IP:      "IP2",
+				Mac:     "mac2",
+				Mask:    "mask2",
+			},
+		}
+
+		It("static ips config - success", func() {
 			cluster := registerCluster(true)
 			clusterId := cluster.ID
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
@@ -173,283 +346,102 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
+				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
-			Expect(getReply.Payload.ID).To(Equal(clusterId))
 		})
 
-		It("success with proxy", func() {
-			cluster := registerClusterWithHTTPProxy(true, "http://1.1.1.1:1234")
+		It("static ip config  - same static ip config image already exists", func() {
+			cluster := registerCluster(true)
 			clusterId := cluster.ID
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", SSH public key "+
-				"is not set)", gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-
-		})
-
-		It("image already exists", func() {
-			clusterId := strfmt.UUID(uuid.New().String())
-			cluster := common.Cluster{Cluster: models.Cluster{
-				ID:            &clusterId,
-				PullSecretSet: true,
-			}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-			cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
-			cluster.ImageInfo = &models.ImageInfo{}
-			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-
-			mockS3Client.EXPECT().IsAwsS3().Return(true)
-			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterId}).(*installer.GetClusterOK)
-			Expect(*getReply.Payload.ID).To(Equal(clusterId))
-		})
-
-		It("image expired", func() {
-			clusterId := strfmt.UUID(uuid.New().String())
-			cluster := common.Cluster{Cluster: models.Cluster{
-				ID:               &clusterId,
-				PullSecretSet:    true,
-				OpenshiftVersion: common.DefaultTestOpenShiftVersion,
-			}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-			cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
-			cluster.ImageInfo = &models.ImageInfo{}
-			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-
-			mockS3Client.EXPECT().IsAwsS3().Return(true)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
-			mockUploadIso(&cluster, nil)
-			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterId}).(*installer.GetClusterOK)
-			Expect(*getReply.Payload.ID).To(Equal(clusterId))
-		})
-
-		It("success with AWS S3", func() {
-			cluster := registerCluster(true)
-			clusterId := cluster.ID
-			mockS3Client.EXPECT().IsAwsS3().Return(true)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
-			mockUploadIso(cluster, nil)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
+				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
-			Expect(getReply.Payload.ID).To(Equal(clusterId))
-		})
 
-		It("cluster_not_exists", func() {
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         strfmt.UUID(uuid.New().String()),
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			verifyApiError(generateReply, http.StatusNotFound)
-		})
+			updatedTime := time.Now().Add(-11 * time.Second)
+			updates := map[string]interface{}{}
+			updates["image_created_at"] = updatedTime
+			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
 
-		It("failed_to_upload_iso", func() {
-			cluster := registerCluster(true)
-			clusterId := cluster.ID
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
-			mockUploadIso(cluster, errors.New("failed"))
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			verifyApiError(generateReply, http.StatusInternalServerError)
-		})
-
-		It("failed_missing_pull_secret", func() {
-			clusterId := registerCluster(false).ID
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			verifyApiError(generateReply, http.StatusBadRequest)
-		})
-
-		It("failed_missing_openshift_token", func() {
-			cluster := registerCluster(true)
-			cluster.PullSecret = "{\"auths\":{\"another.cloud.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"
-			clusterId := cluster.ID
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
-			mockUploadIso(cluster, errors.New("failed"))
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			verifyApiError(generateReply, http.StatusInternalServerError)
-		})
-
-		It("fails when the ignition upload fails", func() {
-			clusterId := registerCluster(true).ID
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{},
-			})
-			verifyApiError(generateReply, http.StatusInternalServerError)
-		})
-
-		Context("status ip", func() {
-			staticIPsConfig := []*models.StaticIPConfig{{DNS: "dns1",
-				Gateway: "gateway1",
-				IP:      "IP1",
-				Mac:     "mac1",
-				Mask:    "mask1",
+			newStaticIPsConfig := []*models.StaticIPConfig{{DNS: "dns2",
+				Gateway: "gateway2",
+				IP:      "IP2",
+				Mac:     "mac2",
+				Mask:    "mask2",
 			},
-				{DNS: "dns2",
-					Gateway: "gateway2",
-					IP:      "IP2",
-					Mac:     "mac2",
-					Mask:    "mask2",
+				{DNS: "dns1",
+					Gateway: "gateway1",
+					IP:      "IP1",
+					Mac:     "mac1",
+					Mask:    "mask1",
 				},
 			}
 
-			It("static ips config - success", func() {
-				cluster := registerCluster(true)
-				clusterId := cluster.ID
-				mockS3Client.EXPECT().IsAwsS3().Return(false)
-				mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-				mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-				mockUploadIso(cluster, nil)
-				mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-				generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-					ClusterID:         *clusterId,
-					ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
-				})
-				Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
+			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+				ClusterID:         *clusterId,
+				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig},
 			})
 
-			It("static ip config  - same static ip config image already exists", func() {
-				cluster := registerCluster(true)
-				clusterId := cluster.ID
-				mockS3Client.EXPECT().IsAwsS3().Return(false)
-				mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-				mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-				mockUploadIso(cluster, nil)
-				mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-				generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-					ClusterID:         *clusterId,
-					ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
-				})
-				Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-
-				updatedTime := time.Now().Add(-11 * time.Second)
-				updates := map[string]interface{}{}
-				updates["image_created_at"] = updatedTime
-				db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
-
-				newStaticIPsConfig := []*models.StaticIPConfig{{DNS: "dns2",
-					Gateway: "gateway2",
-					IP:      "IP2",
-					Mac:     "mac2",
-					Mask:    "mask2",
-				},
-					{DNS: "dns1",
-						Gateway: "gateway1",
-						IP:      "IP1",
-						Mac:     "mac1",
-						Mask:    "mask1",
-					},
-				}
-
-				mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
-				mockS3Client.EXPECT().IsAwsS3().Return(false)
-				mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-				mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
-				generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-					ClusterID:         *clusterId,
-					ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig},
-				})
-
-				Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			})
-
-			It("static ip config  - different static ip config", func() {
-				cluster := registerCluster(true)
-				clusterId := cluster.ID
-				mockS3Client.EXPECT().IsAwsS3().Return(false)
-				mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-				mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-				mockUploadIso(cluster, nil)
-				mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-				generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-					ClusterID:         *clusterId,
-					ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
-				})
-				Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-
-				updatedTime := time.Now().Add(-11 * time.Second)
-				updates := map[string]interface{}{}
-				updates["image_created_at"] = updatedTime
-				db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
-
-				newStaticIPsConfig := []*models.StaticIPConfig{{DNS: "dns11",
-					Gateway: "gateway11",
-					IP:      "IP11",
-					Mac:     "mac11",
-					Mask:    "mask11",
-				},
-					{DNS: "dns22",
-						Gateway: "gateway22",
-						IP:      "IP22",
-						Mac:     "mac22",
-						Mask:    "mask22",
-					},
-				}
-
-				mockS3Client.EXPECT().IsAwsS3().Return(false)
-				mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-				mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-				mockUploadIso(cluster, nil)
-				mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-
-				generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-					ClusterID:         *clusterId,
-					ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig},
-				})
-
-				Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			})
+			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 		})
-	}
 
-	Context("when kube job is used as generator", func() {
-		BeforeEach(func() {
-			mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
-			bm = NewBareMetalInventory(db, getTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil)
+		It("static ip config  - different static ip config", func() {
+			cluster := registerCluster(true)
+			clusterId := cluster.ID
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+			mockUploadIso(cluster, nil)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+				ClusterID:         *clusterId,
+				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
+			})
+			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+
+			updatedTime := time.Now().Add(-11 * time.Second)
+			updates := map[string]interface{}{}
+			updates["image_created_at"] = updatedTime
+			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
+
+			newStaticIPsConfig := []*models.StaticIPConfig{{DNS: "dns11",
+				Gateway: "gateway11",
+				IP:      "IP11",
+				Mac:     "mac11",
+				Mask:    "mask11",
+			},
+				{DNS: "dns22",
+					Gateway: "gateway22",
+					IP:      "IP22",
+					Mac:     "mac22",
+					Mask:    "mask22",
+				},
+			}
+
+			mockS3Client.EXPECT().IsAwsS3().Return(false)
+			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+			mockUploadIso(cluster, nil)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+
+			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+				ClusterID:         *clusterId,
+				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig},
+			})
+
+			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 		})
-		RunGenerateClusterISOTests()
 	})
 })
 
@@ -1459,6 +1451,23 @@ var _ = Describe("cluster", func() {
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
+		mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
+		ignitionReader = ioutil.NopCloser(strings.NewReader(`{
+				"ignition":{"version":"3.1.0"},
+				"storage":{
+					"files":[
+						{
+							"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+							"contents":{
+								"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
+							}
+						}
+					]
+				},
+				"systemd":{}
+		}`))
+		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
+		bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, mockVersions)
 	})
 
 	AfterEach(func() {
@@ -1601,34 +1610,790 @@ var _ = Describe("cluster", func() {
 
 	validationsConfig := validations.Config{}
 
-	RunClusterTests := func() {
-		Context("Get", func() {
-			{
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID:                 &clusterID,
-						APIVip:             "10.11.12.13",
-						IngressVip:         "10.11.12.14",
-						MachineNetworkCidr: "10.11.0.0/16",
-					}}).Error
-					Expect(err).ShouldNot(HaveOccurred())
+	Context("Get", func() {
+		{
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                 &clusterID,
+					APIVip:             "10.11.12.13",
+					IngressVip:         "10.11.12.14",
+					MachineNetworkCidr: "10.11.0.0/16",
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
 
-					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-					addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-					addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+			})
+
+			It("GetCluster", func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+				mockDurationsSuccess()
+				reply := bm.GetCluster(ctx, installer.GetClusterParams{
+					ClusterID: clusterID,
 				})
+				actual, ok := reply.(*installer.GetClusterOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
+				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+				Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+				expectedNetworks := sortedNetworks([]*models.HostNetwork{
+					{
+						Cidr: "1.2.3.0/24",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+							masterHostId3,
+						}),
+					},
+					{
+						Cidr: "10.11.0.0/16",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+						}),
+					},
+					{
+						Cidr: "7.8.9.0/24",
+						HostIds: []strfmt.UUID{
+							masterHostId3,
+						},
+					},
+				})
+				actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+				Expect(len(actualNetworks)).To(Equal(3))
+				actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+				actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+				actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+				Expect(actualNetworks).To(Equal(expectedNetworks))
+			})
+		}
+	})
+	Context("Update", func() {
+		BeforeEach(func() {
+			mockDurationsSuccess()
+			v, err := validations.NewPullSecretValidator(validationsConfig)
+			Expect(err).ShouldNot(HaveOccurred())
+			bm.secretValidator = v
+		})
+		It("update_cluster_while_installing", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
 
-				It("GetCluster", func() {
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-					mockDurationsSuccess()
-					reply := bm.GetCluster(ctx, installer.GetClusterParams{
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(errors.Errorf("wrong state")).Times(1)
+
+			apiVip := "8.8.8.8"
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip: &apiVip,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf("error"))))
+		})
+
+		It("Invalid pull-secret", func() {
+			pullSecret := "asdfasfda"
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					PullSecret: &pullSecret,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
+		})
+
+		It("pull-secret with newline", func() {
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
+			pullSecretWithNewline := pullSecret + " \n"
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					PullSecret: &pullSecretWithNewline,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+		})
+
+		It("update role in none ha mode, must fail", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                   &clusterID,
+				HighAvailabilityMode: &noneHaMode,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			testRole := models.ClusterUpdateParamsHostsRolesItems0{ID: masterHostId1, Role: models.HostRoleUpdateParamsMaster}
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{&testRole},
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("update usernetworkmode in none ha mode", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                   &clusterID,
+				HighAvailabilityMode: &noneHaMode,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			By("set false for usernetworkmode must fail")
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			userNetMode := false
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					UserManagedNetworking: &userNetMode,
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("create non ha cluster", func() {
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+				Times(1)
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                 swag.String("some-cluster-name"),
+					OpenshiftVersion:     swag.String(common.DefaultTestOpenShiftVersion),
+					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					HighAvailabilityMode: &noneHaMode,
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
+			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+		})
+
+		It("LSO install default value", func() {
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+				Times(1)
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.Operators).To(BeNil())
+		})
+
+		It("LSO install non default value", func() {
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+				Times(1)
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+					PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					Operators: []*models.Operator{
+						{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+					},
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
+			Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
+		})
+
+		It("Update Install LSO", func() {
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					Operators: []*models.Operator{
+						{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+					},
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
+			Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
+		})
+
+		It("ssh key with newline", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
+				"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
+				"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
+				"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
+				"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
+				"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
+			sshKeyWithNewLine := sshKey + " \n"
+
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					SSHPublicKey: &sshKeyWithNewLine,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			var cluster common.Cluster
+			err = db.First(&cluster, "id = ?", clusterID).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(cluster.SSHPublicKey).Should(Equal(sshKey))
+		})
+
+		It("empty pull-secret", func() {
+			pullSecret := ""
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					PullSecret: &pullSecret,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+		})
+
+		It("Update UserManagedNetworking", func() {
+
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					UserManagedNetworking: swag.Bool(true),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+		})
+
+		It("Update UserManagedNetworking Unset non relevant parameters", func() {
+
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterID,
+				MachineNetworkCidr: "10.12.0.0/16",
+				APIVip:             "10.11.12.15",
+				IngressVip:         "10.11.12.16",
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					UserManagedNetworking: swag.Bool(true),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+			Expect(actual.Payload.APIVip).To(Equal(""))
+			Expect(actual.Payload.IngressVip).To(Equal(""))
+			Expect(actual.Payload.MachineNetworkCidr).To(Equal(""))
+		})
+
+		It("Fail Update UserManagedNetworking with VIP DHCP", func() {
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					UserManagedNetworking: swag.Bool(true),
+					VipDhcpAllocation:     swag.Bool(true),
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("Fail Update UserManagedNetworking with Ingress VIP ", func() {
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			ingressVip := "10.35.20.10"
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					UserManagedNetworking: swag.Bool(true),
+					IngressVip:            &ingressVip,
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("Fail Update UserManagedNetworking with API VIP ", func() {
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			apiVip := "10.35.20.10"
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					UserManagedNetworking: swag.Bool(true),
+					APIVip:                &apiVip,
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("Fail Update UserManagedNetworking with MachineNetworkCidr ", func() {
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			machineNetworkCidr := "10.11.0.0/16"
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					UserManagedNetworking: swag.Bool(true),
+					MachineNetworkCidr:    &machineNetworkCidr,
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		Context("Update Proxy", func() {
+			const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{
+					Cluster: models.Cluster{
+						ID: &clusterID,
+					},
+					ProxyHash: emptyProxyHash}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			})
+
+			updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HTTPProxy:  &httpProxy,
+						HTTPSProxy: &httpsProxy,
+						NoProxy:    &noProxy,
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				var cluster common.Cluster
+				err := db.First(&cluster, "id = ?", clusterID).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				return &cluster
+			}
+
+			It("set an empty proxy", func() {
+				cluster := updateCluster("", "", "")
+				Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
+			})
+
+			It("set a valid proxy", func() {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Proxy settings changed", gomock.Any())
+				cluster := updateCluster("http://proxy.proxy", "", "proxy.proxy")
+
+				// ProxyHash shouldn't be changed when proxy is updated, only when generating new ISO
+				Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
+			})
+		})
+
+		Context("Hostname", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+				Expect(err).ToNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+			It("Valid hostname", func() {
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+							{
+								Hostname: "a.b.c",
+								ID:       masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+			It("Valid splitted hostname", func() {
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+							{
+								Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.123456789",
+								ID:       masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+			It("Too long part", func() {
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+							{
+								Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
+								ID:       masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			})
+			It("Too long", func() {
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+							{
+								Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.1234567890",
+								ID:       masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			})
+			It("Preceding hyphen", func() {
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+							{
+								Hostname: "-abc",
+								ID:       masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			})
+		})
+
+		Context("MachineConfigPoolName", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+				Expect(err).ToNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+			It("Valid machine config pool name", func() {
+				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsMachineConfigPoolNames: []*models.ClusterUpdateParamsHostsMachineConfigPoolNamesItems0{
+							{
+								MachineConfigPoolName: "new_pool",
+								ID:                    masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+		})
+
+		Context("Installation Disk Path", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+
+			It("Valid selection of install disk", func() {
+				mockHostApi.EXPECT().UpdateInstallationDiskPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
+							{
+								DisksConfig: []*models.DiskConfigParams{
+									{ID: &diskID1, Role: models.DiskRoleInstall},
+									{ID: &diskID2, Role: models.DiskRoleNone},
+								},
+								ID: masterHostId1,
+							},
+						},
+					},
+				})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+
+			It("duplicate install selected", func() {
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
+							{
+								DisksConfig: []*models.DiskConfigParams{
+									{ID: &diskID1, Role: models.DiskRoleInstall},
+									{ID: &diskID2, Role: models.DiskRoleInstall},
+								},
+								ID: masterHostId1,
+							},
+						},
+					},
+				})
+				verifyApiError(reply, http.StatusConflict)
+			})
+		})
+
+		Context("Day2 api vip dnsname/ip", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:   &clusterID,
+					Kind: swag.String(models.ClusterKindAddHostsCluster),
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+			It("update api vip dnsname success", func() {
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVipDNSName: swag.String("some dns name"),
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+		})
+
+		Context("Day2 update hostname", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:   &clusterID,
+					Kind: swag.String(models.ClusterKindAddHostsCluster),
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+			It("update hostname, all in known", func() {
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+							{
+								Hostname: "a.b.c",
+								ID:       masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+			It("update hostname, one host in installing", func() {
+				addHost(masterHostId3, models.HostRoleMaster, "added-to-existing-cluster", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.6/24", "10.11.50.70/16"), db)
+				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+							{
+								Hostname: "a.b.c",
+								ID:       masterHostId1,
+							},
+						},
+					}})
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			})
+		})
+
+		Context("Update Network", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+				Expect(err).ToNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+
+			mockSuccess := func(times int) {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
+				mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, times)
+			}
+
+			Context("Non DHCP", func() {
+				It("No machine network", func() {
+					apiVip := "8.8.8.8"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip: &apiVip,
+						},
 					})
-					actual, ok := reply.(*installer.GetClusterOK)
-					Expect(ok).To(BeTrue())
-					Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
-					Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Api and ingress mismatch", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "1.2.3.20"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Same api and ingress", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := apiVip
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Update success", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
 					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
 						{
@@ -1660,1543 +2425,387 @@ var _ = Describe("cluster", func() {
 					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
 					Expect(actualNetworks).To(Equal(expectedNetworks))
 				})
+				It("Machine network CIDR in non dhcp", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:             &apiVip,
+							IngressVip:         &ingressVip,
+							MachineNetworkCidr: swag.String("10.12.0.0/16"),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+			})
+			Context("Advanced networking validations", func() {
+
+				It("Update success", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
+							ServiceNetworkCidr:       swag.String("193.168.5.0/24"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+					Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.0.0/21"))
+					Expect(actual.Payload.ServiceNetworkCidr).To(Equal("193.168.5.0/24"))
+					expectedNetworks := sortedNetworks([]*models.HostNetwork{
+						{
+							Cidr: "1.2.3.0/24",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+								masterHostId3,
+							}),
+						},
+						{
+							Cidr: "10.11.0.0/16",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+							}),
+						},
+						{
+							Cidr: "7.8.9.0/24",
+							HostIds: []strfmt.UUID{
+								masterHostId3,
+							},
+						},
+					})
+					actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+					Expect(len(actualNetworks)).To(Equal(3))
+					actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+					actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+					Expect(actualNetworks).To(Equal(expectedNetworks))
+				})
+				It("Overlapping", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
+							ServiceNetworkCidr:       swag.String("192.168.4.0/23"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Prefix out of range", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/23"),
+							ClusterNetworkHostPrefix: swag.Int64(26),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Subnet prefix out of range", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/27"),
+							ClusterNetworkHostPrefix: swag.Int64(25),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("OK", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+							ClusterNetworkHostPrefix: swag.Int64(25),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+				It("Bad subnet", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("1.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/1"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Not enough addresses", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+							ClusterNetworkHostPrefix: swag.Int64(24),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+			})
+			Context("DHCP", func() {
+
+				It("Vips in DHCP", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:             &apiVip,
+							IngressVip:         &ingressVip,
+							MachineNetworkCidr: swag.String("10.11.0.0/16"),
+							VipDhcpAllocation:  swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+
+				It("Success in DHCP", func() {
+					mockSuccess(3)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+					reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							MachineNetworkCidr: swag.String("1.2.3.0/24"),
+							VipDhcpAllocation:  swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual = reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(BeEmpty())
+					Expect(actual.Payload.IngressVip).To(BeEmpty())
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
+					expectedNetworks := sortedNetworks([]*models.HostNetwork{
+						{
+							Cidr: "1.2.3.0/24",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+								masterHostId3,
+							}),
+						},
+						{
+							Cidr: "10.11.0.0/16",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+							}),
+						},
+						{
+							Cidr: "7.8.9.0/24",
+							HostIds: []strfmt.UUID{
+								masterHostId3,
+							},
+						},
+					})
+					actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+					Expect(len(actualNetworks)).To(Equal(3))
+					actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+					actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+					Expect(actualNetworks).To(Equal(expectedNetworks))
+					reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:            &apiVip,
+							IngressVip:        &ingressVip,
+							VipDhcpAllocation: swag.Bool(false),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual = reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+				})
+				It("DHCP non existent network", func() {
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							MachineNetworkCidr: swag.String("10.13.0.0/16"),
+							VipDhcpAllocation:  swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+
+			})
+
+			Context("NTP", func() {
+				It("Empty NTP source", func() {
+					mockSuccess(1)
+
+					ntpSource := ""
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							AdditionalNtpSource: &ntpSource,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+				})
+
+				It("Valid IP NTP source", func() {
+					mockSuccess(1)
+
+					ntpSource := "1.1.1.1"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							AdditionalNtpSource: &ntpSource,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+				})
+
+				It("Valid Hostname NTP source", func() {
+					mockSuccess(1)
+
+					ntpSource := "clock.redhat.com"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							AdditionalNtpSource: &ntpSource,
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+				})
+
+				It("Valid comma-separated NTP sources", func() {
+					mockSuccess(1)
+
+					ntpSource := "clock.redhat.com,1.1.1.1"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							AdditionalNtpSource: &ntpSource,
+						},
+					})
+
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
+				})
+
+				It("Invalid NTP source", func() {
+					ntpSource := "inject'"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							AdditionalNtpSource: &ntpSource,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+			})
+		})
+	})
+
+	Context("Install", func() {
+		var DoneChannel chan int
+
+		waitForDoneChannel := func() {
+			select {
+			case <-DoneChannel:
+				break
+			case <-time.After(1 * time.Second):
+				panic("not all api calls where made")
 			}
-		})
-		Context("Update", func() {
-			BeforeEach(func() {
-				mockDurationsSuccess()
-				v, err := validations.NewPullSecretValidator(validationsConfig)
-				Expect(err).ShouldNot(HaveOccurred())
-				bm.secretValidator = v
-			})
-			It("update_cluster_while_installing", func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
+		}
 
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(errors.Errorf("wrong state")).Times(1)
-
-				apiVip := "8.8.8.8"
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						APIVip: &apiVip,
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusConflict, errors.Errorf("error"))))
-			})
-
-			It("Invalid pull-secret", func() {
-				pullSecret := "asdfasfda"
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						PullSecret: &pullSecret,
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf(""))))
-			})
-
-			It("pull-secret with newline", func() {
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
-				pullSecretWithNewline := pullSecret + " \n"
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						PullSecret: &pullSecretWithNewline,
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-			})
-
-			It("update role in none ha mode, must fail", func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				noneHaMode := models.ClusterHighAvailabilityModeNone
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID:                   &clusterID,
-					HighAvailabilityMode: &noneHaMode,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-				testRole := models.ClusterUpdateParamsHostsRolesItems0{ID: masterHostId1, Role: models.HostRoleUpdateParamsMaster}
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{&testRole},
-					},
-				})
-				verifyApiError(reply, http.StatusBadRequest)
-			})
-
-			It("update usernetworkmode in none ha mode", func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				noneHaMode := models.ClusterHighAvailabilityModeNone
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID:                   &clusterID,
-					HighAvailabilityMode: &noneHaMode,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-
-				By("set false for usernetworkmode must fail")
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-				userNetMode := false
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						UserManagedNetworking: &userNetMode,
-					},
-				})
-				verifyApiError(reply, http.StatusBadRequest)
-			})
-
-			It("create non ha cluster", func() {
-				mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
-				mockEvents.EXPECT().
-					AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-					Times(1)
-				mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-				mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
-				noneHaMode := models.ClusterHighAvailabilityModeNone
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						Name:                 swag.String("some-cluster-name"),
-						OpenshiftVersion:     swag.String(common.DefaultTestOpenShiftVersion),
-						PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-						HighAvailabilityMode: &noneHaMode,
-					},
-				})
-				Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-				actual := reply.(*installer.RegisterClusterCreated)
-				Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
-				Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
-			})
-
-			It("LSO install default value", func() {
-				mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
-				mockEvents.EXPECT().
-					AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-					Times(1)
-				mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-				mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
-
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
-						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					},
-				})
-				Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-				actual := reply.(*installer.RegisterClusterCreated)
-				Expect(actual.Payload.Operators).To(BeNil())
-			})
-
-			It("LSO install non default value", func() {
-				mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
-				mockEvents.EXPECT().
-					AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-					Times(1)
-				mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-				mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
-
-				reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-					NewClusterParams: &models.ClusterCreateParams{
-						Name:             swag.String("some-cluster-name"),
-						OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
-						PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-						Operators: []*models.Operator{
-							{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-						},
-					},
-				})
-				Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-				actual := reply.(*installer.RegisterClusterCreated)
-				Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
-				Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
-			})
-
-			It("Update Install LSO", func() {
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						Operators: []*models.Operator{
-							{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-						},
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				actual := reply.(*installer.UpdateClusterCreated)
-				Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
-				Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
-			})
-
-			It("ssh key with newline", func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				sshKey := "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDi8KHZYGyPQjECHwytquI3rmpgoUn6M+lkeOD2nEKvYElLE5mPIeqF0izJIl56u" +
-					"ar2wda+3z107M9QkatE+dP4S9/Ltrlm+/ktAf4O6UoxNLUzv/TGHasb9g3Xkt8JTkohVzVK36622Sd8kLzEc61v1AonLWIADtpwq6/GvH" +
-					"MAuPK2R/H0rdKhTokylKZLDdTqQ+KUFelI6RNIaUBjtVrwkx1j0htxN11DjBVuUyPT2O1ejWegtrM0T+4vXGEA3g3YfbT2k0YnEzjXXqng" +
-					"qbXCYEJCZidp3pJLH/ilo4Y4BId/bx/bhzcbkZPeKlLwjR8g9sydce39bzPIQj+b7nlFv1Vot/77VNwkjXjYPUdUPu0d1PkFD9jKDOdB3f" +
-					"AC61aG2a/8PFS08iBrKiMa48kn+hKXC4G4D5gj/QzIAgzWSl2tEzGQSoIVTucwOAL/jox2dmAa0RyKsnsHORppanuW4qD7KAcmas1GHrAq" +
-					"IfNyDiU2JR50r1jCxj5H76QxIuM= root@ocp-edge34.lab.eng.tlv2.redhat.com"
-				sshKeyWithNewLine := sshKey + " \n"
-
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						SSHPublicKey: &sshKeyWithNewLine,
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				var cluster common.Cluster
-				err = db.First(&cluster, "id = ?", clusterID).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(cluster.SSHPublicKey).Should(Equal(sshKey))
-			})
-
-			It("empty pull-secret", func() {
-				pullSecret := ""
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						PullSecret: &pullSecret,
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
-			})
-
-			It("Update UserManagedNetworking", func() {
-
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						UserManagedNetworking: swag.Bool(true),
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				actual := reply.(*installer.UpdateClusterCreated)
-				Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
-			})
-
-			It("Update UserManagedNetworking Unset non relevant parameters", func() {
-
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID:                 &clusterID,
-					MachineNetworkCidr: "10.12.0.0/16",
-					APIVip:             "10.11.12.15",
-					IngressVip:         "10.11.12.16",
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						UserManagedNetworking: swag.Bool(true),
-					},
-				})
-				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				actual := reply.(*installer.UpdateClusterCreated)
-				Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
-				Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
-				Expect(actual.Payload.APIVip).To(Equal(""))
-				Expect(actual.Payload.IngressVip).To(Equal(""))
-				Expect(actual.Payload.MachineNetworkCidr).To(Equal(""))
-			})
-
-			It("Fail Update UserManagedNetworking with VIP DHCP", func() {
-
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						UserManagedNetworking: swag.Bool(true),
-						VipDhcpAllocation:     swag.Bool(true),
-					},
-				})
-				verifyApiError(reply, http.StatusBadRequest)
-			})
-
-			It("Fail Update UserManagedNetworking with Ingress VIP ", func() {
-
-				clusterID = strfmt.UUID(uuid.New().String())
-				ingressVip := "10.35.20.10"
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						UserManagedNetworking: swag.Bool(true),
-						IngressVip:            &ingressVip,
-					},
-				})
-				verifyApiError(reply, http.StatusBadRequest)
-			})
-
-			It("Fail Update UserManagedNetworking with API VIP ", func() {
-
-				clusterID = strfmt.UUID(uuid.New().String())
-				apiVip := "10.35.20.10"
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						UserManagedNetworking: swag.Bool(true),
-						APIVip:                &apiVip,
-					},
-				})
-				verifyApiError(reply, http.StatusBadRequest)
-			})
-
-			It("Fail Update UserManagedNetworking with MachineNetworkCidr ", func() {
-
-				clusterID = strfmt.UUID(uuid.New().String())
-				machineNetworkCidr := "10.11.0.0/16"
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID: &clusterID,
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-					ClusterID: clusterID,
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						UserManagedNetworking: swag.Bool(true),
-						MachineNetworkCidr:    &machineNetworkCidr,
-					},
-				})
-				verifyApiError(reply, http.StatusBadRequest)
-			})
-
-			Context("Update Proxy", func() {
-				const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{
-						Cluster: models.Cluster{
-							ID: &clusterID,
-						},
-						ProxyHash: emptyProxyHash}).Error
-					Expect(err).ShouldNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
-				})
-
-				updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HTTPProxy:  &httpProxy,
-							HTTPSProxy: &httpsProxy,
-							NoProxy:    &noProxy,
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-					var cluster common.Cluster
-					err := db.First(&cluster, "id = ?", clusterID).Error
-					Expect(err).ShouldNot(HaveOccurred())
-					return &cluster
-				}
-
-				It("set an empty proxy", func() {
-					cluster := updateCluster("", "", "")
-					Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
-				})
-
-				It("set a valid proxy", func() {
-					mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Proxy settings changed", gomock.Any())
-					cluster := updateCluster("http://proxy.proxy", "", "proxy.proxy")
-
-					// ProxyHash shouldn't be changed when proxy is updated, only when generating new ISO
-					Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
-				})
-			})
-
-			Context("Hostname", func() {
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID: &clusterID,
-					}}).Error
-					Expect(err).ShouldNot(HaveOccurred())
-					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-					err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
-						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
-					Expect(err).ToNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				})
-				It("Valid hostname", func() {
-					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-								{
-									Hostname: "a.b.c",
-									ID:       masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				})
-				It("Valid splitted hostname", func() {
-					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-								{
-									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.123456789",
-									ID:       masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				})
-				It("Too long part", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-								{
-									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij",
-									ID:       masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-				})
-				It("Too long", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-								{
-									Hostname: "abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij.1234567890",
-									ID:       masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-				})
-				It("Preceding hyphen", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-								{
-									Hostname: "-abc",
-									ID:       masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-				})
-			})
-
-			Context("MachineConfigPoolName", func() {
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID: &clusterID,
-					}}).Error
-					Expect(err).ShouldNot(HaveOccurred())
-					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("1.2.3.4/24", "10.11.50.90/16"), db)
-					err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
-						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
-					Expect(err).ToNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				})
-				It("Valid machine config pool name", func() {
-					mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsMachineConfigPoolNames: []*models.ClusterUpdateParamsHostsMachineConfigPoolNamesItems0{
-								{
-									MachineConfigPoolName: "new_pool",
-									ID:                    masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				})
-			})
-
-			Context("Installation Disk Path", func() {
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID: &clusterID,
-					}}).Error
-					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-					Expect(err).ShouldNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				})
-
-				It("Valid selection of install disk", func() {
-					mockHostApi.EXPECT().UpdateInstallationDiskPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
-								{
-									DisksConfig: []*models.DiskConfigParams{
-										{ID: &diskID1, Role: models.DiskRoleInstall},
-										{ID: &diskID2, Role: models.DiskRoleNone},
-									},
-									ID: masterHostId1,
-								},
-							},
-						},
-					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				})
-
-				It("duplicate install selected", func() {
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
-								{
-									DisksConfig: []*models.DiskConfigParams{
-										{ID: &diskID1, Role: models.DiskRoleInstall},
-										{ID: &diskID2, Role: models.DiskRoleInstall},
-									},
-									ID: masterHostId1,
-								},
-							},
-						},
-					})
-					verifyApiError(reply, http.StatusConflict)
-				})
-			})
-
-			Context("Day2 api vip dnsname/ip", func() {
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID:   &clusterID,
-						Kind: swag.String(models.ClusterKindAddHostsCluster),
-					}}).Error
-					Expect(err).ShouldNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				})
-				It("update api vip dnsname success", func() {
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							APIVipDNSName: swag.String("some dns name"),
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				})
-			})
-
-			Context("Day2 update hostname", func() {
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID:   &clusterID,
-						Kind: swag.String(models.ClusterKindAddHostsCluster),
-					}}).Error
-					Expect(err).ShouldNot(HaveOccurred())
-					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-					addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				})
-				It("update hostname, all in known", func() {
-					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-								{
-									Hostname: "a.b.c",
-									ID:       masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				})
-				It("update hostname, one host in installing", func() {
-					addHost(masterHostId3, models.HostRoleMaster, "added-to-existing-cluster", models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname3", "bootMode", "1.2.3.6/24", "10.11.50.70/16"), db)
-					mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
-					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-						ClusterID: clusterID,
-						ClusterUpdateParams: &models.ClusterUpdateParams{
-							HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
-								{
-									Hostname: "a.b.c",
-									ID:       masterHostId1,
-								},
-							},
-						}})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				})
-			})
-
-			Context("Update Network", func() {
-				BeforeEach(func() {
-					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
-						ID: &clusterID,
-					}}).Error
-					Expect(err).ShouldNot(HaveOccurred())
-					addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-					addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-					addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
-					err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
-						makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
-					Expect(err).ToNot(HaveOccurred())
-					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
-				})
-
-				mockSuccess := func(times int) {
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
-					mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
-					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
-					mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, times)
-				}
-
-				Context("Non DHCP", func() {
-					It("No machine network", func() {
-						apiVip := "8.8.8.8"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip: &apiVip,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-					It("Api and ingress mismatch", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "1.2.3.20"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:     &apiVip,
-								IngressVip: &ingressVip,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-					It("Same api and ingress", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := apiVip
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:     &apiVip,
-								IngressVip: &ingressVip,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-					It("Update success", func() {
-						mockSuccess(1)
-
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:     &apiVip,
-								IngressVip: &ingressVip,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(Equal(apiVip))
-						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-						Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-						expectedNetworks := sortedNetworks([]*models.HostNetwork{
-							{
-								Cidr: "1.2.3.0/24",
-								HostIds: sortedHosts([]strfmt.UUID{
-									masterHostId1,
-									masterHostId2,
-									masterHostId3,
-								}),
-							},
-							{
-								Cidr: "10.11.0.0/16",
-								HostIds: sortedHosts([]strfmt.UUID{
-									masterHostId1,
-									masterHostId2,
-								}),
-							},
-							{
-								Cidr: "7.8.9.0/24",
-								HostIds: []strfmt.UUID{
-									masterHostId3,
-								},
-							},
-						})
-						actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-						Expect(len(actualNetworks)).To(Equal(3))
-						actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-						actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-						actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
-						Expect(actualNetworks).To(Equal(expectedNetworks))
-					})
-					It("Machine network CIDR in non dhcp", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:             &apiVip,
-								IngressVip:         &ingressVip,
-								MachineNetworkCidr: swag.String("10.12.0.0/16"),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-				})
-				Context("Advanced networking validations", func() {
-
-					It("Update success", func() {
-						mockSuccess(1)
-
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:                   &apiVip,
-								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
-								ServiceNetworkCidr:       swag.String("193.168.5.0/24"),
-								ClusterNetworkHostPrefix: swag.Int64(23),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(Equal(apiVip))
-						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-						Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-						Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.0.0/21"))
-						Expect(actual.Payload.ServiceNetworkCidr).To(Equal("193.168.5.0/24"))
-						expectedNetworks := sortedNetworks([]*models.HostNetwork{
-							{
-								Cidr: "1.2.3.0/24",
-								HostIds: sortedHosts([]strfmt.UUID{
-									masterHostId1,
-									masterHostId2,
-									masterHostId3,
-								}),
-							},
-							{
-								Cidr: "10.11.0.0/16",
-								HostIds: sortedHosts([]strfmt.UUID{
-									masterHostId1,
-									masterHostId2,
-								}),
-							},
-							{
-								Cidr: "7.8.9.0/24",
-								HostIds: []strfmt.UUID{
-									masterHostId3,
-								},
-							},
-						})
-						actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-						Expect(len(actualNetworks)).To(Equal(3))
-						actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-						actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-						actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
-						Expect(actualNetworks).To(Equal(expectedNetworks))
-					})
-					It("Overlapping", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:                   &apiVip,
-								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
-								ServiceNetworkCidr:       swag.String("192.168.4.0/23"),
-								ClusterNetworkHostPrefix: swag.Int64(23),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-					It("Prefix out of range", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:                   &apiVip,
-								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
-								ServiceNetworkCidr:       swag.String("193.168.4.0/23"),
-								ClusterNetworkHostPrefix: swag.Int64(26),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-					It("Subnet prefix out of range", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:                   &apiVip,
-								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
-								ServiceNetworkCidr:       swag.String("193.168.4.0/27"),
-								ClusterNetworkHostPrefix: swag.Int64(25),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-					It("OK", func() {
-						mockSuccess(1)
-
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:                   &apiVip,
-								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
-								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
-								ClusterNetworkHostPrefix: swag.Int64(25),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-					})
-					It("Bad subnet", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:                   &apiVip,
-								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("1.168.0.0/23"),
-								ServiceNetworkCidr:       swag.String("193.168.4.0/1"),
-								ClusterNetworkHostPrefix: swag.Int64(23),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-					It("Not enough addresses", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:                   &apiVip,
-								IngressVip:               &ingressVip,
-								ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
-								ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
-								ClusterNetworkHostPrefix: swag.Int64(24),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-				})
-				Context("DHCP", func() {
-
-					It("Vips in DHCP", func() {
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:             &apiVip,
-								IngressVip:         &ingressVip,
-								MachineNetworkCidr: swag.String("10.11.0.0/16"),
-								VipDhcpAllocation:  swag.Bool(true),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-
-					It("Success in DHCP", func() {
-						mockSuccess(3)
-						mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
-
-						apiVip := "10.11.12.15"
-						ingressVip := "10.11.12.16"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:     &apiVip,
-								IngressVip: &ingressVip,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(Equal(apiVip))
-						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-						Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-						reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								MachineNetworkCidr: swag.String("1.2.3.0/24"),
-								VipDhcpAllocation:  swag.Bool(true),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual = reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(BeEmpty())
-						Expect(actual.Payload.IngressVip).To(BeEmpty())
-						Expect(actual.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
-						expectedNetworks := sortedNetworks([]*models.HostNetwork{
-							{
-								Cidr: "1.2.3.0/24",
-								HostIds: sortedHosts([]strfmt.UUID{
-									masterHostId1,
-									masterHostId2,
-									masterHostId3,
-								}),
-							},
-							{
-								Cidr: "10.11.0.0/16",
-								HostIds: sortedHosts([]strfmt.UUID{
-									masterHostId1,
-									masterHostId2,
-								}),
-							},
-							{
-								Cidr: "7.8.9.0/24",
-								HostIds: []strfmt.UUID{
-									masterHostId3,
-								},
-							},
-						})
-						actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-						Expect(len(actualNetworks)).To(Equal(3))
-						actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-						actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-						actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
-						Expect(actualNetworks).To(Equal(expectedNetworks))
-						reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								APIVip:            &apiVip,
-								IngressVip:        &ingressVip,
-								VipDhcpAllocation: swag.Bool(false),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual = reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.APIVip).To(Equal(apiVip))
-						Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-						Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-					})
-					It("DHCP non existent network", func() {
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								MachineNetworkCidr: swag.String("10.13.0.0/16"),
-								VipDhcpAllocation:  swag.Bool(true),
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-
-				})
-
-				Context("NTP", func() {
-					It("Empty NTP source", func() {
-						mockSuccess(1)
-
-						ntpSource := ""
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								AdditionalNtpSource: &ntpSource,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
-					})
-
-					It("Valid IP NTP source", func() {
-						mockSuccess(1)
-
-						ntpSource := "1.1.1.1"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								AdditionalNtpSource: &ntpSource,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
-					})
-
-					It("Valid Hostname NTP source", func() {
-						mockSuccess(1)
-
-						ntpSource := "clock.redhat.com"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								AdditionalNtpSource: &ntpSource,
-							},
-						})
-
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
-					})
-
-					It("Valid comma-separated NTP sources", func() {
-						mockSuccess(1)
-
-						ntpSource := "clock.redhat.com,1.1.1.1"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								AdditionalNtpSource: &ntpSource,
-							},
-						})
-
-						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.AdditionalNtpSource).To(Equal(ntpSource))
-					})
-
-					It("Invalid NTP source", func() {
-						ntpSource := "inject'"
-						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-							ClusterID: clusterID,
-							ClusterUpdateParams: &models.ClusterUpdateParams{
-								AdditionalNtpSource: &ntpSource,
-							},
-						})
-						Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-						Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
-					})
-				})
-			})
-		})
-
-		Context("Install", func() {
-			var DoneChannel chan int
-
-			waitForDoneChannel := func() {
-				select {
-				case <-DoneChannel:
-					break
-				case <-time.After(1 * time.Second):
-					panic("not all api calls where made")
-				}
-			}
-
-			BeforeEach(func() {
-				DoneChannel = make(chan int)
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID:                 &clusterID,
-					APIVip:             "10.11.12.13",
-					IngressVip:         "10.11.20.50",
-					MachineNetworkCidr: "10.11.0.0/16",
-					Status:             swag.String(models.ClusterStatusReady),
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
-
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
-				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
-					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
-				Expect(err).ToNot(HaveOccurred())
-				mockDurationsSuccess()
-				ignitionReader = ioutil.NopCloser(strings.NewReader(`{
-						"ignition":{"version":"3.1.0"},
-						"storage":{
-							"files":[
-								{
-									"path":"/opt/openshift/manifests/cvo-overrides.yaml",
-									"contents":{
-										"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
-									}
-								}
-							]
-						},
-						"systemd":{}
-				}`))
-				mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
-			})
-
-			It("success", func() {
-
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForRefresh(mockHostApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setDefaultInstall(mockClusterApi)
-				setDefaultGetMasterNodesIds(mockClusterApi)
-				setDefaultHostSetBootstrap(mockClusterApi)
-				setDefaultHostInstall(mockClusterApi, DoneChannel)
-				setDefaultMetricInstallationStarted(mockMetric)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockClusterDeleteLogsSuccess(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				mockEvents.EXPECT().
-					AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-					MinTimes(0)
-
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-				waitForDoneChannel()
-
-				count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
-				Expect(count).To(Equal(int64(1)))
-			})
-
-			It("cluster doesn't exists", func() {
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: strfmt.UUID(uuid.New().String()),
-				})
-				verifyApiError(reply, http.StatusNotFound)
-			})
-
-			It("failed to auto-assign role", func() {
-				mockAutoAssignFailed()
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				verifyApiError(reply, http.StatusInternalServerError)
-			})
-
-			It("failed to prepare cluster", func() {
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				// validations
-				mockHostPrepareForRefresh(mockHostApi)
-				setDefaultGetMasterNodesIds(mockClusterApi)
-				// sync prepare for installation
-				mockClusterPrepareForInstallationFailure(mockClusterApi)
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				verifyApiError(reply, http.StatusInternalServerError)
-			})
-
-			It("failed to prepare host", func() {
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				// validations
-				mockHostPrepareForRefresh(mockHostApi)
-				setDefaultGetMasterNodesIds(mockClusterApi)
-				// sync prepare for installation
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 2)
-				mockHostPrepareForInstallationFailure(mockHostApi, 1)
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				verifyApiError(reply, http.StatusInternalServerError)
-			})
-
-			It("cluster is not ready to install", func() {
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockHostPrepareForRefresh(mockHostApi)
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationFalse(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-
-				Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				verifyApiError(reply, http.StatusConflict)
-			})
-
-			It("cluster failed to update", func() {
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-				mockHostPrepareForRefresh(mockHostApi)
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-				setDefaultGetMasterNodesIds(mockClusterApi)
-				mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				mockClusterDeleteLogsSuccess(mockClusterApi)
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-				waitForDoneChannel()
-			})
-
-			It("host failed to install", func() {
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setDefaultInstall(mockClusterApi)
-				setDefaultGetMasterNodesIds(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-
-				mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(errors.Errorf("host has a error")).AnyTimes()
-				setDefaultHostSetBootstrap(mockClusterApi)
-				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				mockClusterDeleteLogsSuccess(mockClusterApi)
-
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-				waitForDoneChannel()
-			})
-
-			It("list of masters for setting bootstrap return empty list", func() {
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				mockHostPrepareForRefresh(mockHostApi)
-				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setDefaultInstall(mockClusterApi)
-				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return([]*strfmt.UUID{}, nil).Times(1)
-				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				mockClusterDeleteLogsSuccess(mockClusterApi)
-
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-				waitForDoneChannel()
-			})
-
-			It("GetMasterNodesIds fails in the go routine", func() {
-				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-				setDefaultInstall(mockClusterApi)
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				mockHostPrepareForRefresh(mockHostApi)
-				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
-				mockClusterRefreshStatus(mockClusterApi)
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockClusterDeleteLogsSuccess(mockClusterApi)
-
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-				waitForDoneChannel()
-			})
-
-			It("GetMasterNodesIds returns empty list", func() {
-				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-				setDefaultInstall(mockClusterApi)
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				mockHostPrepareForRefresh(mockHostApi)
-				mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
-					Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				mockClusterDeleteLogsSuccess(mockClusterApi)
-
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-				waitForDoneChannel()
-			})
-
-			It("failed to delete logs", func() {
-				mockAutoAssignSuccess(3)
-				mockClusterRefreshStatusSuccess()
-				mockClusterIsReadyForInstallationSuccess()
-				mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-				mockClusterPrepareForInstallationSuccess(mockClusterApi)
-				mockHostPrepareForRefresh(mockHostApi)
-				mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-				setDefaultInstall(mockClusterApi)
-				setDefaultGetMasterNodesIds(mockClusterApi)
-				setDefaultHostSetBootstrap(mockClusterApi)
-				setDefaultHostInstall(mockClusterApi, DoneChannel)
-				setDefaultMetricInstallationStarted(mockMetric)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockClusterRefreshStatus(mockClusterApi)
-				setIsReadyForInstallationTrue(mockClusterApi)
-				mockClusterDeleteLogsFailure(mockClusterApi)
-				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-				mockEvents.EXPECT().
-					AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-					MinTimes(0)
-
-				reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-					ClusterID: clusterID,
-				})
-
-				Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-				waitForDoneChannel()
-
-				count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
-				Expect(count).To(Equal(int64(1)))
-			})
-
-			It("get DNS domain success", func() {
-				bm.Config.BaseDNSDomains = map[string]string{
-					"dns.example.com": "abc/route53",
-				}
-				dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(dnsDomain.ID).Should(Equal("abc"))
-				Expect(dnsDomain.Provider).Should(Equal("route53"))
-				Expect(dnsDomain.APIDomainName).Should(Equal("api.test-cluster.dns.example.com"))
-				Expect(dnsDomain.IngressDomainName).Should(Equal("*.apps.test-cluster.dns.example.com"))
-			})
-			It("get DNS domain invalid", func() {
-				bm.Config.BaseDNSDomains = map[string]string{
-					"dns.example.com": "abc",
-				}
-				_, err := bm.getDNSDomain("test-cluster", "dns.example.com")
-				Expect(err).To(HaveOccurred())
-			})
-			It("get DNS domain undefined", func() {
-				dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
-				Expect(err).NotTo(HaveOccurred())
-				Expect(dnsDomain).Should(BeNil())
-			})
-
-			Context("CancelInstallation", func() {
-				BeforeEach(func() {
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-				})
-				It("cancel installation success", func() {
-					setCancelInstallationSuccess()
-
-					cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
-						ClusterID: clusterID,
-					})
-					Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewCancelInstallationAccepted()))
-				})
-				It("cancel installation conflict", func() {
-					setCancelInstallationHostConflict()
-
-					cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
-						ClusterID: clusterID,
-					})
-
-					verifyApiError(cancelReply, http.StatusConflict)
-				})
-				It("cancel installation internal error", func() {
-					setCancelInstallationInternalServerError()
-
-					cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
-						ClusterID: clusterID,
-					})
-
-					verifyApiError(cancelReply, http.StatusInternalServerError)
-				})
-			})
-
-			Context("reset cluster", func() {
-				BeforeEach(func() {
-					mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-				})
-				It("reset installation success", func() {
-					setResetClusterSuccess()
-					resetReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
-						ClusterID: clusterID,
-					})
-					Expect(resetReply).Should(BeAssignableToTypeOf(installer.NewResetClusterAccepted()))
-				})
-				It("reset cluster conflict", func() {
-					setResetClusterConflict()
-
-					cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
-						ClusterID: clusterID,
-					})
-
-					verifyApiError(cancelReply, http.StatusConflict)
-				})
-				It("reset cluster internal error", func() {
-					setResetClusterInternalServerError()
-
-					cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
-						ClusterID: clusterID,
-					})
-
-					verifyApiError(cancelReply, http.StatusInternalServerError)
-				})
-			})
-
-			Context("complete installation", func() {
-				success := true
-				errorInfo := "dummy"
-				It("complete success", func() {
-					mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(nil).Times(1)
-					reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
-						ClusterID:        clusterID,
-						CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
-					})
-					Expect(reply).Should(BeAssignableToTypeOf(installer.NewCompleteInstallationAccepted()))
-				})
-				It("complete bad request", func() {
-					mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(common.NewApiError(http.StatusBadRequest, nil)).Times(1)
-
-					reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
-						ClusterID:        clusterID,
-						CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
-					})
-
-					verifyApiError(reply, http.StatusBadRequest)
-				})
-			})
-
-			AfterEach(func() {
-				close(DoneChannel)
-				common.DeleteTestDB(db, dbName)
-			})
-		})
-	}
-
-	Context("when kube job is used as generator", func() {
 		BeforeEach(func() {
-			mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
+			DoneChannel = make(chan int)
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterID,
+				APIVip:             "10.11.12.13",
+				IngressVip:         "10.11.20.50",
+				MachineNetworkCidr: "10.11.0.0/16",
+				Status:             swag.String(models.ClusterStatusReady),
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "10.11.200.180/16"), db)
+			err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+				makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16", "10.11.12.13", "10.11.20.50"))).Error
+			Expect(err).ToNot(HaveOccurred())
+			mockDurationsSuccess()
 			ignitionReader = ioutil.NopCloser(strings.NewReader(`{
 					"ignition":{"version":"3.1.0"},
 					"storage":{
@@ -3212,9 +2821,384 @@ var _ = Describe("cluster", func() {
 					"systemd":{}
 			}`))
 			mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
-			bm = NewBareMetalInventory(db, getTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, mockVersions)
 		})
-		RunClusterTests()
+
+		It("success", func() {
+
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForRefresh(mockHostApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+			setDefaultInstall(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
+			setDefaultHostInstall(mockClusterApi, DoneChannel)
+			setDefaultMetricInstallationStarted(mockMetric)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				MinTimes(0)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+
+			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+			Expect(count).To(Equal(int64(1)))
+		})
+
+		It("cluster doesn't exists", func() {
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: strfmt.UUID(uuid.New().String()),
+			})
+			verifyApiError(reply, http.StatusNotFound)
+		})
+
+		It("failed to auto-assign role", func() {
+			mockAutoAssignFailed()
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusInternalServerError)
+		})
+
+		It("failed to prepare cluster", func() {
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			// validations
+			mockHostPrepareForRefresh(mockHostApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			// sync prepare for installation
+			mockClusterPrepareForInstallationFailure(mockClusterApi)
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusInternalServerError)
+		})
+
+		It("failed to prepare host", func() {
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			// validations
+			mockHostPrepareForRefresh(mockHostApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			// sync prepare for installation
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 2)
+			mockHostPrepareForInstallationFailure(mockHostApi, 1)
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusInternalServerError)
+		})
+
+		It("cluster is not ready to install", func() {
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockHostPrepareForRefresh(mockHostApi)
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationFalse(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+			Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			verifyApiError(reply, http.StatusConflict)
+		})
+
+		It("cluster failed to update", func() {
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockHostPrepareForRefresh(mockHostApi)
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockHostPrepareForRefresh(mockHostApi)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+		})
+
+		It("host failed to install", func() {
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockHostPrepareForRefresh(mockHostApi)
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+			setDefaultInstall(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+
+			mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return(errors.Errorf("host has a error")).AnyTimes()
+			setDefaultHostSetBootstrap(mockClusterApi)
+			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+		})
+
+		It("list of masters for setting bootstrap return empty list", func() {
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockHostPrepareForRefresh(mockHostApi)
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+			setDefaultInstall(mockClusterApi)
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{}, nil).Times(1)
+			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+		})
+
+		It("GetMasterNodesIds fails in the go routine", func() {
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+			setDefaultInstall(mockClusterApi)
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockHostPrepareForRefresh(mockHostApi)
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
+			mockClusterRefreshStatus(mockClusterApi)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+		})
+
+		It("GetMasterNodesIds returns empty list", func() {
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
+			setDefaultInstall(mockClusterApi)
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockHostPrepareForRefresh(mockHostApi)
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockClusterDeleteLogsSuccess(mockClusterApi)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+		})
+
+		It("failed to delete logs", func() {
+			mockAutoAssignSuccess(3)
+			mockClusterRefreshStatusSuccess()
+			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForRefresh(mockHostApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
+			setDefaultInstall(mockClusterApi)
+			setDefaultGetMasterNodesIds(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
+			setDefaultHostInstall(mockClusterApi, DoneChannel)
+			setDefaultMetricInstallationStarted(mockMetric)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterRefreshStatus(mockClusterApi)
+			setIsReadyForInstallationTrue(mockClusterApi)
+			mockClusterDeleteLogsFailure(mockClusterApi)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				MinTimes(0)
+
+			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+				ClusterID: clusterID,
+			})
+
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+			waitForDoneChannel()
+
+			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
+			Expect(count).To(Equal(int64(1)))
+		})
+
+		It("get DNS domain success", func() {
+			bm.Config.BaseDNSDomains = map[string]string{
+				"dns.example.com": "abc/route53",
+			}
+			dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dnsDomain.ID).Should(Equal("abc"))
+			Expect(dnsDomain.Provider).Should(Equal("route53"))
+			Expect(dnsDomain.APIDomainName).Should(Equal("api.test-cluster.dns.example.com"))
+			Expect(dnsDomain.IngressDomainName).Should(Equal("*.apps.test-cluster.dns.example.com"))
+		})
+		It("get DNS domain invalid", func() {
+			bm.Config.BaseDNSDomains = map[string]string{
+				"dns.example.com": "abc",
+			}
+			_, err := bm.getDNSDomain("test-cluster", "dns.example.com")
+			Expect(err).To(HaveOccurred())
+		})
+		It("get DNS domain undefined", func() {
+			dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dnsDomain).Should(BeNil())
+		})
+
+		Context("CancelInstallation", func() {
+			BeforeEach(func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			})
+			It("cancel installation success", func() {
+				setCancelInstallationSuccess()
+
+				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
+					ClusterID: clusterID,
+				})
+				Expect(cancelReply).Should(BeAssignableToTypeOf(installer.NewCancelInstallationAccepted()))
+			})
+			It("cancel installation conflict", func() {
+				setCancelInstallationHostConflict()
+
+				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
+					ClusterID: clusterID,
+				})
+
+				verifyApiError(cancelReply, http.StatusConflict)
+			})
+			It("cancel installation internal error", func() {
+				setCancelInstallationInternalServerError()
+
+				cancelReply := bm.CancelInstallation(ctx, installer.CancelInstallationParams{
+					ClusterID: clusterID,
+				})
+
+				verifyApiError(cancelReply, http.StatusInternalServerError)
+			})
+		})
+
+		Context("reset cluster", func() {
+			BeforeEach(func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+			})
+			It("reset installation success", func() {
+				setResetClusterSuccess()
+				resetReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+					ClusterID: clusterID,
+				})
+				Expect(resetReply).Should(BeAssignableToTypeOf(installer.NewResetClusterAccepted()))
+			})
+			It("reset cluster conflict", func() {
+				setResetClusterConflict()
+
+				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+					ClusterID: clusterID,
+				})
+
+				verifyApiError(cancelReply, http.StatusConflict)
+			})
+			It("reset cluster internal error", func() {
+				setResetClusterInternalServerError()
+
+				cancelReply := bm.ResetCluster(ctx, installer.ResetClusterParams{
+					ClusterID: clusterID,
+				})
+
+				verifyApiError(cancelReply, http.StatusInternalServerError)
+			})
+		})
+
+		Context("complete installation", func() {
+			success := true
+			errorInfo := "dummy"
+			It("complete success", func() {
+				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(nil).Times(1)
+				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
+					ClusterID:        clusterID,
+					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewCompleteInstallationAccepted()))
+			})
+			It("complete bad request", func() {
+				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(common.NewApiError(http.StatusBadRequest, nil)).Times(1)
+
+				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
+					ClusterID:        clusterID,
+					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
+				})
+
+				verifyApiError(reply, http.StatusBadRequest)
+			})
+		})
+
+		AfterEach(func() {
+			close(DoneChannel)
+			common.DeleteTestDB(db, dbName)
+		})
 	})
 })
 
