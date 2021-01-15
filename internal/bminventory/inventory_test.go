@@ -1611,64 +1611,62 @@ var _ = Describe("cluster", func() {
 	validationsConfig := validations.Config{}
 
 	Context("Get", func() {
-		{
-			BeforeEach(func() {
-				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
-					ID:                 &clusterID,
-					APIVip:             "10.11.12.13",
-					IngressVip:         "10.11.12.14",
-					MachineNetworkCidr: "10.11.0.0/16",
-				}}).Error
-				Expect(err).ShouldNot(HaveOccurred())
+		BeforeEach(func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterID,
+				APIVip:             "10.11.12.13",
+				IngressVip:         "10.11.12.14",
+				MachineNetworkCidr: "10.11.0.0/16",
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
 
-				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
-				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
-			})
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+		})
 
-			It("GetCluster", func() {
-				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-				mockDurationsSuccess()
-				reply := bm.GetCluster(ctx, installer.GetClusterParams{
-					ClusterID: clusterID,
-				})
-				actual, ok := reply.(*installer.GetClusterOK)
-				Expect(ok).To(BeTrue())
-				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
-				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
-				Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-				expectedNetworks := sortedNetworks([]*models.HostNetwork{
-					{
-						Cidr: "1.2.3.0/24",
-						HostIds: sortedHosts([]strfmt.UUID{
-							masterHostId1,
-							masterHostId2,
-							masterHostId3,
-						}),
-					},
-					{
-						Cidr: "10.11.0.0/16",
-						HostIds: sortedHosts([]strfmt.UUID{
-							masterHostId1,
-							masterHostId2,
-						}),
-					},
-					{
-						Cidr: "7.8.9.0/24",
-						HostIds: []strfmt.UUID{
-							masterHostId3,
-						},
-					},
-				})
-				actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-				Expect(len(actualNetworks)).To(Equal(3))
-				actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-				actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-				actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
-				Expect(actualNetworks).To(Equal(expectedNetworks))
+		It("GetCluster", func() {
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+			mockDurationsSuccess()
+			reply := bm.GetCluster(ctx, installer.GetClusterParams{
+				ClusterID: clusterID,
 			})
-		}
+			actual, ok := reply.(*installer.GetClusterOK)
+			Expect(ok).To(BeTrue())
+			Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
+			Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+			Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+			expectedNetworks := sortedNetworks([]*models.HostNetwork{
+				{
+					Cidr: "1.2.3.0/24",
+					HostIds: sortedHosts([]strfmt.UUID{
+						masterHostId1,
+						masterHostId2,
+						masterHostId3,
+					}),
+				},
+				{
+					Cidr: "10.11.0.0/16",
+					HostIds: sortedHosts([]strfmt.UUID{
+						masterHostId1,
+						masterHostId2,
+					}),
+				},
+				{
+					Cidr: "7.8.9.0/24",
+					HostIds: []strfmt.UUID{
+						masterHostId3,
+					},
+				},
+			})
+			actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+			Expect(len(actualNetworks)).To(Equal(3))
+			actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+			actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+			actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+			Expect(actualNetworks).To(Equal(expectedNetworks))
+		})
 	})
 	Context("Update", func() {
 		BeforeEach(func() {
