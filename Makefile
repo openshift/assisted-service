@@ -82,6 +82,9 @@ $(BUILD_FOLDER):
 format:
 	golangci-lint run --fix -v
 
+format-check:
+	@test -z $(shell $(MAKE) format)
+
 ############
 # Generate #
 ############
