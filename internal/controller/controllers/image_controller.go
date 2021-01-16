@@ -19,7 +19,13 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
+
+	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,9 +47,10 @@ import (
 // ImageReconciler reconciles a Image object
 type ImageReconciler struct {
 	client.Client
-	Log       logrus.FieldLogger
-	Scheme    *runtime.Scheme
-	Installer bminventory.InstallerInternals
+	Log                      logrus.FieldLogger
+	Scheme                   *runtime.Scheme
+	Installer                bminventory.InstallerInternals
+	PullSecretUpdatesChannel chan event.GenericEvent
 }
 
 // +kubebuilder:rbac:groups=adi.io.my.domain,resources=images,verbs=get;list;watch;create;update;patch;delete
@@ -115,7 +122,13 @@ func (r *ImageReconciler) updateStatusAndReturnResult(
 
 	var res ctrl.Result
 
-	if isClientError(err) {
+	if imageBeingCreated(err) {
+		state = adiiov1alpha1.ImageStateCreated
+		// Clear up the error state while image is being created
+		err = nil
+		r.Log.Infof("Image %s being prepared for cluster %s state: %s",
+			image.Name, image.ClusterName, state)
+	} else if isClientError(err) {
 		state += ": " + err.Error()
 	} else if err != nil {
 		state += ": internal error"
@@ -143,5 +156,11 @@ func (r *ImageReconciler) updateStatusAndReturnResult(
 func (r *ImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adiiov1alpha1.Image{}).
+		Watches(&source.Channel{Source: r.PullSecretUpdatesChannel},
+			&handler.EnqueueRequestForObject{}).
 		Complete(r)
+}
+
+func imageBeingCreated(err error) bool {
+	return IsHTTPError(err, http.StatusConflict)
 }

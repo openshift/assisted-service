@@ -20,6 +20,8 @@ import (
 	"context"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/event"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -49,11 +51,12 @@ const defaultRequeueAfterOnError = 10 * time.Second
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
 	client.Client
-	Log        logrus.FieldLogger
-	Scheme     *runtime.Scheme
-	Installer  bminventory.InstallerInternals
-	ClusterApi cluster.API
-	HostApi    host.API
+	Log                      logrus.FieldLogger
+	Scheme                   *runtime.Scheme
+	Installer                bminventory.InstallerInternals
+	ClusterApi               cluster.API
+	HostApi                  host.API
+	PullSecretUpdatesChannel chan event.GenericEvent
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -245,8 +248,31 @@ func (r *ClusterReconciler) updateState(ctx context.Context, cluster *adiiov1alp
 	return reply, nil
 }
 
+func (r *ClusterReconciler) notifyPullSecretUpdate(ctx context.Context, isPullSecretUpdate bool, c *common.Cluster) error {
+	if isPullSecretUpdate {
+		images := &adiiov1alpha1.ImageList{}
+		if err := r.List(ctx, images); err != nil {
+			return err
+		}
+		for _, image := range images.Items {
+			r.Log.Infof("Nofify that image %s should be re-created for cluster %s",
+				image.Name, image.UID)
+			if image.Spec.ClusterRef.Name == c.KubeKeyName {
+				r.PullSecretUpdatesChannel <- event.GenericEvent{
+					Meta: &metav1.ObjectMeta{
+						Namespace: image.Namespace,
+						Name:      image.Name,
+					},
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1alpha1.Cluster, c *common.Cluster) (bool, ctrl.Result, error) {
 	update := false
+	isPullSecretUpdate := false
 
 	params := &models.ClusterUpdateParams{}
 
@@ -307,7 +333,11 @@ func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1
 	if err != nil {
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
 	}
-	updateString(data, c.PullSecret, &params.PullSecret)
+	if data != c.PullSecret {
+		params.PullSecret = swag.String(data)
+		update = true
+		isPullSecretUpdate = true
+	}
 
 	if !update {
 		return update, ctrl.Result{}, nil
@@ -321,6 +351,10 @@ func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1
 	// TODO: check error type, retry for 5xx
 	if err != nil {
 		return update, ctrl.Result{}, errors.Wrap(err, "failed to update cluster")
+	}
+
+	if err = r.notifyPullSecretUpdate(ctx, isPullSecretUpdate, c); err != nil {
+		return false, ctrl.Result{}, errors.Wrap(err, "failed to get a list of images to update")
 	}
 
 	r.Log.Infof("Updated cluster %s %s", cluster.Name, cluster.Namespace)
