@@ -226,9 +226,16 @@ func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host 
 	//  path is empty, it means there are no valid disks to install on.
 	disks, err := hwValidator.GetHostValidDisks(&host)
 	if err != nil || len(disks) == 0 {
-		err := errors.Errorf("Failed to get valid disks on host with id %s", host.ID)
 		log.Errorf("Failed to get valid disks on host with id %s", host.ID)
-		return "", err
+
+		var newErr error
+		if err != nil {
+			newErr = errors.Wrapf(err, "failed to get valid disks on host with id %s", host.ID)
+		} else {
+			newErr = errors.Errorf("host has no valid disks id %s", host.ID)
+		}
+
+		return "", newErr
 	}
 	return GetDeviceFullName(disks[0].Name), nil
 }

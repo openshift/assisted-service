@@ -14,7 +14,6 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/openshift/assisted-service/models"
-	"github.com/pkg/errors"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
@@ -58,11 +57,7 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		return nil, err
 	}
-	disks := v.ListEligibleDisks(&inventory)
-	if len(disks) == 0 {
-		return disks, errors.Errorf("host %s doesn't have valid disks", host.ID)
-	}
-	return disks, nil
+	return v.ListEligibleDisks(&inventory), nil
 }
 
 func gbToBytes(gb int64) int64 {

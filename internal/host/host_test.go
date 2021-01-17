@@ -3,6 +3,7 @@ package host
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -1397,7 +1398,6 @@ var _ = Describe("Update disk installation path", func() {
 		hapi = NewManager(logger, db, nil, mockValidator, nil, createValidatorCfg(), nil, defaultConfig, leader)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{&defaultDisk}, nil).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -1421,7 +1421,21 @@ var _ = Describe("Update disk installation path", func() {
 		It("illegal disk installation path", func() {
 			host = getTestHost(hostId, clusterId, models.HostStatusKnown)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{&defaultDisk}, nil)
 			failure(hapi.UpdateInstallationDiskPath(ctx, db, &host, "/no/such/disk"))
+		})
+		//happy flow is validated implicitly in the next test context
+	})
+
+	Context("validate get host valid disks error", func() {
+		It("get host valid disks returns an error", func() {
+			host = getTestHost(hostId, clusterId, models.HostStatusKnown)
+			expectedError := errors.New("bad inventory")
+			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{&defaultDisk}, expectedError)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			err := hapi.UpdateInstallationDiskPath(ctx, db, &host, "/no/such/disk")
+			Expect(err).To(Equal(expectedError))
+			failure(err)
 		})
 		//happy flow is validated implicitly in the next test context
 	})
@@ -1430,76 +1444,86 @@ var _ = Describe("Update disk installation path", func() {
 		tests := []struct {
 			name       string
 			srcState   string
-			validation func(error)
+			validation bool
 		}{
 			{
 				name:       models.HostStatusKnown,
 				srcState:   models.HostStatusKnown,
-				validation: success,
+				validation: true,
 			},
 			{
 				name:       models.HostStatusDisabled,
 				srcState:   models.HostStatusDisabled,
-				validation: failure,
+				validation: false,
 			},
 			{
 				name:       models.HostStatusDisconnected,
 				srcState:   models.HostStatusDisconnected,
-				validation: success,
+				validation: true,
 			},
 			{
 				name:       models.HostStatusDiscovering,
 				srcState:   models.HostStatusDiscovering,
-				validation: success,
+				validation: true,
 			},
 			{
 				name:       models.HostStatusError,
 				srcState:   models.HostStatusError,
-				validation: failure,
+				validation: false,
 			},
 			{
 				name:       models.HostStatusInstalled,
 				srcState:   models.HostStatusInstalled,
-				validation: failure,
+				validation: false,
 			},
 			{
 				name:       models.HostStatusInstalling,
 				srcState:   models.HostStatusInstalling,
-				validation: failure,
+				validation: false,
 			},
 			{
 				name:       models.HostStatusInstallingInProgress,
 				srcState:   models.HostStatusInstallingInProgress,
-				validation: failure,
+				validation: false,
 			},
 			{
 				name:       models.HostStatusResettingPendingUserAction,
 				srcState:   models.HostStatusResettingPendingUserAction,
-				validation: failure,
+				validation: false,
 			},
 			{
 				name:       models.HostStatusInsufficient,
 				srcState:   models.HostStatusInsufficient,
-				validation: success,
+				validation: true,
 			},
 			{
 				name:       models.HostStatusResetting,
 				srcState:   models.HostStatusResetting,
-				validation: failure,
+				validation: false,
 			},
 			{
 				name:       models.HostStatusPendingForInput,
 				srcState:   models.HostStatusPendingForInput,
-				validation: success,
+				validation: true,
 			},
 		}
 
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
+				if t.validation {
+					mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{&defaultDisk}, nil).AnyTimes()
+				}
+
 				host = getTestHost(hostId, clusterId, t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				t.validation(hapi.UpdateInstallationDiskPath(ctx, db, &host, "/dev/test-disk"))
+				err := hapi.UpdateInstallationDiskPath(ctx, db, &host, "/dev/test-disk")
+
+				if t.validation {
+					success(err)
+				} else {
+					failure(err)
+				}
 			})
 		}
 	})
