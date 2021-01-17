@@ -12,7 +12,7 @@ import (
 )
 
 var _ = Describe("test spec endpoint", func() {
-	It("get spec", func() {
+	It("[minimal-set]get spec", func() {
 		reply, err := http.Get(fmt.Sprintf("http://%s",
 			path.Join(Options.InventoryHost, client.DefaultBasePath, "openapi")))
 		Expect(err).To(BeNil())
