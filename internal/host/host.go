@@ -320,6 +320,9 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	if err != nil {
 		return err
 	}
+	if err = m.reportValidationStatusChanged(ctx, vc, h, validationsResults); err != nil {
+		return err
+	}
 	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
 		ctx:               ctx,
 		db:                db,
@@ -722,6 +725,29 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 		for _, v := range vRes {
 			if v.Status == ValidationFailure {
 				m.metricApi.HostValidationFailed(ocpVersion, h.ClusterID, emailDomain, models.HostValidationID(v.ID))
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host, newValidationRes map[string][]validationResult) error {
+	var currentValidationRes map[string][]validationResult
+	if h.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
+			return errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+		}
+		for vCategory, vRes := range newValidationRes {
+			for i, v := range vRes {
+				if v.Status == ValidationFailure && currentValidationRes[vCategory][i].Status == ValidationSuccess {
+					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, h.ClusterID, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
+					eventMsg := fmt.Sprintf("Host %v: validation '%v' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
+					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
+				}
+				if v.Status == ValidationSuccess && currentValidationRes[vCategory][i].Status == ValidationFailure {
+					eventMsg := fmt.Sprintf("Host %v: validation '%v' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
+					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+				}
 			}
 		}
 	}
