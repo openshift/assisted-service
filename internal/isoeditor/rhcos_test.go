@@ -55,8 +55,8 @@ var _ = Context("with test files", func() {
 		})
 	})
 
-	Describe("addRootFSURL", func() {
-		It("rootfs_url added successfully", func() {
+	Describe("fixTemplateConfigs", func() {
+		It("alters the kernel parameters correctly", func() {
 			editor := CreateEditor(isoFile, defaultTestOpenShiftVersion, log)
 			rootfsURL := fmt.Sprintf("%s/api/assisted-install/v1/boot-files?file_type=rootfs.img&openshift_version=%s",
 				defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
@@ -64,7 +64,7 @@ var _ = Context("with test files", func() {
 			err := isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = editor.(*rhcosEditor).addRootFSURL(defaultTestServiceBaseURL)
+			err = editor.(*rhcosEditor).fixTemplateConfigs(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 
 			grubCfg := fmt.Sprintf(" linux /images/pxeboot/vmlinuz coreos.live.rootfs_url=%s", rootfsURL)
@@ -92,11 +92,11 @@ func createIsoViaGenisoimage(volumeID string) (string, string, string) {
 	Expect(err).ToNot(HaveOccurred())
 	err = os.MkdirAll(filepath.Join(filesDir, "files/EFI/redhat"), 0755)
 	Expect(err).ToNot(HaveOccurred())
-	err = ioutil.WriteFile(filepath.Join(filesDir, "files/EFI/redhat/grub.cfg"), []byte(" linux /images/pxeboot/vmlinuz"), 0664)
+	err = ioutil.WriteFile(filepath.Join(filesDir, "files/EFI/redhat/grub.cfg"), []byte(" linux /images/pxeboot/vmlinuz coreos.liveiso=rhcos-46.82.202012051820-0"), 0664)
 	Expect(err).ToNot(HaveOccurred())
 	err = os.MkdirAll(filepath.Join(filesDir, "files/isolinux"), 0755)
 	Expect(err).ToNot(HaveOccurred())
-	err = ioutil.WriteFile(filepath.Join(filesDir, "files/isolinux/isolinux.cfg"), []byte(" append initrd=/images/pxeboot/initrd.img"), 0664)
+	err = ioutil.WriteFile(filepath.Join(filesDir, "files/isolinux/isolinux.cfg"), []byte(" append coreos.liveiso=rhcos-46.82.202012051820-0 initrd=/images/pxeboot/initrd.img"), 0664)
 	Expect(err).ToNot(HaveOccurred())
 	cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", volumeID, "-o", isoFile, filepath.Join(filesDir, "files"))
 	err = cmd.Run()

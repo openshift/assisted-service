@@ -72,8 +72,8 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 		return "", err
 	}
 
-	if err := e.addRootFSURL(serviceBaseURL); err != nil {
-		e.log.WithError(err).Warnf("Can't add rootfs_url (missing cfg files)")
+	if err := e.fixTemplateConfigs(serviceBaseURL); err != nil {
+		e.log.WithError(err).Warnf("Failed to edit template configs")
 		return "", err
 	}
 
@@ -102,12 +102,21 @@ func (e *rhcosEditor) create(outPath string) error {
 	return nil
 }
 
-func (e *rhcosEditor) addRootFSURL(serviceBaseURL string) error {
+func (e *rhcosEditor) fixTemplateConfigs(serviceBaseURL string) error {
+	// Add the rootfs url
 	replacement := fmt.Sprintf("$1 $2 coreos.live.rootfs_url=%s", e.getRootFSURL(serviceBaseURL))
 	if err := editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), `(?m)^(\s+linux) (.+| )+$`, replacement); err != nil {
 		return err
 	}
 	if err := editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), `(?m)^(\s+append) (.+| )+$`, replacement); err != nil {
+		return err
+	}
+
+	// Remove the coreos.liveiso parameter
+	if err := editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), ` coreos.liveiso=\S+`, ""); err != nil {
+		return err
+	}
+	if err := editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), ` coreos.liveiso=\S+`, ""); err != nil {
 		return err
 	}
 
