@@ -129,8 +129,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
 		mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
+		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, mockIsoEditorFactory)
 	})
 
 	AfterEach(func() {

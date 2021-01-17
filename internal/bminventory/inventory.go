@@ -1030,38 +1030,9 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	objectPrefix := fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())
 
 	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
-		baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(cluster.OpenshiftVersion)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
+		if err := b.generateClusterMinimalISO(ctx, log, &cluster, ignitionConfig, objectPrefix); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
-
-		isoPath, err := s3wrapper.GetFile(ctx, b.objectHandler, baseISOName, b.ISOCacheDir, true)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to download minimal ISO template %s", baseISOName)
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-
-		log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
-		editor, err := b.isoEditorFactory.NewEditor(isoPath, cluster.OpenshiftVersion, log)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to create iso editor for cluster %s with iso file %s", cluster.ID, isoPath)
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-
-		clusterISOPath, err := editor.CreateClusterMinimalISO(ignitionConfig)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to create minimal discovery ISO for cluster %s", cluster.ID)
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-
-		log.Infof("Uploading minimal ISO for cluster %s", cluster.ID)
-		if err := b.objectHandler.UploadFile(ctx, clusterISOPath, fmt.Sprintf("%s.iso", objectPrefix)); err != nil {
-			os.Remove(clusterISOPath)
-			log.WithError(err).Errorf("Failed to upload minimal discovery ISO for cluster %s", cluster.ID)
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
-		os.Remove(clusterISOPath)
 	} else {
 		baseISOName, err := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
 		if err != nil {
@@ -1102,6 +1073,43 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
 	return &cluster, nil
+}
+
+func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
+	cluster *common.Cluster, ignitionConfig, objectPrefix string) error {
+
+	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(cluster.OpenshiftVersion)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
+		return err
+	}
+
+	isoPath, err := s3wrapper.GetFile(ctx, b.objectHandler, baseISOName, b.ISOCacheDir, true)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to download minimal ISO template %s", baseISOName)
+		return err
+	}
+
+	log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
+	editor, err := b.isoEditorFactory.NewEditor(isoPath, cluster.OpenshiftVersion, log)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create iso editor for cluster %s with iso file %s", cluster.ID, isoPath)
+		return err
+	}
+
+	clusterISOPath, err := editor.CreateClusterMinimalISO(ignitionConfig)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create minimal discovery ISO for cluster %s", cluster.ID)
+		return err
+	}
+
+	log.Infof("Uploading minimal ISO for cluster %s", cluster.ID)
+	if err := b.objectHandler.UploadFile(ctx, clusterISOPath, fmt.Sprintf("%s.iso", objectPrefix)); err != nil {
+		os.Remove(clusterISOPath)
+		log.WithError(err).Errorf("Failed to upload minimal discovery ISO for cluster %s", cluster.ID)
+		return err
+	}
+	return os.Remove(clusterISOPath)
 }
 
 func getImageName(clusterID strfmt.UUID) string {
