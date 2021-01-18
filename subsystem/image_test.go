@@ -24,23 +24,26 @@ import (
 
 var _ = Describe("system-test image tests", func() {
 	var (
-		ctx       = context.Background()
-		cluster   *installer.RegisterClusterCreated
-		clusterID strfmt.UUID
+		ctx               = context.Background()
+		clusterID         strfmt.UUID
+		supportedVersions versions.ListSupportedOpenshiftVersionsOK
 	)
 
 	AfterEach(func() {
 		clearDB()
 	})
 
-	versions, err := userBMClient.Versions.ListSupportedOpenshiftVersions(ctx, &versions.ListSupportedOpenshiftVersionsParams{})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(versions.Payload).ShouldNot(BeEmpty())
+	BeforeEach(func() {
+		supportedVersions, err := userBMClient.Versions.ListSupportedOpenshiftVersions(
+			ctx, &versions.ListSupportedOpenshiftVersionsParams{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(supportedVersions.Payload).ShouldNot(BeEmpty())
+	})
 
-	for ocpVersion := range versions.Payload {
+	for ocpVersion := range supportedVersions.Payload {
 		It(fmt.Sprintf("[minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
 			By("Register Cluster", func() {
-				cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+				cluster, err := userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 					NewClusterParams: &models.ClusterCreateParams{
 						Name:             swag.String("test-cluster"),
 						OpenshiftVersion: swag.String(ocpVersion),
@@ -48,11 +51,11 @@ var _ = Describe("system-test image tests", func() {
 					},
 				})
 				Expect(err).NotTo(HaveOccurred())
-				clusterID = *cluster.GetPayload().ID
+				clusterID = *cluster.ID
 			})
 
 			By("Generate ISO", func() {
-				_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+				_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 					ClusterID:         clusterID,
 					ImageCreateParams: &models.ImageCreateParams{},
 				})
@@ -75,7 +78,7 @@ var _ = Describe("system-test image tests", func() {
 					PullSecret:       pullSecret,
 					OpenshiftVersion: ocpVersion,
 				}
-				_, err = userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
+				_, err := userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
 					AssistedServiceIsoCreateParams: &ignitionParams,
 				})
 				Expect(err).NotTo(HaveOccurred())
@@ -101,7 +104,7 @@ var _ = Describe("image tests", func() {
 		ctx     = context.Background()
 		file    *os.File
 		err     error
-		cluster *installer.RegisterClusterCreated
+		cluster *models.Cluster
 	)
 
 	AfterEach(func() {
@@ -115,7 +118,7 @@ var _ = Describe("image tests", func() {
 	})
 
 	It("Image is removed after patching ignition", func() {
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -123,7 +126,7 @@ var _ = Describe("image tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		clusterID := *cluster.GetPayload().ID
+		clusterID := *cluster.ID
 
 		_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 			ClusterID:         clusterID,
@@ -153,7 +156,7 @@ var _ = Describe("image tests", func() {
 	})
 
 	It("download_non_existing_image", func() {
-		cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err := userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -162,7 +165,7 @@ var _ = Describe("image tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
-			ClusterID: *cluster.GetPayload().ID,
+			ClusterID: *cluster.ID,
 		}, file)
 		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISONotFound())))
 	})
@@ -171,7 +174,7 @@ var _ = Describe("image tests", func() {
 var _ = Describe("system-test proxy update tests", func() {
 	var (
 		ctx       = context.Background()
-		cluster   *installer.RegisterClusterCreated
+		cluster   *models.Cluster
 		clusterID strfmt.UUID
 	)
 
@@ -181,7 +184,7 @@ var _ = Describe("system-test proxy update tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -189,7 +192,7 @@ var _ = Describe("system-test proxy update tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		clusterID = *cluster.GetPayload().ID
+		clusterID = *cluster.ID
 	})
 
 	It("generate_image_after_proxy_was_set", func() {

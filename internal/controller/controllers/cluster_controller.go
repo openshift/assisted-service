@@ -102,6 +102,10 @@ func (r *ClusterReconciler) getPullSecret(ctx context.Context, name, namespace s
 		return "", errors.Wrapf(err, "failed to get pull secret %s", key)
 	}
 
+	if stringData, ok := secret.StringData["pullSecret"]; ok {
+		return stringData, nil
+	}
+
 	data, ok := secret.Data["pullSecret"]
 	if !ok {
 		return "", errors.Errorf("pullSecret is not configured")
@@ -144,8 +148,34 @@ func (r *ClusterReconciler) createNewCluster(
 			VipDhcpAllocation:        swag.Bool(spec.VIPDhcpAllocation),
 		},
 	})
+
+	if err == nil {
+		r.syncClusterSpec(cluster, c)
+	}
+
 	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
 	return r.updateState(ctx, cluster, c, err)
+}
+
+func (r *ClusterReconciler) syncClusterSpec(cluster *adiiov1alpha1.Cluster, c *common.Cluster) {
+	cluster.Spec.Name = c.Name
+	cluster.Spec.OpenshiftVersion = c.OpenshiftVersion
+	cluster.Spec.BaseDNSDomain = c.BaseDNSDomain
+	cluster.Spec.ClusterNetworkCidr = c.ClusterNetworkCidr
+	cluster.Spec.ClusterNetworkHostPrefix = c.ClusterNetworkHostPrefix
+	cluster.Spec.ServiceNetworkCidr = c.ServiceNetworkCidr
+	cluster.Spec.APIVip = c.APIVip
+	cluster.Spec.APIVipDNSName = swag.StringValue(c.APIVipDNSName)
+	cluster.Spec.IngressVip = c.IngressVip
+	cluster.Spec.MachineNetworkCidr = swag.String(c.MachineNetworkCidr)
+	cluster.Spec.SSHPublicKey = c.SSHPublicKey
+	cluster.Spec.VIPDhcpAllocation = swag.BoolValue(c.VipDhcpAllocation)
+	cluster.Spec.HTTPProxy = c.HTTPProxy
+	cluster.Spec.HTTPSProxy = c.HTTPSProxy
+	cluster.Spec.NoProxy = c.NoProxy
+	cluster.Spec.UserManagedNetworking = swag.BoolValue(c.UserManagedNetworking)
+	cluster.Spec.AdditionalNtpSource = c.AdditionalNtpSource
+	cluster.Spec.InstallConfigOverrides = c.InstallConfigOverrides
 }
 
 func (r *ClusterReconciler) syncClusterState(cluster *adiiov1alpha1.Cluster, c *common.Cluster) {

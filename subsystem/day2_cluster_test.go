@@ -95,7 +95,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		Expect(err2).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
-		_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+		err = userBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
 		list, err = userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})

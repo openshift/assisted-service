@@ -48,7 +48,8 @@ var _ = Describe("IPv6 installation", func() {
 		clearDB()
 	})
 	BeforeEach(func() {
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		var err error
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:            "example.com",
 				ClusterNetworkCidr:       &clusterCIDR,
@@ -61,7 +62,6 @@ var _ = Describe("IPv6 installation", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
 		clusterID = *cluster.ID
 		log.Infof("Register cluster %s", cluster.ID.String())
 	})

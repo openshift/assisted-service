@@ -107,15 +107,15 @@ var (
 
 var _ = Describe("Cluster", func() {
 	ctx := context.Background()
-	var cluster *installer.RegisterClusterCreated
+	var cluster *models.Cluster
 	var clusterID strfmt.UUID
 	var err error
 	AfterEach(func() {
-		clearDB()
+		performCleanup(ctx)
 	})
 
 	BeforeEach(func() {
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -124,13 +124,13 @@ var _ = Describe("Cluster", func() {
 		})
 
 		Expect(err).NotTo(HaveOccurred())
-		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal("insufficient"))
-		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
-		Expect(cluster.GetPayload().StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
+		Expect(swag.StringValue(cluster.Status)).Should(Equal("insufficient"))
+		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+		Expect(cluster.StatusUpdatedAt).ShouldNot(Equal(strfmt.DateTime(time.Time{})))
 	})
 
 	JustBeforeEach(func() {
-		clusterID = *cluster.GetPayload().ID
+		clusterID = *cluster.ID
 	})
 
 	It("register an unregistered host success", func() {
@@ -163,11 +163,11 @@ var _ = Describe("Cluster", func() {
 	})
 
 	It("cluster name exceed max length (54 characters)", func() {
-		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
+		err1 := userBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
 			ClusterID: clusterID,
 		})
 		Expect(err1).ShouldNot(HaveOccurred())
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -178,11 +178,11 @@ var _ = Describe("Cluster", func() {
 	})
 
 	It("register an unregistered cluster success", func() {
-		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
+		err1 := userBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
 			ClusterID: clusterID,
 		})
 		Expect(err1).ShouldNot(HaveOccurred())
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -191,13 +191,13 @@ var _ = Describe("Cluster", func() {
 		})
 
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
-		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
+		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
+		Expect(swag.StringValue(cluster.StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 	})
 
 	It("list clusters - get unregistered cluster", func() {
 		_ = registerHost(clusterID)
-		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+		err1 := userBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err1).ShouldNot(HaveOccurred())
 		ret, err2 := readOnlyAdminUserBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 		Expect(err2).ShouldNot(HaveOccurred())
@@ -231,7 +231,7 @@ var _ = Describe("Cluster", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(list.GetPayload())).Should(Equal(1))
 
-		_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+		err = userBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
 		list, err = userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
@@ -433,11 +433,12 @@ var _ = Describe("cluster install - DHCP", func() {
 	}
 
 	AfterEach(func() {
-		clearDB()
+		performCleanup(ctx)
 	})
 
 	BeforeEach(func() {
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		var regErr error
+		cluster, regErr = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:            "example.com",
 				ClusterNetworkCidr:       &clusterCIDR,
@@ -449,8 +450,7 @@ var _ = Describe("cluster install - DHCP", func() {
 				SSHPublicKey:             sshPublicKey,
 			},
 		})
-		Expect(err).NotTo(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
+		Expect(regErr).NotTo(HaveOccurred())
 		log.Infof("Register cluster %s", cluster.ID.String())
 	})
 	Context("install cluster cases", func() {
@@ -572,7 +572,6 @@ var _ = Describe("cluster install - DHCP", func() {
 var _ = Describe("cluster update - BaseDNS", func() {
 	var (
 		ctx         = context.Background()
-		cluster     *models.Cluster
 		clusterID   strfmt.UUID
 		clusterCIDR = "10.128.0.0/14"
 		serviceCIDR = "172.30.0.0/16"
@@ -580,12 +579,11 @@ var _ = Describe("cluster update - BaseDNS", func() {
 	)
 
 	AfterEach(func() {
-		clearDB()
+		performCleanup(ctx)
 	})
 
 	BeforeEach(func() {
-		var registerClusterReply *installer.RegisterClusterCreated
-		registerClusterReply, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, regErr := userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:            "example.com",
 				ClusterNetworkCidr:       &clusterCIDR,
@@ -597,8 +595,7 @@ var _ = Describe("cluster update - BaseDNS", func() {
 				SSHPublicKey:             sshPublicKey,
 			},
 		})
-		Expect(err).NotTo(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
+		Expect(regErr).NotTo(HaveOccurred())
 		clusterID = *cluster.ID
 		log.Infof("Register cluster %s", cluster.ID.String())
 	})
@@ -715,11 +712,12 @@ var _ = Describe("cluster install", func() {
 	)
 
 	AfterEach(func() {
-		clearDB()
+		performCleanup(ctx)
 	})
 
 	BeforeEach(func() {
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		var regErr error
+		cluster, regErr = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:            "example.com",
 				ClusterNetworkCidr:       &clusterCIDR,
@@ -731,8 +729,7 @@ var _ = Describe("cluster install", func() {
 				SSHPublicKey:             sshPublicKey,
 			},
 		})
-		Expect(err).NotTo(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
+		Expect(regErr).NotTo(HaveOccurred())
 		log.Infof("Register cluster %s", cluster.ID.String())
 	})
 
@@ -1213,7 +1210,8 @@ var _ = Describe("cluster install", func() {
 
 		It("report_cluster_progress", func() {
 			By("report_cluster_install_progress_before_install_starts")
-			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			var regErr error
+			cluster, regErr = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
 					BaseDNSDomain:            "example.com",
 					ClusterNetworkCidr:       &clusterCIDR,
@@ -1224,9 +1222,9 @@ var _ = Describe("cluster install", func() {
 					ServiceNetworkCidr:       &serviceCIDR,
 				},
 			})
-			Expect(err).NotTo(HaveOccurred())
+			Expect(regErr).NotTo(HaveOccurred())
 			updateReply, err := agentBMClient.Installer.UpdateClusterInstallProgress(ctx, &installer.UpdateClusterInstallProgressParams{
-				ClusterID:       *registerClusterReply.GetPayload().ID,
+				ClusterID:       *cluster.ID,
 				ClusterProgress: "This update should fail!",
 			})
 			Expect(err).Should(HaveOccurred())
@@ -1279,7 +1277,7 @@ var _ = Describe("cluster install", func() {
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
 
 			updateReply, err = agentBMClient.Installer.UpdateClusterInstallProgress(ctx, &installer.UpdateClusterInstallProgressParams{
-				ClusterID:       *registerClusterReply.GetPayload().ID,
+				ClusterID:       *cluster.ID,
 				ClusterProgress: "This update should fail!",
 			})
 			Expect(err).Should(HaveOccurred())
@@ -2404,7 +2402,7 @@ var _ = Describe("cluster install", func() {
 		Expect(swag.StringValue(cluster.GetPayload().Status)).Should(Equal(models.ClusterStatusInsufficient))
 		Expect(swag.StringValue(cluster.GetPayload().StatusInfo)).Should(Equal(clusterInsufficientStateInfo))
 
-		_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+		err = userBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
 
 		_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -2757,12 +2755,13 @@ var _ = Describe("cluster install, with default network params", func() {
 	)
 
 	AfterEach(func() {
-		clearDB()
+		performCleanup(ctx)
 	})
 
 	BeforeEach(func() {
 		By("Register cluster")
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		var err error
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:    "example.com",
 				Name:             swag.String("test-cluster"),
@@ -2772,7 +2771,6 @@ var _ = Describe("cluster install, with default network params", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
 	})
 
 	It("install cluster", func() {

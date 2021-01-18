@@ -17,6 +17,15 @@ const (
 	defaultWaitForClusterStateTimeout = 40 * time.Second
 )
 
+func performCleanup(ctx context.Context) {
+	if Options.EnableKubeAPI {
+		if err := kubeClient.DeleteAllClusters(ctx); err != nil {
+			log.Fatalf("error deleting all cluster crds: %s", err)
+		}
+	}
+	clearDB()
+}
+
 func clearDB() {
 	db.Delete(&models.Host{})
 	db.Delete(&models.Cluster{})

@@ -20,7 +20,7 @@ import (
 
 var _ = Describe("Host tests", func() {
 	ctx := context.Background()
-	var cluster *installer.RegisterClusterCreated
+	var cluster *models.Cluster
 	var clusterID strfmt.UUID
 
 	AfterEach(func() {
@@ -29,7 +29,7 @@ var _ = Describe("Host tests", func() {
 
 	BeforeEach(func() {
 		var err error
-		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -40,7 +40,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	JustBeforeEach(func() {
-		clusterID = *cluster.GetPayload().ID
+		clusterID = *cluster.ID
 	})
 
 	It("host CRUD", func() {
@@ -423,7 +423,7 @@ var _ = Describe("Host tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		cluster2, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		cluster2, err := userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("another-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -434,7 +434,7 @@ var _ = Describe("Host tests", func() {
 
 		// register to cluster2
 		_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-			ClusterID: *cluster2.GetPayload().ID,
+			ClusterID: *cluster2.ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
 			},
@@ -443,27 +443,27 @@ var _ = Describe("Host tests", func() {
 
 		// successfully get from both clusters
 		_ = getHost(clusterID, *hostID)
-		_ = getHost(*cluster2.GetPayload().ID, *hostID)
+		_ = getHost(*cluster2.ID, *hostID)
 
 		_, err = userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 			ClusterID: clusterID,
 			HostID:    *hostID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		h := getHost(*cluster2.GetPayload().ID, *hostID)
+		h := getHost(*cluster2.ID, *hostID)
 
 		// register again to cluster 2 and expect it to be in discovery status
 		Expect(db.Model(h).Update("status", "known").Error).NotTo(HaveOccurred())
-		h = getHost(*cluster2.GetPayload().ID, *hostID)
+		h = getHost(*cluster2.ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("known"))
 		_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{
-			ClusterID: *cluster2.GetPayload().ID,
+			ClusterID: *cluster2.ID,
 			NewHostParams: &models.HostCreateParams{
 				HostID: hostID,
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		h = getHost(*cluster2.GetPayload().ID, *hostID)
+		h = getHost(*cluster2.ID, *hostID)
 		Expect(swag.StringValue(h.Status)).Should(Equal("discovering"))
 	})
 

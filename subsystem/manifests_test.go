@@ -33,7 +33,8 @@ var _ = Describe("manifests tests", func() {
 			Folder:   "openshift",
 		}
 
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+		var err error
+		cluster, err = userBMClient.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
 				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -42,7 +43,6 @@ var _ = Describe("manifests tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
 	})
 
 	It("[minimal-set]upload_download_manifest", func() {

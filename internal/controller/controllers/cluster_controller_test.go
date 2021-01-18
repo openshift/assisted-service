@@ -112,9 +112,12 @@ var _ = Describe("cluster reconcile", func() {
 			id := strfmt.UUID(uuid.New().String())
 			clusterReply := &common.Cluster{
 				Cluster: models.Cluster{
-					Status:     swag.String(models.ClusterStatusPendingForInput),
-					StatusInfo: swag.String("User input required"),
-					ID:         &id,
+					Status:                   swag.String(models.ClusterStatusPendingForInput),
+					StatusInfo:               swag.String("User input required"),
+					ID:                       &id,
+					ClusterNetworkCidr:       "1.1.1.1",
+					ServiceNetworkCidr:       "2.2.2.2",
+					ClusterNetworkHostPrefix: 1,
 				},
 			}
 			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
@@ -132,6 +135,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(cluster.Status.ID).To(Equal(id.String()))
 			Expect(cluster.Status.State).To(Equal(models.ClusterStatusPendingForInput))
 			Expect(cluster.Status.StateInfo).To(Equal("User input required"))
+			Expect(cluster.Spec.ClusterNetworkCidr).To(Equal("1.1.1.1"))
+			Expect(cluster.Spec.ServiceNetworkCidr).To(Equal("2.2.2.2"))
+			Expect(cluster.Spec.ClusterNetworkHostPrefix).To(Equal(int64(1)))
 		})
 
 		It("create new cluster backend failure", func() {
@@ -149,6 +155,26 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = getTestCluster()
 			Expect(cluster.Status.Error).To(Equal(expectedError.Error()))
+		})
+	})
+
+	Context("get pull secret test", func() {
+		It("pull secret from data", func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			result, err := cr.getPullSecret(ctx, "pull-secret", testNamespace)
+			Expect(err).To(BeNil())
+			Expect(result).Should(Equal(string(pullSecret.Data["pullSecret"])))
+		})
+
+		It("pull secret from string data", func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			pullSecret.StringData = map[string]string{"pullSecret": testPullSecretVal}
+			pullSecret.Data = nil
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			result, err := cr.getPullSecret(ctx, "pull-secret", testNamespace)
+			Expect(err).To(BeNil())
+			Expect(result).Should(Equal(pullSecret.StringData["pullSecret"]))
 		})
 	})
 

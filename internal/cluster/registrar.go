@@ -43,7 +43,7 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 	success := false
 	defer func() {
 		if rec := recover(); rec != nil || !success {
-			r.log.Error("update cluster failed")
+			r.log.Error("register cluster failed")
 			tx.Rollback()
 		}
 	}()

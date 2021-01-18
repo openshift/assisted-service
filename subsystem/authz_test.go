@@ -10,7 +10,6 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
@@ -108,20 +107,20 @@ var _ = Describe("test authorization", func() {
 		})
 
 		It("can delete owned cluster", func() {
-			_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+			err = userBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
 		It("can't register/delete with read only admin", func() {
-			_, err = readOnlyAdminUserBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
+			err = readOnlyAdminUserBMClient.API.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: userClusterID})
 			Expect(err).Should(HaveOccurred())
 			Expect(err).To(BeAssignableToTypeOf(installer.NewDeregisterClusterForbidden()))
 		})
 	})
 })
 
-func registerCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string) strfmt.UUID {
-	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+func registerCluster(ctx context.Context, client *AssistedClient, clusterName string, pullSecret string) strfmt.UUID {
+	var cluster, err = client.API.RegisterCluster(ctx, &installer.RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			Name:             swag.String(clusterName),
 			OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
@@ -129,5 +128,5 @@ func registerCluster(ctx context.Context, client *client.AssistedInstall, cluste
 		},
 	})
 	Expect(err).ShouldNot(HaveOccurred())
-	return *cluster.GetPayload().ID
+	return *cluster.ID
 }
