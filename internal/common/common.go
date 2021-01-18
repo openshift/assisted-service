@@ -20,6 +20,23 @@ const IllegalWorkerHostsCount = 1
 
 const HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
 
+// Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
+// after reboot.  This will cause the DHCP server to provide the same IP address after reboot.
+const Ipv6DuidDiscoveryConf = `
+[connection]
+ipv6.dhcp-iaid=mac
+ipv6.dhcp-duid=ll
+`
+
+// Configuration to be used by MCO manifest to get consistent IPv6 DHCP client identification.
+const Ipv6DuidMcoConf = `
+[connection]
+ipv6.dhcp-iaid=mac
+ipv6.dhcp-duid=ll
+[keyfile]
+path=/etc/NetworkManager/system-connections-merged
+`
+
 // continueOnError is set when running as stream, error is doing nothing when it happens cause we in the middle of stream
 // and 200 was already returned
 func CreateTar(ctx context.Context, w io.Writer, files, tarredFilenames []string, client s3wrapper.API, continueOnError bool) error {

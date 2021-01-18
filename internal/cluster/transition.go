@@ -83,10 +83,10 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 ////////////////////////////////////////////////////////////////////////////
 
 type TransitionArgsPrepareForInstallation struct {
-	ctx       context.Context
-	db        *gorm.DB
-	ntpUtils  network.NtpUtilsAPI
-	metricApi metrics.API
+	ctx                context.Context
+	db                 *gorm.DB
+	manifestsGenerator network.ManifestsGeneratorAPI
+	metricApi          metrics.API
 }
 
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -99,12 +99,15 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		return errors.New("PostPrepareForInstallation invalid argument")
 	}
 
-	if err := params.ntpUtils.AddChronyManifest(params.ctx, logutil.FromContext(params.ctx, th.log), sCluster.cluster); err != nil {
+	if err := params.manifestsGenerator.AddChronyManifest(params.ctx, logutil.FromContext(params.ctx, th.log), sCluster.cluster); err != nil {
 		return errors.Wrap(err, "PostPrepareForInstallation failed to add chrony manifest")
 	}
 
 	sendNTPMetric(logutil.FromContext(params.ctx, th.log), params.metricApi, sCluster.cluster)
 
+	if err := params.manifestsGenerator.AddIpv6Manifest(params.ctx, logutil.FromContext(params.ctx, th.log), sCluster.cluster); err != nil {
+		return errors.Wrap(err, "PostPrepareForInstallation failed to add ipv6 manifest")
+	}
 	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
 		statusInfoPreparingForInstallation, "install_started_at", strfmt.DateTime(time.Now()),
 		"controller_logs_collected_at", strfmt.DateTime(time.Time{}))

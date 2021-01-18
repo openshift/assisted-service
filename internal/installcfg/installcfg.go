@@ -278,8 +278,19 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			Baremetal: nil,
 			None:      &platformNone{},
 		}
-		cfg.Networking.MachineNetwork = nil
-
+		var (
+			ipv6OnlyHost bool
+			err          error
+		)
+		if len(cluster.Hosts) == 1 {
+			ipv6OnlyHost, err = network.IsIpv6OnlyHost(cluster.Hosts[0], log)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if !ipv6OnlyHost {
+			cfg.Networking.MachineNetwork = nil
+		}
 	} else {
 		err := setBMPlatformInstallconfig(log, cluster, cfg)
 		if err != nil {

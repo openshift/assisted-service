@@ -109,22 +109,22 @@ type Config struct {
 
 type Manager struct {
 	Config
-	log                  logrus.FieldLogger
-	db                   *gorm.DB
-	registrationAPI      RegistrationAPI
-	installationAPI      InstallationAPI
-	eventsHandler        events.Handler
-	sm                   stateswitch.StateMachine
-	metricAPI            metrics.API
-	ntpUtils             network.NtpUtilsAPI
-	hostAPI              host.API
-	rp                   *refreshPreprocessor
-	leaderElector        leader.Leader
-	prevMonitorInvokedAt time.Time
+	log                   logrus.FieldLogger
+	db                    *gorm.DB
+	registrationAPI       RegistrationAPI
+	installationAPI       InstallationAPI
+	eventsHandler         events.Handler
+	sm                    stateswitch.StateMachine
+	metricAPI             metrics.API
+	manifestsGeneratorAPI network.ManifestsGeneratorAPI
+	hostAPI               host.API
+	rp                    *refreshPreprocessor
+	leaderElector         leader.Leader
+	prevMonitorInvokedAt  time.Time
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
-	hostAPI host.API, metricApi metrics.API, ntpUtils network.NtpUtilsAPI,
+	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
 	leaderElector leader.Leader) *Manager {
 	th := &transitionHandler{
 		log:           log,
@@ -132,19 +132,19 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		prepareConfig: cfg.PrepareConfig,
 	}
 	return &Manager{
-		Config:               cfg,
-		log:                  log,
-		db:                   db,
-		registrationAPI:      NewRegistrar(log, db),
-		installationAPI:      NewInstaller(log, db),
-		eventsHandler:        eventsHandler,
-		sm:                   NewClusterStateMachine(th),
-		metricAPI:            metricApi,
-		ntpUtils:             ntpUtils,
-		rp:                   newRefreshPreprocessor(log, hostAPI),
-		hostAPI:              hostAPI,
-		leaderElector:        leaderElector,
-		prevMonitorInvokedAt: time.Now(),
+		Config:                cfg,
+		log:                   log,
+		db:                    db,
+		registrationAPI:       NewRegistrar(log, db),
+		installationAPI:       NewInstaller(log, db),
+		eventsHandler:         eventsHandler,
+		sm:                    NewClusterStateMachine(th),
+		metricAPI:             metricApi,
+		manifestsGeneratorAPI: manifestsGeneratorAPI,
+		rp:                    newRefreshPreprocessor(log, hostAPI),
+		hostAPI:               hostAPI,
+		leaderElector:         leaderElector,
+		prevMonitorInvokedAt:  time.Now(),
 	}
 }
 
@@ -508,10 +508,10 @@ func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, s
 func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
 	err := m.sm.Run(TransitionTypePrepareForInstallation, newStateCluster(c),
 		&TransitionArgsPrepareForInstallation{
-			ctx:       ctx,
-			db:        db,
-			ntpUtils:  m.ntpUtils,
-			metricApi: m.metricAPI,
+			ctx:                ctx,
+			db:                 db,
+			manifestsGenerator: m.manifestsGeneratorAPI,
+			metricApi:          m.metricAPI,
 		},
 	)
 	return err
