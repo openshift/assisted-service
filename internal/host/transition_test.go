@@ -1178,7 +1178,7 @@ var _ = Describe("Refresh Host", func() {
 			{models.HostStageConfiguring, true},
 			{models.HostStageDone, true},
 			{models.HostStageJoined, true},
-			{models.HostStageWaitingForIgnition, true},
+			{models.HostStageWaitingForIgnition, false},
 			{models.HostStageFailed, true},
 		}
 
@@ -1327,7 +1327,6 @@ var _ = Describe("Refresh Host", func() {
 			models.HostStageWritingImageToDisk,
 			models.HostStageRebooting,
 			models.HostStageConfiguring,
-			models.HostStageWaitingForIgnition,
 			models.HostStageInstalling,
 			invalidStage,
 		}
@@ -1406,7 +1405,7 @@ var _ = Describe("Refresh Host", func() {
 			host.Role = models.HostRoleWorker
 			host.CheckedInAt = strfmt.DateTime(time.Now())
 			progress := models.HostProgressInfo{
-				CurrentStage:   models.HostStageWaitingForIgnition,
+				CurrentStage:   models.HostStageConfiguring,
 				StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
 				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
 			}
@@ -1432,7 +1431,7 @@ var _ = Describe("Refresh Host", func() {
 			info := formatProgressTimedOutInfo(models.HostStageWaitingForControlPlane)
 			Expect(swag.StringValue(resultMaster.StatusInfo)).To(Equal(info))
 
-			info = formatProgressTimedOutInfo(models.HostStageWaitingForIgnition)
+			info = formatProgressTimedOutInfo(models.HostStageConfiguring)
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
 		})
 
