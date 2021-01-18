@@ -3663,12 +3663,9 @@ definitions:
         $ref: '#/definitions/cluster-progress-info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
       operators:
-        type: array
-        items:
-          $ref: '#/definitions/cluster-operator'
-        x-go-custom-tag: gorm:"-"
+        x-go-custom-tag: gorm:"type:text"
+        type: string
         description: Operators that are associated with this cluster and their properties.
-        x-nullable: true
 
   image_info:
     type: object
@@ -4298,6 +4295,13 @@ definitions:
       - 'controller'
       - 'all'
       - ''
+
+  operators:
+    type: array
+    items:
+      $ref: '#/definitions/cluster-operator'
+    x-nullable: true
+    description: Operators that are associated with this cluster and their properties.
 
   operator-type:
     type: string

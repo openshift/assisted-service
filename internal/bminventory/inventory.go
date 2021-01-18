@@ -621,7 +621,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 			UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
 			AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
-			Operators:                convertToClusterOperators(params.NewClusterParams.Operators),
+			Operators:                convertFromClusterOperators(params.NewClusterParams.Operators),
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 		},
 		KubeKeyName:      kubeKey.Name,
@@ -673,15 +673,19 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	return &cluster, nil
 }
 
-func convertToClusterOperators(operators models.ListOperators) []*models.ClusterOperator {
+func convertFromClusterOperators(operators models.ListOperators) string {
 	if operators == nil {
-		return nil
+		return ""
 	} else {
 		var clusterOperators []*models.ClusterOperator
 		for _, operator := range operators {
 			clusterOperators = append(clusterOperators, &models.ClusterOperator{OperatorType: operator.OperatorType, Enabled: operator.Enabled, Properties: operator.Properties})
 		}
-		return clusterOperators
+		reply, err := json.Marshal(clusterOperators)
+		if err != nil {
+			return ""
+		}
+		return string(reply)
 	}
 }
 
@@ -1765,8 +1769,9 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 
 	if params.ClusterUpdateParams.Operators != nil {
-		updates["operators"] = convertToClusterOperators(params.ClusterUpdateParams.Operators)
-		cluster.Operators = convertToClusterOperators(params.ClusterUpdateParams.Operators)
+		clusterOperators := convertFromClusterOperators(params.ClusterUpdateParams.Operators)
+		updates["operators"] = clusterOperators
+		cluster.Operators = clusterOperators
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {

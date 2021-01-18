@@ -4454,12 +4454,8 @@ func init() {
         },
         "operators": {
           "description": "Operators that are associated with this cluster and their properties.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cluster-operator"
-          },
-          "x-go-custom-tag": "gorm:\"-\"",
-          "x-nullable": true
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "org_id": {
           "type": "string"
@@ -6113,6 +6109,14 @@ func init() {
         "lso",
         "ocs"
       ]
+    },
+    "operators": {
+      "description": "Operators that are associated with this cluster and their properties.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cluster-operator"
+      },
+      "x-nullable": true
     },
     "presigned": {
       "type": "object",
@@ -10874,12 +10878,8 @@ func init() {
         },
         "operators": {
           "description": "Operators that are associated with this cluster and their properties.",
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/cluster-operator"
-          },
-          "x-go-custom-tag": "gorm:\"-\"",
-          "x-nullable": true
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "org_id": {
           "type": "string"
@@ -12494,6 +12494,14 @@ func init() {
         "lso",
         "ocs"
       ]
+    },
+    "operators": {
+      "description": "Operators that are associated with this cluster and their properties.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cluster-operator"
+      },
+      "x-nullable": true
     },
     "presigned": {
       "type": "object",

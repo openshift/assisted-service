@@ -206,8 +206,12 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 }
 func (g *installerGenerator) checkLsoEnabled() bool {
 	result := false
-	if g.cluster.Operators != nil {
-		for _, operator := range g.cluster.Operators {
+	if g.cluster.Operators != "" {
+		var operators models.Operators
+		if err := json.Unmarshal([]byte(g.cluster.Operators), &operators); err != nil {
+			return false
+		}
+		for _, operator := range operators {
 			if operator.OperatorType == models.OperatorTypeLso && swag.BoolValue(operator.Enabled) {
 				result = true
 				break
