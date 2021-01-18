@@ -788,7 +788,7 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params insta
 	var cluster common.Cluster
 	log.Infof("Deregister cluster id %s", params.ClusterID)
 
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		return installer.NewDeregisterClusterNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}

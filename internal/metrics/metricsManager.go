@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=metricsManager.go -package=metrics -destination=mock_netricsManager_api.go
+//go:generate mockgen -source=metricsManager.go -package=metrics -destination=mock_metrics_manager_api.go
 
 //////////////////////////////////////////
 // counters name and description
@@ -32,6 +32,7 @@ const (
 	counterClusterHostInstallationCount           = "assisted_installer_cluster_host_installation_count"
 	counterClusterHostNTPFailuresCount            = "assisted_installer_cluster_host_ntp_failures"
 	counterClusterHostDiskSyncDurationMiliSeconds = "assisted_installer_cluster_host_disk_sync_duration_ms"
+	counterHostValidationFailed                   = "assisted_installer_host_validation_is_in_failed_status_on_cluster_deletion"
 )
 
 const (
@@ -48,6 +49,7 @@ const (
 	counterDescriptionClusterHostDiskGb                      = "Histogram/sum/count of installation disk capacity in hosts of completed clusters, by type, raid (level), role, result, and OCP version"
 	counterDescriptionClusterHostNicGb                       = "Histogram/sum/count of management network NIC speed in hosts of completed clusters, by role, result, and OCP version"
 	counterDescriptionClusterHostDiskSyncDurationMiliSeconds = "Histogram/sum/count of the disk's fdatasync duration (fetched from fio)"
+	counterDescriptionHostValidationFailed                   = "Number of host validation errors"
 )
 
 const (
@@ -68,10 +70,12 @@ const (
 	hwVendorLabel              = "vendor"
 	hwProductLabel             = "product"
 	userManagedNetworkingLabel = "userManagedNetworking"
+	hostValidationTypeLabel    = "hostValidationType"
 )
 
 type API interface {
 	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string)
+	HostValidationFailed(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID)
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string)
 	ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int)
@@ -97,6 +101,7 @@ type MetricsManager struct {
 	serviceLogicClusterHostDiskGb                      *prometheus.HistogramVec
 	serviceLogicClusterHostNicGb                       *prometheus.HistogramVec
 	serviceLogicClusterHostDiskSyncDurationMiliSeconds *prometheus.HistogramVec
+	serviceLogicHostValidationFailed                   *prometheus.CounterVec
 }
 
 func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
@@ -206,6 +211,14 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 			Help:      counterDescriptionClusterHostDiskSyncDurationMiliSeconds,
 			Buckets:   []float64{1, 5, 10, 15, 20},
 		}, []string{diskPathLabel, clusterIdLabel, hostIdLabel}),
+
+		serviceLogicHostValidationFailed: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterHostValidationFailed,
+				Help:      counterDescriptionHostValidationFailed,
+			}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel, hostValidationTypeLabel}),
 	}
 
 	registry.MustRegister(
@@ -220,6 +233,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 		m.serviceLogicClusterHostDiskGb,
 		m.serviceLogicClusterHostNicGb,
 		m.serviceLogicClusterHostDiskSyncDurationMiliSeconds,
+		m.serviceLogicHostValidationFailed,
 	)
 	return m
 }
@@ -227,6 +241,11 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 func (m *MetricsManager) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
 	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Inc()
 }
+
+func (m *MetricsManager) HostValidationFailed(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID) {
+	m.serviceLogicHostValidationFailed.WithLabelValues(clusterVersion, clusterID.String(), emailDomain, string(hostValidationType)).Inc()
+}
+
 func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string) {
 	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String(), emailDomain, userManagedNetworking).Inc()
 }
