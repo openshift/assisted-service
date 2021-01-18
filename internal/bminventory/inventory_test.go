@@ -1806,7 +1806,7 @@ var _ = Describe("cluster", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
-			Expect(actual.Payload.Operators).To(BeNil())
+			Expect(actual.Payload.Operators).To(BeEmpty())
 		})
 
 		It("LSO install non default value", func() {
@@ -1829,8 +1829,9 @@ var _ = Describe("cluster", func() {
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
-			Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
-			Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
+			operators := operatorsFromString(actual.Payload.Operators)
+			Expect(operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
+			Expect(operators[0].Enabled).To(Equal(swag.Bool(true)))
 		})
 
 		It("Update Install LSO", func() {
@@ -1852,8 +1853,9 @@ var _ = Describe("cluster", func() {
 			})
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 			actual := reply.(*installer.UpdateClusterCreated)
-			Expect(actual.Payload.Operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
-			Expect(actual.Payload.Operators[0].Enabled).To(Equal(swag.Bool(true)))
+			operators := operatorsFromString(actual.Payload.Operators)
+			Expect(operators[0].OperatorType).To(Equal(models.OperatorTypeLso))
+			Expect(operators[0].Enabled).To(Equal(swag.Bool(true)))
 		})
 
 		It("ssh key with newline", func() {
@@ -5619,4 +5621,16 @@ func prepareK8NodeList(names, ips, roles, archituctures []string, readyStatuses 
 		nodeList.Items = append(nodeList.Items, node)
 	}
 	return nodeList
+}
+
+func operatorsFromString(operatorsStr string) models.Operators {
+
+	if operatorsStr != "" {
+		var operators models.Operators
+		if err := json.Unmarshal([]byte(operatorsStr), &operators); err != nil {
+			return nil
+		}
+		return operators
+	}
+	return nil
 }

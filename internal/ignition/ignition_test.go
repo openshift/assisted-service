@@ -2,6 +2,7 @@ package ignition
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -716,16 +717,18 @@ var _ = Describe("Lso manifests creation Test", func() {
 	})
 	Describe("Lso Manifests", func() {
 		It("lsoEnabled", func() {
-			cluster.Operators = []*models.ClusterOperator{
+			clusterOperators := []*models.ClusterOperator{
 				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
+			cluster.Operators = convertFromClusterOperators(clusterOperators)
 
 			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
 			lsoEnabled = g.checkLsoEnabled()
 			Expect(lsoEnabled).To(Equal(true))
 		})
 		It("lso manifests creation with lso enabled", func() {
-			cluster.Operators = []*models.ClusterOperator{
+			clusterOperators := []*models.ClusterOperator{
 				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
+			cluster.Operators = convertFromClusterOperators(clusterOperators)
 
 			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
 			lsoErr = g.createLsoManifests()
@@ -742,3 +745,14 @@ var _ = Describe("Lso manifests creation Test", func() {
 var _ = AfterEach(func() {
 	os.RemoveAll("manifests")
 })
+
+func convertFromClusterOperators(operators []*models.ClusterOperator) string {
+	if operators == nil {
+		return ""
+	}
+	reply, err := json.Marshal(operators)
+	if err != nil {
+		return ""
+	}
+	return string(reply)
+}
