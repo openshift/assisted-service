@@ -1290,7 +1290,6 @@ var _ = Describe("PrepareForInstallation", func() {
 		t := tests[i]
 		It(t.name, func() {
 			manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			manifestsGenerator.EXPECT().AddIpv6Manifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			cluster := common.Cluster{
 				Cluster: models.Cluster{
 					ID:                        &clusterId,
@@ -1305,7 +1304,6 @@ var _ = Describe("PrepareForInstallation", func() {
 
 	It("Add manifest failure", func() {
 		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
-		manifestsGenerator.EXPECT().AddIpv6Manifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		cluster := common.Cluster{
 			Cluster: models.Cluster{
 				ID:                        &clusterId,

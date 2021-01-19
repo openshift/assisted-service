@@ -708,7 +708,7 @@ func (g *installerGenerator) updateIgnitions() error {
 			return errors.Wrapf(err, "error adding CA cert to ignition %s", workerPath)
 		}
 	}
-	if len(g.cluster.Hosts) > 1 {
+	if len(g.cluster.Hosts) >= 1 {
 		ipv6Only, err := network.AreIpv6OnlyHosts(g.cluster.Hosts, g.log)
 		if err != nil {
 			return err

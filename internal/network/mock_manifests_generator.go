@@ -48,17 +48,3 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddChronyManifest(ctx, log, c i
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddChronyManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddChronyManifest), ctx, log, c)
 }
-
-// AddIpv6Manifest mocks base method
-func (m *MockManifestsGeneratorAPI) AddIpv6Manifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddIpv6Manifest", ctx, log, c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddIpv6Manifest indicates an expected call of AddIpv6Manifest
-func (mr *MockManifestsGeneratorAPIMockRecorder) AddIpv6Manifest(ctx, log, c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddIpv6Manifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddIpv6Manifest), ctx, log, c)
-}
