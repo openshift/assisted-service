@@ -59,6 +59,7 @@ linters:
     - megacheck
     - unconvert
     - goimports
+    - scopelint
 
 linters-settings:
   govet:
