@@ -16,11 +16,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// BaseIsoTempDir is a temporary directory pattern for the extracted base ISO
-	BaseIsoTempDir string = "baseiso"
-)
-
+//go:generate mockgen -package=isoeditor -destination=mock_editor.go . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
 	CreateClusterMinimalISO(ignition string) (string, error)
@@ -30,23 +26,6 @@ type rhcosEditor struct {
 	isoHandler       isoutil.Handler
 	openshiftVersion string
 	log              logrus.FieldLogger
-}
-
-func NewEditor(isoHandler isoutil.Handler, openshiftVersion string, log logrus.FieldLogger) Editor {
-	return &rhcosEditor{
-		isoHandler:       isoHandler,
-		openshiftVersion: openshiftVersion,
-		log:              log,
-	}
-}
-
-func CreateEditor(isoPath string, openshiftVersion string, log logrus.FieldLogger) Editor {
-	isoTmpWorkDir, err := ioutil.TempDir("", BaseIsoTempDir)
-	if err != nil {
-		return nil
-	}
-	isoHandler := isoutil.NewHandler(isoPath, isoTmpWorkDir)
-	return NewEditor(isoHandler, openshiftVersion, log)
 }
 
 func (e *rhcosEditor) getRootFSURL(serviceBaseURL string) string {

@@ -292,19 +292,20 @@ type InstallerInternals interface {
 
 type bareMetalInventory struct {
 	Config
-	db              *gorm.DB
-	log             logrus.FieldLogger
-	hostApi         host.API
-	clusterApi      cluster.API
-	eventsHandler   events.Handler
-	objectHandler   s3wrapper.API
-	metricApi       metrics.API
-	generator       generator.ISOInstallConfigGenerator
-	authHandler     auth.AuthHandler
-	k8sClient       k8sclient.K8SClient
-	leaderElector   leader.Leader
-	secretValidator validations.PullSecretValidator
-	versionsHandler versions.Handler
+	db               *gorm.DB
+	log              logrus.FieldLogger
+	hostApi          host.API
+	clusterApi       cluster.API
+	eventsHandler    events.Handler
+	objectHandler    s3wrapper.API
+	metricApi        metrics.API
+	generator        generator.ISOInstallConfigGenerator
+	authHandler      auth.AuthHandler
+	k8sClient        k8sclient.K8SClient
+	leaderElector    leader.Leader
+	secretValidator  validations.PullSecretValidator
+	versionsHandler  versions.Handler
+	isoEditorFactory isoeditor.Factory
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -334,22 +335,24 @@ func NewBareMetalInventory(
 	leaderElector leader.Leader,
 	pullSecretValidator validations.PullSecretValidator,
 	versionsHandler versions.Handler,
+	isoEditorFactory isoeditor.Factory,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:              db,
-		log:             log,
-		Config:          cfg,
-		hostApi:         hostApi,
-		clusterApi:      clusterApi,
-		generator:       generator,
-		eventsHandler:   eventsHandler,
-		objectHandler:   objectHandler,
-		metricApi:       metricApi,
-		authHandler:     authHandler,
-		k8sClient:       k8sClient,
-		leaderElector:   leaderElector,
-		secretValidator: pullSecretValidator,
-		versionsHandler: versionsHandler,
+		db:               db,
+		log:              log,
+		Config:           cfg,
+		hostApi:          hostApi,
+		clusterApi:       clusterApi,
+		generator:        generator,
+		eventsHandler:    eventsHandler,
+		objectHandler:    objectHandler,
+		metricApi:        metricApi,
+		authHandler:      authHandler,
+		k8sClient:        k8sClient,
+		leaderElector:    leaderElector,
+		secretValidator:  pullSecretValidator,
+		versionsHandler:  versionsHandler,
+		isoEditorFactory: isoEditorFactory,
 	}
 }
 
@@ -1040,7 +1043,13 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		}
 
 		log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
-		clusterISOPath, err := isoeditor.CreateEditor(isoPath, cluster.OpenshiftVersion, log).CreateClusterMinimalISO(ignitionConfig)
+		editor, err := b.isoEditorFactory.NewEditor(isoPath, cluster.OpenshiftVersion, log)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to create iso editor for cluster %s with iso file %s", cluster.ID, isoPath)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		clusterISOPath, err := editor.CreateClusterMinimalISO(ignitionConfig)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create minimal discovery ISO for cluster %s", cluster.ID)
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
