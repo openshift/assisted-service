@@ -457,6 +457,7 @@ var _ = Describe("dns name", func() {
 		},
 	}
 	for _, t := range tests {
+		t := t
 		It(fmt.Sprintf("Domain name \"%s\"", t.domainName), func() {
 			if t.valid {
 				Expect(ValidateDomainNameFormat(t.domainName)).ToNot(HaveOccurred())
@@ -604,6 +605,7 @@ var _ = Describe("NTP source", func() {
 		},
 	}
 	for _, t := range tests {
+		t := t
 		It(fmt.Sprintf("NTP source \"%s\"", t.ntpSource), func() {
 			if t.valid {
 				Expect(ValidateAdditionalNTPSource(t.ntpSource)).To(BeTrue())

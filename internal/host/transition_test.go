@@ -543,6 +543,7 @@ var _ = Describe("Cancel host installation", func() {
 	}
 
 	for _, t := range tests {
+		t := t
 		It(fmt.Sprintf("cancel from state %s", t.state), func() {
 			hostId = strfmt.UUID(uuid.New().String())
 			clusterId = strfmt.UUID(uuid.New().String())
@@ -619,6 +620,7 @@ var _ = Describe("Reset host", func() {
 	}
 
 	for _, t := range tests {
+		t := t
 		It(fmt.Sprintf("reset from state %s", t.state), func() {
 			hostId = strfmt.UUID(uuid.New().String())
 			clusterId = strfmt.UUID(uuid.New().String())
@@ -1185,6 +1187,7 @@ var _ = Describe("Refresh Host", func() {
 		passedTime := 90 * time.Minute
 
 		for _, t := range tests {
+			t := t
 			It(fmt.Sprintf("checking timeout from stage %s", t.stage), func() {
 				hostCheckInAt := strfmt.DateTime(time.Now())
 				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusInstallingInProgress)
@@ -1285,6 +1288,8 @@ var _ = Describe("Refresh Host", func() {
 
 		for passedTimeKey, passedTimeValue := range timePassedTypes {
 			name := fmt.Sprintf("installing %s", passedTimeKey)
+			passedTimeKey := passedTimeKey
+			passedTimeValue := passedTimeValue
 			It(name, func() {
 				passedTimeKind := passedTimeKey
 				passedTime := passedTimeValue
@@ -2730,6 +2735,7 @@ var _ = Describe("Refresh Host", func() {
 			models.HostStatusInstallingPendingUserAction,
 			models.HostStatusResettingPendingUserAction,
 		} {
+			srcState := srcState
 			It(fmt.Sprintf("host src: %s cluster error: false", srcState), func() {
 				h := hostutil.GenerateTestHost(hostId, clusterId, srcState)
 				h.Inventory = hostutil.GenerateMasterInventory()

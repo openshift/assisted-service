@@ -770,7 +770,8 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 			continue
 		}
 
-		if reply := db.Delete(&c); reply.Error != nil {
+		cluster := c // Avoid passing loop variable by ref
+		if reply := db.Delete(&cluster); reply.Error != nil {
 			m.log.WithError(reply.Error).Warnf("Failed deleting cluster from db %s", c.ID.String())
 		} else if reply.RowsAffected > 0 {
 			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)

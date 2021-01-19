@@ -64,6 +64,7 @@ var _ = Describe("Authz email domain", func() {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		It(fmt.Sprintf("test %s", tt.name), func() {
 			payload := &ocm.AuthPayload{}
 			payload.Email = tt.email

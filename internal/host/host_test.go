@@ -223,6 +223,7 @@ var _ = Describe("update_role", func() {
 		}
 
 		for _, t := range tests {
+			t := t
 			It(t.name, func() {
 				// Setup
 				if t.day2 {
@@ -902,6 +903,7 @@ var _ = Describe("UpdateInventory", func() {
 				serviceReasons:   []string{},
 				expectedDecision: false, expectedReasons: []string{"Agent reason"}},
 		} {
+			test := test
 			It(test.testName, func() {
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any()).Return(test.serviceReasons)
 
@@ -1005,6 +1007,7 @@ var _ = Describe("UpdateInventory", func() {
 				inventoryDisks:           []*models.Disk{{Name: otherDiskName}},
 				expectedInstallationDisk: hostutil.GetDeviceFullName(otherDiskName)},
 		} {
+			test := test
 			It(test.testName, func() {
 				Expect(
 					determineDefaultInstallationDisk(
@@ -1648,6 +1651,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		}
 
 		for _, state := range forbiddenStates {
+			state := state
 			It(fmt.Sprintf("forbidden state %s", state), func() {
 				host = hostutil.GenerateTestHost(hostId, clusterId, state)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
