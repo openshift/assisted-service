@@ -29,7 +29,7 @@ ipv6.dhcp-duid=ll
 `
 
 // Configuration to be used by MCO manifest to get consistent IPv6 DHCP client identification.
-const Ipv6DuidMcoConf = `
+const Ipv6DuidRuntimeConf = `
 [connection]
 ipv6.dhcp-iaid=mac
 ipv6.dhcp-duid=ll

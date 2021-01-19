@@ -666,6 +666,24 @@ func (g *installerGenerator) updateDhcpFiles() error {
 	return nil
 }
 
+func encodeIpv6Contents() string {
+	return fmt.Sprintf("data:,%s", url.PathEscape(common.Ipv6DuidRuntimeConf))
+}
+
+func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
+	path := filepath.Join(g.workDir, ignition)
+	config, err := parseIgnitionFile(path)
+	if err != nil {
+		return err
+	}
+	setFileInIgnition(config, "/etc/NetworkManager/conf.d/01-ipv6.conf", encodeIpv6Contents(), false, 0o644)
+	err = writeIgnitionFile(path, config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *installerGenerator) updateIgnitions() error {
 	masterPath := filepath.Join(g.workDir, "master.ign")
 	caCertFile := g.serviceCACert
@@ -690,7 +708,19 @@ func (g *installerGenerator) updateIgnitions() error {
 			return errors.Wrapf(err, "error adding CA cert to ignition %s", workerPath)
 		}
 	}
-
+	if len(g.cluster.Hosts) > 1 {
+		ipv6Only, err := network.AreIpv6OnlyHosts(g.cluster.Hosts, g.log)
+		if err != nil {
+			return err
+		}
+		if ipv6Only {
+			for _, ignition := range []string{"master.ign", "worker.ign"} {
+				if err = g.addIpv6FileInIgnition(ignition); err != nil {
+					return err
+				}
+			}
+		}
+	}
 	return nil
 }
 
