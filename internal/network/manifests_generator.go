@@ -170,7 +170,7 @@ spec:
 const Ipv6ManifestName = "%s-ipv6-configuration.yaml"
 
 func createIpv6MachineConfig(role string) string {
-	return fmt.Sprintf(ipv6MachineConfigManifestFormat, role, role, base64.StdEncoding.EncodeToString([]byte(common.Ipv6DuidMcoConf)))
+	return fmt.Sprintf(ipv6MachineConfigManifestFormat, role, role, base64.StdEncoding.EncodeToString([]byte(common.Ipv6DuidRuntimeConf)))
 }
 
 func (m *ManifestsGenerator) addIpv6ManifestForRole(ctx context.Context, log logrus.FieldLogger, c *common.Cluster, role string) error {
