@@ -2511,6 +2511,8 @@ paths:
     get:
       tags:
         - versions
+      security:
+        - userAuth: [admin, read-only-admin, user]
       operationId: ListSupportedOpenshiftVersions
       description: Retrieves the list of OpenShift supported versions.
       responses:
