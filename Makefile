@@ -41,6 +41,7 @@ ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
+CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},quay.io)
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
@@ -214,7 +215,7 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
 		--ocp-versions '$(OPENSHIFT_VERSIONS)' --ocp-override "$(OPENSHIFT_INSTALL_RELEASE_IMAGE)" --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
-		$(E2E_TESTS_CONFIG)
+		--check-cvo $(CHECK_CLUSTER_VERSION) $(E2E_TESTS_CONFIG)
 
 deploy-resources: manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD)
