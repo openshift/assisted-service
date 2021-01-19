@@ -1062,6 +1062,10 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, cluster.HTTPProxy))
 	}
 
+	if params.ImageCreateParams.ImageType != "" {
+		msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
+	}
+
 	sshExtra := "SSH public key is not set"
 	if params.ImageCreateParams.SSHPublicKey != "" {
 		sshExtra = "SSH public key is set"
