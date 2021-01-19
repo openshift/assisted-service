@@ -22,6 +22,7 @@ def handle_arguments():
     parser.add_argument("--public-registries", default="")
     parser.add_argument("--img-expr-time", default="")
     parser.add_argument("--img-expr-interval", default="")
+    parser.add_argument("--check-cvo", default="False")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -58,6 +59,7 @@ def main():
 
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
+            data = data.replace('REPLACE_CHECK_CLUSTER_VERSION_FLAG', '"{}"'.format(deploy_options.check_cvo))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
             data = data.replace('REPLACE_OPENSHIFT_VERSIONS', '"{}"'.format(deploy_options.ocp_versions))
