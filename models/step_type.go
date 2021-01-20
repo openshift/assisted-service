@@ -49,6 +49,9 @@ const (
 
 	// StepTypeFioPerfCheck captures enum value "fio-perf-check"
 	StepTypeFioPerfCheck StepType = "fio-perf-check"
+
+	// StepTypeContainerImageAvailability captures enum value "container-image-availability"
+	StepTypeContainerImageAvailability StepType = "container-image-availability"
 )
 
 // for schema
@@ -56,7 +59,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","fio-perf-check"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","fio-perf-check","container-image-availability"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
