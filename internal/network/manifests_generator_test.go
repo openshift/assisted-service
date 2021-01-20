@@ -158,46 +158,4 @@ var _ = Describe("chrony manifest", func() {
 			Expect(ntpUtils.AddChronyManifest(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
-	Context("IPv6 config manfest", func() {
-		var (
-			ctx                   = context.Background()
-			log                   *logrus.Logger
-			ctrl                  *gomock.Controller
-			manifestsApi          *mocks.MockManifestsAPI
-			manifestsGeneratorAPI ManifestsGeneratorAPI
-			db                    *gorm.DB
-			dbName                = "ipv6_config"
-			clusterId             strfmt.UUID
-			cluster               common.Cluster
-		)
-
-		BeforeEach(func() {
-			log = logrus.New()
-			ctrl = gomock.NewController(GinkgoT())
-			manifestsApi = mocks.NewMockManifestsAPI(ctrl)
-			manifestsGeneratorAPI = NewManifestsGenerator(manifestsApi)
-			db = common.PrepareTestDB(dbName, &events.Event{})
-			clusterId = strfmt.UUID(uuid.New().String())
-
-			cluster = common.Cluster{
-				Cluster: models.Cluster{
-					ID: &clusterId,
-				},
-			}
-			Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			ctrl.Finish()
-			common.DeleteTestDB(db, dbName)
-		})
-		It("Success", func() {
-			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(2)
-			Expect(manifestsGeneratorAPI.AddIpv6Manifest(ctx, log, &cluster)).ShouldNot(HaveOccurred())
-		})
-		It("Failure", func() {
-			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(common.GenerateErrorResponder(errors.Errorf("failed to upload to s3"))).Times(1)
-			Expect(manifestsGeneratorAPI.AddIpv6Manifest(ctx, log, &cluster)).Should(HaveOccurred())
-		})
-	})
 })
