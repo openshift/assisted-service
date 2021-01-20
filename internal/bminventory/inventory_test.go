@@ -2023,6 +2023,34 @@ var _ = Describe("cluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 
+		It("update ips with no hosts", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                 &clusterID,
+				VipDhcpAllocation:  swag.Bool(false),
+				MachineNetworkCidr: "10.127.0.0/14",
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+			apiVip := "10.128.0.100"
+			ingressVip := "10.128.0.101"
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip:     swag.String(apiVip),
+					IngressVip: swag.String(ingressVip),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.APIVip).Should(Equal(apiVip))
+			Expect(actual.Payload.IngressVip).Should(Equal(ingressVip))
+		})
+
 		Context("Update Proxy", func() {
 			const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
 			BeforeEach(func() {

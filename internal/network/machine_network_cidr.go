@@ -36,7 +36,7 @@ func getVIPInterfaceNetwork(vip net.IP, addresses []string) *net.IPNet {
  * The goal of this function is to find the first network that one of the vips belongs to it.
  * This network is returned as a result.
  */
-func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host) (string, error) {
+func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host, mustExist bool) (string, error) {
 	var ip string
 	if apiVip != "" {
 		ip = apiVip
@@ -49,6 +49,9 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 	parsedVipAddr := net.ParseIP(ip)
 	if parsedVipAddr == nil {
 		return "", errors.Errorf("Could not parse VIP ip %s", ip)
+	}
+	if !mustExist && len(hosts) == 0 {
+		return "", nil
 	}
 	for _, h := range hosts {
 		if swag.StringValue(h.Status) == models.HostStatusDisabled {
@@ -87,7 +90,7 @@ func ipInCidr(ipStr, cidrStr string) bool {
 }
 
 func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipName string, mustExist bool, log logrus.FieldLogger) error {
-	if !mustExist && vip == "" {
+	if !mustExist && (vip == "" || machineNetworkCidr == "") {
 		return nil
 	}
 	if !ipInCidr(vip, machineNetworkCidr) {

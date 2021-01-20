@@ -70,7 +70,7 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("1.2.5.6", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cidr).To(Equal("1.2.4.0/23"))
 		})
@@ -80,7 +80,7 @@ var _ = Describe("inventory", func() {
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")),
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::2/120")),
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::3/120")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cidr).To(Equal("1001:db8::/120"))
 		})
@@ -89,7 +89,7 @@ var _ = Describe("inventory", func() {
 			cluster := createDisabledCluster("1.2.5.6", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			_, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			_, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -97,7 +97,7 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("1.2.5.257", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(HaveOccurred())
 			Expect(cidr).To(Equal(""))
 		})
@@ -106,7 +106,7 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("1.2.5.200", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.6.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(HaveOccurred())
 			Expect(cidr).To(Equal(""))
 		})
@@ -115,9 +115,22 @@ var _ = Describe("inventory", func() {
 				"Bad inventory",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cidr).To(Equal("1.2.4.0/23"))
+		})
+		It("No inventory", func() {
+			cluster := createCluster("1.2.5.6", "")
+			By("mustExist true", func() {
+				_, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
+				Expect(err).To(HaveOccurred())
+			})
+			By("mustExist false", func() {
+				cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
+				Expect(err).To(Not(HaveOccurred()))
+				Expect(cidr).To(Equal(""))
+			})
+
 		})
 	})
 	Context("GetMachineCIDRHosts", func() {
@@ -240,6 +253,53 @@ var _ = Describe("inventory", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
 			Expect(err).ToNot(HaveOccurred())
+		})
+		It("no ingressVip", func() {
+			cluster := createCluster("1.2.5.6", "1.2.4.0/23")
+			By("mustExist is true", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+				Expect(err).To(HaveOccurred())
+			})
+			By("mustExist is false", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+		It("no apiVip", func() {
+			cluster := createCluster("", "1.2.4.0/23")
+			cluster.IngressVip = "1.2.5.6"
+			By("mustExist is true", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+				Expect(err).To(HaveOccurred())
+			})
+			By("mustExist is false", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+		It("no machineCidr", func() {
+			cluster := createCluster("1.2.5.6", "")
+			cluster.IngressVip = "1.2.5.8"
+			By("mustExist is true", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+				Expect(err).To(HaveOccurred())
+			})
+			By("mustExist is false", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
+		It("no machineCidr", func() {
+			cluster := createCluster("1.2.5.6", "")
+			cluster.IngressVip = "1.2.5.8"
+			By("mustExist is true", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, true, log)
+				Expect(err).To(HaveOccurred())
+			})
+			By("mustExist is false", func() {
+				err := VerifyVips(cluster.Hosts, cluster.MachineNetworkCidr, cluster.APIVip, cluster.IngressVip, false, log)
+				Expect(err).NotTo(HaveOccurred())
+			})
 		})
 	})
 

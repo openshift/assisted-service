@@ -1647,12 +1647,14 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	}
 
 	var err error
-	*machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
+	*machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts, false)
 	if err != nil {
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	setMachineNetworkCIDRForUpdate(updates, *machineCidr)
+	if *machineCidr != "" {
+		setMachineNetworkCIDRForUpdate(updates, *machineCidr)
+	}
 
 	err = network.VerifyVips(cluster.Hosts, *machineCidr, apiVip, ingressVip, false, log)
 	if err != nil {
