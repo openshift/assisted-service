@@ -84,7 +84,7 @@ format:
 	golangci-lint run --fix -v
 
 format-check:
-	@test -z $(shell $(MAKE) format)
+	$(shell $(MAKE) format; test "$$?" -eq 0)
 
 ############
 # Generate #
