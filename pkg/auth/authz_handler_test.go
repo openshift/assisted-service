@@ -464,6 +464,11 @@ var _ = Describe("authz", func() {
 			apiCall:      listComponentVersions,
 		},
 		{
+			name:         "list supported openshift versions",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      listSupportedOpenshiftVersions,
+		},
+		{
 			name:         "get host requirements",
 			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
 			apiCall:      getHostRequirements,
@@ -486,6 +491,7 @@ var _ = Describe("authz", func() {
 	}
 
 	for _, tt := range tests {
+		tt := tt
 		It(fmt.Sprintf("test %s", tt.name), func() {
 			userAuthSupport := len(tt.allowedRoles) > 0
 			By(fmt.Sprintf("%s: with user scope", tt.name), func() {
@@ -938,6 +944,13 @@ func listComponentVersions(ctx context.Context, cli *client.AssistedInstall) err
 	_, err := cli.Versions.ListComponentVersions(
 		ctx,
 		&versions.ListComponentVersionsParams{})
+	return err
+}
+
+func listSupportedOpenshiftVersions(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Versions.ListSupportedOpenshiftVersions(
+		ctx,
+		&versions.ListSupportedOpenshiftVersionsParams{})
 	return err
 }
 

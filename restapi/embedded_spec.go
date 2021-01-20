@@ -4075,6 +4075,15 @@ func init() {
     },
     "/openshift_versions": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves the list of OpenShift supported versions.",
         "tags": [
           "versions"
@@ -10411,6 +10420,15 @@ func init() {
     },
     "/openshift_versions": {
       "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
         "description": "Retrieves the list of OpenShift supported versions.",
         "tags": [
           "versions"
