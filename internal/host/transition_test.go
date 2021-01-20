@@ -519,23 +519,24 @@ var _ = Describe("Cancel host installation", func() {
 	})
 
 	tests := []struct {
-		state      string
-		success    bool
-		statusCode int32
+		state       string
+		success     bool
+		changeState bool
+		statusCode  int32
 	}{
-		{state: models.HostStatusPreparingForInstallation, success: true},
-		{state: models.HostStatusInstalling, success: true},
-		{state: models.HostStatusInstallingInProgress, success: true},
-		{state: models.HostStatusInstalled, success: true},
-		{state: models.HostStatusError, success: true},
-		{state: models.HostStatusDisabled, success: true},
-		{state: models.HostStatusInstallingPendingUserAction, success: true},
-		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusCancelled, success: false, statusCode: http.StatusConflict},
+		{state: models.HostStatusPreparingForInstallation, success: true, changeState: true},
+		{state: models.HostStatusInstalling, success: true, changeState: true},
+		{state: models.HostStatusInstallingInProgress, success: true, changeState: true},
+		{state: models.HostStatusInstalled, success: true, changeState: true},
+		{state: models.HostStatusError, success: true, changeState: true},
+		{state: models.HostStatusDisabled, success: true, changeState: false},
+		{state: models.HostStatusInstallingPendingUserAction, success: true, changeState: true},
+		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusCancelled, success: false, statusCode: http.StatusConflict, changeState: false},
 	}
 
 	acceptNewEvents := func(times int) {
@@ -550,16 +551,25 @@ var _ = Describe("Cancel host installation", func() {
 			host = hostutil.GenerateTestHost(hostId, clusterId, "")
 			host.Status = swag.String(t.state)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			eventsNum := 1
-			if t.success {
-				eventsNum++
+			eventsNum := 0
+			if t.changeState {
+				eventsNum = 2
+			}
+			if !t.success {
+				eventsNum = 1
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.CancelInstallation(ctx, &host, "reason", db)
 			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusCancelled))
+
+				expectedState := models.HostStatusCancelled
+				if !t.changeState {
+					expectedState = t.state
+				}
+
+				Expect(swag.StringValue(h.Status)).Should(Equal(expectedState))
 			} else {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.StatusCode()).Should(Equal(t.statusCode))
@@ -595,24 +605,25 @@ var _ = Describe("Reset host", func() {
 	})
 
 	tests := []struct {
-		state      string
-		success    bool
-		statusCode int32
+		state       string
+		success     bool
+		changeState bool
+		statusCode  int32
 	}{
-		{state: models.HostStatusPreparingForInstallation, success: true},
-		{state: models.HostStatusInstalling, success: true},
-		{state: models.HostStatusInstallingInProgress, success: true},
-		{state: models.HostStatusInstalled, success: true},
-		{state: models.HostStatusError, success: true},
-		{state: models.HostStatusDisabled, success: true},
-		{state: models.HostStatusInstallingPendingUserAction, success: true},
-		{state: models.HostStatusCancelled, success: true},
-		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict},
-		{state: models.HostStatusAddedToExistingCluster, success: true},
+		{state: models.HostStatusPreparingForInstallation, success: true, changeState: true},
+		{state: models.HostStatusInstalling, success: true, changeState: true},
+		{state: models.HostStatusInstallingInProgress, success: true, changeState: true},
+		{state: models.HostStatusInstalled, success: true, changeState: true},
+		{state: models.HostStatusError, success: true, changeState: true},
+		{state: models.HostStatusDisabled, success: true, changeState: false},
+		{state: models.HostStatusInstallingPendingUserAction, success: true, changeState: true},
+		{state: models.HostStatusCancelled, success: true, changeState: true},
+		{state: models.HostStatusAddedToExistingCluster, success: true, changeState: true},
+		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict, changeState: false},
 	}
 
 	acceptNewEvents := func(times int) {
@@ -627,16 +638,25 @@ var _ = Describe("Reset host", func() {
 			host = hostutil.GenerateTestHost(hostId, clusterId, "")
 			host.Status = swag.String(t.state)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			eventsNum := 1
-			if t.success {
-				eventsNum++
+			eventsNum := 0
+			if t.changeState {
+				eventsNum = 2
+			}
+			if !t.success {
+				eventsNum = 1
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.ResetHost(ctx, &host, "reason", db)
 			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
-				Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusResetting))
+
+				expectedState := models.HostStatusResetting
+				if !t.changeState {
+					expectedState = t.state
+				}
+
+				Expect(swag.StringValue(h.Status)).Should(Equal(expectedState))
 			} else {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.StatusCode()).Should(Equal(t.statusCode))
@@ -1224,7 +1244,9 @@ var _ = Describe("Refresh Host", func() {
 					Expect(swag.StringValue(resultHost.Status)).Should(Equal(models.HostStatusError))
 					Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(formatProgressTimedOutInfo(t.stage)))
 				} else {
-					Expect(prevStageUpdatedAt).ShouldNot(Equal(currStageUpdateAt))
+					if funk.Contains(WrongBootOrderIgnoreTimeoutStages, t.stage) {
+						Expect(prevStageUpdatedAt).ShouldNot(Equal(currStageUpdateAt))
+					}
 					Expect(swag.StringValue(resultHost.Status)).Should(Equal(models.HostStatusInstallingInProgress))
 				}
 			})
@@ -2743,7 +2765,9 @@ var _ = Describe("Refresh Host", func() {
 				c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				c.Status = swag.String(models.ClusterStatusInstalling)
 				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+
 				err := hapi.RefreshStatus(ctx, &h, db)
+
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(swag.StringValue(h.Status)).Should(Equal(srcState))
 			})
@@ -2754,12 +2778,16 @@ var _ = Describe("Refresh Host", func() {
 				c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				c.Status = swag.String(models.ClusterStatusError)
 				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityError,
 					fmt.Sprintf("Host master-hostname: updated status from \"%s\" to \"error\" (Host is part of a cluster that failed to install)", srcState),
 					gomock.Any())
+
 				err := hapi.RefreshStatus(ctx, &h, db)
+
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
+
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 				Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(statusInfoAbortingDueClusterErrors))

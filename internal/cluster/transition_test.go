@@ -201,7 +201,6 @@ var _ = Describe("Cancel cluster installation", func() {
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			eventsNum := 1
 			if t.success {
-				eventsNum++
 				acceptClusterInstallationFinished(1)
 			}
 			acceptNewEvents(eventsNum)
@@ -266,9 +265,6 @@ var _ = Describe("Reset cluster", func() {
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			eventsNum := 1
-			if t.success {
-				eventsNum++
-			}
 			acceptNewEvents(eventsNum)
 			err := capi.ResetCluster(ctx, &cluster, "reason", db)
 			if t.success {

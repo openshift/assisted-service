@@ -672,7 +672,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			hosts: []*models.Host{
 				{
 					Status:    swag.String(models.HostStatusInsufficient),
-					Inventory: common.GenerateTestDefaultInventory(),
+					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
 				},
 			},
 			userActionResetExpected: true,
@@ -697,11 +697,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			hosts: []*models.Host{
 				{
 					Status:    swag.String(models.HostStatusPendingForInput),
-					Inventory: common.GenerateTestDefaultInventory(),
+					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
 				},
 				{
 					Status:    swag.String(models.HostStatusPendingForInput),
-					Inventory: common.GenerateTestDefaultInventory(),
+					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
 				},
 			},
 			userActionResetExpected: true,
