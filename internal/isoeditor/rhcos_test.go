@@ -19,6 +19,12 @@ const (
 	defaultTestServiceBaseURL   = "http://198.51.100.0:6000"
 )
 
+func getTestLog() logrus.FieldLogger {
+	l := logrus.New()
+	l.SetOutput(ioutil.Discard)
+	return l
+}
+
 func TestIsoEditor(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "IsoEditor")
@@ -103,12 +109,6 @@ func createIsoViaGenisoimage(volumeID string) (string, string, string) {
 	Expect(err).ToNot(HaveOccurred())
 
 	return filesDir, isoDir, isoFile
-}
-
-func getTestLog() logrus.FieldLogger {
-	l := logrus.New()
-	l.SetOutput(ioutil.Discard)
-	return l
 }
 
 func validateFileContent(filename string, content string) {

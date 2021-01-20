@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 
 	"github.com/kennygrant/sanitize"
-	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 
 	"github.com/openshift/assisted-service/internal/network"
 

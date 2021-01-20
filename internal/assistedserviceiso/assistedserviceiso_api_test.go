@@ -3,7 +3,6 @@ package assistedserviceiso
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -17,7 +16,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
 	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
@@ -43,13 +41,13 @@ var _ = Describe("AssistedServiceISO", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		cfg.IgnitionConfigBaseFilename = "../../config/onprem-iso-config.ign"
-		api = NewAssistedServiceISOApi(mockS3Client, getTestAuthHandler(), getTestLog(), mockSecretValidator, cfg)
+		api = NewAssistedServiceISOApi(mockS3Client, getTestAuthHandler(), common.GetTestLog(), mockSecretValidator, cfg)
 	})
 
 	uploadIsoSuccess := func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false).Times(1)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-		mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(srcIsoName, nil).Times(1)
+		mockS3Client.EXPECT().GetBaseIsoObject(common.TestDefaultConfig.OpenShiftVersion).Return(srcIsoName, nil).Times(1)
 		mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), srcIsoName, destIsoName).Times(1)
 	}
 
@@ -63,7 +61,7 @@ var _ = Describe("AssistedServiceISO", func() {
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     sshPublicKey,
 				PullSecret:       pullSecret,
-				OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			}
 			generateReply := api.CreateISOAndUploadToS3(ctx, assisted_service_iso.CreateISOAndUploadToS3Params{
 				AssistedServiceIsoCreateParams: &ignitionParams,
@@ -100,7 +98,7 @@ var _ = Describe("AssistedServiceISO", func() {
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     "",
 				PullSecret:       pullSecret,
-				OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			}
 			generateReply := api.CreateISOAndUploadToS3(ctx, assisted_service_iso.CreateISOAndUploadToS3Params{
 				AssistedServiceIsoCreateParams: &ignitionParams,
@@ -113,7 +111,7 @@ var _ = Describe("AssistedServiceISO", func() {
 			ignitionParams := models.AssistedServiceIsoCreateParams{
 				SSHPublicKey:     sshPublicKey,
 				PullSecret:       pullSecret,
-				OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			}
 			// first
 			generateReply := api.CreateISOAndUploadToS3(ctx, assisted_service_iso.CreateISOAndUploadToS3Params{
@@ -188,17 +186,11 @@ func TestAssistedServiceISO(t *testing.T) {
 	RunSpecs(t, "AssistedServiceISO test Suite")
 }
 
-func getTestLog() logrus.FieldLogger {
-	l := logrus.New()
-	l.SetOutput(ioutil.Discard)
-	return l
-}
-
 func getTestAuthHandler() auth.AuthHandler {
 	fakeConfigDisabled := auth.Config{
 		EnableAuth: false,
 		JwkCertURL: "",
 		JwkCert:    "",
 	}
-	return *auth.NewAuthHandler(fakeConfigDisabled, nil, getTestLog().WithField("pkg", "auth"), nil)
+	return *auth.NewAuthHandler(fakeConfigDisabled, nil, common.GetTestLog().WithField("pkg", "auth"), nil)
 }

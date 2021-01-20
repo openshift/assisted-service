@@ -27,7 +27,7 @@ var _ = Describe("installer", func() {
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
-		installerManager = NewInstaller(getTestLog(), db)
+		installerManager = NewInstaller(common.GetTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{

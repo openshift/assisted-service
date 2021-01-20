@@ -30,7 +30,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"

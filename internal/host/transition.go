@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -63,7 +64,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 
 		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion)
 
-		if host, err := updateHostProgress(params.ctx, log, params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
+		if host, err := hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
 			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "", extra...); err != nil {
 			return err
 		} else {
@@ -127,7 +128,7 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 	}
 
 	for _, disk := range inventory.Disks {
-		if GetDeviceFullName(disk.Name) == sHost.host.InstallationDiskPath {
+		if hostutil.GetDeviceFullName(disk.Name) == sHost.host.InstallationDiskPath {
 			installationDisk = disk
 			break
 		}
@@ -370,7 +371,7 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateHost,
 	statusInfo string, extra ...interface{}) error {
 
-	if host, err := updateHostStatus(ctx, log, db, th.eventsHandler, state.host.ClusterID, *state.host.ID, state.srcState,
+	if host, err := hostutil.UpdateHostStatus(ctx, log, db, th.eventsHandler, state.host.ClusterID, *state.host.ID, state.srcState,
 		swag.StringValue(state.host.Status), statusInfo, extra...); err != nil {
 		return err
 	} else {
@@ -527,7 +528,7 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			template += hostNotRespondingNotification + sHost.host.CheckedInAt.String()
 		}
 
-		_, err = updateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
+		_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
 			sHost.srcState, swag.StringValue(sHost.host.Status), template, "validations_info", string(b))
 		return err
 	}
@@ -539,7 +540,7 @@ func (th *transitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args statesw
 	if !ok {
 		return false, errors.New("HasClusterError incompatible type of StateSwitch")
 	}
-	return IsDay2Host(sHost.host), nil
+	return hostutil.IsDay2Host(sHost.host), nil
 }
 
 func getFailedValidations(params *TransitionArgsRefreshHost) []string {

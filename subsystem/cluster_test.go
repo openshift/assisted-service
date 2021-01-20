@@ -118,7 +118,7 @@ var _ = Describe("Cluster", func() {
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})
@@ -170,7 +170,7 @@ var _ = Describe("Cluster", func() {
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("abcdefghijabcdefghijabcdefghijabcdefghijabcdefghijabcdefghij"),
-				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})
@@ -185,7 +185,7 @@ var _ = Describe("Cluster", func() {
 		cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})
@@ -443,7 +443,7 @@ var _ = Describe("cluster install - DHCP", func() {
 				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 23,
 				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:               swag.String(pullSecret),
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,
@@ -591,7 +591,7 @@ var _ = Describe("cluster update - BaseDNS", func() {
 				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 23,
 				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:               swag.String(pullSecret),
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,
@@ -655,7 +655,7 @@ var _ = Describe("cluster update - Operators", func() {
 				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 23,
 				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:               swag.String(pullSecret),
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,
@@ -725,7 +725,7 @@ var _ = Describe("cluster install", func() {
 				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 23,
 				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:               swag.String(pullSecret),
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,
@@ -1219,7 +1219,7 @@ var _ = Describe("cluster install", func() {
 					ClusterNetworkCidr:       &clusterCIDR,
 					ClusterNetworkHostPrefix: 23,
 					Name:                     swag.String("test-cluster"),
-					OpenshiftVersion:         swag.String(common.DefaultTestOpenShiftVersion),
+					OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
 					PullSecret:               swag.String(pullSecret),
 					ServiceNetworkCidr:       &serviceCIDR,
 				},
@@ -2766,7 +2766,7 @@ var _ = Describe("cluster install, with default network params", func() {
 			NewClusterParams: &models.ClusterCreateParams{
 				BaseDNSDomain:    "example.com",
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				SSHPublicKey:     sshPublicKey,
 			},

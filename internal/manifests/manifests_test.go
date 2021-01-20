@@ -3,7 +3,6 @@ package manifests_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -24,7 +23,6 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 func TestValidator(t *testing.T) {
@@ -32,12 +30,6 @@ func TestValidator(t *testing.T) {
 	common.InitializeDBTest()
 	defer common.TerminateDBTest()
 	RunSpecs(t, "manifests_test")
-}
-
-func getTestLog() logrus.FieldLogger {
-	l := logrus.New()
-	l.SetOutput(ioutil.Discard)
-	return l
 }
 
 var _ = Describe("ClusterManifestTests", func() {
@@ -59,7 +51,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		db = common.PrepareTestDB(dbName)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 
-		manifestsAPI = manifests.NewManifestsAPI(db, getTestLog(), mockS3Client)
+		manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client)
 	})
 
 	AfterEach(func() {

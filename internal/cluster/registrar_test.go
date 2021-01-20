@@ -27,7 +27,7 @@ var _ = Describe("registrar", func() {
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
-		registerManager = NewRegistrar(getTestLog(), db)
+		registerManager = NewRegistrar(common.GetTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{

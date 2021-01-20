@@ -12,7 +12,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/host/hostcommands"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -84,9 +85,9 @@ type Config struct {
 	MonitorBatchSize int           `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
 }
 
-//go:generate mockgen -source=host.go -package=host -aux_files=github.com/openshift/assisted-service/internal/host=instructionmanager.go -destination=mock_host_api.go
+//go:generate mockgen -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
 type API interface {
-	InstructionApi
+	hostcommands.InstructionApi
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
@@ -130,7 +131,7 @@ type API interface {
 type Manager struct {
 	log            logrus.FieldLogger
 	db             *gorm.DB
-	instructionApi InstructionApi
+	instructionApi hostcommands.InstructionApi
 	hwValidator    hardware.Validator
 	eventsHandler  events.Handler
 	sm             stateswitch.StateMachine
@@ -140,7 +141,7 @@ type Manager struct {
 	leaderElector  leader.Leader
 }
 
-func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi InstructionApi,
+func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
 	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface) *Manager {
 	th := &transitionHandler{
 		db:            db,
@@ -263,7 +264,7 @@ func determineDefaultInstallationDisk(previousInstallationDisk string, validDisk
 		return ""
 	}
 
-	return GetDeviceFullName(validDisks[0].Name)
+	return hostutil.GetDeviceFullName(validDisks[0].Name)
 }
 
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
@@ -398,7 +399,7 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 	var err error
 	switch progress.CurrentStage {
 	case models.HostStageDone:
-		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstalled, statusInfo,
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	case models.HostStageFailed:
@@ -408,18 +409,18 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			statusInfo += fmt.Sprintf(" - %s", progress.ProgressInfo)
 		}
 
-		_, err = updateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostStatus(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusError, statusInfo)
 	case models.HostStageRebooting:
 		if swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost {
-			_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+			_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 				swag.StringValue(h.Status), models.HostStatusAddedToExistingCluster, statusInfo,
 				h.Progress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 			break
 		}
 		fallthrough
 	default:
-		_, err = updateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		_, err = hostutil.UpdateHostProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
 			swag.StringValue(h.Status), models.HostStatusInstallingInProgress, statusInfo,
 			previousProgress.CurrentStage, progress.CurrentStage, progress.ProgressInfo)
 	}
@@ -480,7 +481,7 @@ func (m *Manager) UpdateRole(ctx context.Context, h *models.Host, role models.Ho
 }
 
 func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error {
-	if !IsDay2Host(h) {
+	if !hostutil.IsDay2Host(h) {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Host %s must be in day2 to update its machine config pool name to %s",
 				h.ID.String(), machineConfigPoolName))
@@ -763,7 +764,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 		log              = logutil.FromContext(ctx, m.log)
 	)
 
-	if IsDay2Host(h) {
+	if hostutil.IsDay2Host(h) {
 		return autoSelectedRole, nil
 	}
 

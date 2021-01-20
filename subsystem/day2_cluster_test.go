@@ -32,7 +32,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		cluster, err = userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
 			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				APIVipDnsname:    swag.String("api_vip_dnsname"),
 				ID:               strToUUID(uuid.New().String()),
 			},

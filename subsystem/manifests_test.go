@@ -36,7 +36,7 @@ var _ = Describe("manifests tests", func() {
 		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				SSHPublicKey:     sshPublicKey,
 			},

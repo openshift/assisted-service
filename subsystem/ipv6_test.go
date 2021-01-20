@@ -54,7 +54,7 @@ var _ = Describe("IPv6 installation", func() {
 				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 64,
 				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:               swag.String(pullSecret),
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,
