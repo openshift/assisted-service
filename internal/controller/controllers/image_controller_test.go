@@ -64,7 +64,7 @@ var _ = Describe("image reconcile", func() {
 		ir = &ImageReconciler{
 			Client:    c,
 			Scheme:    scheme.Scheme,
-			Log:       getTestLog(),
+			Log:       common.GetTestLog(),
 			Installer: mockInstallerInternal,
 		}
 	})

@@ -3,7 +3,6 @@ package bootfiles_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -19,18 +18,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "bootfiles_test")
-}
-
-func getTestLog() logrus.FieldLogger {
-	l := logrus.New()
-	l.SetOutput(ioutil.Discard)
-	return l
 }
 
 var (
@@ -50,7 +42,7 @@ var _ = Describe("BootFilesTests", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 
-		bootfilesAPI = bootfiles.NewBootFilesAPI(getTestLog(), mockS3Client)
+		bootfilesAPI = bootfiles.NewBootFilesAPI(common.GetTestLog(), mockS3Client)
 	})
 
 	AfterEach(func() {
@@ -59,7 +51,7 @@ var _ = Describe("BootFilesTests", func() {
 
 	downloadBootFiles := func(isAws bool, fileType string) middleware.Responder {
 		mockS3Client.EXPECT().IsAwsS3().Return(isAws).Times(1)
-		mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(defaultBaseIso, nil).Times(1)
+		mockS3Client.EXPECT().GetBaseIsoObject(common.TestDefaultConfig.OpenShiftVersion).Return(defaultBaseIso, nil).Times(1)
 
 		if isAws {
 			mockS3Client.EXPECT().GetS3BootFileURL(defaultBaseIso, fileType).Return(defaultURL).Times(1)
@@ -68,7 +60,7 @@ var _ = Describe("BootFilesTests", func() {
 		}
 
 		return bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{
-			FileType: fileType, OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+			FileType: fileType, OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 		})
 	}
 
@@ -88,10 +80,10 @@ var _ = Describe("BootFilesTests", func() {
 			fileType := "vmlinuz"
 			baseIso := "livecd.iso"
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetBaseIsoObject(common.DefaultTestOpenShiftVersion).Return(baseIso, nil)
+			mockS3Client.EXPECT().GetBaseIsoObject(common.TestDefaultConfig.OpenShiftVersion).Return(baseIso, nil)
 			mockS3Client.EXPECT().DownloadBootFile(ctx, baseIso, fileType).Return(nil, "", int64(0), errors.New("Whoops"))
 			response := bootfilesAPI.DownloadBootFiles(ctx, operations.DownloadBootFilesParams{
-				FileType: fileType, OpenshiftVersion: common.DefaultTestOpenShiftVersion,
+				FileType: fileType, OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			})
 			apiErr, ok := response.(*common.ApiErrorResponse)
 			Expect(ok).Should(BeTrue())

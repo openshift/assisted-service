@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -48,7 +49,7 @@ var _ = Describe("host reconcile", func() {
 		hr = &HostReconciler{
 			Client: c,
 			Scheme: scheme.Scheme,
-			Log:    getTestLog(),
+			Log:    common.GetTestLog(),
 		}
 	})
 

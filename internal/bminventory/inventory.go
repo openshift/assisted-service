@@ -38,7 +38,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/host/hostcommands"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -2234,7 +2235,7 @@ func (b *bareMetalInventory) generateNextStepRunnerCommand(ctx context.Context, 
 			params.NewHostParams.HostID.String(), params.ClusterID.String(), params.NewHostParams.DiscoveryAgentVersion, currentImageTag)
 	}
 
-	config := host.NextStepRunnerConfig{
+	config := hostcommands.NextStepRunnerConfig{
 		ServiceBaseURL:       b.ServiceBaseURL,
 		ClusterID:            params.ClusterID.String(),
 		HostID:               params.NewHostParams.HostID.String(),
@@ -2242,7 +2243,7 @@ func (b *bareMetalInventory) generateNextStepRunnerCommand(ctx context.Context, 
 		NextStepRunnerImage:  b.AgentDockerImg,
 		SkipCertVerification: b.SkipCertVerification,
 	}
-	command, args := host.GetNextStepRunnerCommand(&config)
+	command, args := hostcommands.GetNextStepRunnerCommand(&config)
 	return &models.HostRegistrationResponseAO1NextStepRunnerCommand{
 		Command: command,
 		Args:    *args,
@@ -2575,7 +2576,7 @@ func (b *bareMetalInventory) processFioPerfCheckResponse(ctx context.Context, h 
 		return err
 	}
 
-	if fioPerfCheckResponse.IoSyncDuration > host.FioDurationThresholdMs {
+	if fioPerfCheckResponse.IoSyncDuration > hostcommands.FioDurationThresholdMs {
 		// If the 99th percentile of fdatasync durations is more than 10ms, it's not fast enough for etcd.
 		// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
 		msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
@@ -3410,7 +3411,7 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if !host.IsDay2Host(h) {
+	if !hostutil.IsDay2Host(h) {
 		log.Errorf("InstallHost for host %s is forbidden: not a Day2 hosts", params.HostID.String())
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("Method only allowed when adding hosts to an existing cluster"))
 	}
@@ -3466,7 +3467,7 @@ func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.Res
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if !host.IsDay2Host(&h) {
+	if !hostutil.IsDay2Host(&h) {
 		log.Errorf("ResetHost for host %s is forbiddent: not a Day2 hosts", params.HostID.String())
 		return common.NewApiError(http.StatusConflict, fmt.Errorf("Method only allowed when adding hosts to an existing cluster"))
 	}

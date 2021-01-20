@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -40,11 +41,11 @@ var _ = Describe("monitor_disconnection", func() {
 		dummy := &leader.DummyElector{}
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
-		state = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
+		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, defaultConfig, dummy)
 		clusterID := strfmt.UUID(uuid.New().String())
-		host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
-		cluster := getTestCluster(clusterID, "1.1.0.0/16")
+		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
+		cluster := hostutil.GenerateTestCluster(clusterID, "1.1.0.0/16")
 		Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
 		host.Inventory = workerInventory()
 		err := state.RegisterHost(ctx, &host, db)
@@ -133,7 +134,7 @@ var _ = Describe("TestHostMonitoring", func() {
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
-		state = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
+		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, &cfg, &leader.DummyElector{})
 	})
 
@@ -147,10 +148,10 @@ var _ = Describe("TestHostMonitoring", func() {
 			for i := 0; i < nHosts; i++ {
 				if i%10 == 0 {
 					clusterID = strfmt.UUID(uuid.New().String())
-					cluster := getTestCluster(clusterID, "1.1.0.0/16")
+					cluster := hostutil.GenerateTestCluster(clusterID, "1.1.0.0/16")
 					Expect(db.Save(&cluster).Error).ToNot(HaveOccurred())
 				}
-				host = getTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
+				host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
 				host.Inventory = workerInventory()
 				Expect(state.RegisterHost(ctx, &host, db)).ShouldNot(HaveOccurred())
 				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))

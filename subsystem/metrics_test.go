@@ -103,7 +103,7 @@ var _ = Describe("Metrics tests", func() {
 		cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-metrics-cluster"),
-				OpenshiftVersion: swag.String(common.DefaultTestOpenShiftVersion),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 				PullSecret:       swag.String(pullSecret),
 			},
 		})

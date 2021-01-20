@@ -13,9 +13,8 @@ import (
 )
 
 const (
-	dbDockerName                = "ut-postgres"
-	dbDefaultPort               = "5432"
-	DefaultTestOpenShiftVersion = "4.6"
+	dbDockerName  = "ut-postgres"
+	dbDefaultPort = "5432"
 )
 
 type DBContext struct {

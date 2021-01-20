@@ -35,8 +35,8 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		hwvalidator = NewValidator(logrus.New(), cfg)
 
-		bigEnoughSize = gbToBytes(cfg.MinDiskSizeGb) + 1
-		tooSmallSize = gbToBytes(cfg.MinDiskSizeGb) - 1
+		bigEnoughSize = GbToBytes(cfg.MinDiskSizeGb) + 1
+		tooSmallSize = GbToBytes(cfg.MinDiskSizeGb) - 1
 
 		// Start off with an eligible default
 		testDisk = models.Disk{

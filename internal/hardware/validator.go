@@ -60,8 +60,16 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	return v.ListEligibleDisks(&inventory), nil
 }
 
-func gbToBytes(gb int64) int64 {
+func GbToBytes(gb int64) int64 {
 	return gb * int64(units.GB)
+}
+
+func GibToBytes(gib int64) int64 {
+	return gib * int64(units.GiB)
+}
+
+func BytesToGiB(bytes int64) int64 {
+	return bytes / int64(units.GiB)
 }
 
 func isNvme(name string) bool {
@@ -75,7 +83,7 @@ func isNvme(name string) bool {
 func (v *validator) DiskIsEligible(disk *models.Disk) []string {
 	var notEligibleReasons []string
 
-	if minSizeBytes := gbToBytes(v.MinDiskSizeGb); disk.SizeBytes < minSizeBytes {
+	if minSizeBytes := GbToBytes(v.MinDiskSizeGb); disk.SizeBytes < minSizeBytes {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				"Disk is too small (disk only has %s, but %s are required)",

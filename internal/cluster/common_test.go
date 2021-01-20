@@ -11,8 +11,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-var defaultStatus = "status"
-var defaultStatusInfo = "statusInfo"
 var newStatus = "newStatus"
 var newStatusInfo = "newStatusInfo"
 
@@ -31,8 +29,8 @@ var _ = Describe("update_cluster_state", func() {
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:         &id,
-			Status:     &defaultStatus,
-			StatusInfo: &defaultStatusInfo,
+			Status:     &common.TestDefaultConfig.Status,
+			StatusInfo: &common.TestDefaultConfig.StatusInfo,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -41,7 +39,7 @@ var _ = Describe("update_cluster_state", func() {
 
 	Describe("UpdateCluster", func() {
 		It("change_status", func() {
-			cluster, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
+			cluster, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus, "status_info", newStatusInfo)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(newStatus))
 			Expect(*cluster.StatusInfo).Should(Equal(newStatusInfo))
@@ -49,14 +47,14 @@ var _ = Describe("update_cluster_state", func() {
 
 		Describe("negative", func() {
 			It("invalid_extras_amount", func() {
-				_, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "1")
+				_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "1")
 				Expect(err).Should(HaveOccurred())
-				_, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "1", "2", "3")
+				_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "1", "2", "3")
 				Expect(err).Should(HaveOccurred())
 			})
 
 			It("no_matching_rows", func() {
-				_, err = UpdateCluster(getTestLog(), db, *cluster.ID, "otherStatus", "status", newStatus)
+				_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, "otherStatus", "status", newStatus)
 				Expect(err).Should(HaveOccurred())
 			})
 
@@ -70,7 +68,7 @@ var _ = Describe("update_cluster_state", func() {
 
 		It("db_failure", func() {
 			db.Close()
-			_, err = UpdateCluster(getTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus)
+			_, err = UpdateCluster(common.GetTestLog(), db, *cluster.ID, *cluster.Status, "status", newStatus)
 			Expect(err).Should(HaveOccurred())
 		})
 	})

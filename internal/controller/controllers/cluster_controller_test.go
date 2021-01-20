@@ -82,7 +82,7 @@ var _ = Describe("cluster reconcile", func() {
 		cr = &ClusterReconciler{
 			Client:    c,
 			Scheme:    scheme.Scheme,
-			Log:       getTestLog(),
+			Log:       common.GetTestLog(),
 			Installer: mockInstallerInternal,
 		}
 	})

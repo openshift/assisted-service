@@ -14,7 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
-	"github.com/openshift/assisted-service/internal/hostutil"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
 
@@ -56,14 +56,14 @@ var _ = Describe("RegisterHost", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
 	It("register_new", func() {
 		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
-		h := getHost(hostId, clusterId, db)
+		h := hostutil.GetHostFromDB(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
 	})
@@ -137,7 +137,7 @@ var _ = Describe("RegisterHost", func() {
 					Expect(ok).Should(Equal(true))
 					Expect(serr.StatusCode()).Should(Equal(t.errorCode))
 				}
-				h := getHost(hostId, clusterId, db)
+				h := hostutil.GetHostFromDB(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
 				Expect(h.Role).Should(Equal(models.HostRoleMaster))
 				Expect(h.Inventory).Should(Equal(defaultHwInfo))
@@ -211,7 +211,7 @@ var _ = Describe("RegisterHost", func() {
 		}
 
 		AfterEach(func() {
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 			Expect(h.Role).Should(Equal(models.HostRoleMaster))
 			Expect(h.DiscoveryAgentVersion).To(Equal(discoveryAgentVersion))
@@ -236,7 +236,7 @@ var _ = Describe("RegisterHost", func() {
 					Status:    swag.String(t.srcState),
 					Bootstrap: true,
 					Progress: &models.HostProgressInfo{
-						CurrentStage: defaultProgressStage,
+						CurrentStage: common.TestDefaultConfig.HostProgressStage,
 						ProgressInfo: "some info",
 					},
 					NtpSources: "some ntp sources",
@@ -290,7 +290,7 @@ var _ = Describe("RegisterHost", func() {
 				},
 					db)).Should(HaveOccurred())
 
-				h := getHost(hostId, clusterId, db)
+				h := hostutil.GetHostFromDB(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.srcState))
 				Expect(h.Role).Should(Equal(models.HostRoleMaster))
 				Expect(h.Inventory).Should(Equal(defaultHwInfo))
@@ -324,7 +324,7 @@ var _ = Describe("RegisterHost", func() {
 				expectedStatusInfo: "Expected the host to boot from disk, but it booted the installation image - " +
 					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
 				expectedRole:      models.HostRoleMaster,
-				expectedInventory: defaultInventory(),
+				expectedInventory: common.GenerateTestDefaultInventory(),
 				hostKind:          models.HostKindHost,
 				origRole:          models.HostRoleMaster,
 			},
@@ -335,7 +335,7 @@ var _ = Describe("RegisterHost", func() {
 				},
 				dstState:          models.HostStatusResetting,
 				expectedRole:      models.HostRoleMaster,
-				expectedInventory: defaultInventory(),
+				expectedInventory: common.GenerateTestDefaultInventory(),
 				hostKind:          models.HostKindHost,
 				origRole:          models.HostRoleMaster,
 			},
@@ -366,7 +366,7 @@ var _ = Describe("RegisterHost", func() {
 				expectedStatusInfo: "Expected the host to boot from disk, but it booted the installation image - " +
 					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
 				expectedRole:      models.HostRoleWorker,
-				expectedInventory: defaultInventory(),
+				expectedInventory: common.GenerateTestDefaultInventory(),
 				hostKind:          models.HostKindAddToExistingClusterHost,
 				origRole:          models.HostRoleWorker,
 			},
@@ -380,10 +380,10 @@ var _ = Describe("RegisterHost", func() {
 					ID:                   &hostId,
 					ClusterID:            clusterId,
 					Role:                 t.origRole,
-					Inventory:            defaultInventory(),
+					Inventory:            common.GenerateTestDefaultInventory(),
 					Status:               swag.String(t.srcState),
 					Progress:             &t.progress,
-					InstallationDiskPath: GetDeviceFullName(defaultDisk.Name),
+					InstallationDiskPath: hostutil.GetDeviceFullName(common.TestDefaultConfig.Disks.Name),
 					Kind:                 &t.hostKind,
 				}).Error).ShouldNot(HaveOccurred())
 
@@ -404,7 +404,7 @@ var _ = Describe("RegisterHost", func() {
 				},
 					db)).ShouldNot(HaveOccurred())
 
-				h := getHost(hostId, clusterId, db)
+				h := hostutil.GetHostFromDB(hostId, clusterId, db)
 				Expect(swag.StringValue(h.Status)).Should(Equal(t.dstState))
 				Expect(h.Role).Should(Equal(t.expectedRole))
 				Expect(h.Inventory).Should(Equal(t.expectedInventory))
@@ -438,10 +438,10 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = getTestHost(hostId, clusterId, "")
+		host = hostutil.GenerateTestHost(hostId, clusterId, "")
 		host.Status = swag.String(models.HostStatusInstalling)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	})
@@ -452,7 +452,7 @@ var _ = Describe("HostInstallationFailed", func() {
 			gomock.Any())
 		mockMetric.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 		Expect(hapi.HandleInstallationFailure(ctx, &host)).ShouldNot(HaveOccurred())
-		h := getHost(hostId, clusterId, db)
+		h := hostutil.GetHostFromDB(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
 		Expect(swag.StringValue(h.StatusInfo)).Should(Equal("installation command failed"))
 	})
@@ -481,15 +481,15 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
-		host = getTestHost(hostId, clusterId, "")
+		host = hostutil.GenerateTestHost(hostId, clusterId, "")
 	})
 
 	It("register_installed_host", func() {
 		Expect(hapi.RegisterInstalledOCPHost(ctx, &host, db)).ShouldNot(HaveOccurred())
-		h := getHost(hostId, clusterId, db)
+		h := hostutil.GetHostFromDB(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusInstalled))
 	})
 
@@ -515,7 +515,7 @@ var _ = Describe("Cancel host installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 	})
 
 	tests := []struct {
@@ -546,7 +546,7 @@ var _ = Describe("Cancel host installation", func() {
 		It(fmt.Sprintf("cancel from state %s", t.state), func() {
 			hostId = strfmt.UUID(uuid.New().String())
 			clusterId = strfmt.UUID(uuid.New().String())
-			host = getTestHost(hostId, clusterId, "")
+			host = hostutil.GenerateTestHost(hostId, clusterId, "")
 			host.Status = swag.String(t.state)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			eventsNum := 1
@@ -555,7 +555,7 @@ var _ = Describe("Cancel host installation", func() {
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.CancelInstallation(ctx, &host, "reason", db)
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusCancelled))
@@ -590,7 +590,7 @@ var _ = Describe("Reset host", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 	})
 
 	tests := []struct {
@@ -622,7 +622,7 @@ var _ = Describe("Reset host", func() {
 		It(fmt.Sprintf("reset from state %s", t.state), func() {
 			hostId = strfmt.UUID(uuid.New().String())
 			clusterId = strfmt.UUID(uuid.New().String())
-			host = getTestHost(hostId, clusterId, "")
+			host = hostutil.GenerateTestHost(hostId, clusterId, "")
 			host.Status = swag.String(t.state)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			eventsNum := 1
@@ -631,7 +631,7 @@ var _ = Describe("Reset host", func() {
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.ResetHost(ctx, &host, "reason", db)
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
 				Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusResetting))
@@ -666,7 +666,7 @@ var _ = Describe("Install", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -674,7 +674,7 @@ var _ = Describe("Install", func() {
 	Context("install host", func() {
 		success := func(reply error) {
 			Expect(reply).To(BeNil())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusInstalling))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoInstalling))
 		}
@@ -685,7 +685,7 @@ var _ = Describe("Install", func() {
 
 		noChange := func(reply error) {
 			Expect(reply).To(BeNil())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
 		}
 
@@ -754,7 +754,7 @@ var _ = Describe("Install", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
-				host = getTestHost(hostId, clusterId, t.srcState)
+				host = hostutil.GenerateTestHost(hostId, clusterId, t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, models.EventSeverityInfo,
 					fmt.Sprintf("Host %s: updated status from \"%s\" to \"installing\" (Installation is in progress)", host.ID.String(), t.srcState),
@@ -766,7 +766,7 @@ var _ = Describe("Install", func() {
 
 	Context("install with transaction", func() {
 		BeforeEach(func() {
-			host = getTestHost(hostId, clusterId, models.HostStatusPreparingForInstallation)
+			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusPreparingForInstallation)
 			host.StatusInfo = swag.String(models.HostStatusPreparingForInstallation)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
@@ -779,7 +779,7 @@ var _ = Describe("Install", func() {
 				gomock.Any())
 			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Commit().Error).ShouldNot(HaveOccurred())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusInstalling))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoInstalling))
 		})
@@ -792,7 +792,7 @@ var _ = Describe("Install", func() {
 				gomock.Any())
 			Expect(hapi.Install(ctx, &host, tx)).ShouldNot(HaveOccurred())
 			Expect(tx.Rollback().Error).ShouldNot(HaveOccurred())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusPreparingForInstallation))
 			Expect(*h.StatusInfo).Should(Equal(models.HostStatusPreparingForInstallation))
 		})
@@ -820,7 +820,7 @@ var _ = Describe("Disable", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -829,14 +829,14 @@ var _ = Describe("Disable", func() {
 		var srcState string
 		success := func(reply error) {
 			Expect(reply).To(BeNil())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusDisabled))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDisabled))
 		}
 
 		failure := func(reply error) {
 			Expect(reply).To(HaveOccurred())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(srcState))
 		}
 
@@ -919,7 +919,7 @@ var _ = Describe("Disable", func() {
 			t := tests[i]
 			It(t.name, func() {
 				srcState = t.srcState
-				host = getTestHost(hostId, clusterId, srcState)
+				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
 				for _, m := range t.mocks {
 					m(t.srcState)
 				}
@@ -952,7 +952,7 @@ var _ = Describe("Enable", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -961,7 +961,7 @@ var _ = Describe("Enable", func() {
 		var srcState string
 		success := func(reply error) {
 			Expect(reply).To(BeNil())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(models.HostStatusDiscovering))
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
 			Expect(h.Inventory).Should(BeEmpty())
@@ -971,7 +971,7 @@ var _ = Describe("Enable", func() {
 
 		failure := func(reply error) {
 			Expect(reply).Should(HaveOccurred())
-			h := getHost(hostId, clusterId, db)
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(*h.Status).Should(Equal(srcState))
 			Expect(h.Inventory).Should(Equal(defaultHwInfo))
 			Expect(h.Bootstrap).Should(Equal(true))
@@ -1054,7 +1054,7 @@ var _ = Describe("Enable", func() {
 			It(t.name, func() {
 				// Test setup - Host creation
 				srcState = t.srcState
-				host = getTestHost(hostId, clusterId, srcState)
+				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
 				host.Inventory = defaultHwInfo
 				host.Bootstrap = true
 
@@ -1156,10 +1156,10 @@ var _ = Describe("Refresh Host", func() {
 			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
 			// rely on small disks to get filtered out.
 			return funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-				return disk.SizeBytes >= gibToBytes(validatorCfg.MinDiskSizeGb)
+				return disk.SizeBytes >= hardware.GibToBytes(validatorCfg.MinDiskSizeGb)
 			}).([]*models.Disk)
 		}).AnyTimes()
-		hapi = NewManager(getTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1187,8 +1187,8 @@ var _ = Describe("Refresh Host", func() {
 		for _, t := range tests {
 			It(fmt.Sprintf("checking timeout from stage %s", t.stage), func() {
 				hostCheckInAt := strfmt.DateTime(time.Now())
-				host = getTestHost(hostId, clusterId, models.HostStatusInstallingInProgress)
-				host.Inventory = masterInventory()
+				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusInstallingInProgress)
+				host.Inventory = hostutil.GenerateMasterInventory()
 				host.Role = models.HostRoleMaster
 				host.CheckedInAt = hostCheckInAt
 				updatedAt := strfmt.DateTime(time.Now().Add(-passedTime))
@@ -1198,7 +1198,7 @@ var _ = Describe("Refresh Host", func() {
 					CurrentStage:   t.stage,
 				}
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				cluster.Status = swag.String(models.ClusterStatusInstallingPendingUserAction)
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				if t.expectTimeout {
@@ -1242,8 +1242,8 @@ var _ = Describe("Refresh Host", func() {
 			passedTime := 90 * time.Minute
 			It(name, func() {
 				srcState = models.HostStatusInstallingInProgress
-				host = getTestHost(hostId, clusterId, srcState)
-				host.Inventory = masterInventory()
+				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
+				host.Inventory = hostutil.GenerateMasterInventory()
 				host.Role = models.HostRoleMaster
 				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-5 * time.Minute))
 
@@ -1256,7 +1256,7 @@ var _ = Describe("Refresh Host", func() {
 				host.Progress = &progress
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
@@ -1289,14 +1289,14 @@ var _ = Describe("Refresh Host", func() {
 				passedTimeKind := passedTimeKey
 				passedTime := passedTimeValue
 				hostCheckInAt := strfmt.DateTime(time.Now())
-				host = getTestHost(hostId, clusterId, srcState)
-				host.Inventory = masterInventory()
+				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
+				host.Inventory = hostutil.GenerateMasterInventory()
 				host.Role = models.HostRoleMaster
 				host.CheckedInAt = hostCheckInAt
 				host.StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-passedTime))
 
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if passedTimeKind == "over_timeout" {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
@@ -1344,8 +1344,8 @@ var _ = Describe("Refresh Host", func() {
 				It(name, func() {
 					hostCheckInAt := strfmt.DateTime(time.Now())
 					srcState = models.HostStatusInstallingInProgress
-					host = getTestHost(hostId, clusterId, srcState)
-					host.Inventory = masterInventory()
+					host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
+					host.Inventory = hostutil.GenerateMasterInventory()
 					host.Role = models.HostRoleMaster
 					host.CheckedInAt = hostCheckInAt
 
@@ -1358,7 +1358,7 @@ var _ = Describe("Refresh Host", func() {
 					host.Progress = &progress
 
 					Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-					cluster = getTestCluster(clusterId, "1.2.3.0/24")
+					cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 					Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 					if passedTimeKind == "over_timeout" {
@@ -1384,12 +1384,12 @@ var _ = Describe("Refresh Host", func() {
 		}
 		It("state info progress when failed", func() {
 
-			cluster = getTestCluster(clusterId, "1.2.3.0/24")
+			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			masterID := strfmt.UUID("1")
-			master := getTestHost(masterID, clusterId, models.HostStatusInstallingInProgress)
-			master.Inventory = masterInventory()
+			master := hostutil.GenerateTestHost(masterID, clusterId, models.HostStatusInstallingInProgress)
+			master.Inventory = hostutil.GenerateMasterInventory()
 			master.Role = models.HostRoleMaster
 			master.CheckedInAt = strfmt.DateTime(time.Now())
 			master.Progress = &models.HostProgressInfo{
@@ -1400,8 +1400,8 @@ var _ = Describe("Refresh Host", func() {
 			Expect(db.Create(&master).Error).ShouldNot(HaveOccurred())
 
 			hostId = strfmt.UUID("2")
-			host = getTestHost(hostId, clusterId, models.HostStatusInstallingInProgress)
-			host.Inventory = masterInventory()
+			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusInstallingInProgress)
+			host.Inventory = hostutil.GenerateMasterInventory()
 			host.Role = models.HostRoleWorker
 			host.CheckedInAt = strfmt.DateTime(time.Now())
 			progress := models.HostProgressInfo{
@@ -1926,7 +1926,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR"},
 					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 				}),
-				inventory:     masterInventory(),
+				inventory:     hostutil.GenerateMasterInventory(),
 				errorExpected: false,
 			},
 			{
@@ -1952,7 +1952,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr: {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR"},
 					IsNTPSynced:          {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
 				}),
-				inventory:     masterInventory(),
+				inventory:     hostutil.GenerateMasterInventory(),
 				errorExpected: false,
 			},
 			{
@@ -1979,7 +1979,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameValid:      {status: ValidationFailure, messagePattern: "Hostname localhost is forbidden"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     masterInventoryWithHostname("localhost"),
+				inventory:     hostutil.GenerateMasterInventoryWithHostname("localhost"),
 				errorExpected: false,
 			},
 			{
@@ -2006,7 +2006,7 @@ var _ = Describe("Refresh Host", func() {
 					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     masterInventory(),
+				inventory:     hostutil.GenerateMasterInventory(),
 				errorExpected: false,
 			},
 			{
@@ -2032,7 +2032,7 @@ var _ = Describe("Refresh Host", func() {
 					IsAPIVipConnected:      {status: ValidationSuccess, messagePattern: "No API VIP needed: User Managed Networking"},
 					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "L2 connectivy validation skipped: User Managed Networking"},
 				}),
-				inventory:             masterInventory(),
+				inventory:             hostutil.GenerateMasterInventory(),
 				errorExpected:         false,
 				userManagedNetworking: true,
 			},
@@ -2059,7 +2059,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     masterInventory(),
+				inventory:     hostutil.GenerateMasterInventory(),
 				errorExpected: false,
 			},
 			{
@@ -2085,7 +2085,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     masterInventory(),
+				inventory:     hostutil.GenerateMasterInventory(),
 				errorExpected: false,
 			},
 			{
@@ -2111,7 +2111,7 @@ var _ = Describe("Refresh Host", func() {
 					IsHostnameValid:      {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     masterInventoryV6(),
+				inventory:     hostutil.GenerateMasterInventoryV6(),
 				errorExpected: false,
 			},
 			{
@@ -2138,7 +2138,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "Host has connectivity to the majority of hosts in the cluster"},
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     masterInventory(),
+				inventory:     hostutil.GenerateMasterInventory(),
 				errorExpected: false,
 			},
 			{
@@ -2166,7 +2166,7 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMajorityGroup: {status: ValidationFailure, messagePattern: "No connectivity to the majority of hosts in the cluster"},
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     masterInventory(),
+				inventory:     hostutil.GenerateMasterInventory(),
 				connectivity:  fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
 				errorExpected: false,
 			},
@@ -2178,7 +2178,7 @@ var _ = Describe("Refresh Host", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				role:               "kuku",
 				statusInfoChecker:  makeValueChecker(""),
-				inventory:          masterInventory(),
+				inventory:          hostutil.GenerateMasterInventory(),
 				errorExpected:      true,
 			},
 			{
@@ -2211,7 +2211,7 @@ var _ = Describe("Refresh Host", func() {
 					hostCheckInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
 				}
 				srcState = t.srcState
-				host = getTestHost(hostId, clusterId, srcState)
+				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
 				host.Inventory = t.inventory
 				host.Role = t.role
 				host.CheckedInAt = hostCheckInAt
@@ -2222,7 +2222,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - Cluster creation
-				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
+				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCidr)
 				cluster.UserManagedNetworking = &t.userManagedNetworking
 				if t.connectivity == "" {
 					cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
@@ -2278,10 +2278,10 @@ var _ = Describe("Refresh Host", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
-				host = getTestHost(hostId, clusterId, models.HostStatusPreparingForInstallation)
-				host.Inventory = masterInventory()
+				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusPreparingForInstallation)
+				host.Inventory = hostutil.GenerateMasterInventory()
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				cluster = getTestCluster(clusterId, "1.2.3.0/24")
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				cluster.Status = &t.clusterStatus
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				if *host.Status != t.dstState {
@@ -2355,9 +2355,9 @@ var _ = Describe("Refresh Host", func() {
 					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:      masterInventoryWithHostname("first"),
+				inventory:      hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
-				otherInventory: masterInventoryWithHostname("second"),
+				otherInventory: hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:  false,
 			},
 			{
@@ -2382,9 +2382,9 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:      masterInventoryWithHostname("first"),
+				inventory:      hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
-				otherInventory: masterInventoryWithHostname("first"),
+				otherInventory: hostutil.GenerateMasterInventoryWithHostname("first"),
 				errorExpected:  false,
 			},
 			{
@@ -2409,9 +2409,9 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:              masterInventoryWithHostname("first"),
+				inventory:              hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:             models.HostStatusInsufficient,
-				otherInventory:         masterInventoryWithHostname("second"),
+				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "first",
 				errorExpected:          false,
 			},
@@ -2437,10 +2437,10 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:         masterInventoryWithHostname("first"),
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("first"),
 				requestedHostname: "second",
 				otherState:        models.HostStatusInsufficient,
-				otherInventory:    masterInventoryWithHostname("second"),
+				otherInventory:    hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:     false,
 			},
 			{
@@ -2465,10 +2465,10 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:              masterInventoryWithHostname("first"),
+				inventory:              hostutil.GenerateMasterInventoryWithHostname("first"),
 				requestedHostname:      "third",
 				otherState:             models.HostStatusInsufficient,
-				otherInventory:         masterInventoryWithHostname("second"),
+				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "third",
 				errorExpected:          false,
 			},
@@ -2494,10 +2494,10 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:              masterInventoryWithHostname("first"),
+				inventory:              hostutil.GenerateMasterInventoryWithHostname("first"),
 				requestedHostname:      "third",
 				otherState:             models.HostStatusInsufficient,
-				otherInventory:         masterInventoryWithHostname("second"),
+				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "forth",
 				errorExpected:          false,
 			},
@@ -2523,9 +2523,9 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:      masterInventoryWithHostname("first"),
+				inventory:      hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
-				otherInventory: masterInventoryWithHostname("second"),
+				otherInventory: hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:  false,
 			},
 			{
@@ -2550,9 +2550,9 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:      masterInventoryWithHostname("first"),
+				inventory:      hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:     models.HostStatusInsufficient,
-				otherInventory: masterInventoryWithHostname("first"),
+				otherInventory: hostutil.GenerateMasterInventoryWithHostname("first"),
 				errorExpected:  false,
 			},
 			{
@@ -2577,9 +2577,9 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:              masterInventoryWithHostname("first"),
+				inventory:              hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherState:             models.HostStatusInsufficient,
-				otherInventory:         masterInventoryWithHostname("second"),
+				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "first",
 				errorExpected:          false,
 			},
@@ -2605,10 +2605,10 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:         masterInventoryWithHostname("first"),
+				inventory:         hostutil.GenerateMasterInventoryWithHostname("first"),
 				requestedHostname: "second",
 				otherState:        models.HostStatusInsufficient,
-				otherInventory:    masterInventoryWithHostname("second"),
+				otherInventory:    hostutil.GenerateMasterInventoryWithHostname("second"),
 				errorExpected:     false,
 			},
 			{
@@ -2633,10 +2633,10 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:              masterInventoryWithHostname("first"),
+				inventory:              hostutil.GenerateMasterInventoryWithHostname("first"),
 				requestedHostname:      "third",
 				otherState:             models.HostStatusInsufficient,
-				otherInventory:         masterInventoryWithHostname("second"),
+				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("second"),
 				otherRequestedHostname: "third",
 				errorExpected:          false,
 			},
@@ -2659,10 +2659,10 @@ var _ = Describe("Refresh Host", func() {
 					IsPlatformValid:      {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
 					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:              masterInventoryWithHostname("first"),
+				inventory:              hostutil.GenerateMasterInventoryWithHostname("first"),
 				requestedHostname:      "third",
 				otherState:             models.HostStatusInsufficient,
-				otherInventory:         masterInventoryWithHostname("first"),
+				otherInventory:         hostutil.GenerateMasterInventoryWithHostname("first"),
 				otherRequestedHostname: "forth",
 				errorExpected:          false,
 			},
@@ -2673,7 +2673,7 @@ var _ = Describe("Refresh Host", func() {
 			It(t.name, func() {
 				// Test setup - Host creation
 				srcState = t.srcState
-				host = getTestHost(hostId, clusterId, srcState)
+				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
 				host.Inventory = t.inventory
 				host.Role = t.role
 				host.CheckedInAt = strfmt.DateTime(time.Now())
@@ -2685,13 +2685,13 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - 2nd Host creation
-				otherHost := getTestHost(otherHostID, clusterId, t.otherState)
+				otherHost := hostutil.GenerateTestHost(otherHostID, clusterId, t.otherState)
 				otherHost.RequestedHostname = t.otherRequestedHostname
 				otherHost.Inventory = t.otherInventory
 				Expect(db.Create(&otherHost).Error).ShouldNot(HaveOccurred())
 
 				// Test setup - Cluster creation
-				cluster = getTestCluster(clusterId, t.machineNetworkCidr)
+				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCidr)
 				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
@@ -2731,10 +2731,10 @@ var _ = Describe("Refresh Host", func() {
 			models.HostStatusResettingPendingUserAction,
 		} {
 			It(fmt.Sprintf("host src: %s cluster error: false", srcState), func() {
-				h := getTestHost(hostId, clusterId, srcState)
-				h.Inventory = masterInventory()
+				h := hostutil.GenerateTestHost(hostId, clusterId, srcState)
+				h.Inventory = hostutil.GenerateMasterInventory()
 				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-				c := getTestCluster(clusterId, "1.2.3.0/24")
+				c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				c.Status = swag.String(models.ClusterStatusInstalling)
 				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 				err := hapi.RefreshStatus(ctx, &h, db)
@@ -2742,10 +2742,10 @@ var _ = Describe("Refresh Host", func() {
 				Expect(swag.StringValue(h.Status)).Should(Equal(srcState))
 			})
 			It(fmt.Sprintf("host src: %s cluster error: true", srcState), func() {
-				h := getTestHost(hostId, clusterId, srcState)
-				h.Inventory = masterInventory()
+				h := hostutil.GenerateTestHost(hostId, clusterId, srcState)
+				h.Inventory = hostutil.GenerateMasterInventory()
 				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-				c := getTestCluster(clusterId, "1.2.3.0/24")
+				c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 				c.Status = swag.String(models.ClusterStatusError)
 				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityError,

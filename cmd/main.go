@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -82,7 +83,7 @@ var Options struct {
 	DBConfig                    db.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
-	InstructionConfig           host.InstructionConfig
+	InstructionConfig           hostcommands.InstructionConfig
 	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
@@ -185,7 +186,7 @@ func main() {
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
-	instructionApi := host.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
+	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
 
 	images := []string{

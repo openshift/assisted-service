@@ -12,8 +12,7 @@ import (
 
 	"github.com/thoas/go-funk"
 
-	"github.com/alecthomas/units"
-
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -61,14 +60,6 @@ type validation struct {
 	id        validationID
 	condition validationConditon
 	formatter validationStringFormatter
-}
-
-func gibToBytes(gib int64) int64 {
-	return gib * int64(units.GiB)
-}
-
-func bytesToGiB(bytes int64) int64 {
-	return bytes / int64(units.GiB)
 }
 
 func (c *validationContext) loadCluster() error {
@@ -201,7 +192,7 @@ func (v *validator) hasMinMemory(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	return boolValue(c.inventory.Memory.PhysicalBytes >= gibToBytes(v.hwValidatorCfg.MinRamGib))
+	return boolValue(c.inventory.Memory.PhysicalBytes >= hardware.GibToBytes(v.hwValidatorCfg.MinRamGib))
 }
 
 func (v *validator) printHasMinMemory(c *validationContext, status validationStatus) string {
@@ -210,7 +201,7 @@ func (v *validator) printHasMinMemory(c *validationContext, status validationSta
 		return "Sufficient minimum RAM"
 	case ValidationFailure:
 		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %d GiB, found only %d GiB", v.hwValidatorCfg.MinRamGib,
-			bytesToGiB(c.inventory.Memory.PhysicalBytes))
+			hardware.BytesToGiB(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -308,9 +299,9 @@ func (v *validator) hasMemoryForRole(c *validationContext) validationStatus {
 	}
 	switch c.host.Role {
 	case models.HostRoleMaster:
-		return boolValue(c.inventory.Memory.PhysicalBytes >= gibToBytes(v.hwValidatorCfg.MinRamGibMaster))
+		return boolValue(c.inventory.Memory.PhysicalBytes >= hardware.GibToBytes(v.hwValidatorCfg.MinRamGibMaster))
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return boolValue(c.inventory.Memory.PhysicalBytes >= gibToBytes(v.hwValidatorCfg.MinRamGibWorker))
+		return boolValue(c.inventory.Memory.PhysicalBytes >= hardware.GibToBytes(v.hwValidatorCfg.MinRamGibWorker))
 	default:
 		v.log.Errorf("Unexpected role %s", c.host.Role)
 		return ValidationError
@@ -357,7 +348,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status validatio
 		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
 	case ValidationFailure:
 		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d",
-			v.getMemoryForRole(c.host.Role), c.host.Role, bytesToGiB(c.inventory.Memory.PhysicalBytes))
+			v.getMemoryForRole(c.host.Role), c.host.Role, hardware.BytesToGiB(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
@@ -456,7 +447,7 @@ func (v *validator) isAPIVipConnected(c *validationContext) validationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	if !IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
+	if !hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	var response models.APIVipConnectivityResponse
@@ -483,7 +474,7 @@ func (v *validator) printAPIVipConnected(c *validationContext, status validation
 }
 
 func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatus {
-	if IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
+	if hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
@@ -501,7 +492,7 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatu
 func (v *validator) printBelongsToMajorityGroup(c *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		if IsDay2Host(c.host) {
+		if hostutil.IsDay2Host(c.host) {
 			return "Day2 host is not required to be connected to other hosts in the cluster"
 		}
 		if swag.BoolValue(c.cluster.UserManagedNetworking) {
