@@ -404,10 +404,12 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller Image")
 
 			failOnError((&controllers.ClusterReconciler{
-				Client:    ctrlMgr.GetClient(),
-				Log:       log,
-				Scheme:    ctrlMgr.GetScheme(),
-				Installer: bm,
+				Client:     ctrlMgr.GetClient(),
+				Log:        log,
+				Scheme:     ctrlMgr.GetScheme(),
+				Installer:  bm,
+				ClusterApi: clusterApi,
+				HostApi:    hostApi,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Cluster")
 
 			failOnError((&controllers.HostReconciler{

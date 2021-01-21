@@ -284,6 +284,7 @@ type InstallerInternals interface {
 	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
+	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 }
 
 type bareMetalInventory struct {
@@ -1164,6 +1165,14 @@ func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, cluste
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
+	c, err := b.InstallClusterInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewInstallClusterAccepted().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 	var err error
@@ -1171,7 +1180,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	log.Infof("preparing for cluster %s installation", params.ClusterID)
 	if err = b.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).
 		First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		return common.NewApiError(http.StatusNotFound, err)
+		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
@@ -1183,23 +1192,23 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		return nil
 	})
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 
 	if err = b.refreshAllHosts(ctx, &cluster); err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 	if _, err = b.clusterApi.RefreshStatus(ctx, &cluster, b.db); err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 
 	// Reload again after refresh
 	if err = b.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		return common.NewApiError(http.StatusNotFound, err)
+		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 	// Verify cluster is ready to install
 	if ok, reason := b.clusterApi.IsReadyForInstallation(&cluster); !ok {
-		return common.NewApiError(http.StatusConflict,
+		return nil, common.NewApiError(http.StatusConflict,
 			errors.Errorf("Cluster is not ready for installation, %s", reason))
 	}
 
@@ -1221,11 +1230,11 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	})
 
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 
 	if err = b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 
 	// Delete previews installation log files from object storage (if exist).
@@ -1273,7 +1282,7 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 	}()
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
-	return installer.NewInstallClusterAccepted().WithPayload(&cluster.Cluster)
+	return &cluster, nil
 }
 
 func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {

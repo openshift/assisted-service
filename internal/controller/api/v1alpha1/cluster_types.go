@@ -50,6 +50,8 @@ type ClusterSpec struct {
 	InstallConfigOverrides   string  `json:"installConfigOverrides,omitempty"`
 	// A reference to the secret containing the pull secret
 	PullSecretRef *corev1.SecretReference `json:"pullSecretRef"`
+	// ProvisionRequirements defines configuration for when the installation is ready to be launched automatically.
+	ProvisionRequirements ProvisionRequirements `json:"provisionRequirements"`
 }
 
 type ClusterProgressInfo struct {
@@ -64,6 +66,22 @@ type HostNetwork struct {
 	Cidr string `json:"cidr,omitempty"`
 	// host ids
 	HostIds []string `json:"hostIDs"`
+}
+
+// ProvisionRequirements defines configuration for when the installation is ready to be launched automatically.
+type ProvisionRequirements struct {
+
+	// ControlPlaneAgents is the number of Agents with the control plane role required to launch the install.
+	// Must be either 1 or 3.
+	ControlPlaneAgents int `json:"controlPlaneAgents"`
+
+	// WorkerAgents is the minimum number of matching Agents with the worker role required to launch the install.
+	// +optional
+	WorkerAgents int `json:"workerAgents,omitempty"`
+
+	// AgentSelector is a label selector used for associating Agents, and possibly BareMetalHosts, with
+	// this cluster.
+	AgentSelector metav1.LabelSelector `json:"agentSelector"`
 }
 
 // ClusterStatus defines the observed state of Cluster
