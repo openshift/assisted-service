@@ -196,7 +196,7 @@ const ignitionConfigFormat = `{
           "name": "root"
       },
       "contents": { "source": "data:,{{.IPv6_CONF}}" }
-    },
+	},
 	{
 		"overwrite": true,
 		"path": "/root/.docker/config.json",

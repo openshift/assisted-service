@@ -207,7 +207,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(err).NotTo(HaveOccurred())
 			masterConfig, _, err := config_31.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(masterConfig.Storage.Files).To(HaveLen(1))
+			Expect(masterConfig.Storage.Files).To(HaveLen(2))
 			file := &masterConfig.Storage.Files[0]
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 
@@ -215,11 +215,11 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(err).NotTo(HaveOccurred())
 			workerConfig, _, err := config_31.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(workerConfig.Storage.Files).To(HaveLen(1))
+			Expect(workerConfig.Storage.Files).To(HaveLen(2))
 			file = &masterConfig.Storage.Files[0]
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
-		It("with no ca cert file", func() {
+		It("with carrier timeout without ca cert file", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
@@ -228,13 +228,15 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(err).NotTo(HaveOccurred())
 			masterConfig, _, err := config_31.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(masterConfig.Storage.Files).To(HaveLen(0))
+			Expect(masterConfig.Storage.Files).To(HaveLen(1))
+			verifyCarrierWaitTimeoutIgnition(&masterConfig.Storage.Files[0])
 
 			workerBytes, err := ioutil.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
 			workerConfig, _, err := config_31.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(workerConfig.Storage.Files).To(HaveLen(0))
+			Expect(workerConfig.Storage.Files).To(HaveLen(1))
+			verifyCarrierWaitTimeoutIgnition(&workerConfig.Storage.Files[0])
 		})
 		It("with service ips", func() {
 			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
@@ -295,7 +297,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 				Expect(err).ToNot(HaveOccurred())
 				masterConfig, _, err := config_31.Parse(masterBytes)
 				Expect(err).NotTo(HaveOccurred())
-				Expect(masterConfig.Storage.Files).To(HaveLen(1))
+				Expect(masterConfig.Storage.Files).To(HaveLen(2))
 				f := masterConfig.Storage.Files[0]
 				Expect(f.Mode).To(Equal(swag.Int(0o644)))
 				Expect(f.Contents.Source).To(Equal(swag.String("data:,abc")))
@@ -314,7 +316,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(err).ToNot(HaveOccurred())
 			masterConfig, _, err := config_31.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
-			Expect(masterConfig.Storage.Files).To(HaveLen(3))
+			Expect(masterConfig.Storage.Files).To(HaveLen(4))
 			f := masterConfig.Storage.Files[0]
 			Expect(f.Mode).To(Equal(swag.Int(0o644)))
 			Expect(f.Contents.Source).To(Equal(swag.String("data:,abc")))
@@ -330,6 +332,12 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 	})
 })
+
+func verifyCarrierWaitTimeoutIgnition(f *config_31_types.File) {
+	Expect(f.Mode).To(Equal(swag.Int(0o644)))
+	Expect(f.Contents.Source).To(Equal(swag.String("data:,%5Bdevice%5D%0Acarrier-wait-timeout=20000")))
+	Expect(f.Path).To(Equal("/etc/NetworkManager/conf.d/05-carrier-timeout.conf"))
+}
 
 var _ = Describe("createHostIgnitions", func() {
 	const masterIgn = `{

@@ -184,6 +184,8 @@ RemainAfterExit=no
 WantedBy=multi-user.target
 `
 
+const carrierWaitTimeout = "[device]\ncarrier-wait-timeout=20000"
+
 var fileNames = [...]string{
 	"bootstrap.ign",
 	masterIgn,
@@ -744,6 +746,17 @@ func (g *installerGenerator) addStaticIPsConfigToIgnition(ignition string) error
 	return nil
 }
 
+func (g *installerGenerator) addCarrierWaitTimeoutInIgnition(ignition string) error {
+	path := filepath.Join(g.workDir, ignition)
+	config, err := parseIgnitionFile(path)
+	if err != nil {
+		return err
+	}
+
+	setFileInIgnition(config, "/etc/NetworkManager/conf.d/05-carrier-timeout.conf", fmt.Sprintf("data:,%s", url.PathEscape(carrierWaitTimeout)), false, 0o644)
+	return writeIgnitionFile(path, config)
+}
+
 func (g *installerGenerator) updateIgnitions() error {
 	masterPath := filepath.Join(g.workDir, masterIgn)
 	caCertFile := g.serviceCACert
@@ -785,6 +798,13 @@ func (g *installerGenerator) updateIgnitions() error {
 			}
 		}
 	}
+
+	for _, ignition := range []string{masterIgn, workerIgn} {
+		if err := g.addCarrierWaitTimeoutInIgnition(ignition); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
