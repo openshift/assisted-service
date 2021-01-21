@@ -160,6 +160,30 @@ const (
 	workerIgn = "worker.ign"
 )
 
+const CopyStaticIpsConfigurationsScript = `
+#!/bin/bash
+
+mkdir -p /etc/NetworkManager/system-connections-merged
+
+/usr/bin/cp /etc/NetworkManager/system-connections/* /etc/NetworkManager/system-connections-merged
+`
+
+const CopyStaticIpsConfigServiceContents = `
+[Unit]
+Description=Copy Static Ip configuration
+Before=NetworkManager.service
+DefaultDependencies=no
+[Service]
+User=root
+Type=oneshot
+TimeoutSec=10
+ExecStart=/bin/bash /usr/local/bin/copy-static-ip-configuration.sh
+PrivateTmp=yes
+RemainAfterExit=no
+[Install]
+WantedBy=multi-user.target
+`
+
 var fileNames = [...]string{
 	"bootstrap.ign",
 	masterIgn,
@@ -705,6 +729,21 @@ func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	return nil
 }
 
+func (g *installerGenerator) addStaticIPsConfigToIgnition(ignition string) error {
+	path := filepath.Join(g.workDir, ignition)
+	config, err := parseIgnitionFile(path)
+	if err != nil {
+		return err
+	}
+	setFileInIgnition(config, "/usr/local/bin/copy-static-ip-configuration.sh", fmt.Sprintf("data:,%s", url.PathEscape(CopyStaticIpsConfigurationsScript)), false, 493)
+	setUnitInIgnition(config, CopyStaticIpsConfigServiceContents, "copy-static-ips-configuration.service", true)
+	err = writeIgnitionFile(path, config)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (g *installerGenerator) updateIgnitions() error {
 	masterPath := filepath.Join(g.workDir, masterIgn)
 	caCertFile := g.serviceCACert
@@ -729,14 +768,18 @@ func (g *installerGenerator) updateIgnitions() error {
 			return errors.Wrapf(err, "error adding CA cert to ignition %s", workerPath)
 		}
 	}
-	if len(g.cluster.Hosts) >= 1 {
-		ipv6Only, err := network.AreIpv6OnlyHosts(g.cluster.Hosts, g.log)
-		if err != nil {
-			return err
-		}
-		if ipv6Only {
-			for _, ignition := range []string{"master.ign", "worker.ign"} {
-				if err = g.addIpv6FileInIgnition(ignition); err != nil {
+
+	ipv6Only, err := network.AreIpv6OnlyHosts(g.cluster.Hosts, g.log)
+	if err != nil {
+		return err
+	}
+	if ipv6Only {
+		for _, ignition := range []string{masterIgn, workerIgn} {
+			if err = g.addIpv6FileInIgnition(ignition); err != nil {
+				return err
+			}
+			if g.cluster.ImageInfo.StaticIpsConfig != "" {
+				if err := g.addStaticIPsConfigToIgnition(ignition); err != nil {
 					return err
 				}
 			}
@@ -877,6 +920,15 @@ func setFileInIgnition(config *config_31_types.Config, filePath string, fileCont
 		file.FileEmbedded1.Contents = config_31_types.Resource{}
 	}
 	config.Storage.Files = append(config.Storage.Files, file)
+}
+
+func setUnitInIgnition(config *config_31_types.Config, contents, name string, enabled bool) {
+	newUnit := config_31_types.Unit{
+		Contents: swag.String(contents),
+		Name:     name,
+		Enabled:  swag.Bool(enabled),
+	}
+	config.Systemd.Units = append(config.Systemd.Units, newUnit)
 }
 
 func setCACertInIgnition(role models.HostRole, path string, workDir string, caCertFile string) error {
