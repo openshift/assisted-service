@@ -88,9 +88,6 @@ type clusterValidator struct {
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) validationStatus {
-	if swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess
-	}
 	return boolValue(c.cluster.MachineNetworkCidr != "")
 }
 
@@ -103,9 +100,6 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 			return "The Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs."
 		}
 	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "No Machine Network CIDR needed: User Managed Networking"
-		}
 		return "The Machine Network CIDR is defined."
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)

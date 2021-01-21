@@ -2023,7 +2023,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
 					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
-					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "No Machine Network CIDR needed: User Managed Networking"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
 					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},

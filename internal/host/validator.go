@@ -238,9 +238,6 @@ func (v *validator) isMachineCidrDefined(c *validationContext) validationStatus 
 func (v *validator) printIsMachineCidrDefined(context *validationContext, status validationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) {
-			return "No Machine Network CIDR needed: User Managed Networking"
-		}
 		return "Machine Network CIDR is defined"
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {

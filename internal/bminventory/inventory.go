@@ -1664,14 +1664,14 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpOrSNONetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
+func (b *bareMetalInventory) updateDhcpOrUserManagedNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	if params.ClusterUpdateParams.APIVip != nil {
-		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode or user-managed-networking")
 		log.WithError(err).Warnf("Set API VIP")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	if params.ClusterUpdateParams.IngressVip != nil {
-		err := errors.New("Setting Ingress VIP is forbidden when cluster is in vip-dhcp-allocation mode")
+		err := errors.New("Setting Ingress VIP is forbidden when cluster is in vip-dhcp-allocation mode or user-managed-networking")
 		log.WithError(err).Warnf("Set Ingress VIP")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -1688,18 +1688,10 @@ func (b *bareMetalInventory) updateDhcpOrSNONetworkParams(updates map[string]int
 
 func (b *bareMetalInventory) updateMachineCidrOrVips(userManagedNetworking, vipDhcpAllocation bool, cluster *common.Cluster, updates map[string]interface{},
 	params installer.UpdateClusterParams, machineCidr *string, log logrus.FieldLogger) error {
-	var (
-		err                           error
-		userManagedNetworkingIPv6Only bool
-	)
-	if userManagedNetworking {
-		userManagedNetworkingIPv6Only, err = network.AreIpv6OnlyHosts(cluster.Hosts, log)
-		if err != nil {
-			return err
-		}
-	}
-	if !userManagedNetworking && vipDhcpAllocation || userManagedNetworkingIPv6Only {
-		err = b.updateDhcpOrSNONetworkParams(updates, cluster, params, log, machineCidr)
+	var err error
+
+	if userManagedNetworking || vipDhcpAllocation {
+		err = b.updateDhcpOrUserManagedNetworkParams(updates, cluster, params, log, machineCidr)
 	} else if !userManagedNetworking {
 		err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, machineCidr)
 	}
