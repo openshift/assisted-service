@@ -20,8 +20,8 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 16,
-      "iteration": 1604335917346,
+      "id": 76,
+      "iteration": 1611158196509,
       "links": [],
       "panels": [
         {
@@ -110,7 +110,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -199,8 +199,8 @@ data:
           }
         },
         {
+          "cacheTimeout": null,
           "datasource": "$datasource",
-          "description": "",
           "fieldConfig": {
             "defaults": {
               "custom": {},
@@ -209,7 +209,7 @@ data:
                 "mode": "absolute",
                 "steps": [
                   {
-                    "color": "green",
+                    "color": "yellow",
                     "value": null
                   }
                 ]
@@ -223,11 +223,13 @@ data:
             "x": 10,
             "y": 3
           },
-          "id": 25,
+          "id": 44,
+          "interval": null,
+          "links": [],
           "options": {
             "colorMode": "value",
             "graphMode": "none",
-            "justifyMode": "center",
+            "justifyMode": "auto",
             "orientation": "auto",
             "reduceOptions": {
               "calcs": [
@@ -236,21 +238,21 @@ data:
               "fields": "",
               "values": false
             },
-            "textMode": "auto"
+            "textMode": "name"
           },
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "sum(service_assisted_installer_cluster_hosts{clusterId=\"$clusterId\"})",
+              "expr": "sum by (emailDomain)(service_assisted_installer_cluster_installation_seconds_count{clusterId=\"$clusterId\"})",
               "hide": false,
               "interval": "",
-              "legendFormat": "",
+              "legendFormat": "{{emailDomain}}",
               "refId": "A"
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Hosts",
+          "title": "Email Domain",
           "type": "stat"
         },
         {
@@ -333,8 +335,7 @@ data:
                     "value": null
                   }
                 ]
-              },
-              "unit": "none"
+              }
             },
             "overrides": []
           },
@@ -344,7 +345,7 @@ data:
             "x": 10,
             "y": 8
           },
-          "id": 26,
+          "id": 25,
           "options": {
             "colorMode": "value",
             "graphMode": "none",
@@ -357,21 +358,21 @@ data:
               "fields": "",
               "values": false
             },
-            "textMode": "value"
+            "textMode": "auto"
           },
           "pluginVersion": "7.2.1",
           "targets": [
             {
-              "expr": "sum(service_assisted_installer_cluster_installation_started{clusterId=\"$clusterId\"})",
+              "expr": "sum(service_assisted_installer_cluster_hosts{clusterId=\"$clusterId\"})",
               "hide": false,
               "interval": "",
-              "legendFormat": "attempts",
+              "legendFormat": "",
               "refId": "A"
             }
           ],
           "timeFrom": null,
           "timeShift": null,
-          "title": "Install Attempts",
+          "title": "Hosts",
           "type": "stat"
         },
         {
@@ -587,6 +588,62 @@ data:
           }
         },
         {
+          "datasource": "$datasource",
+          "description": "",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {},
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  }
+                ]
+              },
+              "unit": "none"
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 5,
+            "w": 4,
+            "x": 10,
+            "y": 13
+          },
+          "id": 26,
+          "options": {
+            "colorMode": "value",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "textMode": "value"
+          },
+          "pluginVersion": "7.2.1",
+          "targets": [
+            {
+              "expr": "sum(service_assisted_installer_cluster_installation_started{clusterId=\"$clusterId\"})",
+              "hide": false,
+              "interval": "",
+              "legendFormat": "attempts",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Install Attempts",
+          "type": "stat"
+        },
+        {
           "aliasColors": {},
           "breakPoint": "50%",
           "cacheTimeout": null,
@@ -605,8 +662,8 @@ data:
           "format": "short",
           "gridPos": {
             "h": 5,
-            "w": 14,
-            "x": 10,
+            "w": 10,
+            "x": 14,
             "y": 13
           },
           "id": 40,
@@ -1063,8 +1120,8 @@ data:
           {
             "current": {
               "selected": false,
-              "text": "",
-              "value": ""
+              "text": "<Enter clusterId Here>",
+              "value": "<Enter clusterId Here>"
             },
             "hide": 0,
             "label": "clusterId",
@@ -1103,7 +1160,7 @@ data:
       "timezone": "",
       "title": "Cluster Overview",
       "uid": "assisted-installer-cluster-overview",
-      "version": 26
+      "version": 1
     }
 kind: ConfigMap
 metadata:
