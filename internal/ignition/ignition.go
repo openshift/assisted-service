@@ -155,11 +155,16 @@ create_template_file
 correlate_int_mac
 `
 
+const (
+	masterIgn = "master.ign"
+	workerIgn = "worker.ign"
+)
+
 var fileNames = [...]string{
 	"bootstrap.ign",
-	"master.ign",
+	masterIgn,
 	"metadata.json",
-	"worker.ign",
+	workerIgn,
 	"kubeconfig-noingress",
 	"kubeadmin-password",
 	"install-config.yaml",
@@ -282,10 +287,6 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
 		"OPENSHIFT_INSTALL_INVOKER=assisted-installer",
 	)
-	// TODO: Might need to remove this once installer support bootstrap-in-place https://github.com/openshift/installer/pull/4482
-	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		envVars = append(envVars, "OPENSHIFT_INSTALL_EXPERIMENTAL_BOOTSTRAP_IN_PLACE=true")
-	}
 
 	// write installConfig to install-config.yaml so openshift-install can read it
 	err = ioutil.WriteFile(installConfigPath, installConfig, 0600)
@@ -324,18 +325,14 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		return err
 	}
 
-	err = g.runCreateCommand(installerPath, "ignition-configs", envVars)
-	if err != nil {
-		return err
-	}
-	// TODO: remove this once installer support bootstrap-in-place https://github.com/openshift/installer/pull/4482
 	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		// In case of single node rename bootstrap Ignition file
-		err = os.Rename(filepath.Join(g.workDir, "bootstrap-in-place-for-live-iso.ign"), filepath.Join(g.workDir, "bootstrap.ign"))
-		if err != nil {
-			g.log.Errorf("Failed to rename bootstrap-in-place-for-live-iso.ign")
-			return err
-		}
+		err = g.bootstrapInPlaceIgnitionsCreate(installerPath, envVars)
+	} else {
+		err = g.runCreateCommand(installerPath, "ignition-configs", envVars)
+	}
+	if err != nil {
+		g.log.Error(err)
+		return err
 	}
 
 	// parse ignition and update BareMetalHosts
@@ -380,6 +377,30 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(installerPath string, envVars []string) error {
+	err := g.runCreateCommand(installerPath, "single-node-ignition-config", envVars)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to create single node ignitions")
+	}
+
+	// In case of single node rename bootstrap Ignition file
+	err = os.Rename(filepath.Join(g.workDir, "bootstrap-in-place-for-live-iso.ign"), filepath.Join(g.workDir, "bootstrap.ign"))
+	if err != nil {
+		return errors.Wrapf(err, "Failed to rename bootstrap-in-place-for-live-iso.ign")
+	}
+
+	config := config_31_types.Config{Ignition: config_31_types.Ignition{Version: config_31_types.MaxVersion.String()}}
+
+	for _, file := range []string{masterIgn, workerIgn} {
+		err = writeIgnitionFile(filepath.Join(g.workDir, file), &config)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to create %s", file)
+		}
+	}
+
 	return nil
 }
 
@@ -645,7 +666,7 @@ func (g *installerGenerator) modifyBMHFile(file *config_31_types.File, bmh *bmh_
 }
 
 func (g *installerGenerator) updateDhcpFiles() error {
-	path := filepath.Join(g.workDir, "master.ign")
+	path := filepath.Join(g.workDir, masterIgn)
 	config, err := parseIgnitionFile(path)
 	if err != nil {
 		return err
@@ -685,7 +706,7 @@ func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 }
 
 func (g *installerGenerator) updateIgnitions() error {
-	masterPath := filepath.Join(g.workDir, "master.ign")
+	masterPath := filepath.Join(g.workDir, masterIgn)
 	caCertFile := g.serviceCACert
 
 	if caCertFile != "" {
@@ -701,7 +722,7 @@ func (g *installerGenerator) updateIgnitions() error {
 		}
 	}
 
-	workerPath := filepath.Join(g.workDir, "worker.ign")
+	workerPath := filepath.Join(g.workDir, workerIgn)
 	if caCertFile != "" {
 		err := setCACertInIgnition(models.HostRoleWorker, workerPath, g.workDir, caCertFile)
 		if err != nil {
@@ -725,7 +746,7 @@ func (g *installerGenerator) updateIgnitions() error {
 }
 
 func (g *installerGenerator) UpdateEtcHosts(serviceIPs string) error {
-	masterPath := filepath.Join(g.workDir, "master.ign")
+	masterPath := filepath.Join(g.workDir, masterIgn)
 
 	if serviceIPs != "" {
 		err := setEtcHostsInIgnition(models.HostRoleMaster, masterPath, g.workDir, GetServiceIPHostnames(serviceIPs))
@@ -734,7 +755,7 @@ func (g *installerGenerator) UpdateEtcHosts(serviceIPs string) error {
 		}
 	}
 
-	workerPath := filepath.Join(g.workDir, "worker.ign")
+	workerPath := filepath.Join(g.workDir, workerIgn)
 	if serviceIPs != "" {
 		err := setEtcHostsInIgnition(models.HostRoleWorker, workerPath, g.workDir, GetServiceIPHostnames(serviceIPs))
 		if err != nil {
@@ -927,12 +948,12 @@ func writeHostFiles(hosts []*models.Host, baseFile string, workDir string) error
 func (g *installerGenerator) createHostIgnitions() error {
 	masters, workers := sortHosts(g.cluster.Hosts)
 
-	err := writeHostFiles(masters, "master.ign", g.workDir)
+	err := writeHostFiles(masters, masterIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing master host ignition files")
 	}
 
-	err = writeHostFiles(workers, "worker.ign", g.workDir)
+	err = writeHostFiles(workers, workerIgn, g.workDir)
 	if err != nil {
 		return errors.Wrapf(err, "error writing worker host ignition files")
 	}
