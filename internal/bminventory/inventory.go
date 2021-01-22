@@ -427,7 +427,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(ignition.GetServiceIPHostnames(b.Config.ServiceIPs)))
 	}
 
-	if cluster.ImageInfo.StaticIpsConfig != "" {
+	if cluster.ImageInfo.StaticIpsConfig != "" && params.ImageCreateParams.ImageType == models.ImageTypeFullIso {
 		ignitionParams["StaticIPsData"] = b64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.StaticIpsConfig))
 		ignitionParams["StaticIPsConfigScript"] = b64.StdEncoding.EncodeToString([]byte(ignition.ConfigStaticIpsScript))
 	}

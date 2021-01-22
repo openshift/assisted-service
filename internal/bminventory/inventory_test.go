@@ -828,6 +828,28 @@ var _ = Describe("IgnitionParameters", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(report.IsFatal()).To(BeFalse())
 		})
+
+		It("Doesn't include the static ip data for minimal isos", func() {
+			cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;mask1;dns1;gw1;ip6;mask6;dns6;gw6\nmac2;ip2;mask2;dns2;gw2;;;;"
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{
+					ImageType: models.ImageTypeMinimalIso,
+				},
+			}, log, false)
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := ign_3_1.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+
+			for _, f := range config.Systemd.Units {
+				Expect(f.Name).ToNot(Equal("configure-static-ip.service"))
+			}
+
+			for _, f := range config.Storage.Files {
+				Expect(f.Path).ToNot(Equal("/etc/static_ips_config.csv"))
+				Expect(f.Path).ToNot(Equal("/usr/local/bin/configure-static-ip.sh"))
+			}
+		})
 	}
 
 	Context("start with clean configuration", func() {
