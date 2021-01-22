@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
@@ -429,7 +430,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 
 	if cluster.ImageInfo.StaticIpsConfig != "" && params.ImageCreateParams.ImageType == models.ImageTypeFullIso {
 		ignitionParams["StaticIPsData"] = b64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.StaticIpsConfig))
-		ignitionParams["StaticIPsConfigScript"] = b64.StdEncoding.EncodeToString([]byte(ignition.ConfigStaticIpsScript))
+		ignitionParams["StaticIPsConfigScript"] = b64.StdEncoding.EncodeToString([]byte(constants.ConfigStaticIpsScript))
 	}
 
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
