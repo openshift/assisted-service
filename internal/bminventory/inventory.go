@@ -1111,7 +1111,7 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 		return err
 	}
 
-	clusterISOPath, err := editor.CreateClusterMinimalISO(ignitionConfig)
+	clusterISOPath, err := editor.CreateClusterMinimalISO(ignitionConfig, cluster.ImageInfo.StaticIpsConfig)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create minimal discovery ISO for cluster %s", cluster.ID)
 		return err
