@@ -2,6 +2,7 @@ package installcfg
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -32,7 +33,9 @@ var _ = Describe("installcfg", func() {
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterId,
 			OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
+			Name:                   "test-cluster",
 			BaseDNSDomain:          "redhat.com",
+			MachineNetworkCidr:     "1.2.3.0/24",
 			APIVip:                 "102.345.34.34",
 			IngressVip:             "376.5.56.6",
 			InstallConfigOverrides: `{"networking":{"networkType": "OVNKubernetes"},"fips":true}`,
@@ -98,6 +101,35 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.Proxy.HTTPProxy).Should(Equal(proxyURL))
 		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
+		splitNoProxy := strings.Split(result.Proxy.NoProxy, ",")
+		Expect(splitNoProxy).To(HaveLen(4))
+		Expect(splitNoProxy).To(ContainElement(cluster.MachineNetworkCidr))
+		Expect(splitNoProxy).To(ContainElement(cluster.ServiceNetworkCidr))
+		Expect(splitNoProxy).To(ContainElement(cluster.ClusterNetworkCidr))
+		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
+		Expect(splitNoProxy).To(ContainElement(domainName))
+	})
+
+	It("create_configuration_with_proxy_with_no_proxy", func() {
+		var result InstallerConfigBaremetal
+		proxyURL := "http://proxyserver:3218"
+		cluster.HTTPProxy = proxyURL
+		cluster.HTTPSProxy = proxyURL
+		cluster.NoProxy = "no-proxy.com"
+		cluster.MachineNetworkCidr = ""
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Proxy.HTTPProxy).Should(Equal(proxyURL))
+		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
+		splitNoProxy := strings.Split(result.Proxy.NoProxy, ",")
+		Expect(splitNoProxy).To(HaveLen(4))
+		Expect(splitNoProxy).To(ContainElement("no-proxy.com"))
+		Expect(splitNoProxy).To(ContainElement(cluster.ServiceNetworkCidr))
+		Expect(splitNoProxy).To(ContainElement(cluster.ClusterNetworkCidr))
+		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
+		Expect(splitNoProxy).To(ContainElement(domainName))
 	})
 
 	It("correctly applies cluster overrides", func() {
