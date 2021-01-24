@@ -12,10 +12,13 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// StaticIPConfig static ip config
+// VlanConfig vlan config
 //
-// swagger:model static-ip-config
-type StaticIPConfig struct {
+// swagger:model vlan-config
+type VlanConfig struct {
+
+	// vlan id
+	ID int64 `json:"id,omitempty"`
 
 	// ipv4 config
 	IPV4Config *StaticIPV4Config `json:"ipv4_config,omitempty"`
@@ -28,8 +31,8 @@ type StaticIPConfig struct {
 	Mac string `json:"mac,omitempty"`
 }
 
-// Validate validates this static ip config
-func (m *StaticIPConfig) Validate(formats strfmt.Registry) error {
+// Validate validates this vlan config
+func (m *VlanConfig) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateIPV4Config(formats); err != nil {
@@ -50,7 +53,7 @@ func (m *StaticIPConfig) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *StaticIPConfig) validateIPV4Config(formats strfmt.Registry) error {
+func (m *VlanConfig) validateIPV4Config(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.IPV4Config) { // not required
 		return nil
@@ -68,7 +71,7 @@ func (m *StaticIPConfig) validateIPV4Config(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *StaticIPConfig) validateIPV6Config(formats strfmt.Registry) error {
+func (m *VlanConfig) validateIPV6Config(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.IPV6Config) { // not required
 		return nil
@@ -86,7 +89,7 @@ func (m *StaticIPConfig) validateIPV6Config(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *StaticIPConfig) validateMac(formats strfmt.Registry) error {
+func (m *VlanConfig) validateMac(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Mac) { // not required
 		return nil
@@ -100,7 +103,7 @@ func (m *StaticIPConfig) validateMac(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *StaticIPConfig) MarshalBinary() ([]byte, error) {
+func (m *VlanConfig) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -108,8 +111,8 @@ func (m *StaticIPConfig) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *StaticIPConfig) UnmarshalBinary(b []byte) error {
-	var res StaticIPConfig
+func (m *VlanConfig) UnmarshalBinary(b []byte) error {
+	var res VlanConfig
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
