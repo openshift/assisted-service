@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
@@ -14,8 +15,8 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
-
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v2"
 )
 
@@ -139,9 +140,20 @@ func getNetworkType(cluster *common.Cluster) string {
 	return networkType
 }
 
+func generateNoProxy(cluster *common.Cluster) string {
+	noProxy := strings.TrimSpace(cluster.NoProxy)
+	splitNoProxy := funk.FilterString(strings.Split(noProxy, ","), func(s string) bool { return s != "" })
+	if cluster.MachineNetworkCidr != "" {
+		splitNoProxy = append(splitNoProxy, cluster.MachineNetworkCidr)
+	}
+	// Add internal OCP DNS domain
+	internalDnsDomain := "." + cluster.Name + "." + cluster.BaseDNSDomain
+	return strings.Join(append(splitNoProxy, internalDnsDomain, cluster.ClusterNetworkCidr, cluster.ServiceNetworkCidr), ",")
+}
+
 func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *InstallerConfigBaremetal {
-	netwokType := getNetworkType(cluster)
-	log.Infof("Selected network type %s for cluster %s", netwokType, cluster.ID.String())
+	networkType := getNetworkType(cluster)
+	log.Infof("Selected network type %s for cluster %s", networkType, cluster.ID.String())
 	cfg := &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
@@ -156,7 +168,7 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *Ins
 			} `yaml:"machineNetwork,omitempty"`
 			ServiceNetwork []string `yaml:"serviceNetwork"`
 		}{
-			NetworkType: netwokType,
+			NetworkType: networkType,
 			ClusterNetwork: []struct {
 				Cidr       string `yaml:"cidr"`
 				HostPrefix int    `yaml:"hostPrefix"`
@@ -203,7 +215,7 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *Ins
 		cfg.Proxy = &proxy{
 			HTTPProxy:  cluster.HTTPProxy,
 			HTTPSProxy: cluster.HTTPSProxy,
-			NoProxy:    cluster.NoProxy,
+			NoProxy:    generateNoProxy(cluster),
 		}
 	}
 	return cfg
