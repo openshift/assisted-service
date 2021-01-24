@@ -40,14 +40,20 @@ func GenerateTestHostAddedToCluster(hostID, clusterID strfmt.UUID, state string)
 }
 
 func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string) models.Host {
+	now := strfmt.DateTime(time.Now())
 	return models.Host{
-		ID:                 &hostID,
-		ClusterID:          clusterID,
-		Status:             swag.String(state),
-		Inventory:          common.GenerateTestDefaultInventory(),
-		Role:               models.HostRoleWorker,
-		Kind:               swag.String(kind),
-		CheckedInAt:        strfmt.DateTime(time.Now()),
+		ID:              &hostID,
+		ClusterID:       clusterID,
+		Status:          swag.String(state),
+		Inventory:       common.GenerateTestDefaultInventory(),
+		Role:            models.HostRoleWorker,
+		Kind:            swag.String(kind),
+		CheckedInAt:     now,
+		StatusUpdatedAt: now,
+		Progress: &models.HostProgressInfo{
+			StageStartedAt: now,
+			StageUpdatedAt: now,
+		},
 		APIVipConnectivity: generateTestAPIVIpConnectivity(),
 	}
 }

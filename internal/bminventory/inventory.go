@@ -4153,17 +4153,18 @@ func (b *bareMetalInventory) createInstalledOCPHosts(ctx context.Context, cluste
 		return err
 	}
 
-	for _, node := range nodes.Items {
-		if !k8sclient.IsNodeReady(&node) {
+	for i := range nodes.Items {
+		node := &nodes.Items[i]
+		if !k8sclient.IsNodeReady(node) {
 			log.Infof("Node %s is not in ready state, skipping..", node.Name)
 			continue
 		}
 		id := strfmt.UUID(uuid.New().String())
 		url := installer.GetHostURL{ClusterID: *cluster.ID, HostID: id}
 		hostname := node.Name
-		role := k8sclient.GetNodeRole(&node)
+		role := k8sclient.GetNodeRole(node)
 
-		inventory, err := b.getOCPHostInventory(&node, cluster.MachineNetworkCidr)
+		inventory, err := b.getOCPHostInventory(node, cluster.MachineNetworkCidr)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to create inventory for host %s, cluster %s", id, *cluster.ID)
 			return err

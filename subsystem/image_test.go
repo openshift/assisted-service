@@ -38,6 +38,8 @@ var _ = Describe("system-test image tests", func() {
 	Expect(versions.Payload).ShouldNot(BeEmpty())
 
 	for ocpVersion := range versions.Payload {
+		ocpVersion := ocpVersion
+
 		It(fmt.Sprintf("[minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
 			By("Register Cluster", func() {
 				cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{

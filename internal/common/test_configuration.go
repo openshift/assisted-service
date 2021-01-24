@@ -59,6 +59,17 @@ func GenerateTestDefaultInventory() string {
 	return string(b)
 }
 
+func GenerateTestDefaultInventoryIPv4Only() string {
+	defaultInventory := GenerateTestDefaultInventory()
+	var inventory models.Inventory
+	Expect(json.Unmarshal([]byte(defaultInventory), &inventory)).ToNot(HaveOccurred())
+	inventory.Interfaces[0].IPV6Addresses = nil
+
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func GetTestLog() logrus.FieldLogger {
 	l := logrus.New()
 	l.SetOutput(ioutil.Discard)
