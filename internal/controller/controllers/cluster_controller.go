@@ -24,8 +24,10 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
@@ -47,9 +49,11 @@ const defaultRequeueAfterOnError = 10 * time.Second
 // ClusterReconciler reconciles a Cluster object
 type ClusterReconciler struct {
 	client.Client
-	Log       logrus.FieldLogger
-	Scheme    *runtime.Scheme
-	Installer bminventory.InstallerInternals
+	Log        logrus.FieldLogger
+	Scheme     *runtime.Scheme
+	Installer  bminventory.InstallerInternals
+	ClusterApi cluster.API
+	HostApi    host.API
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -79,8 +83,10 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return r.updateState(ctx, cluster, nil, err)
 	}
 
+	var updated bool
+	var result ctrl.Result
 	// check for updates from user, compare spec and update if needed
-	updated, result, err := r.updateIfNeeded(ctx, cluster, c)
+	updated, result, err = r.updateIfNeeded(ctx, cluster, c)
 	if err != nil {
 		return r.updateState(ctx, cluster, c, err)
 	}
@@ -89,7 +95,34 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, err
 	}
 
+	if r.isReadyForInstallation(cluster, c) {
+		var ic *common.Cluster
+		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
+			ClusterID: *c.ID,
+		})
+		if err != nil {
+			return r.updateState(ctx, cluster, c, err)
+		}
+		return r.updateState(ctx, cluster, ic, nil)
+	}
+
 	return r.updateState(ctx, cluster, c, nil)
+}
+
+func (r *ClusterReconciler) isReadyForInstallation(cluster *adiiov1alpha1.Cluster, c *common.Cluster) bool {
+	if ready, _ := r.ClusterApi.IsReadyForInstallation(c); !ready {
+		return false
+	}
+
+	readyHosts := 0
+	for _, h := range c.Hosts {
+		if r.HostApi.IsInstallable(h) {
+			readyHosts += 1
+		}
+	}
+
+	expectedHosts := cluster.Spec.ProvisionRequirements.ControlPlaneAgents + cluster.Spec.ProvisionRequirements.WorkerAgents
+	return readyHosts == expectedHosts
 }
 
 func (r *ClusterReconciler) getPullSecret(ctx context.Context, name, namespace string) (string, error) {
