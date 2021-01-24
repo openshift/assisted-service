@@ -1147,7 +1147,7 @@ next:
 }
 
 type validationCheckResult struct {
-	status         validationStatus
+	status         ValidationStatus
 	messagePattern string
 }
 

@@ -25,13 +25,13 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-type validationStatus string
+type ValidationStatus string
 
 const (
-	ValidationSuccess validationStatus = "success"
-	ValidationFailure validationStatus = "failure"
-	ValidationPending validationStatus = "pending"
-	ValidationError   validationStatus = "error"
+	ValidationSuccess ValidationStatus = "success"
+	ValidationFailure ValidationStatus = "failure"
+	ValidationPending ValidationStatus = "pending"
+	ValidationError   ValidationStatus = "error"
 )
 
 var invalidPlatforms = []string{
@@ -42,7 +42,7 @@ var forbiddenHostnames = []string{
 	"localhost",
 }
 
-func (v validationStatus) String() string {
+func (v ValidationStatus) String() string {
 	return string(v)
 }
 
@@ -53,8 +53,8 @@ type validationContext struct {
 	db        *gorm.DB
 }
 
-type validationConditon func(context *validationContext) validationStatus
-type validationStringFormatter func(context *validationContext, status validationStatus) string
+type validationConditon func(context *validationContext) ValidationStatus
+type validationStringFormatter func(context *validationContext, status ValidationStatus) string
 
 type validation struct {
 	id        validationID
@@ -124,7 +124,7 @@ func newValidationContext(host *models.Host, db *gorm.DB) (*validationContext, e
 	return ret, nil
 }
 
-func boolValue(b bool) validationStatus {
+func boolValue(b bool) ValidationStatus {
 	if b {
 		return ValidationSuccess
 	} else {
@@ -138,11 +138,11 @@ type validator struct {
 	hwValidator    hardware.Validator
 }
 
-func (v *validator) isConnected(c *validationContext) validationStatus {
+func (v *validator) isConnected(c *validationContext) ValidationStatus {
 	return boolValue(c.host.CheckedInAt.String() == "" || time.Since(time.Time(c.host.CheckedInAt)) <= MaxHostDisconnectionTime)
 }
 
-func (v *validator) printConnected(context *validationContext, status validationStatus) string {
+func (v *validator) printConnected(context *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "Host is connected"
@@ -153,11 +153,11 @@ func (v *validator) printConnected(context *validationContext, status validation
 	}
 }
 
-func (v *validator) hasInventory(c *validationContext) validationStatus {
+func (v *validator) hasInventory(c *validationContext) ValidationStatus {
 	return boolValue(c.inventory != nil)
 }
 
-func (v *validator) printHasInventory(context *validationContext, status validationStatus) string {
+func (v *validator) printHasInventory(context *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "Valid inventory exists for the host"
@@ -168,14 +168,14 @@ func (v *validator) printHasInventory(context *validationContext, status validat
 	}
 }
 
-func (v *validator) hasMinCpuCores(c *validationContext) validationStatus {
+func (v *validator) hasMinCpuCores(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
 	return boolValue(c.inventory.CPU.Count >= v.hwValidatorCfg.MinCPUCores)
 }
 
-func (v *validator) printHasMinCpuCores(c *validationContext, status validationStatus) string {
+func (v *validator) printHasMinCpuCores(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "Sufficient CPU cores"
@@ -188,14 +188,14 @@ func (v *validator) printHasMinCpuCores(c *validationContext, status validationS
 	}
 }
 
-func (v *validator) hasMinMemory(c *validationContext) validationStatus {
+func (v *validator) hasMinMemory(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
 	return boolValue(c.inventory.Memory.PhysicalBytes >= hardware.GibToBytes(v.hwValidatorCfg.MinRamGib))
 }
 
-func (v *validator) printHasMinMemory(c *validationContext, status validationStatus) string {
+func (v *validator) printHasMinMemory(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "Sufficient minimum RAM"
@@ -209,7 +209,7 @@ func (v *validator) printHasMinMemory(c *validationContext, status validationSta
 	}
 }
 
-func (v *validator) hasMinValidDisks(c *validationContext) validationStatus {
+func (v *validator) hasMinValidDisks(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -218,7 +218,7 @@ func (v *validator) hasMinValidDisks(c *validationContext) validationStatus {
 	return boolValue(len(disks) > 0)
 }
 
-func (v *validator) printHasMinValidDisks(c *validationContext, status validationStatus) string {
+func (v *validator) printHasMinValidDisks(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "Sufficient disk capacity"
@@ -231,11 +231,11 @@ func (v *validator) printHasMinValidDisks(c *validationContext, status validatio
 	}
 }
 
-func (v *validator) isMachineCidrDefined(c *validationContext) validationStatus {
+func (v *validator) isMachineCidrDefined(c *validationContext) ValidationStatus {
 	return boolValue(swag.BoolValue(c.cluster.UserManagedNetworking) || swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || c.cluster.MachineNetworkCidr != "")
 }
 
-func (v *validator) printIsMachineCidrDefined(context *validationContext, status validationStatus) string {
+func (v *validator) printIsMachineCidrDefined(context *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		if swag.BoolValue(context.cluster.UserManagedNetworking) {
@@ -253,7 +253,7 @@ func (v *validator) printIsMachineCidrDefined(context *validationContext, status
 	}
 }
 
-func (v *validator) hasCpuCoresForRole(c *validationContext) validationStatus {
+func (v *validator) hasCpuCoresForRole(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -279,7 +279,7 @@ func (v *validator) getCpuCountForRole(role models.HostRole) int64 {
 	}
 }
 
-func (v *validator) printHasCpuCoresForRole(c *validationContext, status validationStatus) string {
+func (v *validator) printHasCpuCoresForRole(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient CPU cores for role %s", c.host.Role)
@@ -293,7 +293,7 @@ func (v *validator) printHasCpuCoresForRole(c *validationContext, status validat
 	}
 }
 
-func (v *validator) hasMemoryForRole(c *validationContext) validationStatus {
+func (v *validator) hasMemoryForRole(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -308,7 +308,7 @@ func (v *validator) hasMemoryForRole(c *validationContext) validationStatus {
 	}
 }
 
-func (v *validator) isValidPlatform(c *validationContext) validationStatus {
+func (v *validator) isValidPlatform(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -318,7 +318,7 @@ func (v *validator) isValidPlatform(c *validationContext) validationStatus {
 	return boolValue(!funk.ContainsString(invalidPlatforms, c.inventory.SystemVendor.ProductName))
 }
 
-func (v *validator) printValidPlatform(c *validationContext, status validationStatus) string {
+func (v *validator) printValidPlatform(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Platform %s is allowed", c.inventory.SystemVendor.ProductName)
@@ -342,7 +342,7 @@ func (v *validator) getMemoryForRole(role models.HostRole) int64 {
 	}
 }
 
-func (v *validator) printHasMemoryForRole(c *validationContext, status validationStatus) string {
+func (v *validator) printHasMemoryForRole(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
@@ -356,7 +356,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status validatio
 	}
 }
 
-func (v *validator) belongsToMachineCidr(c *validationContext) validationStatus {
+func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus {
 	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
@@ -366,7 +366,7 @@ func (v *validator) belongsToMachineCidr(c *validationContext) validationStatus 
 	return boolValue(network.IsHostInMachineNetCidr(v.log, c.cluster, c.host))
 }
 
-func (v *validator) printBelongsToMachineCidr(c *validationContext, status validationStatus) string {
+func (v *validator) printBelongsToMachineCidr(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		if swag.BoolValue(c.cluster.UserManagedNetworking) {
@@ -389,7 +389,7 @@ func getRealHostname(host *models.Host, inventory *models.Inventory) string {
 	return inventory.Hostname
 }
 
-func (v *validator) isHostnameUnique(c *validationContext) validationStatus {
+func (v *validator) isHostnameUnique(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -410,7 +410,7 @@ func (v *validator) isHostnameUnique(c *validationContext) validationStatus {
 	return ValidationSuccess
 }
 
-func (v *validator) printHostnameUnique(c *validationContext, status validationStatus) string {
+func (v *validator) printHostnameUnique(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Hostname %s is unique in cluster", getRealHostname(c.host, c.inventory))
@@ -423,14 +423,14 @@ func (v *validator) printHostnameUnique(c *validationContext, status validationS
 	}
 }
 
-func (v *validator) isHostnameValid(c *validationContext) validationStatus {
+func (v *validator) isHostnameValid(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
 	return boolValue(!funk.ContainsString(forbiddenHostnames, getRealHostname(c.host, c.inventory)))
 }
 
-func (v *validator) printHostnameValid(c *validationContext, status validationStatus) string {
+func (v *validator) printHostnameValid(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Hostname %s is allowed", getRealHostname(c.host, c.inventory))
@@ -443,7 +443,7 @@ func (v *validator) printHostnameValid(c *validationContext, status validationSt
 	}
 }
 
-func (v *validator) isAPIVipConnected(c *validationContext) validationStatus {
+func (v *validator) isAPIVipConnected(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
@@ -457,7 +457,7 @@ func (v *validator) isAPIVipConnected(c *validationContext) validationStatus {
 	return boolValue(response.IsSuccess)
 }
 
-func (v *validator) printAPIVipConnected(c *validationContext, status validationStatus) string {
+func (v *validator) printAPIVipConnected(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		if swag.BoolValue(c.cluster.UserManagedNetworking) {
@@ -473,7 +473,7 @@ func (v *validator) printAPIVipConnected(c *validationContext, status validation
 	}
 }
 
-func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatus {
+func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatus {
 	if hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
@@ -489,7 +489,7 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) validationStatu
 	return boolValue(funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID))
 }
 
-func (v *validator) printBelongsToMajorityGroup(c *validationContext, status validationStatus) string {
+func (v *validator) printBelongsToMajorityGroup(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		if hostutil.IsDay2Host(c.host) {
@@ -510,7 +510,7 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status val
 	}
 }
 
-func (v *validator) IsNTPSynced(c *validationContext) validationStatus {
+func (v *validator) IsNTPSynced(c *validationContext) ValidationStatus {
 
 	var sources []*models.NtpSource
 
@@ -532,7 +532,7 @@ func (v *validator) IsNTPSynced(c *validationContext) validationStatus {
 	return ValidationFailure
 }
 
-func (v *validator) printNTPSynced(c *validationContext, status validationStatus) string {
+func (v *validator) printNTPSynced(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "Host NTP is synced"
