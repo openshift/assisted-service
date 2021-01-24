@@ -4268,6 +4268,9 @@ definitions:
     required:
       - images
     properties:
+      timeout:
+        type: integer
+        description: Positive number represents a timeout in seconds for a pull operation.
       images:
         type: array
         description: List of image names to be checked.
@@ -4292,6 +4295,15 @@ definitions:
       name:
         type: string
         description: A fully qualified image name (FQIN).
+      size_bytes:
+        type: number
+        description: Size of the image in bytes.
+      time:
+        type: number
+        description: Seconds it took to pull the image.
+      download_rate:
+        type: number
+        description: The rate of size/time in seconds MBps.
       result:
         $ref: '#/definitions/container_image_availability_result'
 

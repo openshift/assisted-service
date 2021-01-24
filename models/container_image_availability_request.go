@@ -20,6 +20,9 @@ type ContainerImageAvailabilityRequest struct {
 	// List of image names to be checked.
 	// Required: true
 	Images []string `json:"images"`
+
+	// Positive number represents a timeout in seconds for a pull operation.
+	Timeout int64 `json:"timeout,omitempty"`
 }
 
 // Validate validates this container image availability request
