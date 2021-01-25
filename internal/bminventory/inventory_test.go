@@ -2935,6 +2935,7 @@ var _ = Describe("cluster", func() {
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			mockClusterDeleteLogsSuccess(mockClusterApi)
+			setDefaultHostSetBootstrap(mockClusterApi)
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
@@ -2973,75 +2974,54 @@ var _ = Describe("cluster", func() {
 		It("list of masters for setting bootstrap return empty list", func() {
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
-			mockClusterIsReadyForInstallationSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
-			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-			setDefaultInstall(mockClusterApi)
-			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return([]*strfmt.UUID{}, nil).Times(1)
-			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-			mockClusterRefreshStatus(mockClusterApi)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-			mockClusterDeleteLogsSuccess(mockClusterApi)
+
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{}, nil).Times(1)
 
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-			waitForDoneChannel()
+			verifyApiError(reply, http.StatusInternalServerError)
 		})
 
 		It("GetMasterNodesIds fails in the go routine", func() {
-			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-			setDefaultInstall(mockClusterApi)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
-			mockClusterIsReadyForInstallationSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
-			mockClusterRefreshStatus(mockClusterApi)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			setIsReadyForInstallationTrue(mockClusterApi)
-			mockClusterDeleteLogsSuccess(mockClusterApi)
-
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-			waitForDoneChannel()
+			verifyApiError(reply, http.StatusInternalServerError)
 		})
 
 		It("GetMasterNodesIds returns empty list", func() {
-			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-			setDefaultInstall(mockClusterApi)
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
-			mockClusterIsReadyForInstallationSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
-			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
-			mockClusterRefreshStatus(mockClusterApi)
+			mockClusterPrepareForInstallationSuccess(mockClusterApi)
+			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-			mockClusterDeleteLogsSuccess(mockClusterApi)
+
+			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
+				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
 
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
-
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-			waitForDoneChannel()
+			verifyApiError(reply, http.StatusInternalServerError)
 		})
 
 		It("failed to delete logs", func() {

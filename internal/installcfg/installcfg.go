@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
+	"net"
 	"sort"
 	"strconv"
 
@@ -271,6 +272,35 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 	return nil
 }
 
+func getBootstrapMachineNetwork(cluster *common.Cluster) string {
+	for _, host := range cluster.Hosts {
+		if host.Bootstrap {
+			var inventory models.Inventory
+			err := json.Unmarshal([]byte(host.Inventory), &inventory)
+			if err != nil {
+				return ""
+			}
+			for _, intf := range inventory.Interfaces {
+				for _, addr := range intf.IPV4Addresses {
+					_, ipnet, err := net.ParseCIDR(addr)
+					if err != nil {
+						continue
+					}
+					return ipnet.String()
+				}
+				for _, addr := range intf.IPV6Addresses {
+					_, ipnet, err := net.ParseCIDR(addr)
+					if err != nil {
+						continue
+					}
+					return ipnet.String()
+				}
+			}
+		}
+	}
+	return ""
+}
+
 func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) (*InstallerConfigBaremetal, error) {
 	cfg := getBasicInstallConfig(log, cluster)
 	if swag.BoolValue(cluster.UserManagedNetworking) {
@@ -278,19 +308,19 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			Baremetal: nil,
 			None:      &platformNone{},
 		}
-		var (
-			ipv6OnlyHost bool
-			err          error
-		)
-		if len(cluster.Hosts) == 1 {
-			ipv6OnlyHost, err = network.IsIpv6OnlyHost(cluster.Hosts[0], log)
-			if err != nil {
-				return nil, err
+
+		bootstrapCidr := getBootstrapMachineNetwork(cluster)
+		if bootstrapCidr != "" {
+			log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
+			cfg.Networking.MachineNetwork = []struct {
+				Cidr string `yaml:"cidr"`
+			}{
+				{Cidr: bootstrapCidr},
 			}
-		}
-		if !ipv6OnlyHost {
+		} else {
 			cfg.Networking.MachineNetwork = nil
 		}
+
 	} else {
 		err := setBMPlatformInstallconfig(log, cluster, cfg)
 		if err != nil {

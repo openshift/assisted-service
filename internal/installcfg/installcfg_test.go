@@ -43,7 +43,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "master",
-			Inventory: getInventoryStr("hostname0", "bootMode"),
+			Inventory: getInventoryStr("hostname0", "bootMode", false),
 		}
 		id = strfmt.UUID(uuid.New().String())
 		host2 = models.Host{
@@ -51,7 +51,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
-			Inventory: getInventoryStr("hostname1", "bootMode"),
+			Inventory: getInventoryStr("hostname1", "bootMode", false),
 		}
 
 		host3 = models.Host{
@@ -59,7 +59,7 @@ var _ = Describe("installcfg", func() {
 			ClusterID: clusterId,
 			Status:    swag.String(models.HostStatusKnown),
 			Role:      "worker",
-			Inventory: getInventoryStr("hostname2", "bootMode"),
+			Inventory: getInventoryStr("hostname2", "bootMode", false),
 		}
 
 		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
@@ -195,6 +195,37 @@ var _ = Describe("installcfg", func() {
 		Expect(*result.Platform.None).Should(Equal(none))
 	})
 
+	It("UserManagedNetworking None Platform Machine network", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(true)
+		host1.Bootstrap = true
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		var none = platformNone{}
+		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("10.35.20.0/24"))
+	})
+
+	It("UserManagedNetworking None Platform Machine network IPV6 only", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(true)
+		host1.Bootstrap = true
+		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		var none = platformNone{}
+		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("fe80::/64"))
+	})
+
 	It("UserManagedNetworking BareMetal", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
@@ -247,16 +278,20 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 	})
 })
 
-func getInventoryStr(hostname, bootMode string) string {
+func getInventoryStr(hostname, bootMode string, ipv6only bool) string {
 	inventory := models.Inventory{
 		Hostname: hostname,
 		Boot:     &models.Boot{CurrentBootMode: bootMode},
 		Interfaces: []*models.Interface{
 			{
-				IPV4Addresses: append(make([]string, 0), "some ip address"),
+				IPV4Addresses: append(make([]string, 0), "10.35.20.10/24"),
+				IPV6Addresses: append(make([]string, 0), "fe80::1/64"),
 				MacAddress:    "some MAC address",
 			},
 		},
+	}
+	if ipv6only {
+		inventory.Interfaces[0].IPV4Addresses = nil
 	}
 	ret, _ := json.Marshal(&inventory)
 	return string(ret)
