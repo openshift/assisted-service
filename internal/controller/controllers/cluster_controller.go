@@ -63,28 +63,45 @@ type ClusterReconciler struct {
 func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	cluster := &adiiov1alpha1.Cluster{}
+	foundCRD := true
 	err := r.Get(ctx, req.NamespacedName, cluster)
 	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+		if !k8serrors.IsNotFound(err) {
+			r.Log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
+			return ctrl.Result{Requeue: true}, nil
 		}
-		r.Log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
-		return ctrl.Result{Requeue: true}, nil
+		foundCRD = false
 	}
 
 	c, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
-
-	if gorm.IsRecordNotFoundError(err) {
+	notFoundInDBErr := gorm.IsRecordNotFoundError(err)
+	if notFoundInDBErr && foundCRD {
 		return r.createNewCluster(ctx, req.NamespacedName, cluster)
 	}
 
 	// todo check error type, retry for 5xx fail on 4xx
-	if err != nil {
+	if !notFoundInDBErr && err != nil {
 		return r.updateState(ctx, cluster, nil, err)
 	}
 
-	var updated bool
+	// CRD not found, check whether it needs to be deleted from db
+	if !foundCRD {
+		return r.deregisterClusterIfNeeded(ctx, c)
+	}
+
+	var deleted, updated bool
 	var result ctrl.Result
+
+	// check if CRD needs to be deleted
+	deleted, result, err = r.deleteCRDIfNeeded(ctx, cluster, c)
+	if err != nil {
+		return r.updateState(ctx, cluster, c, err)
+	}
+
+	if deleted {
+		return result, err
+	}
+
 	// check for updates from user, compare spec and update if needed
 	updated, result, err = r.updateIfNeeded(ctx, cluster, c)
 	if err != nil {
@@ -243,6 +260,44 @@ func (r *ClusterReconciler) updateState(ctx context.Context, cluster *adiiov1alp
 	}
 
 	return reply, nil
+}
+
+func (r *ClusterReconciler) deregisterClusterIfNeeded(ctx context.Context, c *common.Cluster) (ctrl.Result, error) {
+	if c == nil || !swag.IsZero(c.DeletedAt) {
+		return ctrl.Result{}, nil
+	}
+	reply := ctrl.Result{}
+
+	r.Log.Infof("Deregister cluster: %s", c.ID.String())
+
+	err := r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
+		ClusterID: *c.ID,
+	})
+	if err == nil {
+		return reply, nil
+	}
+
+	reply.RequeueAfter = defaultRequeueAfterOnError
+	err = errors.Wrapf(err, "failed to deregister cluster: %s", c.ID.String())
+	r.Log.Error(err)
+
+	return reply, err
+}
+
+func (r *ClusterReconciler) deleteCRDIfNeeded(ctx context.Context, cluster *adiiov1alpha1.Cluster, c *common.Cluster) (bool, ctrl.Result, error) {
+	if swag.IsZero(c.DeletedAt) {
+		return false, ctrl.Result{}, nil
+	}
+
+	r.Log.Infof("Deleting cluster resource: %s", c.ID.String())
+
+	err := r.Client.Delete(ctx, cluster)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to delete unregistered cluster resource: %s", c.ID.String())
+		r.Log.Error(err)
+	}
+
+	return true, ctrl.Result{}, err
 }
 
 func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1alpha1.Cluster, c *common.Cluster) (bool, ctrl.Result, error) {

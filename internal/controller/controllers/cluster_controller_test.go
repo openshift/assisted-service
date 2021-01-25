@@ -2,6 +2,10 @@ package controllers
 
 import (
 	"context"
+	"fmt"
+	"time"
+
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -105,6 +109,17 @@ var _ = Describe("cluster reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, &cluster)).To(BeNil())
 		return &cluster
+	}
+
+	getTestClusterExpectError := func() error {
+		var cluster v1alpha1.Cluster
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      clusterName,
+		}
+		err := c.Get(ctx, key, &cluster)
+		Expect(err).Should(HaveOccurred())
+		return err
 	}
 
 	Context("create cluster", func() {
@@ -378,10 +393,85 @@ var _ = Describe("cluster reconcile", func() {
 	})
 
 	It("cluster not found", func() {
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 		cluster := newCluster(clusterName, testNamespace, v1alpha1.ClusterSpec{})
 		request := newClusterRequest(cluster)
 		result, err := cr.Reconcile(request)
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
+	})
+
+	Context("cluster deletion", func() {
+		var (
+			sId     strfmt.UUID
+			cluster *v1alpha1.Cluster
+		)
+
+		BeforeEach(func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+			cluster = newCluster(clusterName, testNamespace, defaultClusterSpec)
+			id := uuid.New()
+			sId = strfmt.UUID(id.String())
+			cluster.Status = v1alpha1.ClusterStatus{
+				State: models.ClusterStatusPendingForInput,
+				ID:    id.String(),
+			}
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("cluster deleted from db - verify CRD deletion", func() {
+			deletedAt := strfmt.DateTime(time.Now())
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:        &sId,
+					DeletedAt: &deletedAt,
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			request := newClusterRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result).Should(Equal(ctrl.Result{}))
+
+			err = getTestClusterExpectError()
+			Expect(k8serrors.IsNotFound(err)).Should(Equal(true))
+		})
+
+		It("cluster resource deleted - verify call to deregister cluster", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID: &sId,
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+
+			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
+			request := newClusterRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result).Should(Equal(ctrl.Result{}))
+		})
+
+		It("cluster resource deleted failed - internal error", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID: &sId,
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(errors.New("internal error"))
+
+			expectedErrMsg := fmt.Sprintf("failed to delete cluster from db: %s: internal error", sId.String())
+
+			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
+			request := newClusterRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).Should(HaveOccurred())
+			Expect(err.Error()).Should(Equal(expectedErrMsg))
+			Expect(result).Should(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+		})
 	})
 })
