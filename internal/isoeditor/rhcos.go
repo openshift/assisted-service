@@ -139,7 +139,7 @@ func editFile(fileName string, reString string, replacement string) error {
 	re := regexp.MustCompile(reString)
 	newContent := re.ReplaceAllString(string(content), replacement)
 
-	if err := ioutil.WriteFile(fileName, []byte(newContent), 0644); err != nil {
+	if err := ioutil.WriteFile(fileName, []byte(newContent), 0600); err != nil {
 		return err
 	}
 

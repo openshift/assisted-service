@@ -753,7 +753,8 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 	if reply := db.Where("deleted_at < ?", olderThen).Find(&clusters); reply.Error != nil {
 		return reply.Error
 	}
-	for _, c := range clusters {
+	for i := range clusters {
+		c := clusters[i]
 		m.log.Debugf("Deleting all S3 files for cluster: %s", c.ID.String())
 
 		deleteFromDB := true
