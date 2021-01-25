@@ -16,11 +16,20 @@ import (
 // swagger:model container_image_availability
 type ContainerImageAvailability struct {
 
+	// The rate of size/time in seconds MBps.
+	DownloadRate float64 `json:"download_rate,omitempty"`
+
 	// A fully qualified image name (FQIN).
 	Name string `json:"name,omitempty"`
 
 	// result
 	Result ContainerImageAvailabilityResult `json:"result,omitempty"`
+
+	// Size of the image in bytes.
+	SizeBytes float64 `json:"size_bytes,omitempty"`
+
+	// Seconds it took to pull the image.
+	Time float64 `json:"time,omitempty"`
 }
 
 // Validate validates this container image availability

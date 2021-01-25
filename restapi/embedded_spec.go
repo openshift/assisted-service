@@ -4965,12 +4965,24 @@ func init() {
     "container_image_availability": {
       "type": "object",
       "properties": {
+        "download_rate": {
+          "description": "The rate of size/time in seconds MBps.",
+          "type": "number"
+        },
         "name": {
           "description": "A fully qualified image name (FQIN).",
           "type": "string"
         },
         "result": {
           "$ref": "#/definitions/container_image_availability_result"
+        },
+        "size_bytes": {
+          "description": "Size of the image in bytes.",
+          "type": "number"
+        },
+        "time": {
+          "description": "Seconds it took to pull the image.",
+          "type": "number"
         }
       }
     },
@@ -4987,6 +4999,10 @@ func init() {
             "description": "A fully qualified image name (FQIN).",
             "type": "string"
           }
+        },
+        "timeout": {
+          "description": "Positive number represents a timeout in seconds for a pull operation.",
+          "type": "integer"
         }
       }
     },
@@ -5767,6 +5783,11 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
+        "image_type": {
+          "description": "Type of image that should be generated.",
+          "type": "string",
+          "$ref": "#/definitions/image_type"
+        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -5809,8 +5830,19 @@ func init() {
         "static_ips_config": {
           "description": "statip ips configuration string in the format expected by discovery ignition",
           "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "$ref": "#/definitions/image_type"
         }
       }
+    },
+    "image_type": {
+      "type": "string",
+      "enum": [
+        "full-iso",
+        "minimal-iso"
+      ]
     },
     "infra_error": {
       "type": "object",
@@ -11410,12 +11442,24 @@ func init() {
     "container_image_availability": {
       "type": "object",
       "properties": {
+        "download_rate": {
+          "description": "The rate of size/time in seconds MBps.",
+          "type": "number"
+        },
         "name": {
           "description": "A fully qualified image name (FQIN).",
           "type": "string"
         },
         "result": {
           "$ref": "#/definitions/container_image_availability_result"
+        },
+        "size_bytes": {
+          "description": "Size of the image in bytes.",
+          "type": "number"
+        },
+        "time": {
+          "description": "Seconds it took to pull the image.",
+          "type": "number"
         }
       }
     },
@@ -11432,6 +11476,10 @@ func init() {
             "description": "A fully qualified image name (FQIN).",
             "type": "string"
           }
+        },
+        "timeout": {
+          "description": "Positive number represents a timeout in seconds for a pull operation.",
+          "type": "integer"
         }
       }
     },
@@ -12212,6 +12260,11 @@ func init() {
     "image-create-params": {
       "type": "object",
       "properties": {
+        "image_type": {
+          "description": "Type of image that should be generated.",
+          "type": "string",
+          "$ref": "#/definitions/image_type"
+        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -12255,8 +12308,19 @@ func init() {
         "static_ips_config": {
           "description": "statip ips configuration string in the format expected by discovery ignition",
           "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "$ref": "#/definitions/image_type"
         }
       }
+    },
+    "image_type": {
+      "type": "string",
+      "enum": [
+        "full-iso",
+        "minimal-iso"
+      ]
     },
     "infra_error": {
       "type": "object",
