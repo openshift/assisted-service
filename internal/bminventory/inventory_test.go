@@ -16,6 +16,11 @@ import (
 	"testing"
 	"time"
 
+	"k8s.io/apimachinery/pkg/types"
+
+	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/openshift/assisted-service/restapi"
+
 	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	ign_3_1_types "github.com/coreos/ignition/v2/config/v3_1/types"
 	"github.com/go-openapi/runtime/middleware"
@@ -28,12 +33,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -49,10 +48,12 @@ import (
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
-	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+	v1 "k8s.io/api/core/v1"
 )
 
 const ClusterStatusInstalled = "installed"
@@ -1760,7 +1761,6 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
 				ID:                 &clusterID,
-				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 				APIVip:             "10.11.12.13",
 				IngressVip:         "10.11.12.14",
 				MachineNetworkCidr: "10.11.0.0/16",
@@ -2941,7 +2941,6 @@ var _ = Describe("cluster", func() {
 				APIVip:             "10.11.12.13",
 				IngressVip:         "10.11.20.50",
 				MachineNetworkCidr: "10.11.0.0/16",
-				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 				Status:             swag.String(models.ClusterStatusReady),
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -3377,9 +3376,8 @@ var _ = Describe("KubeConfig download", func() {
 
 		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			APIVip:           "10.11.12.13",
+			ID:     &clusterID,
+			APIVip: "10.11.12.13",
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -3505,9 +3503,8 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			db, nil, nil, nil, nil, nil)
 		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			APIVip:           "10.11.12.13",
+			ID:     &clusterID,
+			APIVip: "10.11.12.13",
 		}}
 		kubeconfigNoingress = fmt.Sprintf("%s/%s", clusterID, "kubeconfig-noingress")
 		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, kubeconfig)
@@ -3680,10 +3677,9 @@ var _ = Describe("List unregistered clusters", func() {
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Name:             "mycluster",
-			APIVip:           "10.11.12.13",
+			ID:     &clusterID,
+			Name:   "mycluster",
+			APIVip: "10.11.12.13",
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -3758,10 +3754,9 @@ var _ = Describe("Get unregistered clusters", func() {
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Name:             "mycluster",
-			APIVip:           "10.11.12.13",
+			ID:     &clusterID,
+			Name:   "mycluster",
+			APIVip: "10.11.12.13",
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -3838,10 +3833,9 @@ var _ = Describe("Upload and Download logs test", func() {
 
 		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Name:             "mycluster",
-			APIVip:           "10.11.12.13",
+			ID:     &clusterID,
+			Name:   "mycluster",
+			APIVip: "10.11.12.13",
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -4197,7 +4191,6 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterID,
 			BaseDNSDomain:          "example.com",
-			OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
 			InstallConfigOverrides: `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 		}}
 		err := db.Create(&c).Error
@@ -4250,13 +4243,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
-		c = common.Cluster{
-			Cluster: models.Cluster{
-				ID:               &clusterID,
-				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			},
-		}
-
+		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 	})

@@ -24,7 +24,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
-	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
@@ -38,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"golang.org/x/sync/errgroup"
 )
 
 const ConfigStaticIpsScript = `
@@ -204,31 +204,29 @@ type Generator interface {
 }
 
 type installerGenerator struct {
-	log                      logrus.FieldLogger
-	workDir                  string
-	cluster                  *common.Cluster
-	releaseImage             string
-	releaseImageMirror       string
-	installerDir             string
-	serviceCACert            string
-	encodedDhcpFileContents  string
-	s3Client                 s3wrapper.API
-	enableMetal3Provisioning bool
+	log                     logrus.FieldLogger
+	workDir                 string
+	cluster                 *common.Cluster
+	releaseImage            string
+	releaseImageMirror      string
+	installerDir            string
+	serviceCACert           string
+	encodedDhcpFileContents string
+	s3Client                s3wrapper.API
 }
 
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
 	return &installerGenerator{
-		cluster:                  cluster,
-		log:                      log,
-		releaseImage:             releaseImage,
-		releaseImageMirror:       releaseImageMirror,
-		workDir:                  workDir,
-		installerDir:             installerDir,
-		serviceCACert:            serviceCACert,
-		s3Client:                 s3Client,
-		enableMetal3Provisioning: true,
+		cluster:            cluster,
+		log:                log,
+		releaseImage:       releaseImage,
+		releaseImageMirror: releaseImageMirror,
+		workDir:            workDir,
+		installerDir:       installerDir,
+		serviceCACert:      serviceCACert,
+		s3Client:           s3Client,
 	}
 }
 
@@ -304,11 +302,6 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		return err
 	}
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
-
-	g.enableMetal3Provisioning, err = common.VersionGreaterOrEqual(g.cluster.Cluster.OpenshiftVersion, "4.7")
-	if err != nil {
-		return err
-	}
 
 	g.encodedDhcpFileContents, err = network.GetEncodedDhcpParamFileContents(g.cluster)
 	if err != nil {
@@ -508,10 +501,8 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 	for i, file := range config.Storage.Files {
 		switch {
 		case isBaremetalProvisioningConfig(&config.Storage.Files[i]):
-			if !g.enableMetal3Provisioning {
-				// drop this from the list of Files because we don't want to run BMO
-				continue
-			}
+			// drop this from the list of Files because we don't want to run BMO
+			continue
 		case isMOTD(&config.Storage.Files[i]):
 			// workaround for https://github.com/openshift/machine-config-operator/issues/2086
 			g.fixMOTDFile(&config.Storage.Files[i])
@@ -678,9 +669,6 @@ func (g *installerGenerator) modifyBMHFile(file *config_31_types.File, bmh *bmh_
 		return err
 	}
 	metav1.SetMetaDataAnnotation(&bmh.ObjectMeta, bmh_v1alpha1.StatusAnnotation, string(statusJSON))
-	if g.enableMetal3Provisioning {
-		bmh.Spec.ExternallyProvisioned = true
-	}
 
 	serializer := k8sjson.NewSerializerWithOptions(
 		k8sjson.DefaultMetaFactory, nil, nil,

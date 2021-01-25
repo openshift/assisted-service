@@ -10,15 +10,14 @@ import (
 	"strings"
 
 	"github.com/go-openapi/swag"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
-	"gopkg.in/yaml.v2"
-
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
+	"gopkg.in/yaml.v2"
 )
 
 type host struct {
@@ -261,10 +260,9 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 		}
 		yamlHostIdx += 1
 	}
-
 	cfg.Platform = platform{
 		Baremetal: &baremetal{
-			ProvisioningNetwork: "Disabled",
+			ProvisioningNetwork: "Unmanaged",
 			APIVIP:              cluster.APIVip,
 			IngressVIP:          cluster.IngressVip,
 			Hosts:               hosts,
