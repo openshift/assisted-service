@@ -2757,41 +2757,59 @@ var _ = Describe("Refresh Host", func() {
 			models.HostStatusInstallingPendingUserAction,
 			models.HostStatusResettingPendingUserAction,
 		} {
-			srcState := srcState
-			It(fmt.Sprintf("host src: %s cluster error: false", srcState), func() {
-				h := hostutil.GenerateTestHost(hostId, clusterId, srcState)
-				h.Inventory = hostutil.GenerateMasterInventory()
-				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-				c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
-				c.Status = swag.String(models.ClusterStatusInstalling)
-				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+			for _, installationStage := range []models.HostStage{
+				models.HostStageStartingInstallation,
+				models.HostStageWaitingForControlPlane,
+				models.HostStageStartWaitingForControlPlane,
+				models.HostStageInstalling,
+				models.HostStageWritingImageToDisk,
+				models.HostStageRebooting,
+				models.HostStageWaitingForIgnition,
+				models.HostStageConfiguring,
+				models.HostStageJoined,
+				models.HostStageDone,
+				models.HostStageFailed,
+			} {
+				installationStage := installationStage
+				srcState := srcState
 
-				err := hapi.RefreshStatus(ctx, &h, db)
+				It(fmt.Sprintf("host src: %s cluster error: false", srcState), func() {
+					h := hostutil.GenerateTestHost(hostId, clusterId, srcState)
+					h.Progress.CurrentStage = installationStage
+					h.Inventory = hostutil.GenerateMasterInventory()
+					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+					c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+					c.Status = swag.String(models.ClusterStatusInstalling)
+					Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(swag.StringValue(h.Status)).Should(Equal(srcState))
-			})
-			It(fmt.Sprintf("host src: %s cluster error: true", srcState), func() {
-				h := hostutil.GenerateTestHost(hostId, clusterId, srcState)
-				h.Inventory = hostutil.GenerateMasterInventory()
-				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-				c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
-				c.Status = swag.String(models.ClusterStatusError)
-				Expect(db.Create(&c).Error).ToNot(HaveOccurred())
+					err := hapi.RefreshStatus(ctx, &h, db)
 
-				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityError,
-					fmt.Sprintf("Host master-hostname: updated status from \"%s\" to \"error\" (Host is part of a cluster that failed to install)", srcState),
-					gomock.Any())
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(swag.StringValue(h.Status)).Should(Equal(srcState))
+				})
+				It(fmt.Sprintf("host src: %s cluster error: true", srcState), func() {
+					h := hostutil.GenerateTestHost(hostId, clusterId, srcState)
+					h.Progress.CurrentStage = installationStage
+					h.Inventory = hostutil.GenerateMasterInventory()
+					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+					c := hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+					c.Status = swag.String(models.ClusterStatusError)
+					Expect(db.Create(&c).Error).ToNot(HaveOccurred())
 
-				err := hapi.RefreshStatus(ctx, &h, db)
+					mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityError,
+						fmt.Sprintf("Host master-hostname: updated status from \"%s\" to \"error\" (Host is part of a cluster that failed to install)", srcState),
+						gomock.Any())
 
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
+					err := hapi.RefreshStatus(ctx, &h, db)
 
-				var resultHost models.Host
-				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
-				Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(statusInfoAbortingDueClusterErrors))
-			})
+					Expect(err).ShouldNot(HaveOccurred())
+					Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusError))
+
+					var resultHost models.Host
+					Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+					Expect(swag.StringValue(resultHost.StatusInfo)).Should(Equal(statusInfoAbortingDueClusterErrors))
+				})
+			}
 		}
 	})
 	AfterEach(func() {
