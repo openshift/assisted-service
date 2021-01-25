@@ -18,6 +18,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"regexp"
 	"sort"
 	"strconv"
@@ -43,6 +44,7 @@ import (
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
@@ -97,6 +99,7 @@ type Config struct {
 	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
 	DeletedUnregisteredAfter time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
 	DefaultNTPSource         string            `envconfig:"NTP_DEFAULT_SERVER"`
+	ISOCacheDir              string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
 }
 
 const agentMessageOfTheDay = `
@@ -289,19 +292,20 @@ type InstallerInternals interface {
 
 type bareMetalInventory struct {
 	Config
-	db              *gorm.DB
-	log             logrus.FieldLogger
-	hostApi         host.API
-	clusterApi      cluster.API
-	eventsHandler   events.Handler
-	objectHandler   s3wrapper.API
-	metricApi       metrics.API
-	generator       generator.ISOInstallConfigGenerator
-	authHandler     auth.AuthHandler
-	k8sClient       k8sclient.K8SClient
-	leaderElector   leader.Leader
-	secretValidator validations.PullSecretValidator
-	versionsHandler versions.Handler
+	db               *gorm.DB
+	log              logrus.FieldLogger
+	hostApi          host.API
+	clusterApi       cluster.API
+	eventsHandler    events.Handler
+	objectHandler    s3wrapper.API
+	metricApi        metrics.API
+	generator        generator.ISOInstallConfigGenerator
+	authHandler      auth.AuthHandler
+	k8sClient        k8sclient.K8SClient
+	leaderElector    leader.Leader
+	secretValidator  validations.PullSecretValidator
+	versionsHandler  versions.Handler
+	isoEditorFactory isoeditor.Factory
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -331,22 +335,24 @@ func NewBareMetalInventory(
 	leaderElector leader.Leader,
 	pullSecretValidator validations.PullSecretValidator,
 	versionsHandler versions.Handler,
+	isoEditorFactory isoeditor.Factory,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:              db,
-		log:             log,
-		Config:          cfg,
-		hostApi:         hostApi,
-		clusterApi:      clusterApi,
-		generator:       generator,
-		eventsHandler:   eventsHandler,
-		objectHandler:   objectHandler,
-		metricApi:       metricApi,
-		authHandler:     authHandler,
-		k8sClient:       k8sClient,
-		leaderElector:   leaderElector,
-		secretValidator: pullSecretValidator,
-		versionsHandler: versionsHandler,
+		db:               db,
+		log:              log,
+		Config:           cfg,
+		hostApi:          hostApi,
+		clusterApi:       clusterApi,
+		generator:        generator,
+		eventsHandler:    eventsHandler,
+		objectHandler:    objectHandler,
+		metricApi:        metricApi,
+		authHandler:      authHandler,
+		k8sClient:        k8sClient,
+		leaderElector:    leaderElector,
+		secretValidator:  pullSecretValidator,
+		versionsHandler:  versionsHandler,
+		isoEditorFactory: isoEditorFactory,
 	}
 }
 
@@ -849,7 +855,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		contentLength)
 }
 
-func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string) error {
+func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(*cluster.ID)
 	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
@@ -873,6 +879,9 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 		updates["proxy_hash"] = clusterProxyHash
 		cluster.ProxyHash = clusterProxyHash
 	}
+
+	updates["image_type"] = imageType
+	cluster.ImageInfo.Type = imageType
 
 	dbReply := b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
@@ -956,7 +965,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
-		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig {
+		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig &&
+		cluster.ImageInfo.Type == params.ImageCreateParams.ImageType {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
@@ -996,7 +1006,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash, params.ImageCreateParams.ImageType); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 
@@ -1017,20 +1027,27 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	srcObject, err := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	objectPrefix := fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())
+
+	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
+		if err := b.generateClusterMinimalISO(ctx, log, &cluster, ignitionConfig, objectPrefix); err != nil {
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+	} else {
+		baseISOName, err := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
+
+		if err := b.objectHandler.UploadISO(ctx, ignitionConfig, baseISOName, objectPrefix); err != nil {
+			log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 
-	if err := b.objectHandler.UploadISO(ctx, ignitionConfig, srcObject,
-		fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())); err != nil {
-		log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	if err := b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash); err != nil {
+	if err := b.updateImageInfoPostUpload(ctx, &cluster, clusterProxyHash, params.ImageCreateParams.ImageType); err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -1045,6 +1062,10 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, cluster.HTTPProxy))
 	}
 
+	if params.ImageCreateParams.ImageType != "" {
+		msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
+	}
+
 	sshExtra := "SSH public key is not set"
 	if params.ImageCreateParams.SSHPublicKey != "" {
 		sshExtra = "SSH public key is set"
@@ -1056,6 +1077,43 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
 	return &cluster, nil
+}
+
+func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
+	cluster *common.Cluster, ignitionConfig, objectPrefix string) error {
+
+	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(cluster.OpenshiftVersion)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
+		return err
+	}
+
+	isoPath, err := s3wrapper.GetFile(ctx, b.objectHandler, baseISOName, b.ISOCacheDir, true)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to download minimal ISO template %s", baseISOName)
+		return err
+	}
+
+	log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
+	editor, err := b.isoEditorFactory.NewEditor(isoPath, cluster.OpenshiftVersion, log)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create iso editor for cluster %s with iso file %s", cluster.ID, isoPath)
+		return err
+	}
+
+	clusterISOPath, err := editor.CreateClusterMinimalISO(ignitionConfig)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to create minimal discovery ISO for cluster %s", cluster.ID)
+		return err
+	}
+
+	log.Infof("Uploading minimal ISO for cluster %s", cluster.ID)
+	if err := b.objectHandler.UploadFile(ctx, clusterISOPath, fmt.Sprintf("%s.iso", objectPrefix)); err != nil {
+		os.Remove(clusterISOPath)
+		log.WithError(err).Errorf("Failed to upload minimal discovery ISO for cluster %s", cluster.ID)
+		return err
+	}
+	return os.Remove(clusterISOPath)
 }
 
 func getImageName(clusterID strfmt.UUID) string {

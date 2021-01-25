@@ -37,7 +37,9 @@ var _ = Context("with test files", func() {
 		filesDir string
 		volumeID = "Assisted123"
 		log      logrus.FieldLogger
+		factory  = &RhcosFactory{}
 	)
+
 	BeforeSuite(func() {
 		filesDir, isoDir, isoFile = createIsoViaGenisoimage(volumeID)
 		log = getTestLog()
@@ -50,24 +52,28 @@ var _ = Context("with test files", func() {
 
 	Describe("CreateMinimalISOTemplate", func() {
 		It("iso created successfully", func() {
-			editor := CreateEditor(isoFile, defaultTestOpenShiftVersion, log)
-			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			editor, err := factory.NewEditor(isoFile, defaultTestOpenShiftVersion, log)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("missing iso file", func() {
-			editor := CreateEditor("invalid", defaultTestOpenShiftVersion, log)
-			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			editor, err := factory.NewEditor("invalid", defaultTestOpenShiftVersion, log)
+			Expect(err).ToNot(HaveOccurred())
+			_, err = editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
 	Describe("fixTemplateConfigs", func() {
 		It("alters the kernel parameters correctly", func() {
-			editor := CreateEditor(isoFile, defaultTestOpenShiftVersion, log)
+			editor, err := factory.NewEditor(isoFile, defaultTestOpenShiftVersion, log)
+			Expect(err).ToNot(HaveOccurred())
 			rootfsURL := fmt.Sprintf("%s/api/assisted-install/v1/boot-files?file_type=rootfs.img&openshift_version=%s",
 				defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			isoHandler := editor.(*rhcosEditor).isoHandler
-			err := isoHandler.Extract()
+
+			err = isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
 			err = editor.(*rhcosEditor).fixTemplateConfigs(defaultTestServiceBaseURL)

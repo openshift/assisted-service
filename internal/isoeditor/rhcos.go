@@ -1,6 +1,8 @@
 package isoeditor
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -8,39 +10,22 @@ import (
 
 	"github.com/openshift/assisted-service/internal/isoutil"
 	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
+
+	"github.com/cavaliercoder/go-cpio"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// BaseIsoTempDir is a temporary directory pattern for the extracted base ISO
-	BaseIsoTempDir string = "baseiso"
-)
-
+//go:generate mockgen -package=isoeditor -destination=mock_editor.go . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
+	CreateClusterMinimalISO(ignition string) (string, error)
 }
 
 type rhcosEditor struct {
 	isoHandler       isoutil.Handler
 	openshiftVersion string
 	log              logrus.FieldLogger
-}
-
-func NewEditor(isoHandler isoutil.Handler, openshiftVersion string, log logrus.FieldLogger) Editor {
-	return &rhcosEditor{
-		isoHandler:       isoHandler,
-		openshiftVersion: openshiftVersion,
-		log:              log,
-	}
-}
-
-func CreateEditor(isoPath string, openshiftVersion string, log logrus.FieldLogger) Editor {
-	isoTmpWorkDir, err := ioutil.TempDir("", BaseIsoTempDir)
-	if err != nil {
-		return nil
-	}
-	isoHandler := isoutil.NewHandler(isoPath, isoTmpWorkDir)
-	return NewEditor(isoHandler, openshiftVersion, log)
 }
 
 func (e *rhcosEditor) getRootFSURL(serviceBaseURL string) string {
@@ -77,29 +62,51 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 		return "", err
 	}
 
+	e.log.Info("Creating minimal ISO template")
+	return e.create()
+}
+
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string) (string, error) {
+	if err := e.isoHandler.Extract(); err != nil {
+		return "", err
+	}
+	defer func() {
+		if err := e.isoHandler.CleanWorkDir(); err != nil {
+			e.log.WithError(err).Warnf("Failed to clean isoHandler work dir")
+		}
+	}()
+
+	if err := e.addIgnitionArchive(ignition); err != nil {
+		return "", err
+	}
+
+	return e.create()
+}
+
+func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
+	archiveBytes, err := IgnitionImageArchive(ignition)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644)
+}
+
+func (e *rhcosEditor) create() (string, error) {
 	isoPath, err := tempFileName()
 	if err != nil {
 		return "", err
 	}
 
-	e.log.Infof("Creating minimal ISO template: %s", isoPath)
-	if err := e.create(isoPath); err != nil {
+	volumeID, err := e.isoHandler.VolumeIdentifier()
+	if err != nil {
+		return "", err
+	}
+	if err = e.isoHandler.Create(isoPath, volumeID); err != nil {
 		return "", err
 	}
 
 	return isoPath, nil
-}
-
-func (e *rhcosEditor) create(outPath string) error {
-	volumeID, err := e.isoHandler.VolumeIdentifier()
-	if err != nil {
-		return err
-	}
-	if err = e.isoHandler.Create(outPath, volumeID); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func (e *rhcosEditor) fixTemplateConfigs(serviceBaseURL string) error {
@@ -151,4 +158,34 @@ func tempFileName() (string, error) {
 	}
 
 	return path, nil
+}
+
+func IgnitionImageArchive(ignitionConfig string) ([]byte, error) {
+	ignitionBytes := []byte(ignitionConfig)
+
+	// Create CPIO archive
+	archiveBuffer := new(bytes.Buffer)
+	cpioWriter := cpio.NewWriter(archiveBuffer)
+	if err := cpioWriter.WriteHeader(&cpio.Header{Name: "config.ign", Mode: 0o100_644, Size: int64(len(ignitionBytes))}); err != nil {
+		return nil, errors.Wrap(err, "Failed to write CPIO header")
+	}
+	if _, err := cpioWriter.Write(ignitionBytes); err != nil {
+
+		return nil, errors.Wrap(err, "Failed to write CPIO archive")
+	}
+	if err := cpioWriter.Close(); err != nil {
+		return nil, errors.Wrap(err, "Failed to close CPIO archive")
+	}
+
+	// Run gzip compression
+	compressedBuffer := new(bytes.Buffer)
+	gzipWriter := gzip.NewWriter(compressedBuffer)
+	if _, err := gzipWriter.Write(archiveBuffer.Bytes()); err != nil {
+		return nil, errors.Wrap(err, "Failed to gzip ignition config")
+	}
+	if err := gzipWriter.Close(); err != nil {
+		return nil, errors.Wrap(err, "Failed to gzip ignition config")
+	}
+
+	return compressedBuffer.Bytes(), nil
 }

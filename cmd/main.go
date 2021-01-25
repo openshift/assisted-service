@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/migrations"
@@ -159,6 +161,8 @@ func main() {
 
 	log.Println(fmt.Sprintf("Started service with OCP versions %v", openshiftVersionsMap))
 
+	failOnError(os.MkdirAll(Options.BMConfig.ISOCacheDir, 0700), "Failed to create ISO cache directory %s", Options.BMConfig.ISOCacheDir)
+
 	// Connect to db
 	db := setupDB(log)
 	defer db.Close()
@@ -214,6 +218,8 @@ func main() {
 	newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
 	Options.JobConfig.S3EndpointURL = newUrl
+
+	isoEditorFactory := isoeditor.RhcosFactory{}
 
 	var generator generator.ISOInstallConfigGenerator
 	var objectHandler s3wrapper.API
@@ -293,7 +299,8 @@ func main() {
 	Options.BMConfig.S3EndpointURL = newUrl
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator, versionHandler)
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator,
+		versionHandler, &isoEditorFactory)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),

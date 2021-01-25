@@ -130,7 +130,12 @@ func DoAllBootFilesExist(ctx context.Context, isoObjectName string, api API) (bo
 func CreateAndUploadMinimalIso(ctx context.Context, log logrus.FieldLogger,
 	isoPath, minimalIsoObject, openshiftVersion, serviceBaseURL string, api API) error {
 
-	editor := isoeditor.CreateEditor(isoPath, openshiftVersion, log)
+	editorFactory := isoeditor.RhcosFactory{}
+	editor, err := editorFactory.NewEditor(isoPath, openshiftVersion, log)
+	if err != nil {
+		log.Errorf("Error creating ISO editor (%v)", err)
+		return err
+	}
 
 	log.Infof("Extracting rhcos ISO (%s)", isoPath)
 	minimalIsoPath, err := editor.CreateMinimalISOTemplate(serviceBaseURL)

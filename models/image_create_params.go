@@ -18,6 +18,9 @@ import (
 // swagger:model image-create-params
 type ImageCreateParams struct {
 
+	// Type of image that should be generated.
+	ImageType ImageType `json:"image_type,omitempty"`
+
 	// SSH public key for debugging the installation.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
@@ -29,6 +32,10 @@ type ImageCreateParams struct {
 func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateImageType(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateStaticIpsConfig(formats); err != nil {
 		res = append(res, err)
 	}
@@ -36,6 +43,22 @@ func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ImageCreateParams) validateImageType(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ImageType) { // not required
+		return nil
+	}
+
+	if err := m.ImageType.Validate(formats); err != nil {
+		if ve, ok := err.(*errors.Validation); ok {
+			return ve.ValidateName("image_type")
+		}
+		return err
+	}
+
 	return nil
 }
 
