@@ -1181,11 +1181,6 @@ func (c clusterInstaller) install(tx *gorm.DB) error {
 		return errors.Wrapf(err, "failed to install cluster %s", cluster.ID.String())
 	}
 
-	// set one of the master nodes as bootstrap
-	if err = c.b.setBootstrapHost(c.ctx, cluster, tx); err != nil {
-		return err
-	}
-
 	// move hosts states to installing
 	if err = c.installHosts(&cluster, tx); err != nil {
 		return err
@@ -1283,6 +1278,9 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			if err = b.hostApi.PrepareForInstallation(ctx, cluster.Hosts[i], tx); err != nil {
 				return err
 			}
+		}
+		if err = b.setBootstrapHost(ctx, cluster, tx); err != nil {
+			return err
 		}
 		return nil
 	})
@@ -1731,7 +1729,7 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpOrSNONetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	if params.ClusterUpdateParams.APIVip != nil {
 		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set API VIP")
@@ -1751,26 +1749,6 @@ func (b *bareMetalInventory) updateDhcpOrSNONetworkParams(updates map[string]int
 		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
 	}
 	return nil
-}
-
-func (b *bareMetalInventory) updateMachineCidrOrVips(userManagedNetworking, vipDhcpAllocation bool, cluster *common.Cluster, updates map[string]interface{},
-	params installer.UpdateClusterParams, machineCidr *string, log logrus.FieldLogger) error {
-	var (
-		err                           error
-		userManagedNetworkingIPv6Only bool
-	)
-	if userManagedNetworking {
-		userManagedNetworkingIPv6Only, err = network.AreIpv6OnlyHosts(cluster.Hosts, log)
-		if err != nil {
-			return err
-		}
-	}
-	if !userManagedNetworking && vipDhcpAllocation || userManagedNetworkingIPv6Only {
-		err = b.updateDhcpOrSNONetworkParams(updates, cluster, params, log, machineCidr)
-	} else if !userManagedNetworking {
-		err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, machineCidr)
-	}
-	return err
 }
 
 func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
@@ -1851,8 +1829,15 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		machineCidr = ""
 		setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	}
-	if err = b.updateMachineCidrOrVips(userManagedNetworking, vipDhcpAllocation, cluster, updates, params, &machineCidr, log); err != nil {
-		return err
+	if !userManagedNetworking {
+		if vipDhcpAllocation {
+			err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
+		} else {
+			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
+		}
+		if err != nil {
+			return err
+		}
 	}
 
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
