@@ -32,8 +32,7 @@ var DefaultInstructionConfig = InstructionConfig{
 	ServiceBaseURL:      "http://10.35.59.36:30485",
 	InstallerImage:      "quay.io/ocpmetal/assisted-installer:latest",
 	ControllerImage:     "quay.io/ocpmetal/assisted-installer-controller:latest",
-	InventoryImage:      "quay.io/ocpmetal/assisted-installer-agent:latest",
-	FioPerfCheckImage:   "quay.io/ocpmetal/assisted-installer-agent:latest",
+	AgentImage:          "quay.io/ocpmetal/assisted-installer-agent:latest",
 	InstallationTimeout: 120,
 	ReleaseImageMirror:  "local.registry:5000/ocp@sha256:eab93b4591699a5a4ff50ad3517892653f04fb840127895bb3609b3cc68f98f3",
 }
@@ -497,7 +496,7 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 	verifyArgInCommand(reply.Args[1], "--url", installCmd.instructionConfig.ServiceBaseURL, 2)
 	verifyArgInCommand(reply.Args[1], "--mco-image", defaultMCOImage, 1)
 	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage, 1)
-	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.InventoryImage, 1)
+	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.AgentImage, 1)
 	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)), 1)
 
 	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet --name=assisted-installer -v /dev:/dev:rw -v /var/log:/var/log " +

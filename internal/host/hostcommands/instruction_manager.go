@@ -46,38 +46,32 @@ type InstructionManager struct {
 }
 
 type InstructionConfig struct {
-	ServiceBaseURL               string `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath            string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs                   string `envconfig:"SERVICE_IPS" default:""`
-	InstallerImage               string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage              string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	ConnectivityCheckImage       string `envconfig:"CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	InventoryImage               string `envconfig:"INVENTORY_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	FreeAddressesImage           string `envconfig:"FREE_ADDRESSES_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	DhcpLeaseAllocatorImage      string `envconfig:"DHCP_LEASE_ALLOCATOR_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	APIVIPConnectivityCheckImage string `envconfig:"API_VIP_CONNECTIVITY_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	NtpSynchronizerImage         string `envconfig:"NTP_SYNCHRONIZER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	FioPerfCheckImage            string `envconfig:"FIO_PERF_CHECK_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	SkipCertVerification         bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	CheckClusterVersion          bool   `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
-	SupportL2                    bool   `envconfig:"SUPPORT_L2" default:"true"`
-	InstallationTimeout          uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
-	ReleaseImageMirror           string
+	ServiceBaseURL       string `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath    string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	ServiceIPs           string `envconfig:"SERVICE_IPS" default:""`
+	InstallerImage       string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage      string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	AgentImage           string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	SkipCertVerification bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	CheckClusterVersion  bool   `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
+	SupportL2            bool   `envconfig:"SUPPORT_L2" default:"true"`
+	InstallationTimeout  uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	ReleaseImageMirror   string
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
 	instructionConfig InstructionConfig, connectivityValidator connectivity.Validator, eventsHandler events.Handler, versionHandler versions.Handler) *InstructionManager {
-	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.ConnectivityCheckImage)
+	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
 	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler)
-	inventoryCmd := NewInventoryCmd(log, instructionConfig.InventoryImage)
-	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.FreeAddressesImage)
+	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)
+	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.AgentImage)
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
 	logsCmd := NewLogsCmd(log, db, instructionConfig)
-	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.DhcpLeaseAllocatorImage, db)
-	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.APIVIPConnectivityCheckImage, instructionConfig.SupportL2)
+	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.AgentImage, db)
+	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.AgentImage, instructionConfig.SupportL2)
 	downloadInstallerCmd := NewDownloadInstallerCmd(log, instructionConfig)
-	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.NtpSynchronizerImage, db)
+	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.AgentImage, db)
 
 	return &InstructionManager{
 		log: log,

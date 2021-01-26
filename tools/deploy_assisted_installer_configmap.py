@@ -68,14 +68,7 @@ def main():
 
             versions = {"INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
-                        "AGENT_DOCKER_IMAGE": "assisted-installer-agent",
-                        "CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
-                        "INVENTORY_IMAGE": "assisted-installer-agent",
-                        "FREE_ADDRESSES_IMAGE": "assisted-installer-agent",
-                        "DHCP_LEASE_ALLOCATOR_IMAGE": "assisted-installer-agent",
-                        "API_VIP_CONNECTIVITY_CHECK_IMAGE": "assisted-installer-agent",
-                        "FIO_PERF_CHECK_IMAGE": "assisted-installer-agent",
-                        "NTP_SYNCHRONIZER_IMAGE": "assisted-installer-agent"}
+                        "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
 

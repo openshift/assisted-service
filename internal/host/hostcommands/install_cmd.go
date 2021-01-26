@@ -89,7 +89,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		ClusterID:            string(host.ClusterID),
 		HostID:               string(*host.ID),
 		UseCustomCACert:      i.hasCACert(),
-		FioPerfCheckImage:    i.instructionConfig.FioPerfCheckImage,
+		FioPerfCheckImage:    i.instructionConfig.AgentImage,
 		SkipCertVerification: i.instructionConfig.SkipCertVerification,
 		Path:                 bootdevice,
 		DurationThresholdMs:  FioDurationThresholdMs,
@@ -140,7 +140,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--high-availability-mode", haMode,
 		"--mco-image", mcoImage,
 		"--controller-image", i.instructionConfig.ControllerImage,
-		"--agent-image", i.instructionConfig.InventoryImage,
+		"--agent-image", i.instructionConfig.AgentImage,
 	}
 
 	/*

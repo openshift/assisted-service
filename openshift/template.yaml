@@ -66,27 +66,6 @@ parameters:
 - name: AGENT_DOCKER_IMAGE
   value: ''
   required: true
-- name: CONNECTIVITY_CHECK_IMAGE
-  value: ''
-  required: true
-- name: INVENTORY_IMAGE
-  value: ''
-  required: true
-- name: FREE_ADDRESSES_IMAGE
-  value: ''
-  required: true
-- name: DHCP_LEASE_ALLOCATOR_IMAGE
-  value: ''
-  required: true
-- name: API_VIP_CONNECTIVITY_CHECK_IMAGE
-  value: ''
-  required: true
-- name: NTP_SYNCHRONIZER_IMAGE
-  value: ''
-  required: true
-- name: FIO_PERF_CHECK_IMAGE
-  value: ''
-  required: true
 - name: INSTALL_RH_CA
   value: "false"
   required: true
@@ -287,20 +266,6 @@ objects:
                 value: ${CONTROLLER_IMAGE}
               - name: AGENT_DOCKER_IMAGE
                 value: ${AGENT_DOCKER_IMAGE}
-              - name: CONNECTIVITY_CHECK_IMAGE
-                value: ${CONNECTIVITY_CHECK_IMAGE}
-              - name: INVENTORY_IMAGE
-                value: ${INVENTORY_IMAGE}
-              - name: FREE_ADDRESSES_IMAGE
-                value: ${FREE_ADDRESSES_IMAGE}
-              - name: DHCP_LEASE_ALLOCATOR_IMAGE
-                value: ${DHCP_LEASE_ALLOCATOR_IMAGE}
-              - name: API_VIP_CONNECTIVITY_CHECK_IMAGE
-                value: ${API_VIP_CONNECTIVITY_CHECK_IMAGE}
-              - name: NTP_SYNCHRONIZER_IMAGE
-                value: ${NTP_SYNCHRONIZER_IMAGE}
-              - name: FIO_PERF_CHECK_IMAGE
-                value: ${FIO_PERF_CHECK_IMAGE}
               - name: SUPPORT_L2
                 value: ${SUPPORT_L2}
               - name: LOG_LEVEL
