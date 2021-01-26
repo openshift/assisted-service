@@ -52,7 +52,7 @@ func (i *logsCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.St
 	}
 
 	logsCommand, err := createUploadLogsCmd(host, i.instructionConfig.ServiceBaseURL,
-		i.instructionConfig.InventoryImage, strings.Join(mastersIPs, ","),
+		i.instructionConfig.AgentImage, strings.Join(mastersIPs, ","),
 		i.instructionConfig.SkipCertVerification, false, true)
 	if err != nil {
 		return nil, err

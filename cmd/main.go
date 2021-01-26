@@ -198,11 +198,7 @@ func main() {
 		Options.BMConfig.AgentDockerImg,
 		Options.InstructionConfig.InstallerImage,
 		Options.InstructionConfig.ControllerImage,
-		Options.InstructionConfig.ConnectivityCheckImage,
-		Options.InstructionConfig.InventoryImage,
-		Options.InstructionConfig.FreeAddressesImage,
-		Options.InstructionConfig.DhcpLeaseAllocatorImage,
-		Options.InstructionConfig.APIVIPConnectivityCheckImage,
+		Options.InstructionConfig.AgentImage,
 	}
 
 	for _, ocpVersion := range openshiftVersionsMap {
