@@ -431,6 +431,20 @@ func (mr *MockAPIMockRecorder) UpdateHostname(arg0, arg1, arg2, arg3 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostname", reflect.TypeOf((*MockAPI)(nil).UpdateHostname), arg0, arg1, arg2, arg3)
 }
 
+// UpdateImageStatus mocks base method
+func (m *MockAPI) UpdateImageStatus(arg0 context.Context, arg1 *models.Host, arg2 *models.ContainerImageAvailability, arg3 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateImageStatus", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateImageStatus indicates an expected call of UpdateImageStatus
+func (mr *MockAPIMockRecorder) UpdateImageStatus(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateImageStatus", reflect.TypeOf((*MockAPI)(nil).UpdateImageStatus), arg0, arg1, arg2, arg3)
+}
+
 // UpdateInstallProgress mocks base method
 func (m *MockAPI) UpdateInstallProgress(arg0 context.Context, arg1 *models.Host, arg2 *models.HostProgress) error {
 	m.ctrl.T.Helper()

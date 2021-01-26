@@ -80,12 +80,14 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("discovering", func() {
 				checkStep(models.HostStatusDiscovering, []models.StepType{
-					models.StepTypeInventory, models.StepTypeExecute,
+					models.StepTypeInventory, models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("known", func() {
 				checkStep(models.HostStatusKnown, []models.StepType{
-					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeInventory, models.StepTypeNtpSynchronizer,
+					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
+					models.StepTypeInventory, models.StepTypeNtpSynchronizer,
+					models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("disconnected", func() {
@@ -95,12 +97,16 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("insufficient", func() {
 				checkStep(models.HostStatusInsufficient, []models.StepType{
-					models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeInventory, models.StepTypeConnectivityCheck,
+					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("pending-for-input", func() {
 				checkStep(models.HostStatusPendingForInput, []models.StepType{
-					models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeInventory, models.StepTypeConnectivityCheck,
+					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
+					models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("error", func() {
@@ -146,13 +152,14 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("discovering", func() {
 				checkStep(models.HostStatusDiscovering, []models.StepType{
-					models.StepTypeInventory, models.StepTypeExecute,
+					models.StepTypeInventory, models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("known", func() {
 				checkStep(models.HostStatusKnown, []models.StepType{
-					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
-					models.StepTypeInventory, models.StepTypeNtpSynchronizer,
+					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
+					models.StepTypeDhcpLeaseAllocate, models.StepTypeInventory,
+					models.StepTypeNtpSynchronizer, models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("disconnected", func() {
@@ -162,14 +169,16 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("insufficient", func() {
 				checkStep(models.HostStatusInsufficient, []models.StepType{
-					models.StepTypeInventory, models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
-					models.StepTypeDhcpLeaseAllocate, models.StepTypeNtpSynchronizer,
+					models.StepTypeInventory, models.StepTypeConnectivityCheck,
+					models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
+					models.StepTypeNtpSynchronizer, models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("pending-for-input", func() {
 				checkStep(models.HostStatusPendingForInput, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
-					models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate, models.StepTypeNtpSynchronizer,
+					models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
+					models.StepTypeNtpSynchronizer, models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("error", func() {
@@ -227,7 +236,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		{DriveType: "disk", Name: "sdh", SizeBytes: validDiskSize},
 	}
 	mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
-	mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).AnyTimes()
+	mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).AnyTimes()
 	mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("mcoImage", nil).AnyTimes()
 	if funk.Contains(expectedStepTypes, models.StepTypeConnectivityCheck) {
 		mockConnectivity.EXPECT().GetHostValidInterfaces(gomock.Any()).Return([]*models.Interface{

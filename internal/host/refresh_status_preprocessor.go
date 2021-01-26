@@ -123,8 +123,13 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 		},
 		{
 			id:        IsNTPSynced,
-			condition: v.IsNTPSynced,
+			condition: v.isNTPSynced,
 			formatter: v.printNTPSynced,
+		},
+		{
+			id:        AreContainerImagesAvailable,
+			condition: v.areImagesAvailable,
+			formatter: v.printImageAvailability,
 		},
 	}
 	return ret

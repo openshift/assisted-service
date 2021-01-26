@@ -2658,6 +2658,25 @@ func (b *bareMetalInventory) processFioPerfCheckResponse(ctx context.Context, h 
 	return nil
 }
 
+func (b *bareMetalInventory) processImageAvailabilityResponse(ctx context.Context, host *models.Host, responseStr string) error {
+	var response models.ContainerImageAvailabilityResponse
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if err := json.Unmarshal([]byte(responseStr), &response); err != nil {
+		log.WithError(err).Warnf("Json unmarshal %s image availability response from host %s", responseStr, host.ID.String())
+		return err
+	}
+
+	for _, image := range response.Images {
+		if err := b.hostApi.UpdateImageStatus(ctx, host, image, b.db); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInventory, ctx context.Context, host models.Host, stepReply string) error {
 	var err error
 	switch params.Reply.StepType {
@@ -2675,6 +2694,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.processNtpSynchronizerResponse(ctx, &host, stepReply)
 	case models.StepTypeFioPerfCheck:
 		err = b.processFioPerfCheckResponse(ctx, &host, stepReply)
+	case models.StepTypeContainerImageAvailability:
+		err = b.processImageAvailabilityResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -2699,6 +2720,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.NtpSynchronizationResponse{}, params.Reply.Output)
 	case models.StepTypeFioPerfCheck:
 		stepReply, err = filterReply(&models.FioPerfCheckResponse{}, params.Reply.Output)
+	case models.StepTypeContainerImageAvailability:
+		stepReply, err = filterReply(&models.ContainerImageAvailabilityResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err

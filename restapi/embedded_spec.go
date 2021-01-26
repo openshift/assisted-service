@@ -5534,6 +5534,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
+        "images_status": {
+          "description": "Array of image statuses.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "installation_disk_path": {
           "description": "Host installation path.",
           "type": "string"
@@ -5793,7 +5798,8 @@ func init() {
         "api-vip-connected",
         "belongs-to-majority-group",
         "valid-platform",
-        "ntp-synced"
+        "ntp-synced",
+        "container-images-available"
       ]
     },
     "host_network": {
@@ -12124,6 +12130,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
         },
+        "images_status": {
+          "description": "Array of image statuses.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "installation_disk_path": {
           "description": "Host installation path.",
           "type": "string"
@@ -12383,7 +12394,8 @@ func init() {
         "api-vip-connected",
         "belongs-to-majority-group",
         "valid-platform",
-        "ntp-synced"
+        "ntp-synced",
+        "container-images-available"
       ]
     },
     "host_network": {

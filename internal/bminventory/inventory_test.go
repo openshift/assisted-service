@@ -1407,6 +1407,68 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 	})
+
+	Context("Image availability", func() {
+		var (
+			clusterId *strfmt.UUID
+			hostId    *strfmt.UUID
+		)
+
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, statuses []*models.ContainerImageAvailability) installer.PostStepReplyParams {
+			response := models.ContainerImageAvailabilityResponse{
+				Images: statuses,
+			}
+
+			b, err := json.Marshal(&response)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			return installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    hostID,
+				Reply: &models.StepReply{
+					Output:   string(b),
+					StepType: models.StepTypeContainerImageAvailability,
+				},
+			}
+		}
+
+		BeforeEach(func() {
+			clusterId = strToUUID(uuid.New().String())
+			hostId = strToUUID(uuid.New().String())
+
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("discovering"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("Image availability success", func() {
+			toMarshal := []*models.ContainerImageAvailability{
+				{Name: "image", Result: models.ContainerImageAvailabilityResultSuccess},
+				{Name: "image2", Result: models.ContainerImageAvailabilityResultFailure},
+			}
+
+			mockHostApi.EXPECT().UpdateImageStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
+
+			params := makeStepReply(*clusterId, *hostId, toMarshal)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+
+		It("Image availability error", func() {
+			mockHostApi.EXPECT().UpdateImageStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("Some error")).Times(1)
+
+			toMarshal := []*models.ContainerImageAvailability{
+				{Name: "image", Result: models.ContainerImageAvailabilityResultSuccess},
+				{Name: "image2", Result: models.ContainerImageAvailabilityResultFailure},
+			}
+			params := makeStepReply(*clusterId, *hostId, toMarshal)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
+		})
+	})
 })
 
 var _ = Describe("GetFreeAddresses", func() {
