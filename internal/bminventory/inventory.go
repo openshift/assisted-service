@@ -2263,7 +2263,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	if err = b.hostApi.RegisterHost(ctx, &host, tx); err != nil {
 		log.WithError(err).Errorf("failed to register host <%s> cluster <%s>",
 			params.NewHostParams.HostID.String(), params.ClusterID.String())
-		uerr := errors.Wrap(err, "Failed to register host: error creating host metadata")
+		uerr := errors.Wrap(err, fmt.Sprintf("Failed to register host %s", hostutil.GetHostnameForMsg(&host)))
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
 			uerr.Error(), time.Now())
 		return returnRegisterHostTransitionError(http.StatusBadRequest, err)

@@ -108,7 +108,7 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 		return errors.New("PostRegisterDuringReboot incompatible type of StateSwitch")
 	}
 	if swag.StringValue(&sHost.srcState) == models.HostStatusInstallingPendingUserAction {
-		return common.NewApiError(http.StatusForbidden, errors.New("Host is required to be booted from disk"))
+		return common.NewApiError(http.StatusForbidden, errors.Errorf("Host is required to be booted from disk %s", sHost.host.InstallationDiskPath))
 	}
 	params, ok := args.(*TransitionArgsRegisterHost)
 	if !ok {
