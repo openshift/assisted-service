@@ -738,14 +738,14 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
 			return errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
 		}
-		for vCategory, vRes := range newValidationRes {
+		for vCategory, vRes := range currentValidationRes {
 			for i, v := range vRes {
-				if v.Status == ValidationFailure && currentValidationRes[vCategory][i].Status == ValidationSuccess {
+				if newValidationRes[vCategory][i].Status == ValidationFailure && v.Status == ValidationSuccess {
 					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, h.ClusterID, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
 					eventMsg := fmt.Sprintf("Host %v: validation '%v' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
 					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
 				}
-				if v.Status == ValidationSuccess && currentValidationRes[vCategory][i].Status == ValidationFailure {
+				if newValidationRes[vCategory][i].Status == ValidationSuccess && v.Status == ValidationFailure {
 					eventMsg := fmt.Sprintf("Host %v: validation '%v' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
 					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
 				}
