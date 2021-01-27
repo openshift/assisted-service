@@ -22,3 +22,5 @@ RUN curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.10.1/m
   && chmod +x minikube && mkdir -p /usr/local/bin/ && install minikube /usr/local/bin/
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
 RUN curl -SL https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/4.6.0/openshift-client-linux-4.6.0.tar.gz | tar -xz -C /usr/local/bin
+
+RUN mkdir /.cache && chmod 775 -R /.cache && chmod 775 -R $GOPATH 
