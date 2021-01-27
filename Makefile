@@ -293,7 +293,9 @@ deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 deploy-on-openshift-ci:
+ifeq ("$(wildcard $(shell which kubectl))","")
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
+endif
 	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
