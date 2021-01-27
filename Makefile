@@ -167,7 +167,28 @@ publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
 
 build-openshift-ci-test-bin:
-	pip3 install pyyaml waiting
+	export GO111MODULE=on
+	export GOFLAGS=""
+
+	yum install -y docker libvirt-clients awscli python3-pip postgresql genisoimage && \
+		yum clean all
+	curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | \
+		bash -s -- 3.8.8 && mv kustomize /usr/bin/
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.24.0
+	curl -L https://raw.githack.com/stoplightio/spectral/master/scripts/install.sh | sh
+	go get -u github.com/onsi/ginkgo/ginkgo@v1.12.2 \
+				golang.org/x/tools/cmd/goimports@v0.0.0-20200616195046-dc31b401abb5 \
+				github.com/golang/mock/mockgen@v1.4.3 \
+				github.com/vektra/mockery/.../@v1.1.2 \
+				gotest.tools/gotestsum@v0.5.3 \
+				github.com/axw/gocov/gocov \
+				sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0 \
+				github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
+	pip3 install boto3==1.13.14 waiting==1.4.1 requests==2.22.0 mkdocs==1.1.2 pyyaml
+	curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.10.1/minikube-linux-amd64 \
+	&& chmod +x minikube && mkdir -p /usr/local/bin/ && install minikube /usr/local/bin/
+	curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
+	curl -SL https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/4.6.0/openshift-client-linux-4.6.0.tar.gz | tar -xz -C /usr/local/bin
 
 ##########
 # Deploy #
@@ -292,8 +313,13 @@ deploy-onprem:
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
+setup-openshift-ci:
+	setup_prow_ci_env.sh
+
 deploy-on-openshift-ci:
+ifeq ("$(wildcard $(shell which kubectl))","")
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
+endif
 	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
