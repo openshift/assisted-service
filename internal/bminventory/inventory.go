@@ -962,10 +962,13 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	staticIpsConfig := formatStaticIPs(params.ImageCreateParams.StaticIpsConfig)
 
+	vlansConfig := formatVlans(params.ImageCreateParams.VlansConfig)
+
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
 		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig &&
+		cluster.ImageInfo.VlansConfig == vlansConfig &&
 		cluster.ImageInfo.Type == params.ImageCreateParams.ImageType {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
@@ -983,6 +986,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_download_url"] = ""
 	updates["image_static_ips_config"] = staticIpsConfig
+	updates["image_vlans_config"] = vlansConfig
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
@@ -4284,24 +4288,39 @@ func (b *bareMetalInventory) setPullSecretFromOCP(cluster *common.Cluster, log l
 func formatStaticIPs(staticIpsConfig []*models.StaticIPConfig) string {
 	lines := make([]string, len(staticIpsConfig))
 
-	// construct static IPs config string
+	// construct static IPs config to string
 	for i, entry := range staticIpsConfig {
-		elements := []string{
-			entry.Mac,
-			entry.IP,
-			entry.Mask,
-			entry.DNS,
-			entry.Gateway,
-			entry.IPV6,
-			entry.MaskV6,
-			entry.DNSV6,
-			entry.GatewayV6}
+		elements := []string{entry.Mac}
+		elements = append(elements, getStaticIPsData(entry.IPV4Config)...)
+		elements = append(elements, getStaticIPsData((*models.StaticIPV4Config)(entry.IPV6Config))...)
 		lines[i] = strings.Join(elements, ";")
 	}
 
 	sort.Strings(lines)
 
 	return strings.Join(lines, "\n")
+}
+
+func formatVlans(vlansConfig []*models.VlanConfig) string {
+	lines := make([]string, len(vlansConfig))
+	// construct vlans config to string
+	for i, entry := range vlansConfig {
+		elements := []string{entry.Mac, strconv.FormatInt(entry.ID, 10)}
+		elements = append(elements, getStaticIPsData(entry.IPV4Config)...)
+		elements = append(elements, getStaticIPsData((*models.StaticIPV4Config)(entry.IPV6Config))...)
+		lines[i] = strings.Join(elements, ";")
+	}
+
+	sort.Strings(lines)
+
+	return strings.Join(lines, "\n")
+}
+
+func getStaticIPsData(static_config *models.StaticIPV4Config) []string {
+	if static_config != nil {
+		return []string{static_config.IP, static_config.Mask, static_config.DNS, static_config.Gateway}
+	}
+	return []string{"", "", "", ""}
 }
 
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {

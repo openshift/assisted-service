@@ -38,11 +38,14 @@ type ImageInfo struct {
 	// SSH public key for debugging the installation.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
-	// statip ips configuration string in the format expected by discovery ignition
+	// static ips configuration string in the format expected by discovery ignition
 	StaticIpsConfig string `json:"static_ips_config,omitempty"`
 
 	// type
 	Type ImageType `json:"type,omitempty"`
+
+	// vlans configuration in the format expected by discovery ignition
+	VlansConfig string `json:"vlans_config,omitempty"`
 }
 
 // Validate validates this image info

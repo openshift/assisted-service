@@ -2927,6 +2927,10 @@ definitions:
         type: string
         description: Type of image that should be generated.
         $ref: '#/definitions/image_type'
+      vlans_config:
+        type: array
+        items:
+          $ref: '#/definitions/vlan-config'
 
   assisted-service-iso-create-params:
     type: object
@@ -3698,7 +3702,10 @@ definitions:
         x-go-custom-tag: gorm:"type:timestamp with time zone"
       static_ips_config:
         type: string
-        description: statip ips configuration string in the format expected by discovery ignition
+        description: static ips configuration string in the format expected by discovery ignition
+      vlans_config:
+        type: string
+        description: vlans configuration in the format expected by discovery ignition
       type:
         type: string
         $ref: '#/definitions/image_type'
@@ -4421,12 +4428,34 @@ definitions:
   static-ip-config:
     type: object
     properties:
-      ip:
-        type: string
-        pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}$' 
       mac:
         type: string
         pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+      ipv4_config:
+        $ref: '#/definitions/static-ipv4-config'
+      ipv6_config:
+        $ref: '#/definitions/static-ipv6-config'
+
+  vlan-config:
+    type: object
+    properties:
+      mac:
+        type: string
+        pattern: '^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$'
+      id:
+        type: integer
+        description: vlan id
+      ipv4_config:
+        $ref: '#/definitions/static-ipv4-config'
+      ipv6_config:
+        $ref: '#/definitions/static-ipv6-config'
+
+  static-ipv4-config:
+    type: object
+    properties:
+      ip:
+        type: string
+        pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}$'
       gateway:
         type: string
         pattern: '^([0-9]{1,3}\.){3}[0-9]{1,3}$'
@@ -4435,16 +4464,20 @@ definitions:
         pattern: '^[0-9]|[1-2][0-9]|3[0-2]?$'
       dns:
         type: string
-      ip_v6:
+
+  static-ipv6-config:
+    type: object
+    properties:
+      ip:
         type: string
         pattern: '^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$'
-      gateway_v6:
+      gateway:
         type: string
         pattern: '^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$'
-      mask_v6:
+      mask:
         type: string
         pattern: '^([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$'
-      dns_v6:
+      dns:
         type: string
 
   openshift-version:
