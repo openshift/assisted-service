@@ -525,10 +525,6 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
 		}
 
-		if funk.Contains(disconnectionValidationStages, sHost.host.Progress.CurrentStage) && !hostIsResponsive(sHost.host) {
-			template += hostNotRespondingNotification + sHost.host.CheckedInAt.String()
-		}
-
 		_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
 			sHost.srcState, swag.StringValue(sHost.host.Status), template, "validations_info", string(b))
 		return err
@@ -542,6 +538,14 @@ func (th *transitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args statesw
 		return false, errors.New("HasClusterError incompatible type of StateSwitch")
 	}
 	return hostutil.IsDay2Host(sHost.host), nil
+}
+
+func (th *transitionHandler) HostNotResponsiveWhileInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HasClusterError incompatible type of StateSwitch")
+	}
+	return funk.Contains(disconnectionValidationStages, sHost.host.Progress.CurrentStage) && !hostIsResponsive(sHost.host), nil
 }
 
 func getFailedValidations(params *TransitionArgsRefreshHost) []string {

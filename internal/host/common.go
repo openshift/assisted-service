@@ -31,9 +31,9 @@ const (
 	statusInfoPreparingTimedOut                                = "Host failed to install because its preparation took longer than expected"
 	statusInfoAbortingDueClusterErrors                         = "Host is part of a cluster that failed to install"
 	statusInfoInstallationTimedOut                             = "Host failed to install due to timeout while starting installation"
+	statusInfoConnectionTimedOut                               = "Host failed to install due to timeout while connecting to host"
 	statusInfoInstallationInProgressTimedOut                   = "Host failed to install because its installation stage $STAGE took longer than expected $MAX_TIME"
 	statusInfoInstallationInProgressWritingImageToDiskTimedOut = "Host failed to install because its installation stage $STAGE did not sufficiently progress in the last $MAX_TIME."
-	hostNotRespondingNotification                              = ", Host is not responding, last respond was at "
 )
 
 var hostStatusesBeforeInstallation = [...]string{
