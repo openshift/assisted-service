@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/event"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -398,21 +400,25 @@ func main() {
 	}()
 
 	go func() {
+		pullSecretUpdatesChannel := make(chan event.GenericEvent)
+
 		if Options.EnableKubeAPI {
 			failOnError((&controllers.ImageReconciler{
-				Client:    ctrlMgr.GetClient(),
-				Log:       log,
-				Scheme:    ctrlMgr.GetScheme(),
-				Installer: bm,
+				Client:                   ctrlMgr.GetClient(),
+				Log:                      log,
+				Scheme:                   ctrlMgr.GetScheme(),
+				Installer:                bm,
+				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Image")
 
 			failOnError((&controllers.ClusterReconciler{
-				Client:     ctrlMgr.GetClient(),
-				Log:        log,
-				Scheme:     ctrlMgr.GetScheme(),
-				Installer:  bm,
-				ClusterApi: clusterApi,
-				HostApi:    hostApi,
+				Client:                   ctrlMgr.GetClient(),
+				Log:                      log,
+				Scheme:                   ctrlMgr.GetScheme(),
+				Installer:                bm,
+				ClusterApi:               clusterApi,
+				HostApi:                  hostApi,
+				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Cluster")
 
 			failOnError((&controllers.HostReconciler{
