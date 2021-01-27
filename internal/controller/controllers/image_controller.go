@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/go-openapi/strfmt"
@@ -93,9 +92,7 @@ func (r *ImageReconciler) create(ctx context.Context, image *adiiov1alpha1.Image
 	return r.updateStatusAndReturnResult(ctx, image, imageInfo, state, inventoryErr)
 }
 
-func (r *ImageReconciler) getClusterByRef(
-	ctx context.Context,
-	ref *corev1.ObjectReference) (*adiiov1alpha1.Cluster, error) {
+func (r *ImageReconciler) getClusterByRef(ctx context.Context, ref *adiiov1alpha1.ClusterReference) (*adiiov1alpha1.Cluster, error) {
 	key := types.NamespacedName{
 		Name:      ref.Name,
 		Namespace: ref.Namespace,
