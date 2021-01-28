@@ -10,6 +10,10 @@ def main():
 
     if deploy_options.enable_kube_api:
         file_path = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'resources.yaml')
+
+        if deploy_options.apply_manifest is False:
+            return
+
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,

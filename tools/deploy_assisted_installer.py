@@ -69,8 +69,11 @@ def main():
 
     with open(DST_FILE, "w+") as dst:
         yaml.dump(data, dst, default_flow_style=False)
-    print("Deploying {}".format(DST_FILE))
 
+    if deploy_options.apply_manifest is False:
+        return
+
+    print("Deploying {}".format(DST_FILE))
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,

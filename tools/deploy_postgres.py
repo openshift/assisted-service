@@ -31,6 +31,8 @@ def deploy_postgres_secret(deploy_options):
         docs=docs
     )
 
+    if deploy_options.apply_manifest is False:
+        return
     log.info('Deploying %s', dst_file)
     utils.apply(
         target=deploy_options.target,
@@ -52,6 +54,9 @@ def deploy_postgres(deploy_options):
         basename=f'build/{deploy_options.namespace}/postgres-deployment.yaml',
         docs=docs
     )
+
+    if deploy_options.apply_manifest is False:
+        return
 
     log.info('Deploying %s', dst_file)
     utils.apply(
@@ -81,6 +86,8 @@ def deploy_postgres_storage(deploy_options):
         docs=docs
     )
 
+    if deploy_options.apply_manifest is False:
+        return
     log.info('Deploying %s', dst_file)
     utils.apply(
         target=deploy_options.target,

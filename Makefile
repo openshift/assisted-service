@@ -43,6 +43,7 @@ OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell cat default_ocp_versio
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 PUBLISH_TAG := $(or ${GIT_REVISION})
+APPLY_MANIFEST := $(or ${APPLY_MANIFEST},True)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
@@ -165,13 +166,15 @@ deploy-all: $(BUILD_FOLDER) $(VERIFY_CLUSTER) deploy-namespace deploy-postgres d
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
-	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(DEPLOY_TAG_OPTION)
+	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST) $(DEPLOY_TAG_OPTION)
 
 deploy-namespace: $(BUILD_FOLDER)
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-s3-secret:
-	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+		--apply-manifest $(APPLY_MANIFEST)
 
 deploy-s3: deploy-namespace
 	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
@@ -182,10 +185,12 @@ deploy-route53: deploy-namespace
 	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-ocm-secret: deploy-namespace
-	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-inventory-service-file: deploy-namespace
-	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
+	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST)
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
@@ -193,30 +198,35 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
-		--check-cvo $(CHECK_CLUSTER_VERSION) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
+		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
 
 deploy-resources: generate-manifests
-	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-resources
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
+		--apply-manifest $(APPLY_MANIFEST) \
 		$(ENABLE_KUBE_API_CMD)
 	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
+		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-role: deploy-namespace generate-manifests
 	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
-		$(ENABLE_KUBE_API_CMD)
+		--apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD)
 
 deploy-postgres: deploy-namespace
-	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+		--apply-manifest $(APPLY_MANIFEST)
 
 deploy-service-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
 
 deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
+
+create-ocp-manifests:
+	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && $(MAKE) deploy-service-on-ocp-cluster deploy-ui-on-ocp-cluster
 
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 

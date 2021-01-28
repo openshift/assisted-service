@@ -30,6 +30,9 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
+    if deploy_options.apply_manifest is False:
+        return
+
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
