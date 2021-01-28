@@ -70,7 +70,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 
 func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig string) (string, error) {
 	if err := e.isoHandler.Extract(); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to extract iso")
 	}
 	defer func() {
 		if err := e.isoHandler.CleanWorkDir(); err != nil {
@@ -79,12 +79,12 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig st
 	}()
 
 	if err := e.addIgnitionArchive(ignition); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to add ignition archive")
 	}
 
 	if staticIPConfig != "" {
 		if err := e.addCustomRAMDisk(staticIPConfig); err != nil {
-			return "", err
+			return "", errors.Wrap(err, "failed to add additional ramdisk")
 		}
 	}
 
