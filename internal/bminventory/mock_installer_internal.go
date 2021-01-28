@@ -36,6 +36,20 @@ func (m *MockInstallerInternals) EXPECT() *MockInstallerInternalsMockRecorder {
 	return m.recorder
 }
 
+// DeregisterClusterInternal mocks base method
+func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 installer.DeregisterClusterParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeregisterClusterInternal", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeregisterClusterInternal indicates an expected call of DeregisterClusterInternal
+func (mr *MockInstallerInternalsMockRecorder) DeregisterClusterInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterClusterInternal), arg0, arg1)
+}
+
 // GenerateClusterISOInternal mocks base method
 func (m *MockInstallerInternals) GenerateClusterISOInternal(arg0 context.Context, arg1 installer.GenerateClusterISOParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

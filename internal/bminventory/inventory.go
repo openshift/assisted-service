@@ -288,6 +288,7 @@ type InstallerInternals interface {
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
+	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
 }
 
 type bareMetalInventory struct {
@@ -792,13 +793,19 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 }
 
 func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params installer.DeregisterClusterParams) middleware.Responder {
+	if err := b.DeregisterClusterInternal(ctx, params); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewDeregisterClusterNoContent()
+}
+
+func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 	log.Infof("Deregister cluster id %s", params.ClusterID)
 
 	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		return installer.NewDeregisterClusterNotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, err))
+		return common.NewApiError(http.StatusNotFound, err)
 	}
 
 	if err := b.deleteDNSRecordSets(ctx, cluster); err != nil {
@@ -808,11 +815,9 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params insta
 	err := b.clusterApi.DeregisterCluster(ctx, &cluster)
 	if err != nil {
 		log.WithError(err).Errorf("failed to deregister cluster cluster %s", params.ClusterID)
-		return installer.NewDeregisterClusterNotFound().
-			WithPayload(common.GenerateError(http.StatusNotFound, err))
+		return common.NewApiError(http.StatusNotFound, err)
 	}
-
-	return installer.NewDeregisterClusterNoContent()
+	return nil
 }
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {

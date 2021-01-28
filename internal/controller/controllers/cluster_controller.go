@@ -69,7 +69,7 @@ func (r *ClusterReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	err := r.Get(ctx, req.NamespacedName, cluster)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
-			return ctrl.Result{}, nil
+			return r.deregisterClusterIfNeeded(ctx, req.NamespacedName)
 		}
 		r.Log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{Requeue: true}, nil
@@ -268,6 +268,41 @@ func (r *ClusterReconciler) notifyPullSecretUpdate(ctx context.Context, isPullSe
 		}
 	}
 	return nil
+}
+
+func (r *ClusterReconciler) deregisterClusterIfNeeded(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
+
+	buildReply := func(err error) (ctrl.Result, error) {
+		reply := ctrl.Result{}
+		if err == nil {
+			return reply, nil
+		}
+		reply.RequeueAfter = defaultRequeueAfterOnError
+		err = errors.Wrapf(err, "failed to deregister cluster: %s", key.Name)
+		r.Log.Error(err)
+		return reply, err
+	}
+
+	c, err := r.Installer.GetClusterByKubeKey(key)
+
+	if gorm.IsRecordNotFoundError(err) {
+		// return if from any reason cluster is already deleted from db (or never existed)
+		return buildReply(nil)
+	}
+
+	if err != nil {
+		return buildReply(err)
+	}
+
+	if err = r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
+		ClusterID: *c.ID,
+	}); err != nil {
+		return buildReply(err)
+	}
+
+	r.Log.Infof("Cluster resource deleted, Unregistered cluster: %s", c.ID.String())
+
+	return buildReply(nil)
 }
 
 func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1alpha1.Cluster, c *common.Cluster) (bool, ctrl.Result, error) {
