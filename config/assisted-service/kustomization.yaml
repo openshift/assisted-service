@@ -1,0 +1,11 @@
+resources:
+# TODO: remove scality after local volume support has been added
+- scality.yaml
+- scality-secret.yaml
+- postgres-deployment.yaml
+- postgres-secret.yaml
+- assisted-service.yaml
+- assisted-service-configmap.yaml
+- assisted-service-service.yaml
+- assisted-installer-sso.yaml
+- deploy_ui.yaml

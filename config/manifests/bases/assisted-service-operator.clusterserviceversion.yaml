@@ -1,0 +1,61 @@
+apiVersion: operators.coreos.com/v1alpha1
+kind: ClusterServiceVersion
+metadata:
+  annotations:
+    alm-examples: '[]'
+    capabilities: Basic Install
+    description: Assisted Service is used to orchestrate baremetal OpenShift installations.
+    operators.operatorframework.io/builder: operator-sdk-v1.3.0
+    operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+  name: assisted-service-operator.v0.0.1
+spec:
+  apiservicedefinitions: {}
+  customresourcedefinitions:
+    owned:
+    - kind: Host
+      name: hosts.adi.io.my.domain
+      version: v1alpha1
+    - kind: Cluster
+      name: clusters.adi.io.my.domain
+      version: v1alpha1
+    - kind: Image
+      name: images.adi.io.my.domain
+      version: v1alpha1
+    - description: AssistedService is the Schema for the assistedservices API
+      displayName: Assisted Service
+      kind: AssistedService
+      name: assistedservices.assistedservice.openshift.io.openshift.io
+      version: v1alpha1
+  description: |-
+    Assisted Service is used to orchestrate baremetal OpenShift installations.
+
+    # Requirements
+
+    Two PersistentVolumes, 10GB and 20GB in size, are required.
+  displayName: Assisted Service Operator
+  icon:
+  - base64data: ""
+    mediatype: ""
+  install:
+    spec:
+      deployments: null
+    strategy: ""
+  installModes:
+  - supported: true
+    type: OwnNamespace
+  - supported: true
+    type: SingleNamespace
+  - supported: false
+    type: MultiNamespace
+  - supported: false
+    type: AllNamespaces
+  keywords:
+  - assisted-service
+  - OpenShift
+  links:
+  - name: Assisted Service
+    url: https://github.com/openshift/assisted-service
+  maturity: alpha
+  provider:
+    name: Red Hat
+  version: 0.0.1

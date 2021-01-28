@@ -1,0 +1,74 @@
+kind: ServiceAccount
+apiVersion: v1
+metadata:
+  name: default
+  namespace: "assisted-installer"
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default
+  namespace: "assisted-installer"
+rules:
+  - verbs:
+      - get
+      - watch
+      - list
+    apiGroups:
+      - ''
+    resources:
+      - nodes
+      - pods
+      - endpoints
+      - services
+      - secrets
+  - verbs:
+      - get
+      - watch
+      - list
+      - delete
+      - create
+    apiGroups:
+      - batch
+    resources:
+      - jobs
+  - verbs:
+      - create
+      - get
+      - list
+      - watch
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+  - verbs:
+      - get
+      - list
+    apiGroups:
+      - config.openshift.io
+    resources:
+      - clusterversions
+  - verbs:
+      - get
+      - update
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - configmaps
+    resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default
+  namespace: "assisted-installer"
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: "assisted-installer"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: default

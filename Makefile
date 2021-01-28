@@ -363,3 +363,34 @@ delete-minikube-profile:
 
 delete-all-minikube-profiles:
 	minikube delete --all
+	
+# Current Operator version
+VERSION ?= 0.0.1
+
+# Download kustomize locally if necessary
+KUSTOMIZE = $(shell pwd)/bin/kustomize
+kustomize:
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
+# Generate bundle manifests and metadata, then validate generated files.
+.PHONY: bundle
+bundle: kustomize create-ocp-manifests
+	set -eux
+	cp ./build/assisted-installer/ocp_role.yaml config/rbac/role.yaml
+	cp ./build/assisted-installer/scality-secret.yaml config/assisted-service
+	cp ./build/assisted-installer/postgres-deployment.yaml config/assisted-service
+	cp ./build/assisted-installer/postgres-secret.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-installer-sso.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-service-configmap.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
+	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
+	#operator-sdk generate kustomize manifests -q
+	#cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	operator-sdk bundle validate ./bundle
+
+# Build the bundle image.
+.PHONY: bundle-build
+bundle-build:
+	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
