@@ -11,8 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/event"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -58,6 +56,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
+	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -70,6 +69,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -411,6 +411,16 @@ func main() {
 				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Image")
 
+			failOnError((&controllers.ClusterDeploymentsReconciler{
+				Client:                   ctrlMgr.GetClient(),
+				Log:                      log,
+				Scheme:                   ctrlMgr.GetScheme(),
+				Installer:                bm,
+				ClusterApi:               clusterApi,
+				HostApi:                  hostApi,
+				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
+
 			failOnError((&controllers.ClusterReconciler{
 				Client:                   ctrlMgr.GetClient(),
 				Log:                      log,
@@ -526,6 +536,7 @@ func createControllerManager() (manager.Manager, error) {
 		var schemes = runtime.NewScheme()
 		utilruntime.Must(scheme.AddToScheme(schemes))
 		utilruntime.Must(adiiov1alpha1.AddToScheme(schemes))
+		utilruntime.Must(hivev1.AddToScheme(schemes))
 
 		syncPeriod := 10 * time.Second
 

@@ -5,6 +5,7 @@ resources:
 - bases/adi.io.my.domain_images.yaml
 - bases/adi.io.my.domain_clusters.yaml
 - bases/adi.io.my.domain_hosts.yaml
+- bases/hive.openshift.io_clusterdeployments.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:
