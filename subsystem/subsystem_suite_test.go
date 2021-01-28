@@ -5,6 +5,9 @@ import (
 	"net/url"
 	"testing"
 
+	"k8s.io/client-go/deprecated/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
+
 	"github.com/go-openapi/runtime"
 
 	"github.com/jinzhu/gorm"
@@ -13,14 +16,17 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/sirupsen/logrus"
+	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var db *gorm.DB
 var agentBMClient, badAgentBMClient, userBMClient, readOnlyAdminUserBMClient, unallowedUserBMClient *client.AssistedInstall
 var log *logrus.Logger
 var wiremock *WireMock
+var kubeClient k8sclient.Client
 
 var Options struct {
 	DBHost             string `envconfig:"DB_HOST"`
@@ -32,6 +38,8 @@ var Options struct {
 	TestTokenUnallowed string `envconfig:"TEST_TOKEN_UNALLOWED"`
 	OCMHost            string `envconfig:"OCM_HOST"`
 	DeployTarget       string `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	Namespace          string `envconfig:"NAMESPACE" default:"assisted-installer"`
+	EnableKubeAPI      bool   `envconfig:"ENABLE_KUBE_API" default:"false"`
 }
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
@@ -47,6 +55,18 @@ func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
 		cfg.AuthInfo = authInfo
 	}
 	return cfg
+}
+
+func setupKubeClient() {
+	if addErr := v1alpha1.AddToScheme(scheme.Scheme); addErr != nil {
+		logrus.Fatalf("Fail adding kubernetes scheme: %s", addErr)
+	}
+
+	var err error
+	kubeClient, err = k8sclient.New(config.GetConfigOrDie(), k8sclient.Options{Scheme: scheme.Scheme})
+	if err != nil {
+		logrus.Fatalf("Fail adding kubernetes client: %s", err)
+	}
 }
 
 func init() {
@@ -73,6 +93,10 @@ func init() {
 			Options.DBHost, Options.DBPort))
 	if err != nil {
 		logrus.Fatal("Fail to connect to DB, ", err)
+	}
+
+	if Options.EnableKubeAPI {
+		setupKubeClient()
 	}
 
 	if Options.EnableAuth {
