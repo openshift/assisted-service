@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"regexp"
 
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/isoutil"
 	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
 
@@ -19,7 +21,7 @@ import (
 //go:generate mockgen -package=isoeditor -destination=mock_editor.go . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
-	CreateClusterMinimalISO(ignition string) (string, error)
+	CreateClusterMinimalISO(ignition string, staticIPConfig string) (string, error)
 }
 
 type rhcosEditor struct {
@@ -66,9 +68,9 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 	return e.create()
 }
 
-func (e *rhcosEditor) CreateClusterMinimalISO(ignition string) (string, error) {
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig string) (string, error) {
 	if err := e.isoHandler.Extract(); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to extract iso")
 	}
 	defer func() {
 		if err := e.isoHandler.CleanWorkDir(); err != nil {
@@ -77,7 +79,13 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string) (string, error) {
 	}()
 
 	if err := e.addIgnitionArchive(ignition); err != nil {
-		return "", err
+		return "", errors.Wrap(err, "failed to add ignition archive")
+	}
+
+	if staticIPConfig != "" {
+		if err := e.addCustomRAMDisk(staticIPConfig); err != nil {
+			return "", errors.Wrap(err, "failed to add additional ramdisk")
+		}
 	}
 
 	return e.create()
@@ -90,6 +98,65 @@ func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
 	}
 
 	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644)
+}
+
+func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string) error {
+	configPath := "/etc/static_ips_config.csv"
+	scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-static-ip-config.sh"
+	scriptContent := constants.ConfigStaticIpsScript
+	imagePath := "/images/assisted_installer_custom.img"
+
+	f, err := os.Create(e.isoHandler.ExtractedPath(imagePath))
+	if err != nil {
+		return err
+	}
+
+	w := cpio.NewWriter(f)
+	if err = addFileToArchive(w, configPath, staticIPConfig, 0o664); err != nil {
+		return err
+	}
+	if err = addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
+		return err
+	}
+	if err = w.Close(); err != nil {
+		return err
+	}
+
+	// edit config to add new image to initrd
+	err = editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), `(?m)^(\s+initrd) (.+| )+$`, fmt.Sprintf("$1 $2 %s", imagePath))
+	if err != nil {
+		return err
+	}
+	return editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), `(?m)^(\s+append.*initrd=\S+) (.*)$`, fmt.Sprintf("${1},%s ${2}", imagePath))
+}
+
+func addFileToArchive(w *cpio.Writer, path string, content string, mode cpio.FileMode) error {
+	// add all the directories in path
+	for dir := filepath.Dir(path); dir != "" && dir != "/"; dir = filepath.Dir(dir) {
+		hdr := &cpio.Header{
+			Name: dir,
+			Mode: 040755,
+			Size: 0,
+		}
+		if err := w.WriteHeader(hdr); err != nil {
+			return err
+		}
+	}
+
+	// add the file content
+	hdr := &cpio.Header{
+		Name: path,
+		Mode: mode,
+		Size: int64(len(content)),
+	}
+	if err := w.WriteHeader(hdr); err != nil {
+		return err
+	}
+	if _, err := w.Write([]byte(content)); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (e *rhcosEditor) create() (string, error) {

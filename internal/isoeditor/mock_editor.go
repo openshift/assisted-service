@@ -33,18 +33,18 @@ func (m *MockEditor) EXPECT() *MockEditorMockRecorder {
 }
 
 // CreateClusterMinimalISO mocks base method
-func (m *MockEditor) CreateClusterMinimalISO(arg0 string) (string, error) {
+func (m *MockEditor) CreateClusterMinimalISO(arg0, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateClusterMinimalISO", arg0)
+	ret := m.ctrl.Call(m, "CreateClusterMinimalISO", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateClusterMinimalISO indicates an expected call of CreateClusterMinimalISO
-func (mr *MockEditorMockRecorder) CreateClusterMinimalISO(arg0 interface{}) *gomock.Call {
+func (mr *MockEditorMockRecorder) CreateClusterMinimalISO(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterMinimalISO", reflect.TypeOf((*MockEditor)(nil).CreateClusterMinimalISO), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateClusterMinimalISO", reflect.TypeOf((*MockEditor)(nil).CreateClusterMinimalISO), arg0, arg1)
 }
 
 // CreateMinimalISOTemplate mocks base method

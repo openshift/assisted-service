@@ -548,7 +548,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			mockIsoEditorFactory.EXPECT().NewEditor(gomock.Any(), cluster.OpenshiftVersion, gomock.Any()).Return(editor, nil)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any()).Return(isoFilePath, nil)
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return(isoFilePath, nil)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID))
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
@@ -579,7 +579,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			// Generate minimal-iso
 			editor := isoeditor.NewMockEditor(ctrl)
 			mockIsoEditorFactory.EXPECT().NewEditor(gomock.Any(), cluster.OpenshiftVersion, gomock.Any()).Return(editor, nil)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any()).Return(isoFilePath, nil)
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return(isoFilePath, nil)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
@@ -635,7 +635,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			mockIsoEditorFactory.EXPECT().NewEditor(gomock.Any(), cluster.OpenshiftVersion, gomock.Any()).Return(editor, nil)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any()).Return("", errors.New(expectedErrMsg))
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return("", errors.New(expectedErrMsg))
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -650,7 +650,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			mockIsoEditorFactory.EXPECT().NewEditor(gomock.Any(), cluster.OpenshiftVersion, gomock.Any()).Return(editor, nil)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any()).Return(isoFilePath, nil)
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return(isoFilePath, nil)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID)).Return(errors.New(expectedErrMsg))
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
@@ -827,6 +827,28 @@ var _ = Describe("IgnitionParameters", func() {
 			_, report, err := ign_3_1.Parse([]byte(text))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(report.IsFatal()).To(BeFalse())
+		})
+
+		It("Doesn't include the static ip data for minimal isos", func() {
+			cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;mask1;dns1;gw1;ip6;mask6;dns6;gw6\nmac2;ip2;mask2;dns2;gw2;;;;"
+			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+				ImageCreateParams: &models.ImageCreateParams{
+					ImageType: models.ImageTypeMinimalIso,
+				},
+			}, log, false)
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := ign_3_1.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+
+			for _, f := range config.Systemd.Units {
+				Expect(f.Name).ToNot(Equal("configure-static-ip.service"))
+			}
+
+			for _, f := range config.Storage.Files {
+				Expect(f.Path).ToNot(Equal("/etc/static_ips_config.csv"))
+				Expect(f.Path).ToNot(Equal("/usr/local/bin/configure-static-ip.sh"))
+			}
 		})
 	}
 

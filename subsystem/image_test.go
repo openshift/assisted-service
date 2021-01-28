@@ -57,10 +57,22 @@ var _ = Describe("system-test image tests", func() {
 				})
 
 				By("Generate ISO", func() {
+					ipConfig := models.StaticIPConfig{
+						IPV4Config: &models.StaticIPV4Config{
+
+							DNS:     "192.0.2.1",
+							Gateway: "192.0.2.1",
+							IP:      "192.0.2.155",
+							Mask:    "24",
+						},
+						Mac: "00:00:5E:00:53:EF",
+					}
+
 					_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
 						ClusterID: clusterID,
 						ImageCreateParams: &models.ImageCreateParams{
-							ImageType: imageType,
+							ImageType:       imageType,
+							StaticIpsConfig: []*models.StaticIPConfig{&ipConfig},
 						},
 					})
 					Expect(err).NotTo(HaveOccurred())
