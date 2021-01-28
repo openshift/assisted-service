@@ -4187,7 +4187,6 @@ definitions:
       - 'has-min-valid-disks'
       - 'has-min-memory'
       - 'machine-cidr-defined'
-      - 'role-defined'
       - 'has-cpu-cores-for-role'
       - 'has-memory-for-role'
       - 'hostname-unique'
