@@ -378,6 +378,7 @@ bundle: kustomize create-ocp-manifests
 	set -eux
 	cp ./build/assisted-installer/ocp_role.yaml config/rbac/role.yaml
 	cp ./build/assisted-installer/scality-secret.yaml config/assisted-service
+	cp ./build/assisted-installer/scality-public-secret.yaml config/assisted-service
 	cp ./build/assisted-installer/postgres-deployment.yaml config/assisted-service
 	cp ./build/assisted-installer/postgres-secret.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-installer-sso.yaml config/assisted-service
@@ -387,7 +388,7 @@ bundle: kustomize create-ocp-manifests
 	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
 	#operator-sdk generate kustomize manifests -q
 	#cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
+	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
 	operator-sdk bundle validate ./bundle
 
 # Build the bundle image.
