@@ -381,7 +381,7 @@ func (r *ClusterReconciler) updateIfNeeded(ctx context.Context, cluster *adiiov1
 	updatedCluster, err := r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *c.ID,
-	})
+	}, nil, nil)
 
 	// TODO: check error type, retry for 5xx
 	if err != nil {

@@ -7,6 +7,7 @@ package bminventory
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
+	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
 	types "k8s.io/apimachinery/pkg/types"
@@ -126,16 +127,16 @@ func (mr *MockInstallerInternalsMockRecorder) RegisterClusterInternal(arg0, arg1
 }
 
 // UpdateClusterInternal mocks base method
-func (m *MockInstallerInternals) UpdateClusterInternal(arg0 context.Context, arg1 installer.UpdateClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) UpdateClusterInternal(arg0 context.Context, arg1 installer.UpdateClusterParams, arg2 *common.Cluster, arg3 *gorm.DB) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterInternal", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdateClusterInternal", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdateClusterInternal indicates an expected call of UpdateClusterInternal
-func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInternal(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInternal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInternal), arg0, arg1, arg2, arg3)
 }

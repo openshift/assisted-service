@@ -2258,6 +2258,241 @@ var _ = Describe("cluster", func() {
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 
+		It("update ips with no hosts", func() {
+			By("rest api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                 &clusterID,
+					VipDhcpAllocation:  swag.Bool(false),
+					MachineNetworkCidr: "10.127.0.0/14",
+				},
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+				apiVip := "10.128.0.100"
+				ingressVip := "10.128.0.101"
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVip:     swag.String(apiVip),
+						IngressVip: swag.String(ingressVip),
+					},
+				})
+				apiErr, ok := reply.(*common.ApiErrorResponse)
+				Expect(ok).Should(Equal(true))
+				Expect(apiErr.Error()).Should(Equal("No suitable matching CIDR found for VIP 10.128.0.100"))
+			})
+			By("kube api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                 &clusterID,
+					VipDhcpAllocation:  swag.Bool(false),
+					MachineNetworkCidr: "10.127.0.0/14",
+				},
+					KubeKeyNamespace: "testNamespace",
+					KubeKeyName:      "testName",
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+				apiVip := "10.128.0.100"
+				ingressVip := "10.128.0.101"
+				c, err := bm.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVip:     swag.String(apiVip),
+						IngressVip: swag.String(ingressVip),
+					},
+				}, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(c.APIVip).Should(Equal(apiVip))
+				Expect(c.IngressVip).Should(Equal(ingressVip))
+			})
+		})
+
+		It("update ips with host with no inventory", func() {
+			By("rest api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                 &clusterID,
+					VipDhcpAllocation:  swag.Bool(false),
+					MachineNetworkCidr: "10.127.0.0/14",
+				},
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				host := models.Host{
+					ID:        &masterHostId1,
+					ClusterID: clusterID,
+					Status:    swag.String(models.HostStatusKnown),
+					Kind:      swag.String(models.HostKindHost),
+					Role:      models.HostRoleMaster,
+				}
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+				apiVip := "10.128.0.100"
+				ingressVip := "10.128.0.101"
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVip:     swag.String(apiVip),
+						IngressVip: swag.String(ingressVip),
+					},
+				})
+				apiErr, ok := reply.(*common.ApiErrorResponse)
+				Expect(ok).Should(Equal(true))
+				Expect(apiErr.Error()).Should(Equal("No suitable matching CIDR found for VIP 10.128.0.100"))
+			})
+			By("kube api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                 &clusterID,
+					VipDhcpAllocation:  swag.Bool(false),
+					MachineNetworkCidr: "10.127.0.0/14",
+				},
+					KubeKeyNamespace: "testNamespace",
+					KubeKeyName:      "testName",
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				host := models.Host{
+					ID:        &masterHostId1,
+					ClusterID: clusterID,
+					Status:    swag.String(models.HostStatusKnown),
+					Kind:      swag.String(models.HostKindHost),
+					Role:      models.HostRoleMaster,
+				}
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+				apiVip := "10.128.0.100"
+				ingressVip := "10.128.0.101"
+				c, err := bm.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVip:     swag.String(apiVip),
+						IngressVip: swag.String(ingressVip),
+					},
+				}, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(c.APIVip).Should(Equal(apiVip))
+				Expect(c.IngressVip).Should(Equal(ingressVip))
+			})
+		})
+
+		It("update vip without cidr", func() {
+			By("rest api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                &clusterID,
+					VipDhcpAllocation: swag.Bool(false),
+				},
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+				apiVip := "10.128.0.100"
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVip: swag.String(apiVip),
+					},
+				})
+				apiErr, ok := reply.(*common.ApiErrorResponse)
+				Expect(ok).Should(Equal(true))
+				Expect(apiErr.Error()).Should(Equal("No suitable matching CIDR found for VIP 10.128.0.100"))
+			})
+			By("kube api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                &clusterID,
+					VipDhcpAllocation: swag.Bool(false),
+				},
+					KubeKeyNamespace: "testNamespace",
+					KubeKeyName:      "testName",
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+				apiVip := "10.128.0.100"
+				c, err := bm.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						APIVip: swag.String(apiVip),
+					},
+				}, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(c.APIVip).Should(Equal(apiVip))
+			})
+		})
+
+		It("update cidr with vip dhcp allocation", func() {
+			By("rest api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                &clusterID,
+					VipDhcpAllocation: swag.Bool(true),
+				},
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+
+				netCidr := "10.11.0.0/16"
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						MachineNetworkCidr: swag.String(netCidr),
+					},
+				})
+				apiErr, ok := reply.(*common.ApiErrorResponse)
+				Expect(ok).Should(Equal(true))
+				Expect(apiErr.Error()).Should(Equal(fmt.Sprintf("%s does not belong to any of the host networks", netCidr)))
+			})
+			By("kube api mode", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID:                &clusterID,
+					VipDhcpAllocation: swag.Bool(true),
+				},
+					KubeKeyNamespace: "testNamespace",
+					KubeKeyName:      "testName",
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+
+				netCidr := "10.11.0.0/16"
+				c, err := bm.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						MachineNetworkCidr: swag.String(netCidr),
+					},
+				}, nil, nil)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(c.MachineNetworkCidr).Should(Equal(netCidr))
+			})
+		})
+
 		Context("Update Proxy", func() {
 			const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
 			BeforeEach(func() {

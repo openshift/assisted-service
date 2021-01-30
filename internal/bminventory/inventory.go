@@ -1,5 +1,6 @@
 package bminventory
 
+import "C"
 import (
 	"bytes"
 	"context"
@@ -285,7 +286,7 @@ type OCPClusterAPI interface {
 type InstallerInternals interface {
 	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
-	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
+	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams, cluster *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
@@ -1567,16 +1568,109 @@ func (b *bareMetalInventory) noneHaModeClusterUpdateValidations(cluster *common.
 }
 
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
-	c, err := b.UpdateClusterInternal(ctx, params)
+	log := logutil.FromContext(ctx, b.log)
+
+	tx := b.db.Begin()
+	txSuccess := false
+
+	defer func() {
+		if !txSuccess {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("update cluster failed")
+			tx.Rollback()
+		}
+	}()
+
+	if tx.Error != nil {
+		log.WithError(tx.Error).Errorf("failed to start db transaction")
+		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to start transaction"))
+	}
+
+	// in case host monitor already updated the state we need to use FOR UPDATE option
+	tx = transaction.AddForUpdateQueryOption(tx)
+
+	c := &common.Cluster{}
+	if err := tx.Preload("Hosts").First(c, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	if err := b.clusterApi.VerifyClusterUpdatability(c); err != nil {
+		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
+		return common.NewApiError(http.StatusConflict, err)
+	}
+
+	userManagedNetworking := swag.BoolValue(c.UserManagedNetworking)
+	if params.ClusterUpdateParams.UserManagedNetworking != nil {
+		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
+	}
+
+	userManagedNetworkingIPv6Only := false
+	if userManagedNetworking {
+		if ipv6Only, err := network.AreIpv6OnlyHosts(c.Hosts, log); err != nil {
+			return common.NewApiError(http.StatusBadRequest, err)
+		} else {
+			userManagedNetworkingIPv6Only = ipv6Only
+		}
+	}
+
+	vipDHCPAllocation := swag.BoolValue(c.VipDhcpAllocation)
+	if params.ClusterUpdateParams.VipDhcpAllocation != nil {
+		vipDHCPAllocation = swag.BoolValue(params.ClusterUpdateParams.VipDhcpAllocation)
+	}
+
+	if !userManagedNetworking && vipDHCPAllocation || userManagedNetworkingIPv6Only {
+		machineCidr := swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		if machineCidr != "" {
+			if err := network.VerifyMachineCIDR(machineCidr, c.Hosts, log, true); err != nil {
+				return common.NewApiError(http.StatusBadRequest, err)
+			}
+		}
+
+	} else if !userManagedNetworking {
+		apiVip := c.APIVip
+		if params.ClusterUpdateParams.APIVip != nil {
+			apiVip = swag.StringValue(params.ClusterUpdateParams.APIVip)
+		}
+		ingressVip := c.IngressVip
+		if params.ClusterUpdateParams.IngressVip != nil {
+			ingressVip = swag.StringValue(params.ClusterUpdateParams.IngressVip)
+		}
+
+		machineCidr, err := network.CalculateMachineNetworkCIDR(apiVip, ingressVip, c.Hosts, true)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to calculate machine network cidr for cluster: %s", params.ClusterID)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+
+		if err := network.VerifyVips(c.Hosts, machineCidr, apiVip, ingressVip, false, log); err != nil {
+			log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
+	c, err := b.UpdateClusterInternal(ctx, params, c, tx)
+
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	txSuccess = true
 	return installer.NewUpdateClusterCreated().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) UpdateClusterInternal(
+	ctx context.Context,
+	params installer.UpdateClusterParams,
+	cluster *common.Cluster,
+	db *gorm.DB,
+) (*common.Cluster, error) {
+
 	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
+
 	var err error
 	log.Info("update cluster ", params.ClusterID)
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
@@ -1617,39 +1711,46 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
+	tx := db
 	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("update cluster failed")
-			tx.Rollback()
+
+	if tx == nil {
+		tx = b.db.Begin()
+		defer func() {
+			if !txSuccess {
+				log.Error("update cluster failed")
+				tx.Rollback()
+			}
+			if r := recover(); r != nil {
+				log.Error("update cluster failed")
+				tx.Rollback()
+			}
+		}()
+
+		if tx.Error != nil {
+			log.WithError(tx.Error).Errorf("failed to start db transaction")
+			return nil, common.NewApiError(http.StatusInternalServerError,
+				errors.New("DB error, failed to start transaction"))
 		}
-		if r := recover(); r != nil {
-			log.Error("update cluster failed")
-			tx.Rollback()
+
+		// in case host monitor already updated the state we need to use FOR UPDATE option
+		tx = transaction.AddForUpdateQueryOption(tx)
+	}
+
+	if cluster == nil {
+		cluster = &common.Cluster{}
+		if err = tx.Preload("Hosts").First(cluster, "id = ?", params.ClusterID).Error; err != nil {
+			log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
+			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
-	}()
 
-	if tx.Error != nil {
-		log.WithError(tx.Error).Errorf("failed to start db transaction")
-		return nil, common.NewApiError(http.StatusInternalServerError,
-			errors.New("DB error, failed to start transaction"))
+		if err = b.clusterApi.VerifyClusterUpdatability(cluster); err != nil {
+			log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
+			return nil, common.NewApiError(http.StatusConflict, err)
+		}
 	}
 
-	// in case host monitor already updated the state we need to use FOR UPDATE option
-	tx = transaction.AddForUpdateQueryOption(tx)
-
-	if err = tx.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
-		return nil, common.NewApiError(http.StatusNotFound, err)
-	}
-
-	if err = b.clusterApi.VerifyClusterUpdatability(&cluster); err != nil {
-		log.WithError(err).Errorf("cluster %s can't be updated in current state", params.ClusterID)
-		return nil, common.NewApiError(http.StatusConflict, err)
-	}
-
-	if err = b.noneHaModeClusterUpdateValidations(&cluster, params); err != nil {
+	if err = b.noneHaModeClusterUpdateValidations(cluster, params); err != nil {
 		log.WithError(err).Warnf("Unsupported update params in none ha mode")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -1658,7 +1759,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
-	err = b.updateClusterData(ctx, &cluster, params, tx, log)
+	err = b.updateClusterData(ctx, cluster, params, tx, log)
 	if err != nil {
 		log.WithError(err).Error("updateClusterData")
 		return nil, err
@@ -1669,7 +1770,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
-	err = b.updateHostsAndClusterStatus(ctx, &cluster, tx, log)
+	err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
 	if err != nil {
 		return nil, err
 	}
@@ -1680,17 +1781,18 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	}
 	txSuccess = true
 
-	if proxySettingsChanged(params.ClusterUpdateParams, &cluster) {
+	if proxySettingsChanged(params.ClusterUpdateParams, cluster) {
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Proxy settings changed", time.Now())
 	}
 
-	if err := b.db.Preload("Hosts").First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	var updatedCluster common.Cluster
+	if err := b.db.Preload("Hosts").First(&updatedCluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	cluster.HostNetworks = calculateHostNetworks(log, &cluster)
-	for _, host := range cluster.Hosts {
+	updatedCluster.HostNetworks = calculateHostNetworks(log, &updatedCluster)
+	for _, host := range updatedCluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
@@ -1698,7 +1800,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		host.FreeAddresses = ""
 	}
 
-	return &cluster, nil
+	return &updatedCluster, nil
 }
 
 func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetworkCIDR string) {
@@ -1724,14 +1826,14 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	}
 
 	var err error
-	*machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
+	*machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts, false)
 	if err != nil {
 		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 
-	err = network.VerifyVips(cluster.Hosts, *machineCidr, apiVip, ingressVip, false, log)
+	err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -1756,7 +1858,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
-		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
+		return network.VerifyMachineCIDR(*machineCidr, cluster.Hosts, log, false)
 	}
 	return nil
 }

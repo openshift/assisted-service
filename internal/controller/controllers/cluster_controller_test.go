@@ -201,7 +201,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 				PullSecret: testPullSecretVal,
 			}
-			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(updateReply, nil)
+			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any(), nil, nil).Return(updateReply, nil)
 
 			request := newClusterRequest(cluster)
 			result, err := cr.Reconcile(request)
@@ -265,7 +265,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 
 			expectedUpdateError := errors.Errorf("update internal error")
-			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
+			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any(), nil, nil).
 				Return(nil, expectedUpdateError)
 
 			request := newClusterRequest(cluster)
