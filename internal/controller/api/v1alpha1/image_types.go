@@ -26,14 +26,20 @@ const (
 	ImageStateFailedToCreate = "Failed to create image"
 )
 
+type StaticIPConfig struct {
+	IPV4Config *models.StaticIPV4Config `json:"ipv4Config,omitempty"`
+	IPV6Config *models.StaticIPV6Config `json:"ipv6Config,omitempty"`
+	Mac        string                   `json:"mac,omitempty"`
+}
+
 // ImageSpec defines the desired state of Image
 type ImageSpec struct {
 	// The name of the Cluster CR
 	ClusterRef   *ClusterReference `json:"clusterRef"`
 	SSHPublicKey string            `json:"sshPublicKey,omitempty"`
 	// The name of the secret containing the pull secret
-	IgnitionOverrides     string                   `json:"ignitionOverrides,omitempty"`
-	StaticIpConfiguration []*models.StaticIPConfig `json:"staticIpConfiguration,omitempty"`
+	IgnitionOverrides     string            `json:"ignitionOverrides,omitempty"`
+	StaticIpConfiguration []*StaticIPConfig `json:"staticIPConfiguration,omitempty"`
 }
 
 // ImageStatus defines the observed state of Image
