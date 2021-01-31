@@ -36,6 +36,7 @@ import (
 
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/cluster"
+	cluster_pkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
@@ -208,7 +209,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			ID:            &clusterId,
 			PullSecretSet: true,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
+		cluster.ProxyHash, _ = cluster_pkg.NewProxy(nil, nil, nil).ComputeHash()
 		cluster.ImageInfo = &models.ImageInfo{}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -233,7 +234,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			PullSecretSet:    true,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
+		cluster.ProxyHash, _ = cluster_pkg.NewProxy(nil, nil, nil).ComputeHash()
 		cluster.ImageInfo = &models.ImageInfo{}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 

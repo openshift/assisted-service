@@ -4218,6 +4218,16 @@ func init() {
           "description": "api vip domain.",
           "type": "string"
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
         "id": {
           "description": "Unique identifier of the object.",
           "type": "string",
@@ -4226,6 +4236,11 @@ func init() {
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
+        },
+        "no_proxy": {
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
@@ -10888,6 +10903,16 @@ func init() {
           "description": "api vip domain.",
           "type": "string"
         },
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
         "id": {
           "description": "Unique identifier of the object.",
           "type": "string",
@@ -10896,6 +10921,11 @@ func init() {
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
+        },
+        "no_proxy": {
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
         },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",

@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 
@@ -18,7 +17,6 @@ import (
 
 	"golang.org/x/crypto/ssh"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -304,53 +302,6 @@ func ValidateClusterNameFormat(name string) error {
 		return errors.Errorf("Cluster name format is not valid: '%s'. "+
 			"Name must consist of lower-case letters, numbers and hyphens. "+
 			"It must start with a letter and end with a letter or number.", name)
-	}
-	return nil
-}
-
-// ValidateHTTPProxyFormat validates the HTTP Proxy and HTTPS Proxy format
-func ValidateHTTPProxyFormat(proxyURL string) error {
-	if !govalidator.IsURL(proxyURL) {
-		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
-	}
-	u, err := url.Parse(proxyURL)
-	if err != nil {
-		return errors.Errorf("Proxy URL format is not valid: '%s'", proxyURL)
-	}
-	if u.Scheme == "https" {
-		return errors.Errorf("The URL scheme must be http; https is currently not supported: '%s'", proxyURL)
-	}
-	if u.Scheme != "http" {
-		return errors.Errorf("The URL scheme must be http and specified in the URL: '%s'", proxyURL)
-	}
-	return nil
-}
-
-// ValidateNoProxyFormat validates the no-proxy format which should be a comma-separated list
-// of destination domain names, domains, IP addresses or other network CIDRs. A domain can be
-// prefaced with '.' to include all subdomains of that domain.
-// Use '*' to bypass proxy for all destinations.
-func ValidateNoProxyFormat(noProxy string) error {
-	if noProxy == "*" {
-		return nil
-	}
-	domains := strings.Split(noProxy, ",")
-	for _, s := range domains {
-		s = strings.TrimPrefix(s, ".")
-		if govalidator.IsIP(s) {
-			continue
-		}
-
-		if govalidator.IsCIDR(s) {
-			continue
-		}
-
-		if govalidator.IsDNSName(s) {
-			continue
-		}
-		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
-			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
-			"A domain can be prefaced with '.' to include all subdomains of that domain.", noProxy)
 	}
 	return nil
 }

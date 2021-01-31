@@ -21,6 +21,16 @@ type AddHostsClusterCreateParams struct {
 	// Required: true
 	APIVipDnsname *string `json:"api_vip_dnsname"`
 
+	// A proxy URL to use for creating HTTP connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPProxy *string `json:"http_proxy,omitempty"`
+
+	// A proxy URL to use for creating HTTPS connections outside the cluster.
+	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+	//
+	HTTPSProxy *string `json:"https_proxy,omitempty"`
+
 	// Unique identifier of the object.
 	// Required: true
 	// Format: uuid
@@ -29,6 +39,9 @@ type AddHostsClusterCreateParams struct {
 	// Name of the OpenShift cluster.
 	// Required: true
 	Name *string `json:"name"`
+
+	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+	NoProxy *string `json:"no_proxy,omitempty"`
 
 	// Version of the OpenShift cluster.
 	// Required: true

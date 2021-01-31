@@ -7,8 +7,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/types"
 
-	// #nosec
-	"crypto/md5"
 	"crypto/x509"
 	"encoding/base64"
 	b64 "encoding/base64"
@@ -35,6 +33,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/cluster"
+	cluster_pkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -555,9 +554,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
 		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
 	}
-	if err := validateProxySettings(params.NewClusterParams.HTTPProxy,
-		params.NewClusterParams.HTTPSProxy,
-		params.NewClusterParams.NoProxy); err != nil {
+
+	proxy := cluster_pkg.NewProxy(params.NewClusterParams.HTTPProxy, params.NewClusterParams.HTTPSProxy, params.NewClusterParams.NoProxy)
+	if err := proxy.Validate(); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -648,9 +647,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		KubeKeyNamespace: kubeKey.Namespace,
 	}
 
-	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
-		params.NewClusterParams.HTTPSProxy,
-		params.NewClusterParams.NoProxy); err != nil {
+	if proxyHash, err := proxy.ComputeHash(); err != nil {
 		log.Error("Failed to compute cluster proxy hash", err)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to compute cluster proxy hash"))
 	} else {
@@ -725,8 +722,19 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 
 	openshiftVersion, err := b.versionsHandler.GetSupportedVersionFormat(inputOpenshiftVersion)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
+		log.WithError(err).Errorf("Failed to get OpenShift version supported by versions map from version %s", inputOpenshiftVersion)
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("Failed to get OpenShift version supported by versions map from version %s", inputOpenshiftVersion))
+	}
+
+	if params.NewAddHostsClusterParams.HTTPProxy != nil &&
+		(params.NewAddHostsClusterParams.HTTPSProxy == nil || *params.NewAddHostsClusterParams.HTTPSProxy == "") {
+		params.NewAddHostsClusterParams.HTTPSProxy = params.NewAddHostsClusterParams.HTTPProxy
+	}
+
+	proxy := cluster_pkg.NewProxy(params.NewAddHostsClusterParams.HTTPProxy, params.NewAddHostsClusterParams.HTTPSProxy, params.NewAddHostsClusterParams.NoProxy)
+	if err = proxy.Validate(); err != nil {
+		log.WithError(err).Errorf("Failed to validate proxy settings")
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	newCluster := common.Cluster{Cluster: models.Cluster{
@@ -740,12 +748,21 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		EmailDomain:      auth.EmailDomainFromContext(ctx),
 		UpdatedAt:        strfmt.DateTime{},
 		APIVipDNSName:    swag.String(apivipDnsname),
+		HTTPProxy:        swag.StringValue(proxy.HTTPProxy),
+		HTTPSProxy:       swag.StringValue(proxy.HTTPSProxy),
+		NoProxy:          swag.StringValue(proxy.NoProxy),
 	}}
 
 	err = validations.ValidateClusterNameFormat(clusterName)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
+
+	proxyHash, err := proxy.ComputeHash()
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to compute cluster proxy hash"))
+	}
+	newCluster.ProxyHash = proxyHash
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
 	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
@@ -965,7 +982,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	/* If the request has the same parameters as the previous request and the image is still in S3,
 	just refresh the timestamp.
 	*/
-	clusterProxyHash, err := computeClusterProxyHash(&cluster.HTTPProxy, &cluster.HTTPSProxy, &cluster.NoProxy)
+	proxy := cluster_pkg.NewProxy(&cluster.HTTPProxy, &cluster.HTTPSProxy, &cluster.NoProxy)
+	clusterProxyHash, err := proxy.ComputeHash()
 	if err != nil {
 		msg := "Failed to compute cluster proxy hash"
 		log.Error(msg, err)
@@ -1616,9 +1634,9 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
 		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
 	}
-	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
-		params.ClusterUpdateParams.HTTPSProxy,
-		params.ClusterUpdateParams.NoProxy); err != nil {
+
+	proxy := cluster_pkg.NewProxy(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy)
+	if err = proxy.Validate(); err != nil {
 		log.WithError(err).Errorf("Failed to validate Proxy settings")
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
@@ -1686,7 +1704,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	}
 	txSuccess = true
 
-	if proxySettingsChanged(params.ClusterUpdateParams, &cluster) {
+	if proxy.Diff(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy) {
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Proxy settings changed", time.Now())
 	}
 
@@ -3990,58 +4008,8 @@ func (b *bareMetalInventory) customizeHostname(host *models.Host) {
 	host.RequestedHostname = hostutil.GetHostnameForMsg(host)
 }
 
-func proxySettingsChanged(params *models.ClusterUpdateParams, cluster *common.Cluster) bool {
-	if (params.HTTPProxy != nil && cluster.HTTPProxy != swag.StringValue(params.HTTPProxy)) ||
-		(params.HTTPSProxy != nil && cluster.HTTPSProxy != swag.StringValue(params.HTTPSProxy)) ||
-		(params.NoProxy != nil && cluster.NoProxy != swag.StringValue(params.NoProxy)) {
-		return true
-	}
-	return false
-}
-
-// computes the cluster proxy hash in order to identify if proxy settings were changed which will indicated if
-// new ISO file should be generated to contain new proxy settings
-func computeClusterProxyHash(httpProxy, httpsProxy, noProxy *string) (string, error) {
-	var proxyHash string
-	if httpProxy != nil {
-		proxyHash += *httpProxy
-	}
-	if httpsProxy != nil {
-		proxyHash += *httpsProxy
-	}
-	if noProxy != nil {
-		proxyHash += *noProxy
-	}
-	// #nosec
-	h := md5.New()
-	_, err := h.Write([]byte(proxyHash))
-	if err != nil {
-		return "", err
-	}
-	bs := h.Sum(nil)
-	return fmt.Sprintf("%x", bs), nil
-}
-
-func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
-	if httpProxy != nil && *httpProxy != "" {
-		if err := validations.ValidateHTTPProxyFormat(*httpProxy); err != nil {
-			return errors.Errorf("Failed to validate HTTP Proxy: %s", err)
-		}
-	}
-	if httpsProxy != nil && *httpsProxy != "" {
-		if err := validations.ValidateHTTPProxyFormat(*httpsProxy); err != nil {
-			return errors.Errorf("Failed to validate HTTPS Proxy: %s", err)
-		}
-	}
-	if noProxy != nil && *noProxy != "" {
-		if err := validations.ValidateNoProxyFormat(*noProxy); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, error) {
+
 	if httpProxy == "" && httpsProxy == "" {
 		return "", nil
 	}

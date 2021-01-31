@@ -3475,6 +3475,22 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
+      http_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTP connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      https_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTPS connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      no_proxy:
+        type: string
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        x-nullable: true
 
   cluster:
     type: object
