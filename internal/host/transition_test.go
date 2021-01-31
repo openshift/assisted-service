@@ -1270,7 +1270,7 @@ var _ = Describe("Refresh Host", func() {
 				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
 				host.Inventory = hostutil.GenerateMasterInventory()
 				host.Role = models.HostRoleMaster
-				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-5 * time.Minute))
+				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-MaxHostDisconnectionTime - time.Minute))
 
 				progress := models.HostProgressInfo{
 					CurrentStage:   stage,
@@ -1293,7 +1293,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
 
 				Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
-				info := formatProgressTimedOutInfo(stage) + hostNotRespondingNotification
+				info := statusInfoConnectionTimedOut
 				Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
 
 			})
