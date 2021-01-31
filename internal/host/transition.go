@@ -540,10 +540,18 @@ func (th *transitionHandler) IsDay2Host(sw stateswitch.StateSwitch, args statesw
 	return hostutil.IsDay2Host(sHost.host), nil
 }
 
+func (th *transitionHandler) HostNotResponsiveWhilePreparingInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("HostNotResponsiveWhilePreparingInstallation incompatible type of StateSwitch")
+	}
+	return !hostIsResponsive(sHost.host), nil
+}
+
 func (th *transitionHandler) HostNotResponsiveWhileInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
-		return false, errors.New("HasClusterError incompatible type of StateSwitch")
+		return false, errors.New("HostNotResponsiveWhileInstallation incompatible type of StateSwitch")
 	}
 	return funk.Contains(disconnectionValidationStages, sHost.host.Progress.CurrentStage) && !hostIsResponsive(sHost.host), nil
 }
