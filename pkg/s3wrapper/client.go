@@ -559,7 +559,7 @@ func (c *S3Client) DownloadBootFile(ctx context.Context, isoObjectName, fileType
 
 func (c *S3Client) GetS3BootFileURL(isoObjectName, fileType string) string {
 	objectName := BootFileTypeToObjectName(isoObjectName, fileType)
-	if c.cfg.S3EndpointURL == "" {
+	if c.IsAwsS3() {
 		return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", c.cfg.PublicS3Bucket, c.cfg.Region, objectName)
 	} else {
 		return fmt.Sprintf("%s/%s", c.cfg.S3EndpointURL, objectName)
