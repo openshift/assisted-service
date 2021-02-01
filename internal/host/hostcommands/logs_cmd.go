@@ -85,7 +85,7 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 		"INSTALLER_GATHER":       strconv.FormatBool(withInstallerGatherLogging),
 		"MASTERS_IPS":            mastersIPs,
 	}
-	cmdArgsTmpl += "podman run --rm --privileged --net=host " +
+	cmdArgsTmpl += "timeout 1h podman run --rm --privileged --net=host " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket -v /var/log:/var/log " +
 		"--env PULL_SECRET_TOKEN --name logs-sender --pid=host {{.AGENT_IMAGE}} logs_sender " +
 		"-url {{.BASE_URL}} -cluster-id {{.CLUSTER_ID}} -host-id {{.HOST_ID}} " +
