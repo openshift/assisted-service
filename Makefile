@@ -98,6 +98,7 @@ lint-swagger:
 	spectral lint swagger.yaml
 
 generate-from-swagger: lint-swagger generate-go-client generate-go-server
+	$(MAKE) manifests ENABLE_KUBE_API=true
 
 generate-go-server:
 	rm -rf restapi
