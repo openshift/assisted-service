@@ -713,12 +713,18 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	url := installer.GetClusterURL{ClusterID: *id}
 	apivipDnsname := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
 	clusterName := swag.StringValue(params.NewAddHostsClusterParams.Name)
-	openshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
+	inputOpenshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
 
-	log.Infof("Register add-hosts-cluster: %s with id %s", clusterName, id.String())
+	log.Infof("Register add-hosts-cluster: %s, id %s, version %s", clusterName, id.String(), inputOpenshiftVersion)
 
 	if cluster.ClusterExists(b.db, *id) {
 		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
+	}
+
+	openshiftVersion, err := b.versionsHandler.GetSupportedVersionFormat(inputOpenshiftVersion)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
+		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
 	}
 
 	newCluster := common.Cluster{Cluster: models.Cluster{
@@ -734,7 +740,7 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		APIVipDNSName:    swag.String(apivipDnsname),
 	}}
 
-	err := validations.ValidateClusterNameFormat(clusterName)
+	err = validations.ValidateClusterNameFormat(clusterName)
 	if err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
