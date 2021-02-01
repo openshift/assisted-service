@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -90,6 +91,18 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return r.updateState(ctx, cluster, nil, err)
 	}
 
+	var updated bool
+	var result ctrl.Result
+	// check for updates from user, compare spec and update if needed
+	updated, result, err = r.updateIfNeeded(ctx, cluster, c)
+	if err != nil {
+		return r.updateState(ctx, cluster, c, err)
+	}
+
+	if updated {
+		return result, err
+	}
+
 	return r.updateState(ctx, cluster, c, nil)
 }
 
@@ -100,6 +113,128 @@ func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
 		return false
 	}
 	return true
+}
+
+func isUserManagedNetwork(cluster *hivev1.ClusterDeployment) bool {
+	if cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
+		return true
+	}
+	return false
+}
+
+func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, cluster *hivev1.ClusterDeployment,
+	c *common.Cluster) (bool, ctrl.Result, error) {
+
+	update := false
+	isPullSecretUpdate := false
+
+	params := &models.ClusterUpdateParams{}
+
+	spec := cluster.Spec
+
+	updateString := func(new, old string, target **string) {
+		if new != old {
+			*target = swag.String(new)
+			update = true
+		}
+	}
+
+	updateString(spec.ClusterName, c.Name, &params.Name)
+	updateString(spec.BaseDomain, c.BaseDNSDomain, &params.BaseDNSDomain)
+
+	if len(spec.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
+		updateString(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr)
+		if int64(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix) != c.ClusterNetworkHostPrefix {
+			params.ClusterNetworkHostPrefix = swag.Int64(int64(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix))
+			update = true
+		}
+	}
+	if len(spec.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
+		updateString(spec.InstallStrategy.Agent.Networking.ServiceNetwork[0], c.ServiceNetworkCidr, &params.ServiceNetworkCidr)
+	}
+	if len(spec.InstallStrategy.Agent.Networking.MachineNetwork) > 0 {
+		updateString(spec.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, c.MachineNetworkCidr, &params.MachineNetworkCidr)
+	}
+
+	updateString(spec.Platform.AgentBareMetal.APIVIP, c.APIVip, &params.APIVip)
+	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName)
+	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip)
+	updateString(spec.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
+
+	if spec.Platform.AgentBareMetal.VIPDHCPAllocation != swag.BoolValue(c.VipDhcpAllocation) {
+		params.VipDhcpAllocation = swag.Bool(spec.Platform.AgentBareMetal.VIPDHCPAllocation)
+		update = true
+	}
+
+	// TODO: get from AgentEnvSpec
+	//updateString(spec.HTTPProxy, c.HTTPProxy, &params.HTTPProxy)
+	//updateString(spec.HTTPSProxy, c.HTTPSProxy, &params.HTTPSProxy)
+	//updateString(spec.NoProxy, c.NoProxy, &params.NoProxy)
+	//updateString(spec.AdditionalNtpSource, c.AdditionalNtpSource, &params.AdditionalNtpSource)
+
+	if userManagedNetwork := isUserManagedNetwork(cluster); userManagedNetwork != swag.BoolValue(c.UserManagedNetworking) {
+		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
+	}
+
+	// TODO: handle InstallConfigOverrides
+
+	data, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, cluster.Namespace)
+	if err != nil {
+		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
+	}
+	if data != c.PullSecret {
+		params.PullSecret = swag.String(data)
+		update = true
+		isPullSecretUpdate = true
+	}
+
+	if !update {
+		return update, ctrl.Result{}, nil
+	}
+
+	updatedCluster, err := r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+		ClusterUpdateParams: params,
+		ClusterID:           *c.ID,
+	})
+	if err != nil && IsHTTP4XXError(err) {
+		return update, ctrl.Result{}, errors.Wrap(err, "failed to update cluster")
+	}
+	if err != nil {
+		return update, ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError},
+			errors.Wrap(err, "failed to update cluster")
+	}
+
+	if err = r.notifyPullSecretUpdate(ctx, isPullSecretUpdate, c); err != nil {
+		return false, ctrl.Result{}, errors.Wrap(err, "failed to get a list of images to update")
+	}
+
+	r.Log.Infof("Updated cluster %s %s", cluster.Name, cluster.Namespace)
+	reply, err := r.updateState(ctx, cluster, updatedCluster, nil)
+	return update, reply, err
+}
+
+func (r *ClusterDeploymentsReconciler) notifyPullSecretUpdate(ctx context.Context, isPullSecretUpdate bool,
+	c *common.Cluster) error {
+	if isPullSecretUpdate {
+		images := &adiiov1alpha1.ImageList{}
+		if err := r.List(ctx, images); err != nil {
+			return err
+		}
+		for _, image := range images.Items {
+			r.Log.Infof("Notify that image %s should be re-created for cluster %s",
+				image.Name, image.UID)
+			if image.Spec.ClusterRef.Name == c.KubeKeyName {
+				r.PullSecretUpdatesChannel <- event.GenericEvent{
+					Meta: &metav1.ObjectMeta{
+						Namespace: image.Namespace,
+						Name:      image.Name,
+					},
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (r *ClusterDeploymentsReconciler) createNewCluster(
@@ -122,14 +257,15 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		//HTTPSProxy:               swag.String(spec.HTTPSProxy), // TODO: get from AgentEnvSpec
 		//NoProxy:                  swag.String(spec.NoProxy), // TODO: get from AgentEnvSpec
 		//SSHPublicKey:          spec.SSHPublicKey, // TODO: get from AgentEnvSpec
-		BaseDNSDomain:     spec.BaseDomain,
-		Name:              swag.String(spec.ClusterName),
-		OpenshiftVersion:  swag.String("4.7"), // TODO: check how to set openshift version
-		Operators:         nil,                // TODO: handle operators
-		PullSecret:        swag.String(pullSecret),
-		VipDhcpAllocation: swag.Bool(spec.Platform.AgentBareMetal.VIPDHCPAllocation),
-		IngressVip:        spec.Platform.AgentBareMetal.IngressVIP,
-		SSHPublicKey:      spec.InstallStrategy.Agent.SSHPublicKey,
+		BaseDNSDomain:         spec.BaseDomain,
+		Name:                  swag.String(spec.ClusterName),
+		OpenshiftVersion:      swag.String("4.7"), // TODO: check how to set openshift version
+		Operators:             nil,                // TODO: handle operators
+		PullSecret:            swag.String(pullSecret),
+		VipDhcpAllocation:     swag.Bool(spec.Platform.AgentBareMetal.VIPDHCPAllocation),
+		IngressVip:            spec.Platform.AgentBareMetal.IngressVIP,
+		SSHPublicKey:          spec.InstallStrategy.Agent.SSHPublicKey,
+		UserManagedNetworking: swag.Bool(isUserManagedNetwork(cluster)),
 	}
 
 	if len(spec.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
@@ -139,11 +275,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	if len(spec.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
 		clusterParams.ServiceNetworkCidr = swag.String(spec.InstallStrategy.Agent.Networking.ServiceNetwork[0])
-	}
-
-	if cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
-		clusterParams.UserManagedNetworking = swag.Bool(true)
 	}
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{

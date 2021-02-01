@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -16,10 +17,12 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi/operations/installer"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"github.com/openshift/hive/pkg/apis/hive/v1/agent"
 	"github.com/openshift/hive/pkg/apis/hive/v1/aws"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -307,6 +310,143 @@ var _ = Describe("cluster reconcile", func() {
 			result, err = cr.Reconcile(request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
+		})
+	})
+
+	Context("cluster update", func() {
+		var (
+			sId     strfmt.UUID
+			cluster *hivev1.ClusterDeployment
+		)
+
+		BeforeEach(func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			id := uuid.New()
+			sId = strfmt.UUID(id.String())
+
+			setCondition(hivev1.ClusterDeploymentCondition{
+				Type:               hivev1.UnreachableCondition,
+				Status:             corev1.ConditionUnknown,
+				LastProbeTime:      metav1.Time{Time: time.Now()},
+				LastTransitionTime: metav1.Time{Time: time.Now()},
+				Reason:             AgentPlatformState,
+				Message:            models.ClusterStatusPendingForInput,
+			}, &cluster.Status.Conditions)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("update pull-secret network cidr and cluster name", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     "different-cluster-name",
+					OpenshiftVersion:         "4.7",
+					ClusterNetworkCidr:       "11.129.0.0/14",
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusPendingForInput),
+				},
+				PullSecret: "different-pull-secret",
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			updateReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:         &sId,
+					Status:     swag.String(models.ClusterStatusInsufficient),
+					StatusInfo: swag.String(models.ClusterStatusInsufficient),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.UpdateClusterParams) {
+					Expect(swag.StringValue(param.ClusterUpdateParams.PullSecret)).To(Equal(testPullSecretVal))
+					Expect(swag.StringValue(param.ClusterUpdateParams.Name)).To(Equal(defaultClusterSpec.ClusterName))
+					Expect(swag.StringValue(param.ClusterUpdateParams.ClusterNetworkCidr)).
+						To(Equal(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR))
+				}).Return(updateReply, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusInsufficient))
+			Expect(getConditionByReason(AgentPlatformStateInfo, cluster).Message).To(Equal(models.ClusterStatusInsufficient))
+		})
+
+		It("only state changed", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.7",
+					ClusterNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					APIVipDNSName:            swag.String(defaultClusterSpec.Platform.AgentBareMetal.APIVIPDNSName),
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.InstallStrategy.Agent.SSHPublicKey,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			// TODO: add this mock once installation is supported
+			//mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusInsufficient))
+		})
+
+		It("failed getting cluster", func() {
+			expectedError := errors.Errorf("some internal error")
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).
+				Return(nil, expectedError)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformError, cluster).Message).To(Equal(expectedError.Error()))
+		})
+
+		It("update internal error", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 &sId,
+					Name:               "different-cluster-name",
+					OpenshiftVersion:   "4.7",
+					ClusterNetworkCidr: "11.129.0.0/14",
+					Status:             swag.String(models.ClusterStatusPendingForInput),
+				},
+				PullSecret: "different-pull-secret",
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			expectedUpdateError := errors.Errorf("update internal error")
+			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
+				Return(nil, expectedUpdateError)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformError, cluster).Message).NotTo(Equal(""))
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusPendingForInput))
 		})
 	})
 })
