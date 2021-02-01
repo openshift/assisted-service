@@ -215,3 +215,39 @@ var _ = Describe("list versions", func() {
 		})
 	})
 })
+
+var _ = Describe("list versions", func() {
+	var (
+		h *handler
+	)
+	BeforeEach(func() {
+		ctrl := gomock.NewController(GinkgoT())
+		mockRelease := oc.NewMockRelease(ctrl)
+
+		var versions Versions
+		Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
+
+		logger := logrus.New()
+		h = NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, "", "")
+	})
+
+	It("positive", func() {
+		res, err := h.GetSupportedVersionFormat("4.6")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res).Should(Equal("4.6"))
+
+		res, err = h.GetSupportedVersionFormat("4.6.9")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res).Should(Equal("4.6"))
+
+		res, err = h.GetSupportedVersionFormat("4.6.9-beta")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(res).Should(Equal("4.6"))
+	})
+
+	It("negative", func() {
+		res, err := h.GetSupportedVersionFormat("ere.654.45")
+		Expect(err).Should(HaveOccurred())
+		Expect(res).Should(Equal(""))
+	})
+})

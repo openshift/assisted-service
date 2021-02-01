@@ -4739,6 +4739,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockHostApi         *host.MockAPI
 		mockS3Client        *s3wrapper.MockAPI
 		mockMetric          *metrics.MockAPI
+		mockVersions        *versions.MockHandler
 		mockSecretValidator *validations.MockPullSecretValidator
 		request             *http.Request
 	)
@@ -4754,8 +4755,9 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockHostApi = host.NewMockAPI(ctrl)
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		mockVersions = versions.NewMockHandler(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, nil, nil)
+		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, mockVersions, nil)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 	})
@@ -4777,6 +4779,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		}
 		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.OpenShiftVersion, clusterID, "Unknown").Times(1)
+		mockVersions.EXPECT().GetSupportedVersionFormat(common.TestDefaultConfig.OpenShiftVersion).Return(common.TestDefaultConfig.OpenShiftVersion, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
