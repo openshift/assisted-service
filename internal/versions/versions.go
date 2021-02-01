@@ -2,8 +2,10 @@ package versions
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi"
@@ -27,6 +29,7 @@ type Handler interface {
 	GetRHCOSImage(openshiftVersion string) (string, error)
 	GetRHCOSVersion(openshiftVersion string) (string, error)
 	IsOpenshiftVersionSupported(openshiftVersion string) bool
+	GetSupportedVersionFormat(openshiftVersion string) (string, error)
 }
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
@@ -110,4 +113,12 @@ func (h *handler) IsOpenshiftVersionSupported(openshiftVersion string) bool {
 	}
 
 	return true
+}
+
+func (h *handler) GetSupportedVersionFormat(openshiftVersion string) (string, error) {
+	v, err := version.NewVersion(openshiftVersion)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
