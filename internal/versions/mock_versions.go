@@ -80,6 +80,21 @@ func (mr *MockHandlerMockRecorder) GetReleaseImage(arg0 interface{}) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetReleaseImage", reflect.TypeOf((*MockHandler)(nil).GetReleaseImage), arg0)
 }
 
+// GetSupportedVersionFormat mocks base method
+func (m *MockHandler) GetSupportedVersionFormat(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupportedVersionFormat", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSupportedVersionFormat indicates an expected call of GetSupportedVersionFormat
+func (mr *MockHandlerMockRecorder) GetSupportedVersionFormat(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedVersionFormat", reflect.TypeOf((*MockHandler)(nil).GetSupportedVersionFormat), arg0)
+}
+
 // IsOpenshiftVersionSupported mocks base method
 func (m *MockHandler) IsOpenshiftVersionSupported(arg0 string) bool {
 	m.ctrl.T.Helper()
