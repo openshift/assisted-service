@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -25,13 +26,6 @@ func clearDB() {
 func strToUUID(s string) *strfmt.UUID {
 	u := strfmt.UUID(s)
 	return &u
-}
-
-func registerNode(ctx context.Context, clusterID strfmt.UUID, name string) *models.Host {
-	h := &registerHost(clusterID).Host
-	generateHWPostStepReply(ctx, h, validHwInfo, name)
-	generateNTPPostStepReply(ctx, h, validNtpSources)
-	return h
 }
 
 func registerHost(clusterID strfmt.UUID) *models.HostRegistrationResponse {
@@ -179,6 +173,21 @@ func generateApiVipPostStepReply(ctx context.Context, h *models.Host, success bo
 		},
 	})
 	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func generateEssentialHostSteps(ctx context.Context, h *models.Host, name string) {
+	generateEssentialHostStepsWithInventory(ctx, h, name, validHwInfo)
+}
+
+func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {
+	generateHWPostStepReply(ctx, h, inventory, name)
+	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
+}
+
+func registerNode(ctx context.Context, clusterID strfmt.UUID, name string) *models.Host {
+	h := &registerHost(clusterID).Host
+	generateEssentialHostSteps(ctx, h, name)
+	return h
 }
 
 func isJSON(s []byte) bool {

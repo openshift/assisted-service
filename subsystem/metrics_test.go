@@ -633,7 +633,7 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation success
 			h := &registerHost(clusterID).Host
-			generateNTPPostStepReply(ctx, h, validNtpSources)
+			generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
 			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDNtpSynced)
 
 			// create a validation failure
@@ -657,7 +657,7 @@ var _ = Describe("Metrics tests", func() {
 			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDNtpSynced)
 
 			// create a validation success
-			generateNTPPostStepReply(ctx, h, validNtpSources)
+			generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
 			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDNtpSynced)
 
 			// check generated events

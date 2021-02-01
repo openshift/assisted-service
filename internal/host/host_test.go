@@ -35,7 +35,7 @@ var defaultConfig = &Config{
 	MonitorBatchSize: 100,
 }
 
-var defaultNTPSources = []*models.NtpSource{{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced}}
+var defaultNTPSources = []*models.NtpSource{common.TestNTPSourceSynced}
 
 var _ = Describe("update_role", func() {
 	var (
@@ -1486,7 +1486,7 @@ var _ = Describe("UpdateNTP", func() {
 		},
 		{
 			name:       "one NTP source",
-			ntpSources: defaultNTPSources,
+			ntpSources: []*models.NtpSource{common.TestNTPSourceSynced},
 		},
 	}
 

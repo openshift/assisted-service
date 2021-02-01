@@ -36,6 +36,9 @@ var TestDefaultConfig = &TestConfiguration{
 	},
 }
 
+var TestNTPSourceSynced = &models.NtpSource{SourceName: "clock.dummy.com", SourceState: models.SourceStateSynced}
+var TestNTPSourceUnsynced = &models.NtpSource{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable}
+
 func GenerateTestDefaultInventory() string {
 	inventory := &models.Inventory{
 		Interfaces: []*models.Interface{
