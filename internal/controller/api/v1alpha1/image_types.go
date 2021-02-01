@@ -18,7 +18,6 @@ package v1alpha1
 
 import (
 	"github.com/openshift/assisted-service/models"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -30,8 +29,8 @@ const (
 // ImageSpec defines the desired state of Image
 type ImageSpec struct {
 	// The name of the Cluster CR
-	ClusterRef   *corev1.ObjectReference `json:"clusterRef"`
-	SSHPublicKey string                  `json:"sshPublicKey,omitempty"`
+	ClusterRef   *ClusterReference `json:"clusterRef"`
+	SSHPublicKey string            `json:"sshPublicKey,omitempty"`
 	// The name of the secret containing the pull secret
 	IgnitionOverrides     string                   `json:"ignitionOverrides,omitempty"`
 	StaticIpConfiguration []*models.StaticIPConfig `json:"staticIpConfiguration,omitempty"`

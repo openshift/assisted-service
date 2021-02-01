@@ -683,7 +683,7 @@ func (in *ImageSpec) DeepCopyInto(out *ImageSpec) {
 	*out = *in
 	if in.ClusterRef != nil {
 		in, out := &in.ClusterRef, &out.ClusterRef
-		*out = new(v1.ObjectReference)
+		*out = new(ClusterReference)
 		**out = **in
 	}
 	if in.StaticIpConfiguration != nil {
