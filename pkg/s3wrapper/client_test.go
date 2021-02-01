@@ -150,6 +150,10 @@ var _ = Describe("s3client", func() {
 		client2 := &S3Client{cfg: &Config{PublicS3Bucket: "public", S3EndpointURL: "http://foo.com:1234"}}
 		url = client2.GetS3BootFileURL(defaultTestRhcosObject, "initrd.img")
 		Expect(url).To(Equal(fmt.Sprintf("http://foo.com:1234/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))))
+
+		client3 := &S3Client{cfg: &Config{PublicS3Bucket: "public", Region: "us-east-1", S3EndpointURL: "s3.us-east-1.amazonaws.com"}}
+		url = client3.GetS3BootFileURL(defaultTestRhcosObject, "rootfs.img")
+		Expect(url).To(Equal(fmt.Sprintf("https://public.s3.us-east-1.amazonaws.com/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))))
 	})
 	Context("upload iso", func() {
 		success := func(hexBytes []byte, baseISOSize, areaOffset, areaLength int64, cached bool) {
