@@ -52,6 +52,9 @@ const (
 
 	// StepTypeContainerImageAvailability captures enum value "container-image-availability"
 	StepTypeContainerImageAvailability StepType = "container-image-availability"
+
+	// StepTypeDomainResolution captures enum value "domain-resolution"
+	StepTypeDomainResolution StepType = "domain-resolution"
 )
 
 // for schema
@@ -59,7 +62,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","fio-perf-check","container-image-availability"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","fio-perf-check","container-image-availability","domain-resolution"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
