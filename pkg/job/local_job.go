@@ -8,7 +8,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
-	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -16,17 +15,17 @@ import (
 
 type localJob struct {
 	Config
-	log            logrus.FieldLogger
-	versionHandler versions.Handler
-	ocsConfig      *ocs.Config
+	log       logrus.FieldLogger
+	s3Client  s3wrapper.API
+	ocsConfig *ocs.Config
 }
 
-func NewLocalJob(log logrus.FieldLogger, cfg Config, versionHandler versions.Handler, ocsValidatorConfig *ocs.Config) *localJob {
+func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, ocsValidatorConfig *ocs.Config) *localJob {
 	return &localJob{
-		Config:         cfg,
-		log:            log,
-		versionHandler: versionHandler,
-		ocsConfig:      ocsValidatorConfig,
+		Config:    cfg,
+		log:       log,
+		s3Client:  s3Client,
+		ocsConfig: ocsValidatorConfig,
 	}
 }
 
@@ -42,14 +41,10 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
-	s3Client := s3wrapper.NewFSClient(workDir, log, j.versionHandler)
-	if s3Client == nil {
-		log.Fatal("failed to create S3 file system client, ", err)
-	}
 	if j.Config.DummyIgnition {
-		generator = ignition.NewDummyGenerator(workDir, &cluster, s3Client, log)
+		generator = ignition.NewDummyGenerator(workDir, &cluster, j.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, s3Client, log)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, j.s3Client, log)
 	}
 	err = generator.Generate(ctx, cfg, j.ocsConfig)
 	if err != nil {
