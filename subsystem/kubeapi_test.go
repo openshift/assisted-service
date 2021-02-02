@@ -70,6 +70,21 @@ func deployClusterCRD(ctx context.Context, client k8sclient.Client, spec *v1alph
 	Expect(err).To(BeNil())
 }
 
+func deployImageCRD(ctx context.Context, client k8sclient.Client, spec *v1alpha1.ImageSpec) {
+	err := client.Create(ctx, &v1alpha1.Image{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Image",
+			APIVersion: getAPIVersion(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      "blah", // TODO before merge: figure out the name, which is abesnt from the spec
+		},
+		Spec: *spec,
+	})
+	Expect(err).To(BeNil())
+}
+
 func getAPIVersion() string {
 	return fmt.Sprintf("%s/%s", v1alpha1.GroupVersion.Group, v1alpha1.GroupVersion.Version)
 }
@@ -147,6 +162,17 @@ func getDefaultClusterSpec(secretRef *corev1.SecretReference) *v1alpha1.ClusterS
 	}
 }
 
+func getDefaultImageSpec(clusterSpec *v1alpha1.ClusterSpec) *v1alpha1.ImageSpec {
+	// TODO: handle IgnitionOverrides and StaticIpConfiguration
+	return &v1alpha1.ImageSpec{
+		ClusterRef: &v1alpha1.ClusterReference{
+			Name:      clusterSpec.Name,
+			Namespace: Options.Namespace,
+		},
+		SSHPublicKey: clusterSpec.SSHPublicKey,
+	}
+}
+
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Cluster{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Image{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
@@ -206,5 +232,29 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
 
 		waitForClusterCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForClusterReconcileTimeout)
+	})
+
+	It("deploy ISO", func() {
+		// TODO: cluster deployment should move to AfterEach
+		secretRef := deployDefaultSecretIfNeeded(ctx, kubeClient)
+		clusterSpec := getDefaultClusterSpec(secretRef)
+		deployClusterCRD(ctx, kubeClient, clusterSpec)
+
+
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterSpec.Name,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForClusterReconcileTimeout)
+		hosts := make([]*models.Host, 0)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := setupNewHost(ctx, hostname, *cluster.ID)
+			hosts = append(hosts, host)
+		}
+		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		waitForClusterCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForClusterReconcileTimeout)
+		imageSpec := getDefaultImageSpec(clusterSpec)
+		deployImageCRD(ctx, kubeClient, imageSpec)
 	})
 })
