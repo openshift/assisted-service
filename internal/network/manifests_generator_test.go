@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -48,8 +49,8 @@ var _ = Describe("chrony manifest", func() {
 
 		It("same_ntp_source", func() {
 			toMarshal := []*models.NtpSource{
-				{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
-				{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable},
+				common.TestNTPSourceSynced,
+				common.TestNTPSourceUnsynced,
 			}
 
 			hosts := make([]*models.Host, 0)
@@ -62,13 +63,13 @@ var _ = Describe("chrony manifest", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
-			expectedContent += "\nserver 1.1.1.1 iburst"
+			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceSynced.SourceName)
 			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
 		})
 
 		It("skip_disabled_hosts", func() {
 			toMarshal := []*models.NtpSource{
-				{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
+				common.TestNTPSourceSynced,
 			}
 
 			hosts := make([]*models.Host, 0)
@@ -86,8 +87,8 @@ var _ = Describe("chrony manifest", func() {
 
 		It("multiple_ntp_source", func() {
 			toMarshal := []*models.NtpSource{
-				{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
-				{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable},
+				common.TestNTPSourceSynced,
+				common.TestNTPSourceUnsynced,
 			}
 
 			hosts := make([]*models.Host, 0)
@@ -100,7 +101,7 @@ var _ = Describe("chrony manifest", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
-			expectedContent += "\nserver 1.1.1.1 iburst"
+			expectedContent += fmt.Sprintf("\nserver %s iburst", common.TestNTPSourceSynced.SourceName)
 			expectedContent += "\nserver 3.3.3.3 iburst"
 			Expect(response).To(ContainSubstring(base64.StdEncoding.EncodeToString([]byte(expectedContent))))
 		})
@@ -129,8 +130,8 @@ var _ = Describe("chrony manifest", func() {
 
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, createHost([]*models.NtpSource{
-				{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
-				{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable},
+				common.TestNTPSourceSynced,
+				common.TestNTPSourceUnsynced,
 			}))
 			hosts = append(hosts, createHost([]*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
 

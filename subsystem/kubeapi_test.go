@@ -169,10 +169,8 @@ func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses 
 }
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
-	host := &registerHost(clusterID).Host
-	generateHWPostStepReply(ctx, host, validHwInfo, hostname)
+	host := registerNode(ctx, clusterID, hostname)
 	generateFAPostStepReply(ctx, host, validFreeAddresses)
-	generateNTPPostStepReply(ctx, host, validNtpSources)
 	return host
 }
 
