@@ -5244,6 +5244,68 @@ func init() {
         "install"
       ]
     },
+    "domain_resolution_request": {
+      "type": "object",
+      "required": [
+        "domains"
+      ],
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "domain_name"
+            ],
+            "properties": {
+              "domain_name": {
+                "description": "The domain name that should be resolved",
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "domain_resolution_response": {
+      "type": "object",
+      "required": [
+        "resolutions"
+      ],
+      "properties": {
+        "resolutions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "domain_name"
+            ],
+            "properties": {
+              "domain_name": {
+                "description": "The domain that was resolved",
+                "type": "string"
+              },
+              "ipv4_addresses": {
+                "description": "The IPv4 addresses of the domain, empty if none",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "ipv4"
+                }
+              },
+              "ipv6_addresses": {
+                "description": "The IPv6 addresses of the domain, empty if none",
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "format": "ipv6"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -6349,7 +6411,8 @@ func init() {
         "api-vip-connectivity-check",
         "ntp-synchronizer",
         "fio-perf-check",
-        "container-image-availability"
+        "container-image-availability",
+        "domain-resolution"
       ]
     },
     "steps": {
@@ -10747,6 +10810,46 @@ func init() {
       },
       "x-nullable": false
     },
+    "DomainResolutionRequestDomainsItems0": {
+      "type": "object",
+      "required": [
+        "domain_name"
+      ],
+      "properties": {
+        "domain_name": {
+          "description": "The domain name that should be resolved",
+          "type": "string"
+        }
+      }
+    },
+    "DomainResolutionResponseResolutionsItems0": {
+      "type": "object",
+      "required": [
+        "domain_name"
+      ],
+      "properties": {
+        "domain_name": {
+          "description": "The domain that was resolved",
+          "type": "string"
+        },
+        "ipv4_addresses": {
+          "description": "The IPv4 addresses of the domain, empty if none",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv4"
+          }
+        },
+        "ipv6_addresses": {
+          "description": "The IPv6 addresses of the domain, empty if none",
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "ipv6"
+          }
+        }
+      }
+    },
     "HostRegistrationResponseAO1NextStepRunnerCommand": {
       "description": "Command for starting the next step runner",
       "type": "object",
@@ -11764,6 +11867,34 @@ func init() {
         "none",
         "install"
       ]
+    },
+    "domain_resolution_request": {
+      "type": "object",
+      "required": [
+        "domains"
+      ],
+      "properties": {
+        "domains": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DomainResolutionRequestDomainsItems0"
+          }
+        }
+      }
+    },
+    "domain_resolution_response": {
+      "type": "object",
+      "required": [
+        "resolutions"
+      ],
+      "properties": {
+        "resolutions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DomainResolutionResponseResolutionsItems0"
+          }
+        }
+      }
     },
     "error": {
       "type": "object",
@@ -12871,7 +13002,8 @@ func init() {
         "api-vip-connectivity-check",
         "ntp-synchronizer",
         "fio-perf-check",
-        "container-image-availability"
+        "container-image-availability",
+        "domain-resolution"
       ]
     },
     "steps": {
