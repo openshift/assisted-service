@@ -43,3 +43,19 @@ func IsHTTPError(err error, httpErrorCode int) bool {
 		return false
 	}
 }
+
+func IsHTTP4XXError(err error) bool {
+	switch serr := err.(type) {
+	case *common.ApiErrorResponse:
+		if serr.StatusCode() >= 400 && serr.StatusCode() < 500 {
+			return true
+		}
+	case *common.InfraErrorResponse:
+		if serr.StatusCode() >= 400 && serr.StatusCode() < 500 {
+			return true
+		}
+	default:
+		return false
+	}
+	return false
+}
