@@ -473,6 +473,16 @@ func (v *validator) printAPIVipConnected(c *validationContext, status Validation
 	}
 }
 
+func getNumEnabledHosts(hosts []*models.Host) int {
+	ret := 0
+	for _, h := range hosts {
+		if swag.StringValue(h.Status) != models.HostStatusDisabled {
+			ret++
+		}
+	}
+	return ret
+}
+
 func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatus {
 	if hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
@@ -486,7 +496,13 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatu
 		v.log.WithError(err).Warn("Parse majority group")
 		return ValidationError
 	}
-	return boolValue(funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID))
+	if funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID) {
+		return ValidationSuccess
+	} else if getNumEnabledHosts(c.cluster.Hosts) < 3 {
+		// The minimum non disabled hosts for connectivity check is 3
+		return ValidationPending
+	}
+	return ValidationFailure
 }
 
 func (v *validator) printBelongsToMajorityGroup(c *validationContext, status ValidationStatus) string {
@@ -504,7 +520,13 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 	case ValidationError:
 		return "Parse error for connectivity majority group"
 	case ValidationPending:
-		return "Machine Network CIDR or Connectivity Majority Groups missing"
+		if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
+			return "Machine Network CIDR or Connectivity Majority Groups missing"
+		} else if getNumEnabledHosts(c.cluster.Hosts) < 3 {
+			return "Not enough enabled hosts in cluster to calculate connectivity groups"
+		}
+		// Shouldn't happen
+		return "Not enough information to calculate host majority groups"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
