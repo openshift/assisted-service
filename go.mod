@@ -28,12 +28,10 @@ require (
 	github.com/go-openapi/validate v0.19.10
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.4.4
-	github.com/golangci/golangci-lint v1.33.0 // indirect
 	github.com/google/uuid v1.1.1
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.1
 	github.com/iancoleman/strcase v0.1.2
-	github.com/jinzhu/copier v0.2.3
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
@@ -46,7 +44,6 @@ require (
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20200827190008-3062137373b5
 	github.com/openshift/hive v0.0.0-00010101000000-000000000000
-	github.com/openshift/origin v0.0.0-20160503220234-8f127d736703 // indirect
 	github.com/ory/dockertest/v3 v3.6.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/uuid v1.2.0
@@ -62,10 +59,12 @@ require (
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/sync v0.0.0-20201008141435-b3e1573b7520
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/sys v0.0.0-20201009025420-dfb3f7c4e634 // indirect
+	golang.org/x/tools v0.0.0-20201013201025-64a9e34f3752 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/square/go-jose.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.3.0
+	honnef.co/go/tools v0.0.1-2020.1.6 // indirect
 	k8s.io/api v0.19.0
 	k8s.io/apimachinery v0.19.0
 	k8s.io/client-go v12.0.0+incompatible

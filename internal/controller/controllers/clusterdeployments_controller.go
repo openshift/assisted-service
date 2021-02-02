@@ -103,7 +103,35 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return result, err
 	}
 
+	if r.isReadyForInstallation(cluster, c) {
+		var ic *common.Cluster
+		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
+			ClusterID: *c.ID,
+		})
+		if err != nil {
+			return r.updateState(ctx, cluster, c, err)
+		}
+		return r.updateState(ctx, cluster, ic, nil)
+	}
+
 	return r.updateState(ctx, cluster, c, nil)
+}
+
+func (r *ClusterDeploymentsReconciler) isReadyForInstallation(cluster *hivev1.ClusterDeployment, c *common.Cluster) bool {
+	if ready, _ := r.ClusterApi.IsReadyForInstallation(c); !ready {
+		return false
+	}
+
+	readyHosts := 0
+	for _, h := range c.Hosts {
+		if r.HostApi.IsInstallable(h) {
+			readyHosts += 1
+		}
+	}
+
+	expectedHosts := cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents +
+		cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents
+	return readyHosts == expectedHosts
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
