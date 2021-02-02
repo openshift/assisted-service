@@ -1386,8 +1386,8 @@ var _ = Describe("PostStepReply", func() {
 
 		It("NTP synchronizer success", func() {
 			toMarshal := []*models.NtpSource{
-				{SourceName: "1.1.1.1", SourceState: models.SourceStateSynced},
-				{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable},
+				common.TestNTPSourceSynced,
+				common.TestNTPSourceUnsynced,
 			}
 
 			mockHostApi.EXPECT().UpdateNTP(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)

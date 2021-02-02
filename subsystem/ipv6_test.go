@@ -99,8 +99,7 @@ func registerHostsAndSetRolesV6(clusterID strfmt.UUID, numHosts int) []*models.H
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
 		host := &registerHost(clusterID).Host
-		generateHWPostStepReply(ctx, host, validHwInfoV6, hostname)
-		generateNTPPostStepReply(ctx, host, validNtpSources)
+		generateEssentialHostStepsWithInventory(ctx, host, hostname, validHwInfoV6)
 		var role models.HostRoleUpdateParams
 		if i < 3 {
 			role = models.HostRoleUpdateParamsMaster
