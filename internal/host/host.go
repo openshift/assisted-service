@@ -126,6 +126,7 @@ type API interface {
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error
+	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
 }
 
 type Manager struct {
@@ -861,6 +862,10 @@ func (m *Manager) canBeMaster(conditions map[validationID]bool) bool {
 
 func (m *Manager) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
 	return m.hwValidator.GetHostRequirements(role)
+}
+
+func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
+	return m.hwValidator.GetHostValidDisks(host)
 }
 
 func (m Manager) PermanentHostsDeletion(olderThen strfmt.DateTime) error {

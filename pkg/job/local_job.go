@@ -7,6 +7,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -17,13 +18,15 @@ type localJob struct {
 	Config
 	log            logrus.FieldLogger
 	versionHandler versions.Handler
+	ocsConfig      *ocs.Config
 }
 
-func NewLocalJob(log logrus.FieldLogger, cfg Config, versionHandler versions.Handler) *localJob {
+func NewLocalJob(log logrus.FieldLogger, cfg Config, versionHandler versions.Handler, ocsValidatorConfig *ocs.Config) *localJob {
 	return &localJob{
 		Config:         cfg,
 		log:            log,
 		versionHandler: versionHandler,
+		ocsConfig:      ocsValidatorConfig,
 	}
 }
 
@@ -48,7 +51,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 	} else {
 		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, s3Client, log)
 	}
-	err = generator.Generate(ctx, cfg)
+	err = generator.Generate(ctx, cfg, j.ocsConfig)
 	if err != nil {
 		return err
 	}

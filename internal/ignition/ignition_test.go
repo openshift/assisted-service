@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
 	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
@@ -711,7 +712,7 @@ var _ = Describe("Lso manifests creation Test", func() {
 
 	BeforeEach(func() {
 
-		err := os.Mkdir("manifests", 0755) // Create a Temporary directory to test creation of Lso manifests
+		err := os.Mkdir("manifests", 0700) // Create a Temporary directory to test creation of Lso manifests
 		Expect(err).NotTo(HaveOccurred())
 
 	})
@@ -731,7 +732,7 @@ var _ = Describe("Lso manifests creation Test", func() {
 			cluster.Operators = convertFromClusterOperators(clusterOperators)
 
 			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
-			lsoErr = g.createLsoManifests()
+			lsoErr = g.generateLsoManifests()
 			Expect(lsoErr).NotTo(HaveOccurred())
 		})
 	})
@@ -756,3 +757,46 @@ func convertFromClusterOperators(operators []*models.ClusterOperator) string {
 	}
 	return string(reply)
 }
+
+var _ = Describe("Ocs manifests creation Test", func() {
+	var (
+		OcsErr     error
+		OcsEnabled bool
+	)
+
+	BeforeEach(func() {
+
+		err := os.Mkdir("manifests", 0700) // Create a Temporary directory to test creation of Ocs manifests
+		Expect(err).NotTo(HaveOccurred())
+
+	})
+	Describe("Ocs Manifests", func() {
+		It("ocsEnabled", func() {
+			clusterOperators := []*models.ClusterOperator{
+				{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)}}
+			cluster.Operators = convertFromClusterOperators(clusterOperators)
+			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
+			OcsEnabled = g.checkOcsEnabled()
+			Expect(OcsEnabled).To(Equal(true))
+		})
+		It("ocs manifests creation with ocs enabled", func() {
+			clusterOperators := []*models.ClusterOperator{
+				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
+			cluster.Operators = convertFromClusterOperators(clusterOperators)
+			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
+			OcsErr = g.generateOcsManifests(&ocs.Config{})
+			files, _ := ioutil.ReadDir("manifests")
+			Expect(len(files)).To(Equal(5))
+			Expect(OcsErr).NotTo(HaveOccurred())
+		})
+	})
+	It("ocsDisabled", func() {
+		g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
+		OcsEnabled = g.checkOcsEnabled()
+		Expect(OcsEnabled).To(Equal(false))
+	})
+})
+
+var _ = AfterEach(func() {
+	os.RemoveAll("manifests")
+})

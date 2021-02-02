@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
@@ -49,20 +50,22 @@ type Config struct {
 	DummyIgnition        bool   `envconfig:"DUMMY_IGNITION"`
 }
 
-func New(log logrus.FieldLogger, kube client.Client, s3Client s3wrapper.API, cfg Config) *kubeJob {
+func New(log logrus.FieldLogger, kube client.Client, s3Client s3wrapper.API, cfg Config, ocsValidatorConfig *ocs.Config) *kubeJob {
 	return &kubeJob{
-		Config:   cfg,
-		log:      log,
-		kube:     kube,
-		s3Client: s3Client,
+		Config:    cfg,
+		log:       log,
+		kube:      kube,
+		s3Client:  s3Client,
+		ocsConfig: ocsValidatorConfig,
 	}
 }
 
 type kubeJob struct {
 	Config
-	log      logrus.FieldLogger
-	kube     client.Client
-	s3Client s3wrapper.API
+	log       logrus.FieldLogger
+	kube      client.Client
+	s3Client  s3wrapper.API
+	ocsConfig *ocs.Config
 }
 
 func (k *kubeJob) getJob(ctx context.Context, job *batch.Job, name, namespace string) error {
@@ -199,7 +202,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 	} else {
 		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, "", k.Config.ServiceCACertPath, k.s3Client, log)
 	}
-	err = generator.Generate(ctx, cfg)
+	err = generator.Generate(ctx, cfg, k.ocsConfig)
 	if err != nil {
 		return err
 	}

@@ -11,6 +11,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/operators/ocs"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -85,6 +87,7 @@ var Options struct {
 	Auth                        auth.Config
 	BMConfig                    bminventory.Config
 	DBConfig                    db.Config
+	OCSValidatorConfig          ocs.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           hostcommands.InstructionConfig
@@ -238,7 +241,8 @@ func main() {
 
 		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
 		failOnError(err, "failed to create controller-runtime client")
-		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig)
+
+		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, &Options.OCSValidatorConfig)
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
 		failOnError(cerr, "Failed to create kubernetes cluster config")
@@ -263,7 +267,7 @@ func main() {
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient("/data", log, versionHandler)
 		createS3Bucket(objectHandler)
-		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig, versionHandler)
+		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig, versionHandler, &Options.OCSValidatorConfig)
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
 			failOnError(err, "Failed to create client for OCP")
@@ -276,10 +280,11 @@ func main() {
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
+	ocsValidator := ocs.NewOcsValidator(log.WithField("pkg", "ocs-operator-state"), hostApi, &Options.OCSValidatorConfig)
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, ocsValidator)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
