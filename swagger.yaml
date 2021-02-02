@@ -3161,6 +3161,7 @@ definitions:
       - ntp-synchronizer
       - fio-perf-check
       - container-image-availability
+      - domain-resolution
 
   step:
     type: object
@@ -4136,6 +4137,50 @@ definitions:
       path:
         type: string
         description: The device path.
+
+  domain_resolution_request:
+    type: object
+    required:
+      - domains
+    properties:
+      domains:
+        type: array
+        items:
+          type: object
+          required:
+            - domain_name
+          properties:
+            domain_name:
+              description: "The domain name that should be resolved"
+              type: string
+
+  domain_resolution_response:
+    type: object
+    required:
+      - resolutions
+    properties:
+      resolutions:
+        type: array
+        items:
+          type: object
+          required:
+            - domain_name
+          properties:
+            domain_name:
+              type: string
+              description: "The domain that was resolved"
+            ipv4_addresses:
+              type: array
+              description: "The IPv4 addresses of the domain, empty if none"
+              items:
+                type: string
+                format: ipv4
+            ipv6_addresses:
+              type: array
+              description: "The IPv6 addresses of the domain, empty if none"
+              items:
+                type: string
+                format: ipv6
 
   credentials:
     type: object
