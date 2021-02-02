@@ -27,6 +27,13 @@ func strToUUID(s string) *strfmt.UUID {
 	return &u
 }
 
+func registerNode(ctx context.Context, clusterID strfmt.UUID, name string) *models.Host {
+	h := &registerHost(clusterID).Host
+	generateHWPostStepReply(ctx, h, validHwInfo, name)
+	generateNTPPostStepReply(ctx, h, validNtpSources)
+	return h
+}
+
 func registerHost(clusterID strfmt.UUID) *models.HostRegistrationResponse {
 	uuid := strToUUID(uuid.New().String())
 	return registerHostByUUID(clusterID, *uuid)
@@ -150,6 +157,25 @@ func generateNTPPostStepReply(ctx context.Context, h *models.Host, ntpSources []
 			Output:   string(bytes),
 			StepID:   string(models.StepTypeNtpSynchronizer),
 			StepType: models.StepTypeNtpSynchronizer,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func generateApiVipPostStepReply(ctx context.Context, h *models.Host, success bool) {
+	checkVipApiResponse := models.APIVipConnectivityResponse{
+		IsSuccess: success,
+	}
+	bytes, jsonErr := json.Marshal(checkVipApiResponse)
+	Expect(jsonErr).NotTo(HaveOccurred())
+	_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		ClusterID: h.ClusterID,
+		HostID:    *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			StepType: models.StepTypeAPIVipConnectivityCheck,
+			Output:   string(bytes),
+			StepID:   "apivip-connectivity-check-step",
 		},
 	})
 	Expect(err).ShouldNot(HaveOccurred())

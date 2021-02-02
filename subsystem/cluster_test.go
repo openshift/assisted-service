@@ -766,18 +766,11 @@ var _ = Describe("cluster install", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
-	registerNode := func(clusterID strfmt.UUID, name string) *models.Host {
-		h := &registerHost(clusterID).Host
-		generateHWPostStepReply(ctx, h, validHwInfo, name)
-		generateNTPPostStepReply(ctx, h, validNtpSources)
-		return h
-	}
-
-	register3nodes := func(clusterID strfmt.UUID) []*models.Host {
-		h1 := registerNode(clusterID, "h1")
+	register3nodes := func(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
+		h1 := registerNode(ctx, clusterID, "h1")
 		generateFAPostStepReply(h1, validFreeAddresses)
-		h2 := registerNode(clusterID, "h2")
-		h3 := registerNode(clusterID, "h3")
+		h2 := registerNode(ctx, clusterID, "h2")
+		h3 := registerNode(ctx, clusterID, "h3")
 		updateVipParams(clusterID)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
 
@@ -1488,7 +1481,7 @@ var _ = Describe("cluster install", func() {
 			By("Download before upload")
 			{
 
-				nodes := register3nodes(clusterID)
+				nodes := register3nodes(ctx, clusterID)
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, HostID: nodes[1].ID}, file)
@@ -1500,7 +1493,7 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				_ = register3nodes(clusterID)
+				_ = register3nodes(ctx, clusterID)
 				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, LogsType: string(models.LogsTypeController), Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 				logsType := string(models.LogsTypeController)
@@ -1517,7 +1510,7 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				hosts := register3nodes(clusterID)
+				hosts := register3nodes(ctx, clusterID)
 				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *hosts[0].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1540,7 +1533,7 @@ var _ = Describe("cluster install", func() {
 				cmd := exec.Command("head", "-c", "200MB", "/dev/urandom")
 				err = cmd.Run()
 				Expect(err).NotTo(HaveOccurred())
-				nodes := register3nodes(clusterID)
+				nodes := register3nodes(ctx, clusterID)
 				// test hosts logs
 				kubeconfigFile, err := os.Open(filePath)
 				Expect(err).NotTo(HaveOccurred())
@@ -1579,7 +1572,7 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("Download cluster logs", func() {
-			nodes := register3nodes(clusterID)
+			nodes := register3nodes(ctx, clusterID)
 			for _, host := range nodes {
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
@@ -2229,9 +2222,9 @@ var _ = Describe("cluster install", func() {
 		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, defaultWaitForClusterStateTimeout,
 			clusterPendingForInputStateInfo)
 
-		hosts := register3nodes(clusterID)
+		hosts := register3nodes(ctx, clusterID)
 		h4 := &registerHost(clusterID).Host
-		h5 := registerNode(clusterID, "h5")
+		h5 := registerNode(ctx, clusterID, "h5")
 
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
@@ -2477,7 +2470,7 @@ var _ = Describe("cluster install", func() {
 	It("unique_hostname_validation", func() {
 		clusterID := *cluster.ID
 		//define h1 as known master
-		hosts := register3nodes(clusterID)
+		hosts := register3nodes(ctx, clusterID)
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
@@ -2495,7 +2488,7 @@ var _ = Describe("cluster install", func() {
 
 		By("Registering host with same hostname")
 		//after name clash --> h1 and h4 are insufficient
-		h4 := registerNode(clusterID, "h1")
+		h4 := registerNode(ctx, clusterID, "h1")
 		h4 = getHost(clusterID, *h4.ID)
 		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
@@ -2519,7 +2512,7 @@ var _ = Describe("cluster install", func() {
 		Expect(err).Should(HaveOccurred())
 
 		By("Registering one more host with same hostname")
-		disabledHost := registerNode(clusterID, "h1")
+		disabledHost := registerNode(ctx, clusterID, "h1")
 		disabledHost = getHost(clusterID, *disabledHost.ID)
 		waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusInsufficient,
 			defaultWaitForHostStateTimeout)
@@ -2549,7 +2542,7 @@ var _ = Describe("cluster install", func() {
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 
 		By("add one more worker to get 2 functioning workers")
-		h5 := registerNode(clusterID, "h5")
+		h5 := registerNode(ctx, clusterID, "h5")
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2571,7 +2564,7 @@ var _ = Describe("cluster install", func() {
 		localhost := "localhost"
 		clusterID := *cluster.ID
 
-		hosts := register3nodes(clusterID)
+		hosts := register3nodes(ctx, clusterID)
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
@@ -2639,7 +2632,7 @@ var _ = Describe("cluster install", func() {
 
 	It("set_requested_hostnames", func() {
 		clusterID := *cluster.ID
-		hosts := register3nodes(clusterID)
+		hosts := register3nodes(ctx, clusterID)
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},

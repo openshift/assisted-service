@@ -2,7 +2,6 @@ package subsystem
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -60,25 +59,6 @@ var _ = Describe("Day2 cluster tests", func() {
 	AfterEach(func() {
 		clearDB()
 	})
-
-	generateApiVipPostStepReply := func(h *models.Host, success bool) {
-		checkVipApiResponse := models.APIVipConnectivityResponse{
-			IsSuccess: success,
-		}
-		bytes, jsonErr := json.Marshal(checkVipApiResponse)
-		Expect(jsonErr).NotTo(HaveOccurred())
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: h.ClusterID,
-			HostID:    *h.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				StepType: models.StepTypeAPIVipConnectivityCheck,
-				Output:   string(bytes),
-				StepID:   "apivip-connectivity-check-step",
-			},
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-	}
 
 	It("cluster CRUD", func() {
 		_ = &registerHost(clusterID).Host
@@ -163,7 +143,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck}, 2)
 
 		By("checking known state state - one host, no connectivity check")
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		steps = getNextSteps(clusterID, *host.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck}, 1)
@@ -200,7 +180,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck}, 3)
 
 		By("checking known state state")
-		generateApiVipPostStepReply(h1, true)
+		generateApiVipPostStepReply(ctx, h1, true)
 		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
 		steps = getNextSteps(clusterID, *h1.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck}, 2)
@@ -212,7 +192,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -233,7 +213,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -259,13 +239,13 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h1, validHwInfo, "hostname1")
 		generateNTPPostStepReply(ctx, h1, validNtpSources)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h1, true)
+		generateApiVipPostStepReply(ctx, h1, true)
 		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
 
 		generateHWPostStepReply(ctx, h2, validHwInfo, "hostname2")
 		generateNTPPostStepReply(ctx, h2, validNtpSources)
 		waitForHostState(ctx, clusterID, *h2.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h2, true)
+		generateApiVipPostStepReply(ctx, h2, true)
 		waitForHostState(ctx, clusterID, *h2.ID, "known", 60*time.Second)
 
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
@@ -330,7 +310,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHost(ctx, &installer.InstallHostParams{ClusterID: clusterID, HostID: *host.ID})
 		Expect(err).NotTo(HaveOccurred())
@@ -351,7 +331,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -379,7 +359,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -409,7 +389,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
@@ -434,7 +414,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		generateHWPostStepReply(ctx, h, validHwInfo, "hostname")
 		generateNTPPostStepReply(ctx, h, validNtpSources)
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
-		generateApiVipPostStepReply(h, true)
+		generateApiVipPostStepReply(ctx, h, true)
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
