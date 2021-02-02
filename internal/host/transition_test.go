@@ -1486,6 +1486,8 @@ var _ = Describe("Refresh Host", func() {
 			machineNetworkCidr    string
 			connectivity          string
 			userManagedNetworking bool
+
+			numAdditionalHosts int
 		}{
 			{
 				name:              "discovering to disconnected",
@@ -2176,6 +2178,34 @@ var _ = Describe("Refresh Host", func() {
 				machineNetworkCidr: "1.2.3.0/24",
 				ntpSources:         defaultNTPSources,
 				role:               models.HostRoleMaster,
+				statusInfoChecker:  makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough enabled hosts in cluster to calculate connectivity groups"},
+					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+				}),
+				inventory:     hostutil.GenerateMasterInventory(),
+				connectivity:  fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
+				errorExpected: false,
+			},
+			{
+				name:               "known to insufficient + additional hosts",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
+				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"No connectivity to the majority of hosts in the cluster")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -2193,9 +2223,10 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMajorityGroup: {status: ValidationFailure, messagePattern: "No connectivity to the majority of hosts in the cluster"},
 					IsNTPSynced:            {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
 				}),
-				inventory:     hostutil.GenerateMasterInventory(),
-				connectivity:  fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
-				errorExpected: false,
+				inventory:          hostutil.GenerateMasterInventory(),
+				connectivity:       fmt.Sprintf("{\"%s\":[]}", "1.2.3.0/24"),
+				errorExpected:      false,
+				numAdditionalHosts: 2,
 			},
 			{
 				name:               "known to known with unexpected role",
@@ -2247,6 +2278,20 @@ var _ = Describe("Refresh Host", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				host.NtpSources = string(bytes)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				for i := 0; i < t.numAdditionalHosts; i++ {
+					id := strfmt.UUID(uuid.New().String())
+					h := hostutil.GenerateTestHost(id, clusterId, srcState)
+					h.Inventory = t.inventory
+					h.Role = t.role
+					h.CheckedInAt = hostCheckInAt
+					h.Kind = swag.String(t.kind)
+					h.RequestedHostname = fmt.Sprintf("additional-host-%d", i)
+					bytes, err = json.Marshal(t.ntpSources)
+					Expect(err).ShouldNot(HaveOccurred())
+					h.NtpSources = string(bytes)
+					Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
+				}
 
 				// Test setup - Cluster creation
 				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCidr)
