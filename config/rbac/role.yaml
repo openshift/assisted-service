@@ -57,6 +57,17 @@ rules:
     resources:
       - configmaps
     resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
+  - verbs:
+      - create
+      - get
+      - list
+      - patch
+      - update
+      - watch
+    apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
 
 ---
 kind: ClusterRoleBinding

@@ -17,6 +17,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/bootfiles"
@@ -62,7 +63,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
+	corev1 "k8s.io/api/core/v1"
+	apiErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -108,6 +114,7 @@ var Options struct {
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	ISOEditorConfig             isoeditor.Config
+	CreateServiceRoute          bool `envconfig:"CREATE_SERVICE_ROUTE" default:"false"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -264,6 +271,10 @@ func main() {
 		}
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
+	}
+
+	if Options.CreateServiceRoute {
+		createRouteAndUpdateConfigMap(log, failOnError)
 	}
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
@@ -452,6 +463,14 @@ func main() {
 		}
 	}()
 
+	go func() {
+		log.Infof("RWSU EnableKubeApi: %v", Options.EnableKubeAPI)
+		log.Info("RWSU before routes")
+		if Options.DeployTarget == deployment_type_ocp || Options.DeployTarget == deployment_type_k8s {
+			createRouteAndUpdateConfigMap(log, failOnError)
+		}
+	}()
+
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
 }
 
@@ -578,4 +597,71 @@ func createControllerManager() (manager.Manager, error) {
 		})
 	}
 	return nil, nil
+}
+
+func newAssistedServiceRoute(namespace string) *routev1.Route {
+	name := "assisted-service"
+	return &routev1.Route{
+		TypeMeta: metav1.TypeMeta{},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    map[string]string{"app": name}},
+		Spec: routev1.RouteSpec{
+			Port: &routev1.RoutePort{
+				TargetPort: intstr.FromString(name)},
+			To: routev1.RouteTargetReference{
+				Kind: "Service",
+				Name: name},
+			TLS: &routev1.TLSConfig{
+				Termination:                   routev1.TLSTerminationEdge,
+				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyAllow}},
+		Status: routev1.RouteStatus{},
+	}
+}
+
+func createRouteAndUpdateConfigMap(log logrus.FieldLogger, failOnError func(err error, msg string, args ...interface{})) {
+	log.Info("Creating route for service")
+
+	failOnError(routev1.AddToScheme(scheme.Scheme),
+		"Failed to add routev1 to scheme")
+
+	client, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
+	failOnError(err, "failed to create controller-runtime client")
+
+	ctx := context.Background()
+	found := &routev1.Route{}
+	route := newAssistedServiceRoute("assisted-installer")
+	err = client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: route.Namespace}, found)
+	if err != nil && apiErrors.IsNotFound(err) {
+		log.Info("Creating Route ", "Namespace ", route.Namespace, " Name ", route.Name)
+		failOnError(client.Create(ctx, route), "failed to create route")
+	} else if err != nil {
+		log.WithError(err).Error("Get route failed")
+	}
+
+	assistedServiceRoute := &routev1.Route{}
+	err = client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: route.Namespace}, assistedServiceRoute)
+	if err != nil {
+		log.WithError(err).Error("Get route after create failed")
+	}
+	log.Info("Route url: " + assistedServiceRoute.Status.Ingress[0].Host)
+
+	assistedServiceConfigMap := &corev1.ConfigMap{}
+	err = client.Get(ctx, types.NamespacedName{Name: "assisted-service-config", Namespace: "assisted-installer"}, assistedServiceConfigMap)
+	if err != nil {
+		log.WithError(err).Error("Get assisted service ConfigMap failed")
+	}
+	log.Info("RWSU assisted service ConfigMap: " + assistedServiceConfigMap.Data["SERVICE_BASE_URL"])
+	log.Info("RWSU Options.SERVICE_BASE_URL" + Options.BMConfig.ServiceBaseURL)
+
+	Options.BMConfig.ServiceBaseURL = assistedServiceRoute.Status.Ingress[0].Host
+	assistedServiceConfigMap.Data["SERVICE_BASE_URL"] = assistedServiceRoute.Status.Ingress[0].Host
+	err = client.Update(ctx, assistedServiceConfigMap)
+	if err != nil {
+		log.WithError(err).Error("Updating assisted service ConfigMap failed")
+	} else {
+		log.Info("SERVICE_BASE_URL in ConfigMap ", assistedServiceConfigMap.Name, " updated")
+	}
+	log.Info("RWSU Options.SERVICE_BASE_URL after" + Options.BMConfig.ServiceBaseURL)
 }
