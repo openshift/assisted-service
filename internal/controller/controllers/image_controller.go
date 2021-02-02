@@ -81,7 +81,7 @@ func (r *ImageReconciler) create(ctx context.Context, image *adiiov1alpha1.Image
 			ClusterID: strfmt.UUID(cluster.Status.ID),
 			ImageCreateParams: &models.ImageCreateParams{
 				SSHPublicKey:    image.Spec.SSHPublicKey,
-				StaticIpsConfig: image.Spec.StaticIpConfiguration,
+				StaticIpsConfig: covertStaticIPConfig(image.Spec.StaticIpConfiguration),
 			},
 		})
 	if inventoryErr == nil {
@@ -160,4 +160,33 @@ func (r *ImageReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 func imageBeingCreated(err error) bool {
 	return IsHTTPError(err, http.StatusConflict)
+}
+
+func covertStaticIPConfig(crdStaticIPConfig []*adiiov1alpha1.StaticIPConfig) []*models.StaticIPConfig {
+	var newStaticIPsConfig []*models.StaticIPConfig
+	for i := range crdStaticIPConfig {
+
+		IPV4 := models.StaticIPV4Config{
+			DNS:     crdStaticIPConfig[i].IPV4Config.DNS,
+			Gateway: crdStaticIPConfig[i].IPV4Config.Gateway,
+			IP:      crdStaticIPConfig[i].IPV4Config.IP,
+			Mask:    crdStaticIPConfig[i].IPV4Config.Mask,
+		}
+
+		IPV6 := models.StaticIPV6Config{
+			DNS:     crdStaticIPConfig[i].IPV6Config.DNS,
+			Gateway: crdStaticIPConfig[i].IPV6Config.Gateway,
+			IP:      crdStaticIPConfig[i].IPV6Config.IP,
+			Mask:    crdStaticIPConfig[i].IPV6Config.Mask,
+		}
+
+		config := models.StaticIPConfig{
+			IPV4Config: &IPV4,
+			IPV6Config: &IPV6,
+			Mac:        crdStaticIPConfig[i].Mac,
+		}
+
+		newStaticIPsConfig = append(newStaticIPsConfig, &config)
+	}
+	return newStaticIPsConfig
 }
