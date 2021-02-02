@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -37,6 +38,12 @@ func getDefaultConfig() Config {
 	var cfg Config
 	Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 	return cfg
+}
+
+func getOcsConfig() *ocs.Config {
+	var cfg ocs.Config
+	Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+	return &cfg
 }
 
 var _ = Describe("stateMachine", func() {
@@ -53,12 +60,15 @@ var _ = Describe("stateMachine", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, dummy)
+		ctrl := gomock.NewController(GinkgoT())
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, dummy, mockOCS)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String("not a known state"),
 		}}
+
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -113,9 +123,10 @@ var _ = Describe("TestClusterMonitoring", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, dummy)
+			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOCS)
 		expectedState = ""
 		shouldHaveUpdated = false
 	})
@@ -535,9 +546,10 @@ var _ = Describe("lease timeout event", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, dummy)
+			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOCS)
 	})
 	tests := []struct {
 		name                string
@@ -637,9 +649,10 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, dummy)
+			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOCS)
 	})
 	tests := []struct {
 		name                    string
@@ -811,9 +824,11 @@ var _ = Describe("VerifyRegisterHost", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
+		ctrl := gomock.NewController(GinkgoT())
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			nil, nil, nil, nil, dummy)
+			nil, nil, nil, nil, dummy, mockOCS)
 	})
 
 	checkVerifyRegisterHost := func(clusterStatus string, expectErr bool) {
@@ -863,9 +878,11 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		id = strfmt.UUID(uuid.New().String())
+		ctrl := gomock.NewController(GinkgoT())
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			nil, nil, nil, nil, dummy)
+			nil, nil, nil, nil, dummy, mockOCS)
 	})
 
 	checkVerifyClusterUpdatability := func(clusterStatus string, expectErr bool) {
@@ -917,8 +934,9 @@ var _ = Describe("CancelInstallation", func() {
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy)
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOCS)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:         &id,
@@ -990,7 +1008,9 @@ var _ = Describe("ResetCluster", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, dummy)
+		ctrl := gomock.NewController(GinkgoT())
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, dummy, mockOCS)
 	})
 
 	It("reset_cluster", func() {
@@ -1135,6 +1155,95 @@ func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm
 	Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
 }
 
+func defaultInventory() string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		CPU: &models.CPU{
+			Count: 16,
+		},
+		Memory: &models.Memory{
+			UsableBytes: 64000000000,
+		},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 20000000000,
+			}, {
+				SizeBytes: 40000000000,
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func ocsInventoryWithDisks(cpus int64, ram int64) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		CPU: &models.CPU{
+			Count: cpus,
+		},
+		Memory: &models.Memory{
+			UsableBytes: ram,
+		},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 20000000000,
+			}, {
+				SizeBytes: 40000000000,
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func ocsInventoryWithoutDisks(cpus int64, ram int64) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		CPU: &models.CPU{
+			Count: cpus,
+		},
+		Memory: &models.Memory{
+			UsableBytes: ram,
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func defaultInventoryWithTimestamp(timestamp int64) string {
 	inventory := models.Inventory{
 		Interfaces: []*models.Interface{
@@ -1146,6 +1255,19 @@ func defaultInventoryWithTimestamp(timestamp int64) string {
 			},
 		},
 		Timestamp: timestamp,
+		CPU: &models.CPU{
+			Count: 16,
+		},
+		Memory: &models.Memory{
+			UsableBytes: 64000000000,
+		},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 20000000000,
+			}, {
+				SizeBytes: 40000000000,
+			},
+		},
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -1203,7 +1325,8 @@ var _ = Describe("PrepareForInstallation", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		dummy := &leader.DummyElector{}
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, mockMetric, manifestsGenerator, dummy)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, mockMetric, manifestsGenerator, dummy, mockOCS)
 		clusterId = strfmt.UUID(uuid.New().String())
 
 		mockMetric.EXPECT().ClusterHostsNTPFailures(gomock.Any(), gomock.Any(), gomock.Any())
@@ -1309,7 +1432,9 @@ var _ = Describe("HandlePreInstallationError", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		dummy := &leader.DummyElector{}
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, dummy)
+		ctrl := gomock.NewController(GinkgoT())
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, dummy, mockOCS)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -1419,7 +1544,8 @@ var _ = Describe("SetVipsData", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, nil, nil, nil, dummy)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, nil, nil, nil, dummy, mockOCS)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 	AfterEach(func() {
@@ -1592,10 +1718,10 @@ var _ = Describe("Majority groups", func() {
 		dbIndex++
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, nil, nil, nil, dummy)
-
+			mockEvents, nil, nil, nil, dummy, mockOCS)
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:                       &id,
@@ -1688,9 +1814,9 @@ var _ = Describe("ready_state", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, nil, nil, nil, dummy)
-
+			mockEvents, nil, nil, nil, dummy, mockOCS)
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:                       &id,
@@ -1751,10 +1877,11 @@ var _ = Describe("insufficient_state", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, nil, nil, dummy)
+			mockEvents, mockHostAPI, nil, nil, dummy, mockOCS)
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
@@ -1794,8 +1921,9 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		dummy := &leader.DummyElector{}
-		capi = NewManager(cfg, common.GetTestLog(), db, mockEvents, mockHostAPI, nil, nil, dummy)
+		capi = NewManager(cfg, common.GetTestLog(), db, mockEvents, mockHostAPI, nil, nil, dummy, mockOCS)
 		clusterId = strfmt.UUID(uuid.New().String())
 		cl = common.Cluster{
 			Cluster: models.Cluster{
@@ -1856,7 +1984,8 @@ var _ = Describe("Cluster tarred files", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
-		capi = NewManager(cfg, common.GetTestLog(), db, mockEvents, mockHostAPI, nil, nil, dummy)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		capi = NewManager(cfg, common.GetTestLog(), db, mockEvents, mockHostAPI, nil, nil, dummy, mockOCS)
 		clusterId = strfmt.UUID(uuid.New().String())
 		cl = common.Cluster{
 			Cluster: models.Cluster{
@@ -1930,7 +2059,8 @@ var _ = Describe("CompleteInstallation", func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOCS)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -2006,10 +2136,11 @@ var _ = Describe("Permanently delete clusters", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy)
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOCS)
 		c1 = registerCluster()
 		c2 = registerCluster()
 		c3 = registerCluster()
@@ -2083,10 +2214,11 @@ var _ = Describe("Get cluster by Kube key", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
+		mockOCS := ocs.NewMockOcsValidator(ctrl)
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, dummy)
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, dummy, mockOCS)
 		key = types.NamespacedName{
 			Namespace: kubeKeyNamespace,
 			Name:      kubeKeyName,

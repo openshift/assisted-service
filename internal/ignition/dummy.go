@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -32,7 +33,7 @@ func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapp
 }
 
 // Generate creates the expected ignition and related files but with nonsense content
-func (g *dummyGenerator) Generate(ctx context.Context, installConfig []byte) error {
+func (g *dummyGenerator) Generate(ctx context.Context, installConfig []byte, ocsValidatorConfig *ocs.Config) error {
 	installConfigPath := filepath.Join(g.workDir, "install-config.yaml")
 	err := ioutil.WriteFile(installConfigPath, installConfig, 0600)
 	if err != nil {

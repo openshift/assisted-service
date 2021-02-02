@@ -15,6 +15,7 @@ import (
 
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 
 	"github.com/openshift/assisted-service/internal/network"
 
@@ -126,7 +127,7 @@ type Manager struct {
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
-	leaderElector leader.Leader) *Manager {
+	leaderElector leader.Leader, ocsValidator ocs.OcsValidator) *Manager {
 	th := &transitionHandler{
 		log:           log,
 		db:            db,
@@ -142,7 +143,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		sm:                    NewClusterStateMachine(th),
 		metricAPI:             metricApi,
 		manifestsGeneratorAPI: manifestsGeneratorAPI,
-		rp:                    newRefreshPreprocessor(log, hostAPI),
+		rp:                    newRefreshPreprocessor(log, hostAPI, ocsValidator),
 		hostAPI:               hostAPI,
 		leaderElector:         leaderElector,
 		prevMonitorInvokedAt:  time.Now(),

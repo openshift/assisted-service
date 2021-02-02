@@ -12,6 +12,7 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/sirupsen/logrus"
 
 	"github.com/go-openapi/strfmt"
@@ -34,6 +35,8 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler events.Handler
 		ctrl          *gomock.Controller
 		mockMetric    *metrics.MockAPI
+		mockHostAPI   *host.MockAPI
+		ocsValidator  ocs.OcsValidator
 		dbName        = "cluster_transition_test"
 	)
 
@@ -42,7 +45,10 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, nil)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		cfg := getOcsConfig()
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, cfg)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, nil, ocsValidator)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -158,6 +164,8 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl              *gomock.Controller
 		mockEventsHandler *events.MockHandler
 		mockMetric        *metrics.MockAPI
+		mockHostAPI       *host.MockAPI
+		ocsValidator      ocs.OcsValidator
 	)
 
 	BeforeEach(func() {
@@ -165,7 +173,9 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil, ocsValidator)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -228,13 +238,17 @@ var _ = Describe("Reset cluster", func() {
 		db                *gorm.DB
 		ctrl              *gomock.Controller
 		mockEventsHandler *events.MockHandler
+		mockHostAPI       *host.MockAPI
+		ocsValidator      ocs.OcsValidator
 	)
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil, ocsValidator)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -346,6 +360,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
+		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
 	)
@@ -368,8 +383,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -991,6 +1007,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
+		ocsValidator                            ocs.OcsValidator
 		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
 	)
 
@@ -1003,8 +1020,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1825,6 +1843,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
+		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_host_with_dhcp"
 	)
@@ -1838,8 +1857,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2307,6 +2327,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
+		ocsValidator                            ocs.OcsValidator
 		dbName                                  = "cluster_transition_test_refresh_installing_cases"
 	)
 
@@ -2323,8 +2344,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2579,6 +2601,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
+		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
 	)
@@ -2592,8 +2615,9 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -2932,6 +2956,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
+		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
 	)
@@ -2945,8 +2970,10 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -3285,6 +3312,7 @@ var _ = Describe("Single node", func() {
 		mockEvents                  *events.MockHandler
 		mockHostAPI                 *host.MockAPI
 		mockMetric                  *metrics.MockAPI
+		ocsValidator                ocs.OcsValidator
 		ctrl                        *gomock.Controller
 		dbName                      string = "cluster_transition_test_refresh_cluster_with_ntp"
 	)
@@ -3301,8 +3329,9 @@ var _ = Describe("Single node", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -3556,6 +3585,7 @@ var _ = Describe("Single node", func() {
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
 				}
 				mockHostAPIIsRequireUserActionResetFalse()
 
@@ -3580,6 +3610,451 @@ var _ = Describe("Single node", func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
+})
+
+var _ = Describe("Ocs Operator use-cases", func() {
+	var (
+		ctx                                           = context.Background()
+		db                                            *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5, hid6 strfmt.UUID
+		cluster                                       common.Cluster
+		clusterApi                                    *Manager
+		mockEvents                                    *events.MockHandler
+		mockHostAPI                                   *host.MockAPI
+		mockMetric                                    *metrics.MockAPI
+		cfg                                           *ocs.Config
+		ocsValidator                                  ocs.OcsValidator
+		ctrl                                          *gomock.Controller
+		dbName                                        string = "cluster_transition_test_with_ocs_validations"
+	)
+
+	mockHostAPIIsRequireUserActionResetFalse := func() {
+		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
+	}
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		cfg = getOcsConfig()
+		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, cfg)
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+		hid1 = strfmt.UUID(uuid.New().String())
+		hid2 = strfmt.UUID(uuid.New().String())
+		hid3 = strfmt.UUID(uuid.New().String())
+		hid4 = strfmt.UUID(uuid.New().String())
+		hid5 = strfmt.UUID(uuid.New().String())
+		hid6 = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	tests := []struct {
+		name                    string
+		srcState                string
+		srcStatusInfo           string
+		machineNetworkCidr      string
+		apiVip                  string
+		ingressVip              string
+		dnsDomain               string
+		pullSecretSet           bool
+		dstState                string
+		hosts                   []models.Host
+		statusInfoChecker       statusInfoChecker
+		validationsChecker      *validationsChecker
+		setMachineCidrUpdatedAt bool
+		errorExpected           bool
+	}{
+		{
+			name:               "ocs enabled, 3 sufficient nodes",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoReady),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationSuccess, messagePattern: "OCS Requirements for Compact Mode are satisfied"},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 6 sufficient nodes",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 15000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 32000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(9, 60000000000), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoReady),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationSuccess, messagePattern: "Requirements for OCS Minimal Deployment are satisfied"},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 inefficient nodes with less cpus",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(6, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(7, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact mode.A minimum of 36 CPUs, is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 inefficient nodes with less than 3 nodes",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(7, 64000000000), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationFailure, messagePattern: "Clusters with less than 3 dedicated masters or a single worker are not supported. Please either add hosts, or disable the worker host"},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 inefficient nodes with less ram",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 5000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 5000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 5000000000), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact mode.A minimum of 96 RAM, is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 nodes with less than 3 disks",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact mode.A minimum of 3 Disks, 3 Hosts with disks, is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 5 unsupported nodes ( 3 masters + 2 workers )",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Not supporting OCS Installation for 3 Masters and 2 Workers"},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 6 nodes with 3 insufficient worker nodes due to less cpus",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(4, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(3, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 64000000000), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient resources to deploy OCS on worker hosts. A minimum of 24 CPUs, is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 6 nodes with 3 insufficient worker nodes due to less ram",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 10000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 6000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 5000000000), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient resources to deploy OCS on worker hosts. A minimum of 66 RAM, is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(10, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(10, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(12, 64000000000), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient resources to deploy OCS on worker hosts. A minimum of 3 Disks, 3 Hosts with disks, is required."},
+			}),
+			errorExpected: false,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			operators := &models.Operators{
+				{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
+			}
+
+			op, _ := json.Marshal(operators)
+			cluster = common.Cluster{
+				Cluster: models.Cluster{
+					APIVip:                   t.apiVip,
+					ID:                       &clusterId,
+					IngressVip:               t.ingressVip,
+					MachineNetworkCidr:       t.machineNetworkCidr,
+					Status:                   &t.srcState,
+					StatusInfo:               &t.srcStatusInfo,
+					BaseDNSDomain:            t.dnsDomain,
+					PullSecretSet:            t.pullSecretSet,
+					ClusterNetworkCidr:       "1.3.0.0/16",
+					ServiceNetworkCidr:       "1.4.0.0/16",
+					ClusterNetworkHostPrefix: 24,
+					Operators:                string(op),
+				},
+			}
+
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			for i := range t.hosts {
+				t.hosts[i].ClusterID = clusterId
+				Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
+			}
+			if t.name == "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks" || t.name == "ocs enabled, 3 nodes with less than 3 disks" {
+				disks := []*models.Disk{}
+				mockHostAPI.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
+			} else {
+				disks := []*models.Disk{
+					{
+						SizeBytes: 20000000000,
+					}, {
+						SizeBytes: 40000000000,
+					},
+				}
+				mockHostAPI.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
+			}
+			cluster = getCluster(clusterId, db)
+			if t.dstState == models.ClusterStatusInsufficient {
+				mockHostAPIIsRequireUserActionResetFalse()
+			}
+			if t.srcState != t.dstState {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
+					gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+			}
+			clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+			if t.errorExpected {
+				Expect(err).To(HaveOccurred())
+			} else {
+				Expect(err).ToNot(HaveOccurred())
+			}
+			if t.name == "ocs enabled, 6 sufficient nodes" {
+				Expect(cfg.OCSMinimalDeployment).Should(Equal(true))
+			}
+			Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
+			t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
+			if t.validationsChecker != nil {
+				t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+			}
+		})
+	}
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
 })
 
 func getCluster(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
