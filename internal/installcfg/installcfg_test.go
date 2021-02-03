@@ -131,6 +131,28 @@ var _ = Describe("installcfg", func() {
 		Expect(splitNoProxy).To(ContainElement(domainName))
 	})
 
+	It("create_configuration_with_proxy_with_no_proxy_wildcard", func() {
+		var result InstallerConfigBaremetal
+		proxyURL := "http://proxyserver:3218"
+		cluster.HTTPProxy = proxyURL
+		cluster.HTTPSProxy = proxyURL
+		cluster.NoProxy = "*"
+		cluster.MachineNetworkCidr = ""
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Proxy.HTTPProxy).Should(Equal(proxyURL))
+		Expect(result.Proxy.HTTPSProxy).Should(Equal(proxyURL))
+		splitNoProxy := strings.Split(result.Proxy.NoProxy, ",")
+		Expect(splitNoProxy).To(HaveLen(1))
+		Expect(splitNoProxy).To(ContainElement("*"))
+		Expect(splitNoProxy).ToNot(ContainElement(cluster.ServiceNetworkCidr))
+		Expect(splitNoProxy).ToNot(ContainElement(cluster.ClusterNetworkCidr))
+		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
+		Expect(splitNoProxy).ToNot(ContainElement(domainName))
+	})
+
 	It("correctly applies cluster overrides", func() {
 		var result InstallerConfigBaremetal
 		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")

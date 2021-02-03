@@ -4848,6 +4848,10 @@ var _ = Describe("proxySettingsForIgnition", func() {
 				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": [".domain"] }`,
 			},
 			{
+				"http://proxy.proxy", "", "*",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": ["*"] }`,
+			},
+			{
 				"http://proxy.proxy", "https://proxy.proxy", ".domain",
 				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": [".domain"] }`,
 			},

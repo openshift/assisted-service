@@ -419,6 +419,10 @@ var _ = Describe("Proxy validations", func() {
 			err := ValidateNoProxyFormat("domain.com,...")
 			Expect(err).ShouldNot(BeNil())
 		})
+		It("invalid format '*' and others", func() {
+			err := ValidateNoProxyFormat("*,domain.com")
+			Expect(err).ShouldNot(BeNil())
+		})
 	})
 })
 

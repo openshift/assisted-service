@@ -147,6 +147,9 @@ func getNetworkType(cluster *common.Cluster) string {
 
 func generateNoProxy(cluster *common.Cluster) string {
 	noProxy := strings.TrimSpace(cluster.NoProxy)
+	if noProxy == "*" {
+		return noProxy
+	}
 	splitNoProxy := funk.FilterString(strings.Split(noProxy, ","), func(s string) bool { return s != "" })
 	if cluster.MachineNetworkCidr != "" {
 		splitNoProxy = append(splitNoProxy, cluster.MachineNetworkCidr)

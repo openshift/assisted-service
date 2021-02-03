@@ -346,7 +346,8 @@ func ValidateNoProxyFormat(noProxy string) error {
 		}
 		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
 			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
-			"A domain can be prefaced with '.' to include all subdomains of that domain.", noProxy)
+			"A domain can be prefaced with '.' to include all subdomains of that domain.  "+
+			"Use '*' to bypass the proxy for all destinations.", noProxy)
 	}
 	return nil
 }
