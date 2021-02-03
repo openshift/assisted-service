@@ -2005,7 +2005,7 @@ var _ = Describe("cluster", func() {
 
 		It("create non ha cluster", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil)
 
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
@@ -2029,7 +2029,7 @@ var _ = Describe("cluster", func() {
 
 		It("LSO install default value", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil)
 
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
@@ -2050,10 +2050,12 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("OCS install default value", func() {
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
@@ -2071,7 +2073,7 @@ var _ = Describe("cluster", func() {
 
 		It("LSO install non default value", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil)
 
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
@@ -2097,10 +2099,12 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("OCS install non default value", func() {
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
@@ -5280,7 +5284,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		clusterApi := cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, mockEvents, nil, nil, nil, nil)
+			db, mockEvents, nil, nil, nil, nil, nil)
 		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents,
 			nil, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, mockVersions, nil)
 	})
