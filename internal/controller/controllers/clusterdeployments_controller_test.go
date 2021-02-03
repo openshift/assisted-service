@@ -313,6 +313,109 @@ var _ = Describe("cluster reconcile", func() {
 		})
 	})
 
+	Context("cluster installation", func() {
+		var (
+			sId            strfmt.UUID
+			cluster        *hivev1.ClusterDeployment
+			backEndCluster *common.Cluster
+		)
+
+		BeforeEach(func() {
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			id := uuid.New()
+			sId = strfmt.UUID(id.String())
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			backEndCluster = &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.7",
+					ClusterNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusReady),
+					ServiceNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					APIVipDNSName:            swag.String(defaultClusterSpec.Platform.AgentBareMetal.APIVIPDNSName),
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.InstallStrategy.Agent.SSHPublicKey,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			hosts := []*models.Host{}
+			for i := 0; i < 5; i++ {
+				id := strfmt.UUID(uuid.New().String())
+				h := &models.Host{
+					ID:     &id,
+					Status: swag.String(models.HostStatusKnown),
+				}
+				hosts = append(hosts, h)
+			}
+			backEndCluster.Hosts = hosts
+		})
+
+		It("success", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+
+			installClusterReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:     backEndCluster.ID,
+					Status: swag.String(models.ClusterStatusPreparingForInstallation),
+				},
+			}
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+				Return(installClusterReply, nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).
+				To(Equal(models.ClusterStatusPreparingForInstallation))
+		})
+
+		It("failed to start installation", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+				Return(nil, errors.Errorf("error"))
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).
+				To(Equal(models.ClusterStatusReady))
+		})
+
+		It("not ready for installation", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusPendingForInput)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).
+				To(Equal(models.ClusterStatusPendingForInput))
+		})
+
+	})
+
 	Context("cluster update", func() {
 		var (
 			sId     strfmt.UUID
@@ -397,8 +500,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-			// TODO: add this mock once installation is supported
-			//mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
 
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(request)
