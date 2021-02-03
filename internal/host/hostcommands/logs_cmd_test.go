@@ -41,7 +41,8 @@ var _ = Describe("upload_logs", func() {
 		stepReply, stepErr = logsCmd.GetSteps(ctx, &host)
 		Expect(stepReply[0].StepType).To(Equal(models.StepTypeExecute))
 		Expect(stepErr).ShouldNot(HaveOccurred())
-		Expect(stepReply[0].Command).Should(Equal("podman"))
+		Expect(stepReply[0].Command).Should(Equal("timeout"))
+		Expect(stepReply[0].Args).Should(ContainElement("podman"))
 	})
 	It("get_step without logs", func() {
 		host.LogsCollectedAt = strfmt.DateTime(time.Now())

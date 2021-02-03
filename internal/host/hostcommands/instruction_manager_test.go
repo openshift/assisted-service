@@ -2,6 +2,7 @@ package hostcommands
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"github.com/openshift/assisted-service/internal/connectivity"
@@ -253,4 +254,11 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		ExpectWithOffset(1, step.StepType).Should(Equal(expectedStepTypes[i]))
 	}
 	ExpectWithOffset(1, stepsErr).ShouldNot(HaveOccurred())
+}
+
+func TestHostCommands(t *testing.T) {
+	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
+	RunSpecs(t, "Host commands test Suite")
 }
