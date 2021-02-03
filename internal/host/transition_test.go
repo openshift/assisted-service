@@ -2794,6 +2794,97 @@ var _ = Describe("Refresh Host", func() {
 			})
 		}
 	})
+	Context("Single node", func() {
+
+		BeforeEach(func() {
+		})
+
+		tests := []struct {
+			// Test parameters
+			name               string
+			statusInfoChecker  statusInfoChecker
+			validationsChecker *validationsChecker
+			errorExpected      bool
+
+			// Host fields
+			srcState          string
+			dstState          string
+			inventory         string
+			role              models.HostRole
+			requestedHostname string
+		}{
+			{
+				name:              "insufficient to known",
+				srcState:          models.HostStatusInsufficient,
+				dstState:          models.HostStatusKnown,
+				role:              models.HostRoleMaster,
+				statusInfoChecker: makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:          {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:         {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:       {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:         {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:     {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined: {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:   {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:     {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:     {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr: {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsAPIVipConnected:    {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					IsNTPSynced:          {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+				}),
+				inventory:     hostutil.GenerateMasterInventoryWithHostname("first"),
+				errorExpected: false,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				// Test setup - Host creation
+
+				// Test setup - Cluster creation
+				nonHaMode := models.ClusterHighAvailabilityModeNone
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.4/24")
+				cluster.HighAvailabilityMode = &nonHaMode
+				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", "1.2.3.4/24", hostId.String())
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				host = hostutil.GenerateTestHost(hostId, clusterId, t.srcState)
+				host.Inventory = t.inventory
+				host.Role = models.HostRoleMaster
+				host.Status = &t.srcState
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				// Test definition
+				expectedSeverity := models.EventSeverityInfo
+				if t.dstState == models.HostStatusInsufficient {
+					expectedSeverity = models.EventSeverityWarning
+				}
+				if !t.errorExpected && t.srcState != t.dstState {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, expectedSeverity,
+						gomock.Any(), gomock.Any())
+				}
+
+				err := hapi.RefreshStatus(ctx, &host, db)
+				if t.errorExpected {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+				}
+
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Role).To(Equal(t.role))
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+				t.statusInfoChecker.check(resultHost.StatusInfo)
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(resultHost.ValidationsInfo)
+				}
+			})
+		}
+	})
+
 	Context("Cluster Errors", func() {
 		for _, srcState := range []string{
 			models.HostStatusInstalling,

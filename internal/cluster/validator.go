@@ -489,6 +489,10 @@ func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, 
 }
 
 func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) validationStatus {
+	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		return ValidationSuccess
+	}
+
 	var min int64
 	var max int64
 	for _, h := range c.cluster.Hosts {

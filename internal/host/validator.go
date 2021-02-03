@@ -534,6 +534,10 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 
 func (v *validator) IsNTPSynced(c *validationContext) ValidationStatus {
 
+	if swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		return ValidationSuccess
+	}
+
 	var sources []*models.NtpSource
 
 	if c.host.NtpSources == "" {
