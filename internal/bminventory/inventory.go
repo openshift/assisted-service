@@ -5,6 +5,7 @@ import (
 	"context"
 	"io"
 
+	"github.com/kelseyhightower/envconfig"
 	"k8s.io/apimachinery/pkg/types"
 
 	// #nosec
@@ -1480,6 +1481,22 @@ func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params
 	}
 
 	return installer.NewGetClusterInstallConfigOK().WithPayload(string(cfg))
+}
+
+func (b *bareMetalInventory) GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder {
+	var c Config
+	body := models.ClusterDefaultConfig{}
+
+	if err := envconfig.Process("default-conf", &c); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	body.NtpSource = c.DefaultNTPSource
+	body.ClusterNetworkCidr = DefaultClusterNetworkCidr
+	body.ServiceNetworkCidr = DefaultServiceNetworkCidr
+	body.ClusterNetworkHostPrefix = DefaultClusterNetworkHostPrefix
+
+	return installer.NewGetClusterDefaultConfigOK().WithPayload(&body)
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {

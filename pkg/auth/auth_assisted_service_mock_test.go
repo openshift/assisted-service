@@ -170,6 +170,10 @@ func (f fakeInventory) GetClusterInstallConfig(ctx context.Context, params insta
 	return installer.NewGetClusterInstallConfigOK()
 }
 
+func (f fakeInventory) GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder {
+	return installer.NewGetClusterDefaultConfigOK()
+}
+
 func (f fakeInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {
 	return installer.NewUpdateClusterInstallConfigCreated()
 }

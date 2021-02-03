@@ -442,6 +442,56 @@ func init() {
         }
       }
     },
+    "/clusters/default-config": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get the cluster's default config YAML.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetClusterDefaultConfig",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster_default_config"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}": {
       "get": {
         "security": [
@@ -4878,6 +4928,23 @@ func init() {
         "ocs-requirements-satisfied"
       ]
     },
+    "cluster_default_config": {
+      "type": "object",
+      "properties": {
+        "cluster_network_cidr": {
+          "type": "string"
+        },
+        "cluster_network_host_prefix": {
+          "type": "integer"
+        },
+        "ntp_source": {
+          "type": "string"
+        },
+        "service_network_cidr": {
+          "type": "string"
+        }
+      }
+    },
     "completion-params": {
       "type": "object",
       "required": [
@@ -6971,6 +7038,56 @@ func init() {
           },
           "405": {
             "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/default-config": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get the cluster's default config YAML.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetClusterDefaultConfig",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster_default_config"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -11507,6 +11624,23 @@ func init() {
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied"
       ]
+    },
+    "cluster_default_config": {
+      "type": "object",
+      "properties": {
+        "cluster_network_cidr": {
+          "type": "string"
+        },
+        "cluster_network_host_prefix": {
+          "type": "integer"
+        },
+        "ntp_source": {
+          "type": "string"
+        },
+        "service_network_cidr": {
+          "type": "string"
+        }
+      }
     },
     "completion-params": {
       "type": "object",

@@ -614,6 +614,35 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+  /clusters/default-config:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [ admin, read-only-admin, user ]
+      description: Get the cluster's default config YAML.
+      operationId: GetClusterDefaultConfig
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster_default_config'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/install-config:
     get:
@@ -3896,6 +3925,18 @@ definitions:
       reason:
         type: string
         description: Human-readable description of the error.
+
+  cluster_default_config:
+    type: object
+    properties:
+      cluster_network_cidr:
+        type: string
+      cluster_network_host_prefix:
+        type: integer
+      service_network_cidr:
+        type: string
+      ntp_source:
+        type: string
 
   infra_error:
     type: object

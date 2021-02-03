@@ -113,6 +113,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetClusterHandler: installer.GetClusterHandlerFunc(func(params installer.GetClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetCluster has not yet been implemented")
 		}),
+		InstallerGetClusterDefaultConfigHandler: installer.GetClusterDefaultConfigHandlerFunc(func(params installer.GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetClusterDefaultConfig has not yet been implemented")
+		}),
 		InstallerGetClusterInstallConfigHandler: installer.GetClusterInstallConfigHandlerFunc(func(params installer.GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetClusterInstallConfig has not yet been implemented")
 		}),
@@ -329,6 +332,8 @@ type AssistedInstallAPI struct {
 	InstallerGenerateClusterISOHandler installer.GenerateClusterISOHandler
 	// InstallerGetClusterHandler sets the operation handler for the get cluster operation
 	InstallerGetClusterHandler installer.GetClusterHandler
+	// InstallerGetClusterDefaultConfigHandler sets the operation handler for the get cluster default config operation
+	InstallerGetClusterDefaultConfigHandler installer.GetClusterDefaultConfigHandler
 	// InstallerGetClusterInstallConfigHandler sets the operation handler for the get cluster install config operation
 	InstallerGetClusterInstallConfigHandler installer.GetClusterInstallConfigHandler
 	// InstallerGetCredentialsHandler sets the operation handler for the get credentials operation
@@ -553,6 +558,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetClusterHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterHandler")
+	}
+	if o.InstallerGetClusterDefaultConfigHandler == nil {
+		unregistered = append(unregistered, "installer.GetClusterDefaultConfigHandler")
 	}
 	if o.InstallerGetClusterInstallConfigHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterInstallConfigHandler")
@@ -853,6 +861,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}"] = installer.NewGetCluster(o.context, o.InstallerGetClusterHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/default-config"] = installer.NewGetClusterDefaultConfig(o.context, o.InstallerGetClusterDefaultConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

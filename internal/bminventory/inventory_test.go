@@ -4444,6 +4444,18 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		Expect(config.BaseDomain).To(Equal("example.com"))
 	})
 
+	It("returns the correct default config", func() {
+		params := installer.GetClusterDefaultConfigParams{}
+		response := bm.GetClusterDefaultConfig(ctx, params)
+		actual, ok := response.(*installer.GetClusterDefaultConfigOK)
+		Expect(ok).To(BeTrue())
+
+		Expect(actual.Payload.ClusterNetworkCidr).To(Equal("10.128.0.0/14"))
+		Expect(actual.Payload.ServiceNetworkCidr).To(Equal("172.30.0.0/16"))
+		Expect(actual.Payload.ClusterNetworkHostPrefix).To(Equal(int64(23)))
+		Expect(actual.Payload.NtpSource).To(Equal(""))
+	})
+
 	It("returns not found with a non-existant cluster", func() {
 		params := installer.GetClusterInstallConfigParams{ClusterID: strfmt.UUID(uuid.New().String())}
 		response := bm.GetClusterInstallConfig(ctx, params)
