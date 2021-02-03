@@ -588,29 +588,6 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, false)
 		})
 
-		It("'belongs-to-majority-group' failed", func() {
-
-			// create a validation success
-			h1 := registerNode(ctx, clusterID, "h1")
-			h2 := registerNode(ctx, clusterID, "h2")
-			h3 := registerNode(ctx, clusterID, "h3")
-			h4 := registerNode(ctx, clusterID, "h4")
-			generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
-			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
-
-			// create a validation failure
-			generateFullMeshConnectivity(ctx, "1.2.3.10", h2, h3, h4)
-			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
-
-			// check generated events
-			assertValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, true)
-
-			// check generated metrics
-			assertValidationMetricCounter(clusterID, models.HostValidationIDBelongsToMajorityGroup, hostValidationChangedMetric, 1)
-			metricsDeregisterCluster(ctx, clusterID)
-			assertValidationMetricCounter(clusterID, models.HostValidationIDBelongsToMajorityGroup, hostValidationFailedMetric, 1)
-		})
-
 		It("'belongs-to-majority-group' got fixed", func() {
 
 			// create a validation failure
