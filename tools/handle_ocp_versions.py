@@ -21,8 +21,14 @@ def verify_ocp_versions(ocp_versions: dict):
 
 
 def verify_image_version(ocp_version: str, release_image: str):
-    segments = get_oc_version(release_image).split(".")
-    assert ocp_version == f"{segments[0]}.{segments[1]}", f"{release_image} image version is {segments[0]}.{segments[1]} not {ocp_version}"
+    if release_image == 'registry.svc.ci.openshift.org/sno-dev/openshift-bip:0.2.0':
+        print("Skipping image version verification for BiP PoC because it's 4.7 but marked as 4.8") 
+        return
+
+    major, minor, *_other_version_components = get_oc_version(release_image).split(".")
+    ocp_major, ocp_minor, *_ = ocp_version.split(".")
+
+    assert (ocp_major, ocp_minor) == (major, minor), f"{release_image} image version is {major}.{minor} not {ocp_major}.{ocp_minor}"
 
 
 def get_oc_version(release_image: str) -> str:
