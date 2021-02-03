@@ -690,7 +690,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	success = true
 	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion), *cluster.ID, cluster.EmailDomain)
-	return &cluster, nil
+	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 }
 
 func convertFromClusterOperators(operators models.ListOperators) string {

@@ -2004,10 +2004,12 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("create non ha cluster", func() {
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2026,10 +2028,12 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("LSO install default value", func() {
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
@@ -2046,10 +2050,12 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("OCS install default value", func() {
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
@@ -2066,10 +2072,12 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("LSO install non default value", func() {
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
@@ -2091,10 +2099,12 @@ var _ = Describe("cluster", func() {
 		})
 
 		It("OCS install non default value", func() {
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
 
@@ -5273,7 +5283,9 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, mockClusterApi, cfg, nil, mockEvents,
+		clusterApi := cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+			db, mockEvents, nil, nil, nil, nil, nil)
+		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents,
 			nil, mockMetric, getTestAuthHandler(), nil, nil, mockSecretValidator, mockVersions, nil)
 	})
 
@@ -5283,10 +5295,9 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("success", func() {
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(1)
+			Times(2)
 		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
@@ -5302,10 +5313,9 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("UserManagedNetworking default value", func() {
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(1)
+			Times(2)
 		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
@@ -5323,10 +5333,9 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("UserManagedNetworking non default value", func() {
-		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(1)
+			Times(2)
 		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
@@ -5376,10 +5385,9 @@ var _ = Describe("TestRegisterCluster", func() {
 			defaultNtpSource := "clock.redhat.com"
 			bm.Config.DefaultNTPSource = defaultNtpSource
 
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
@@ -5399,10 +5407,9 @@ var _ = Describe("TestRegisterCluster", func() {
 		It("NTPSource non default value", func() {
 			newNtpSource := "new.ntp.source"
 
-			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil).Times(1)
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(1)
+				Times(2)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
@@ -5422,6 +5429,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("cluster api failed to register", func() {
+		bm.clusterApi = mockClusterApi
 		mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(errors.Errorf("error")).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
@@ -5434,6 +5442,27 @@ var _ = Describe("TestRegisterCluster", func() {
 			},
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf("error"))))
+	})
+
+	It("Host Networks default value", func() {
+		defaultHostNetworks := make([]*models.HostNetwork, 0)
+		mockEvents.EXPECT().
+			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+			Times(2)
+		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
 	})
 
 	It("cluster api failed to register with invalid pull secret", func() {
