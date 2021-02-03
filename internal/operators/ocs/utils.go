@@ -35,15 +35,15 @@ spec:
 }
 
 type storageInfo struct {
-	OCSDisks int
+	OCSDisks int64
 }
 
 func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) (string, error) {
 
-	// currently we are supporting only single storage set
-	// TODO support storage set according to disk count
+	// Disk counts are a multiple of 3
+	ocsDiskCounts /= 3
 
-	info := &storageInfo{OCSDisks: 1}
+	info := &storageInfo{OCSDisks: ocsDiskCounts}
 	tmpl, err := template.New("OcsStorageCluster").Parse(StorageClusterManifest)
 	if err != nil {
 		return "", err

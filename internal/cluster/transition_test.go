@@ -3642,11 +3642,11 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, cfg)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
-		hid1 = strfmt.UUID(uuid.New().String())
-		hid2 = strfmt.UUID(uuid.New().String())
+		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")
+		hid2 = strfmt.UUID("514c8480-cda5-46e5-afce-e146def2066f")
 		hid3 = strfmt.UUID(uuid.New().String())
-		hid4 = strfmt.UUID(uuid.New().String())
-		hid5 = strfmt.UUID(uuid.New().String())
+		hid4 = strfmt.UUID("77e381eb-f464-4d28-829e-210bd26dba68")
+		hid5 = strfmt.UUID("e80cb08a-e797-44f5-adc2-2826790b0307")
 		hid6 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -3756,7 +3756,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact mode.A minimum of 36 CPUs, is required."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 30 CPUs, excluding disk CPU resources is required."},
 			}),
 			errorExpected: false,
 		},
@@ -3815,7 +3815,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact mode.A minimum of 96 RAM, is required."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 81 RAM, excluding disk RAM resources is required."},
 			}),
 			errorExpected: false,
 		},
@@ -3845,7 +3845,68 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact mode.A minimum of 3 Disks, 3 Hosts with disks, is required."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 3 Disks, 3 Hosts with disks, is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 30 CPUs, excluding disk CPU resources is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 nodes with 2 OCS disks, insufficient disk resources",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(3, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(2, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied: {status: ValidationFailure,
+					messagePattern: "Insufficient resources on host with host ID 054e0100-f50e-4be7-874d-73861179e40d to deploy OCS. The hosts has 3 disks that require 4 CPUs, 10 RAMGB.\nInsufficient resources on host with host ID 514c8480-cda5-46e5-afce-e146def2066f to deploy OCS. The hosts has 3 disks that require 4 CPUs, 10 RAMGB."},
 			}),
 			errorExpected: false,
 		},
@@ -3910,7 +3971,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient resources to deploy OCS on worker hosts. A minimum of 24 CPUs, is required."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Deployment Mode. A minimum of 18 CPUs, excluding disk CPU resources is required."},
 			}),
 			errorExpected: false,
 		},
@@ -3943,7 +4004,74 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient resources to deploy OCS on worker hosts. A minimum of 66 RAM, is required."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Deployment Mode. A minimum of 51 RAM, excluding disk RAM resources is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient cluster resources",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Deployment Mode. A minimum of 18 CPUs, excluding disk CPU resources is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient disk resources",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(2, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(3, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied: {status: ValidationFailure,
+					messagePattern: "Insufficient resources on host with host ID 77e381eb-f464-4d28-829e-210bd26dba68 to deploy OCS. The hosts has 3 disks that require 4 CPUs, 10 RAMGB.\nInsufficient resources on host with host ID e80cb08a-e797-44f5-adc2-2826790b0307 to deploy OCS. The hosts has 3 disks that require 4 CPUs, 10 RAMGB."},
 			}),
 			errorExpected: false,
 		},
@@ -3976,7 +4104,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
 				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient resources to deploy OCS on worker hosts. A minimum of 3 Disks, 3 Hosts with disks, is required."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Deployment Mode. A minimum of 3 Disks, 3 Hosts with disks, is required."},
 			}),
 			errorExpected: false,
 		},
@@ -4012,7 +4140,18 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				t.hosts[i].ClusterID = clusterId
 				Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 			}
-			if t.name == "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks" || t.name == "ocs enabled, 3 nodes with less than 3 disks" {
+			if t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources" || t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient disk resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient cluster resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient disk resources" {
+				disks := []*models.Disk{
+					{
+						SizeBytes: 20000000000,
+					}, {
+						SizeBytes: 40000000000,
+					}, {
+						SizeBytes: 60000000000,
+					},
+				}
+				mockHostAPI.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
+			} else if t.name == "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks" || t.name == "ocs enabled, 3 nodes with less than 3 disks" {
 				disks := []*models.Disk{}
 				mockHostAPI.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
 			} else {
