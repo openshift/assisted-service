@@ -20,6 +20,10 @@ import (
 	"context"
 	"time"
 
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
+
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -479,7 +483,27 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 }
 
 func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	mapSecretToClusterDeployment := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			clusterDeployments := &hivev1.ClusterDeploymentList{}
+			if err := r.List(context.Background(), clusterDeployments); err != nil {
+				return []reconcile.Request{}
+			}
+			reply := make([]reconcile.Request, 0, len(clusterDeployments.Items))
+			for _, clusterDeployment := range clusterDeployments.Items {
+				if clusterDeployment.Spec.PullSecretRef.Name == a.Meta.GetName() {
+					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+						Namespace: clusterDeployment.Namespace,
+						Name:      clusterDeployment.Name,
+					}})
+				}
+			}
+			return reply
+		})
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
+		Watches(&source.Kind{Type: &corev1.Secret{}},
+			&handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
 		Complete(r)
 }
