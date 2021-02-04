@@ -704,6 +704,43 @@ var _ = Describe("Generator UploadToS3", func() {
 	})
 })
 
+var _ = Describe("downloadManifest", func() {
+	var (
+		ctrl         *gomock.Controller
+		mockS3Client *s3wrapper.MockAPI
+		generator    *installerGenerator
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		generator = &installerGenerator{
+			log:      log,
+			workDir:  workDir,
+			s3Client: mockS3Client,
+			cluster:  cluster,
+		}
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("writes the correct file", func() {
+		ctx := context.Background()
+		manifestName := fmt.Sprintf("%s/manifests/openshift/masters-chrony-configuration.yaml", cluster.ID)
+		mockS3Client.EXPECT().Download(ctx, manifestName).Return(ioutil.NopCloser(strings.NewReader("chronyconf")), int64(10), nil)
+		Expect(os.Mkdir(filepath.Join(workDir, "/openshift"), 0755)).To(Succeed())
+		Expect(os.Mkdir(filepath.Join(workDir, "/manifests"), 0755)).To(Succeed())
+
+		Expect(generator.downloadManifest(ctx, manifestName)).To(Succeed())
+
+		content, err := ioutil.ReadFile(filepath.Join(workDir, "/openshift/masters-chrony-configuration.yaml"))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(content).To(Equal([]byte("chronyconf")))
+	})
+})
+
 var _ = Describe("Lso manifests creation Test", func() {
 	var (
 		lsoErr     error
