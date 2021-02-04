@@ -17,12 +17,11 @@ limitations under the License.
 package controllers
 
 import (
+	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
-	"github.com/sirupsen/logrus"
 )
 
 // AgentReconciler reconciles a Agent object
