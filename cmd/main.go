@@ -265,9 +265,9 @@ func main() {
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
-		objectHandler = s3wrapper.NewFSClient("/data", log, versionHandler)
+		objectHandler = s3wrapper.NewFSClient(Options.JobConfig.WorkDir, log, versionHandler)
 		createS3Bucket(objectHandler)
-		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), Options.JobConfig, versionHandler, &Options.OCSValidatorConfig)
+		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, &Options.OCSValidatorConfig)
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
 			failOnError(err, "Failed to create client for OCP")

@@ -295,7 +295,7 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 				return err
 			}
 
-			matches = append(matches, filepath.Join("/", relative))
+			matches = append(matches, relative)
 		}
 		return nil
 	})
