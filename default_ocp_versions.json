@@ -1,7 +1,7 @@
 {
 	"4.6": {
-		"display_name": "4.6.12",
-		"release_image": "quay.io/openshift-release-dev/ocp-release:4.6.12-x86_64",
+		"display_name": "4.6.15",
+		"release_image": "quay.io/openshift-release-dev/ocp-release:4.6.15-x86_64",
 		"rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso",
 		"rhcos_version": "46.82.202012051820-0",
 		"support_level": "production"
