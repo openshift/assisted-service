@@ -220,6 +220,43 @@ var _ = Describe("s3filesystem", func() {
 		})
 	})
 
+	It("ListObjectByPrefix lists the correct object without a leading slash", func() {
+		_, _ = createFileObject(client.basedir, "dir/other/file", now)
+		_, _ = createFileObject(client.basedir, "dir/other/file2", now)
+		_, _ = createFileObject(client.basedir, "dir/file", now)
+		_, _ = createFileObject(client.basedir, "dir2/file", now)
+
+		var objects []string
+		var err error
+		containsObj := func(obj string) bool {
+			for _, o := range objects {
+				if obj == o {
+					return true
+				}
+			}
+			return false
+		}
+
+		objects, err = client.ListObjectsByPrefix(ctx, "dir/other")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(objects)).To(Equal(2))
+		Expect(containsObj("dir/other/file")).To(BeTrue(), "file list %v does not contain \"dir/other/file\"", objects)
+		Expect(containsObj("dir/other/file2")).To(BeTrue(), "file list %v does not contain \"dir/other/file2\"", objects)
+
+		objects, err = client.ListObjectsByPrefix(ctx, "dir2")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(objects)).To(Equal(1))
+		Expect(objects[0]).To(Equal("dir2/file"))
+
+		objects, err = client.ListObjectsByPrefix(ctx, "")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(objects)).To(Equal(4))
+		Expect(containsObj("dir/other/file")).To(BeTrue(), "file list %v does not contain \"dir/other/file\"", objects)
+		Expect(containsObj("dir/other/file2")).To(BeTrue(), "file list %v does not contain \"dir/other/file2\"", objects)
+		Expect(containsObj("dir/file")).To(BeTrue(), "file list %v does not contain \"dir/file\"", objects)
+		Expect(containsObj("dir2/file")).To(BeTrue(), "file list %v does not contain \"dir2/file\"", objects)
+	})
+
 	AfterEach(func() {
 		os.RemoveAll(baseDir)
 	})
@@ -227,6 +264,7 @@ var _ = Describe("s3filesystem", func() {
 
 func createFileObject(baseDir, objKey string, imgCreatedAt time.Time) (string, os.FileInfo) {
 	filePath := filepath.Join(baseDir, objKey)
+	Expect(os.MkdirAll(filepath.Dir(filePath), 0755)).To(Succeed())
 	err := ioutil.WriteFile(filePath, []byte("Hello world"), 0600)
 	Expect(err).Should(BeNil())
 	err = os.Chtimes(filePath, imgCreatedAt, imgCreatedAt)
