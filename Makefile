@@ -73,6 +73,7 @@ ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
 	${ROOT_DIR}/tools/handle_ocp_versions.py
 	$(MAKE) verify-latest-onprem-config
+	$(MAKE) validate-swagger-changes
 
 lint:
 	golangci-lint run -v
@@ -125,6 +126,10 @@ generate-keys: $(BUILD_FOLDER)
 
 generate-migration:
 	go run tools/migration_generator/migration_generator.go -name=$(MIGRATION_NAME)
+
+validate-swagger-changes:
+	skipper make generate-from-swagger
+	git diff --exit-code client/ restapi/  # this will fail if changes to the client/server code have not been committed
 
 ##################
 # Build & Update #
