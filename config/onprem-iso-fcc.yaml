@@ -127,7 +127,7 @@ storage:
                 SERVICE_BASE_URL=https://assisted-api.local.openshift.io:8443
                 DEPLOY_TARGET=onprem
                 SERVICE_CA_CERT_PATH=/data/nginx-selfsigned.crt
-                OPENSHIFT_VERSIONS={"4.6":{"display_name":"4.6.12","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.12-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7-pre-release","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.0-fc.4-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.7.0-fc.4/rhcos-4.7.0-fc.4-x86_64-live.x86_64.iso","rhcos_version":"47.83.202101171239-0","support_level":"beta"}}
+                OPENSHIFT_VERSIONS={"4.6":{"display_name":"4.6.15","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.15-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7-pre-release","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.0-fc.4-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.7.0-fc.4/rhcos-4.7.0-fc.4-x86_64-live.x86_64.iso","rhcos_version":"47.83.202101171239-0","support_level":"beta"}}
                 PUBLIC_CONTAINER_REGISTRIES=quay.io
         - path: /etc/assisted-service/nginx.conf
           mode: 0644
