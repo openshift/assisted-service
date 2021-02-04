@@ -6,20 +6,20 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.0
   creationTimestamp: null
-  name: hosts.adi.io.my.domain
+  name: agents.adi.io.my.domain
 spec:
   group: adi.io.my.domain
   names:
-    kind: Host
-    listKind: HostList
-    plural: hosts
-    singular: host
+    kind: Agent
+    listKind: AgentList
+    plural: agents
+    singular: agent
   scope: Namespaced
   versions:
   - name: v1alpha1
     schema:
       openAPIV3Schema:
-        description: Host is the Schema for the hosts API
+        description: Agent is the Schema for the hosts API
         properties:
           apiVersion:
             description: 'APIVersion defines the versioned schema of this representation
@@ -34,7 +34,7 @@ spec:
           metadata:
             type: object
           spec:
-            description: HostSpec defines the desired state of Host
+            description: AgentSpec defines the desired state of Agent
             properties:
               clusterDeploymentName:
                 description: ClusterReference represents a Cluster Reference. It has
@@ -67,7 +67,7 @@ spec:
             - role
             type: object
           status:
-            description: HostStatus defines the observed state of Host
+            description: AgentStatus defines the observed state of Agent
             properties:
               apiVIPConnectivity:
                 type: boolean
@@ -81,16 +81,16 @@ spec:
                 items:
                   properties:
                     hostDeploymentName:
-                      description: HostReference represents a Host Reference. It has
-                        enough information to retrieve host in any namespace
+                      description: AgentReference represents a Agent Reference. It
+                        has enough information to retrieve an agent in any namespace
                       properties:
                         name:
                           description: Name is unique within a namespace to reference
-                            a host resource.
+                            an agent resource.
                           type: string
                         namespace:
                           description: Namespace defines the space within which the
-                            host name must be unique.
+                            agent name must be unique.
                           type: string
                       type: object
                     l2Connectivity:

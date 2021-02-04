@@ -22,13 +22,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// HostReference represents a Host Reference. It has enough information to retrieve host
+// AgentReference represents a Agent Reference. It has enough information to retrieve an agent
 // in any namespace
-type HostReference struct {
-	// Name is unique within a namespace to reference a host resource.
+type AgentReference struct {
+	// Name is unique within a namespace to reference an agent resource.
 	// +optional
 	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
-	// Namespace defines the space within which the host name must be unique.
+	// Namespace defines the space within which the agent name must be unique.
 	// +optional
 	Namespace string `json:"namespace,omitempty" protobuf:"bytes,2,opt,name=namespace"`
 }
@@ -115,8 +115,8 @@ type HostInventory struct {
 	SystemVendor HostSystemVendor `json:"systemVendor,omitempty"`
 }
 
-// HostSpec defines the desired state of Host
-type HostSpec struct {
+// AgentSpec defines the desired state of Agent
+type AgentSpec struct {
 	ClusterDeploymentName   *ClusterReference `json:"clusterDeploymentName"`
 	Role                    models.HostRole   `json:"role" protobuf:"bytes,1,opt,name=role,casttype=HostRole"`
 	Hostname                string            `json:"hostname,omitempty"`
@@ -176,9 +176,9 @@ type L3Connectivity struct {
 }
 
 type HostConnectivityValidationInfo struct {
-	HostDeploymentName *HostReference `json:"hostDeploymentName"`
-	L2Connectivity     L2Connectivity `json:"l2Connectivity,omitempty"`
-	L3Connectivity     L3Connectivity `json:"l3Connectivity,omitempty"`
+	HostDeploymentName *AgentReference `json:"hostDeploymentName"`
+	L2Connectivity     L2Connectivity  `json:"l2Connectivity,omitempty"`
+	L3Connectivity     L3Connectivity  `json:"l3Connectivity,omitempty"`
 }
 
 type HostNTPSources struct {
@@ -186,8 +186,8 @@ type HostNTPSources struct {
 	SourceState models.SourceState `json:"sourceState,omitempty"`
 }
 
-// HostStatus defines the observed state of Host
-type HostStatus struct {
+// AgentStatus defines the observed state of Agent
+type AgentStatus struct {
 	State     string `json:"state,omitempty"`
 	StateInfo string `json:"stateInfo,omitempty"`
 	// Name in REST API: status_updated_at
@@ -213,24 +213,24 @@ type HostStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-// Host is the Schema for the hosts API
-type Host struct {
+// Agent is the Schema for the hosts API
+type Agent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   HostSpec   `json:"spec,omitempty"`
-	Status HostStatus `json:"status,omitempty"`
+	Spec   AgentSpec   `json:"spec,omitempty"`
+	Status AgentStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// HostList contains a list of Host
-type HostList struct {
+// AgentList contains a list of Agent
+type AgentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []Host `json:"items"`
+	Items           []Agent `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&Host{}, &HostList{})
+	SchemeBuilder.Register(&Agent{}, &AgentList{})
 }
