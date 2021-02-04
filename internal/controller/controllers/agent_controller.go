@@ -25,24 +25,24 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// HostReconciler reconciles a Host object
-type HostReconciler struct {
+// AgentReconciler reconciles a Agent object
+type AgentReconciler struct {
 	client.Client
 	Log    logrus.FieldLogger
 	Scheme *runtime.Scheme
 }
 
-// +kubebuilder:rbac:groups=adi.io.my.domain,resources=hosts,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=adi.io.my.domain,resources=hosts/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=adi.io.my.domain,resources=agents,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=adi.io.my.domain,resources=agents/status,verbs=get;update;patch
 
-func (r *HostReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// your logic here
 
 	return ctrl.Result{}, nil
 }
 
-func (r *HostReconciler) SetupWithManager(mgr ctrl.Manager) error {
+func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&adiiov1alpha1.Host{}).
+		For(&adiiov1alpha1.Agent{}).
 		Complete(r)
 }

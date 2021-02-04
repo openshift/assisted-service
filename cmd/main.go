@@ -436,11 +436,11 @@ func main() {
 				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Cluster")
 
-			failOnError((&controllers.HostReconciler{
+			failOnError((&controllers.AgentReconciler{
 				Client: ctrlMgr.GetClient(),
 				Log:    log,
 				Scheme: ctrlMgr.GetScheme(),
-			}).SetupWithManager(ctrlMgr), "unable to create controller Host")
+			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}

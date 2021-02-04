@@ -15,7 +15,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func newHostRequest(host *v1alpha1.Host) ctrl.Request {
+func newHostRequest(host *v1alpha1.Agent) ctrl.Request {
 	namespacedName := types.NamespacedName{
 		Namespace: host.ObjectMeta.Namespace,
 		Name:      host.ObjectMeta.Name,
@@ -23,10 +23,10 @@ func newHostRequest(host *v1alpha1.Host) ctrl.Request {
 	return ctrl.Request{NamespacedName: namespacedName}
 }
 
-func newHost(name, namespace string, spec v1alpha1.HostSpec) *v1alpha1.Host {
-	return &v1alpha1.Host{
+func newHost(name, namespace string, spec v1alpha1.AgentSpec) *v1alpha1.Agent {
+	return &v1alpha1.Agent{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Host",
+			Kind:       "Agent",
 			APIVersion: "adi.io.my.domain/v1alpha1",
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -40,13 +40,13 @@ func newHost(name, namespace string, spec v1alpha1.HostSpec) *v1alpha1.Host {
 var _ = Describe("host reconcile", func() {
 	var (
 		c   client.Client
-		hr  *HostReconciler
+		hr  *AgentReconciler
 		ctx = context.Background()
 	)
 
 	BeforeEach(func() {
 		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
-		hr = &HostReconciler{
+		hr = &AgentReconciler{
 			Client: c,
 			Scheme: scheme.Scheme,
 			Log:    common.GetTestLog(),
@@ -54,10 +54,10 @@ var _ = Describe("host reconcile", func() {
 	})
 
 	It("none exiting host", func() {
-		host := newHost("host", "namespace", v1alpha1.HostSpec{})
+		host := newHost("host", "namespace", v1alpha1.AgentSpec{})
 		Expect(c.Create(ctx, host)).To(BeNil())
 
-		noneExistingHost := newHost("host2", "namespace", v1alpha1.HostSpec{})
+		noneExistingHost := newHost("host2", "namespace", v1alpha1.AgentSpec{})
 
 		result, err := hr.Reconcile(newHostRequest(noneExistingHost))
 		Expect(err).To(BeNil())

@@ -18,6 +18,26 @@ rules:
 - apiGroups:
   - adi.io.my.domain
   resources:
+  - agents
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - agents/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - adi.io.my.domain
+  resources:
   - clusters
   verbs:
   - create
@@ -31,26 +51,6 @@ rules:
   - adi.io.my.domain
   resources:
   - clusters/status
-  verbs:
-  - get
-  - patch
-  - update
-- apiGroups:
-  - adi.io.my.domain
-  resources:
-  - hosts
-  verbs:
-  - create
-  - delete
-  - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - adi.io.my.domain
-  resources:
-  - hosts/status
   verbs:
   - get
   - patch
