@@ -1110,16 +1110,16 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 		return err
 	}
 
-	log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
-	editor, err := b.isoEditorFactory.NewEditor(isoPath, cluster.OpenshiftVersion, log)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to create iso editor for cluster %s with iso file %s", cluster.ID, isoPath)
-		return err
-	}
+	var clusterISOPath string
+	err = b.isoEditorFactory.WithEditor(ctx, isoPath, cluster.OpenshiftVersion, log, func(editor isoeditor.Editor) error {
+		log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
+		var createError error
+		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, cluster.ImageInfo.StaticIpsConfig)
+		return createError
+	})
 
-	clusterISOPath, err := editor.CreateClusterMinimalISO(ignitionConfig, cluster.ImageInfo.StaticIpsConfig)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to create minimal discovery ISO for cluster %s", cluster.ID)
+		log.WithError(err).Errorf("Failed to create minimal discovery ISO cluster %s with iso file %s", cluster.ID, isoPath)
 		return err
 	}
 

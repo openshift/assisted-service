@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 
@@ -29,13 +30,14 @@ const (
 )
 
 type FSClient struct {
-	log             logrus.FieldLogger
-	basedir         string
-	versionsHandler versions.Handler
+	log              logrus.FieldLogger
+	basedir          string
+	versionsHandler  versions.Handler
+	isoEditorFactory isoeditor.Factory
 }
 
-func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler) *FSClient {
-	return &FSClient{log: logger, basedir: basedir, versionsHandler: versionsHandler}
+func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) *FSClient {
+	return &FSClient{log: logger, basedir: basedir, versionsHandler: versionsHandler, isoEditorFactory: isoEditorFactory}
 }
 
 func (f *FSClient) IsAwsS3() bool {
@@ -356,7 +358,7 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 	}
 
 	if !minimalExists {
-		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, openshiftVersion, serviceBaseURL, f); err != nil {
+		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, openshiftVersion, serviceBaseURL, f, f.isoEditorFactory); err != nil {
 			return err
 		}
 	}

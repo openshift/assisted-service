@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 
@@ -72,16 +73,17 @@ type API interface {
 var _ API = &S3Client{}
 
 type S3Client struct {
-	log             logrus.FieldLogger
-	session         *session.Session
-	client          s3iface.S3API
-	uploader        s3manageriface.UploaderAPI
-	publicSession   *session.Session
-	publicClient    s3iface.S3API
-	publicUploader  s3manageriface.UploaderAPI
-	cfg             *Config
-	isoUploader     ISOUploaderAPI
-	versionsHandler versions.Handler
+	log              logrus.FieldLogger
+	session          *session.Session
+	client           s3iface.S3API
+	uploader         s3manageriface.UploaderAPI
+	publicSession    *session.Session
+	publicClient     s3iface.S3API
+	publicUploader   s3manageriface.UploaderAPI
+	cfg              *Config
+	isoUploader      ISOUploaderAPI
+	versionsHandler  versions.Handler
+	isoEditorFactory isoeditor.Factory
 }
 
 type Config struct {
@@ -110,7 +112,7 @@ var ISOFileTypes = map[string]string{
 }
 
 // NewS3Client creates new s3 client using default config along with defined env variables
-func NewS3Client(cfg *Config, logger logrus.FieldLogger, versionsHandler versions.Handler) *S3Client {
+func NewS3Client(cfg *Config, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) *S3Client {
 	awsSession, err := newS3Session(cfg.AwsAccessKeyID, cfg.AwsSecretAccessKey, cfg.Region, cfg.S3EndpointURL)
 	if err != nil {
 		logger.WithError(err).Error("failed to create s3 session")
@@ -136,7 +138,8 @@ func NewS3Client(cfg *Config, logger logrus.FieldLogger, versionsHandler version
 	isoUploader := NewISOUploader(logger, client, cfg.S3Bucket, cfg.PublicS3Bucket)
 	return &S3Client{client: client, session: awsSession, uploader: uploader,
 		publicClient: publicClient, publicSession: publicAwsSession, publicUploader: publicUploader,
-		cfg: cfg, log: logger, isoUploader: isoUploader, versionsHandler: versionsHandler}
+		cfg: cfg, log: logger, isoUploader: isoUploader, versionsHandler: versionsHandler,
+		isoEditorFactory: isoEditorFactory}
 }
 
 func newS3Session(accessKeyID, secretAccessKey, region, endpointURL string) (*session.Session, error) {
@@ -539,7 +542,7 @@ func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIs
 	}
 
 	if !minimalExists {
-		if err = CreateAndUploadMinimalIso(ctx, log, baseIsoPath, minimalIsoObject, openshiftVersion, serviceBaseURL, c); err != nil {
+		if err = CreateAndUploadMinimalIso(ctx, log, baseIsoPath, minimalIsoObject, openshiftVersion, serviceBaseURL, c, c.isoEditorFactory); err != nil {
 			return err
 		}
 	}

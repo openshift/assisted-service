@@ -110,6 +110,7 @@ var Options struct {
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
+	ISOEditorConfig             isoeditor.Config
 }
 
 func InitLogs() *logrus.Entry {
@@ -220,7 +221,7 @@ func main() {
 	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
 	Options.JobConfig.S3EndpointURL = newUrl
 
-	isoEditorFactory := isoeditor.RhcosFactory{}
+	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
 
 	var generator generator.ISOInstallConfigGenerator
 	var objectHandler s3wrapper.API
@@ -233,7 +234,7 @@ func main() {
 	case deployment_type_k8s:
 		var kclient client.Client
 
-		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log, versionHandler)
+		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log, versionHandler, isoEditorFactory)
 		if objectHandler == nil {
 			log.Fatal("failed to create S3 client")
 		}
@@ -265,7 +266,7 @@ func main() {
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
-		objectHandler = s3wrapper.NewFSClient(Options.JobConfig.WorkDir, log, versionHandler)
+		objectHandler = s3wrapper.NewFSClient(Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
 		createS3Bucket(objectHandler)
 		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, &Options.OCSValidatorConfig)
 		if Options.DeployTarget == deployment_type_ocp {
@@ -303,7 +304,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator,
-		versionHandler, &isoEditorFactory)
+		versionHandler, isoEditorFactory)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),
