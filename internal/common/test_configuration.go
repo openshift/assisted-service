@@ -16,7 +16,8 @@ type TestConfiguration struct {
 	StatusInfo        string
 	HostProgressStage models.HostStage
 
-	Disks *models.Disk
+	Disks     *models.Disk
+	ImageName string
 }
 
 // Defaults to be used by all testing modules
@@ -34,10 +35,23 @@ var TestDefaultConfig = &TestConfiguration{
 			NotEligibleReasons: []string{"Bad disk"},
 		},
 	},
+
+	ImageName: "image",
 }
 
 var TestNTPSourceSynced = &models.NtpSource{SourceName: "clock.dummy.com", SourceState: models.SourceStateSynced}
 var TestNTPSourceUnsynced = &models.NtpSource{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable}
+var TestImageStatusesSuccess = &models.ContainerImageAvailability{
+	Name:         TestDefaultConfig.ImageName,
+	Result:       models.ContainerImageAvailabilityResultSuccess,
+	SizeBytes:    333000000.0,
+	Time:         10.0,
+	DownloadRate: 33.3,
+}
+var TestImageStatusesFailure = &models.ContainerImageAvailability{
+	Name:   TestDefaultConfig.ImageName,
+	Result: models.ContainerImageAvailabilityResultFailure,
+}
 
 func GenerateTestDefaultInventory() string {
 	inventory := &models.Inventory{

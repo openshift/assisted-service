@@ -175,6 +175,26 @@ func generateApiVipPostStepReply(ctx context.Context, h *models.Host, success bo
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
+func generateContainerImageAvailabilityPostStepReply(ctx context.Context, h *models.Host, imageStatuses []*models.ContainerImageAvailability) {
+	response := models.ContainerImageAvailabilityResponse{
+		Images: imageStatuses,
+	}
+
+	bytes, err := json.Marshal(&response)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		ClusterID: h.ClusterID,
+		HostID:    *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			Output:   string(bytes),
+			StepID:   string(models.StepTypeContainerImageAvailability),
+			StepType: models.StepTypeContainerImageAvailability,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
 func generateEssentialHostSteps(ctx context.Context, h *models.Host, name string) {
 	generateEssentialHostStepsWithInventory(ctx, h, name, validHwInfo)
 }
@@ -182,6 +202,7 @@ func generateEssentialHostSteps(ctx context.Context, h *models.Host, name string
 func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {
 	generateHWPostStepReply(ctx, h, inventory, name)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
+	generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{common.TestImageStatusesSuccess})
 }
 
 func registerNode(ctx context.Context, clusterID strfmt.UUID, name string) *models.Host {

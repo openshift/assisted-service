@@ -63,6 +63,9 @@ type Host struct {
 	// Json formatted string containing the user overrides for the host's pointer ignition
 	IgnitionConfigOverrides string `json:"ignition_config_overrides,omitempty" gorm:"type:text"`
 
+	// Array of image statuses.
+	ImagesStatus string `json:"images_status,omitempty" gorm:"type:text"`
+
 	// Host installation path.
 	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
 

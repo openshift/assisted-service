@@ -32,6 +32,7 @@ const (
 	counterClusterHostInstallationCount           = "assisted_installer_cluster_host_installation_count"
 	counterClusterHostNTPFailuresCount            = "assisted_installer_cluster_host_ntp_failures"
 	counterClusterHostDiskSyncDurationMiliSeconds = "assisted_installer_cluster_host_disk_sync_duration_ms"
+	counterClusterHostImagePullStatus             = "assisted_installer_cluster_host_image_pull_status"
 	counterHostValidationFailed                   = "assisted_installer_host_validation_is_in_failed_status_on_cluster_deletion"
 	counterHostValidationChanged                  = "assisted_installer_host_validation_failed_after_success_before_installation"
 )
@@ -50,6 +51,7 @@ const (
 	counterDescriptionClusterHostDiskGb                      = "Histogram/sum/count of installation disk capacity in hosts of completed clusters, by type, raid (level), role, result, and OCP version"
 	counterDescriptionClusterHostNicGb                       = "Histogram/sum/count of management network NIC speed in hosts of completed clusters, by role, result, and OCP version"
 	counterDescriptionClusterHostDiskSyncDurationMiliSeconds = "Histogram/sum/count of the disk's fdatasync duration (fetched from fio)"
+	counterDescriptionClusterHostImagePullStatus             = "Histogram/sum/count of the images' pull statuses"
 	counterDescriptionHostValidationFailed                   = "Number of host validation errors"
 	counterDescriptionHostValidationChanged                  = "Number of host validations that already succeed but start to fail again"
 )
@@ -73,6 +75,7 @@ const (
 	hwProductLabel             = "product"
 	userManagedNetworkingLabel = "userManagedNetworking"
 	hostValidationTypeLabel    = "hostValidationType"
+	imageLabel                 = "imageName"
 )
 
 type API interface {
@@ -86,6 +89,7 @@ type API interface {
 	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 	DiskSyncDuration(clusterID strfmt.UUID, hostID strfmt.UUID, diskPath string, syncDuration int64)
+	ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64)
 }
 
 type MetricsManager struct {
@@ -104,6 +108,7 @@ type MetricsManager struct {
 	serviceLogicClusterHostDiskGb                      *prometheus.HistogramVec
 	serviceLogicClusterHostNicGb                       *prometheus.HistogramVec
 	serviceLogicClusterHostDiskSyncDurationMiliSeconds *prometheus.HistogramVec
+	serviceLogicClusterHostImagePullStatus             *prometheus.HistogramVec
 	serviceLogicHostValidationFailed                   *prometheus.CounterVec
 	serviceLogicHostValidationChanged                  *prometheus.CounterVec
 }
@@ -231,6 +236,14 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Name:      counterHostValidationChanged,
 				Help:      counterDescriptionHostValidationChanged,
 			}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel, hostValidationTypeLabel}),
+
+		serviceLogicClusterHostImagePullStatus: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      counterClusterHostImagePullStatus,
+			Help:      counterDescriptionClusterHostImagePullStatus,
+			Buckets:   []float64{0.1, 0.5, 1, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50},
+		}, []string{resultLabel, imageLabel, clusterIdLabel, hostIdLabel}),
 	}
 
 	registry.MustRegister(
@@ -247,6 +260,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 		m.serviceLogicClusterHostDiskSyncDurationMiliSeconds,
 		m.serviceLogicHostValidationFailed,
 		m.serviceLogicHostValidationChanged,
+		m.serviceLogicClusterHostImagePullStatus,
 	)
 	return m
 }
@@ -287,6 +301,10 @@ func (m *MetricsManager) Duration(operation string, duration time.Duration) {
 
 func (m *MetricsManager) DiskSyncDuration(clusterID strfmt.UUID, hostID strfmt.UUID, diskPath string, syncDuration int64) {
 	m.serviceLogicClusterHostDiskSyncDurationMiliSeconds.WithLabelValues(diskPath, clusterID.String(), hostID.String()).Observe(float64(syncDuration))
+}
+
+func (m *MetricsManager) ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64) {
+	m.serviceLogicClusterHostImagePullStatus.WithLabelValues(imageName, resultStatus, clusterID.String(), hostID.String()).Observe(downloadRate)
 }
 
 func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk,

@@ -127,6 +127,7 @@ type API interface {
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
+	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -513,6 +514,44 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 	}
 
 	return db.Model(h).Update("ntp_sources", string(bytes)).Error
+}
+
+func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImageStatus *models.ContainerImageAvailability, db *gorm.DB) error {
+	var hostImageStatuses map[string]*models.ContainerImageAvailability = make(map[string]*models.ContainerImageAvailability)
+
+	if h.ImagesStatus != "" {
+		err := json.Unmarshal([]byte(h.ImagesStatus), &hostImageStatuses)
+		if err != nil {
+			return errors.Wrapf(err, "Failed to unmarshal image statuses for host %s", h.ID.String())
+		}
+	}
+
+	// Check if the image status already exist
+	imageStatus, imageExists := hostImageStatuses[newImageStatus.Name]
+	if imageExists {
+		// Same result - Nothing to update
+		if imageStatus.Result == newImageStatus.Result {
+			return nil
+		}
+
+		m.log.Infof("Updating image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
+		hostImageStatuses[newImageStatus.Name] = newImageStatus
+	} else {
+		m.log.Infof("Adding new image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
+		hostImageStatuses[newImageStatus.Name] = newImageStatus
+		m.metricApi.ImagePullStatus(h.ClusterID, *h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
+		eventInfo := fmt.Sprintf("New image status %s for host %s. result: %s; time: %f seconds; size: %f bytes; download rate: %f MBps",
+			newImageStatus.Name, hostutil.GetHostnameForMsg(h), newImageStatus.Result,
+			newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
+		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
+	}
+
+	bytes, err := json.Marshal(hostImageStatuses)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to marshal image statuses for host %s", h.ID.String())
+	}
+
+	return db.Model(h).Update("images_status", string(bytes)).Error
 }
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {

@@ -1592,6 +1592,140 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 	})
 })
 
+var _ = Describe("UpdateImageStatus", func() {
+	var (
+		ctx               = context.Background()
+		hapi              API
+		db                *gorm.DB
+		ctrl              *gomock.Controller
+		mockEvents        *events.MockHandler
+		mockMetric        *metrics.MockAPI
+		hostId, clusterId strfmt.UUID
+		host              models.Host
+		dbName            = "UpdateImageStatus"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		dummy := &leader.DummyElector{}
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy)
+		hostId = strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusResetting)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+		h := hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
+		Expect(h.ImagesStatus).Should(BeEmpty())
+	})
+
+	var testAlreadyPulledImageStatuses = &models.ContainerImageAvailability{
+		Name:         "image",
+		Result:       models.ContainerImageAvailabilityResultSuccess,
+		SizeBytes:    0.0,
+		Time:         0.0,
+		DownloadRate: 0.0,
+	}
+
+	tests := []struct {
+		name                  string
+		originalImageStatuses map[string]*models.ContainerImageAvailability
+		newImageStatus        *models.ContainerImageAvailability
+		changeInDB            bool
+	}{
+		{
+			name:                  "no images - new success",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{},
+			newImageStatus:        common.TestImageStatusesSuccess,
+			changeInDB:            true,
+		},
+		{
+			name:                  "no images - new failure",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{},
+			newImageStatus:        common.TestImageStatusesSuccess,
+			changeInDB:            true,
+		},
+		{
+			name:                  "original success - new success",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+			newImageStatus:        testAlreadyPulledImageStatuses,
+			changeInDB:            false,
+		},
+		{
+			name:                  "original success - new already pulled",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+			newImageStatus:        testAlreadyPulledImageStatuses,
+			changeInDB:            false,
+		},
+		{
+			name:                  "original success - new failure",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+			newImageStatus:        common.TestImageStatusesFailure,
+			changeInDB:            true,
+		},
+		{
+			name:                  "original failure - new success",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
+			newImageStatus:        common.TestImageStatusesSuccess,
+			changeInDB:            true,
+		},
+		{
+			name:                  "original failure - new failure",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
+			newImageStatus:        common.TestImageStatusesFailure,
+			changeInDB:            false,
+		},
+		{
+			name:                  "original failure - new already pulled",
+			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
+			newImageStatus:        testAlreadyPulledImageStatuses,
+			changeInDB:            true,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			expectedImage := &models.ContainerImageAvailability{
+				Name:         t.newImageStatus.Name,
+				Result:       t.newImageStatus.Result,
+				SizeBytes:    t.newImageStatus.SizeBytes,
+				Time:         t.newImageStatus.Time,
+				DownloadRate: t.newImageStatus.DownloadRate,
+			}
+
+			if len(t.originalImageStatuses) == 0 {
+				eventMsg := fmt.Sprintf("New image status %s for host %s. result: %s; time: %f seconds; size: %f bytes; download rate: %f MBps",
+					expectedImage.Name, hostutil.GetHostnameForMsg(&host), expectedImage.Result,
+					expectedImage.Time, expectedImage.SizeBytes, expectedImage.DownloadRate)
+				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo, eventMsg, gomock.Any()).Times(1)
+				mockMetric.EXPECT().ImagePullStatus(clusterId, hostId, expectedImage.Name, string(expectedImage.Result), expectedImage.DownloadRate).Times(1)
+			} else {
+				bytes, err := json.Marshal(t.originalImageStatuses)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(bytes).ShouldNot(BeNil())
+				host.ImagesStatus = string(bytes)
+			}
+
+			Expect(hapi.UpdateImageStatus(ctx, &host, t.newImageStatus, db)).ShouldNot(HaveOccurred())
+			h := hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
+
+			if t.changeInDB {
+				var statusInDb map[string]*models.ContainerImageAvailability
+				Expect(json.Unmarshal([]byte(h.ImagesStatus), &statusInDb)).ShouldNot(HaveOccurred())
+				Expect(statusInDb).Should(ContainElement(t.newImageStatus))
+			}
+		})
+	}
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
 var _ = Describe("PrepareForInstallation", func() {
 	var (
 		ctx               = context.Background()

@@ -3117,6 +3117,10 @@ definitions:
         type: string
       machine_config_pool_name:
         type: string
+      images_status:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: Array of image statuses.
 
 
   installer-args-params:
@@ -4241,6 +4245,7 @@ definitions:
       - 'belongs-to-majority-group'
       - 'valid-platform'
       - 'ntp-synced'
+      - 'container-images-available'
 
   dhcp_allocation_request:
     type: object

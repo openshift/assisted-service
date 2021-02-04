@@ -26,7 +26,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-const defaultMCOImage = "mcoImage"
+const (
+	defaultReleaseImage = "releaseImage"
+	defaultMCOImage     = "mcoImage"
+)
 
 var DefaultInstructionConfig = InstructionConfig{
 	ServiceBaseURL:      "http://10.35.59.36:30485",
@@ -77,7 +80,7 @@ var _ = Describe("installcmd", func() {
 	})
 
 	mockGetReleaseImage := func(times int) {
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).Times(times)
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(times)
 	}
 
 	Context("negative", func() {
@@ -262,7 +265,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
-		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).AnyTimes()
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).AnyTimes()
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).AnyTimes()
 	})
 

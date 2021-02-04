@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -34,13 +35,17 @@ const (
 	ValidationError   ValidationStatus = "error"
 )
 
-var invalidPlatforms = []string{
-	"OpenStack Compute",
-}
+var (
+	ImageStatusDownloadRateThreshold = 0.001
 
-var forbiddenHostnames = []string{
-	"localhost",
-}
+	invalidPlatforms = []string{
+		"OpenStack Compute",
+	}
+
+	forbiddenHostnames = []string{
+		"localhost",
+	}
+)
 
 func (v ValidationStatus) String() string {
 	return string(v)
@@ -532,8 +537,7 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 	}
 }
 
-func (v *validator) IsNTPSynced(c *validationContext) ValidationStatus {
-
+func (v *validator) isNTPSynced(c *validationContext) ValidationStatus {
 	var sources []*models.NtpSource
 
 	if c.host.NtpSources == "" {
@@ -565,4 +569,76 @@ func (v *validator) printNTPSynced(c *validationContext, status ValidationStatus
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
+}
+
+func (v *validator) areImagesAvailable(c *validationContext) ValidationStatus {
+	var imageStatuses map[string]*models.ContainerImageAvailability
+
+	if c.host.ImagesStatus == "" {
+		return ValidationPending
+	}
+
+	if err := json.Unmarshal([]byte(c.host.ImagesStatus), &imageStatuses); err != nil {
+		v.log.WithError(err).Warn("Parse container image statuses")
+		return ValidationError
+	}
+
+	if len(imageStatuses) == 0 {
+		return ValidationPending
+	}
+
+	for _, imageStatus := range imageStatuses {
+		if imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
+			imageStatus.DownloadRate < ImageStatusDownloadRateThreshold {
+			return ValidationFailure
+		}
+	}
+
+	return ValidationSuccess
+}
+
+func (v *validator) printImageAvailability(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "All required container images were pulled and are available"
+	case ValidationFailure:
+		images, err := v.getFailedImagesNames(c.host)
+		if err == nil {
+			return fmt.Sprintf("Failed to fetch container images needed for installation from %s", strings.Join(images, ","))
+		}
+		fallthrough
+	case ValidationError:
+		return "Parse error for container image statuses"
+	case ValidationPending:
+		return "Missing container images statuses"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
+	var imageStatuses map[string]*models.ContainerImageAvailability
+
+	if host.ImagesStatus == "" {
+		return []string{}, nil
+	}
+
+	if err := json.Unmarshal([]byte(host.ImagesStatus), &imageStatuses); err != nil {
+		return []string{}, err
+	}
+
+	if len(imageStatuses) == 0 {
+		return []string{}, nil
+	}
+
+	imageNames := make([]string, 0)
+
+	for _, imageStatus := range imageStatuses {
+		if imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
+			imageStatus.DownloadRate < ImageStatusDownloadRateThreshold {
+			imageNames = append(imageNames, imageStatus.Name)
+		}
+	}
+
+	return imageNames, nil
 }
