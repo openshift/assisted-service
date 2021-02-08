@@ -216,6 +216,21 @@ var _ = Describe("Host tests", func() {
 		}
 	})
 
+	It("host_disconnection", func() {
+		host := &registerHost(clusterID).Host
+		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("role", "master").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("bootstrap", "true").Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
+		Expect(db.Model(host).Update("CheckedInAt", strfmt.DateTime(time.Time{})).Error).NotTo(HaveOccurred())
+
+		host = getHost(clusterID, *host.ID)
+		time.Sleep(time.Second * 3)
+		host = getHost(clusterID, *host.ID)
+		Expect(swag.StringValue(host.Status)).Should(Equal("error"))
+		Expect(swag.StringValue(host.StatusInfo)).Should(Equal("Host failed to install due to timeout while connecting to host"))
+	})
+
 	It("host installation progress", func() {
 		host := &registerHost(clusterID).Host
 		Expect(db.Model(host).Update("status", "installing").Error).NotTo(HaveOccurred())
