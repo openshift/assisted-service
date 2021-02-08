@@ -19,9 +19,13 @@ FROM registry.svc.ci.openshift.org/openshift/release:golang-1.15 as builder
 
 # Bring in the go dependencies before anything else so we can take
 # advantage of caching these layers in future builds.
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
+COPY go.mod .
+COPY go.sum .
+
+# go mod download fails because `replace` directives to local packages will fail "download" since the files have not been copied,
+# however, it only fails after trying to download everything else, so we still get a lot of the caching that we're aiming for,
+# so the error is safe to ignore.
+RUN go mod download || true
 
 COPY . .
 COPY --from=swagger_py /build build
