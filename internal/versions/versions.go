@@ -34,20 +34,18 @@ type Handler interface {
 
 func NewHandler(log logrus.FieldLogger, releaseHandler oc.Release,
 	versions Versions, openshiftVersions models.OpenshiftVersions,
-	releaseImageOverride string, releaseImageMirror string) *handler {
+	releaseImageMirror string) *handler {
 	return &handler{
-		versions:             versions,
-		openshiftVersions:    openshiftVersions,
-		releaseImageOverride: releaseImageOverride,
+		versions:          versions,
+		openshiftVersions: openshiftVersions,
 	}
 }
 
 var _ restapi.VersionsAPI = (*handler)(nil)
 
 type handler struct {
-	versions             Versions
-	openshiftVersions    models.OpenshiftVersions
-	releaseImageOverride string
+	versions          Versions
+	openshiftVersions models.OpenshiftVersions
 }
 
 func (h *handler) ListComponentVersions(ctx context.Context, params operations.ListComponentVersionsParams) middleware.Responder {
@@ -68,10 +66,6 @@ func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params ope
 }
 
 func (h *handler) GetReleaseImage(openshiftVersion string) (pullSpec string, err error) {
-	if h.releaseImageOverride != "" {
-		return h.releaseImageOverride, nil
-	}
-
 	if !h.IsOpenshiftVersionSupported(openshiftVersion) {
 		return "", errors.Errorf("No release image for unsupported openshift version %s", openshiftVersion)
 	}

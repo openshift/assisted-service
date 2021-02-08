@@ -1,18 +1,55 @@
 #!/usr/bin/env python3
 
 import json
+import sys
+from argparse import ArgumentParser
 from pathlib import Path
+from typing import List
 
 from utils import check_output
 
-OCP_VERSIONS_FILE = Path("default_ocp_versions.json")
+OCP_VERSIONS_FILE = "default_ocp_versions.json"
+SKIP_IMAGES = ['registry.svc.ci.openshift.org/sno-dev/openshift-bip:0.2.0']
+
+
+def handle_arguments():
+    parser = ArgumentParser()
+    parser.add_argument('--src', type=str, default=OCP_VERSIONS_FILE)
+    parser.add_argument('--dest', type=str)
+    parser.add_argument('--ocp-override', type=str)
+
+    return parser.parse_args()
 
 
 def main():
-    with OCP_VERSIONS_FILE.open("r") as file_stream:
+    args = handle_arguments()
+
+    with Path(args.src).open("r") as file_stream:
         ocp_versions = json.load(file_stream)
 
+    if args.ocp_override:
+        update_openshift_versions_hashmap(ocp_versions, args.ocp_override)
+
     verify_ocp_versions(ocp_versions)
+
+    if args.dest:
+        with Path(args.dest).open("w") as file_stream:
+            json.dump(ocp_versions, file_stream, indent=4)
+    else:
+        print(json.dumps(ocp_versions, indent=4))
+
+
+def update_openshift_versions_hashmap(ocp_versions: dict, release_image: str):
+    oc_version = get_oc_version(release_image)
+    major, minor, *_other_version_components = oc_version.split(".")
+    key = f"{major}.{minor}"
+
+    if key not in ocp_versions:
+        larget_version = get_largest_version(list(ocp_versions.keys()))
+        ocp_versions[key] = ocp_versions[larget_version].copy()
+
+    ocp_versions[key]["release_image"] = release_image
+    ocp_versions[key]["display_name"] = oc_version
 
 
 def verify_ocp_versions(ocp_versions: dict):
@@ -21,8 +58,8 @@ def verify_ocp_versions(ocp_versions: dict):
 
 
 def verify_image_version(ocp_version: str, release_image: str):
-    if release_image == 'registry.svc.ci.openshift.org/sno-dev/openshift-bip:0.2.0':
-        print("Skipping image version verification for BiP PoC because it's 4.7 but marked as 4.8") 
+    if release_image in SKIP_IMAGES:
+        print(f"Skipping image version {release_image}", file=sys.stderr)
         return
 
     major, minor, *_other_version_components = get_oc_version(release_image).split(".")
@@ -33,6 +70,11 @@ def verify_image_version(ocp_version: str, release_image: str):
 
 def get_oc_version(release_image: str) -> str:
     return check_output(f"oc adm release info '{release_image}' -o template --template {{{{.metadata.version}}}}")
+
+
+def get_largest_version(versions: List[str]) -> str:
+    versions.sort(key=lambda s: [int(u) for u in s.split('.')])
+    return versions[-1]
 
 
 if __name__ == "__main__":

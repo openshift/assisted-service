@@ -96,7 +96,6 @@ var Options struct {
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	OpenshiftVersions           string        `envconfig:"OPENSHIFT_VERSIONS"`
-	ReleaseImageOverride        string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE"`
 	ReleaseImageMirror          string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
@@ -190,7 +189,7 @@ func main() {
 	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{})
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		Options.Versions, openshiftVersionsMap, Options.ReleaseImageOverride, Options.ReleaseImageMirror)
+		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
