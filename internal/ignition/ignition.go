@@ -126,7 +126,7 @@ func (g *installerGenerator) checkLsoEnabled() bool {
 	if g.cluster.Operators != "" {
 		var operators models.Operators
 		if err := json.Unmarshal([]byte(g.cluster.Operators), &operators); err != nil {
-			g.log.Fatal("Failed to get Cluster Operators ", err)
+			g.log.Error("Failed to get Cluster Operators ", err)
 			return false
 		}
 		for _, operator := range operators {
@@ -145,7 +145,7 @@ func (g *installerGenerator) checkOcsEnabled() bool {
 	if g.cluster.Operators != "" {
 		var operators models.Operators
 		if err := json.Unmarshal([]byte(g.cluster.Operators), &operators); err != nil {
-			g.log.Fatal("Failed to get Cluster Operators ", err)
+			g.log.Error("Failed to get Cluster Operators ", err)
 			return false
 		}
 		for _, operator := range operators {
@@ -160,10 +160,10 @@ func (g *installerGenerator) checkOcsEnabled() bool {
 }
 
 func (g *installerGenerator) createManifestDirectory(installerPath string, envVars []string) error {
-	g.log.WithField("pkg", "/internal/ignition/Ignition.go").Info("Creating Manifest directory")
+	g.log.Info("Creating Manifest directory")
 	err := g.runCreateCommand(installerPath, "manifests", envVars)
 	if err != nil {
-		g.log.WithField("pkg", "/internal/ignition/Ignition.go").Fatal("Error occured while creating manifest directory ", err)
+		g.log.Error("Error occured while creating manifest directory ", err)
 		return err
 	}
 	return nil

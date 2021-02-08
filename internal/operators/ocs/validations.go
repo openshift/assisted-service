@@ -30,14 +30,16 @@ func NewOcsValidator(log logrus.FieldLogger, hostApi host.API, cfg *Config) OcsV
 }
 
 type Config struct {
-	OCSMinimumCPUCount             int64  `envconfig:"OCS_MINIMUM_CPU_COUNT" default:"24"`
-	OCSMinimumRAMGB                int64  `envconfig:"OCS_MINIMUM_RAM_GB" default:"66"`
+	OCSMinimumCPUCount             int64  `envconfig:"OCS_MINIMUM_CPU_COUNT" default:"18"`
+	OCSMinimumRAMGB                int64  `envconfig:"OCS_MINIMUM_RAM_GB" default:"51"` // disable deployment if less
 	OCSRequiredDisk                int64  `envconfig:"OCS_MINIMUM_DISK" default:"3"`
+	OCSRequiredDiskCPUCount        int64  `envconfig:"OCS_REQUIRED_DISK_CPU_COUNT" default:"2"` // each disk requires 2 cpus
+	OCSRequiredDiskRAMGB           int64  `envconfig:"OCS_REQUIRED_DISK_RAM_GB" default:"5"`    // each disk requires 5GB ram
 	OCSRequiredHosts               int64  `envconfig:"OCS_MINIMUM_HOST" default:"3"`
-	OCSRequiredCPUCount            int64  `envconfig:"OCS_REQUIRED_CPU_COUNT" default:"30"`
-	OCSRequiredRAMGB               int64  `envconfig:"OCS_REQUIRED_RAM_GB" default:"72"`
-	OCSRequiredCompactModeCPUCount int64  `envconfig:"OCS_REQUIRED_COMAPCT_MODE_CPU_COUNT" default:"36"` // compact mode cpu requirements for 3 nodes( 4*3(master)+8*3(OCS) cpus)
-	OCSRequiredCompactModeRAMGB    int64  `envconfig:"OCS_REQUIRED_COMAPCT_MODE_RAM_GB" default:"96"`    //compact mode ram requirements (8*3(master)+72(OCS) GB)
+	OCSRequiredCPUCount            int64  `envconfig:"OCS_REQUIRED_CPU_COUNT" default:"24"`              // Standard Mode 8*3
+	OCSRequiredRAMGB               int64  `envconfig:"OCS_REQUIRED_RAM_GB" default:"57"`                 // Standard Mode
+	OCSRequiredCompactModeCPUCount int64  `envconfig:"OCS_REQUIRED_COMAPCT_MODE_CPU_COUNT" default:"30"` // Compact Mode cpu requirements for 3 nodes( 4*3(master)+6*3(OCS) cpus)
+	OCSRequiredCompactModeRAMGB    int64  `envconfig:"OCS_REQUIRED_COMAPCT_MODE_RAM_GB" default:"81"`    //Compact Mode ram requirements (8*3(master)+57(OCS) GB)
 	OCSMasterWorkerHosts           int    `envconfig:"OCS_REQUIRED_MASTER_WORKER_HOSTS" default:"5"`
 	OCSMinimalDeployment           bool   `envconfig:"OCS_MINIMAL_DEPLOYMENT" default:"false"`
 	OCSDisksAvailable              int64  `envconfig:"OCS_DISKS_AVAILABLE" default:"3"`
@@ -68,25 +70,27 @@ func setOperatorStatus(cluster *models.Cluster, status string) error {
 // ValidateOCSRequirements is used to validate min requirements of OCS
 func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) bool {
 	var status string
+	var err error
 	hosts := cluster.Hosts
 
 	if int64(len(hosts)) < o.OCSRequiredHosts {
 		status = "Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS. "
-		err := setOperatorStatus(cluster, status)
+		err = setOperatorStatus(cluster, status)
 		if err != nil {
-			o.log.Fatal("Failed to set Operator status ", err)
+			o.log.Error("Failed to set Operator status ", err)
 			return false
 		}
 		o.log.Info("Setting Operator Status ", status)
 		return false
 	}
-	var CPUCount int64 = 0                       //count the total CPUs on the cluster
-	var TotalRAM int64 = 0                       // count the total available RAM on the cluster
-	var DiskCount int64 = 0                      // count the total disks on all the hosts
-	var HostsWithDisks int64 = 0                 // to determine total number of hosts with disks. OCS requires atleast 3 hosts with non-bootable disks                           // to claim for the PV created by LocalVolumeSet
+	var cpuCount int64 = 0       //count the total CPUs on the cluster
+	var totalRAM int64 = 0       // count the total available RAM on the cluster
+	var diskCount int64 = 0      // count the total disks on all the hosts
+	var hostsWithDisks int64 = 0 // to determine total number of hosts with disks. OCS requires atleast 3 hosts with non-bootable disks
+	var insufficientHosts []string
 	if int64(len(hosts)) == o.OCSRequiredHosts { // for only 3 hosts, we need to install OCS in compact mode
 		for _, host := range hosts {
-			err := o.nodeResources(host, &CPUCount, &TotalRAM, &DiskCount, &HostsWithDisks)
+			err = o.nodeResources(host, &cpuCount, &totalRAM, &diskCount, &hostsWithDisks, &insufficientHosts)
 			if err != nil {
 				o.log.Fatal("Error occured while calculating Node requirements ", err)
 				return false
@@ -97,9 +101,9 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) bool {
 		status = "Not supporting OCS Installation for 3 Masters and 2 Workers"
 		o.log.Info(status)
 		o.log.Info("Setting Operator Status")
-		err := setOperatorStatus(cluster, status)
+		err = setOperatorStatus(cluster, status)
 		if err != nil {
-			o.log.Fatal("Failed to set Operator status ", err)
+			o.log.Error("Failed to set Operator status ", err)
 			return false
 		}
 		o.log.Info(status)
@@ -107,28 +111,54 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) bool {
 	} else {
 		for _, host := range hosts { // if the worker nodes >=3 , install OCS on all the worker nodes if they satisfy OCS requirements
 			if host.Role == models.HostRoleWorker {
-				err := o.nodeResources(host, &CPUCount, &TotalRAM, &DiskCount, &HostsWithDisks)
+				err = o.nodeResources(host, &cpuCount, &totalRAM, &diskCount, &hostsWithDisks, &insufficientHosts)
 				if err != nil {
-					o.log.Fatal("Error occured while calculating Node requirements ", err)
+					o.log.Error("Error occured while calculating Node requirements ", err)
 					return false
 				}
 			}
 		}
 	}
-	// Hosts with disks must be a multiple of 3
-	o.OCSDisksAvailable = DiskCount
-	canDeployOCS, status := o.validateOCS(o.log, hosts, CPUCount, TotalRAM, DiskCount, HostsWithDisks)
 
-	err := setOperatorStatus(cluster, status)
+	if len(insufficientHosts) > 0 {
+		for _, hostStatus := range insufficientHosts {
+			status = status + hostStatus + ".\n"
+		}
+		err = setOperatorStatus(cluster, status)
+		if err != nil {
+			o.log.Error("Failed to set Operator status ", err)
+			return false
+		}
+		o.log.Info("Setting Operator Status ", status)
+		return false
+	}
+
+	// total disks excluding boot disk must be a multiple of 3
+	if diskCount%3 != 0 {
+		status = "Total disks on the cluster must be a multiple of 3"
+		o.log.Info(status)
+		err = setOperatorStatus(cluster, status)
+		if err != nil {
+			o.log.Error("Failed to set Operator status ", err)
+		}
+		return false
+	}
+
+	// this will be used to set count of StorageDevices in StorageCluster manifest
+	o.OCSDisksAvailable = diskCount
+	canDeployOCS, status := o.validateOCS(o.log, hosts, cpuCount, totalRAM, diskCount, hostsWithDisks)
+
+	o.log.Info(status)
+	err = setOperatorStatus(cluster, status)
 	if err != nil {
-		o.log.Fatal("Failed to set Operator status ", err)
+		o.log.Error("Failed to set Operator status ", err)
 		return false
 	}
 
 	return canDeployOCS
 }
 
-func (o *ocsValidator) nodeResources(host *models.Host, CPUCount *int64, TotalRAM *int64, DiskCount *int64, HostsWithDisks *int64) error {
+func (o *ocsValidator) nodeResources(host *models.Host, cpuCount *int64, totalRAM *int64, diskCount *int64, hostsWithDisks *int64, insufficientHosts *[]string) error {
 	var inventory models.Inventory
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
@@ -142,12 +172,23 @@ func (o *ocsValidator) nodeResources(host *models.Host, CPUCount *int64, TotalRA
 	}
 
 	if len(disks) > 1 { // OCS must use the non-boot disks
-		*DiskCount += (int64)(len(disks) - 1) // not counting the boot disk
-		*HostsWithDisks++
-	}
+		diskCPU := int64((len(disks) - 1)) * o.OCSRequiredDiskCPUCount
+		diskRAM := int64((len(disks) - 1)) * o.OCSRequiredDiskRAMGB
 
-	*CPUCount += inventory.CPU.Count
-	*TotalRAM += inventory.Memory.UsableBytes
+		if inventory.CPU.Count < diskCPU || inventory.Memory.UsableBytes < gbToBytes(diskRAM) {
+			status := fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", len(disks), " disks that require ", diskCPU, " CPUs, ", diskRAM, " RAMGB")
+			*insufficientHosts = append(*insufficientHosts, status)
+			o.log.Info(status)
+		} else {
+			*cpuCount += (inventory.CPU.Count - diskCPU)          // cpus excluding the cpus required for disks
+			*totalRAM += (inventory.Memory.UsableBytes - diskRAM) // ram excluding the ram required for disks
+			*diskCount += (int64)(len(disks) - 1)                 // not counting the boot disk
+			*hostsWithDisks++
+		}
+	} else {
+		*cpuCount += inventory.CPU.Count
+		*totalRAM += inventory.Memory.UsableBytes
+	}
 	return nil
 }
 
@@ -155,52 +196,32 @@ func gbToBytes(gb int64) int64 {
 	return gb * int64(units.GB)
 }
 
-func (o *ocsValidator) validateOCS(log logrus.FieldLogger, hosts []*models.Host, cpu int64, RAM int64, disk int64, hostsWithDisks int64) (bool, string) {
-
+// used to validate resource requirements for OCS excluding disk requirements and set a status message
+func (o *ocsValidator) validateOCS(log logrus.FieldLogger, hosts []*models.Host, cpu int64, ram int64, disk int64, hostsWithDisks int64) (bool, string) {
+	var TotalCPUs int64
+	var TotalRAM int64
 	var status string
 	if int64(len(hosts)) == o.OCSRequiredHosts { // for 3 hosts
-		if cpu < o.OCSRequiredCompactModeCPUCount || RAM < gbToBytes(o.OCSRequiredCompactModeRAMGB) || disk < o.OCSRequiredDisk || hostsWithDisks < o.OCSRequiredHosts { // check for master nodes requirements
-			status = "Insufficient Resources to deploy OCS in Compact mode.A minimum of "
-			if cpu < o.OCSRequiredCompactModeCPUCount {
-				status = status + fmt.Sprint(o.OCSRequiredCompactModeCPUCount, " CPUs, ")
-			}
-			if RAM < gbToBytes(o.OCSRequiredCompactModeRAMGB) {
-				status = status + fmt.Sprint(o.OCSRequiredCompactModeRAMGB, " RAM, ")
-			}
-			if disk < o.OCSRequiredDisk {
-				status = status + fmt.Sprint(o.OCSRequiredDisk, " Disks, ")
-			}
-			if hostsWithDisks < o.OCSRequiredHosts {
-				status = status + fmt.Sprint(o.OCSRequiredHosts, " Hosts with disks, ")
-			}
-			status = status + "is required."
-			log.Info(status)
+		TotalCPUs = o.OCSRequiredCompactModeCPUCount
+		TotalRAM = o.OCSRequiredCompactModeRAMGB
+		if cpu < TotalCPUs || ram < gbToBytes(TotalRAM) || disk < o.OCSRequiredDisk || hostsWithDisks < o.OCSRequiredHosts { // check for master nodes requirements
+			status = o.setStatusInsufficientResources(cpu, ram, disk, hostsWithDisks, "Compact Mode")
 			return false, status
 		}
 		o.OCSDeploymentType = "Compact"
 		status = "OCS Requirements for Compact Mode are satisfied"
 		return true, status
 	}
-	if disk < o.OCSRequiredDisk || cpu < o.OCSMinimumCPUCount || RAM < gbToBytes(o.OCSMinimumRAMGB) || hostsWithDisks < o.OCSRequiredHosts { // check for worker nodes requirements
-		status = "Insufficient resources to deploy OCS on worker hosts. A minimum of "
-		if cpu < o.OCSMinimumCPUCount {
-			status = status + fmt.Sprint(o.OCSMinimumCPUCount, " CPUs, ")
-		}
-		if RAM < gbToBytes(o.OCSMinimumRAMGB) {
-			status = status + fmt.Sprint(o.OCSMinimumRAMGB, " RAM, ")
-		}
-		if disk < o.OCSRequiredDisk {
-			status = status + fmt.Sprint(o.OCSRequiredDisk, " Disks, ")
-		}
-		if hostsWithDisks < o.OCSRequiredHosts {
-			status = status + fmt.Sprint(o.OCSRequiredHosts, " Hosts with disks, ")
-		}
-		status = status + "is required."
-		log.Info(status)
+	TotalCPUs = o.OCSMinimumCPUCount
+	TotalRAM = o.OCSMinimumRAMGB
+	if disk < o.OCSRequiredDisk || cpu < TotalCPUs || ram < gbToBytes(TotalRAM) || hostsWithDisks < o.OCSRequiredHosts { // check for worker nodes requirements
+		status = o.setStatusInsufficientResources(cpu, ram, disk, hostsWithDisks, "Minimal Deployment Mode")
 		return false, status
 	}
 
-	if cpu < o.OCSRequiredCPUCount || RAM < gbToBytes(o.OCSRequiredRAMGB) { // conditions for minimal deployment
+	TotalCPUs = o.OCSRequiredCPUCount
+	TotalRAM = o.OCSRequiredRAMGB
+	if cpu < TotalCPUs || ram < gbToBytes(TotalRAM) { // conditions for minimal deployment
 		status = "Requirements for OCS Minimal Deployment are satisfied"
 		o.OCSDeploymentType = "Minimal"
 		o.OCSMinimalDeployment = true
@@ -210,4 +231,33 @@ func (o *ocsValidator) validateOCS(log logrus.FieldLogger, hosts []*models.Host,
 	status = "OCS Requirements for Standard Deployment are satisfied"
 	o.OCSDeploymentType = "Standard"
 	return true, status
+}
+
+func (o *ocsValidator) setStatusInsufficientResources(cpu int64, ram int64, disk int64, hostsWithDisks int64, mode string) string {
+	var TotalCPUs int64
+	var TotalRAMGB int64
+	if mode == "Compact Mode" {
+		TotalCPUs = o.OCSRequiredCompactModeCPUCount
+		TotalRAMGB = o.OCSRequiredCompactModeRAMGB
+	} else {
+		TotalCPUs = o.OCSMinimumCPUCount
+		TotalRAMGB = o.OCSMinimumRAMGB
+	}
+	status := fmt.Sprint("Insufficient Resources to deploy OCS in ", mode, ". A minimum of ")
+	if cpu < TotalCPUs {
+		status = status + fmt.Sprint(TotalCPUs, " CPUs, excluding disk CPU resources ")
+	}
+	if ram < gbToBytes(TotalRAMGB) {
+		status = status + fmt.Sprint(TotalRAMGB, " RAM, excluding disk RAM resources ")
+	}
+	if disk < o.OCSRequiredDisk {
+		status = status + fmt.Sprint(o.OCSRequiredDisk, " Disks, ")
+	}
+	if hostsWithDisks < o.OCSRequiredHosts {
+		status = status + fmt.Sprint(o.OCSRequiredHosts, " Hosts with disks, ")
+	}
+	status = status + "is required."
+
+	return status
+
 }
