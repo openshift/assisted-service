@@ -5,29 +5,21 @@ COPY swagger.yaml .
 COPY tools/generate_python_client.sh .
 RUN chmod +x ./generate_python_client.sh && SWAGGER_FILE=swagger.yaml OUTPUT=/build ./generate_python_client.sh
 
-# Generate go client
-FROM quay.io/goswagger/swagger:v0.25.0 as swagger_go
-COPY swagger.yaml go.* ./
-RUN mkdir /build
-RUN swagger generate server --template=stratoscale -f swagger.yaml --template-dir=/templates/contrib \
-    && mv restapi models /build
-RUN swagger generate client --template=stratoscale -f swagger.yaml --template-dir=/templates/contrib \
-    && mv client /build
-
 # Build binaries
 FROM registry.svc.ci.openshift.org/openshift/release:golang-1.15 as builder
 
 # Bring in the go dependencies before anything else so we can take
 # advantage of caching these layers in future builds.
-COPY go.mod go.mod
-COPY go.sum go.sum
-RUN go mod download
+COPY go.mod .
+COPY go.sum .
+
+# go mod download fails because `replace` directives to local packages will fail "download" since the files have not been copied,
+# however, it only fails after trying to download everything else, so we still get a lot of the caching that we're aiming for,
+# so the error is safe to ignore.
+RUN go mod download || true
 
 COPY . .
 COPY --from=swagger_py /build build
-COPY --from=swagger_go /build/client client
-COPY --from=swagger_go /build/models models
-COPY --from=swagger_go /build/restapi restapi
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
 RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 

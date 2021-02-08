@@ -42,6 +42,7 @@ require (
 	github.com/onsi/gomega v1.10.2
 	github.com/openshift-online/ocm-sdk-go v0.1.130
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
+	github.com/openshift/assisted-service/models v0.0.0-00010101000000-000000000000
 	github.com/openshift/client-go v0.0.0-20200827190008-3062137373b5
 	github.com/openshift/hive v0.0.0-00010101000000-000000000000
 	github.com/ory/dockertest/v3 v3.6.0
@@ -74,6 +75,7 @@ require (
 replace (
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20200715132148-0f91f62a41fe // Use OpenShift fork
 	github.com/metal3-io/cluster-api-provider-baremetal => github.com/openshift/cluster-api-provider-baremetal v0.0.0-20190821174549-a2a477909c1d
+	github.com/openshift/assisted-service/models => ./models
 	github.com/openshift/hive => github.com/dgoodwin/hive v0.0.0-20210121160047-23364b143670
 	github.com/openshift/library-go => github.com/openshift/library-go v0.0.0-20200918101923-1e4c94603efe
 	github.com/terraform-providers/terraform-provider-aws => github.com/openshift/terraform-provider-aws v1.60.1-0.20200630224953-76d1fb4e5699
