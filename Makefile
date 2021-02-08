@@ -220,7 +220,7 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
 		--ocp-versions '$(OPENSHIFT_VERSIONS)' --ocp-override "$(OPENSHIFT_INSTALL_RELEASE_IMAGE)" --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
-		--check-cvo $(CHECK_CLUSTER_VERSION) $(E2E_TESTS_CONFIG)
+		--check-cvo $(CHECK_CLUSTER_VERSION) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
 
 deploy-resources: manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD)

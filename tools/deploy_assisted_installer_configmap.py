@@ -98,6 +98,9 @@ def main():
             if deploy_options.img_expr_time:
                 y['data']['IMAGE_EXPIRATION_INTERVAL'] = deploy_options.img_expr_interval
 
+            if deploy_options.enable_kube_api:
+                y['data']['ENABLE_KUBE_API'] = 'true'
+
             data = yaml.dump(y)
             dst.write(data)
 
