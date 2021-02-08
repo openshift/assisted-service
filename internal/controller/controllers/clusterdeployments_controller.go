@@ -55,6 +55,8 @@ const (
 	AgentPlatformStateInfo = "AgnetPlatformStateInfo"
 )
 
+const HighAvailabilityModeNone = "None"
+
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
@@ -307,6 +309,11 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	if len(spec.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
 		clusterParams.ServiceNetworkCidr = swag.String(spec.InstallStrategy.Agent.Networking.ServiceNetwork[0])
+	}
+
+	if spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
+		clusterParams.HighAvailabilityMode = swag.String(HighAvailabilityModeNone)
 	}
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{

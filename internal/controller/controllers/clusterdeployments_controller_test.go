@@ -110,9 +110,8 @@ var _ = Describe("cluster reconcile", func() {
 		mockHostApi           *host.MockAPI
 		clusterName           = "test-cluster"
 		pullSecretName        = "pull-secret"
+		defaultClusterSpec    hivev1.ClusterDeploymentSpec
 	)
-
-	defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, pullSecretName)
 
 	getTestCluster := func() *hivev1.ClusterDeployment {
 		var cluster hivev1.ClusterDeployment
@@ -125,6 +124,7 @@ var _ = Describe("cluster reconcile", func() {
 	}
 
 	BeforeEach(func() {
+		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, pullSecretName)
 		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
@@ -151,29 +151,55 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
 		})
 
-		It("create new cluster", func() {
-			id := strfmt.UUID(uuid.New().String())
-			clusterReply := &common.Cluster{
-				Cluster: models.Cluster{
-					Status:     swag.String(models.ClusterStatusPendingForInput),
-					StatusInfo: swag.String("User input required"),
-					ID:         &id,
-				},
+		Context("successful creation", func() {
+			var clusterReply *common.Cluster
+
+			BeforeEach(func() {
+				id := strfmt.UUID(uuid.New().String())
+				clusterReply = &common.Cluster{
+					Cluster: models.Cluster{
+						Status:     swag.String(models.ClusterStatusPendingForInput),
+						StatusInfo: swag.String("User input required"),
+						ID:         &id,
+					},
+				}
+			})
+
+			validateCreation := func(cluster *hivev1.ClusterDeployment) {
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				cluster = getTestCluster()
+				Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusPendingForInput))
+				Expect(getConditionByReason(AgentPlatformStateInfo, cluster).Message).To(Equal("User input required"))
 			}
-			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(clusterReply, nil)
 
-			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
-			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			It("create new cluster", func() {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(clusterReply, nil)
 
-			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
-			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{}))
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-			cluster = getTestCluster()
-			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusPendingForInput))
-			Expect(getConditionByReason(AgentPlatformStateInfo, cluster).Message).To(Equal("User input required"))
+				validateCreation(cluster)
+			})
+
+			It("create single node cluster", func() {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(ctx, kubeKey interface{}, params installer.RegisterClusterParams) {
+						Expect(swag.StringValue(params.NewClusterParams.HighAvailabilityMode)).
+							To(Equal(HighAvailabilityModeNone))
+					}).Return(clusterReply, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents = 0
+				cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents = 1
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				validateCreation(cluster)
+			})
 		})
 
 		It("create new cluster backend failure", func() {
