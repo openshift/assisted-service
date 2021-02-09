@@ -219,7 +219,7 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
-		--ocp-versions '$(OPENSHIFT_VERSIONS)' --ocp-override "$(OPENSHIFT_INSTALL_RELEASE_IMAGE)" --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
+		--ocp-versions '$(OPENSHIFT_VERSIONS)' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
 
 deploy-resources: manifests
