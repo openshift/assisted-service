@@ -278,14 +278,13 @@ def get_kubectl_command(target=None, namespace=None, profile=None):
         return cmd
     if profile is None or profile == OPENSHIFT_CI or target != LOCAL_TARGET:
         return cmd
-    server = get_minikube_server(profile) if target == LOCAL_TARGET else None
-    cmd += f' --server https://{server}:8443'
+    cmd += f' --server {get_cluster_server(profile)}'
     return cmd
 
 
-def get_minikube_server(profile):
+def get_cluster_server(cluster_name='default'):
     p = subprocess.Popen(
-        f'minikube ip --profile {profile}',
+        f"""kubectl config view -o jsonpath='{{.clusters[?(@.name == "{cluster_name}")].cluster.server}}'""",
         shell=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -294,8 +293,7 @@ def get_minikube_server(profile):
     err = p.stderr.read().decode().strip()
     if err:
         raise RuntimeError(
-            f'failed to get minikube ip for profile {profile}: {err}'
+            f'failed to get server ip for cluster {cluster_name}: {err}'
         )
 
     return out
-

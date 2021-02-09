@@ -16,7 +16,7 @@ endif
 define get_service
 minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
 endef # get_service
-VERIFY_MINIKUBE = _verify_minikube
+VERIFY_CLUSTER = _verify_cluster
 else
 define get_service
 kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}' | \
@@ -185,8 +185,8 @@ else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
 
-_verify_minikube:
-	minikube status
+_verify_cluster:
+	$(KUBECTL) cluster-info
 
 deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
 	echo "Deployment done"
@@ -247,11 +247,11 @@ deploy-ui-on-ocp-cluster:
 
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 
-ci-deploy-for-subsystem: $(VERIFY_MINIKUBE) generate-keys
+ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
 	$(MAKE) deploy-wiremock deploy-all
 
-deploy-test: _verify_minikube generate-keys
+deploy-test: _verify_cluster generate-keys
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
