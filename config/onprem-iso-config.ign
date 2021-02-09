@@ -29,7 +29,7 @@
         "path": "/etc/assisted-service/environment",
         "contents": {
           "compression": "gzip",
-          "source": "data:;base64,H4sIAAAAAAAC/7SQy46bMBiF93kMr4O5hAkUiQVJ3AQpDdQmU3VlecBJLAF2MYlmNMq7V55chlazqFTNAsn/hXP+8+UZKZYYke9rukiKZJYQFItW96yueTcaTPOEkB8ZXsSsakQ7nGwJwtfuYkZXGSli1wugAx3omk6e4SJ+8CeeKf5cNqLv1Sb5NjQnCD+mc0TNTXSL1/Gh75WObJtpLXTPK4spAWtZshpKxVt9ELseChmFvj8ZLVC+zn7SIsFLVMSyVR1v7pLzhM4RLmieFKvYrljP7HYv2mdL83qnxb7lFSy7fpTlaENW6deCPiJM0mxD4lfgwymIXkEltKrZC21Zw0FkutD1wBh0vOZMcyoatjeDX0f2AoW07yda1w2r4idblupWRxcJ6zmc0qlvlA6l1HedW/pGdJ3sBolL2djq+DQwOPl2xRVvK96Wgmv7Tcj24dR8MLzU1tv76mbV4sTh5Q2Flnf3E++0kK0JOIWhBz3Hc1zPeXBDz7EcMAb6qJTselrzE69BBFQnq2PZm3/OY+DD4ENWgaU6fgv+n9AC6Fi7EvqfBm5wqv1ud6f4l/+/oAxgODEoXcd1A9ebfPkQ5RPvGTifR/l2tk7ndJ5tiiTdIEwxWqakwCki8RXU6HcAAAD//+dv+pvIAwAA"
+          "source": "data:;base64,H4sIAAAAAAAC/7SQX2+bMBTF3/Mx/BzMn9BAkXggiZcgZYHZpNOeLBecxBJgD5OoVZXvPrlNUlb1YdJUJKR77r2cc/nlGSmWGJEfa7pIimSWEBSLVvesrnk3GkzzhJCfGV7ErGpEO5xsCcKX7mJGVxkpYtcLoAMd6JpOnuEivvMnnhF/LxvTd7VJvg/DCcIP6RxRcxPd4nV86HulI9tmWgvd88piSsBalqyGUvFWH8Suh0JGoe9PRguUr7NftEjwEhWxbFXHm5vlPKFzhAuaJ8UqtivWM7vdi/bJ0rzeabFveQXLrh9lOdqQVfqtoA8IkzTbkPgF+HAKohdQCa1q9kxb1nAQmS68HzxgDDpec6Y5FQ3bm5XfR/YMhbRvx1qXDaviJ1uW6qqjj2bWUzilU994Hkqpb45XIo3oOtkNKJSysdXxcRB18u2KK95WvC0F1/arke3DqXlh+Kat1/qSZtXixOFbDYWWt/QT77SQrfnpKQw96Dme43rOnRt6juWAMdBHpWTX05qfeA0ioDpZHcvefHMeAx8Gn/ILLNXxK4L/xBdAx9qV0P8ycINT7fe4G8UP+f+CMoDhxKB0HdcNXG9y/ynKR94zcD6P8u1snc7pPNsUSbpBmGK0TEmBU0TiC6jRnwAAAP//vm94jNwDAAA="
         },
         "mode": 420
       },
