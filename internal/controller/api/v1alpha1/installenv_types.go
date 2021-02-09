@@ -21,6 +21,49 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ImageStateCreated        = "Image has been created"
+	ImageStateFailedToCreate = "Failed to create image"
+)
+
+// ClusterReference represents a Cluster Reference. It has enough information to retrieve cluster
+// in any namespace
+type ClusterReference struct {
+	// Name is unique within a namespace to reference a cluster resource.
+	// +optional
+	Name string `json:"name,omitempty"`
+	// Namespace defines the space within which the cluster name must be unique.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+// InstallEnvConditionType is a valid value for InstallEnvCondition.Type
+type InstallEnvConditionType string
+
+const (
+	ImageProgressCondition InstallEnvConditionType = "ImageProgress"
+)
+
+// InstallEnvCondition contains details for the current condition of a install environment
+type InstallEnvCondition struct {
+	// Type is the type of the condition.
+	Type InstallEnvConditionType `json:"type"`
+	// Status is the status of the condition.
+	Status corev1.ConditionStatus `json:"status"`
+	// LastProbeTime is the last time we probed the condition.
+	// +optional
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
+	// LastTransitionTime is the last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
+	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty"`
+	// Message is a human-readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty"`
+}
+
 type InstallEnvSpec struct {
 	// Proxy defines the proxy settings for agents and clusters that use the InstallEnv. If
 	// unset, the agents and clusters will not be configured to use a proxy.
@@ -82,7 +125,8 @@ type Proxy struct {
 type InstallEnvStatus struct {
 	// ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the
 	// configuration from this InstallEnv.
-	ISODownloadURL string `json:"isoDownloadURL,omitempty"`
+	ISODownloadURL string                `json:"isoDownloadURL,omitempty"`
+	Conditions     []InstallEnvCondition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
