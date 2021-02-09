@@ -9,10 +9,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/openshift/assisted-service/internal/isoeditor"
+	"github.com/openshift/assisted-service/internal/versions"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,7 +40,8 @@ var _ = Describe("s3filesystem", func() {
 
 		ctrl = gomock.NewController(GinkgoT())
 		mockVersions = versions.NewMockHandler(ctrl)
-		client = &FSClient{basedir: baseDir, log: log, versionsHandler: mockVersions}
+		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10})
+		client = &FSClient{basedir: baseDir, log: log, versionsHandler: mockVersions, isoEditorFactory: editorFactory}
 		deleteTime, _ = time.ParseDuration("60m")
 		now, _ = time.Parse(time.RFC3339, "2020-01-01T10:00:00+00:00")
 	})

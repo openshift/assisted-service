@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/isoutil"
 
 	"github.com/cavaliercoder/go-cpio"
 	"github.com/sirupsen/logrus"
@@ -37,18 +38,15 @@ func TestIsoEditor(t *testing.T) {
 
 var _ = Context("with test files", func() {
 	var (
-		editor   Editor
 		isoDir   string
 		isoFile  string
 		filesDir string
+		workDir  string
 		volumeID = "Assisted123"
-		log      logrus.FieldLogger
-		factory  = &RhcosFactory{}
 	)
 
 	BeforeSuite(func() {
 		filesDir, isoDir, isoFile = createIsoViaGenisoimage(volumeID)
-		log = getTestLog()
 	})
 
 	AfterSuite(func() {
@@ -56,41 +54,40 @@ var _ = Context("with test files", func() {
 		os.RemoveAll(isoDir)
 	})
 
+	BeforeEach(func() {
+		var err error
+		workDir, err = ioutil.TempDir("", "testisoeditor")
+		Expect(err).NotTo(HaveOccurred())
+	})
+
 	AfterEach(func() {
-		err := editor.(*rhcosEditor).isoHandler.CleanWorkDir()
+		err := os.RemoveAll(workDir)
 		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("CreateMinimalISOTemplate", func() {
 		It("iso created successfully", func() {
-			var err error
-			editor, err = factory.NewEditor(isoFile, defaultTestOpenShiftVersion, log)
-			Expect(err).ToNot(HaveOccurred())
+			editor := editorForFile(isoFile, workDir)
 			file, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 			os.Remove(file)
 		})
 
 		It("missing iso file", func() {
-			var err error
-			editor, err = factory.NewEditor("invalid", defaultTestOpenShiftVersion, log)
-			Expect(err).ToNot(HaveOccurred())
-			_, err = editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			editor := editorForFile("invalid", workDir)
+			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
 	Describe("fixTemplateConfigs", func() {
 		It("alters the kernel parameters correctly", func() {
-			var err error
-			editor, err = factory.NewEditor(isoFile, defaultTestOpenShiftVersion, log)
-			Expect(err).ToNot(HaveOccurred())
-
+			editor := editorForFile(isoFile, workDir)
 			rootfsURL := fmt.Sprintf("%s/api/assisted-install/v1/boot-files?file_type=rootfs.img&openshift_version=%s",
 				defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			isoHandler := editor.(*rhcosEditor).isoHandler
 
-			err = isoHandler.Extract()
+			err := isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
 			err = editor.(*rhcosEditor).fixTemplateConfigs(defaultTestServiceBaseURL)
@@ -108,12 +105,10 @@ var _ = Context("with test files", func() {
 
 	Describe("addCustomRAMDisk", func() {
 		It("adds a new archive correctly", func() {
-			var err error
-			editor, err = factory.NewEditor(isoFile, defaultTestOpenShiftVersion, log)
-			Expect(err).ToNot(HaveOccurred())
+			editor := editorForFile(isoFile, workDir)
 
 			isoHandler := editor.(*rhcosEditor).isoHandler
-			err = isoHandler.Extract()
+			err := isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
 			err = editor.(*rhcosEditor).addCustomRAMDisk("staticipconfig")
@@ -155,6 +150,14 @@ var _ = Context("with test files", func() {
 		})
 	})
 })
+
+func editorForFile(iso string, workDir string) Editor {
+	return &rhcosEditor{
+		isoHandler:       isoutil.NewHandler(iso, workDir),
+		openshiftVersion: defaultTestOpenShiftVersion,
+		log:              getTestLog(),
+	}
+}
 
 func createIsoViaGenisoimage(volumeID string) (string, string, string) {
 	grubConfig := `

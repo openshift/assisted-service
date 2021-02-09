@@ -5,6 +5,7 @@
 package isoeditor
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	logrus "github.com/sirupsen/logrus"
 	reflect "reflect"
@@ -33,17 +34,16 @@ func (m *MockFactory) EXPECT() *MockFactoryMockRecorder {
 	return m.recorder
 }
 
-// NewEditor mocks base method
-func (m *MockFactory) NewEditor(arg0, arg1 string, arg2 logrus.FieldLogger) (Editor, error) {
+// WithEditor mocks base method
+func (m *MockFactory) WithEditor(arg0 context.Context, arg1, arg2 string, arg3 logrus.FieldLogger, arg4 EditFunc) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewEditor", arg0, arg1, arg2)
-	ret0, _ := ret[0].(Editor)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "WithEditor", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// NewEditor indicates an expected call of NewEditor
-func (mr *MockFactoryMockRecorder) NewEditor(arg0, arg1, arg2 interface{}) *gomock.Call {
+// WithEditor indicates an expected call of WithEditor
+func (mr *MockFactoryMockRecorder) WithEditor(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewEditor", reflect.TypeOf((*MockFactory)(nil).NewEditor), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithEditor", reflect.TypeOf((*MockFactory)(nil).WithEditor), arg0, arg1, arg2, arg3, arg4)
 }

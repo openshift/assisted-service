@@ -15,16 +15,17 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
+	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/versions"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/sirupsen/logrus"
+
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("s3client", func() {
@@ -54,13 +55,15 @@ var _ = Describe("s3client", func() {
 		uploader = NewMockUploaderAPI(ctrl)
 		publicUploader = NewMockUploaderAPI(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
+		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10})
 		log.SetOutput(ioutil.Discard)
 		bucket = "test"
 		publicBucket = "pub-test"
 		cfg := Config{S3Bucket: bucket, PublicS3Bucket: publicBucket}
 		isoUploader = &ISOUploader{log: log, bucket: bucket, publicBucket: publicBucket, s3client: mockAPI}
-		client = &S3Client{log: log, session: nil, client: mockAPI, publicClient: publicMockAPI,
-			uploader: uploader, publicUploader: publicUploader, cfg: &cfg, isoUploader: isoUploader, versionsHandler: mockVersions}
+		client = &S3Client{log: log, session: nil, client: mockAPI, publicClient: publicMockAPI, uploader: uploader,
+			publicUploader: publicUploader, cfg: &cfg, isoUploader: isoUploader, versionsHandler: mockVersions,
+			isoEditorFactory: editorFactory}
 		deleteTime, _ = time.ParseDuration("60m")
 		now, _ = time.Parse(time.RFC3339, "2020-01-01T10:00:00+00:00")
 	})
