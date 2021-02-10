@@ -1,7 +1,6 @@
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 
 PWD = $(shell pwd)
-UID = $(shell id -u)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -27,12 +26,12 @@ endif # TARGET
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
-export SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
 RHCOS_BASE_ISO := $(or ${RHCOS_BASE_ISO},https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso)
-OPENSHIFT_VERSIONS := $(subst ",\",$(or ${OPENSHIFT_VERSIONS}, $(shell cat default_ocp_versions.json | tr -d "\n\t ")))
+OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell cat default_ocp_versions.json | tr -d "\n\t "))
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 PUBLISH_TAG := $(or ${GIT_REVISION})
@@ -68,13 +67,15 @@ endif
 REPORTS = $(ROOT_DIR)/reports
 TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-classname=relative --junitfile $(REPORTS)/unittest.xml
 
+.EXPORT_ALL_VARIABLES:
+
 all: build
 
 ci-lint:
 	${ROOT_DIR}/tools/check-commits.sh
 	${ROOT_DIR}/tools/handle_ocp_versions.py
-	$(MAKE) verify-latest-onprem-config
-	$(MAKE) validate-swagger-changes
+	skipper $(MAKE) generate-all
+	git diff --exit-code  # this will fail if generate-all caused any diff
 
 lint:
 	golangci-lint run -v
@@ -85,53 +86,11 @@ $(BUILD_FOLDER):
 format:
 	golangci-lint run --fix -v
 
-format-check:
-	$(shell $(MAKE) format; test "$$?" -eq 0)
-
-############
-# Generate #
-############
-
 generate:
-	go generate $(shell go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
+	./hack/generate.sh print_help
 
-lint-swagger:
-	spectral lint swagger.yaml
-
-generate-from-swagger: lint-swagger generate-go-client generate-go-server
-	$(MAKE) manifests ENABLE_KUBE_API=true
-
-generate-go-server:
-	rm -rf restapi
-	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f swagger.yaml \
-		--template-dir=/templates/contrib
-
-generate-go-client:
-	rm -rf client models
-	docker run -u $(UID):$(UID) -v $(PWD):$(PWD):rw,Z -v /etc/passwd:/etc/passwd -w $(PWD) \
-		quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
-		--template-dir=/templates/contrib
-
-generate-python-client: $(BUILD_FOLDER)
-	rm -rf $(BUILD_FOLDER)/assisted-service-client*
-	docker run --rm -u ${UID} --entrypoint /bin/sh \
-		-v $(BUILD_FOLDER):/local:Z \
-		-v $(ROOT_DIR)/swagger.yaml:/swagger.yaml:ro,Z \
-		-v $(ROOT_DIR)/tools/generate_python_client.sh:/script.sh:ro,Z \
-		-e SWAGGER_FILE=/swagger.yaml -e OUTPUT=/local/assisted-service-client/ \
-		swaggerapi/swagger-codegen-cli:2.4.15 /script.sh
-	cd $(BUILD_FOLDER)/assisted-service-client/ && python3 setup.py sdist --dist-dir $(BUILD_FOLDER)
-
-generate-keys: $(BUILD_FOLDER)
-	cd tools && go run auth_keys_generator.go -keys-dir=$(BUILD_FOLDER)
-
-generate-migration:
-	go run tools/migration_generator/migration_generator.go -name=$(MIGRATION_NAME)
-
-validate-swagger-changes:
-	skipper make generate-from-swagger
-	git diff --exit-code client/ restapi/  # this will fail if changes to the client/server code have not been committed
+generate-%: ${BUILD_FOLDER}
+	./hack/generate.sh generate_$(subst -,_,$*)
 
 ##################
 # Build & Update #
@@ -221,10 +180,10 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" $(TEST_FLAGS) \
-		--ocp-versions '$(OPENSHIFT_VERSIONS)' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
+		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
 
-deploy-resources: manifests
+deploy-resources: generate-manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD)
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-resources
@@ -234,7 +193,7 @@ deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-
 	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
 		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
 
-deploy-role: deploy-namespace manifests
+deploy-role: deploy-namespace generate-manifests
 	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
 		$(ENABLE_KUBE_API_CMD)
 
@@ -257,22 +216,6 @@ deploy-test: _verify_cluster generate-keys
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
-
-update-ocp-version:
-	sed -i "s|value: '.*' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" openshift/template.yaml
-
-generate-onprem-environment:
-	sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" onprem-environment
-	sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" onprem-environment
-
-generate-onprem-iso-ignition:
-	sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" ./config/onprem-iso-fcc.yaml
-	sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ./config/onprem-iso-fcc.yaml
-	podman run --rm -v ./config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ./config/onprem-iso-config.ign
-
-verify-latest-onprem-config: generate-onprem-environment generate-onprem-iso-ignition
-	@echo "Verifying onprem config changes"
-	hack/verify-latest-onprem-config.sh
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
@@ -395,23 +338,3 @@ delete-minikube-profile:
 
 delete-all-minikube-profiles:
 	minikube delete --all
-
-##############
-# Controller #
-##############
-
-CRD_OPTIONS ?= "crd:trivialVersions=true"
-CONTROLLER_PATH = internal/controller
-CONTROLLER_CONFIG_PATH = $(CONTROLLER_PATH)/config
-CONTROLLER_CRD_PATH = $(CONTROLLER_CONFIG_PATH)/crd
-CONTROLLER_RBAC_PATH = $(CONTROLLER_CONFIG_PATH)/rbac
-
-# Generate manifests e.g. CRD, RBAC etc.
-manifests: $(BUILD_FOLDER)
-ifeq ($(ENABLE_KUBE_API),true)
-	controller-gen $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:rbac:dir=$(CONTROLLER_RBAC_PATH) \
-		webhook paths="./..." output:crd:artifacts:config=$(CONTROLLER_CRD_PATH)/bases
-	kustomize build $(CONTROLLER_CRD_PATH) > $(BUILD_FOLDER)/resources.yaml
-	controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-	goimports -w  $(CONTROLLER_PATH)
-endif
