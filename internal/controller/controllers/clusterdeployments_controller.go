@@ -20,11 +20,6 @@ import (
 	"context"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
@@ -46,6 +41,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -135,23 +133,23 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(cluster *hivev1.Cl
 		}
 	}
 
-	expectedHosts := cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents +
-		cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents
+	expectedHosts := cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents +
+		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents
 	return readyHosts == expectedHosts
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
 	if cluster.Spec.Platform.AgentBareMetal == nil ||
-		cluster.Spec.InstallStrategy == nil ||
-		cluster.Spec.InstallStrategy.Agent == nil {
+		cluster.Spec.Provisioning.InstallStrategy == nil ||
+		cluster.Spec.Provisioning.InstallStrategy.Agent == nil {
 		return false
 	}
 	return true
 }
 
 func isUserManagedNetwork(cluster *hivev1.ClusterDeployment) bool {
-	if cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
+	if cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
 		return true
 	}
 	return false
@@ -177,27 +175,28 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	updateString(spec.ClusterName, c.Name, &params.Name)
 	updateString(spec.BaseDomain, c.BaseDNSDomain, &params.BaseDNSDomain)
 
-	if len(spec.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
-		updateString(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr)
-		if int64(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix) != c.ClusterNetworkHostPrefix {
-			params.ClusterNetworkHostPrefix = swag.Int64(int64(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix))
+	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr)
+		if int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix) != c.ClusterNetworkHostPrefix {
+			params.ClusterNetworkHostPrefix = swag.Int64(int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix))
 			update = true
 		}
 	}
-	if len(spec.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
-		updateString(spec.InstallStrategy.Agent.Networking.ServiceNetwork[0], c.ServiceNetworkCidr, &params.ServiceNetworkCidr)
+	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], c.ServiceNetworkCidr, &params.ServiceNetworkCidr)
 	}
-	if len(spec.InstallStrategy.Agent.Networking.MachineNetwork) > 0 {
-		updateString(spec.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, c.MachineNetworkCidr, &params.MachineNetworkCidr)
+	if len(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork) > 0 {
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, c.MachineNetworkCidr, &params.MachineNetworkCidr)
 	}
 
 	updateString(spec.Platform.AgentBareMetal.APIVIP, c.APIVip, &params.APIVip)
 	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName)
 	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip)
-	updateString(spec.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
+	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
 
-	if spec.Platform.AgentBareMetal.VIPDHCPAllocation != swag.BoolValue(c.VipDhcpAllocation) {
-		params.VipDhcpAllocation = swag.Bool(spec.Platform.AgentBareMetal.VIPDHCPAllocation)
+	vipDHCPAllocationEnabled := isVipDHCPAllocationEnabled(cluster)
+	if vipDHCPAllocationEnabled != swag.BoolValue(c.VipDhcpAllocation) {
+		params.VipDhcpAllocation = swag.Bool(vipDHCPAllocationEnabled)
 		update = true
 	}
 
@@ -271,6 +270,10 @@ func (r *ClusterDeploymentsReconciler) notifyPullSecretUpdate(ctx context.Contex
 	return nil
 }
 
+func isVipDHCPAllocationEnabled(cluster *hivev1.ClusterDeployment) bool {
+	return cluster.Spec.Platform.AgentBareMetal.VIPDHCPAllocation == agent.Enabled
+}
+
 func (r *ClusterDeploymentsReconciler) createNewCluster(
 	ctx context.Context,
 	key types.NamespacedName,
@@ -296,23 +299,23 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		OpenshiftVersion:      swag.String("4.7"), // TODO: check how to set openshift version
 		Operators:             nil,                // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
-		VipDhcpAllocation:     swag.Bool(spec.Platform.AgentBareMetal.VIPDHCPAllocation),
+		VipDhcpAllocation:     swag.Bool(isVipDHCPAllocationEnabled(cluster)),
 		IngressVip:            spec.Platform.AgentBareMetal.IngressVIP,
-		SSHPublicKey:          spec.InstallStrategy.Agent.SSHPublicKey,
+		SSHPublicKey:          spec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(cluster)),
 	}
 
-	if len(spec.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
-		clusterParams.ClusterNetworkCidr = swag.String(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR)
-		clusterParams.ClusterNetworkHostPrefix = int64(spec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
+	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
+		clusterParams.ClusterNetworkCidr = swag.String(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR)
+		clusterParams.ClusterNetworkHostPrefix = int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
 	}
 
-	if len(spec.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
-		clusterParams.ServiceNetworkCidr = swag.String(spec.InstallStrategy.Agent.Networking.ServiceNetwork[0])
+	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
+		clusterParams.ServiceNetworkCidr = swag.String(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0])
 	}
 
-	if spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
+	if spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
 		clusterParams.HighAvailabilityMode = swag.String(HighAvailabilityModeNone)
 	}
 
@@ -364,17 +367,6 @@ func setClusterApiError(err error, cluster *hivev1.ClusterDeployment) {
 	}
 }
 
-func getAgentRefsFromIDs(uuidArr []strfmt.UUID) []agent.AgentRef {
-	agentsRef := make([]agent.AgentRef, len(uuidArr))
-	for i := range uuidArr {
-		agentsRef[i] = agent.AgentRef{
-			Namespace: "",                  // TODO: get namespace once agent CRD is implemented
-			Name:      uuidArr[i].String(), // TODO: get name once agent CRD is implemented
-		}
-	}
-	return agentsRef
-}
-
 func (r *ClusterDeploymentsReconciler) syncClusterState(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
 	if cluster.Status.Conditions == nil {
 		cluster.Status.Conditions = []hivev1.ClusterDeploymentCondition{}
@@ -382,16 +374,9 @@ func (r *ClusterDeploymentsReconciler) syncClusterState(cluster *hivev1.ClusterD
 
 	setStateAndStateInfo(cluster, c)
 
-	cluster.Status.InstallStrategy = &hivev1.InstallStrategyStatus{Agent: &agent.InstallStrategyStatus{}}
-	if len(c.HostNetworks) > 0 {
-		cluster.Status.InstallStrategy.Agent.AgentNetworks = make([]agent.AgentNetwork, len(c.HostNetworks))
-		for i, hn := range c.HostNetworks {
-			cluster.Status.InstallStrategy.Agent.AgentNetworks[i] = agent.AgentNetwork{
-				CIDR:      hn.Cidr,
-				AgentRefs: getAgentRefsFromIDs(c.HostNetworks[i].HostIds),
-			}
-		}
-	}
+	cluster.Status.InstallStrategy = &hivev1.InstallStrategyStatus{Agent: &agent.InstallStrategyStatus{
+		ConnectivityMajorityGroups: c.ConnectivityMajorityGroups,
+	}}
 	cluster.Status.InstallStrategy.Agent.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
 
 	// TODO: count hosts in specific states

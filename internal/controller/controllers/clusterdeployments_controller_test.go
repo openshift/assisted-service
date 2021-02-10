@@ -59,32 +59,32 @@ func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.
 	return hivev1.ClusterDeploymentSpec{
 		ClusterName: clusterName,
 		Provisioning: &hivev1.Provisioning{
+			InstallConfigSecretRef: &v1.LocalObjectReference{Name: "cluster-install-config"},
 			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
-			InstallConfigSecretRef: v1.LocalObjectReference{Name: "cluster-install-config"},
-		},
-		InstallStrategy: &hivev1.InstallStrategy{
-			Agent: &agent.InstallStrategy{
-				Networking: agent.Networking{
-					MachineNetwork: nil,
-					ClusterNetwork: []agent.ClusterNetworkEntry{{
-						CIDR:       "10.128.0.0/14",
-						HostPrefix: 23,
-					}},
-					ServiceNetwork: []string{"172.30.0.0/16"},
-				},
-				SSHPublicKey: "some-key",
-				ProvisionRequirements: agent.ProvisionRequirements{
-					ControlPlaneAgents: 3,
-					WorkerAgents:       2,
+			InstallStrategy: &hivev1.InstallStrategy{
+				Agent: &agent.InstallStrategy{
+					Networking: agent.Networking{
+						MachineNetwork: nil,
+						ClusterNetwork: []agent.ClusterNetworkEntry{{
+							CIDR:       "10.128.0.0/14",
+							HostPrefix: 23,
+						}},
+						ServiceNetwork: []string{"172.30.0.0/16"},
+					},
+					SSHPublicKey: "some-key",
+					ProvisionRequirements: agent.ProvisionRequirements{
+						ControlPlaneAgents: 3,
+						WorkerAgents:       2,
+					},
 				},
 			},
 		},
 		Platform: hivev1.Platform{
-			AgentBareMetal: &agent.Platform{
+			AgentBareMetal: &agent.BareMetalPlatform{
 				APIVIP:            "1.2.3.8",
 				APIVIPDNSName:     "example.com",
 				IngressVIP:        "1.2.3.9",
-				VIPDHCPAllocation: false,
+				VIPDHCPAllocation: agent.Disabled,
 			},
 		},
 		PullSecretRef: &v1.LocalObjectReference{
@@ -194,8 +194,8 @@ var _ = Describe("cluster reconcile", func() {
 					}).Return(clusterReply, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
-				cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents = 0
-				cluster.Spec.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents = 1
+				cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents = 0
+				cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents = 1
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
 				validateCreation(cluster)
@@ -225,7 +225,7 @@ var _ = Describe("cluster reconcile", func() {
 			ClusterName: clusterName,
 			Provisioning: &hivev1.Provisioning{
 				ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
-				InstallConfigSecretRef: v1.LocalObjectReference{Name: "cluster-install-config"},
+				InstallConfigSecretRef: &v1.LocalObjectReference{Name: "cluster-install-config"},
 			},
 			Platform: hivev1.Platform{
 				AWS: &aws.Platform{},
@@ -358,19 +358,19 @@ var _ = Describe("cluster reconcile", func() {
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.7",
-					ClusterNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusReady),
-					ServiceNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
 					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
 					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
 					APIVipDNSName:            swag.String(defaultClusterSpec.Platform.AgentBareMetal.APIVIPDNSName),
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
 				},
 				PullSecret: testPullSecretVal,
 			}
-			hosts := []*models.Host{}
+			hosts := make([]*models.Host, 0, 5)
 			for i := 0; i < 5; i++ {
 				id := strfmt.UUID(uuid.New().String())
 				h := &models.Host{
@@ -474,8 +474,9 @@ var _ = Describe("cluster reconcile", func() {
 					Name:                     "different-cluster-name",
 					OpenshiftVersion:         "4.7",
 					ClusterNetworkCidr:       "11.129.0.0/14",
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
-					Status:                   swag.String(models.ClusterStatusPendingForInput),
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+
+					Status: swag.String(models.ClusterStatusPendingForInput),
 				},
 				PullSecret: "different-pull-secret",
 			}
@@ -494,7 +495,7 @@ var _ = Describe("cluster reconcile", func() {
 					Expect(swag.StringValue(param.ClusterUpdateParams.PullSecret)).To(Equal(testPullSecretVal))
 					Expect(swag.StringValue(param.ClusterUpdateParams.Name)).To(Equal(defaultClusterSpec.ClusterName))
 					Expect(swag.StringValue(param.ClusterUpdateParams.ClusterNetworkCidr)).
-						To(Equal(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR))
+						To(Equal(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR))
 				}).Return(updateReply, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -513,15 +514,15 @@ var _ = Describe("cluster reconcile", func() {
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.7",
-					ClusterNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
-					ServiceNetworkCidr:       defaultClusterSpec.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
 					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
 					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
 					APIVipDNSName:            swag.String(defaultClusterSpec.Platform.AgentBareMetal.APIVIPDNSName),
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
 				},
 				PullSecret: testPullSecretVal,
 			}
