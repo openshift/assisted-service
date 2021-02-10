@@ -85,7 +85,7 @@ func filterMetrics(metrics []string, substrings ...string) []string {
 	return res
 }
 
-func assertValidationMetricCounter(clusterID strfmt.UUID, validationID models.HostValidationID, expectedMetric string, expectedCounter int) {
+func getValidationMetricCounter(clusterID strfmt.UUID, validationID models.HostValidationID, expectedMetric string) int {
 
 	url := fmt.Sprintf("http://%s/metrics", Options.InventoryHost)
 
@@ -99,6 +99,12 @@ func assertValidationMetricCounter(clusterID strfmt.UUID, validationID models.Ho
 
 	counter, err := strconv.Atoi(strings.ReplaceAll((strings.Split(filteredMetrics[0], "}")[1]), " ", ""))
 	Expect(err).NotTo(HaveOccurred())
+	return counter
+}
+
+func assertValidationMetricCounter(clusterID strfmt.UUID, validationID models.HostValidationID, expectedMetric string, expectedCounter int) {
+
+	counter := getValidationMetricCounter(clusterID, validationID, expectedMetric)
 	Expect(counter).To(Equal(expectedCounter))
 }
 
@@ -586,6 +592,36 @@ var _ = Describe("Metrics tests", func() {
 
 			// check generated events
 			assertValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, false)
+		})
+
+		It("'belongs-to-majority-group' failed", func() {
+
+			// create a validation success
+			h1 := registerNode(ctx, clusterID, "h1")
+			h2 := registerNode(ctx, clusterID, "h2")
+			h3 := registerNode(ctx, clusterID, "h3")
+			h4 := registerNode(ctx, clusterID, "h4")
+			generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
+			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
+
+			// create a validation failure
+			generateFullMeshConnectivity(ctx, "1.2.3.10", h2, h3, h4)
+			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
+
+			// check generated events
+			assertValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, true)
+
+			// check generated metrics
+
+			// this specific case can create a short timeframe in which another host is failing on that validation and will
+			// be later fixed by the next refresh status cycle because generating a full mesh connectivity isn't an atomic
+			// action, therefore, in this test we will check that at least the expected failing host is failing but not fail
+			// the test if other hosts fails as well.
+			metricCounter := getValidationMetricCounter(clusterID, models.HostValidationIDBelongsToMajorityGroup, hostValidationChangedMetric)
+			Expect(metricCounter >= 1).To(BeTrue())
+			metricsDeregisterCluster(ctx, clusterID)
+			metricCounter = getValidationMetricCounter(clusterID, models.HostValidationIDBelongsToMajorityGroup, hostValidationFailedMetric)
+			Expect(metricCounter >= 1).To(BeTrue())
 		})
 
 		It("'belongs-to-majority-group' got fixed", func() {
