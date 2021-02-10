@@ -42,6 +42,7 @@ type rhcosEditor struct {
 	isoHandler       isoutil.Handler
 	openshiftVersion string
 	log              logrus.FieldLogger
+	workDir          string
 }
 
 func (e *rhcosEditor) getRootFSURL(serviceBaseURL string) string {
@@ -203,7 +204,7 @@ func addFileToArchive(w *cpio.Writer, path string, content string, mode cpio.Fil
 }
 
 func (e *rhcosEditor) create() (string, error) {
-	isoPath, err := tempFileName()
+	isoPath, err := tempFileName(e.workDir)
 	if err != nil {
 		return "", err
 	}
@@ -256,8 +257,8 @@ func editFile(fileName string, reString string, replacement string) error {
 	return nil
 }
 
-func tempFileName() (string, error) {
-	f, err := ioutil.TempFile("", "isoeditor")
+func tempFileName(baseDir string) (string, error) {
+	f, err := ioutil.TempFile(baseDir, "isoeditor")
 	if err != nil {
 		return "", err
 	}
