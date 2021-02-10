@@ -45,8 +45,9 @@ CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},quay.io)
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
+ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
 
-ifdef ENABLE_KUBE_API
+ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 endif
 
@@ -406,7 +407,7 @@ CONTROLLER_RBAC_PATH = $(CONTROLLER_CONFIG_PATH)/rbac
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: $(BUILD_FOLDER)
-ifdef ENABLE_KUBE_API
+ifeq ($(ENABLE_KUBE_API),true)
 	controller-gen $(CRD_OPTIONS) rbac:roleName=manager-role paths="./..." output:rbac:dir=$(CONTROLLER_RBAC_PATH) \
 		webhook paths="./..." output:crd:artifacts:config=$(CONTROLLER_CRD_PATH)/bases
 	kustomize build $(CONTROLLER_CRD_PATH) > $(BUILD_FOLDER)/resources.yaml
