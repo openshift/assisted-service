@@ -108,18 +108,6 @@ func (mr *MockAPIMockRecorder) ClusterHostsNTPFailures(clusterID, emailDomain, h
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHostsNTPFailures", reflect.TypeOf((*MockAPI)(nil).ClusterHostsNTPFailures), clusterID, emailDomain, hostNTPFailureCount)
 }
 
-// ImagePullStatus mocks base method
-func (m *MockAPI) ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ImagePullStatus", clusterID, hostID, imageName, resultStatus, downloadRate)
-}
-
-// ImagePullStatus indicates an expected call of ImagePullStatus
-func (mr *MockAPIMockRecorder) ImagePullStatus(clusterID, hostID, imageName, resultStatus, downloadRate interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePullStatus", reflect.TypeOf((*MockAPI)(nil).ImagePullStatus), clusterID, hostID, imageName, resultStatus, downloadRate)
-}
-
 // Duration mocks base method
 func (m *MockAPI) Duration(operation string, duration time.Duration) {
 	m.ctrl.T.Helper()
@@ -166,4 +154,16 @@ func (m *MockAPI) DiskSyncDuration(clusterID, hostID strfmt.UUID, diskPath strin
 func (mr *MockAPIMockRecorder) DiskSyncDuration(clusterID, hostID, diskPath, syncDuration interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskSyncDuration", reflect.TypeOf((*MockAPI)(nil).DiskSyncDuration), clusterID, hostID, diskPath, syncDuration)
+}
+
+// ImagePullStatus mocks base method
+func (m *MockAPI) ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ImagePullStatus", clusterID, hostID, imageName, resultStatus, downloadRate)
+}
+
+// ImagePullStatus indicates an expected call of ImagePullStatus
+func (mr *MockAPIMockRecorder) ImagePullStatus(clusterID, hostID, imageName, resultStatus, downloadRate interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePullStatus", reflect.TypeOf((*MockAPI)(nil).ImagePullStatus), clusterID, hostID, imageName, resultStatus, downloadRate)
 }
