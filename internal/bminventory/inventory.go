@@ -1660,7 +1660,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if err = b.validateDNSDomain(params, log); err != nil {
+	if err = b.validateDNSDomain(cluster, params, log); err != nil {
 		return nil, err
 	}
 
@@ -3620,7 +3620,6 @@ func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster co
 		// No supported base DNS domain specified
 		return nil
 	}
-
 	switch domain.Provider {
 	case "route53":
 		var dnsProvider dnsproviders.Provider = dnsproviders.Route53{
@@ -3637,18 +3636,32 @@ func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster co
 			dnsRecordSetFunc = dnsProvider.DeleteRecordSet
 		}
 
+		apiVip := cluster.APIVip
+		ingressVip := cluster.IngressVip
+		if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+			apiVip, _ = common.GetBootstrapMachineNetworkAndIp(&cluster)
+			ingressVip = apiVip
+			// Create/Delete A record for API-INT virtual IP
+			_, err := dnsRecordSetFunc(domain.APIINTDomainName, apiVip)
+			if err != nil {
+				log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
+					domain.APIINTDomainName, apiVip)
+				return err
+			}
+		}
+
 		// Create/Delete A record for API virtual IP
-		_, err := dnsRecordSetFunc(domain.APIDomainName, cluster.APIVip)
+		_, err := dnsRecordSetFunc(domain.APIDomainName, apiVip)
 		if err != nil {
 			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
-				domain.APIDomainName, cluster.APIVip)
+				domain.APIDomainName, apiVip)
 			return err
 		}
 		// Create/Delete A record for Ingress virtual IP
-		_, err = dnsRecordSetFunc(domain.IngressDomainName, cluster.IngressVip)
+		_, err = dnsRecordSetFunc(domain.IngressDomainName, ingressVip)
 		if err != nil {
 			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
-				domain.IngressDomainName, cluster.IngressVip)
+				domain.IngressDomainName, ingressVip)
 			return err
 		}
 		log.Infof("Successfully created DNS records for base domain: %s", cluster.BaseDNSDomain)
@@ -3661,6 +3674,7 @@ type dnsDomain struct {
 	ID                string
 	Provider          string
 	APIDomainName     string
+	APIINTDomainName  string
 	IngressDomainName string
 }
 
@@ -3681,7 +3695,6 @@ func (b *bareMetalInventory) getDNSDomain(clusterName, baseDNSDomainName string)
 		// No base domains defined in config
 		return nil, nil
 	}
-
 	if dnsDomainID == "" || dnsProvider == "" {
 		// Specified domain is not defined in config
 		return nil, nil
@@ -3692,11 +3705,12 @@ func (b *bareMetalInventory) getDNSDomain(clusterName, baseDNSDomainName string)
 		ID:                dnsDomainID,
 		Provider:          dnsProvider,
 		APIDomainName:     fmt.Sprintf("%s.%s.%s", "api", clusterName, baseDNSDomainName),
+		APIINTDomainName:  fmt.Sprintf("%s.%s.%s", "api-int", clusterName, baseDNSDomainName),
 		IngressDomainName: fmt.Sprintf("*.%s.%s.%s", "apps", clusterName, baseDNSDomainName),
 	}, nil
 }
 
-func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterParams, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
 	clusterName := swag.StringValue(params.ClusterUpdateParams.Name)
 	clusterBaseDomain := swag.StringValue(params.ClusterUpdateParams.BaseDNSDomain)
 	if clusterBaseDomain != "" {
@@ -3712,7 +3726,7 @@ func (b *bareMetalInventory) validateDNSDomain(params installer.UpdateClusterPar
 			log.WithError(err).Errorf("Invalid base DNS domain: %s", clusterBaseDomain)
 			return common.NewApiError(http.StatusConflict, errors.New("Base DNS domain isn't configured properly"))
 		}
-		if err = b.validateDNSRecords(dnsDomain); err != nil {
+		if err = b.validateDNSRecords(cluster, dnsDomain); err != nil {
 			log.WithError(err).Errorf("DNS records already exist for cluster: %s", params.ClusterID)
 			return common.NewApiError(http.StatusConflict,
 				errors.New("DNS records already exist for cluster - please change 'Cluster Name'"))
@@ -3725,8 +3739,11 @@ func (b *bareMetalInventory) validateBaseDNS(domain *dnsDomain) error {
 	return validations.ValidateBaseDNS(domain.Name, domain.ID, domain.Provider)
 }
 
-func (b *bareMetalInventory) validateDNSRecords(domain *dnsDomain) error {
+func (b *bareMetalInventory) validateDNSRecords(cluster common.Cluster, domain *dnsDomain) error {
 	vipAddresses := []string{domain.APIDomainName, domain.IngressDomainName}
+	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		vipAddresses = append(vipAddresses, domain.APIINTDomainName)
+	}
 	return validations.CheckDNSRecordsExistence(vipAddresses, domain.ID, domain.Provider)
 }
 

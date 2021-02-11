@@ -3461,6 +3461,7 @@ var _ = Describe("cluster", func() {
 			Expect(dnsDomain.ID).Should(Equal("abc"))
 			Expect(dnsDomain.Provider).Should(Equal("route53"))
 			Expect(dnsDomain.APIDomainName).Should(Equal("api.test-cluster.dns.example.com"))
+			Expect(dnsDomain.APIINTDomainName).Should(Equal("api-int.test-cluster.dns.example.com"))
 			Expect(dnsDomain.IngressDomainName).Should(Equal("*.apps.test-cluster.dns.example.com"))
 		})
 		It("get DNS domain invalid", func() {
