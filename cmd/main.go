@@ -655,8 +655,9 @@ func createRouteAndUpdateConfigMap(log logrus.FieldLogger, failOnError func(err 
 	log.Info("RWSU assisted service ConfigMap: " + assistedServiceConfigMap.Data["SERVICE_BASE_URL"])
 	log.Info("RWSU Options.SERVICE_BASE_URL" + Options.BMConfig.ServiceBaseURL)
 
-	Options.BMConfig.ServiceBaseURL = assistedServiceRoute.Status.Ingress[0].Host
-	assistedServiceConfigMap.Data["SERVICE_BASE_URL"] = assistedServiceRoute.Status.Ingress[0].Host
+	routeURL := "http://" + assistedServiceRoute.Status.Ingress[0].Host
+	Options.BMConfig.ServiceBaseURL = routeURL
+	assistedServiceConfigMap.Data["SERVICE_BASE_URL"] = routeURL
 	err = client.Update(ctx, assistedServiceConfigMap)
 	if err != nil {
 		log.WithError(err).Error("Updating assisted service ConfigMap failed")
