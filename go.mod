@@ -14,7 +14,7 @@ require (
 	github.com/coreos/ignition/v2 v2.6.0
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/diskfs/go-diskfs v1.1.2-0.20210126085940-5b529d606a0a
+	github.com/diskfs/go-diskfs v1.1.2-0.20210208175329-a9a84ddce08a
 	github.com/docker/go-units v0.4.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
