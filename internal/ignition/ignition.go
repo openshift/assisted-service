@@ -69,6 +69,24 @@ RemainAfterExit=no
 WantedBy=multi-user.target
 `
 
+const SystemConnectionsMerged = `
+[Unit]
+After=systemd-tmpfiles-setup.service
+[Mount]
+Where=/etc/NetworkManager/system-connections-merged
+What=overlay
+Type=overlay
+Options=lowerdir=/etc/NetworkManager/system-connections,upperdir=/run/nm-system-connections,workdir=/run/nm-system-connections-work
+[Install]
+WantedBy=multi-user.target
+`
+
+const kniTempFile = `
+D /run/nm-system-connections 0755 root root - -
+D /run/nm-system-connections-work 0755 root root - -
+d /etc/NetworkManager/system-connections-merged 0755 root root -
+`
+
 var fileNames = [...]string{
 	"bootstrap.ign",
 	masterIgn,
@@ -692,8 +710,16 @@ func (g *installerGenerator) addStaticIPsConfigToIgnition(ignition string) error
 	if err != nil {
 		return err
 	}
-	setFileInIgnition(config, "/usr/local/bin/copy-static-ip-configuration.sh", fmt.Sprintf("data:,%s", url.PathEscape(CopyStaticIpsConfigurationsScript)), false, 493)
-	setUnitInIgnition(config, CopyStaticIpsConfigServiceContents, "copy-static-ips-configuration.service", true)
+	is47Version, err := common.VersionGreaterOrEqual(g.cluster.OpenshiftVersion, "4.7")
+	if err != nil {
+		return err
+	}
+	if (swag.BoolValue(g.cluster.UserManagedNetworking) && is47Version) || !is47Version {
+		// add overlay configuration for NM in case of 4.7 and None platform.
+		// TODO - remove once this configuration is integrated in MCO for None platform (Bugzilla 1928473)
+		setFileInIgnition(config, "/etc/tmpfiles.d/kni.conf", fmt.Sprintf("data:,%s", url.PathEscape(kniTempFile)), false, 420)
+		setUnitInIgnition(config, SystemConnectionsMerged, "etc-NetworkManager-system\\x2dconnections\\x2dmerged.mount", true)
+	}
 	err = writeIgnitionFile(path, config)
 	if err != nil {
 		return err

@@ -26,14 +26,16 @@ method=$METHOD4
 addr-gen-mode=eui64
 addresses=$FOUND_IP4/$FOUND_MASK4
 dns=$FOUND_DNS4
-gateway=$FOUND_GW4
+$FOUND_GW4_GATEWAY
+$FOUND_ROUTE_METRIC
 
 [ipv6]
 method=$METHOD6
 addr-gen-mode=eui64
 addresses=$FOUND_IP6/$FOUND_MASK6
 dns=$FOUND_DNS6
-gateway=$FOUND_GW6
+$FOUND_GW6_GATEWAY
+$FOUND_ROUTE_METRIC
 
 [802-3-ethernet]
 mac-address=$FOUND_MAC
@@ -59,7 +61,12 @@ function find_my_mac() {
                     export FOUND_IP4=${IPV4}
                     export FOUND_MASK4=$(echo ${entry} | cut -f3 -d\;)
                     export FOUND_DNS4=$(echo ${entry} | cut -f4 -d\;)
-                    export FOUND_GW4=$(echo ${entry} | cut -f5 -d\;)
+		    GW4=$(echo ${entry} | cut -f5 -d\;)
+		    if [[ ! -z ${GW4} ]]; then
+		        FOUND_GW4_GATEWAY="gateway=${GW4}"
+		    else
+		        unset FOUND_GW4_GATEWAY
+                    fi
                 else
                     export METHOD4="auto"
                 fi
@@ -70,7 +77,12 @@ function find_my_mac() {
                     export FOUND_IP6=${IPV6}
                     export FOUND_MASK6=$(echo ${entry} | cut -f7 -d\;)
                     export FOUND_DNS6=$(echo ${entry} | cut -f8 -d\;)
-                    export FOUND_GW6=$(echo ${entry} | cut -f9 -d\;)
+		    GW6=$(echo ${entry} | cut -f9 -d\;)
+		    if [[ ! -z ${GW6} ]]; then
+		        FOUND_GW6_GATEWAY="gateway=${GW6}"
+	            else
+		        unset FOUND_GW6_GATEWAY
+                    fi
                 else
                     export METHOD6="auto"
                 fi
@@ -87,6 +99,8 @@ function find_my_mac() {
 
 function correlate_int_mac() {
     # Correlate the Mac with the interface
+    METRIC_KEY="route-metric="
+    METRIC_VAL=100
     for INTERFACE in $(ls -1 /sys/class/net | grep -v lo)
     do
         INT_MAC=$(cat /sys/class/net/${INTERFACE}/address)
@@ -94,6 +108,8 @@ function correlate_int_mac() {
             echo "MAC to check: ${INT_MAC}"
             find_my_mac ${INT_MAC}
             if [[ "${FOUND_MAC,,}" == "${INT_MAC,,}" ]]; then
+                export FOUND_ROUTE_METRIC=$METRIC_KEY$METRIC_VAL
+                let METRIC_VAL+=1
                 echo "MAC Found in the list, this is the Net data: "
                 echo "MAC: ${FOUND_MAC}"
                 echo "IPv4 Address: ${FOUND_IP4}"
@@ -104,6 +120,7 @@ function correlate_int_mac() {
                 echo "IPv6 MASK: ${FOUND_MASK6}"
                 echo "IPv6 GW: ${FOUND_GW6}"
                 echo "IPv6 DNS: ${FOUND_DNS6}"
+                echo "FOUND_ROUTE_METRIC: ${FOUND_ROUTE_METRIC}"
 
                 echo "Configuring interface ${FOUND_INTERFACE}, MAC address ${FOUND_MAC} with IPv4: ${FOUND_IP4}, IPv6: ${FOUND_IP6}"
                 write_connection_file
