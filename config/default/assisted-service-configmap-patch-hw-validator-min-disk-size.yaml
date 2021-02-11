@@ -1,0 +1,7 @@
+apiVersion: v1
+data:
+  HW_VALIDATOR_MIN_DISK_SIZE_GIB: '20'
+kind: ConfigMap
+metadata:
+  name: assisted-service-config
+  namespace: assisted-installer
