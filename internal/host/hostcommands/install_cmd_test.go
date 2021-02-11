@@ -159,7 +159,10 @@ var _ = Describe("installcmd", func() {
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Performing quick format of disk /dev/sda", gomock.Any())
+
+		message := fmt.Sprintf("Performing quick format of disk /dev/sda on host %s", hostutil.GetHostnameForMsg(&host))
+
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, message, gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
@@ -189,8 +192,9 @@ var _ = Describe("installcmd", func() {
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Performing quick format of disk /dev/sda", gomock.Any())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Performing quick format of disk /dev/sdc", gomock.Any())
+
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sda on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sdc on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
@@ -216,8 +220,9 @@ var _ = Describe("installcmd", func() {
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Performing quick format of disk /dev/sda", gomock.Any())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, "Performing quick format of disk /dev/sdc", gomock.Any())
+
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sda on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sdc on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
