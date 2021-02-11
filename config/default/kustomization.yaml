@@ -14,9 +14,10 @@ namespace: assisted-installer
 #  someName: someValue
 
 bases:
-- ../crd
+# Commented out crd because we are building a operator-less bundle
+#- ../crd
 - ../rbac
-# Removing manager because we are building a operator-less bundle
+# Commented out manager because we are building a operator-less bundle
 #- ../manager
 - ../assisted-service
 - ../../internal/controller/config/crd

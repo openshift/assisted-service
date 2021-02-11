@@ -7,6 +7,7 @@ metadata:
     description: Assisted Service is used to orchestrate baremetal OpenShift installations.
     operators.operatorframework.io/builder: operator-sdk-v1.3.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
+    "operatorframework.io/suggested-namespace": assisted-installer
   name: assisted-service-operator.v0.0.1
 spec:
   apiservicedefinitions: {}
@@ -20,11 +21,6 @@ spec:
       version: v1alpha1
     - kind: Image
       name: images.adi.io.my.domain
-      version: v1alpha1
-    - description: AssistedService is the Schema for the assistedservices API
-      displayName: Assisted Service
-      kind: AssistedService
-      name: assistedservices.assistedservice.openshift.io.openshift.io
       version: v1alpha1
   description: |-
     Assisted Service is used to orchestrate baremetal OpenShift installations.

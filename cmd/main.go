@@ -274,7 +274,7 @@ func main() {
 	}
 
 	if Options.CreateServiceRoute {
-		createRouteAndUpdateConfigMap(log, failOnError)
+		createRouteAndUpdateServiceBaseURL(log, failOnError)
 	}
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
@@ -463,14 +463,6 @@ func main() {
 		}
 	}()
 
-	go func() {
-		log.Infof("RWSU EnableKubeApi: %v", Options.EnableKubeAPI)
-		log.Info("RWSU before routes")
-		if Options.DeployTarget == deployment_type_ocp || Options.DeployTarget == deployment_type_k8s {
-			createRouteAndUpdateConfigMap(log, failOnError)
-		}
-	}()
-
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
 }
 
@@ -620,7 +612,7 @@ func newAssistedServiceRoute(namespace string) *routev1.Route {
 	}
 }
 
-func createRouteAndUpdateConfigMap(log logrus.FieldLogger, failOnError func(err error, msg string, args ...interface{})) {
+func createRouteAndUpdateServiceBaseURL(log logrus.FieldLogger, failOnError func(err error, msg string, args ...interface{})) {
 	log.Info("Creating route for service")
 
 	failOnError(routev1.AddToScheme(scheme.Scheme),
@@ -645,15 +637,12 @@ func createRouteAndUpdateConfigMap(log logrus.FieldLogger, failOnError func(err 
 	if err != nil {
 		log.WithError(err).Error("Get route after create failed")
 	}
-	log.Info("Route url: " + assistedServiceRoute.Status.Ingress[0].Host)
 
 	assistedServiceConfigMap := &corev1.ConfigMap{}
 	err = client.Get(ctx, types.NamespacedName{Name: "assisted-service-config", Namespace: "assisted-installer"}, assistedServiceConfigMap)
 	if err != nil {
 		log.WithError(err).Error("Get assisted service ConfigMap failed")
 	}
-	log.Info("RWSU assisted service ConfigMap: " + assistedServiceConfigMap.Data["SERVICE_BASE_URL"])
-	log.Info("RWSU Options.SERVICE_BASE_URL" + Options.BMConfig.ServiceBaseURL)
 
 	routeURL := "http://" + assistedServiceRoute.Status.Ingress[0].Host
 	Options.BMConfig.ServiceBaseURL = routeURL
@@ -662,7 +651,6 @@ func createRouteAndUpdateConfigMap(log logrus.FieldLogger, failOnError func(err 
 	if err != nil {
 		log.WithError(err).Error("Updating assisted service ConfigMap failed")
 	} else {
-		log.Info("SERVICE_BASE_URL in ConfigMap ", assistedServiceConfigMap.Name, " updated")
+		log.Info("SERVICE_BASE_URL updated to ", routeURL)
 	}
-	log.Info("RWSU Options.SERVICE_BASE_URL after" + Options.BMConfig.ServiceBaseURL)
 }
