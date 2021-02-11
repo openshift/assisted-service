@@ -2,6 +2,8 @@
 
 import json
 import sys
+import os
+import tempfile
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import List
@@ -69,7 +71,22 @@ def verify_image_version(ocp_version: str, release_image: str):
 
 
 def get_oc_version(release_image: str) -> str:
-    return check_output(f"oc adm release info '{release_image}' -o template --template {{{{.metadata.version}}}}")
+    pull_secret = os.getenv("PULL_SECRET")
+    pull_secret_file = None
+    if pull_secret is None:
+        registry_config = ""
+    else:
+        with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+            f.write(pull_secret)
+            pull_secret_file = f.name
+            registry_config = f"--registry-config '{pull_secret_file}'"
+
+    try:
+        return check_output(
+            f"oc adm release info '{release_image}' {registry_config} -o template --template {{{{.metadata.version}}}}")
+    finally:
+        if pull_secret_file and os.path.exists(pull_secret_file):
+            os.unlink(pull_secret_file)
 
 
 def get_largest_version(versions: List[str]) -> str:
