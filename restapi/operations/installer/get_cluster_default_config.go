@@ -31,7 +31,7 @@ func NewGetClusterDefaultConfig(ctx *middleware.Context, handler GetClusterDefau
 
 /*GetClusterDefaultConfig swagger:route GET /clusters/default-config installer getClusterDefaultConfig
 
-Get the cluster's default config YAML.
+Get the default values for various cluster properties.
 
 */
 type GetClusterDefaultConfig struct {

@@ -620,7 +620,7 @@ paths:
         - installer
       security:
         - userAuth: [ admin, read-only-admin, user ]
-      description: Get the cluster's default config YAML.
+      description: Get the default values for various cluster properties.
       operationId: GetClusterDefaultConfig
       responses:
         "200":
@@ -635,10 +635,6 @@ paths:
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
-        "404":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
         "500":
           description: Error.
           schema:
@@ -3931,12 +3927,17 @@ definitions:
     properties:
       cluster_network_cidr:
         type: string
+        pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$'
       cluster_network_host_prefix:
         type: integer
+        minimum: 1
+        maximum: 32
       service_network_cidr:
         type: string
+        pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$'
       ntp_source:
         type: string
+        x-omitempty: false
 
   infra_error:
     type: object

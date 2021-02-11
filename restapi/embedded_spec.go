@@ -453,7 +453,7 @@ func init() {
             ]
           }
         ],
-        "description": "Get the cluster's default config YAML.",
+        "description": "Get the default values for various cluster properties.",
         "tags": [
           "installer"
         ],
@@ -475,12 +475,6 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -4932,16 +4926,21 @@ func init() {
       "type": "object",
       "properties": {
         "cluster_network_cidr": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         },
         "cluster_network_host_prefix": {
-          "type": "integer"
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
         },
         "ntp_source": {
-          "type": "string"
+          "type": "string",
+          "x-omitempty": false
         },
         "service_network_cidr": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         }
       }
     },
@@ -7062,7 +7061,7 @@ func init() {
             ]
           }
         ],
-        "description": "Get the cluster's default config YAML.",
+        "description": "Get the default values for various cluster properties.",
         "tags": [
           "installer"
         ],
@@ -7084,12 +7083,6 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -11629,16 +11622,21 @@ func init() {
       "type": "object",
       "properties": {
         "cluster_network_cidr": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         },
         "cluster_network_host_prefix": {
-          "type": "integer"
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
         },
         "ntp_source": {
-          "type": "string"
+          "type": "string",
+          "x-omitempty": false
         },
         "service_network_cidr": {
-          "type": "string"
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
         }
       }
     },

@@ -41,12 +41,6 @@ func (o *GetClusterDefaultConfigReader) ReadResponse(response runtime.ClientResp
 			return nil, err
 		}
 		return nil, result
-	case 404:
-		result := NewGetClusterDefaultConfigNotFound()
-		if err := result.readResponse(response, consumer, o.formats); err != nil {
-			return nil, err
-		}
-		return nil, result
 	case 500:
 		result := NewGetClusterDefaultConfigInternalServerError()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -149,39 +143,6 @@ func (o *GetClusterDefaultConfigForbidden) GetPayload() *models.InfraError {
 func (o *GetClusterDefaultConfigForbidden) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
 	o.Payload = new(models.InfraError)
-
-	// response payload
-	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
-		return err
-	}
-
-	return nil
-}
-
-// NewGetClusterDefaultConfigNotFound creates a GetClusterDefaultConfigNotFound with default headers values
-func NewGetClusterDefaultConfigNotFound() *GetClusterDefaultConfigNotFound {
-	return &GetClusterDefaultConfigNotFound{}
-}
-
-/*GetClusterDefaultConfigNotFound handles this case with default header values.
-
-Error.
-*/
-type GetClusterDefaultConfigNotFound struct {
-	Payload *models.Error
-}
-
-func (o *GetClusterDefaultConfigNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/default-config][%d] getClusterDefaultConfigNotFound  %+v", 404, o.Payload)
-}
-
-func (o *GetClusterDefaultConfigNotFound) GetPayload() *models.Error {
-	return o.Payload
-}
-
-func (o *GetClusterDefaultConfigNotFound) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
-
-	o.Payload = new(models.Error)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

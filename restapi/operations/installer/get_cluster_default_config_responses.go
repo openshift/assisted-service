@@ -145,50 +145,6 @@ func (o *GetClusterDefaultConfigForbidden) WriteResponse(rw http.ResponseWriter,
 	}
 }
 
-// GetClusterDefaultConfigNotFoundCode is the HTTP code returned for type GetClusterDefaultConfigNotFound
-const GetClusterDefaultConfigNotFoundCode int = 404
-
-/*GetClusterDefaultConfigNotFound Error.
-
-swagger:response getClusterDefaultConfigNotFound
-*/
-type GetClusterDefaultConfigNotFound struct {
-
-	/*
-	  In: Body
-	*/
-	Payload *models.Error `json:"body,omitempty"`
-}
-
-// NewGetClusterDefaultConfigNotFound creates GetClusterDefaultConfigNotFound with default headers values
-func NewGetClusterDefaultConfigNotFound() *GetClusterDefaultConfigNotFound {
-
-	return &GetClusterDefaultConfigNotFound{}
-}
-
-// WithPayload adds the payload to the get cluster default config not found response
-func (o *GetClusterDefaultConfigNotFound) WithPayload(payload *models.Error) *GetClusterDefaultConfigNotFound {
-	o.Payload = payload
-	return o
-}
-
-// SetPayload sets the payload to the get cluster default config not found response
-func (o *GetClusterDefaultConfigNotFound) SetPayload(payload *models.Error) {
-	o.Payload = payload
-}
-
-// WriteResponse to the client
-func (o *GetClusterDefaultConfigNotFound) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
-
-	rw.WriteHeader(404)
-	if o.Payload != nil {
-		payload := o.Payload
-		if err := producer.Produce(rw, payload); err != nil {
-			panic(err) // let the recovery middleware deal with this
-		}
-	}
-}
-
 // GetClusterDefaultConfigInternalServerErrorCode is the HTTP code returned for type GetClusterDefaultConfigInternalServerError
 const GetClusterDefaultConfigInternalServerErrorCode int = 500
 

@@ -61,7 +61,7 @@ type API interface {
 	   GetCluster Retrieves the details of the OpenShift cluster.*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
-	   GetClusterDefaultConfig Get the cluster's default config YAML.*/
+	   GetClusterDefaultConfig Get the default values for various cluster properties.*/
 	GetClusterDefaultConfig(ctx context.Context, params *GetClusterDefaultConfigParams) (*GetClusterDefaultConfigOK, error)
 	/*
 	   GetClusterInstallConfig Get the cluster's install config YAML.*/
@@ -524,7 +524,7 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 }
 
 /*
-GetClusterDefaultConfig Get the cluster's default config YAML.
+GetClusterDefaultConfig Get the default values for various cluster properties.
 */
 func (a *Client) GetClusterDefaultConfig(ctx context.Context, params *GetClusterDefaultConfigParams) (*GetClusterDefaultConfigOK, error) {
 

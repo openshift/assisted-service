@@ -5,7 +5,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/kelseyhightower/envconfig"
 	"k8s.io/apimachinery/pkg/types"
 
 	// #nosec
@@ -78,30 +77,27 @@ const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 // 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
 const ContainerAlreadyRunningExitCode = 125
 
-var (
-	DefaultClusterNetworkCidr       = "10.128.0.0/14"
-	DefaultClusterNetworkHostPrefix = int64(23)
-	DefaultServiceNetworkCidr       = "172.30.0.0/16"
-)
-
 type Config struct {
-	AgentDockerImg           string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	S3EndpointURL            string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
-	S3Bucket                 string            `envconfig:"S3_BUCKET" default:"test"`
-	ImageExpirationTime      time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
-	AwsAccessKeyID           string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
-	AwsSecretAccessKey       string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
-	BaseDNSDomains           map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
-	SkipCertVerification     bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	InstallRHCa              bool              `envconfig:"INSTALL_RH_CA" default:"false"`
-	RhQaRegCred              string            `envconfig:"REGISTRY_CREDS" default:""`
-	AgentTimeoutStart        time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
-	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
-	DeletedUnregisteredAfter time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
-	DefaultNTPSource         string            `envconfig:"NTP_DEFAULT_SERVER"`
-	ISOCacheDir              string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
+	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	ServiceBaseURL                  string            `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath               string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	S3EndpointURL                   string            `envconfig:"S3_ENDPOINT_URL" default:"http://10.35.59.36:30925"`
+	S3Bucket                        string            `envconfig:"S3_BUCKET" default:"test"`
+	ImageExpirationTime             time.Duration     `envconfig:"IMAGE_EXPIRATION_TIME" default:"4h"`
+	AwsAccessKeyID                  string            `envconfig:"AWS_ACCESS_KEY_ID" default:"accessKey1"`
+	AwsSecretAccessKey              string            `envconfig:"AWS_SECRET_ACCESS_KEY" default:"verySecretKey1"`
+	BaseDNSDomains                  map[string]string `envconfig:"BASE_DNS_DOMAINS" default:""`
+	SkipCertVerification            bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	InstallRHCa                     bool              `envconfig:"INSTALL_RH_CA" default:"false"`
+	RhQaRegCred                     string            `envconfig:"REGISTRY_CREDS" default:""`
+	AgentTimeoutStart               time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
+	ServiceIPs                      string            `envconfig:"SERVICE_IPS" default:""`
+	DeletedUnregisteredAfter        time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
+	DefaultNTPSource                string            `envconfig:"NTP_DEFAULT_SERVER"`
+	ISOCacheDir                     string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
+	DefaultClusterNetworkCidr       string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
+	DefaultClusterNetworkHostPrefix int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
+	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
 }
 
 const agentMessageOfTheDay = `
@@ -563,13 +559,13 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	if params.NewClusterParams.ClusterNetworkCidr == nil {
-		params.NewClusterParams.ClusterNetworkCidr = &DefaultClusterNetworkCidr
+		params.NewClusterParams.ClusterNetworkCidr = &b.Config.DefaultClusterNetworkCidr
 	}
 	if params.NewClusterParams.ClusterNetworkHostPrefix == 0 {
-		params.NewClusterParams.ClusterNetworkHostPrefix = DefaultClusterNetworkHostPrefix
+		params.NewClusterParams.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
 	}
 	if params.NewClusterParams.ServiceNetworkCidr == nil {
-		params.NewClusterParams.ServiceNetworkCidr = &DefaultServiceNetworkCidr
+		params.NewClusterParams.ServiceNetworkCidr = &b.Config.DefaultServiceNetworkCidr
 	}
 	if params.NewClusterParams.VipDhcpAllocation == nil {
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
@@ -1484,17 +1480,12 @@ func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params
 }
 
 func (b *bareMetalInventory) GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder {
-	var c Config
 	body := models.ClusterDefaultConfig{}
 
-	if err := envconfig.Process("default-conf", &c); err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	body.NtpSource = c.DefaultNTPSource
-	body.ClusterNetworkCidr = DefaultClusterNetworkCidr
-	body.ServiceNetworkCidr = DefaultServiceNetworkCidr
-	body.ClusterNetworkHostPrefix = DefaultClusterNetworkHostPrefix
+	body.NtpSource = b.Config.DefaultNTPSource
+	body.ClusterNetworkCidr = b.Config.DefaultClusterNetworkCidr
+	body.ServiceNetworkCidr = b.Config.DefaultServiceNetworkCidr
+	body.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
 
 	return installer.NewGetClusterDefaultConfigOK().WithPayload(&body)
 }

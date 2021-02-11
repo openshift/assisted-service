@@ -105,7 +105,7 @@ type InstallerAPI interface {
 	/* GetCluster Retrieves the details of the OpenShift cluster. */
 	GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder
 
-	/* GetClusterDefaultConfig Get the cluster's default config YAML. */
+	/* GetClusterDefaultConfig Get the default values for various cluster properties. */
 	GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder
 
 	/* GetClusterInstallConfig Get the cluster's install config YAML. */

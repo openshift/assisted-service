@@ -4446,6 +4446,10 @@ var _ = Describe("GetClusterInstallConfig", func() {
 
 	It("returns the correct default config", func() {
 		params := installer.GetClusterDefaultConfigParams{}
+
+		err := envconfig.Process("default-conf", &bm.Config)
+		Expect(err).NotTo(HaveOccurred())
+
 		response := bm.GetClusterDefaultConfig(ctx, params)
 		actual, ok := response.(*installer.GetClusterDefaultConfigOK)
 		Expect(ok).To(BeTrue())
