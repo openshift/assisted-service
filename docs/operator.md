@@ -99,3 +99,19 @@ EOF
 ```
 
 It may take a few minutes for the operator to appear in Operatorhub.
+
+## Useful Kustomize options
+
+In [`config/default/kustomization.yaml`](https://github.com/openshift/assisted-service/blob/master/config/default/kustomization.yaml):
+
+```
+# Uncomment to set a mininum disk size allowed by the hardware validator.
+# By default the minimum disk size allowed is 120GB. The patch sets the
+# minimum disk size to 20GB.
+#- assisted-service-configmap-patch-hw-validator-min-disk-size.yaml
+```
+
+```
+# Uncomment to use a custom assisted-service image in the deployment
+#- assisted-service-patch-image.yaml
+```
