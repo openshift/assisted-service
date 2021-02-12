@@ -3,7 +3,7 @@ package cluster
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -25,10 +25,10 @@ type refreshPreprocessor struct {
 	conditions  []condition
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, ocsValidator ocs.OcsValidator) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsApi operators.API) *refreshPreprocessor {
 	return &refreshPreprocessor{
 		log:         log,
-		validations: newValidations(log, hostAPI, ocsValidator),
+		validations: newValidations(log, hostAPI, operatorsApi),
 		conditions:  newConditions(),
 	}
 }
@@ -64,11 +64,11 @@ func (r *refreshPreprocessor) preprocess(c *clusterPreprocessContext) (map[strin
 	return stateMachineInput, validationsOutput, nil
 }
 
-func newValidations(log logrus.FieldLogger, api host.API, ocsValidator ocs.OcsValidator) []validation {
+func newValidations(log logrus.FieldLogger, api host.API, operatorsManager operators.API) []validation {
 	v := clusterValidator{
-		log:          log,
-		hostAPI:      api,
-		ocsValidator: ocsValidator,
+		log:              log,
+		hostAPI:          api,
+		operatorsManager: operatorsManager,
 	}
 	ret := []validation{
 		{
