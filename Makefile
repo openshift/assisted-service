@@ -226,7 +226,9 @@ deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
 
 create-ocp-manifests:
-	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && $(MAKE) deploy-service-on-ocp-cluster deploy-ui-on-ocp-cluster
+	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
+	export ENABLE_KUBE_API=true && \
+	$(MAKE) deploy-service-on-ocp-cluster deploy-ui-on-ocp-cluster
 
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 
@@ -376,7 +378,9 @@ kustomize:
 .PHONY: bundle
 bundle: kustomize create-ocp-manifests
 	set -eux
-	cp ./build/assisted-installer/ocp_role.yaml config/rbac/role.yaml
+	cp ./build/assisted-installer/ocp_role.yaml config/rbac
+	cp ./build/assisted-installer/kube_api_roles.yaml config/rbac
+	cp ./build/assisted-installer/controller_roles.yaml config/rbac
 	cp ./build/assisted-installer/scality-secret.yaml config/assisted-service
 	cp ./build/assisted-installer/scality-public-secret.yaml config/assisted-service
 	cp ./build/assisted-installer/postgres-deployment.yaml config/assisted-service
@@ -394,4 +398,4 @@ bundle: kustomize create-ocp-manifests
 # Build the bundle image.
 .PHONY: bundle-build
 bundle-build:
-	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	podman build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
