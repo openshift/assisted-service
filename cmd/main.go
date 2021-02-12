@@ -180,6 +180,10 @@ func main() {
 	ctrlMgr, err := createControllerManager()
 	failOnError(err, "failed to create controller manager")
 
+	if Options.CreateServiceRoute {
+		createRouteAndUpdateServiceBaseURL(log, failOnError)
+	}
+
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 
@@ -271,10 +275,6 @@ func main() {
 		}
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
-	}
-
-	if Options.CreateServiceRoute {
-		createRouteAndUpdateServiceBaseURL(log, failOnError)
 	}
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
@@ -646,6 +646,8 @@ func createRouteAndUpdateServiceBaseURL(log logrus.FieldLogger, failOnError func
 
 	routeURL := "http://" + assistedServiceRoute.Status.Ingress[0].Host
 	Options.BMConfig.ServiceBaseURL = routeURL
+	Options.JobConfig.ServiceBaseURL = routeURL
+	Options.InstructionConfig.ServiceBaseURL = routeURL
 	assistedServiceConfigMap.Data["SERVICE_BASE_URL"] = routeURL
 	err = client.Update(ctx, assistedServiceConfigMap)
 	if err != nil {
