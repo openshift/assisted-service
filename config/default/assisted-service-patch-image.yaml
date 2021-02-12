@@ -10,7 +10,6 @@ spec:
         app: assisted-service
     spec:
       containers:
-      - env:
-        # Replace with your own image
+      - name: assisted-service
         image: quay.io/rwsu/assisted-service:latest
-        name: assisted-service
+        
