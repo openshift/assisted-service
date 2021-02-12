@@ -121,7 +121,7 @@ spec:
         envFrom:
         - configMapRef:
             name: assisted-service-config
-        image: quay.io/rwsu/assisted-service:latest
+        image: quay.io/ocpmetal/assisted-service:latest
         imagePullPolicy: Always
         livenessProbe:
           httpGet:
