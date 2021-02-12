@@ -18,6 +18,8 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 )
@@ -40,8 +42,9 @@ var _ = Describe("monitor_disconnection", func() {
 		dummy := &leader.DummyElector{}
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			nil, defaultConfig, dummy)
+			nil, defaultConfig, dummy, mockOperators)
 		clusterID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
 		cluster := hostutil.GenerateTestCluster(clusterID, "1.1.0.0/16")
@@ -50,6 +53,11 @@ var _ = Describe("monitor_disconnection", func() {
 		err := state.RegisterHost(ctx, &host, db)
 		Expect(err).ShouldNot(HaveOccurred())
 		db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
+
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 
 	AfterEach(func() {
@@ -133,8 +141,14 @@ var _ = Describe("TestHostMonitoring", func() {
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			nil, &cfg, &leader.DummyElector{})
+			nil, &cfg, &leader.DummyElector{}, mockOperators)
+
+		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 
 	AfterEach(func() {

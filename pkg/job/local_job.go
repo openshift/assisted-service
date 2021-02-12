@@ -15,17 +15,17 @@ import (
 
 type localJob struct {
 	Config
-	log              logrus.FieldLogger
-	s3Client         s3wrapper.API
-	operatorsManager *operators.Manager
+	log          logrus.FieldLogger
+	s3Client     s3wrapper.API
+	operatorsApi operators.API
 }
 
-func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, operatorsManager *operators.Manager) *localJob {
+func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, operatorsApi operators.API) *localJob {
 	return &localJob{
-		Config:           cfg,
-		log:              log,
-		s3Client:         s3Client,
-		operatorsManager: operatorsManager,
+		Config:       cfg,
+		log:          log,
+		s3Client:     s3Client,
+		operatorsApi: operatorsApi,
 	}
 }
 
@@ -44,7 +44,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 	if j.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(workDir, &cluster, j.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, j.s3Client, log, j.operatorsManager)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, j.s3Client, log, j.operatorsApi)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {

@@ -117,13 +117,12 @@ type installerGenerator struct {
 	encodedDhcpFileContents  string
 	s3Client                 s3wrapper.API
 	enableMetal3Provisioning bool
-	operatorsManager         *operators.Manager
+	operatorsApi             operators.API
 }
 
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
-	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger,
-	operatorsManager *operators.Manager) Generator {
+	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API) Generator {
 	return &installerGenerator{
 		cluster:                  cluster,
 		log:                      log,
@@ -134,7 +133,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		serviceCACert:            serviceCACert,
 		s3Client:                 s3Client,
 		enableMetal3Provisioning: true,
-		operatorsManager:         operatorsManager,
+		operatorsApi:             operatorsApi,
 	}
 }
 
@@ -168,7 +167,7 @@ func (g *installerGenerator) writeManifests(manifests map[string]string) error {
 }
 
 func (g *installerGenerator) writeOperatorManifests(installerPath string, envVars []string) error {
-	if !g.operatorsManager.AnyOperatorEnabled(g.cluster) {
+	if !g.operatorsApi.AnyOperatorEnabled(g.cluster) {
 		return nil
 	}
 	err := g.createManifestDirectory(installerPath, envVars)
@@ -176,7 +175,7 @@ func (g *installerGenerator) writeOperatorManifests(installerPath string, envVar
 		g.log.Error("Failed to create Manifest directory ", err)
 		return err
 	}
-	operatorManifests, err := g.operatorsManager.GenerateManifests(g.cluster)
+	operatorManifests, err := g.operatorsApi.GenerateManifests(g.cluster)
 	if err != nil {
 		return err
 	}

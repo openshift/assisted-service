@@ -4575,7 +4575,7 @@ func init() {
         "validations_info": {
           "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "vip_dhcp_allocation": {
           "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
@@ -5715,7 +5715,7 @@ func init() {
         "validations_info": {
           "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:text\""
         }
       }
     },
@@ -5867,7 +5867,9 @@ func init() {
         "belongs-to-majority-group",
         "valid-platform",
         "ntp-synced",
-        "container-images-available"
+        "container-images-available",
+        "lso-requirements-satisfied",
+        "ocs-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -11232,7 +11234,7 @@ func init() {
         "validations_info": {
           "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "vip_dhcp_allocation": {
           "description": "Indicate if virtual IP DHCP allocation mode is enabled.",
@@ -12296,7 +12298,7 @@ func init() {
         "validations_info": {
           "description": "JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:text\""
         }
       }
     },
@@ -12448,7 +12450,9 @@ func init() {
         "belongs-to-majority-group",
         "valid-platform",
         "ntp-synced",
-        "container-images-available"
+        "container-images-available",
+        "lso-requirements-satisfied",
+        "ocs-requirements-satisfied"
       ]
     },
     "host_network": {

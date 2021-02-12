@@ -1,36 +1,35 @@
 package operators
 
 import (
+	"container/list"
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 
 // Manager is responsible for performing operations against additional operators
 type Manager struct {
-	log                logrus.FieldLogger
-	ocsValidatorConfig *ocs.Config
-	ocsValidator       ocs.OCSValidator
-	operators          map[models.OperatorType]api.Operator
+	log       logrus.FieldLogger
+	operators map[models.OperatorType]api.Operator
 }
 
 //go:generate  mockgen -package=operators -destination=mock_operators_api.go . API
 type API interface {
-	// ValidateOCSRequirements validates OCS requirements
-	ValidateOCSRequirements(cluster *common.Cluster) string
+	// ValidateCluster validates cluster requirements
+	ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error)
+	// ValidateHost validates host requirements
+	ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error)
 	// GenerateManifests generates manifests for all enabled operators.
 	// Returns map assigning manifest content to its desired file name
 	GenerateManifests(cluster *common.Cluster) (map[string]string, error)
 	// AnyOperatorEnabled checks whether any operator has been enabled for the given cluster
 	AnyOperatorEnabled(cluster *common.Cluster) bool
-	// GetOperatorStatus gets status of an operator of given type.
-	GetOperatorStatus(cluster *common.Cluster, operatorType models.OperatorType) string
 	// UpdateDependencies amends the list of requested additional operators with any missing dependencies
 	UpdateDependencies(cluster *common.Cluster) error
 }
@@ -68,18 +67,6 @@ func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]strin
 		}
 	}
 
-	// Generate manifests for OCS
-	// TODO: migrate OCS to generic API and remove this code
-	if mgr.checkOCSEnabled(cluster) {
-		manifests, err := mgr.generateOCSManifests(cluster)
-		if err != nil {
-			mgr.log.Error("Cannot generate OCS manifests due to ", err)
-			return nil, err
-		}
-		for k, v := range manifests {
-			operatorManifests[k] = v
-		}
-	}
 	return operatorManifests, nil
 }
 
@@ -90,29 +77,107 @@ func (mgr *Manager) AnyOperatorEnabled(cluster *common.Cluster) bool {
 			return true
 		}
 	}
-	return mgr.checkOCSEnabled(cluster)
+	return false
 }
 
-// ValidateOCSRequirements validates OCS requirements. Returns "true" if OCS operator is not deployed
-func (mgr *Manager) ValidateOCSRequirements(cluster *common.Cluster) string {
-	if isEnabled(cluster, models.OperatorTypeOcs) {
-		return mgr.ocsValidator.ValidateOCSRequirements(&cluster.Cluster)
-	}
-	return "success"
-}
-
-// GetOperatorStatus gets status of an operator of given type.
-func (mgr *Manager) GetOperatorStatus(cluster *common.Cluster, operatorType models.OperatorType) string {
-	operator, err := findOperatorInJson(cluster, operatorType)
+// ValidateHost validates host requirements
+func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
+	// TODO: cluster should already contain up-to-date list of operators - implemented here for now to replicate
+	// the original behaviour
+	err := mgr.UpdateDependencies(cluster)
 	if err != nil {
-		return "Something went wrong with Unmarshalling operators"
+		return nil, err
 	}
-	if operator != nil {
-		if swag.BoolValue(operator.Enabled) {
-			return operator.Status
+	clusterOperators, err := unmarshallOperators(cluster.Operators)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]api.ValidationResult, 0, len(mgr.operators))
+
+	// To track operators that are disabled or not present in the cluster configuration, but have to be present
+	// in the validation results and marked as valid.
+	pendingOperators := make(map[models.OperatorType]bool)
+	for k := range mgr.operators {
+		pendingOperators[k] = true
+	}
+
+	for _, clusterOperator := range clusterOperators {
+		operator := mgr.operators[clusterOperator.OperatorType]
+		var result api.ValidationResult
+		if operator != nil {
+			if swag.BoolValue(clusterOperator.Enabled) {
+				result, err = operator.ValidateHost(ctx, cluster, host)
+				if err != nil {
+					return nil, err
+				}
+				delete(pendingOperators, clusterOperator.OperatorType)
+				results = append(results, result)
+			}
 		}
 	}
-	return fmt.Sprintf("%v is disabled", operatorType)
+	// Add successful validation result for disabled operators
+	for opType := range pendingOperators {
+		operator := mgr.operators[opType]
+		result := api.ValidationResult{
+			Status:       api.Success,
+			ValidationId: operator.GetHostValidationID(),
+			Reasons: []string{
+				fmt.Sprintf("%v is disabled", opType),
+			},
+		}
+		results = append(results, result)
+	}
+	return results, nil
+}
+
+// ValidateCluster validates cluster requirements
+func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	// TODO: cluster should already contain up-to-date list of operators - implemented here for now to replicate
+	// the original behaviour
+	err := mgr.UpdateDependencies(cluster)
+	if err != nil {
+		return nil, err
+	}
+	clusterOperators, err := unmarshallOperators(cluster.Operators)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]api.ValidationResult, 0, len(mgr.operators))
+
+	pendingOperators := make(map[models.OperatorType]bool)
+	for k := range mgr.operators {
+		pendingOperators[k] = true
+	}
+
+	for _, clusterOperator := range clusterOperators {
+		operator := mgr.operators[clusterOperator.OperatorType]
+		var result api.ValidationResult
+		if operator != nil {
+			if swag.BoolValue(clusterOperator.Enabled) {
+				result, err = operator.ValidateCluster(ctx, cluster)
+				if err != nil {
+					return nil, err
+				}
+				delete(pendingOperators, clusterOperator.OperatorType)
+				results = append(results, result)
+			}
+		}
+	}
+	// Add successful validation result for disabled operators
+	for opType := range pendingOperators {
+		operator := mgr.operators[opType]
+		result := api.ValidationResult{
+			Status:       api.Success,
+			ValidationId: operator.GetClusterValidationID(),
+			Reasons: []string{
+				fmt.Sprintf("%v is disabled", opType),
+			},
+		}
+		results = append(results, result)
+	}
+	return results, nil
 }
 
 // UpdateDependencies amends the list of requested additional operators with any missing dependencies
@@ -121,7 +186,10 @@ func (mgr *Manager) UpdateDependencies(cluster *common.Cluster) error {
 	if err != nil {
 		return err
 	}
-	operators = mgr.resolveDependencies(operators)
+	operators, err = mgr.resolveDependencies(operators)
+	if err != nil {
+		return err
+	}
 	updatedOperators, err := json.Marshal(operators)
 	if err != nil {
 		return err
@@ -131,43 +199,47 @@ func (mgr *Manager) UpdateDependencies(cluster *common.Cluster) error {
 	return nil
 }
 
-func (mgr *Manager) resolveDependencies(operators models.Operators) models.Operators {
-	// TODO: temporary code; make it generic when both LSO and OCS are migrated
-	mapping := make(map[models.OperatorType]*models.ClusterOperator)
-	for _, operator := range operators {
-		mapping[operator.OperatorType] = operator
-	}
-	var ocsEnabled bool
-	finalOperators := make(models.Operators, 0, len(operators))
-	ocsOperator := mapping[models.OperatorTypeOcs]
-	if ocsOperator != nil {
-		if swag.BoolValue(ocsOperator.Enabled) {
-			ocsEnabled = true
+func (mgr *Manager) resolveDependencies(operators models.Operators) (models.Operators, error) {
+	enabledOperators := mgr.getEnabledOperators(operators)
+	for _, inputOperator := range operators {
+		if enabledOperators[inputOperator.OperatorType] {
+			inputOperator.Enabled = swag.Bool(true)
 		}
-		finalOperators = append(finalOperators, ocsOperator)
+		delete(enabledOperators, inputOperator.OperatorType)
 	}
-	lsOperator := mapping[models.OperatorTypeLso]
-	if ocsEnabled {
-		if lsOperator == nil {
-			lsOperator = &models.ClusterOperator{Enabled: swag.Bool(true), OperatorType: models.OperatorTypeLso}
-		} else {
-			lsOperator.Enabled = swag.Bool(true)
+	for enabledOperator := range enabledOperators {
+		clusterOperator := models.ClusterOperator{
+			OperatorType: enabledOperator,
+			Enabled:      swag.Bool(true),
 		}
+		operators = append(operators, &clusterOperator)
 	}
-	if lsOperator != nil {
-		finalOperators = append(finalOperators, lsOperator)
-	}
-
-	return finalOperators
+	return operators, nil
 }
 
-func (mgr *Manager) generateOCSManifests(cluster *common.Cluster) (map[string]string, error) {
-	mgr.log.Info("Creating OCS Manifests")
-	return ocs.Manifests(mgr.ocsValidatorConfig.OCSMinimalDeployment, mgr.ocsValidatorConfig.OCSDisksAvailable, len(cluster.Cluster.Hosts))
-}
-
-func (mgr *Manager) checkOCSEnabled(cluster *common.Cluster) bool {
-	return isEnabled(cluster, models.OperatorTypeOcs)
+func (mgr *Manager) getEnabledOperators(operators models.Operators) map[models.OperatorType]bool {
+	fifo := list.New()
+	visited := make(map[models.OperatorType]bool)
+	for _, op := range operators {
+		if swag.BoolValue(op.Enabled) {
+			visited[op.OperatorType] = true
+			for _, dep := range mgr.operators[op.OperatorType].GetDependencies() {
+				fifo.PushBack(dep)
+			}
+		}
+	}
+	for fifo.Len() > 0 {
+		first := fifo.Front()
+		op := first.Value.(models.OperatorType)
+		for _, dep := range mgr.operators[op].GetDependencies() {
+			if !visited[dep] {
+				fifo.PushBack(dep)
+			}
+		}
+		visited[op] = true
+		fifo.Remove(first)
+	}
+	return visited
 }
 
 func unmarshallOperators(operatorsJson string) (models.Operators, error) {

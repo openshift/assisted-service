@@ -67,6 +67,12 @@ const (
 
 	// HostValidationIDContainerImagesAvailable captures enum value "container-images-available"
 	HostValidationIDContainerImagesAvailable HostValidationID = "container-images-available"
+
+	// HostValidationIDLsoRequirementsSatisfied captures enum value "lso-requirements-satisfied"
+	HostValidationIDLsoRequirementsSatisfied HostValidationID = "lso-requirements-satisfied"
+
+	// HostValidationIDOcsRequirementsSatisfied captures enum value "ocs-requirements-satisfied"
+	HostValidationIDOcsRequirementsSatisfied HostValidationID = "ocs-requirements-satisfied"
 )
 
 // for schema
@@ -74,7 +80,7 @@ var hostValidationIdEnum []interface{}
 
 func init() {
 	var res []HostValidationID
-	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group","valid-platform","ntp-synced","container-images-available"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group","valid-platform","ntp-synced","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

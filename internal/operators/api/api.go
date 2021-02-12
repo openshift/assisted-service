@@ -7,12 +7,20 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+type ValidationStatus string
+
+const (
+	Success ValidationStatus = "success"
+	Failure ValidationStatus = "failure"
+	Pending ValidationStatus = "pending"
+)
+
 // ValidationResult hold result of operator validation
 type ValidationResult struct {
 	// ValidationId is an id of the validation
-	ValidationId models.ClusterValidationID
-	// Valid specifies whether validation was successful
-	Valid bool
+	ValidationId string
+	// Status specifies the status of the validation: success, failure or pending
+	Status ValidationStatus
 	// Reasons hold list of reasons of a validation failure
 	Reasons []string
 }
@@ -39,10 +47,16 @@ type Operator interface {
 	GetCPURequirementForWorker(context.Context, *common.Cluster) (int64, error)
 	// GetCPURequirementForMaster provides master CPU requirements for the operator
 	GetCPURequirementForMaster(context.Context, *common.Cluster) (int64, error)
-	// GetMemoryRequirementForWorker provides worker memory requirements for the operator
+	// GetMemoryRequirementForWorker provides worker memory requirements for the operator in MB
 	GetMemoryRequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
-	// GetMemoryRequirementForMaster provides master memory requirements for the operator
+	// GetMemoryRequirementForMaster provides master memory requirements for the operator in MB
 	GetMemoryRequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error)
-	// GetValidationID returns validation ID for the Operator
-	GetValidationID() models.ClusterValidationID
+	// GetDisksRequirementForMaster provides a number of disks required in a master
+	GetDisksRequirementForMaster(context.Context, *common.Cluster) (int64, error)
+	// GetDisksRequirementForWorker provides a number of disks required in a worker
+	GetDisksRequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
+	// GetClusterValidationID returns cluster validation ID for the Operator
+	GetClusterValidationID() string
+	// GetHostValidationID returns host validation ID for the Operator
+	GetHostValidationID() string
 }

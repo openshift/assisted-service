@@ -5,8 +5,10 @@
 package operators
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	api "github.com/openshift/assisted-service/internal/operators/api"
 	models "github.com/openshift/assisted-service/models"
 	reflect "reflect"
 )
@@ -63,20 +65,6 @@ func (mr *MockAPIMockRecorder) GenerateManifests(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockAPI)(nil).GenerateManifests), arg0)
 }
 
-// GetOperatorStatus mocks base method
-func (m *MockAPI) GetOperatorStatus(arg0 *common.Cluster, arg1 models.OperatorType) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetOperatorStatus", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetOperatorStatus indicates an expected call of GetOperatorStatus
-func (mr *MockAPIMockRecorder) GetOperatorStatus(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorStatus", reflect.TypeOf((*MockAPI)(nil).GetOperatorStatus), arg0, arg1)
-}
-
 // UpdateDependencies mocks base method
 func (m *MockAPI) UpdateDependencies(arg0 *common.Cluster) error {
 	m.ctrl.T.Helper()
@@ -91,16 +79,32 @@ func (mr *MockAPIMockRecorder) UpdateDependencies(arg0 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDependencies", reflect.TypeOf((*MockAPI)(nil).UpdateDependencies), arg0)
 }
 
-// ValidateOCSRequirements mocks base method
-func (m *MockAPI) ValidateOCSRequirements(arg0 *common.Cluster) string {
+// ValidateCluster mocks base method
+func (m *MockAPI) ValidateCluster(arg0 context.Context, arg1 *common.Cluster) ([]api.ValidationResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateOCSRequirements", arg0)
-	ret0, _ := ret[0].(string)
-	return ret0
+	ret := m.ctrl.Call(m, "ValidateCluster", arg0, arg1)
+	ret0, _ := ret[0].([]api.ValidationResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// ValidateOCSRequirements indicates an expected call of ValidateOCSRequirements
-func (mr *MockAPIMockRecorder) ValidateOCSRequirements(arg0 interface{}) *gomock.Call {
+// ValidateCluster indicates an expected call of ValidateCluster
+func (mr *MockAPIMockRecorder) ValidateCluster(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateOCSRequirements", reflect.TypeOf((*MockAPI)(nil).ValidateOCSRequirements), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateCluster", reflect.TypeOf((*MockAPI)(nil).ValidateCluster), arg0, arg1)
+}
+
+// ValidateHost mocks base method
+func (m *MockAPI) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]api.ValidationResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateHost", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]api.ValidationResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ValidateHost indicates an expected call of ValidateHost
+func (mr *MockAPIMockRecorder) ValidateHost(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateHost", reflect.TypeOf((*MockAPI)(nil).ValidateHost), arg0, arg1, arg2)
 }

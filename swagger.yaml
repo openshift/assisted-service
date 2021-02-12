@@ -3051,7 +3051,7 @@ definitions:
       validations_info:
         type: string
         description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)
-        x-go-custom-tag: gorm:"type:varchar(2048)"
+        x-go-custom-tag: gorm:"type:text"
       status_updated_at:
         type: string
         format: date-time
@@ -3665,7 +3665,7 @@ definitions:
       validations_info:
         type: string
         description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
-        x-go-custom-tag: gorm:"type:varchar(2048)"
+        x-go-custom-tag: gorm:"type:text"
       install_config_overrides:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -4284,6 +4284,8 @@ definitions:
       - 'valid-platform'
       - 'ntp-synced'
       - 'container-images-available'
+      - 'lso-requirements-satisfied'
+      - 'ocs-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
