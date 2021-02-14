@@ -97,7 +97,7 @@ func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
 		return err
 	}
 
-	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644)
+	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644) //nolint:gosec
 }
 
 func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string) error {
