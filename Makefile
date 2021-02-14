@@ -206,7 +206,8 @@ deploy-service-on-ocp-cluster:
 deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
 
-jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
+jenkins-deploy-for-subsystem:
+	$(MAKE) ci-deploy-for-subsystem REPLICAS_COUNT=1
 
 ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
