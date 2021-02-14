@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/thoas/go-funk"
-
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
@@ -21,6 +19,7 @@ import (
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type Config struct {

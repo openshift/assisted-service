@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 
 	"github.com/openshift/assisted-service/internal/isoutil"
-
 	"github.com/sirupsen/logrus"
 )
 

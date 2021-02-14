@@ -14,10 +14,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/isoeditor"
-	"github.com/openshift/assisted-service/internal/versions"
-	logutil "github.com/openshift/assisted-service/pkg/log"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/credentials"
@@ -27,6 +23,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/isoeditor"
+	"github.com/openshift/assisted-service/internal/versions"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

@@ -3,13 +3,10 @@ package hostcommands
 import (
 	"context"
 
-	"github.com/openshift/assisted-service/internal/connectivity"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/jinzhu/gorm"
-
+	"github.com/openshift/assisted-service/internal/connectivity"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 type connectivityCheckCmd struct {

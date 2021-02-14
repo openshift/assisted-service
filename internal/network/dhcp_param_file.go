@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/pkg/errors"
-
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
 

@@ -9,15 +9,13 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/golang/mock/gomock"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/bootfiles"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	operations "github.com/openshift/assisted-service/restapi/operations/bootfiles"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 func TestValidator(t *testing.T) {

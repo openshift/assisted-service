@@ -5,9 +5,8 @@ import (
 	"net"
 	"sort"
 
-	"github.com/golang-collections/go-datastructures/bitarray"
-
 	"github.com/go-openapi/strfmt"
+	"github.com/golang-collections/go-datastructures/bitarray"
 	"github.com/openshift/assisted-service/models"
 )
 

@@ -8,11 +8,9 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/thoas/go-funk"
-
-	"github.com/pkg/errors"
-
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 )
 
 const (

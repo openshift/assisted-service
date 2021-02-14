@@ -6,12 +6,11 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/patrickmn/go-cache"
-
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/restapi"
+	"github.com/patrickmn/go-cache"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )

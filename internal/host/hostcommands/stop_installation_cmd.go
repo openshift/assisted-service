@@ -3,9 +3,8 @@ package hostcommands
 import (
 	"context"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 type stopInstallationCmd struct {

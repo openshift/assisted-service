@@ -5,9 +5,8 @@ import (
 	"context"
 	"html/template"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 type resetInstallationCmd struct {

@@ -3,17 +3,14 @@ package bminventory
 import (
 	"bytes"
 	"context"
-	"io"
-
-	"k8s.io/apimachinery/pkg/types"
 
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
 	"encoding/base64"
-	b64 "encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -66,6 +63,7 @@ import (
 	"github.com/thoas/go-funk"
 	"github.com/vincent-petithory/dataurl"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -426,8 +424,8 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	}
 
 	if cluster.ImageInfo.StaticIpsConfig != "" && params.ImageCreateParams.ImageType == models.ImageTypeFullIso {
-		ignitionParams["StaticIPsData"] = b64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.StaticIpsConfig))
-		ignitionParams["StaticIPsConfigScript"] = b64.StdEncoding.EncodeToString([]byte(constants.ConfigStaticIpsScript))
+		ignitionParams["StaticIPsData"] = base64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.StaticIpsConfig))
+		ignitionParams["StaticIPsConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.ConfigStaticIpsScript))
 	}
 
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)

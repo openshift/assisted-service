@@ -8,10 +8,9 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
-	"github.com/stretchr/testify/assert"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
 

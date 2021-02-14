@@ -7,6 +7,9 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
@@ -16,10 +19,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
 	"github.com/pkg/errors"
-
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("AssistedServiceISO", func() {

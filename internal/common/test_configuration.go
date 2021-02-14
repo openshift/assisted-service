@@ -4,10 +4,9 @@ import (
 	"encoding/json"
 	"io/ioutil"
 
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
-
-	. "github.com/onsi/gomega"
 )
 
 type TestConfiguration struct {

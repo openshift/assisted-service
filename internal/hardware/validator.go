@@ -6,14 +6,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/dustin/go-humanize"
-
-	"github.com/thoas/go-funk"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/alecthomas/units"
+	"github.com/dustin/go-humanize"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go

@@ -9,15 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/thoas/go-funk"
-
-	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/internal/hardware"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/metrics"
-	"github.com/openshift/assisted-service/models"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -25,6 +16,13 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 func createValidatorCfg() *hardware.ValidatorCfg {

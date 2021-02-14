@@ -11,18 +11,14 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/containers/image/v5/docker/reference"
-	"github.com/openshift/assisted-service/internal/common"
-
-	"github.com/pkg/errors"
-
-	"golang.org/x/crypto/ssh"
-
 	"github.com/asaskevich/govalidator"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
-
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/pkg/errors"
+	"golang.org/x/crypto/ssh"
 )
 
 type Config struct {

@@ -7,23 +7,21 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/thoas/go-funk"
-
-	"github.com/golang/mock/gomock"
-	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/metrics"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
-	"github.com/sirupsen/logrus"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 var _ = Describe("Transition tests", func() {

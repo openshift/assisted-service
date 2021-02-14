@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/alecthomas/units"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"

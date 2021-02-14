@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/dgrijalva/jwt-go"
-
 	keygen_tools "github.com/openshift/assisted-service/pkg/auth"
 )
 

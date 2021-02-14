@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	diskfs "github.com/diskfs/go-diskfs"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 )

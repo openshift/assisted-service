@@ -6,20 +6,17 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-
-	"github.com/openshift/assisted-service/internal/common"
-
-	"github.com/openshift/assisted-service/pkg/requestid"
-	"github.com/pborman/uuid"
-
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/requestid"
+	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 )
 

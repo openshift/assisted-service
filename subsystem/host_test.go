@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/filanov/stateswitch/examples/host/host"
-
 	"github.com/go-openapi/strfmt"
-	"github.com/google/uuid"
-
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"

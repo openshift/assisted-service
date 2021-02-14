@@ -5,9 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -16,6 +13,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 const OvnKubernetes = "OVNKubernetes"

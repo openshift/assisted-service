@@ -9,19 +9,16 @@ import (
 	"time"
 
 	"github.com/alessio/shellescape"
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/versions"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
-
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 

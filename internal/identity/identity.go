@@ -4,10 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/thoas/go-funk"
-
-	"github.com/openshift/assisted-service/pkg/auth"
 )
 
 func IsAdmin(ctx context.Context) bool {

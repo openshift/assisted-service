@@ -4,9 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/metrics"
-
 	sdkClient "github.com/openshift-online/ocm-sdk-go"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

@@ -3,13 +3,12 @@ package hostcommands
 import (
 	"strings"
 
-	"github.com/openshift/assisted-service/internal/connectivity"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/connectivity"
 	"github.com/openshift/assisted-service/models"
 )
 

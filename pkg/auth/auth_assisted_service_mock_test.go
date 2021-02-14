@@ -4,20 +4,17 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
-
-	eventsapi "github.com/openshift/assisted-service/restapi/operations/events"
-	managed_domains_api "github.com/openshift/assisted-service/restapi/operations/managed_domains"
-	versionsapi "github.com/openshift/assisted-service/restapi/operations/versions"
-
 	"net/http"
-
-	"github.com/openshift/assisted-service/pkg/filemiddleware"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
+	eventsapi "github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	managed_domains_api "github.com/openshift/assisted-service/restapi/operations/managed_domains"
+	versionsapi "github.com/openshift/assisted-service/restapi/operations/versions"
 )
 
 type fakeInventory struct{}

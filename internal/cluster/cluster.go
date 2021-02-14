@@ -8,35 +8,29 @@ import (
 	"strings"
 	"time"
 
-	"k8s.io/apimachinery/pkg/types"
-
-	"github.com/google/uuid"
-	"github.com/hashicorp/go-multierror"
-
-	"github.com/kennygrant/sanitize"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
-
-	"github.com/openshift/assisted-service/internal/network"
-
-	"github.com/openshift/assisted-service/pkg/leader"
-
-	"github.com/openshift/assisted-service/pkg/s3wrapper"
-
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/jinzhu/gorm"
+	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/requestid"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const DhcpLeaseTimeoutMinutes = 2

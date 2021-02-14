@@ -13,11 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/moby/moby/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-
-	"github.com/moby/moby/pkg/ioutils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
