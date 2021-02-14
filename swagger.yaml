@@ -614,6 +614,31 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
+  /clusters/default-config:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [ admin, read-only-admin, user ]
+      description: Get the default values for various cluster properties.
+      operationId: GetClusterDefaultConfig
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster_default_config'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/install-config:
     get:
@@ -3896,6 +3921,23 @@ definitions:
       reason:
         type: string
         description: Human-readable description of the error.
+
+  cluster_default_config:
+    type: object
+    properties:
+      cluster_network_cidr:
+        type: string
+        pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$'
+      cluster_network_host_prefix:
+        type: integer
+        minimum: 1
+        maximum: 32
+      service_network_cidr:
+        type: string
+        pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$'
+      ntp_source:
+        type: string
+        x-omitempty: false
 
   infra_error:
     type: object

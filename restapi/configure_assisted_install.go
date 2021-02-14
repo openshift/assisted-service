@@ -105,6 +105,9 @@ type InstallerAPI interface {
 	/* GetCluster Retrieves the details of the OpenShift cluster. */
 	GetCluster(ctx context.Context, params installer.GetClusterParams) middleware.Responder
 
+	/* GetClusterDefaultConfig Get the default values for various cluster properties. */
+	GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder
+
 	/* GetClusterInstallConfig Get the cluster's install config YAML. */
 	GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder
 
@@ -422,6 +425,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetCluster(ctx, params)
+	})
+	api.InstallerGetClusterDefaultConfigHandler = installer.GetClusterDefaultConfigHandlerFunc(func(params installer.GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetClusterDefaultConfig(ctx, params)
 	})
 	api.InstallerGetClusterInstallConfigHandler = installer.GetClusterInstallConfigHandlerFunc(func(params installer.GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

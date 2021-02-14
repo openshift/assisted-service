@@ -442,6 +442,50 @@ func init() {
         }
       }
     },
+    "/clusters/default-config": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get the default values for various cluster properties.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetClusterDefaultConfig",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster_default_config"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}": {
       "get": {
         "security": [
@@ -4878,6 +4922,28 @@ func init() {
         "ocs-requirements-satisfied"
       ]
     },
+    "cluster_default_config": {
+      "type": "object",
+      "properties": {
+        "cluster_network_cidr": {
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        },
+        "cluster_network_host_prefix": {
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
+        },
+        "ntp_source": {
+          "type": "string",
+          "x-omitempty": false
+        },
+        "service_network_cidr": {
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        }
+      }
+    },
     "completion-params": {
       "type": "object",
       "required": [
@@ -6973,6 +7039,50 @@ func init() {
             "description": "Method Not Allowed.",
             "schema": {
               "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/clusters/default-config": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get the default values for various cluster properties.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetClusterDefaultConfig",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster_default_config"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
             }
           },
           "500": {
@@ -11507,6 +11617,28 @@ func init() {
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied"
       ]
+    },
+    "cluster_default_config": {
+      "type": "object",
+      "properties": {
+        "cluster_network_cidr": {
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        },
+        "cluster_network_host_prefix": {
+          "type": "integer",
+          "maximum": 32,
+          "minimum": 1
+        },
+        "ntp_source": {
+          "type": "string",
+          "x-omitempty": false
+        },
+        "service_network_cidr": {
+          "type": "string",
+          "pattern": "^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\\/]([1-9]|[1-2][0-9]|3[0-2]?)$"
+        }
+      }
     },
     "completion-params": {
       "type": "object",

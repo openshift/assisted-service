@@ -61,6 +61,9 @@ type API interface {
 	   GetCluster Retrieves the details of the OpenShift cluster.*/
 	GetCluster(ctx context.Context, params *GetClusterParams) (*GetClusterOK, error)
 	/*
+	   GetClusterDefaultConfig Get the default values for various cluster properties.*/
+	GetClusterDefaultConfig(ctx context.Context, params *GetClusterDefaultConfigParams) (*GetClusterDefaultConfigOK, error)
+	/*
 	   GetClusterInstallConfig Get the cluster's install config YAML.*/
 	GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error)
 	/*
@@ -517,6 +520,31 @@ func (a *Client) GetCluster(ctx context.Context, params *GetClusterParams) (*Get
 		return nil, err
 	}
 	return result.(*GetClusterOK), nil
+
+}
+
+/*
+GetClusterDefaultConfig Get the default values for various cluster properties.
+*/
+func (a *Client) GetClusterDefaultConfig(ctx context.Context, params *GetClusterDefaultConfigParams) (*GetClusterDefaultConfigOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterDefaultConfig",
+		Method:             "GET",
+		PathPattern:        "/clusters/default-config",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetClusterDefaultConfigReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterDefaultConfigOK), nil
 
 }
 
