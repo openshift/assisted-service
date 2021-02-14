@@ -44,7 +44,7 @@ require (
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/hive/pkg/apis v0.0.0
-	github.com/ory/dockertest/v3 v3.6.0
+	github.com/ory/dockertest/v3 v3.6.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
