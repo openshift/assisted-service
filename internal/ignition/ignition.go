@@ -21,15 +21,6 @@ import (
 	"github.com/coreos/ignition/v2/config/validate"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/vincent-petithory/dataurl"
-	"golang.org/x/sync/errgroup"
-	"gopkg.in/yaml.v2"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
-	"k8s.io/client-go/kubernetes/scheme"
-
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
@@ -39,6 +30,14 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/vincent-petithory/dataurl"
+	"golang.org/x/sync/errgroup"
+	"gopkg.in/yaml.v2"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	k8sjson "k8s.io/apimachinery/pkg/runtime/serializer/json"
+	"k8s.io/client-go/kubernetes/scheme"
 )
 
 const (

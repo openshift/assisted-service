@@ -10,11 +10,9 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/models"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 const MinMasterHostsNeededForInstallation = 3

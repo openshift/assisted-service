@@ -12,19 +12,18 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/host/hostcommands"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/pkg/leader"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
-
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/host/hostcommands"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 var BootstrapStages = [...]models.HostStage{

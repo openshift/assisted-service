@@ -7,16 +7,14 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/leader"
-	"github.com/openshift/assisted-service/pkg/s3wrapper"
-
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/models"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/leader"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
 )
 

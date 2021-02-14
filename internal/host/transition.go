@@ -2,23 +2,20 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
 	"strings"
 	"time"
 
-	"encoding/json"
-
-	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
-
+	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/common"
-
-	"github.com/filanov/stateswitch"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"

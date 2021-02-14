@@ -8,13 +8,12 @@ import (
 	"github.com/go-openapi/swag"
 	gomock "github.com/golang/mock/gomock"
 	"github.com/kelseyhightower/envconfig"
-	"github.com/sirupsen/logrus"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/models"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
+	"github.com/sirupsen/logrus"
 )
 
 func TestHandler_ListComponentVersions(t *testing.T) {

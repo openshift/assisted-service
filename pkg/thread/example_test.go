@@ -6,11 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/thread"
-	"github.com/sirupsen/logrus"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/pkg/thread"
+	"github.com/sirupsen/logrus"
 )
 
 var counter uint64

@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/go-openapi/strfmt"
-
 	"github.com/alecthomas/units"
-
+	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/models"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"

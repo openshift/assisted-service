@@ -23,7 +23,6 @@ import (
 	"github.com/openshift/hive/pkg/apis/hive/v1/aws"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -59,7 +58,7 @@ func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.
 	return hivev1.ClusterDeploymentSpec{
 		ClusterName: clusterName,
 		Provisioning: &hivev1.Provisioning{
-			InstallConfigSecretRef: &v1.LocalObjectReference{Name: "cluster-install-config"},
+			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
 			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
 			InstallStrategy: &hivev1.InstallStrategy{
 				Agent: &agent.InstallStrategy{
@@ -87,7 +86,7 @@ func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.
 				VIPDHCPAllocation: agent.Disabled,
 			},
 		},
-		PullSecretRef: &v1.LocalObjectReference{
+		PullSecretRef: &corev1.LocalObjectReference{
 			Name: pullSecretName,
 		},
 	}
@@ -225,12 +224,12 @@ var _ = Describe("cluster reconcile", func() {
 			ClusterName: clusterName,
 			Provisioning: &hivev1.Provisioning{
 				ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
-				InstallConfigSecretRef: &v1.LocalObjectReference{Name: "cluster-install-config"},
+				InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
 			},
 			Platform: hivev1.Platform{
 				AWS: &aws.Platform{},
 			},
-			PullSecretRef: &v1.LocalObjectReference{
+			PullSecretRef: &corev1.LocalObjectReference{
 				Name: pullSecretName,
 			},
 		}

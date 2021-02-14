@@ -20,8 +20,6 @@ import (
 	"context"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/event"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -41,6 +39,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"

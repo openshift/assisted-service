@@ -9,11 +9,10 @@ import (
 	"path/filepath"
 	"regexp"
 
+	"github.com/cavaliercoder/go-cpio"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/isoutil"
 	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
-
-	"github.com/cavaliercoder/go-cpio"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

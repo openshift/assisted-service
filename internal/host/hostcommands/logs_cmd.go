@@ -13,12 +13,10 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 type logsCmd struct {

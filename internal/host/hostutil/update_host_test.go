@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/golang/mock/gomock"
-
 	"github.com/go-openapi/strfmt"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"

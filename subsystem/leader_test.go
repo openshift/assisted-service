@@ -7,15 +7,13 @@ import (
 	"path"
 	"time"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/pkg/leader"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientset "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
 )
 
 const (

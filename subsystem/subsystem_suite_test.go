@@ -5,11 +5,7 @@ import (
 	"net/url"
 	"testing"
 
-	"k8s.io/client-go/deprecated/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
-
 	"github.com/go-openapi/runtime"
-
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
@@ -19,7 +15,9 @@ import (
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/sirupsen/logrus"
+	"k8s.io/client-go/deprecated/scheme"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )
 
 var db *gorm.DB

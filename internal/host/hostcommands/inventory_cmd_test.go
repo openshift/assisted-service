@@ -4,14 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
 

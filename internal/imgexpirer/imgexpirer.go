@@ -5,11 +5,10 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/openshift/assisted-service/pkg/leader"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"

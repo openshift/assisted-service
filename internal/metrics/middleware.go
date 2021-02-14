@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/sirupsen/logrus"
 	"github.com/slok/go-http-metrics/middleware"
 )

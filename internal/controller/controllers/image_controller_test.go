@@ -9,15 +9,13 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/models"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -103,7 +101,7 @@ var _ = Describe("image reconcile", func() {
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).Return(
 			&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 		image := newImage("image", testNamespace, v1alpha1.ImageSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
+			ClusterRef: &v1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, image)).To(BeNil())
 
@@ -130,7 +128,7 @@ var _ = Describe("image reconcile", func() {
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).Return(nil, expectedError).Times(1)
 
 		image := newImage("image", testNamespace, v1alpha1.ImageSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
+			ClusterRef: &v1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, image)).To(BeNil())
 
@@ -155,7 +153,7 @@ var _ = Describe("image reconcile", func() {
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).Return(nil, expectedError).Times(1)
 
 		image := newImage("image", testNamespace, v1alpha1.ImageSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
+			ClusterRef: &v1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, image)).To(BeNil())
 
@@ -175,7 +173,7 @@ var _ = Describe("image reconcile", func() {
 
 	It("create new image - cluster not exists", func() {
 		image := newImage("image", testNamespace, v1alpha1.ImageSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
+			ClusterRef: &v1alpha1.ClusterReference{Name: "cluster", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, image)).To(BeNil())
 

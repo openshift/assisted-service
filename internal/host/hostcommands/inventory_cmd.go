@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 type inventoryCmd struct {

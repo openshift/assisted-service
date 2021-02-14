@@ -10,14 +10,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/openshift/assisted-service/internal/constants"
-	"github.com/openshift/assisted-service/internal/isoutil"
-
 	"github.com/cavaliercoder/go-cpio"
-	"github.com/sirupsen/logrus"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/isoutil"
+	"github.com/sirupsen/logrus"
 )
 
 const (

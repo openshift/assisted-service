@@ -5,10 +5,8 @@ import (
 	"time"
 
 	"github.com/openshift/assisted-service/internal/metrics/matchedRouteContext"
-	"github.com/sirupsen/logrus"
-
 	"github.com/prometheus/client_golang/prometheus"
-
+	"github.com/sirupsen/logrus"
 	"github.com/slok/go-http-metrics/metrics"
 )
 

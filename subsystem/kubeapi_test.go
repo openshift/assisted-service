@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"

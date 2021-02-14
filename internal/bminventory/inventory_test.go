@@ -28,12 +28,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/pkg/errors"
-	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
-
 	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
@@ -54,6 +48,11 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
+	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const ClusterStatusInstalled = "installed"

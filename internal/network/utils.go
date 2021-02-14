@@ -1,14 +1,12 @@
 package network
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/sirupsen/logrus"
-
-	"encoding/json"
-
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 func IsIpv6OnlyHost(host *models.Host, log logrus.FieldLogger) (bool, error) {

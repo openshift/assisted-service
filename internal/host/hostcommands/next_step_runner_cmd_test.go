@@ -4,10 +4,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/openshift/assisted-service/internal/common"
-
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 )
 
 var _ = Describe("Format command for starting next step agent", func() {

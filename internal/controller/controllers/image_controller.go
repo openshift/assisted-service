@@ -22,13 +22,6 @@ import (
 	"net/http"
 	"time"
 
-	"sigs.k8s.io/controller-runtime/pkg/event"
-
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
@@ -39,8 +32,12 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // ImageReconciler reconciles a Image object

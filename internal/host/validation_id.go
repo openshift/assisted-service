@@ -4,9 +4,8 @@ import (
 	"net/http"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/pkg/errors"
-
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 )
 
 type validationID models.HostValidationID

@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/hardware"
-	"github.com/openshift/assisted-service/internal/host/hostutil"
-
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -19,6 +16,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 )

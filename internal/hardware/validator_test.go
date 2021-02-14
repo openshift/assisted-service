@@ -4,17 +4,15 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/openshift/assisted-service/internal/common"
-
-	"github.com/sirupsen/logrus"
-
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 )
 
 func TestValidator(t *testing.T) {

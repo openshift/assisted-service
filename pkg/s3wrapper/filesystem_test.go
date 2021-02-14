@@ -9,12 +9,11 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/isoeditor"
-	"github.com/openshift/assisted-service/internal/versions"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/isoeditor"
+	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/sirupsen/logrus"
 )
 

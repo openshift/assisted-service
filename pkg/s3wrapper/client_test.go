@@ -15,17 +15,15 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openshift/assisted-service/internal/isoeditor"
-	"github.com/openshift/assisted-service/internal/versions"
-
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/sirupsen/logrus"
-
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/isoeditor"
+	"github.com/openshift/assisted-service/internal/versions"
+	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("s3client", func() {

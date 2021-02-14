@@ -12,7 +12,6 @@ import (
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
-	"github.com/onsi/gomega"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/ghttp"
 	"github.com/openshift/assisted-service/client"
@@ -203,7 +202,7 @@ var _ = Describe("auth handler test", func() {
 			}
 
 			if tt.expectedError != nil {
-				gomega.Expect(reflect.TypeOf(e).String()).To(Equal(reflect.TypeOf(tt.expectedError).String()))
+				Expect(reflect.TypeOf(e).String()).To(Equal(reflect.TypeOf(tt.expectedError).String()))
 			} else {
 				Expect(e).To(BeNil())
 			}

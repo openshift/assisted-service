@@ -9,12 +9,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/prometheus/common/log"
-	"github.com/sirupsen/logrus"
-
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/isoutil"
 	"github.com/pkg/errors"
+	"github.com/prometheus/common/log"
+	"github.com/sirupsen/logrus"
 )
 
 func FixEndpointURL(endpoint string) (string, error) {

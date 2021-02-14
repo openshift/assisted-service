@@ -4,10 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/openshift/assisted-service/pkg/commonutils"
-
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/pkg/errors"
 )
 

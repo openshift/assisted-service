@@ -4,10 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/openshift/assisted-service/models"
-
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/events"
