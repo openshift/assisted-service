@@ -1698,8 +1698,8 @@ var _ = Describe("UpdateImageStatus", func() {
 			}
 
 			if len(t.originalImageStatuses) == 0 {
-				eventMsg := fmt.Sprintf("New image status %s for host %s. result: %s; time: %f seconds; size: %f bytes; download rate: %f MBps",
-					expectedImage.Name, hostutil.GetHostnameForMsg(&host), expectedImage.Result,
+				eventMsg := fmt.Sprintf("Host %s: New image status %s. result: %s; time: %f seconds; size: %f bytes; download rate: %f MBps",
+					hostutil.GetHostnameForMsg(&host), expectedImage.Name, expectedImage.Result,
 					expectedImage.Time, expectedImage.SizeBytes, expectedImage.DownloadRate)
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo, eventMsg, gomock.Any()).Times(1)
 				mockMetric.EXPECT().ImagePullStatus(clusterId, hostId, expectedImage.Name, string(expectedImage.Result), expectedImage.DownloadRate).Times(1)

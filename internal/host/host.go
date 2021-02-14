@@ -540,8 +540,8 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 		m.log.Infof("Adding new image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
 		hostImageStatuses[newImageStatus.Name] = newImageStatus
 		m.metricApi.ImagePullStatus(h.ClusterID, *h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
-		eventInfo := fmt.Sprintf("New image status %s for host %s. result: %s; time: %f seconds; size: %f bytes; download rate: %f MBps",
-			newImageStatus.Name, hostutil.GetHostnameForMsg(h), newImageStatus.Result,
+		eventInfo := fmt.Sprintf("Host %s: New image status %s. result: %s; time: %f seconds; size: %f bytes; download rate: %f MBps",
+			hostutil.GetHostnameForMsg(h), newImageStatus.Name, newImageStatus.Result,
 			newImageStatus.Time, newImageStatus.SizeBytes, newImageStatus.DownloadRate)
 		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
 	}
