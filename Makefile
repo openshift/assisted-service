@@ -4,9 +4,16 @@ PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
+BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
 TARGET := $(or ${TARGET},minikube)
 PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
+
+ifeq ($(BUILD_TYPE), standalone)
+    UNIT_TEST_TARGET = unit-test
+else
+    UNIT_TEST_TARGET = convert-coverage
+endif
 
 ifeq ($(TARGET), minikube)
 ifdef E2E_TESTS_MODE
@@ -15,12 +22,13 @@ endif
 define get_service
 minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
 endef # get_service
-VERIFY_CLUSTER = _verify_cluster
+VERIFY_CLUSTER = _verify_minikube
 else
 define get_service
 kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}' | \
 	awk '{split($$0,a,":"); print a[1] ":" a[2]}'
 endef # get_service
+VERIFY_CLUSTER = _verify_cluster
 endif # TARGET
 
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
@@ -97,7 +105,7 @@ generate-%: ${BUILD_FOLDER}
 ##################
 
 .PHONY: build docs
-build: lint unit-test build-minimal
+build: lint $(UNIT_TEST_TARGET) build-minimal
 
 build-all: build-in-docker
 
@@ -110,8 +118,7 @@ build-minimal: $(BUILD_FOLDER)
 build-image: build
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
-update-service:
-	skipper make build-image
+update-service: build-in-docker
 	docker push $(SERVICE)
 
 update: build-all
@@ -149,7 +156,11 @@ endif
 _verify_cluster:
 	$(KUBECTL) cluster-info
 
-deploy-all: $(BUILD_FOLDER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
+_verify_minikube:
+	minikube update-context
+	minikube status
+
+deploy-all: $(BUILD_FOLDER) $(VERIFY_CLUSTER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
@@ -212,7 +223,7 @@ ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
 	$(MAKE) deploy-wiremock deploy-all
 
-deploy-test: _verify_cluster generate-keys
+deploy-test: $(VERIFY_CLUSTER) generate-keys
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
@@ -292,8 +303,10 @@ unit-test: $(REPORTS)
 	timeout 5m ./hack/wait_for_postgres.sh
 	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
 		-ginkgo.v -timeout 30m -count=1 || (docker kill postgres && /bin/false)
-	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
 	docker kill postgres
+
+convert-coverage: unit-test
+	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
 
 $(REPORTS):
 	-mkdir -p $(REPORTS)
