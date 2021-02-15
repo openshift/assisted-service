@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
@@ -138,30 +139,47 @@ func AllStrings(vs []string, f func(string) bool) bool {
 // GetBootstrapMachineNetworkAndIp used to get machine cidr and ip in case of none platform and sno
 // it will return first found ip and machine cidr
 func GetBootstrapMachineNetworkAndIp(cluster *Cluster) (string, string) {
-	for _, host := range cluster.Hosts {
-		if host.Bootstrap {
-			var inventory models.Inventory
-			err := json.Unmarshal([]byte(host.Inventory), &inventory)
+	bootstrap := GetBootstrapHost(cluster)
+	if bootstrap == nil {
+		return "", ""
+	}
+
+	var inventory models.Inventory
+	err := json.Unmarshal([]byte(bootstrap.Inventory), &inventory)
+	if err != nil {
+		return "", ""
+	}
+	for _, intf := range inventory.Interfaces {
+		for _, addr := range intf.IPV4Addresses {
+			ip, ipnet, err := net.ParseCIDR(addr)
 			if err != nil {
-				return "", ""
+				continue
 			}
-			for _, intf := range inventory.Interfaces {
-				for _, addr := range intf.IPV4Addresses {
-					ip, ipnet, err := net.ParseCIDR(addr)
-					if err != nil {
-						continue
-					}
-					return ip.String(), ipnet.String()
-				}
-				for _, addr := range intf.IPV6Addresses {
-					ip, ipnet, err := net.ParseCIDR(addr)
-					if err != nil {
-						continue
-					}
-					return ip.String(), ipnet.String()
-				}
+			return ip.String(), ipnet.String()
+		}
+		for _, addr := range intf.IPV6Addresses {
+			ip, ipnet, err := net.ParseCIDR(addr)
+			if err != nil {
+				continue
 			}
+			return ip.String(), ipnet.String()
 		}
 	}
+
 	return "", ""
+}
+
+// GetBootstrapHost return host that was set as bootstrap
+func GetBootstrapHost(cluster *Cluster) *models.Host {
+	for _, host := range cluster.Hosts {
+		if host.Bootstrap {
+			return host
+		}
+	}
+	return nil
+}
+
+// IsSingleNodeCluster if this cluster is single-node or not
+func IsSingleNodeCluster(cluster *Cluster) bool {
+	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 }
