@@ -255,7 +255,7 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 				host.ClusterID,
 				host.ID,
 				models.EventSeverityInfo,
-				fmt.Sprintf("Performing quick format of disk %s", dev),
+				fmt.Sprintf("Performing quick format of disk %s on host %s", dev, hostutil.GetHostnameForMsg(&host)),
 				time.Now())
 		}
 	}
