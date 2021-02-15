@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/pkg/auth"
+	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/deprecated/scheme"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -57,7 +58,10 @@ func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
 
 func setupKubeClient() {
 	if addErr := v1alpha1.AddToScheme(scheme.Scheme); addErr != nil {
-		logrus.Fatalf("Fail adding kubernetes scheme: %s", addErr)
+		logrus.Fatalf("Fail adding kubernetes v1alpha1 scheme: %s", addErr)
+	}
+	if addErr := hivev1.AddToScheme(scheme.Scheme); addErr != nil {
+		logrus.Fatalf("Fail adding kubernetes hivev1 scheme: %s", addErr)
 	}
 
 	var err error

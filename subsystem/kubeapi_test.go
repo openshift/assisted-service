@@ -14,6 +14,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/models"
+	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	agentv1 "github.com/openshift/hive/pkg/apis/hive/v1/agent"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,7 +23,7 @@ import (
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func deployDefaultSecretIfNeeded(ctx context.Context, client k8sclient.Client) *corev1.SecretReference {
+func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Client) *corev1.LocalObjectReference {
 	err := client.Get(
 		ctx,
 		types.NamespacedName{Namespace: Options.Namespace, Name: "pull-secret"},
@@ -32,9 +34,8 @@ func deployDefaultSecretIfNeeded(ctx context.Context, client k8sclient.Client) *
 	} else {
 		Expect(err).To(BeNil())
 	}
-	return &corev1.SecretReference{
-		Namespace: Options.Namespace,
-		Name:      "pull-secret",
+	return &corev1.LocalObjectReference{
+		Name: "pull-secret",
 	}
 }
 
@@ -54,15 +55,15 @@ func deployPullSecretResource(ctx context.Context, client k8sclient.Client, name
 	Expect(client.Create(ctx, s)).To(BeNil())
 }
 
-func deployClusterCRD(ctx context.Context, client k8sclient.Client, spec *v1alpha1.ClusterSpec) {
-	err := client.Create(ctx, &v1alpha1.Cluster{
+func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, spec *hivev1.ClusterDeploymentSpec) {
+	err := client.Create(ctx, &hivev1.ClusterDeployment{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
+			Kind:       "ClusterDeployment",
 			APIVersion: getAPIVersion(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Options.Namespace,
-			Name:      spec.Name,
+			Name:      spec.ClusterName,
 		},
 		Spec: *spec,
 	})
@@ -80,37 +81,36 @@ func getClusterFromDB(
 	cluster := &common.Cluster{}
 	start := time.Now()
 	for time.Duration(timeout)*time.Second > time.Since(start) {
-		err = db.Take(&cluster, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace).Error
+		err = db.Preload("Hosts").Take(&cluster, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace).Error
 		if err == nil {
 			return cluster
 		}
 		if !gorm.IsRecordNotFoundError(err) {
 			Expect(err).To(BeNil())
 		}
-		clusterCRD := getClusterCRD(ctx, client, key)
-		Expect(clusterCRD.Status.Error).Should(Equal(""))
+		getClusterDeploymentCRD(ctx, client, key)
 		time.Sleep(time.Second)
 	}
 	Expect(err).To(BeNil())
 	return cluster
 }
 
-func getClusterCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1alpha1.Cluster {
-	cluster := &v1alpha1.Cluster{}
+func getClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *hivev1.ClusterDeployment {
+	cluster := &hivev1.ClusterDeployment{}
 	err := client.Get(ctx, key, cluster)
 	Expect(err).To(BeNil())
 	return cluster
 }
 
-func waitForClusterCRDState(
+func waitForClusterDeploymentCRDState(
 	ctx context.Context, client k8sclient.Client, key types.NamespacedName, state string, timeout int) {
 
-	cluster := &v1alpha1.Cluster{}
+	clusterDeployment := &hivev1.ClusterDeployment{}
 	successInARaw := 0
 	start := time.Now()
 	for time.Duration(timeout)*time.Second > time.Since(start) {
-		cluster = getClusterCRD(ctx, client, key)
-		if cluster.Status.State == state {
+		clusterDeployment = getClusterDeploymentCRD(ctx, client, key)
+		if clusterDeployment.Status.Conditions[0].Message == state {
 			successInARaw++
 		} else {
 			successInARaw = 0
@@ -120,34 +120,49 @@ func waitForClusterCRDState(
 		}
 		time.Sleep(time.Second)
 	}
-	Expect(cluster.Status.State).Should(Equal(state))
+	Expect(clusterDeployment.Status.Conditions[0].Message).Should(Equal(state))
 	successInARaw++
 	Expect(successInARaw).Should(Equal(minSuccessesInRow))
 }
 
-func getDefaultClusterSpec(secretRef *corev1.SecretReference) *v1alpha1.ClusterSpec {
-	return &v1alpha1.ClusterSpec{
-		Name:                     "test-cluster",
-		OpenshiftVersion:         "4.6",
-		BaseDNSDomain:            "test.domain",
-		ClusterNetworkCidr:       "10.128.0.0/14",
-		ClusterNetworkHostPrefix: 23,
-		ServiceNetworkCidr:       "172.30.0.0/16",
-		IngressVip:               "1.2.3.9",
-		APIVip:                   "1.2.3.8",
-		SSHPublicKey:             sshPublicKey,
-		VIPDhcpAllocation:        false,
-		PullSecretRef:            secretRef,
-		ProvisionRequirements: v1alpha1.ProvisionRequirements{
-			ControlPlaneAgents: 3,
-			WorkerAgents:       0,
-			AgentSelector:      metav1.LabelSelector{MatchLabels: map[string]string{"key": "value"}},
+func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
+	return &hivev1.ClusterDeploymentSpec{
+		ClusterName: "test-cluster",
+		BaseDomain:  "hive.example.com",
+		Provisioning: &hivev1.Provisioning{
+			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
+			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
+			InstallStrategy: &hivev1.InstallStrategy{
+				Agent: &agentv1.InstallStrategy{
+					Networking: agentv1.Networking{
+						MachineNetwork: []agentv1.MachineNetworkEntry{},
+						ClusterNetwork: []agentv1.ClusterNetworkEntry{{
+							CIDR:       "10.128.0.0/14",
+							HostPrefix: 23,
+						}},
+						ServiceNetwork: []string{"172.30.0.0/16"},
+					},
+					SSHPublicKey: sshPublicKey,
+					ProvisionRequirements: agentv1.ProvisionRequirements{
+						ControlPlaneAgents: 3,
+						WorkerAgents:       0,
+					},
+				},
+			},
 		},
+		Platform: hivev1.Platform{
+			AgentBareMetal: &agentv1.BareMetalPlatform{
+				APIVIP:            "1.2.3.8",
+				IngressVIP:        "1.2.3.9",
+				VIPDHCPAllocation: agentv1.Disabled,
+			},
+		},
+		PullSecretRef: secretRef,
 	}
 }
 
 func cleanUP(ctx context.Context, client k8sclient.Client) {
-	Expect(client.DeleteAllOf(ctx, &v1alpha1.Cluster{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Image{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 }
 
@@ -180,20 +195,20 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	ctx := context.Background()
 
-	waitForClusterReconcileTimeout := 10
+	waitForClusterReconcileTimeout := 30
 
 	AfterEach(func() {
 		cleanUP(ctx, kubeClient)
 		clearDB()
 	})
 
-	It("deploy cluster with hosts and wait for preparing-for-installation", func() {
-		secretRef := deployDefaultSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterSpec(secretRef)
-		deployClusterCRD(ctx, kubeClient, spec)
+	It("deploy clusterDeployment with agents and wait for ready", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.Name,
+			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForClusterReconcileTimeout)
 		hosts := make([]*models.Host, 0)
@@ -203,7 +218,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
-
-		waitForClusterCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForClusterReconcileTimeout)
+		waitForClusterDeploymentCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForClusterReconcileTimeout)
 	})
 })
