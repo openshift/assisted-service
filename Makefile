@@ -158,7 +158,7 @@ _verify_cluster:
 
 _verify_minikube:
 	minikube -p $(PROFILE) update-context
-	minikube status
+	minikube -p $(PROFILE) status
 
 deploy-all: $(BUILD_FOLDER) $(VERIFY_CLUSTER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
 	echo "Deployment done"
