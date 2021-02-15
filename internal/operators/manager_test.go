@@ -154,6 +154,77 @@ var _ = Describe("Operators manager", func() {
 
 		Expect(valid).To(Equal("failure"))
 	})
+
+	table.DescribeTable("should resolve dependencies", func(input models.Operators, expected models.Operators) {
+		cluster.Operators = convertFromClusterOperators(input)
+		err := manager.UpdateDependencies(cluster)
+		Expect(err).ToNot(HaveOccurred())
+		var operators []*models.ClusterOperator
+		err = json.Unmarshal([]byte(cluster.Operators), &operators)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(operators).To(HaveLen(len(expected)))
+		Expect(operators).To(ContainElements(expected))
+	},
+		table.Entry("when only LSO is specified",
+			models.Operators{&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}},
+			models.Operators{&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}},
+		),
+		table.Entry("when only OCS is specified",
+			models.Operators{&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)}},
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+			},
+		),
+		table.Entry("when both OCS and LSO are specified",
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+			},
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+			},
+		),
+		table.Entry("when OCS is disabled and LSO enabled",
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+			},
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+			},
+		),
+		table.Entry("when both OCS and LSO are disabled",
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
+			},
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
+			},
+		),
+		table.Entry("when OCS is specified and disabled",
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
+			},
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
+			},
+		),
+		table.Entry("when OCS is enabled and LSO  disabled",
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
+			},
+			models.Operators{
+				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
+				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
+			},
+		),
+	)
 })
 
 func convertFromClusterOperators(operators []*models.ClusterOperator) string {

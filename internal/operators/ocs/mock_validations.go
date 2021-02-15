@@ -5,12 +5,13 @@
 package ocs
 
 import (
+	reflect "reflect"
+
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
-	reflect "reflect"
 )
 
-// MockOcsValidator is a mock of OcsValidator interface
+// MockOcsValidator is a mock of OCSValidator interface
 type MockOcsValidator struct {
 	ctrl     *gomock.Controller
 	recorder *MockOcsValidatorMockRecorder

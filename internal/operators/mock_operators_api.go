@@ -77,6 +77,20 @@ func (mr *MockAPIMockRecorder) GetOperatorStatus(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorStatus", reflect.TypeOf((*MockAPI)(nil).GetOperatorStatus), arg0, arg1)
 }
 
+// UpdateDependencies mocks base method
+func (m *MockAPI) UpdateDependencies(arg0 *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDependencies", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateDependencies indicates an expected call of UpdateDependencies
+func (mr *MockAPIMockRecorder) UpdateDependencies(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDependencies", reflect.TypeOf((*MockAPI)(nil).UpdateDependencies), arg0)
+}
+
 // ValidateOCSRequirements mocks base method
 func (m *MockAPI) ValidateOCSRequirements(arg0 *common.Cluster) string {
 	m.ctrl.T.Helper()

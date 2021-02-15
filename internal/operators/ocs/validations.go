@@ -10,7 +10,7 @@ import (
 )
 
 //go:generate mockgen -source=validations.go -package=ocs -destination=mock_validations.go
-type OcsValidator interface {
+type OCSValidator interface {
 	ValidateOCSRequirements(cluster *models.Cluster) string
 }
 
@@ -19,7 +19,7 @@ type ocsValidator struct {
 	log logrus.FieldLogger
 }
 
-func NewOCSValidator(log logrus.FieldLogger, cfg *Config) OcsValidator {
+func NewOCSValidator(log logrus.FieldLogger, cfg *Config) OCSValidator {
 	return &ocsValidator{
 		log:    log,
 		Config: cfg,
