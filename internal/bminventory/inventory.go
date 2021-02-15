@@ -29,6 +29,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-version"
 	"github.com/jinzhu/gorm"
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/cluster"
@@ -271,6 +272,8 @@ const nodeIgnitionFormat = `{
     }
   }
 }`
+
+const minimalOpenShiftVersionForSingleNode = "4.8"
 
 type OCPClusterAPI interface {
 	RegisterOCPCluster(ctx context.Context) error
@@ -586,6 +589,12 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
+		// verify minimal OCP version
+		err := verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+		if err != nil {
+			log.WithError(err)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
 		log.Infof("HA mode is None, seeting UserManagedNetworking to true ")
 		userManagedNetworking := true
 		params.NewClusterParams.UserManagedNetworking = &userManagedNetworking
@@ -704,6 +713,20 @@ func convertFromClusterOperators(operators models.ListOperators) string {
 	}
 }
 
+func verifyMinimalOpenShiftVersionForSingleNode(requestedOpenshiftVersion string) error {
+	ocpVersion, err := version.NewVersion(requestedOpenshiftVersion)
+	if err != nil {
+		return errors.Errorf("Failed to parse OCP version %s", requestedOpenshiftVersion)
+	}
+	minimalVersionForSno, err := version.NewVersion(minimalOpenShiftVersionForSingleNode)
+	if err != nil {
+		return errors.Errorf("Failed to parse minimal OCP version %s", minimalOpenShiftVersionForSingleNode)
+	}
+	if ocpVersion.LessThan(minimalVersionForSno) {
+		return errors.Errorf("Invalid OCP version (%s) for Single node, Single node OpenShift is supported for version 4.8 and above", requestedOpenshiftVersion)
+	}
+	return nil
+}
 func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	id := params.NewAddHostsClusterParams.ID

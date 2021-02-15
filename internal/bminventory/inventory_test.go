@@ -1974,6 +1974,54 @@ var _ = Describe("cluster", func() {
 			Expect(actualNetworks).To(Equal(expectedNetworks))
 		})
 	})
+	Context("Create non HA cluster", func() {
+		BeforeEach(func() {
+			mockDurationsSuccess()
+			v, err := validations.NewPullSecretValidator(validationsConfig)
+			Expect(err).ShouldNot(HaveOccurred())
+			bm.secretValidator = v
+		})
+		It("happy flow", func() {
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+
+			mockEvents.EXPECT().
+				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+				Times(2)
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			MinimalOpenShiftVersionForNoneHA := "4.8"
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                 swag.String("some-cluster-name"),
+					OpenshiftVersion:     swag.String(MinimalOpenShiftVersionForNoneHA),
+					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					HighAvailabilityMode: &noneHaMode,
+				},
+			})
+			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+			actual := reply.(*installer.RegisterClusterCreated)
+			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
+			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+		})
+
+		It("create non ha cluster fail", func() {
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil)
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			insufficientOpenShiftVersionForNoneHA := "4.7"
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:                 swag.String("some-cluster-name"),
+					OpenshiftVersion:     swag.String(insufficientOpenShiftVersionForNoneHA),
+					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+					HighAvailabilityMode: &noneHaMode,
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+	})
 	Context("Update", func() {
 		BeforeEach(func() {
 			mockDurationsSuccess()
@@ -2071,30 +2119,6 @@ var _ = Describe("cluster", func() {
 				},
 			})
 			verifyApiError(reply, http.StatusBadRequest)
-		})
-
-		It("create non ha cluster", func() {
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil)
-
-			mockEvents.EXPECT().
-				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(2)
-			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
-			noneHaMode := models.ClusterHighAvailabilityModeNone
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:                 swag.String("some-cluster-name"),
-					OpenshiftVersion:     swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
-					HighAvailabilityMode: &noneHaMode,
-				},
-			})
-			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
-			actual := reply.(*installer.RegisterClusterCreated)
-			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
-			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 		})
 
 		It("LSO install default value", func() {
