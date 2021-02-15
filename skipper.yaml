@@ -13,6 +13,7 @@ volumes:
     - /var/lib/libvirt/:/var/lib/libvirt/
     - $KUBECONFIG:$KUBECONFIG
 env:
+    BUILD_TYPE: $BUILD_TYPE
     SERVICE: $SERVICE
     ISO_CREATION: $ISO_CREATION
     KUBECONFIG: $KUBECONFIG
