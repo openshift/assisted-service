@@ -1613,7 +1613,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 	var err error
-	log.Info("update cluster ", params.ClusterID)
+	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
 	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
 		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, auth.UserNameFromContext(ctx), b.authHandler)
 		if err != nil {
