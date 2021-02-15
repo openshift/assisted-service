@@ -17,7 +17,7 @@ import (
 type Manager struct {
 	log                logrus.FieldLogger
 	ocsValidatorConfig *ocs.Config
-	ocsValidator       ocs.OcsValidator
+	ocsValidator       ocs.OCSValidator
 }
 
 //go:generate mockgen -package=operators -destination=mock_operators_api.go . API
@@ -45,7 +45,7 @@ func NewManager(log logrus.FieldLogger, hostApi host.API) Manager {
 
 // NewManagerWithConfig creates new instance of an Operator Manager
 func NewManagerWithConfig(log logrus.FieldLogger, hostApi host.API, cfg *ocs.Config) Manager {
-	ocsValidator := ocs.NewOcsValidator(log.WithField("pkg", "ocs-operator-state"), hostApi, cfg)
+	ocsValidator := ocs.NewOCSValidator(log.WithField("pkg", "ocs-operator-state"), hostApi, cfg)
 	return Manager{
 		log:                log,
 		ocsValidatorConfig: cfg,
@@ -57,16 +57,16 @@ func NewManagerWithConfig(log logrus.FieldLogger, hostApi host.API, cfg *ocs.Con
 // Returns map assigning manifest content to its desired file name
 func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]string, error) {
 	lsoEnabled := false
-	ocsEnabled := mgr.checkOcsEnabled(cluster)
+	ocsEnabled := mgr.checkOCSEnabled(cluster)
 	if ocsEnabled {
 		lsoEnabled = true // if OCS is enabled, LSO must be enabled by default
 	} else {
-		lsoEnabled = mgr.checkLsoEnabled(cluster)
+		lsoEnabled = mgr.checkLSOEnabled(cluster)
 	}
 	operatorManifests := make(map[string]string)
 
 	if lsoEnabled {
-		manifests, err := mgr.generateLsoManifests(cluster)
+		manifests, err := mgr.generateLSOManifests(cluster)
 		if err != nil {
 			mgr.log.Error("Cannot generate LSO manifests due to ", err)
 			return nil, err
@@ -77,7 +77,7 @@ func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]strin
 	}
 
 	if ocsEnabled {
-		manifests, err := mgr.generateOcsManifests(cluster)
+		manifests, err := mgr.generateOCSManifests(cluster)
 		if err != nil {
 			mgr.log.Error("Cannot generate OCS manifests due to ", err)
 			return nil, err
@@ -91,7 +91,7 @@ func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]strin
 
 // AnyOperatorEnabled checks whether any operator has been enabled for the given cluster
 func (mgr *Manager) AnyOperatorEnabled(cluster *common.Cluster) bool {
-	return mgr.checkLsoEnabled(cluster) || mgr.checkOcsEnabled(cluster)
+	return mgr.checkLSOEnabled(cluster) || mgr.checkOCSEnabled(cluster)
 }
 
 // ValidateOCSRequirements validates OCS requirements. Returns "true" if OCS operator is not deployed
@@ -116,21 +116,21 @@ func (mgr *Manager) GetOperatorStatus(cluster *common.Cluster, operatorType mode
 	return "OCS is disabled"
 }
 
-func (mgr *Manager) generateLsoManifests(cluster *common.Cluster) (map[string]string, error) {
+func (mgr *Manager) generateLSOManifests(cluster *common.Cluster) (map[string]string, error) {
 	mgr.log.Info("Creating LSO Manifests")
 	return lso.Manifests(cluster.OpenshiftVersion)
 }
 
-func (mgr *Manager) generateOcsManifests(cluster *common.Cluster) (map[string]string, error) {
+func (mgr *Manager) generateOCSManifests(cluster *common.Cluster) (map[string]string, error) {
 	mgr.log.Info("Creating OCS Manifests")
 	return ocs.Manifests(mgr.ocsValidatorConfig.OCSMinimalDeployment, cluster.OpenshiftVersion, mgr.ocsValidatorConfig.OCSDisksAvailable, len(cluster.Cluster.Hosts))
 }
 
-func (mgr *Manager) checkLsoEnabled(cluster *common.Cluster) bool {
+func (mgr *Manager) checkLSOEnabled(cluster *common.Cluster) bool {
 	return isEnabled(cluster, models.OperatorTypeLso)
 }
 
-func (mgr *Manager) checkOcsEnabled(cluster *common.Cluster) bool {
+func (mgr *Manager) checkOCSEnabled(cluster *common.Cluster) bool {
 	return isEnabled(cluster, models.OperatorTypeOcs)
 }
 
