@@ -9,8 +9,8 @@ import (
 )
 
 type Config struct {
-	ConcurrentEdits  int    `envconfig:"CONCURRENT_EDITS" default:"10"`
-	WorkspaceBaseDir string `envconfig:"WORKSPACE_BASE_DIR" default:""`
+	ConcurrentEdits  int    `envconfig:"CONCURRENT_ISO_EDITS" default:"10"`
+	WorkspaceBaseDir string `envconfig:"ISO_WORKSPACE_BASE_DIR" default:""`
 }
 
 type EditFunc func(myEditor Editor) error
