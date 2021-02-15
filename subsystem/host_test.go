@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
+	serviceHost "github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -37,9 +38,6 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-	})
-
-	JustBeforeEach(func() {
 		clusterID = *cluster.GetPayload().ID
 	})
 
@@ -404,6 +402,131 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+	})
+
+	Context("image availability", func() {
+
+		var (
+			h           *models.Host
+			imageStatus *models.ContainerImageAvailability
+		)
+
+		BeforeEach(func() {
+			h = &registerHost(clusterID).Host
+		})
+
+		getHostImageStatus := func(hostID strfmt.UUID, imageName string) *models.ContainerImageAvailability {
+			hostInDb := getHost(clusterID, hostID)
+
+			var hostImageStatuses map[string]*models.ContainerImageAvailability
+			Expect(json.Unmarshal([]byte(hostInDb.ImagesStatus), &hostImageStatuses)).ShouldNot(HaveOccurred())
+
+			return hostImageStatuses[imageName]
+		}
+
+		It("First success good bandwidth", func() {
+			By("pull success", func() {
+				imageStatus = common.TestImageStatusesSuccess
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{imageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationSuccess), models.HostValidationIDContainerImagesAvailable)
+			})
+
+			By("network failure", func() {
+				newImageStatus := common.TestImageStatusesFailure
+				expectedImageStatus := &models.ContainerImageAvailability{
+					Name:         newImageStatus.Name,
+					Result:       newImageStatus.Result,
+					DownloadRate: imageStatus.DownloadRate,
+					SizeBytes:    imageStatus.SizeBytes,
+					Time:         imageStatus.Time,
+				}
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+			})
+
+			By("network fixed", func() {
+				newImageStatus := &models.ContainerImageAvailability{
+					Name:   imageStatus.Name,
+					Result: models.ContainerImageAvailabilityResultSuccess,
+				}
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationSuccess), models.HostValidationIDContainerImagesAvailable)
+			})
+		})
+
+		It("First success bad bandwidth", func() {
+			By("pull success", func() {
+				imageStatus = common.TestImageStatusesSuccess
+				imageStatus.DownloadRate = 0.000001
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{imageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+			})
+
+			By("network failure", func() {
+				newImageStatus := common.TestImageStatusesFailure
+				expectedImageStatus := &models.ContainerImageAvailability{
+					Name:         newImageStatus.Name,
+					Result:       newImageStatus.Result,
+					DownloadRate: imageStatus.DownloadRate,
+					SizeBytes:    imageStatus.SizeBytes,
+					Time:         imageStatus.Time,
+				}
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+			})
+
+			By("network fixed", func() {
+				newImageStatus := &models.ContainerImageAvailability{
+					Name:   imageStatus.Name,
+					Result: models.ContainerImageAvailabilityResultSuccess,
+				}
+				expectedImageStatus := &models.ContainerImageAvailability{
+					Name:         newImageStatus.Name,
+					Result:       newImageStatus.Result,
+					DownloadRate: imageStatus.DownloadRate,
+					SizeBytes:    imageStatus.SizeBytes,
+					Time:         imageStatus.Time,
+				}
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+			})
+		})
+
+		It("First failure", func() {
+			By("pull failed", func() {
+				imageStatus = common.TestImageStatusesFailure
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{imageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationFailure), models.HostValidationIDContainerImagesAvailable)
+			})
+			By("network fixed", func() {
+				newImageStatus := common.TestImageStatusesSuccess
+				expectedImageStatus := &models.ContainerImageAvailability{
+					Name:         newImageStatus.Name,
+					Result:       newImageStatus.Result,
+					DownloadRate: imageStatus.DownloadRate,
+					SizeBytes:    imageStatus.SizeBytes,
+					Time:         imageStatus.Time,
+				}
+
+				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{newImageStatus})
+				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(expectedImageStatus))
+				waitForHostValidationStatus(clusterID, *h.ID, string(serviceHost.ValidationSuccess), models.HostValidationIDContainerImagesAvailable)
+			})
+		})
 	})
 
 	It("disable enable", func() {

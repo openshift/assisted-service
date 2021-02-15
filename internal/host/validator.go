@@ -589,7 +589,7 @@ func (v *validator) areImagesAvailable(c *validationContext) ValidationStatus {
 
 	for _, imageStatus := range imageStatuses {
 		if imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
-			imageStatus.DownloadRate < ImageStatusDownloadRateThreshold {
+			(imageStatus.SizeBytes > 0 && imageStatus.DownloadRate < ImageStatusDownloadRateThreshold) {
 			return ValidationFailure
 		}
 	}
