@@ -157,7 +157,7 @@ _verify_cluster:
 	$(KUBECTL) cluster-info
 
 _verify_minikube:
-	minikube update-context
+	minikube -p $(PROFILE) update-context
 	minikube status
 
 deploy-all: $(BUILD_FOLDER) $(VERIFY_CLUSTER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
