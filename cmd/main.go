@@ -301,7 +301,7 @@ func main() {
 	Options.BMConfig.S3EndpointURL = newUrl
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, lead, pullSecretValidator,
+		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
 		versionHandler, isoEditorFactory)
 
 	deletionWorker := thread.New(

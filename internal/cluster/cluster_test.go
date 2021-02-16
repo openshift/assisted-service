@@ -2250,3 +2250,46 @@ var _ = Describe("Get cluster by Kube key", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
+
+var _ = Describe("Update AMS subscription ID", func() {
+
+	var (
+		ctrl          *gomock.Controller
+		ctx           = context.Background()
+		db            *gorm.DB
+		dbName        = "update_ams_subscription_id"
+		eventsHandler events.Handler
+		api           API
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName, &events.Event{})
+		eventsHandler = events.New(db, logrus.New())
+		api = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("Update AMS subscription ID", func() {
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterID,
+			},
+		}
+		err := api.RegisterCluster(ctx, &c)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		subID := strfmt.UUID(uuid.New().String())
+		err = api.UpdateAmsSubscriptionID(ctx, clusterID, subID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		c = getCluster(*c.ID, db)
+		Expect(c.AmsSubscriptionID).To(Equal(subID))
+	})
+})

@@ -21,6 +21,7 @@ type Client struct {
 
 	Authentication OCMAuthentication
 	Authorization  OCMAuthorization
+	AccountsMgmt   OCMAccountsMgmt
 }
 
 type Config struct {
@@ -93,6 +94,9 @@ func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*
 	client.Authorization = &authorization{
 		client: client,
 	}
+	client.AccountsMgmt = &accountsMgmt{
+		client: client,
+	}
 	return client, nil
 }
 
@@ -101,7 +105,7 @@ func (c *Client) newConnection() error {
 		Logger(c.logger).
 		URL(c.config.BaseURL).
 		TokenURL(c.config.TokenURL).
-		Metrics("api_outbound")
+		MetricsSubsystem("api_outbound")
 
 	if c.config.ClientID != "" && c.config.ClientSecret != "" {
 		builder = builder.Client(c.config.ClientID, c.config.ClientSecret)

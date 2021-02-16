@@ -54,12 +54,12 @@ var _ = Describe("Authz email domain", func() {
 		{
 			name:           "Invalid email address",
 			email:          "foobar",
-			expectedDomain: UnknownEmailDomain,
+			expectedDomain: ocm.UnknownEmailDomain,
 		},
 		{
 			name:           "Empty value",
 			email:          "",
-			expectedDomain: UnknownEmailDomain,
+			expectedDomain: ocm.UnknownEmailDomain,
 		},
 	}
 
@@ -70,7 +70,7 @@ var _ = Describe("Authz email domain", func() {
 			payload.Email = tt.email
 			ctx := context.Background()
 			ctx = context.WithValue(ctx, restapi.AuthKey, payload)
-			domain := EmailDomainFromContext(ctx)
+			domain := ocm.EmailDomainFromContext(ctx)
 			Expect(domain).To(Equal(tt.expectedDomain))
 		})
 	}

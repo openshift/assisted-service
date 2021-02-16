@@ -547,3 +547,17 @@ func (mr *MockAPIMockRecorder) GetClusterByKubeKey(key interface{}) *gomock.Call
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterByKubeKey", reflect.TypeOf((*MockAPI)(nil).GetClusterByKubeKey), key)
 }
+
+// UpdateAmsSubscriptionID mocks base method
+func (m *MockAPI) UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateAmsSubscriptionID", ctx, clusterID, amsSubscriptionID)
+	ret0, _ := ret[0].(*common.ApiErrorResponse)
+	return ret0
+}
+
+// UpdateAmsSubscriptionID indicates an expected call of UpdateAmsSubscriptionID
+func (mr *MockAPIMockRecorder) UpdateAmsSubscriptionID(ctx, clusterID, amsSubscriptionID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAmsSubscriptionID", reflect.TypeOf((*MockAPI)(nil).UpdateAmsSubscriptionID), ctx, clusterID, amsSubscriptionID)
+}
