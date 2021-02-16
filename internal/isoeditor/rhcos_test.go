@@ -109,14 +109,20 @@ var _ = Context("with test files", func() {
 			err := isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = editor.(*rhcosEditor).addCustomRAMDisk("staticipconfig")
+			clusterProxyInfo := ClusterProxyInfo{
+				HTTPProxy:  "http://10.10.1.1:3128",
+				HTTPSProxy: "https://10.10.1.1:3128",
+				NoProxy:    "quay.io",
+			}
+
+			err = editor.(*rhcosEditor).addCustomRAMDisk("staticipconfig", &clusterProxyInfo)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("checking that the files are present in the archive")
 			f, err := os.Open(isoHandler.ExtractedPath("images/assisted_installer_custom.img"))
 			Expect(err).ToNot(HaveOccurred())
 
-			var configContent, scriptContent string
+			var configContent, scriptContent, rootfsServiceConfigContent string
 			r := cpio.NewReader(f)
 			for {
 				hdr, err := r.Next()
@@ -133,11 +139,20 @@ var _ = Context("with test files", func() {
 					scriptBytes, err := ioutil.ReadAll(r)
 					Expect(err).ToNot(HaveOccurred())
 					scriptContent = string(scriptBytes)
+				case "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf":
+					rootfsServiceConfigBytes, err := ioutil.ReadAll(r)
+					Expect(err).ToNot(HaveOccurred())
+					rootfsServiceConfigContent = string(rootfsServiceConfigBytes)
 				}
 			}
 
 			Expect(configContent).To(Equal("staticipconfig"))
 			Expect(scriptContent).To(Equal(constants.ConfigStaticIpsScript))
+
+			rootfsServiceConfig := fmt.Sprintf(
+				"[Service]\nEnvironment=http_proxy=%s\nEnvironment=https_proxy=%s\nEnvironment=no_proxy=%s",
+				clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
+			Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 
 			By("checking that the config files were edited correctly")
 			grubLine := "	initrd /images/pxeboot/initrd.img /images/ignition.img /images/assisted_installer_custom.img"

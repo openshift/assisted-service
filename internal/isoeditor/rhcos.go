@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"text/template"
 
 	"github.com/cavaliercoder/go-cpio"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -17,10 +18,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -package=isoeditor -destination=mock_editor.go . Editor
+const rootfsServiceConfigFormat = `[Service]
+Environment=http_proxy={{.HTTP_PROXY}}
+Environment=https_proxy={{.HTTPS_PROXY}}
+Environment=no_proxy={{.NO_PROXY}}`
+
+type ClusterProxyInfo struct {
+	HTTPProxy  string
+	HTTPSProxy string
+	NoProxy    string
+}
+
+//go:generate mockgen -package=isoeditor -destination=mock_editor.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
-	CreateClusterMinimalISO(ignition string, staticIPConfig string) (string, error)
+	CreateClusterMinimalISO(ignition string, staticIPConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error)
 }
 
 type rhcosEditor struct {
@@ -67,7 +79,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 	return e.create()
 }
 
-func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig string) (string, error) {
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error) {
 	if err := e.isoHandler.Extract(); err != nil {
 		return "", errors.Wrap(err, "failed to extract iso")
 	}
@@ -81,8 +93,8 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig st
 		return "", errors.Wrap(err, "failed to add ignition archive")
 	}
 
-	if staticIPConfig != "" {
-		if err := e.addCustomRAMDisk(staticIPConfig); err != nil {
+	if staticIPConfig != "" || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
+		if err := e.addCustomRAMDisk(staticIPConfig, clusterProxyInfo); err != nil {
 			return "", errors.Wrap(err, "failed to add additional ramdisk")
 		}
 	}
@@ -99,23 +111,35 @@ func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
 	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644) //nolint:gosec
 }
 
-func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string) error {
-	configPath := "/etc/static_ips_config.csv"
-	scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-static-ip-config.sh"
-	scriptContent := constants.ConfigStaticIpsScript
+func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string, clusterProxyInfo *ClusterProxyInfo) error {
 	imagePath := "/images/assisted_installer_custom.img"
-
 	f, err := os.Create(e.isoHandler.ExtractedPath(imagePath))
 	if err != nil {
 		return err
 	}
 
 	w := cpio.NewWriter(f)
-	if err = addFileToArchive(w, configPath, staticIPConfig, 0o664); err != nil {
-		return err
+	if staticIPConfig != "" {
+		configPath := "/etc/static_ips_config.csv"
+		scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-static-ip-config.sh"
+		scriptContent := constants.ConfigStaticIpsScript
+
+		if err = addFileToArchive(w, configPath, staticIPConfig, 0o664); err != nil {
+			return err
+		}
+		if err = addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
+			return err
+		}
 	}
-	if err = addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
-		return err
+	if clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
+		rootfsServiceConfigPath := "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf"
+		rootfsServiceConfig, err1 := e.formatRootfsServiceConfigFile(clusterProxyInfo)
+		if err1 != nil {
+			return err1
+		}
+		if err = addFileToArchive(w, rootfsServiceConfigPath, rootfsServiceConfig, 0o664); err != nil {
+			return err
+		}
 	}
 	if err = w.Close(); err != nil {
 		return err
@@ -127,6 +151,23 @@ func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string) error {
 		return err
 	}
 	return editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), `(?m)^(\s+append.*initrd=\S+) (.*)$`, fmt.Sprintf("${1},%s ${2}", imagePath))
+}
+
+func (e *rhcosEditor) formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
+	var rootfsServicConfigParams = map[string]string{
+		"HTTP_PROXY":  clusterProxyInfo.HTTPProxy,
+		"HTTPS_PROXY": clusterProxyInfo.HTTPSProxy,
+		"NO_PROXY":    clusterProxyInfo.NoProxy,
+	}
+	tmpl, err := template.New("rootfsServiceConfig").Parse(rootfsServiceConfigFormat)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, rootfsServicConfigParams); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func addFileToArchive(w *cpio.Writer, path string, content string, mode cpio.FileMode) error {

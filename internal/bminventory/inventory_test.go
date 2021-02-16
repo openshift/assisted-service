@@ -553,7 +553,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return(isoFilePath, nil)
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return(isoFilePath, nil)
 
 			stubWithEditor(mockIsoEditorFactory, editor, cluster.OpenshiftVersion)
 
@@ -587,7 +587,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			// Generate minimal-iso
 			editor := isoeditor.NewMockEditor(ctrl)
 			stubWithEditor(mockIsoEditorFactory, editor, cluster.OpenshiftVersion)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return(isoFilePath, nil)
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return(isoFilePath, nil)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
@@ -643,7 +643,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			stubWithEditor(mockIsoEditorFactory, editor, cluster.OpenshiftVersion)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return("", errors.New(expectedErrMsg))
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return("", errors.New(expectedErrMsg))
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -658,7 +658,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			editor := isoeditor.NewMockEditor(ctrl)
 			stubWithEditor(mockIsoEditorFactory, editor, cluster.OpenshiftVersion)
-			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "").Return(isoFilePath, nil)
+			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return(isoFilePath, nil)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID)).Return(errors.New(expectedErrMsg))
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
