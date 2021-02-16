@@ -534,7 +534,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 		}
 
 		m.log.Infof("Updating image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
-		hostImageStatuses[newImageStatus.Name] = newImageStatus
+		hostImageStatuses[newImageStatus.Name].Result = newImageStatus.Result
 	} else {
 		m.log.Infof("Adding new image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
 		hostImageStatuses[newImageStatus.Name] = newImageStatus
