@@ -1046,7 +1046,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
-		return &cluster, nil
+		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 	}
 	ignitionConfig, formatErr := b.formatIgnitionFile(&cluster, params, log, false)
 	if formatErr != nil {
@@ -1110,7 +1110,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	msg = fmt.Sprintf("%s (%s)", msg, strings.Join(msgExtras, ", "))
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
-	return &cluster, nil
+	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 }
 
 func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
