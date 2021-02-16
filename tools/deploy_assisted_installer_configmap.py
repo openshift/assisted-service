@@ -80,7 +80,7 @@ def main():
             if deploy_tag:
                 versions["RELEASE_TAG"] = deploy_tag
 
-            y = yaml.load(data)
+            y = yaml.safe_load(data)
             y['data'].update(versions)
 
             if deploy_options.installation_timeout:
