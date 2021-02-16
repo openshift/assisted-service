@@ -591,20 +591,27 @@ func createControllerManager() (manager.Manager, error) {
 	return nil, nil
 }
 
-func newAssistedServiceRoute(namespace string) *routev1.Route {
-	name := "assisted-service"
+func newAssistedServiceRoute(service *corev1.Service) *routev1.Route {
 	return &routev1.Route{
 		TypeMeta: metav1.TypeMeta{},
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-			Labels:    map[string]string{"app": name}},
+			Name:      service.Name,
+			Namespace: service.Namespace,
+			Labels:    map[string]string{"app": service.Name},
+			OwnerReferences: []metav1.OwnerReference{
+				{
+					APIVersion: "v1",
+					Kind:       "Service",
+					Name:       service.Name,
+					UID:        service.UID,
+				},
+			}},
 		Spec: routev1.RouteSpec{
 			Port: &routev1.RoutePort{
-				TargetPort: intstr.FromString(name)},
+				TargetPort: intstr.FromString(service.Name)},
 			To: routev1.RouteTargetReference{
 				Kind: "Service",
-				Name: name},
+				Name: service.Name},
 			TLS: &routev1.TLSConfig{
 				Termination:                   routev1.TLSTerminationEdge,
 				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyAllow}},
@@ -622,8 +629,14 @@ func createRouteAndUpdateServiceBaseURL(log logrus.FieldLogger, failOnError func
 	failOnError(err, "failed to create controller-runtime client")
 
 	ctx := context.Background()
+
+	serviceName := "assisted-service"
+	namespace := "assisted-installer"
+	foundService := &corev1.Service{}
+	failOnError(client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: namespace}, foundService), "failed to get service")
+
 	found := &routev1.Route{}
-	route := newAssistedServiceRoute("assisted-installer")
+	route := newAssistedServiceRoute(foundService)
 	err = client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: route.Namespace}, found)
 	if err != nil && apiErrors.IsNotFound(err) {
 		log.Info("Creating Route ", "Namespace ", route.Namespace, " Name ", route.Name)
@@ -639,7 +652,7 @@ func createRouteAndUpdateServiceBaseURL(log logrus.FieldLogger, failOnError func
 	}
 
 	assistedServiceConfigMap := &corev1.ConfigMap{}
-	err = client.Get(ctx, types.NamespacedName{Name: "assisted-service-config", Namespace: "assisted-installer"}, assistedServiceConfigMap)
+	err = client.Get(ctx, types.NamespacedName{Name: "assisted-service-config", Namespace: namespace}, assistedServiceConfigMap)
 	if err != nil {
 		log.WithError(err).Error("Get assisted service ConfigMap failed")
 	}
