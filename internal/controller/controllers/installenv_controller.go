@@ -23,6 +23,11 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/common"
+	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi/operations/installer"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -35,21 +40,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
-
-	"github.com/openshift/assisted-service/internal/bminventory"
-	"github.com/openshift/assisted-service/internal/common"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
-	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/restapi/operations/installer"
-)
-
-const (
-	ImageCreated       = "ImageCreated"
-	ImageBeingCreated  = "ImageBeingCreated"
-	ImageCreationError = "ImageCreationError"
 )
 
 type ImageState struct {
+	Status    corev1.ConditionStatus
 	State     string
 	StateInfo string
 }
@@ -83,7 +77,8 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 	var imageInfo *models.ImageInfo
 	var updatedCluster *common.Cluster
 	imageState := ImageState{
-		State:     ImageCreationError,
+		Status:    corev1.ConditionUnknown,
+		State:     adiiov1alpha1.ImageCreatedReason,
 		StateInfo: adiiov1alpha1.ImageStateFailedToCreate,
 	}
 
@@ -121,12 +116,15 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 		if len(installEnv.Spec.SSHAuthorizedKeys) > 0 {
 			isoParams.ImageCreateParams.SSHPublicKey = installEnv.Spec.SSHAuthorizedKeys[0]
 		}
+		// GenerateClusterISOInternal will generate an ISO only if there it was not generated before,
+		// or something has changed in isoParams.
 		updatedCluster, inventoryErr = r.Installer.GenerateClusterISOInternal(ctx, isoParams)
 	}
 
 	if inventoryErr == nil {
 		imageInfo = updatedCluster.ImageInfo
-		imageState.State = ImageBeingCreated
+		imageState.Status = corev1.ConditionTrue
+		imageState.State = adiiov1alpha1.ImageCreatedReason
 		imageState.StateInfo = adiiov1alpha1.ImageStateCreated
 	}
 
@@ -143,25 +141,30 @@ func (r *InstallEnvReconciler) updateStatusAndReturnResult(
 	var res ctrl.Result
 
 	if imageBeingCreated(err) {
-		imageState.State = ImageCreated
+		imageState.Status = corev1.ConditionTrue
+		imageState.State = adiiov1alpha1.ImageCreatedReason
 		imageState.StateInfo = adiiov1alpha1.ImageStateCreated
 		// Clear up the error stateInfo while installEnv is being created
 		err = nil
 		r.Log.Infof("Image %s being prepared for cluster %s stateInfo: %s",
 			installEnv.Name, installEnv.ClusterName, imageState.StateInfo)
 	} else if isClientError(err) {
-		imageState.State = ImageCreationError
+		imageState.Status = corev1.ConditionFalse
+		imageState.State = adiiov1alpha1.ImageCreationErrorReason
 		imageState.StateInfo += ": " + err.Error()
 	} else if err != nil {
-		imageState.State = ImageCreationError
+		imageState.Status = corev1.ConditionFalse
+		imageState.State = adiiov1alpha1.ImageCreationErrorReason
 		imageState.StateInfo += ": internal error"
 		res.Requeue = true
 	}
-	r.setStateAndStateInfo(adiiov1alpha1.ImageProgressCondition, imageState, installEnv)
+	r.setStateAndStateInfo(adiiov1alpha1.ImageCreatedCondition, imageState, installEnv)
 
 	if err == nil && imageInfo != nil {
 		installEnv.Status.ISODownloadURL = imageInfo.DownloadURL
 	} else if err != nil {
+		// In a case of an error, clear the download URL.
+		installEnv.Status.ISODownloadURL = ""
 		r.Log.WithError(err).Error("installEnv reconcile failed")
 	}
 
@@ -178,7 +181,7 @@ func (r *InstallEnvReconciler) setStateAndStateInfo(conditionType adiiov1alpha1.
 	imageState ImageState, installEnv *adiiov1alpha1.InstallEnv) {
 	r.setCondition(adiiov1alpha1.InstallEnvCondition{
 		Type:               conditionType,
-		Status:             corev1.ConditionUnknown,
+		Status:             imageState.Status,
 		LastProbeTime:      metav1.Time{Time: time.Now()},
 		LastTransitionTime: metav1.Time{Time: time.Now()},
 		Reason:             imageState.State,

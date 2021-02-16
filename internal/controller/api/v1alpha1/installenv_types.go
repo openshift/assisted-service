@@ -22,7 +22,9 @@ import (
 )
 
 const (
+	ImageCreatedReason       = "ImageCreated"
 	ImageStateCreated        = "Image has been created"
+	ImageCreationErrorReason = "ImageCreationError"
 	ImageStateFailedToCreate = "Failed to create image"
 )
 
@@ -41,7 +43,7 @@ type ClusterReference struct {
 type InstallEnvConditionType string
 
 const (
-	ImageProgressCondition InstallEnvConditionType = "ImageProgress"
+	ImageCreatedCondition InstallEnvConditionType = "ImageCreated"
 )
 
 // InstallEnvCondition contains details for the current condition of a install environment
