@@ -154,13 +154,13 @@ func (g *installerGenerator) createManifestDirectory(installerPath string, envVa
 	return nil
 }
 
-func writeManifests(workDir string, manifests map[string]string, log logrus.FieldLogger) error {
-	manifestDirPath := filepath.Join(workDir, "manifests")
+func (g *installerGenerator) writeManifests(manifests map[string]string) error {
+	manifestDirPath := filepath.Join(g.workDir, "manifests")
 	for name, manifest := range manifests {
 		manifestPath := filepath.Join(manifestDirPath, name)
 		err := ioutil.WriteFile(manifestPath, []byte(manifest), 0600)
 		if err != nil {
-			log.Errorf("Failed to write file %s %s", manifestPath, name)
+			g.log.Errorf("Failed to write file %s %s", manifestPath, name)
 			return err
 		}
 	}
@@ -181,7 +181,7 @@ func (g *installerGenerator) writeOperatorManifests(installerPath string, envVar
 		return err
 	}
 
-	err = writeManifests(g.workDir, operatorManifests, g.log)
+	err = g.writeManifests(operatorManifests)
 	if err != nil {
 		g.log.Error(err)
 		return err
