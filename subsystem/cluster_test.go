@@ -2792,6 +2792,11 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	})
 
 	Expect(err).NotTo(HaveOccurred())
+
+	for _, host := range hosts {
+		waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+	}
+
 	waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
 
 	return hosts
