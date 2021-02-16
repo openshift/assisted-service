@@ -149,8 +149,10 @@ var _ = Context("with test files", func() {
 			Expect(configContent).To(Equal("staticipconfig"))
 			Expect(scriptContent).To(Equal(constants.ConfigStaticIpsScript))
 
-			rootfsServiceConfig := fmt.Sprintf(
-				"[Service]\nEnvironment=http_proxy=%s\nEnvironment=https_proxy=%s\nEnvironment=no_proxy=%s",
+			rootfsServiceConfig := fmt.Sprintf("[Service]\n"+
+				"Environment=http_proxy=%s\nEnvironment=https_proxy=%s\nEnvironment=no_proxy=%s\n"+
+				"Environment=HTTP_PROXY=%s\nEnvironment=HTTPS_PROXY=%s\nEnvironment=NO_PROXY=%s",
+				clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy,
 				clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
 			Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 
