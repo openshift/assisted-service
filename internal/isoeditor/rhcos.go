@@ -64,11 +64,6 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 	if err := e.isoHandler.Extract(); err != nil {
 		return "", err
 	}
-	defer func() {
-		if err := e.isoHandler.CleanWorkDir(); err != nil {
-			e.log.WithError(err).Warnf("Failed to clean isoHandler work dir")
-		}
-	}()
 
 	if err := os.Remove(e.isoHandler.ExtractedPath("images/pxeboot/rootfs.img")); err != nil {
 		return "", err
@@ -87,11 +82,6 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig st
 	if err := e.isoHandler.Extract(); err != nil {
 		return "", errors.Wrap(err, "failed to extract iso")
 	}
-	defer func() {
-		if err := e.isoHandler.CleanWorkDir(); err != nil {
-			e.log.WithError(err).Warnf("Failed to clean isoHandler work dir")
-		}
-	}()
 
 	if err := e.addIgnitionArchive(ignition); err != nil {
 		return "", errors.Wrap(err, "failed to add ignition archive")

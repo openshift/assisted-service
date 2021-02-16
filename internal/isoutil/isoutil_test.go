@@ -24,11 +24,11 @@ var _ = Context("with test files", func() {
 		filesDir string
 		volumeID = "Assisted123"
 	)
-	BeforeSuite(func() {
+	BeforeEach(func() {
 		filesDir, isoDir, isoFile = createIsoViaGenisoimage(volumeID)
 	})
 
-	AfterSuite(func() {
+	AfterEach(func() {
 		os.RemoveAll(filesDir)
 		os.RemoveAll(isoDir)
 	})

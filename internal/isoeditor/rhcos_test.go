@@ -68,6 +68,11 @@ var _ = Context("with test files", func() {
 			editor := editorForFile(isoFile, workDir)
 			file, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
+
+			// Creating the template should remove the working directory
+			_, err = os.Stat(workDir)
+			Expect(os.IsNotExist(err)).To(BeTrue())
+
 			os.Remove(file)
 		})
 
@@ -75,6 +80,21 @@ var _ = Context("with test files", func() {
 			editor := editorForFile("invalid", workDir)
 			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("CreateClusterMinimalISO", func() {
+		It("removes the workspace", func() {
+			editor := editorForFile(isoFile, workDir)
+			proxyInfo := &ClusterProxyInfo{}
+			file, err := editor.CreateClusterMinimalISO("ignition", "", proxyInfo)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Creating the template should remove the working directory
+			_, err = os.Stat(workDir)
+			Expect(os.IsNotExist(err)).To(BeTrue())
+
+			os.Remove(file)
 		})
 	})
 
