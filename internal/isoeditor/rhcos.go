@@ -21,7 +21,10 @@ import (
 const rootfsServiceConfigFormat = `[Service]
 Environment=http_proxy={{.HTTP_PROXY}}
 Environment=https_proxy={{.HTTPS_PROXY}}
-Environment=no_proxy={{.NO_PROXY}}`
+Environment=no_proxy={{.NO_PROXY}}
+Environment=HTTP_PROXY={{.HTTP_PROXY}}
+Environment=HTTPS_PROXY={{.HTTPS_PROXY}}
+Environment=NO_PROXY={{.NO_PROXY}}`
 
 type ClusterProxyInfo struct {
 	HTTPProxy  string
