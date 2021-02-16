@@ -532,6 +532,27 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	return installer.NewRegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
+func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.RegisterClusterParams) installer.RegisterClusterParams {
+
+	if params.NewClusterParams.ClusterNetworkCidr == nil {
+		params.NewClusterParams.ClusterNetworkCidr = &b.Config.DefaultClusterNetworkCidr
+	}
+	if params.NewClusterParams.ClusterNetworkHostPrefix == 0 {
+		params.NewClusterParams.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
+	}
+	if params.NewClusterParams.ServiceNetworkCidr == nil {
+		params.NewClusterParams.ServiceNetworkCidr = &b.Config.DefaultServiceNetworkCidr
+	}
+	if params.NewClusterParams.VipDhcpAllocation == nil {
+		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
+	}
+	if params.NewClusterParams.UserManagedNetworking == nil {
+		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
+	}
+
+	return params
+}
+
 func (b *bareMetalInventory) RegisterClusterInternal(
 	ctx context.Context,
 	kubeKey *types.NamespacedName,
@@ -558,27 +579,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
 		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
 	}
+
 	if err := validateProxySettings(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
 		params.NewClusterParams.NoProxy); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if params.NewClusterParams.ClusterNetworkCidr == nil {
-		params.NewClusterParams.ClusterNetworkCidr = &b.Config.DefaultClusterNetworkCidr
-	}
-	if params.NewClusterParams.ClusterNetworkHostPrefix == 0 {
-		params.NewClusterParams.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
-	}
-	if params.NewClusterParams.ServiceNetworkCidr == nil {
-		params.NewClusterParams.ServiceNetworkCidr = &b.Config.DefaultServiceNetworkCidr
-	}
-	if params.NewClusterParams.VipDhcpAllocation == nil {
-		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
-	}
-	if params.NewClusterParams.UserManagedNetworking == nil {
-		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
-	}
+	params = b.setDefaultRegisterClusterParams(ctx, params)
 
 	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
 		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
