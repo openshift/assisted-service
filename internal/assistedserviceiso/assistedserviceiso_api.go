@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
@@ -64,7 +65,7 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 
 	pullSecret := params.AssistedServiceIsoCreateParams.PullSecret
 	if pullSecret != "" {
-		err := a.pullSecretValidator.ValidatePullSecret(pullSecret, auth.UserNameFromContext(ctx), a.authHandler)
+		err := a.pullSecretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), a.authHandler)
 		if err != nil {
 			log.WithError(err).Errorf("Pull-secret for Assisted Service ISO has invalid format")
 			return assisted_service_iso.NewCreateISOAndUploadToS3BadRequest().
@@ -88,7 +89,7 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 
 	ignitionConfig := reIgnition.Replace(ignitionConfigSource)
 
-	username := auth.UserNameFromContext(ctx)
+	username := ocm.UserNameFromContext(ctx)
 	srcISOName, err := a.objectHandler.GetBaseIsoObject(params.AssistedServiceIsoCreateParams.OpenshiftVersion)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to get source object name for ocp version %s", params.AssistedServiceIsoCreateParams.OpenshiftVersion)
@@ -110,7 +111,7 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 func (a *assistedServiceISOApi) DownloadISO(ctx context.Context, params assisted_service_iso.DownloadISOParams) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
 
-	username := auth.UserNameFromContext(ctx)
+	username := ocm.UserNameFromContext(ctx)
 	isoName := fmt.Sprintf("%s%s.iso", imgexpirer.AssistedServiceLiveISOPrefix, username)
 
 	reader, contentLength, err := a.objectHandler.Download(ctx, isoName)
@@ -135,7 +136,7 @@ func (a *assistedServiceISOApi) GetPresignedForAssistedServiceISO(ctx context.Co
 		return common.NewApiError(http.StatusBadRequest, errors.New("Failed to generate presigned URL: invalid backend"))
 	}
 
-	username := auth.UserNameFromContext(ctx)
+	username := ocm.UserNameFromContext(ctx)
 	isoName := fmt.Sprintf("%s%s", imgexpirer.AssistedServiceLiveISOPrefix, username)
 	isoNameWithExtension := fmt.Sprintf("%s%s", isoName, ".iso")
 

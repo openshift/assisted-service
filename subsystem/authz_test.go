@@ -5,14 +5,10 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
-	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
 )
 
 const psTemplate = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"%s\",\"email\":\"r@r.com\"}}}"
@@ -71,7 +67,8 @@ var _ = Describe("test authorization", func() {
 			Skip("auth is disabled")
 		}
 
-		userClusterID = registerCluster(ctx, userBMClient, "user-cluster", fmt.Sprintf(psTemplate, FakePS))
+		userClusterID, err = registerCluster(ctx, userBMClient, "user-cluster", fmt.Sprintf(psTemplate, FakePS))
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -118,15 +115,3 @@ var _ = Describe("test authorization", func() {
 		})
 	})
 })
-
-func registerCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string) strfmt.UUID {
-	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
-		NewClusterParams: &models.ClusterCreateParams{
-			Name:             swag.String(clusterName),
-			OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-			PullSecret:       swag.String(pullSecret),
-		},
-	})
-	Expect(err).ShouldNot(HaveOccurred())
-	return *cluster.GetPayload().ID
-}

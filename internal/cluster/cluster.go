@@ -92,6 +92,7 @@ type API interface {
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
 	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
+	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 }
 
 type PrepareConfig struct {
@@ -466,6 +467,15 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, c *common.Cluster, 
 		return common.NewApiError(http.StatusConflict, err)
 	}
 
+	return nil
+}
+
+func (m *Manager) UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse {
+	log := logutil.FromContext(ctx, m.log)
+	if err := m.db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("ams_subscription_id", amsSubscriptionID).Error; err != nil {
+		log.WithError(err).Errorf("Failed to patch DB with AMS subscription ID for cluster %v", clusterID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
 	return nil
 }
 
