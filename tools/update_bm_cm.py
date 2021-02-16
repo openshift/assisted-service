@@ -28,7 +28,7 @@ def read_yaml():
     if not os.path.exists(CM_PATH):
         return
     with open(CM_PATH, "r+") as cm_file:
-        return yaml.load(cm_file)
+        return yaml.safe_load(cm_file)
 
 
 def get_relevant_envs():

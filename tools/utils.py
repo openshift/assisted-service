@@ -226,7 +226,7 @@ def get_config_value(key, cfg):
 
 def get_yaml_field(field, yaml_path):
     with open(yaml_path) as yaml_file:
-        manifest = yaml.load(yaml_file)
+        manifest = yaml.safe_load(yaml_file)
         _field = get_config_value(field, manifest)
 
     return _field
