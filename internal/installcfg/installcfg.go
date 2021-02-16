@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -43,6 +42,10 @@ type platform struct {
 type platformNone struct {
 }
 
+type bootstrapInPlace struct {
+	InstallationDisk string `yaml:"installationDisk,omitempty"`
+}
+
 type proxy struct {
 	HTTPProxy  string `yaml:"httpProxy,omitempty"`
 	HTTPSProxy string `yaml:"httpsProxy,omitempty"`
@@ -77,11 +80,12 @@ type InstallerConfigBaremetal struct {
 		Name           string `yaml:"name"`
 		Replicas       int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
-	Platform              platform `yaml:"platform"`
-	FIPS                  bool     `yaml:"fips"`
-	PullSecret            string   `yaml:"pullSecret"`
-	SSHKey                string   `yaml:"sshKey"`
-	AdditionalTrustBundle string   `yaml:"additionalTrustBundle,omitempty"`
+	Platform              platform         `yaml:"platform"`
+	BootstrapInPlace      bootstrapInPlace `yaml:"bootstrapInPlace"`
+	FIPS                  bool             `yaml:"fips"`
+	PullSecret            string           `yaml:"pullSecret"`
+	SSHKey                string           `yaml:"sshKey"`
+	AdditionalTrustBundle string           `yaml:"additionalTrustBundle,omitempty"`
 	ImageContentSources   []struct {
 		Mirrors []string `yaml:"mirrors"`
 		Source  string   `yaml:"source"`
@@ -295,35 +299,6 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 	return nil
 }
 
-func getBootstrapMachineNetwork(cluster *common.Cluster) string {
-	for _, host := range cluster.Hosts {
-		if host.Bootstrap {
-			var inventory models.Inventory
-			err := json.Unmarshal([]byte(host.Inventory), &inventory)
-			if err != nil {
-				return ""
-			}
-			for _, intf := range inventory.Interfaces {
-				for _, addr := range intf.IPV4Addresses {
-					_, ipnet, err := net.ParseCIDR(addr)
-					if err != nil {
-						continue
-					}
-					return ipnet.String()
-				}
-				for _, addr := range intf.IPV6Addresses {
-					_, ipnet, err := net.ParseCIDR(addr)
-					if err != nil {
-						continue
-					}
-					return ipnet.String()
-				}
-			}
-		}
-	}
-	return ""
-}
-
 func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) (*InstallerConfigBaremetal, error) {
 	cfg := getBasicInstallConfig(log, cluster)
 	if swag.BoolValue(cluster.UserManagedNetworking) {
@@ -332,7 +307,7 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			None:      &platformNone{},
 		}
 
-		bootstrapCidr := getBootstrapMachineNetwork(cluster)
+		_, bootstrapCidr := common.GetBootstrapMachineNetworkAndIp(cluster)
 		if bootstrapCidr != "" {
 			log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
 			cfg.Networking.MachineNetwork = []struct {
@@ -342,6 +317,10 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			}
 		} else {
 			cfg.Networking.MachineNetwork = nil
+		}
+
+		if common.IsSingleNodeCluster(cluster) {
+			cfg.BootstrapInPlace = bootstrapInPlace{InstallationDisk: common.GetBootstrapHost(cluster).InstallationDiskPath}
 		}
 
 	} else {
