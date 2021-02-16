@@ -6,8 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"strconv"
-
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -24,11 +22,8 @@ type ImageCreateParams struct {
 	// SSH public key for debugging the installation.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
-	// static ips config
-	StaticIpsConfig []*StaticIPConfig `json:"static_ips_config"`
-
-	// vlans config
-	VlansConfig []*VlanConfig `json:"vlans_config"`
+	// static network config
+	StaticNetworkConfig []string `json:"static_network_config"`
 }
 
 // Validate validates this image create params
@@ -36,14 +31,6 @@ func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateImageType(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateStaticIpsConfig(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateVlansConfig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -64,56 +51,6 @@ func (m *ImageCreateParams) validateImageType(formats strfmt.Registry) error {
 			return ve.ValidateName("image_type")
 		}
 		return err
-	}
-
-	return nil
-}
-
-func (m *ImageCreateParams) validateStaticIpsConfig(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.StaticIpsConfig) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.StaticIpsConfig); i++ {
-		if swag.IsZero(m.StaticIpsConfig[i]) { // not required
-			continue
-		}
-
-		if m.StaticIpsConfig[i] != nil {
-			if err := m.StaticIpsConfig[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("static_ips_config" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
-
-func (m *ImageCreateParams) validateVlansConfig(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.VlansConfig) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.VlansConfig); i++ {
-		if swag.IsZero(m.VlansConfig[i]) { // not required
-			continue
-		}
-
-		if m.VlansConfig[i] != nil {
-			if err := m.VlansConfig[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("vlans_config" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
 	}
 
 	return nil

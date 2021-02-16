@@ -34,7 +34,6 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
@@ -430,10 +429,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(ignition.GetServiceIPHostnames(b.Config.ServiceIPs)))
 	}
 
-	if cluster.ImageInfo.StaticIpsConfig != "" && params.ImageCreateParams.ImageType == models.ImageTypeFullIso {
-		ignitionParams["StaticIPsData"] = base64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.StaticIpsConfig))
-		ignitionParams["StaticIPsConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.ConfigStaticIpsScript))
-	}
+	// [TODO] - add static network configuration only in case it was provided and this is a FullIso image
 
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -1065,15 +1061,12 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	staticIpsConfig := formatStaticIPs(params.ImageCreateParams.StaticIpsConfig)
-
-	vlansConfig := formatVlans(params.ImageCreateParams.VlansConfig)
+	staticNetworkConfig := formatStaticNetwork(params.ImageCreateParams.StaticNetworkConfig)
 
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
-		cluster.ImageInfo.StaticIpsConfig == staticIpsConfig &&
-		cluster.ImageInfo.VlansConfig == vlansConfig &&
+		cluster.ImageInfo.StaticNetworkConfig == staticNetworkConfig &&
 		cluster.ImageInfo.Type == params.ImageCreateParams.ImageType {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
@@ -1090,8 +1083,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_created_at"] = strfmt.DateTime(now)
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_download_url"] = ""
-	updates["image_static_ips_config"] = staticIpsConfig
-	updates["image_vlans_config"] = vlansConfig
+	updates["image_static_network_config"] = staticNetworkConfig
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
@@ -1212,7 +1204,8 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 			HTTPSProxy: cluster.HTTPSProxy,
 			NoProxy:    cluster.NoProxy,
 		}
-		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, cluster.ImageInfo.StaticIpsConfig, &clusterProxyInfo)
+		// [TODO] - need to pass new network configuration to isocreator
+		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, "", &clusterProxyInfo)
 		return createError
 	})
 
@@ -4449,42 +4442,13 @@ func (b *bareMetalInventory) setPullSecretFromOCP(cluster *common.Cluster, log l
 	return nil
 }
 
-func formatStaticIPs(staticIpsConfig []*models.StaticIPConfig) string {
-	lines := make([]string, len(staticIpsConfig))
+func formatStaticNetwork(staticNetworkConfig []string) string {
+	lines := make([]string, len(staticNetworkConfig))
 
-	// construct static IPs config to string
-	for i, entry := range staticIpsConfig {
-		elements := []string{entry.Mac}
-		elements = append(elements, getStaticIPsData(entry.IPV4Config)...)
-		elements = append(elements, getStaticIPsData((*models.StaticIPV4Config)(entry.IPV6Config))...)
-		lines[i] = strings.Join(elements, ";")
-	}
-
+	copy(lines, staticNetworkConfig)
 	sort.Strings(lines)
-
-	return strings.Join(lines, "\n")
-}
-
-func formatVlans(vlansConfig []*models.VlanConfig) string {
-	lines := make([]string, len(vlansConfig))
-	// construct vlans config to string
-	for i, entry := range vlansConfig {
-		elements := []string{entry.Mac, strconv.FormatInt(entry.ID, 10)}
-		elements = append(elements, getStaticIPsData(entry.IPV4Config)...)
-		elements = append(elements, getStaticIPsData((*models.StaticIPV4Config)(entry.IPV6Config))...)
-		lines[i] = strings.Join(elements, ";")
-	}
-
-	sort.Strings(lines)
-
-	return strings.Join(lines, "\n")
-}
-
-func getStaticIPsData(static_config *models.StaticIPV4Config) []string {
-	if static_config != nil {
-		return []string{static_config.IP, static_config.Mask, static_config.DNS, static_config.Gateway}
-	}
-	return []string{"", "", "", ""}
+	// delimeter between hosts config - will be used during nmconnections files generations for ISO ignition
+	return strings.Join(lines, "ZZZZZ")
 }
 
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {

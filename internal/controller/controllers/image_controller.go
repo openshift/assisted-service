@@ -77,8 +77,8 @@ func (r *ImageReconciler) create(ctx context.Context, image *adiiov1alpha1.Image
 		installer.GenerateClusterISOParams{
 			ClusterID: strfmt.UUID(cluster.Status.ID),
 			ImageCreateParams: &models.ImageCreateParams{
-				SSHPublicKey:    image.Spec.SSHPublicKey,
-				StaticIpsConfig: covertStaticIPConfig(image.Spec.StaticIpConfiguration),
+				SSHPublicKey: image.Spec.SSHPublicKey,
+				// StaticIpsConfig: covertStaticIPConfig(image.Spec.StaticIpConfiguration),
 			},
 		})
 	if inventoryErr == nil {
@@ -159,6 +159,7 @@ func imageBeingCreated(err error) bool {
 	return IsHTTPError(err, http.StatusConflict)
 }
 
+/*
 func covertStaticIPConfig(crdStaticIPConfig []*adiiov1alpha1.StaticIPConfig) []*models.StaticIPConfig {
 	var newStaticIPsConfig []*models.StaticIPConfig
 	for i := range crdStaticIPConfig {
@@ -187,3 +188,4 @@ func covertStaticIPConfig(crdStaticIPConfig []*adiiov1alpha1.StaticIPConfig) []*
 	}
 	return newStaticIPsConfig
 }
+*/

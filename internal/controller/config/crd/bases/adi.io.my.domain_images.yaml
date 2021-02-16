@@ -53,47 +53,6 @@ spec:
                 type: string
               sshPublicKey:
                 type: string
-              staticIPConfiguration:
-                items:
-                  properties:
-                    ipv4Config:
-                      description: "StaticIPV4Config static ipv4 config \n swagger:model
-                        static-ipv4-config"
-                      properties:
-                        dns:
-                          description: dns
-                          type: string
-                        gateway:
-                          description: 'gateway Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$'
-                          type: string
-                        ip:
-                          description: 'ip Pattern: ^([0-9]{1,3}\.){3}[0-9]{1,3}$'
-                          type: string
-                        mask:
-                          description: 'mask Pattern: ^[0-9]|[1-2][0-9]|3[0-2]?$'
-                          type: string
-                      type: object
-                    ipv6Config:
-                      description: "StaticIPV6Config static ipv6 config \n swagger:model
-                        static-ipv6-config"
-                      properties:
-                        dns:
-                          description: dns
-                          type: string
-                        gateway:
-                          description: 'gateway Pattern: ^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$'
-                          type: string
-                        ip:
-                          description: 'ip Pattern: ^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$'
-                          type: string
-                        mask:
-                          description: 'mask Pattern: ^([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$'
-                          type: string
-                      type: object
-                    mac:
-                      type: string
-                  type: object
-                type: array
             required:
             - clusterRef
             type: object
