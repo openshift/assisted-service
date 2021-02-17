@@ -11,7 +11,8 @@ import (
 	"strings"
 
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
-	config_31_types "github.com/coreos/ignition/v2/config/v3_1/types"
+	config_32 "github.com/coreos/ignition/v2/config/v3_2"
+	config_32_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
@@ -63,7 +64,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 			"tls": {}
 		  },
 		  "timeouts": {},
-		  "version": "3.1.0"
+		  "version": "3.2.0"
 		},
 		"storage": {
 		  "files": [
@@ -89,7 +90,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		err         error
 		examplePath string
 		bmh         *bmh_v1alpha1.BareMetalHost
-		config      config_31_types.Config
+		config      config_32_types.Config
 	)
 
 	BeforeEach(func() {
@@ -109,10 +110,10 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		err = g.updateBootstrap(examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
-		config, _, err1 = config_31.Parse(bootstrapBytes)
+		config, _, err1 = config_32.Parse(bootstrapBytes)
 		Expect(err1).NotTo(HaveOccurred())
 
-		var file *config_31_types.File
+		var file *config_32_types.File
 		for i := range config.Storage.Files {
 			if isBMHFile(&config.Storage.Files[i]) {
 				file = &config.Storage.Files[i]
@@ -147,7 +148,7 @@ var _ = Describe("Cluster Ignitions Update", func() {
 	const ignition = `{
 		"ignition": {
 		  "config": {},
-		  "version": "3.1.0"
+		  "version": "3.2.0"
 		},
 		"storage": {
 		  "files": []
@@ -205,7 +206,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 			masterBytes, err := ioutil.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
-			masterConfig, _, err := config_31.Parse(masterBytes)
+			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(1))
 			file := &masterConfig.Storage.Files[0]
@@ -213,7 +214,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 			workerBytes, err := ioutil.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
-			workerConfig, _, err := config_31.Parse(workerBytes)
+			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workerConfig.Storage.Files).To(HaveLen(1))
 			file = &masterConfig.Storage.Files[0]
@@ -226,13 +227,13 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 			masterBytes, err := ioutil.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
-			masterConfig, _, err := config_31.Parse(masterBytes)
+			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(0))
 
 			workerBytes, err := ioutil.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
-			workerConfig, _, err := config_31.Parse(workerBytes)
+			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
@@ -243,7 +244,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 			masterBytes, err := ioutil.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
-			masterConfig, _, err := config_31.Parse(masterBytes)
+			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(1))
 			file := &masterConfig.Storage.Files[0]
@@ -251,7 +252,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 			workerBytes, err := ioutil.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
-			workerConfig, _, err := config_31.Parse(workerBytes)
+			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workerConfig.Storage.Files).To(HaveLen(1))
 			file = &masterConfig.Storage.Files[0]
@@ -264,13 +265,13 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 			masterBytes, err := ioutil.ReadFile(masterPath)
 			Expect(err).NotTo(HaveOccurred())
-			masterConfig, _, err := config_31.Parse(masterBytes)
+			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(0))
 
 			workerBytes, err := ioutil.ReadFile(workerPath)
 			Expect(err).NotTo(HaveOccurred())
-			workerConfig, _, err := config_31.Parse(workerBytes)
+			workerConfig, _, err := config_32.Parse(workerBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
@@ -293,7 +294,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 				masterBytes, err := ioutil.ReadFile(masterPath)
 				Expect(err).ToNot(HaveOccurred())
-				masterConfig, _, err := config_31.Parse(masterBytes)
+				masterConfig, _, err := config_32.Parse(masterBytes)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(masterConfig.Storage.Files).To(HaveLen(1))
 				f := masterConfig.Storage.Files[0]
@@ -312,7 +313,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 			masterBytes, err := ioutil.ReadFile(masterPath)
 			Expect(err).ToNot(HaveOccurred())
-			masterConfig, _, err := config_31.Parse(masterBytes)
+			masterConfig, _, err := config_32.Parse(masterBytes)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(masterConfig.Storage.Files).To(HaveLen(3))
 			f := masterConfig.Storage.Files[0]
@@ -350,7 +351,7 @@ var _ = Describe("createHostIgnitions", func() {
 			]
 		      }
 		    },
-		    "version": "3.1.0"
+		    "version": "3.2.0"
 		  },
 		  "storage": {
 		    "files": [
@@ -383,7 +384,7 @@ var _ = Describe("createHostIgnitions", func() {
 			]
 		      }
 		    },
-		    "version": "3.1.0"
+		    "version": "3.2.0"
 		  }
 		}`
 
@@ -431,7 +432,7 @@ var _ = Describe("createHostIgnitions", func() {
 			for _, host := range cluster.Hosts {
 				ignBytes, err := ioutil.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", host.Role, host.ID)))
 				Expect(err).NotTo(HaveOccurred())
-				config, _, err := config_31.Parse(ignBytes)
+				config, _, err := config_32.Parse(ignBytes)
 				Expect(err).NotTo(HaveOccurred())
 
 				By("Ensuring the correct role file was used")
@@ -443,7 +444,7 @@ var _ = Describe("createHostIgnitions", func() {
 				}
 
 				By("Validating the hostname file was added")
-				var f *config_31_types.File
+				var f *config_32_types.File
 				for fileidx, file := range config.Storage.Files {
 					if file.Node.Path == "/etc/hostname" {
 						f = &config.Storage.Files[fileidx]
@@ -464,7 +465,7 @@ var _ = Describe("createHostIgnitions", func() {
 			ID:                      &hostID,
 			RequestedHostname:       "master0.example.com",
 			Role:                    models.HostRoleMaster,
-			IgnitionConfigOverrides: `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
+			IgnitionConfigOverrides: `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 		}}
 
 		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
@@ -473,11 +474,11 @@ var _ = Describe("createHostIgnitions", func() {
 
 		ignBytes, err := ioutil.ReadFile(filepath.Join(workDir, fmt.Sprintf("%s-%s.ign", models.HostRoleMaster, hostID)))
 		Expect(err).NotTo(HaveOccurred())
-		config, _, err := config_31.Parse(ignBytes)
+		config, _, err := config_32.Parse(ignBytes)
 		Expect(err).NotTo(HaveOccurred())
 
-		var exampleFile *config_31_types.File
-		var hostnameFile *config_31_types.File
+		var exampleFile *config_32_types.File
+		var hostnameFile *config_32_types.File
 		for fileidx, file := range config.Storage.Files {
 			if file.Node.Path == "/tmp/example" {
 				exampleFile = &config.Storage.Files[fileidx]
@@ -497,13 +498,13 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 	It("fails on empty ignition file", func() {
 		r := ioutil.NopCloser(strings.NewReader(""))
 		_, err := ExtractClusterID(r)
-		Expect(err).To(Equal(errors.New("not a config (empty)")))
+		Expect(err.Error()).To(ContainSubstring("not a config (empty)"))
 	})
 
 	It("fails on invalid JSON file", func() {
 		r := ioutil.NopCloser(strings.NewReader("{"))
 		_, err := ExtractClusterID(r)
-		Expect(err).To(Equal(errors.New("config is not valid")))
+		Expect(err.Error()).To(ContainSubstring("config is not valid"))
 	})
 
 	It("fails on invalid ignition file", func() {
@@ -511,12 +512,12 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 				"ignition":{"version":"invalid.version"}
 		}`))
 		_, err := ExtractClusterID(r)
-		Expect(err).To(Equal(errors.New("unsupported config version")))
+		Expect(err.Error()).To(ContainSubstring("unsupported config version"))
 	})
 
 	It("fails when there's no CVO file", func() {
 		r := ioutil.NopCloser(strings.NewReader(`{
-				"ignition":{"version":"3.1.0"},
+				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[]
 				},
@@ -529,7 +530,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 
 	It("fails when no ClusterID is embedded in cvo-overrides", func() {
 		r := ioutil.NopCloser(strings.NewReader(`{
-				"ignition":{"version":"3.1.0"},
+				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
 						{
@@ -550,7 +551,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 	It("fails when cvo-overrides file cannot be un-marshalled", func() {
 		// embedded JSON in the base64 format is "{"
 		r := ioutil.NopCloser(strings.NewReader(`{
-				"ignition":{"version":"3.1.0"},
+				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
 						{
@@ -569,7 +570,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 
 	It("is successfull on valid file", func() {
 		r := ioutil.NopCloser(strings.NewReader(`{
-				"ignition":{"version":"3.1.0"},
+				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
 						{
@@ -587,7 +588,7 @@ var _ = Describe("Openshift cluster ID extraction", func() {
 
 	It("only looks on cvo-overrides file", func() {
 		r := ioutil.NopCloser(strings.NewReader(`{
-				"ignition":{"version":"3.1.0"},
+				"ignition":{"version":"3.2.0"},
 				"storage":{
 					"files":[
 						{
@@ -737,6 +738,28 @@ var _ = Describe("downloadManifest", func() {
 		content, err := ioutil.ReadFile(filepath.Join(workDir, "/openshift/masters-chrony-configuration.yaml"))
 		Expect(err).NotTo(HaveOccurred())
 		Expect(content).To(Equal([]byte("chronyconf")))
+	})
+})
+
+var _ = Describe("ParseTo32", func() {
+	const v32ignition = `{"ignition": {"version": "3.2.0"},"storage": {"files": []}}`
+	const v31ignition = `{"ignition": {"version": "3.1.0"},"storage": {"files": []}}`
+	It("parses a v32 config", func() {
+		config, err := ParseTo32([]byte(v32ignition))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.Ignition.Version).To(Equal("3.2.0"))
+	})
+
+	It("parses a v31 config", func() {
+		config, err := ParseTo32([]byte(v31ignition))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+
+		bytes, err := json.Marshal(config)
+		Expect(err).ToNot(HaveOccurred())
+		v31Config, _, err := config_31.Parse(bytes)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(v31Config.Ignition.Version).To(Equal("3.1.0"))
 	})
 })
 
