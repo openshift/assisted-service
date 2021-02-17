@@ -72,10 +72,17 @@ def verify_image_version(ocp_version: str, release_image: str):
 
 def get_oc_version(release_image: str) -> str:
     pull_secret = os.getenv("PULL_SECRET")
+
     pull_secret_file = None
     if pull_secret is None:
         registry_config = ""
     else:
+        try:
+            json.loads(pull_secret)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Value of PULL_SECRET environment variable "
+                             f"is not a valid JSON payload: '{pull_secret}'") from e
+
         with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
             f.write(pull_secret)
             pull_secret_file = f.name
