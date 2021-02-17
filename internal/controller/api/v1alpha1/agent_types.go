@@ -19,7 +19,16 @@ package v1alpha1
 import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	AgentSyncedCondition   conditionsv1.ConditionType = "AgentSynced"
+	AgentSyncedReason      string                     = "AgentSynced"
+	AgentStateSynced       string                     = "Agent has been synced"
+	AgentSyncErrorReason   string                     = "AgentSyncError"
+	AgentStateFailedToSync string                     = "Failed to sync agent"
 )
 
 // AgentReference represents a Agent Reference. It has enough information to retrieve an agent
@@ -42,7 +51,7 @@ type HostCPU struct {
 	Count int64 `json:"count,omitempty"`
 	// Name in REST API: frequency
 	ClockMegahertz int64    `json:"clockMegahertz,omitempty"`
-	Flags          []string `json:"flags"`
+	Flags          []string `json:"flags,omitempty"`
 	ModelName      string   `json:"modelName,omitempty"`
 	Architecture   string   `json:"architecture,omitempty"`
 }
@@ -109,8 +118,8 @@ type HostInventory struct {
 	BmcV6address string           `json:"bmcV6Address,omitempty"`
 	Memory       HostMemory       `json:"memory,omitempty"`
 	Cpu          HostCPU          `json:"cpu,omitempty"`
-	Interfaces   []HostInterface  `json:"interfaces"`
-	Disks        []HostDisk       `json:"disks"`
+	Interfaces   []HostInterface  `json:"interfaces,omitempty"`
+	Disks        []HostDisk       `json:"disks,omitempty"`
 	Boot         HostBoot         `json:"boot,omitempty"`
 	SystemVendor HostSystemVendor `json:"systemVendor,omitempty"`
 }
@@ -153,12 +162,12 @@ type HostValidationInfo struct {
 }
 
 type HostProgressInfo struct {
-	CurrentStage models.HostStage `json:"currentStage"`
+	CurrentStage models.HostStage `json:"currentStage,omitempty"`
 	ProgressInfo string           `json:"progressInfo,omitempty"`
 	// Name in REST API: stage_started_at
-	StageStartTime metav1.Time `json:"stageStartTime,omitempty"`
+	StageStartTime string `json:"stageStartTime,omitempty"`
 	// Name in REST API: stage_updated_at
-	StageUpdateTime metav1.Time `json:"stageUpdateTime,omitempty"`
+	StageUpdateTime string `json:"stageUpdateTime,omitempty"`
 }
 
 type L2Connectivity struct {
@@ -208,6 +217,7 @@ type AgentStatus struct {
 	Connectivity          []HostConnectivityValidationInfo `json:"connectivity,omitempty"`
 	APIVipConnectivity    bool                             `json:"apiVIPConnectivity,omitempty"`
 	NtpSources            []HostNTPSources                 `json:"ntpSources,omitempty"`
+	Conditions            []conditionsv1.Condition         `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

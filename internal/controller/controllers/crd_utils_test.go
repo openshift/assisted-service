@@ -62,7 +62,7 @@ var _ = Describe("create agent CR", func() {
 
 		It("Already existing agent", func() {
 			id := uuid.New().String()
-			agent := newHost(id, clusterNamespace, v1alpha1.AgentSpec{})
+			agent := newAgent(id, clusterNamespace, v1alpha1.AgentSpec{})
 			Expect(c.Create(ctx, agent)).ShouldNot(HaveOccurred())
 			err := crdUtils.CreateAgentCR(ctx, log, id, clusterNamespace, clusterName)
 			Expect(err).NotTo(HaveOccurred())
