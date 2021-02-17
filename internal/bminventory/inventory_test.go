@@ -5639,6 +5639,7 @@ var _ = Describe("AMS subscriptions", func() {
 		dbName              = "register_cluster_with_ams_subscription"
 		ctrl                *gomock.Controller
 		clusterApi          *cluster.Manager
+		mockCluster         *cluster.MockAPI
 		mockEvents          *events.MockHandler
 		mockVersions        *versions.MockHandler
 		mockMetric          *metrics.MockAPI
@@ -5657,10 +5658,9 @@ var _ = Describe("AMS subscriptions", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
+		mockCluster = cluster.NewMockAPI(ctrl)
 		ocmClient = &ocm.Client{AccountsMgmt: mockAccountsMgmt}
 		clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
-			getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil)
 
 		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
@@ -5673,7 +5673,10 @@ var _ = Describe("AMS subscriptions", func() {
 
 	Context("With AMS subscriptions", func() {
 
-		It("register cluster with install happy flow", func() {
+		It("register cluster happy flow", func() {
+
+			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
+				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil)
 
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any())
@@ -5697,9 +5700,33 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("register cluster - deregister if we failed to create AMS subscription", func() {
 
+			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, mockCluster, cfg, nil, mockEvents, nil, mockMetric,
+				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil)
+
+			mockCluster.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(nil, errors.New("dummy"))
-			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Registered cluster"}}, gomock.Any())
-			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Deregistered cluster"}}, gomock.Any())
+			mockCluster.EXPECT().DeregisterCluster(ctx, gomock.Any())
+
+			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("ams-cluster"),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("register cluster - delete AMS subscription if we failed to patch DB with ams_subscription_id", func() {
+
+			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, mockCluster, cfg, nil, mockEvents, nil, mockMetric,
+				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil)
+
+			mockCluster.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
+			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
+			mockCluster.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))
+			mockCluster.EXPECT().DeregisterCluster(ctx, gomock.Any())
+			mockAccountsMgmt.EXPECT().DeleteSubscription(ctx, strfmt.UUID("")).Return(nil)
 
 			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -5712,6 +5739,9 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("deregister cluster that don't have 'Reserved' subscriptions", func() {
+
+			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
+				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil)
 
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any())
@@ -5736,6 +5766,33 @@ var _ = Describe("AMS subscriptions", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
 		})
 
+		It("register and deregister cluster happy flow - nil OCM client", func() {
+
+			// register
+			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
+				getTestAuthHandler(), nil, nil, nil, mockSecretValidator, mockVersions, nil)
+
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Registered cluster"}}, gomock.Any())
+			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Successfully registered cluster", "with id"}},
+				gomock.Any())
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("ams-cluster"),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
+
+			// deregister
+			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Deregistered cluster"}}, gomock.Any())
+
+			reply = bm.DeregisterCluster(ctx, installer.DeregisterClusterParams{ClusterID: clusterID})
+			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+		})
 	})
 })
 
