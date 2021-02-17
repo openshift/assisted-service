@@ -460,8 +460,13 @@ var _ = Describe("Host tests", func() {
 
 		It("First success bad bandwidth", func() {
 			By("pull success", func() {
-				imageStatus = common.TestImageStatusesSuccess
-				imageStatus.DownloadRate = 0.000001
+				imageStatus = &models.ContainerImageAvailability{
+					Name:         common.TestDefaultConfig.ImageName,
+					Result:       models.ContainerImageAvailabilityResultSuccess,
+					DownloadRate: 0.000333,
+					SizeBytes:    333000000.0,
+					Time:         1000000.0,
+				}
 
 				generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{imageStatus})
 				Expect(getHostImageStatus(*h.ID, imageStatus.Name)).Should(Equal(imageStatus))
