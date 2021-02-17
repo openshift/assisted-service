@@ -50,7 +50,7 @@ const (
 	AgentPlatformError     = "AgentPlatformError"
 	AgentPlatformCondition = "AgentPlatformCondition"
 	AgentPlatformState     = "AgentPlatformState"
-	AgentPlatformStateInfo = "AgnetPlatformStateInfo"
+	AgentPlatformStateInfo = "AgentPlatformStateInfo"
 )
 
 const HighAvailabilityModeNone = "None"
