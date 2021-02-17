@@ -588,8 +588,7 @@ func (v *validator) areImagesAvailable(c *validationContext) ValidationStatus {
 	}
 
 	for _, imageStatus := range imageStatuses {
-		if imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
-			imageStatus.DownloadRate < ImageStatusDownloadRateThreshold {
+		if isInvalidImageStatus(imageStatus) {
 			return ValidationFailure
 		}
 	}
@@ -634,11 +633,15 @@ func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
 	imageNames := make([]string, 0)
 
 	for _, imageStatus := range imageStatuses {
-		if imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
-			imageStatus.DownloadRate < ImageStatusDownloadRateThreshold {
+		if isInvalidImageStatus(imageStatus) {
 			imageNames = append(imageNames, imageStatus.Name)
 		}
 	}
 
 	return imageNames, nil
+}
+
+func isInvalidImageStatus(imageStatus *models.ContainerImageAvailability) bool {
+	return imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
+		(imageStatus.SizeBytes > 0 && imageStatus.DownloadRate < ImageStatusDownloadRateThreshold)
 }
