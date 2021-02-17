@@ -26,6 +26,9 @@ Environment=HTTP_PROXY={{.HTTP_PROXY}}
 Environment=HTTPS_PROXY={{.HTTPS_PROXY}}
 Environment=NO_PROXY={{.NO_PROXY}}`
 
+const ramDiskImagePath = "/images/assisted_installer_custom.img"
+const initrdPaddingLength = int64(1024 * 1024) // 1MB
+
 type ClusterProxyInfo struct {
 	HTTPProxy  string
 	HTTPSProxy string
@@ -69,6 +72,13 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 		return "", err
 	}
 
+	if err := e.embedInitrdPlaceholders(); err != nil {
+		e.log.WithError(err).Warnf("Failed to embed initrd placeholders")
+		return "", err
+	}
+
+	// ToDo: store placeholders' offsets in system area
+
 	if err := e.fixTemplateConfigs(serviceBaseURL); err != nil {
 		e.log.WithError(err).Warnf("Failed to edit template configs")
 		return "", err
@@ -96,6 +106,30 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig st
 	return e.create()
 }
 
+func (e *rhcosEditor) embedInitrdPlaceholders() error {
+	// Create ramdisk image placeholder
+	if err := e.createImagePlaceholder(ramDiskImagePath); err != nil {
+		return errors.Wrap(err, "Failed to create placeholder for custom ramdisk image")
+	}
+
+	return nil
+}
+
+func (e *rhcosEditor) createImagePlaceholder(imagePath string) error {
+	f, err := os.Create(e.isoHandler.ExtractedPath(imagePath))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	err = f.Truncate(initrdPaddingLength)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
 	archiveBytes, err := IgnitionImageArchive(ignition)
 	if err != nil {
@@ -106,8 +140,7 @@ func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
 }
 
 func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string, clusterProxyInfo *ClusterProxyInfo) error {
-	imagePath := "/images/assisted_installer_custom.img"
-	f, err := os.Create(e.isoHandler.ExtractedPath(imagePath))
+	f, err := os.Create(e.isoHandler.ExtractedPath(ramDiskImagePath))
 	if err != nil {
 		return err
 	}
@@ -139,12 +172,7 @@ func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string, clusterProxyInfo *
 		return err
 	}
 
-	// edit config to add new image to initrd
-	err = editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), `(?m)^(\s+initrd) (.+| )+$`, fmt.Sprintf("$1 $2 %s", imagePath))
-	if err != nil {
-		return err
-	}
-	return editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), `(?m)^(\s+append.*initrd=\S+) (.*)$`, fmt.Sprintf("${1},%s ${2}", imagePath))
+	return nil
 }
 
 func (e *rhcosEditor) formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
@@ -225,6 +253,14 @@ func (e *rhcosEditor) fixTemplateConfigs(serviceBaseURL string) error {
 		return err
 	}
 	if err := editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), ` coreos.liveiso=\S+`, ""); err != nil {
+		return err
+	}
+
+	// Edit config to add custom ramdisk image to initrd
+	if err := editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), `(?m)^(\s+initrd) (.+| )+$`, fmt.Sprintf("$1 $2 %s", ramDiskImagePath)); err != nil {
+		return err
+	}
+	if err := editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), `(?m)^(\s+append.*initrd=\S+) (.*)$`, fmt.Sprintf("${1},%s ${2}", ramDiskImagePath)); err != nil {
 		return err
 	}
 

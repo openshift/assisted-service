@@ -115,8 +115,12 @@ var _ = Context("with test files", func() {
 			grubCfg := fmt.Sprintf(newLine, rootfsURL)
 			validateFileContainsLine(isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), grubCfg)
 
-			newLine = "  append initrd=/images/pxeboot/initrd.img,/images/ignition.img random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal coreos.live.rootfs_url=%s"
-			isolinuxCfg := fmt.Sprintf(newLine, rootfsURL)
+			newLine = "	initrd /images/pxeboot/initrd.img /images/ignition.img %s"
+			grubCfg = fmt.Sprintf(newLine, ramDiskImagePath)
+			validateFileContainsLine(isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), grubCfg)
+
+			newLine = "  append initrd=/images/pxeboot/initrd.img,/images/ignition.img,%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal coreos.live.rootfs_url=%s"
+			isolinuxCfg := fmt.Sprintf(newLine, ramDiskImagePath, rootfsURL)
 			validateFileContainsLine(isoHandler.ExtractedPath("isolinux/isolinux.cfg"), isolinuxCfg)
 		})
 	})
@@ -175,13 +179,6 @@ var _ = Context("with test files", func() {
 				clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy,
 				clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
 			Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
-
-			By("checking that the config files were edited correctly")
-			grubLine := "	initrd /images/pxeboot/initrd.img /images/ignition.img /images/assisted_installer_custom.img"
-			validateFileContainsLine(isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), grubLine)
-
-			isoLine := "  append initrd=/images/pxeboot/initrd.img,/images/ignition.img,/images/assisted_installer_custom.img random.trust_cpu=on rd.luks.options=discard coreos.liveiso=rhcos-46.82.202010091720-0 ignition.firstboot ignition.platform.id=metal"
-			validateFileContainsLine(isoHandler.ExtractedPath("isolinux/isolinux.cfg"), isoLine)
 		})
 	})
 })
