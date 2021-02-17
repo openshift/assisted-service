@@ -563,6 +563,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	url := installer.GetClusterURL{ClusterID: id}
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 	success := false
+	var err error
 	defer func() {
 		if success {
 			msg := fmt.Sprintf("Successfully registered cluster %s with id %s",
@@ -570,7 +571,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			log.Info(msg)
 			b.eventsHandler.AddEvent(ctx, id, nil, models.EventSeverityInfo, msg, time.Now())
 		} else {
-			log.Errorf("Failed to registered cluster %s with id %s",
+			errWrapperLog := log
+			if err != nil {
+				errWrapperLog = log.WithError(err)
+			}
+			errWrapperLog.Errorf("Failed to registered cluster %s with id %s",
 				swag.StringValue(params.NewClusterParams.Name), id)
 		}
 	}()
@@ -580,7 +585,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
 	}
 
-	if err := validateProxySettings(params.NewClusterParams.HTTPProxy,
+	if err = validateProxySettings(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
 		params.NewClusterParams.NoProxy); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -590,22 +595,19 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	if swag.BoolValue(params.NewClusterParams.UserManagedNetworking) {
 		if swag.BoolValue(params.NewClusterParams.VipDhcpAllocation) {
-			err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
-			log.WithError(err)
+			err = errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 		if params.NewClusterParams.IngressVip != "" {
-			err := errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
-			log.WithError(err)
+			err = errors.Errorf("Ingress VIP cannot be set with User Managed Networking")
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
 
 	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		// verify minimal OCP version
-		err := verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+		err = verifyMinimalOpenShiftVersionForSingleNode(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 		if err != nil {
-			log.WithError(err)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 		log.Infof("HA mode is None, seeting UserManagedNetworking to true ")
@@ -619,16 +621,15 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
 
 		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
-			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
-			log.WithError(err)
+			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
 
 	if !b.versionsHandler.IsOpenshiftVersionSupported(swag.StringValue(params.NewClusterParams.OpenshiftVersion)) {
-		return nil, common.NewApiError(http.StatusBadRequest,
-			errors.Errorf("Openshift version %s is not supported",
-				swag.StringValue(params.NewClusterParams.OpenshiftVersion)))
+		err = errors.Errorf("Openshift version %s is not supported",
+			swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if kubeKey == nil {
@@ -665,19 +666,20 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		KubeKeyNamespace: kubeKey.Namespace,
 	}
 
-	if proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
+	proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
-		params.NewClusterParams.NoProxy); err != nil {
-		log.Error("Failed to compute cluster proxy hash", err)
+		params.NewClusterParams.NoProxy)
+	if err != nil {
+		err = errors.Wrapf(err, "failed to compute cluster proxy hash")
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to compute cluster proxy hash"))
 	} else {
 		cluster.ProxyHash = proxyHash
 	}
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
-	err := b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
+	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
 	if err != nil {
-		log.WithError(err).Errorf("Pull secret for new cluster is invalid")
+		err = errors.Wrap(err, "pull secret for new cluster is invalid")
 		return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
 	}
 	ps, err := b.updatePullSecret(pullSecret, log)
@@ -701,13 +703,12 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	err = b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
-		log.Errorf("failed to register cluster %s ", swag.StringValue(params.NewClusterParams.Name))
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
-		if err := b.integrateWithAMSClusterRegistration(ctx, &cluster); err != nil {
-			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster registration", id)
+		if err = b.integrateWithAMSClusterRegistration(ctx, &cluster); err != nil {
+			err = errors.Wrapf(err, "cluster %s failed to integrate with AMS on cluster registration", id)
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
