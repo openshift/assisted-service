@@ -3848,7 +3848,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			errorExpected: false,
 		},
 		{
-			name:               "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources",
+			name:               "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources (cpu)",
 			srcState:           models.ClusterStatusReady,
 			dstState:           models.ClusterStatusInsufficient,
 			machineNetworkCidr: "1.2.3.0/24",
@@ -3874,6 +3874,36 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
 				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
 				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 30 CPUs, excluding disk CPU resources is required."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources (ram)",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(14, 32000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(14, 32000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(14, 32000000000), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 81 RAM, excluding disk RAM resources is required."},
 			}),
 			errorExpected: false,
 		},
@@ -4138,7 +4168,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				t.hosts[i].ClusterID = clusterId
 				Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 			}
-			if t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources" || t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient disk resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient cluster resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient disk resources" {
+			if t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources (cpu)" || t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient disk resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient cluster resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient disk resources" || t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources (ram)" {
 				disks := []*models.Disk{
 					{
 						SizeBytes: 20000000000,
