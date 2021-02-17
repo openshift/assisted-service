@@ -962,14 +962,22 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 	cluster.ImageInfo.SizeBytes = &imgSize
 
 	// Presigned URL only works with AWS S3 because Scality is not exposed
+	downloadURL := ""
 	if b.objectHandler.IsAwsS3() {
-		signedURL, err := b.objectHandler.GeneratePresignedDownloadURL(ctx, imgName, imgName, b.Config.ImageExpirationTime)
+		downloadURL, err = b.objectHandler.GeneratePresignedDownloadURL(ctx, imgName, imgName, b.Config.ImageExpirationTime)
 		if err != nil {
 			return errors.New("Failed to generate image: error generating URL")
 		}
-		updates["image_download_url"] = signedURL
-		cluster.ImageInfo.DownloadURL = signedURL
+	} else {
+		var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: *cluster.ID}
+		clusterISOURL, err := downloadClusterISOURL.Build()
+		if err != nil {
+			return errors.New("Failed to generate image: error generating cluster ISO URL")
+		}
+		downloadURL = fmt.Sprintf("%s%s", b.Config.ServiceBaseURL, clusterISOURL.RequestURI())
 	}
+	updates["image_download_url"] = downloadURL
+	cluster.ImageInfo.DownloadURL = downloadURL
 
 	if cluster.ProxyHash != clusterProxyHash {
 		updates["proxy_hash"] = clusterProxyHash
