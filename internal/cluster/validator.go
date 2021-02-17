@@ -307,16 +307,17 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 		minMastersNeededForInstallation = common.AllowedNumberOfMasterHostsInNoneHaMode
 	}
 
-	knownHosts, ok := MapHostsByStatus(c.cluster)[models.HostStatusKnown]
-	if !ok { //if no known hosts exist, there is no sufficient master count
-		return boolValue(false)
+	hosts := make([]*models.Host, 0)
+	for k, v := range MapHostsByStatus(c.cluster) {
+		if k != models.HostStatusDisabled {
+			hosts = append(hosts, v...)
+		}
 	}
-
 	masters := make([]*models.Host, 0)
 	workers := make([]*models.Host, 0)
 	candidates := make([]*models.Host, 0)
 
-	for _, host := range knownHosts {
+	for _, host := range hosts {
 		switch role := host.Role; role {
 		case models.HostRoleMaster:
 			//add pre-assigned master hosts to the masters list
