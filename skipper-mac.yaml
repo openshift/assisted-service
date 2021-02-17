@@ -1,0 +1,35 @@
+registry: quay.io
+build-container-image: assisted-service-build
+
+containers:
+    assisted-service-build: Dockerfile.assisted-service-build
+volumes:
+    - $HOME/.cache/go-build:/go/pkg/mod
+    - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
+    - $HOME/.minikube:$HOME/.minikube
+    - $HOME/.docker/:$HOME/.docker
+env:
+    BUILD_TYPE: $BUILD_TYPE
+    SERVICE: $SERVICE
+    ISO_CREATION: $ISO_CREATION
+    KUBECONFIG: $KUBECONFIG
+    NAMESPACE: $NAMESPACE
+    PROFILE: $PROFILE
+    APPLY_NAMESPACE: $APPLY_NAMESPACE
+    TARGET: $TARGET
+    INGRESS_DOMAIN: $INGRESS_DOMAIN
+    TEST_FLAGS: $TEST_FLAGS
+    FOCUS: $FOCUS
+    GOCACHE: "/go/pkg/mod"
+    OCM_CLIENT_ID: $OCM_CLIENT_ID
+    OCM_CLIENT_SECRET: $OCM_CLIENT_SECRET
+    ENABLE_AUTH: $ENABLE_AUTH
+    SERVICE_REPLICAS_COUNT: $SERVICE_REPLICAS_COUNT
+    ASSISTED_TAG: $ASSISTED_TAG
+    ASSISTED_ORG: $ASSISTED_ORG
+    E2E_TESTS_CONFIG: $E2E_TESTS_CONFIG
+    CHECK_CLUSTER_VERSION: $CHECK_CLUSTER_VERSION
+    ENABLE_KUBE_API: $ENABLE_KUBE_API
+    DOCKER_CONFIG: $DOCKER_CONFIG
+    WITH_AMS_SUBSCRIPTIONS: $WITH_AMS_SUBSCRIPTIONS
+    CRD_OPTIONS: $CRD_OPTIONS
