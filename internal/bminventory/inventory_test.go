@@ -5673,7 +5673,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 	Context("With AMS subscriptions", func() {
 
-		It("register cluster with install happy flow", func() {
+		It("register cluster happy flow", func() {
 
 			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
 				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil)
@@ -5766,6 +5766,33 @@ var _ = Describe("AMS subscriptions", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
 		})
 
+		It("register and deregister cluster happy flow - nil OCM client", func() {
+
+			// register
+			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
+				getTestAuthHandler(), nil, nil, nil, mockSecretValidator, mockVersions, nil)
+
+			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any())
+			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Registered cluster"}}, gomock.Any())
+			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Successfully registered cluster", "with id"}},
+				gomock.Any())
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("ams-cluster"),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			clusterID := *reply.(*installer.RegisterClusterCreated).Payload.ID
+
+			// deregister
+			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Deregistered cluster"}}, gomock.Any())
+
+			reply = bm.DeregisterCluster(ctx, installer.DeregisterClusterParams{ClusterID: clusterID})
+			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
+		})
 	})
 })
 
