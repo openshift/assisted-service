@@ -706,9 +706,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
-		log.Infof("Creating AMS subscription for cluster %s", id)
-		if err := b.integrateWithAMS(ctx, &cluster); err != nil {
-			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS", id)
+		if err := b.integrateWithAMSClusterRegistration(ctx, &cluster); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster registration", id)
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
@@ -718,8 +717,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 }
 
-func (b *bareMetalInventory) integrateWithAMS(ctx context.Context, cluster *common.Cluster) error {
+func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Creating AMS subscription for cluster %s", *cluster.ID)
 	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create AMS subscription for cluster %s, rolling back cluster registration", *cluster.ID)
@@ -730,7 +730,10 @@ func (b *bareMetalInventory) integrateWithAMS(ctx context.Context, cluster *comm
 	}
 	log.Infof("AMS subscription %s was created for cluster %s", sub.ID(), *cluster.ID)
 	if err := b.clusterApi.UpdateAmsSubscriptionID(ctx, *cluster.ID, strfmt.UUID(sub.ID())); err != nil {
-		log.WithError(err).Errorf("Failed to update ams_subscription_id in cluster %v, rolling back cluster registration", *cluster.ID)
+		log.WithError(err).Errorf("Failed to update ams_subscription_id in cluster %v, rolling back AMS subscription and cluster registration", *cluster.ID)
+		if deleteSubErr := b.ocmClient.AccountsMgmt.DeleteSubscription(ctx, strfmt.UUID(sub.ID())); deleteSubErr != nil {
+			log.WithError(deleteSubErr).Errorf("Failed to rollback AMS subscription %s in cluster %s", sub.ID(), *cluster.ID)
+		}
 		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
 			log.WithError(deregisterErr).Errorf("Failed to rollback cluster %s registration", *cluster.ID)
 		}
@@ -866,17 +869,21 @@ func (b *bareMetalInventory) DeregisterCluster(ctx context.Context, params insta
 	return installer.NewDeregisterClusterNoContent()
 }
 
-func (b *bareMetalInventory) deleteReservedAMSSubscription(ctx context.Context, amsSubscriptionID strfmt.UUID) error {
+func (b *bareMetalInventory) integrateWithAMSClusterDeregistration(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
-	sub, err := b.ocmClient.AccountsMgmt.GetSubscription(ctx, amsSubscriptionID)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get AMS subscription %s", amsSubscriptionID)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if sub.Status() == ocm.SubscriptionStatusReserved {
-		if err = b.ocmClient.AccountsMgmt.DeleteSubscription(ctx, amsSubscriptionID); err != nil {
-			log.WithError(err).Errorf("Failed to delete AMS subscription %s", amsSubscriptionID)
+	// AMS subscription is created only for day1 clusters
+	if *cluster.Kind == models.ClusterKindCluster {
+		log.Infof("Deleting AMS subscription %s for non-active cluster %s", cluster.AmsSubscriptionID, *cluster.ID)
+		sub, err := b.ocmClient.AccountsMgmt.GetSubscription(ctx, cluster.AmsSubscriptionID)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get AMS subscription %s for cluster %s", cluster.AmsSubscriptionID, *cluster.ID)
 			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+		if sub.Status() == ocm.SubscriptionStatusReserved {
+			if err = b.ocmClient.AccountsMgmt.DeleteSubscription(ctx, cluster.AmsSubscriptionID); err != nil {
+				log.WithError(err).Errorf("Failed to delete AMS subscription %s for cluster %s", cluster.AmsSubscriptionID, *cluster.ID)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
 		}
 	}
 	return nil
@@ -891,10 +898,9 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	// AMS subscription is created only for day1 clusters
-	if *cluster.Kind == models.ClusterKindCluster {
-		if err := b.deleteReservedAMSSubscription(ctx, cluster.AmsSubscriptionID); err != nil {
-			log.WithError(err).Errorf("Failed to delete AMS subscription %s for non-active cluster %s", cluster.AmsSubscriptionID, params.ClusterID)
+	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+		if err := b.integrateWithAMSClusterDeregistration(ctx, &cluster); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster deregistration", params.ClusterID)
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
