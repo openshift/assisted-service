@@ -15,7 +15,7 @@ RUN swagger generate client --template=stratoscale -f swagger.yaml --template-di
     && mv client /build
 
 # Build binaries
-FROM registry.svc.ci.openshift.org/openshift/release:golang-1.15 as builder
+FROM registry.ci.openshift.org/openshift/release:golang-1.15 as builder
 
 # Bring in the go dependencies before anything else so we can take
 # advantage of caching these layers in future builds.
