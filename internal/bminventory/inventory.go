@@ -1512,12 +1512,12 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 		}
 		err = b.createAndUploadNodeIgnition(ctx, &cluster, cluster.Hosts[i])
 		if err != nil {
-			log.Error("Failed to upload ignition for host %s", cluster.Hosts[i].RequestedHostname)
+			log.Errorf("Failed to upload ignition for host %s", cluster.Hosts[i].RequestedHostname)
 			continue
 		}
 		if installErr := b.hostApi.Install(ctx, cluster.Hosts[i], tx); installErr != nil {
 			// we just logs the error, each host install is independent
-			log.Error("Failed to move host %s to installing", cluster.Hosts[i].RequestedHostname)
+			log.Errorf("Failed to move host %s to installing", cluster.Hosts[i].RequestedHostname)
 		}
 	}
 
@@ -3316,7 +3316,7 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
-	log.Info("Update host %s install progress", params.HostID)
+	log.Infof("Update host %s install progress", params.HostID)
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find host %s", params.HostID)
 		return installer.NewUpdateHostInstallProgressNotFound().
@@ -3633,13 +3633,13 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 	}
 	err = b.createAndUploadNodeIgnition(ctx, &cluster, h)
 	if err != nil {
-		log.Error("Failed to upload ignition for host %s", h.RequestedHostname)
+		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)
 	}
 	err = b.hostApi.Install(ctx, h, b.db)
 	if err != nil {
 		// we just logs the error, each host install is independent
-		log.Error("Failed to move host %s to installing", h.RequestedHostname)
+		log.Errorf("Failed to move host %s to installing", h.RequestedHostname)
 		return common.GenerateErrorResponder(err)
 	}
 

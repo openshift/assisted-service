@@ -182,7 +182,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 
 	// Check if the parsed token is valid...
 	if !parsedToken.Valid {
-		a.log.Error("Token is invalid: %s", parsedToken.Raw)
+		a.log.Errorf("Token is invalid: %s", parsedToken.Raw)
 		return nil, errors.Errorf("Token is invalid: %s", parsedToken.Raw)
 	}
 

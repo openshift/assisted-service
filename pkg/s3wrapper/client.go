@@ -464,7 +464,7 @@ func (c *S3Client) handleObject(ctx context.Context, log logrus.FieldLogger, obj
 func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
 	log := logutil.FromContext(ctx, c.log)
 	var objects []string
-	log.Info("Listing objects by with prefix %s", prefix)
+	log.Infof("Listing objects by with prefix %s", prefix)
 	resp, err := c.client.ListObjects(&s3.ListObjectsInput{
 		Bucket: aws.String(c.cfg.S3Bucket),
 		Prefix: aws.String(prefix),
