@@ -11,10 +11,10 @@
 ### Create the bundle manifests
 
 ```bash
-make bundle
+make operator-bundle
 ```
 
-To generate the manifests and CSV in ./bundle, "make bundle" first calls the "ocp-create-manifests" target. This target in turn calls "deploy-service-on-ocp-cluster and deploy-ui-on-ocp-cluster" while setting APPLY_MANIFESTS=False and APPLY_NAMESPACE=False. This causes the resource yamls to be created in ./build/assisted-installer/ but does not apply them.
+To generate the manifests and CSV in ./bundle, "make operator-bundle" first calls the "ocp-create-manifests" target. This target in turn calls "deploy-service-on-ocp-cluster and deploy-ui-on-ocp-cluster" while setting APPLY_MANIFESTS=False and APPLY_NAMESPACE=False. This causes the resource yamls to be created in ./build/assisted-installer/ but does not apply them.
 
 The relevant resource yamls are then copied to ./config/assisted-service where additional customizations are applied using Kustomize. The resulting yaml is then piped to operator-sdk
 creating the manifests and CSVs in ./bundle/manifests. 
@@ -25,7 +25,7 @@ More information about bundles: <https://sdk.operatorframework.io/docs/olm-integ
 
 ```bash
 export ORG=quay.io/ocpmetal
-make bundle-build BUNDLE_IMG=$ORG/assisted-service-operator-bundle:0.0.1
+make operator-bundle-build BUNDLE_IMG=$ORG/assisted-service-operator-bundle:0.0.1
 podman push $ORG/assisted-service-operator-bundle:0.0.1
 
 opm index add --bundles $ORG/assisted-service-operator-bundle:0.0.1 --tag $ORG/assisted-service-index:0.0.1

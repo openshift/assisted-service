@@ -344,6 +344,19 @@ clear-all: clean subsystem-clean clear-deployment clear-images clean-onprem
 
 clean:
 	-rm -rf $(BUILD_FOLDER) $(REPORTS)
+	-rm config/rbac/ocp_role.yaml
+	-rm config/rbac/kube_api_roles.yaml
+	-rm config/rbac/controller_roles.yaml
+	-rm config/assisted-service/scality-secret.yaml
+	-rm config/assisted-service/scality-public-secret.yaml
+	-rm config/assisted-service/postgres-deployment.yaml
+	-rm config/assisted-service/postgres-secret.yaml
+	-rm config/assisted-service/assisted-installer-sso.yaml
+	-rm config/assisted-service/assisted-service-configmap.yaml
+	-rm config/assisted-service/assisted-service-service.yaml
+	-rm config/assisted-service/assisted-service.yaml
+	-rm config/assisted-service/deploy_ui.yaml
+	-rm -rf bundle
 
 subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete --force --grace-period=0 1> /dev/null || true
@@ -374,8 +387,8 @@ delete-all-minikube-profiles:
 OPERATOR_VERSION ?= 0.0.1
 
 # Generate bundle manifests and metadata, then validate generated files.
-.PHONY: bundle
-bundle: create-ocp-manifests
+.PHONY: operator-bundle
+operator-bundle: create-ocp-manifests
 	set -eux
 	cp ./build/assisted-installer/ocp_role.yaml config/rbac
 	cp ./build/assisted-installer/kube_api_roles.yaml config/rbac
@@ -395,6 +408,6 @@ bundle: create-ocp-manifests
 	operator-sdk bundle validate ./bundle
 
 # Build the bundle image.
-.PHONY: bundle-build
-bundle-build:
+.PHONY: operator-bundle-build
+operator-bundle-build:
 	podman build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
