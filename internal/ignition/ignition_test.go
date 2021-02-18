@@ -741,17 +741,17 @@ var _ = Describe("downloadManifest", func() {
 	})
 })
 
-var _ = Describe("ParseTo32", func() {
+var _ = Describe("ParseToLatest", func() {
 	const v32ignition = `{"ignition": {"version": "3.2.0"},"storage": {"files": []}}`
 	const v31ignition = `{"ignition": {"version": "3.1.0"},"storage": {"files": []}}`
 	It("parses a v32 config", func() {
-		config, err := ParseTo32([]byte(v32ignition))
+		config, err := ParseToLatest([]byte(v32ignition))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.2.0"))
 	})
 
 	It("parses a v31 config", func() {
-		config, err := ParseTo32([]byte(v31ignition))
+		config, err := ParseToLatest([]byte(v31ignition))
 		Expect(err).ToNot(HaveOccurred())
 		Expect(config.Ignition.Version).To(Equal("3.1.0"))
 
