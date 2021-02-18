@@ -54,6 +54,39 @@ func newClusterDeployment(name, namespace string, spec hivev1.ClusterDeploymentS
 	}
 }
 
+func getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.ClusterDeploymentSpec {
+	return hivev1.ClusterDeploymentSpec{
+		ClusterName: clusterName,
+		Provisioning: &hivev1.Provisioning{
+			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
+			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
+			InstallStrategy: &hivev1.InstallStrategy{
+				Agent: &agent.InstallStrategy{
+					Networking: agent.Networking{
+						MachineNetwork: nil,
+						ClusterNetwork: []agent.ClusterNetworkEntry{{
+							CIDR:       "10.128.0.0/14",
+							HostPrefix: 23,
+						}},
+						ServiceNetwork: []string{"172.30.0.0/16"},
+					},
+					SSHPublicKey: "some-key",
+					ProvisionRequirements: agent.ProvisionRequirements{
+						ControlPlaneAgents: 1,
+						WorkerAgents:       0,
+					},
+				},
+			},
+		},
+		Platform: hivev1.Platform{
+			AgentBareMetal: &agent.BareMetalPlatform{},
+		},
+		PullSecretRef: &corev1.LocalObjectReference{
+			Name: pullSecretName,
+		},
+	}
+}
+
 func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.ClusterDeploymentSpec {
 	return hivev1.ClusterDeploymentSpec{
 		ClusterName: clusterName,
@@ -81,7 +114,6 @@ func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.
 		Platform: hivev1.Platform{
 			AgentBareMetal: &agent.BareMetalPlatform{
 				APIVIP:            "1.2.3.8",
-				APIVIPDNSName:     "example.com",
 				IngressVIP:        "1.2.3.9",
 				VIPDHCPAllocation: agent.Disabled,
 			},
@@ -180,6 +212,19 @@ var _ = Describe("cluster reconcile", func() {
 					Return(clusterReply, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				validateCreation(cluster)
+			})
+
+			It("create sno cluster", func() {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Do(func(arg1, arg2 interface{}, params installer.RegisterClusterParams) {
+						Expect(swag.StringValue(params.NewClusterParams.OpenshiftVersion)).To(Equal("4.8"))
+					}).Return(clusterReply, nil)
+
+				cluster := newClusterDeployment(clusterName, testNamespace,
+					getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName))
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
 				validateCreation(cluster)
@@ -363,7 +408,6 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
 					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
 					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
-					APIVipDNSName:            swag.String(defaultClusterSpec.Platform.AgentBareMetal.APIVIPDNSName),
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
 					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
 				},
@@ -519,7 +563,6 @@ var _ = Describe("cluster reconcile", func() {
 					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
 					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
 					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
-					APIVipDNSName:            swag.String(defaultClusterSpec.Platform.AgentBareMetal.APIVIPDNSName),
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
 					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
 				},
