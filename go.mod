@@ -3,6 +3,7 @@ module github.com/openshift/assisted-service
 go 1.15
 
 require (
+	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/alessio/shellescape v1.4.1
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
@@ -11,7 +12,8 @@ require (
 	github.com/cenkalti/backoff/v3 v3.2.2 // indirect
 	github.com/containerd/continuity v0.0.0-20200710164510-efbc4488d8fe // indirect
 	github.com/containers/image/v5 v5.7.0
-	github.com/coreos/ignition/v2 v2.6.0
+	github.com/coreos/ignition/v2 v2.9.0
+	github.com/coreos/vcontext v0.0.0-20201120045928-b0e13dab675c
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/diskfs/go-diskfs v1.1.2-0.20210208175329-a9a84ddce08a
