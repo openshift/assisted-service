@@ -17,13 +17,13 @@ import (
 type Manager struct {
 	log                logrus.FieldLogger
 	ocsValidatorConfig *ocs.Config
-	ocsValidator       ocs.OCSValidator
+	ocsValidator       ocs.OcsValidator
 }
 
-//go:generate mockgen -package=operators -destination=mock_operators_api.go . API
+//go:generate  mockgen -package=operators -destination=mock_operators_api.go . API
 type API interface {
 	// ValidateOCSRequirements validates OCS requirements
-	ValidateOCSRequirements(cluster *common.Cluster) bool
+	ValidateOCSRequirements(cluster *common.Cluster) string
 	// GenerateManifests generates manifests for all enabled operators.
 	// Returns map assigning manifest content to its desired file name
 	GenerateManifests(cluster *common.Cluster) (map[string]string, error)
@@ -95,11 +95,11 @@ func (mgr *Manager) AnyOperatorEnabled(cluster *common.Cluster) bool {
 }
 
 // ValidateOCSRequirements validates OCS requirements. Returns "true" if OCS operator is not deployed
-func (mgr *Manager) ValidateOCSRequirements(cluster *common.Cluster) bool {
+func (mgr *Manager) ValidateOCSRequirements(cluster *common.Cluster) string {
 	if isEnabled(cluster, models.OperatorTypeOcs) {
 		return mgr.ocsValidator.ValidateOCSRequirements(&cluster.Cluster)
 	}
-	return true
+	return "success"
 }
 
 // GetOperatorStatus gets status of an operator of given type.
