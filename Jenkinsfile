@@ -51,14 +51,6 @@ pipeline {
             }
         }
 
-        stage('Subsystem Test onprem') {
-            steps {
-                sh "make podman-pull-service-from-docker-daemon"
-                sh "export PODMAN_PULL_FLAG='--pull never'; make deploy-onprem-for-subsystem"
-                sh "make test-onprem FOCUS=minimal-set"
-            }
-        }
-
         stage('Publish') {
             when {
                 expression {!env.BRANCH_NAME.startsWith('PR')}
@@ -92,10 +84,6 @@ pipeline {
 
                 for (service in ["assisted-service","postgres","scality","createimage"]) {
                     sh "kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep ${service} | xargs -r -I {} sh -c \"kubectl logs {} -n assisted-installer > k8s_{}.log\" || true"
-                }
-
-                for (service in ["installer","db"]) {
-                    sh "podman logs ${service}  > onprem_${service}.log || true"
                 }
 
                 sh "make clear-all"
