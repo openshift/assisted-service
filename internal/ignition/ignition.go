@@ -383,15 +383,22 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(installerPath strin
 		return errors.Wrapf(err, "Failed to create single node ignitions")
 	}
 
+	bootstrapPath := filepath.Join(g.workDir, "bootstrap.ign")
 	// In case of single node rename bootstrap Ignition file
-	err = os.Rename(filepath.Join(g.workDir, "bootstrap-in-place-for-live-iso.ign"), filepath.Join(g.workDir, "bootstrap.ign"))
+	err = os.Rename(filepath.Join(g.workDir, "bootstrap-in-place-for-live-iso.ign"), bootstrapPath)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to rename bootstrap-in-place-for-live-iso.ign")
 	}
 
-	//TODO: Is BIP usable in 4.6? Are we safe using 3.2 in all cases here?
+	bootstrapConfig, err := parseIgnitionFile(bootstrapPath)
+	if err != nil {
+		g.log.Error(err)
+		return err
+	}
 	config := config_32_types.Config{Ignition: config_32_types.Ignition{Version: config_32_types.MaxVersion.String()}}
-
+	//Although BIP works with 4.8 and above we want to support early 4.8 CI images
+	// To that end we set the dummy master ignition version to the same version as the bootstrap ignition
+	config.Ignition.Version = bootstrapConfig.Ignition.Version
 	for _, file := range []string{masterIgn, workerIgn} {
 		err = writeIgnitionFile(filepath.Join(g.workDir, file), &config)
 		if err != nil {
