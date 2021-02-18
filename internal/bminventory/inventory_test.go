@@ -57,6 +57,7 @@ import (
 )
 
 const ClusterStatusInstalled = "installed"
+const FakeServiceBaseURL = "http://192.168.11.22:12345"
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
@@ -130,6 +131,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
 		mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
+		cfg.ServiceBaseURL = FakeServiceBaseURL
 		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, mockIsoEditorFactory)
 	})
 
@@ -184,6 +186,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
 		Expect(getReply.Payload.ID).To(Equal(clusterId))
 		Expect(generateReply.(*installer.GenerateClusterISOCreated).Payload.HostNetworks).ToNot(BeNil())
+		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
 	})
 
 	It("success with proxy", func() {
@@ -200,6 +203,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			ImageCreateParams: &models.ImageCreateParams{},
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
 
 	})
 
@@ -469,6 +474,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			})
 
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+			Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
 		})
 
 		It("static ip and vlan config  - different vlan config", func() {
@@ -510,6 +517,8 @@ var _ = Describe("GenerateClusterISO", func() {
 				ImageCreateParams: &models.ImageCreateParams{VlansConfig: newVlansConfig},
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+			Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
 		})
 
 	})
