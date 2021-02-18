@@ -3316,7 +3316,7 @@ func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installe
 func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var host models.Host
-	log.Info("Update host %s install progress", params.HostID)
+	log.Infof("Update host %s install progress", params.HostID)
 	if err := b.db.First(&host, "id = ? and cluster_id = ?", params.HostID, params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find host %s", params.HostID)
 		return installer.NewUpdateHostInstallProgressNotFound().
