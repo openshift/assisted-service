@@ -38,7 +38,7 @@ import (
 	"github.com/openshift/assisted-service/internal/migrations"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -86,7 +86,6 @@ var Options struct {
 	Auth                        auth.Config
 	BMConfig                    bminventory.Config
 	DBConfig                    db.Config
-	OCSValidatorConfig          ocs.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           hostcommands.InstructionConfig
@@ -221,7 +220,6 @@ func main() {
 
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
 
-	var generator generator.ISOInstallConfigGenerator
 	var objectHandler s3wrapper.API
 
 	failOnError(bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme),
@@ -230,18 +228,12 @@ func main() {
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
 	case deployment_type_k8s:
-		var kclient client.Client
 
 		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log, versionHandler, isoEditorFactory)
 		if objectHandler == nil {
 			log.Fatal("failed to create S3 client")
 		}
 		createS3Bucket(objectHandler)
-
-		kclient, err = client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
-		failOnError(err, "failed to create controller-runtime client")
-
-		generator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, &Options.OCSValidatorConfig)
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
 		failOnError(cerr, "Failed to create kubernetes cluster config")
@@ -266,7 +258,6 @@ func main() {
 		// in on-prem mode, setup file system s3 driver and use localjob implementation
 		objectHandler = s3wrapper.NewFSClient(Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
 		createS3Bucket(objectHandler)
-		generator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, &Options.OCSValidatorConfig)
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
 			failOnError(err, "Failed to create client for OCP")
@@ -279,11 +270,11 @@ func main() {
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
-	ocsValidator := ocs.NewOcsValidator(log.WithField("pkg", "ocs-operator-state"), hostApi, &Options.OCSValidatorConfig)
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
+	operatorsManager := operators.NewManager(log, hostApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, ocsValidator)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, &operatorsManager)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
@@ -299,6 +290,8 @@ func main() {
 	newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
+
+	generator := newISOInstallConfigGenerator(log, objectHandler, operatorsManager)
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
@@ -446,6 +439,23 @@ func main() {
 	}()
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+}
+
+func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsManager operators.Manager) generator.ISOInstallConfigGenerator {
+	var configGenerator generator.ISOInstallConfigGenerator
+	switch Options.DeployTarget {
+	case deployment_type_k8s:
+		kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
+		if err != nil {
+			log.WithError(err).Fatalf("failed to create controller-runtime client")
+		}
+		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, &operatorsManager)
+	case deployment_type_onprem, deployment_type_ocp:
+		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, &operatorsManager)
+	default:
+		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
+	}
+	return configGenerator
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {

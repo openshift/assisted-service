@@ -11,7 +11,7 @@ import (
 )
 
 //go:generate mockgen -source=validations.go -package=ocs -destination=mock_validations.go
-type OcsValidator interface {
+type OCSValidator interface {
 	ValidateOCSRequirements(cluster *models.Cluster) bool
 }
 
@@ -21,7 +21,7 @@ type ocsValidator struct {
 	hostApi host.API
 }
 
-func NewOcsValidator(log logrus.FieldLogger, hostApi host.API, cfg *Config) OcsValidator {
+func NewOCSValidator(log logrus.FieldLogger, hostApi host.API, cfg *Config) OCSValidator {
 	return &ocsValidator{
 		log:     log,
 		Config:  cfg,

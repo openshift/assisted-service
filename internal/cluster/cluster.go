@@ -21,7 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -122,7 +122,7 @@ type Manager struct {
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
-	leaderElector leader.Leader, ocsValidator ocs.OcsValidator) *Manager {
+	leaderElector leader.Leader, operatorsApi operators.API) *Manager {
 	th := &transitionHandler{
 		log:           log,
 		db:            db,
@@ -138,7 +138,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		sm:                    NewClusterStateMachine(th),
 		metricAPI:             metricApi,
 		manifestsGeneratorAPI: manifestsGeneratorAPI,
-		rp:                    newRefreshPreprocessor(log, hostAPI, ocsValidator),
+		rp:                    newRefreshPreprocessor(log, hostAPI, operatorsApi),
 		hostAPI:               hostAPI,
 		leaderElector:         leaderElector,
 		prevMonitorInvokedAt:  time.Now(),
