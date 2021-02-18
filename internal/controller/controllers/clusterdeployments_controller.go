@@ -274,6 +274,15 @@ func isVipDHCPAllocationEnabled(cluster *hivev1.ClusterDeployment) bool {
 	return cluster.Spec.Platform.AgentBareMetal.VIPDHCPAllocation == agent.Enabled
 }
 
+func (r *ClusterDeploymentsReconciler) getOCPVersion(cluster *hivev1.ClusterDeployment) string {
+	// TODO: fix when HIVE-1383 is resolved, As for now single node supported only with 4.8, default version is 4.7
+	if cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
+		return "4.8"
+	}
+	return "4.7"
+}
+
 func (r *ClusterDeploymentsReconciler) createNewCluster(
 	ctx context.Context,
 	key types.NamespacedName,
@@ -296,8 +305,8 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		//SSHPublicKey:          spec.SSHPublicKey, // TODO: get from AgentEnvSpec
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
-		OpenshiftVersion:      swag.String("4.7"), // TODO: check how to set openshift version
-		Operators:             nil,                // TODO: handle operators
+		OpenshiftVersion:      swag.String(r.getOCPVersion(cluster)),
+		Operators:             nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(isVipDHCPAllocationEnabled(cluster)),
 		IngressVip:            spec.Platform.AgentBareMetal.IngressVIP,
