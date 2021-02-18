@@ -23,7 +23,6 @@ import (
 	"text/template"
 	"time"
 
-	ign_3_1 "github.com/coreos/ignition/v2/config/v3_1"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -497,14 +496,9 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 		return common.GenerateErrorResponder(err)
 	}
 
-	_, report, err := ign_3_1.Parse([]byte(params.DiscoveryIgnitionParams.Config))
+	_, err = ignition.ParseTo32([]byte(params.DiscoveryIgnitionParams.Config))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.DiscoveryIgnitionParams)
-		return installer.NewUpdateDiscoveryIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
-	}
-	if report.IsFatal() {
-		err = errors.Errorf("Ignition config patch %s failed validation: %s", params.DiscoveryIgnitionParams, report.String())
-		log.Error(err)
 		return installer.NewUpdateDiscoveryIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
@@ -3196,14 +3190,9 @@ func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params inst
 		return common.GenerateErrorResponder(err)
 	}
 
-	_, report, err := ign_3_1.Parse([]byte(params.HostIgnitionParams.Config))
+	_, err = ignition.ParseTo32([]byte(params.HostIgnitionParams.Config))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
-		return installer.NewUpdateHostIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
-	}
-	if report.IsFatal() {
-		err = errors.Errorf("Host ignition config patch %s failed validation: %s", params.HostIgnitionParams, report.String())
-		log.Error(err)
 		return installer.NewUpdateHostIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
