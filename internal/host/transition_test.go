@@ -1257,6 +1257,7 @@ var _ = Describe("Refresh Host", func() {
 		installationStages := []models.HostStage{
 			models.HostStageInstalling,
 			models.HostStageWritingImageToDisk,
+			models.HostStageStartWaitingForControlPlane,
 		}
 
 		for j := range installationStages {
@@ -1293,10 +1294,44 @@ var _ = Describe("Refresh Host", func() {
 				Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
 				info := statusInfoConnectionTimedOut
 				Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
-
 			})
-
 		}
+	})
+
+	Context("host disconnected & preparing for installation", func() {
+		var srcState string
+
+		passedTime := 90 * time.Minute
+		It("host disconnected & preparing for installation", func() {
+			srcState = models.HostStatusPreparingForInstallation
+			host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
+			host.Inventory = hostutil.GenerateMasterInventory()
+			host.Role = models.HostRoleMaster
+			host.CheckedInAt = strfmt.DateTime(time.Now().Add(-MaxHostDisconnectionTime - time.Minute))
+
+			progress := models.HostProgressInfo{
+				StageStartedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+				StageUpdatedAt: strfmt.DateTime(time.Now().Add(-passedTime)),
+			}
+
+			host.Progress = &progress
+
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(models.HostStatusError),
+				gomock.Any(), gomock.Any())
+			err := hapi.RefreshStatus(ctx, &host, db)
+
+			Expect(err).ToNot(HaveOccurred())
+			var resultHost models.Host
+			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusError))
+			info := statusInfoConnectionTimedOut
+			Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
+		})
 	})
 
 	Context("host installation timeout", func() {
