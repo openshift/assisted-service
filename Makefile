@@ -39,7 +39,7 @@ CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${C
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
 RHCOS_BASE_ISO := $(or ${RHCOS_BASE_ISO},https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso)
-OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell cat default_ocp_versions.json | tr -d "\n\t "))
+OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh))
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 PUBLISH_TAG := $(or ${GIT_REVISION})
@@ -51,7 +51,8 @@ ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
 WITH_AMS_SUBSCRIPTIONS := $(or ${WITH_AMS_SUBSCRIPTIONS},False)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
-PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},quay.io)
+DEFAULT_PUBLIC_CONTAINER_REGISTRIES := quay.io,registry.svc.ci.openshift.org
+PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(DEFAULT_PUBLIC_CONTAINER_REGISTRIES))
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
 
@@ -81,6 +82,10 @@ TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-cl
 all: build
 
 ci-lint:
+ifdef SKIPPER_USERNAME
+	$(error Running this target using skipper is not supported, try `make ci-lint` instead)
+endif
+
 	${ROOT_DIR}/tools/check-commits.sh
 	${ROOT_DIR}/tools/handle_ocp_versions.py
 	skipper $(MAKE) generate-all
