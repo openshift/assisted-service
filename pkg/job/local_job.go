@@ -7,7 +7,7 @@ import (
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/ignition"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -15,17 +15,17 @@ import (
 
 type localJob struct {
 	Config
-	log       logrus.FieldLogger
-	s3Client  s3wrapper.API
-	ocsConfig *ocs.Config
+	log              logrus.FieldLogger
+	s3Client         s3wrapper.API
+	operatorsManager *operators.Manager
 }
 
-func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, ocsValidatorConfig *ocs.Config) *localJob {
+func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, operatorsManager *operators.Manager) *localJob {
 	return &localJob{
-		Config:    cfg,
-		log:       log,
-		s3Client:  s3Client,
-		ocsConfig: ocsValidatorConfig,
+		Config:           cfg,
+		log:              log,
+		s3Client:         s3Client,
+		operatorsManager: operatorsManager,
 	}
 }
 
@@ -44,9 +44,9 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 	if j.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(workDir, &cluster, j.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, j.s3Client, log)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, j.Config.ReleaseImageMirror, j.Config.ServiceCACertPath, j.s3Client, log, j.operatorsManager)
 	}
-	err = generator.Generate(ctx, cfg, j.ocsConfig)
+	err = generator.Generate(ctx, cfg)
 	if err != nil {
 		return err
 	}

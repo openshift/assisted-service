@@ -21,8 +21,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/sirupsen/logrus"
@@ -33,6 +34,9 @@ var (
 	installerCacheDir string
 	log               = logrus.New()
 	workDir           string
+	operatorsManager  operators.Manager
+	ctrl              *gomock.Controller
+	mockHostAPI       *host.MockAPI
 )
 
 var _ = BeforeEach(func() {
@@ -50,10 +54,15 @@ var _ = BeforeEach(func() {
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
+
+	ctrl = gomock.NewController(GinkgoT())
+	mockHostAPI = host.NewMockAPI(ctrl)
+	operatorsManager = operators.NewManager(log, mockHostAPI)
 })
 
 var _ = AfterEach(func() {
 	os.RemoveAll(workDir)
+	ctrl.Finish()
 })
 
 var _ = Describe("Bootstrap Ignition Update", func() {
@@ -106,7 +115,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 		err = g.updateBootstrap(examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
@@ -200,7 +209,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 
 	Describe("update ignitions", func() {
 		It("with ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, nil, log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", caCertPath, nil, log, &operatorsManager).(*installerGenerator)
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -221,7 +230,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal(common.HostCACertPath))
 		})
 		It("with no ca cert file", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 			err := g.updateIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -238,7 +247,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(workerConfig.Storage.Files).To(HaveLen(0))
 		})
 		It("with service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 			err := g.UpdateEtcHosts("10.10.10.1,10.10.10.2")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -259,7 +268,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			Expect(file.Path).To(Equal("/etc/hosts"))
 		})
 		It("with no service ips", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 			err := g.UpdateEtcHosts("")
 			Expect(err).NotTo(HaveOccurred())
 
@@ -287,7 +296,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 		})
 		Context("DHCP generation", func() {
 			It("Definitions only", func() {
-				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+				g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 				g.encodedDhcpFileContents = "data:,abc"
 				err := g.updateIgnitions()
 				Expect(err).NotTo(HaveOccurred())
@@ -304,7 +313,7 @@ SV4bRR9i0uf+xQ/oYRvugQ25Q7EahO5hJIWRf4aULbk36Zpw3++v2KFnF26zqwB6
 			})
 		})
 		It("Definitions+leases", func() {
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 			g.encodedDhcpFileContents = "data:,abc"
 			cluster.ApiVipLease = "api"
 			cluster.IngressVipLease = "ingress"
@@ -425,7 +434,7 @@ var _ = Describe("createHostIgnitions", func() {
 				host.ID = &id
 			}
 
-			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+			g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 			err := g.createHostIgnitions()
 			Expect(err).NotTo(HaveOccurred())
 
@@ -468,7 +477,7 @@ var _ = Describe("createHostIgnitions", func() {
 			IgnitionConfigOverrides: `{"ignition": {"version": "3.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`,
 		}}
 
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", nil, log, &operatorsManager).(*installerGenerator)
 		err := g.createHostIgnitions()
 		Expect(err).NotTo(HaveOccurred())
 
@@ -760,99 +769,6 @@ var _ = Describe("ParseTo32", func() {
 		v31Config, _, err := config_31.Parse(bytes)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(v31Config.Ignition.Version).To(Equal("3.1.0"))
-	})
-})
-
-var _ = Describe("Lso manifests creation Test", func() {
-	var (
-		lsoErr     error
-		lsoEnabled bool
-	)
-
-	BeforeEach(func() {
-
-		err := os.Mkdir("manifests", 0700) // Create a Temporary directory to test creation of Lso manifests
-		Expect(err).NotTo(HaveOccurred())
-
-	})
-	Describe("Lso Manifests", func() {
-		It("lsoEnabled", func() {
-			clusterOperators := []*models.ClusterOperator{
-				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
-			cluster.Operators = convertFromClusterOperators(clusterOperators)
-
-			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
-			lsoEnabled = g.checkLsoEnabled()
-			Expect(lsoEnabled).To(Equal(true))
-		})
-		It("lso manifests creation with lso enabled", func() {
-			clusterOperators := []*models.ClusterOperator{
-				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
-			cluster.Operators = convertFromClusterOperators(clusterOperators)
-
-			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
-			lsoErr = g.generateLsoManifests()
-			Expect(lsoErr).NotTo(HaveOccurred())
-		})
-	})
-	It("lsoDisabled", func() {
-		g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
-		lsoEnabled = g.checkLsoEnabled()
-		Expect(lsoEnabled).To(Equal(false))
-	})
-})
-
-var _ = AfterEach(func() {
-	os.RemoveAll("manifests")
-})
-
-func convertFromClusterOperators(operators []*models.ClusterOperator) string {
-	if operators == nil {
-		return ""
-	}
-	reply, err := json.Marshal(operators)
-	if err != nil {
-		return ""
-	}
-	return string(reply)
-}
-
-var _ = Describe("Ocs manifests creation Test", func() {
-	var (
-		OcsErr     error
-		OcsEnabled bool
-	)
-
-	BeforeEach(func() {
-
-		err := os.Mkdir("manifests", 0700) // Create a Temporary directory to test creation of Ocs manifests
-		Expect(err).NotTo(HaveOccurred())
-
-	})
-	Describe("Ocs Manifests", func() {
-		It("ocsEnabled", func() {
-			clusterOperators := []*models.ClusterOperator{
-				{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)}}
-			cluster.Operators = convertFromClusterOperators(clusterOperators)
-			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
-			OcsEnabled = g.checkOcsEnabled()
-			Expect(OcsEnabled).To(Equal(true))
-		})
-		It("ocs manifests creation with ocs enabled", func() {
-			clusterOperators := []*models.ClusterOperator{
-				{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
-			cluster.Operators = convertFromClusterOperators(clusterOperators)
-			g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
-			OcsErr = g.generateOcsManifests(&ocs.Config{})
-			files, _ := ioutil.ReadDir("manifests")
-			Expect(len(files)).To(Equal(5))
-			Expect(OcsErr).NotTo(HaveOccurred())
-		})
-	})
-	It("ocsDisabled", func() {
-		g := NewGenerator("", "", cluster, "", "", "", nil, log).(*installerGenerator)
-		OcsEnabled = g.checkOcsEnabled()
-		Expect(OcsEnabled).To(Equal(false))
 	})
 })
 

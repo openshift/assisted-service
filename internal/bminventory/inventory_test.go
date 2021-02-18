@@ -38,7 +38,7 @@ import (
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -3628,9 +3628,9 @@ var _ = Describe("KubeConfig download", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		mockOperators := operators.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil, mockOCS)
+			db, nil, nil, nil, nil, nil, mockOperators)
 
 		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -3757,9 +3757,9 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 		clusterID = strfmt.UUID(uuid.New().String())
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockOCS := ocs.NewMockOcsValidator(ctrl)
+		mockOperators := operators.NewMockAPI(ctrl)
 		clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil, mockOCS)
+			db, nil, nil, nil, nil, nil, mockOperators)
 		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,

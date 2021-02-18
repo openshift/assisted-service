@@ -29,8 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/network"
-	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
@@ -102,7 +101,7 @@ var fileNames = [...]string{
 
 // Generator can generate ignition files and upload them to an S3-like service
 type Generator interface {
-	Generate(ctx context.Context, installConfig []byte, ocsValidatorConfig *ocs.Config) error
+	Generate(ctx context.Context, installConfig []byte) error
 	UploadToS3(ctx context.Context) error
 	UpdateEtcHosts(string) error
 }
@@ -118,11 +117,13 @@ type installerGenerator struct {
 	encodedDhcpFileContents  string
 	s3Client                 s3wrapper.API
 	enableMetal3Provisioning bool
+	operatorsManager         *operators.Manager
 }
 
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
-	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
+	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger,
+	operatorsManager *operators.Manager) Generator {
 	return &installerGenerator{
 		cluster:                  cluster,
 		log:                      log,
@@ -133,6 +134,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		serviceCACert:            serviceCACert,
 		s3Client:                 s3Client,
 		enableMetal3Provisioning: true,
+		operatorsManager:         operatorsManager,
 	}
 }
 
@@ -140,43 +142,6 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 // S3-compatible storage
 func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
-}
-func (g *installerGenerator) checkLsoEnabled() bool {
-	result := false
-	if g.cluster.Operators != "" {
-		var operators models.Operators
-		if err := json.Unmarshal([]byte(g.cluster.Operators), &operators); err != nil {
-			g.log.Error("Failed to get Cluster Operators ", err)
-			return false
-		}
-		for _, operator := range operators {
-			if operator.OperatorType == models.OperatorTypeLso && swag.BoolValue(operator.Enabled) {
-				result = true
-				break
-			}
-		}
-	}
-	g.log.Info("LSO is set to ", result)
-	return result
-}
-
-func (g *installerGenerator) checkOcsEnabled() bool {
-	result := false
-	if g.cluster.Operators != "" {
-		var operators models.Operators
-		if err := json.Unmarshal([]byte(g.cluster.Operators), &operators); err != nil {
-			g.log.Error("Failed to get Cluster Operators ", err)
-			return false
-		}
-		for _, operator := range operators {
-			if operator.OperatorType == models.OperatorTypeOcs && swag.BoolValue(operator.Enabled) {
-				result = true
-				break
-			}
-		}
-	}
-	g.log.Info("OCS is set to ", result)
-	return result
 }
 
 func (g *installerGenerator) createManifestDirectory(installerPath string, envVars []string) error {
@@ -189,31 +154,7 @@ func (g *installerGenerator) createManifestDirectory(installerPath string, envVa
 	return nil
 }
 
-func (g *installerGenerator) generateLsoManifests() error {
-	g.log.Info("Creating LSO Manifests")
-	manifests, err := lso.Manifests(g.cluster.Cluster.OpenshiftVersion)
-	if err != nil {
-		g.log.Error("Error creating LSO manifests ", err)
-		return err
-	}
-	manifestDirPath := filepath.Join(g.workDir, "manifests")
-	for name, manifest := range manifests {
-		manifestPath := filepath.Join(manifestDirPath, name)
-		err := ioutil.WriteFile(manifestPath, []byte(manifest), 0600)
-		if err != nil {
-			g.log.Errorf("Failed to write file %s %s", manifestPath, name)
-			return err
-		}
-	}
-	return nil
-}
-func (g *installerGenerator) generateOcsManifests(ocsValidatorConfig *ocs.Config) error {
-	g.log.Info("Creating OCS Manifests")
-	manifests, err := ocs.Manifests(ocsValidatorConfig.OCSMinimalDeployment, g.cluster.OpenshiftVersion, ocsValidatorConfig.OCSDisksAvailable, len(g.cluster.Cluster.Hosts))
-	if err != nil {
-		g.log.Error("Cannot generate OCS manifests due to ", err)
-		return err
-	}
+func (g *installerGenerator) writeManifests(manifests map[string]string) error {
 	manifestDirPath := filepath.Join(g.workDir, "manifests")
 	for name, manifest := range manifests {
 		manifestPath := filepath.Join(manifestDirPath, name)
@@ -226,42 +167,30 @@ func (g *installerGenerator) generateOcsManifests(ocsValidatorConfig *ocs.Config
 	return nil
 }
 
-func (g *installerGenerator) generateOperatorsManifests(ctx context.Context, installerPath string, envVars []string, ocsValidatorConfig *ocs.Config) error {
-	lsoEnabled := false
-	ocsEnabled := g.checkOcsEnabled()
-	if ocsEnabled {
-		lsoEnabled = true // if OCS is enabled, LSO must be enabled by default
-	} else {
-		lsoEnabled = g.checkLsoEnabled()
+func (g *installerGenerator) writeOperatorManifests(installerPath string, envVars []string) error {
+	if !g.operatorsManager.AnyOperatorEnabled(g.cluster) {
+		return nil
 	}
-	if lsoEnabled || ocsEnabled {
-		err := g.createManifestDirectory(installerPath, envVars)
-		if err != nil {
-			g.log.Error("Failed to create Manifest directory ", err)
-			return err
-		}
+	err := g.createManifestDirectory(installerPath, envVars)
+	if err != nil {
+		g.log.Error("Failed to create Manifest directory ", err)
+		return err
+	}
+	operatorManifests, err := g.operatorsManager.GenerateManifests(g.cluster)
+	if err != nil {
+		return err
 	}
 
-	if lsoEnabled {
-		err := g.generateLsoManifests()
-		if err != nil {
-			g.log.Error(err)
-			return err
-		}
-	}
-
-	if ocsEnabled {
-		err := g.generateOcsManifests(ocsValidatorConfig)
-		if err != nil {
-			g.log.Error(err)
-			return err
-		}
+	err = g.writeManifests(operatorManifests)
+	if err != nil {
+		g.log.Error(err)
+		return err
 	}
 	return nil
 }
 
 // Generate generates ignition files and applies modifications.
-func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte, ocsValidatorConfig *ocs.Config) error {
+func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir, g.cluster.PullSecret, g.log)
 	if err != nil {
 		return err
@@ -317,7 +246,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte,
 
 	}
 
-	err = g.generateOperatorsManifests(ctx, installerPath, envVars, ocsValidatorConfig)
+	err = g.writeOperatorManifests(installerPath, envVars)
 	if err != nil {
 		return err
 	}

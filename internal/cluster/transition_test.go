@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -34,7 +35,6 @@ var _ = Describe("Transition tests", func() {
 		ctrl          *gomock.Controller
 		mockMetric    *metrics.MockAPI
 		mockHostAPI   *host.MockAPI
-		ocsValidator  ocs.OcsValidator
 		dbName        = "cluster_transition_test"
 	)
 
@@ -44,9 +44,8 @@ var _ = Describe("Transition tests", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
-		cfg := getOcsConfig()
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, cfg)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, nil, ocsValidator)
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, nil, &operatorsManager)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -163,7 +162,6 @@ var _ = Describe("Cancel cluster installation", func() {
 		mockEventsHandler *events.MockHandler
 		mockMetric        *metrics.MockAPI
 		mockHostAPI       *host.MockAPI
-		ocsValidator      ocs.OcsValidator
 	)
 
 	BeforeEach(func() {
@@ -172,8 +170,8 @@ var _ = Describe("Cancel cluster installation", func() {
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil, ocsValidator)
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil, &operatorsManager)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -237,7 +235,6 @@ var _ = Describe("Reset cluster", func() {
 		ctrl              *gomock.Controller
 		mockEventsHandler *events.MockHandler
 		mockHostAPI       *host.MockAPI
-		ocsValidator      ocs.OcsValidator
 	)
 
 	BeforeEach(func() {
@@ -245,8 +242,8 @@ var _ = Describe("Reset cluster", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil, ocsValidator)
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil, &operatorsManager)
 	})
 
 	acceptNewEvents := func(times int) {
@@ -358,7 +355,6 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
-		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
 	)
@@ -381,9 +377,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1006,7 +1002,6 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		ocsValidator                            ocs.OcsValidator
 		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
 	)
 
@@ -1019,9 +1014,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -1842,7 +1837,6 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
-		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_host_with_dhcp"
 	)
@@ -1856,9 +1850,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2357,7 +2351,6 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		ocsValidator                            ocs.OcsValidator
 		dbName                                  = "cluster_transition_test_refresh_installing_cases"
 	)
 
@@ -2374,9 +2367,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2631,7 +2624,6 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
-		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
 	)
@@ -2645,9 +2637,9 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -2986,7 +2978,6 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
-		ocsValidator                            ocs.OcsValidator
 		ctrl                                    *gomock.Controller
 		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
 	)
@@ -3000,9 +2991,9 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManager(common.GetTestLog(), mockHostAPI)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -3342,7 +3333,6 @@ var _ = Describe("Single node", func() {
 		mockEvents                  *events.MockHandler
 		mockHostAPI                 *host.MockAPI
 		mockMetric                  *metrics.MockAPI
-		ocsValidator                ocs.OcsValidator
 		ctrl                        *gomock.Controller
 		dbName                      string = "cluster_transition_test_refresh_cluster_with_ntp"
 	)
@@ -3359,9 +3349,9 @@ var _ = Describe("Single node", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -3653,7 +3643,6 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI                                   *host.MockAPI
 		mockMetric                                    *metrics.MockAPI
 		cfg                                           *ocs.Config
-		ocsValidator                                  ocs.OcsValidator
 		ctrl                                          *gomock.Controller
 		dbName                                        string = "cluster_transition_test_with_ocs_validations"
 	)
@@ -3669,9 +3658,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		cfg = getOcsConfig()
-		ocsValidator = ocs.NewOcsValidator(common.GetTestLog(), mockHostAPI, cfg)
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, cfg)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, ocsValidator)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")
 		hid2 = strfmt.UUID("514c8480-cda5-46e5-afce-e146def2066f")
 		hid3 = strfmt.UUID(uuid.New().String())

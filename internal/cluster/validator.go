@@ -11,7 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/network"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -84,9 +84,9 @@ func boolValue(b bool) validationStatus {
 }
 
 type clusterValidator struct {
-	log          logrus.FieldLogger
-	hostAPI      host.API
-	ocsValidator ocs.OcsValidator
+	log              logrus.FieldLogger
+	hostAPI          host.API
+	operatorsManager operators.API
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) validationStatus {
@@ -529,67 +529,15 @@ func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext,
 }
 
 func (v *clusterValidator) isOcsRequirementsSatisfied(c *clusterPreprocessContext) validationStatus {
-	if c.cluster.Cluster.Operators == "" {
-		return boolValue(true) // Operators are disabled
-	}
-
-	var operators models.Operators
-	err := v.getClusterOperators(&c.cluster.Cluster, &operators)
-	if err != nil {
-		return boolValue(false)
-	}
-
-	for _, operator := range operators {
-		if operator.OperatorType == models.OperatorTypeOcs && swag.BoolValue(operator.Enabled) == (true) {
-			return boolValue(v.ocsValidator.ValidateOCSRequirements(&c.cluster.Cluster))
-		}
-	}
-
-	return boolValue(true)
-
+	return boolValue(v.operatorsManager.ValidateOCSRequirements(c.cluster))
 }
 
 func (v *clusterValidator) printOcsRequirementsSatisfied(c *clusterPreprocessContext, status validationStatus) string {
 
 	switch status {
 	case ValidationSuccess, ValidationFailure:
-		return v.getOCSOperatorStatus(&c.cluster.Cluster)
+		return v.operatorsManager.GetOperatorStatus(c.cluster, models.OperatorTypeOcs)
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
 	}
-}
-
-func (v *clusterValidator) getClusterOperators(cluster *models.Cluster, operators *models.Operators) error {
-	err := json.Unmarshal([]byte(cluster.Operators), operators)
-	if err != nil {
-		v.log.WithError(err).Warnf("Something went wrong with Unmarshalling operators")
-		return err
-	}
-	return nil
-
-}
-
-func (v *clusterValidator) getOCSOperatorStatus(cluster *models.Cluster) string {
-	var status string = "OCS is disabled"
-	var operators models.Operators
-	if cluster.Operators == "" { // all operators are disabled
-		return status
-	}
-	err := v.getClusterOperators(cluster, &operators)
-	if err != nil {
-		status = "Something went wrong with Unmarshalling operators"
-		return status
-	}
-
-	for _, operator := range operators {
-		if operator.OperatorType == models.OperatorTypeOcs {
-			if swag.BoolValue(operator.Enabled) == (true) {
-				status = operator.Status
-				break
-			}
-		}
-
-	}
-	return status
-
 }
