@@ -516,7 +516,7 @@ func init() {
           },
           {
             "type": "string",
-            "description": "The software version of the discovery agent that is retreiving the cluster details.",
+            "description": "The software version of the discovery agent that is retrieving the cluster details.",
             "name": "discovery_agent_version",
             "in": "header"
           },
@@ -793,7 +793,7 @@ func init() {
             "required": true
           },
           {
-            "description": "The final status of the cluster installationthe cluster installation.",
+            "description": "The final status of the cluster installation.",
             "name": "completion-params",
             "in": "body",
             "required": true,
@@ -2076,7 +2076,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster of the host that should be retreived.",
+            "description": "The cluster of the host that should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2084,7 +2084,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The host that should be retreived.",
+            "description": "The host that should be retrieved.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -2806,7 +2806,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster of the host that is retreiving instructions.",
+            "description": "The cluster of the host that is retrieving instructions.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -2814,7 +2814,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The host that is retreiving instructions.",
+            "description": "The host that is retrieving instructions.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -4297,7 +4297,7 @@ func init() {
       "type": "object",
       "properties": {
         "is_success": {
-          "description": "API VIP connecitivty check result.",
+          "description": "API VIP connectivity check result.",
           "type": "boolean"
         }
       }
@@ -4371,7 +4371,7 @@ func init() {
           "minimum": 1
         },
         "connectivity_majority_groups": {
-          "description": "Json formatted string containing the majority groups for conectivity checks.",
+          "description": "Json formatted string containing the majority groups for connectivity checks.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -5203,7 +5203,7 @@ func init() {
           "format": "ipv4"
         },
         "api_vip_lease": {
-          "description": "Contents of last aquired lease for API virtual IP.",
+          "description": "Contents of last acquired lease for API virtual IP.",
           "type": "string"
         },
         "ingress_vip_address": {
@@ -5212,7 +5212,7 @@ func init() {
           "format": "ipv4"
         },
         "ingress_vip_lease": {
-          "description": "Contents of last aquired lease for Ingress virtual IP.",
+          "description": "Contents of last acquired lease for Ingress virtual IP.",
           "type": "string"
         }
       }
@@ -5247,7 +5247,7 @@ func init() {
               "type": "boolean"
             },
             "not_eligible_reasons": {
-              "description": "Reasons for why this disk is not elligible for installation.",
+              "description": "Reasons for why this disk is not eligible for installation.",
               "type": "array",
               "items": {
                 "type": "string"
@@ -7124,7 +7124,7 @@ func init() {
           },
           {
             "type": "string",
-            "description": "The software version of the discovery agent that is retreiving the cluster details.",
+            "description": "The software version of the discovery agent that is retrieving the cluster details.",
             "name": "discovery_agent_version",
             "in": "header"
           },
@@ -7401,7 +7401,7 @@ func init() {
             "required": true
           },
           {
-            "description": "The final status of the cluster installationthe cluster installation.",
+            "description": "The final status of the cluster installation.",
             "name": "completion-params",
             "in": "body",
             "required": true,
@@ -8684,7 +8684,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster of the host that should be retreived.",
+            "description": "The cluster of the host that should be retrieved.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -8692,7 +8692,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The host that should be retreived.",
+            "description": "The host that should be retrieved.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -9414,7 +9414,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The cluster of the host that is retreiving instructions.",
+            "description": "The cluster of the host that is retrieving instructions.",
             "name": "cluster_id",
             "in": "path",
             "required": true
@@ -9422,7 +9422,7 @@ func init() {
           {
             "type": "string",
             "format": "uuid",
-            "description": "The host that is retreiving instructions.",
+            "description": "The host that is retrieving instructions.",
             "name": "host_id",
             "in": "path",
             "required": true
@@ -10917,7 +10917,7 @@ func init() {
           "type": "boolean"
         },
         "not_eligible_reasons": {
-          "description": "Reasons for why this disk is not elligible for installation.",
+          "description": "Reasons for why this disk is not eligible for installation.",
           "type": "array",
           "items": {
             "type": "string"
@@ -11033,7 +11033,7 @@ func init() {
       "type": "object",
       "properties": {
         "is_success": {
-          "description": "API VIP connecitivty check result.",
+          "description": "API VIP connectivity check result.",
           "type": "boolean"
         }
       }
@@ -11107,7 +11107,7 @@ func init() {
           "minimum": 1
         },
         "connectivity_majority_groups": {
-          "description": "Json formatted string containing the majority groups for conectivity checks.",
+          "description": "Json formatted string containing the majority groups for connectivity checks.",
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
@@ -11899,7 +11899,7 @@ func init() {
           "format": "ipv4"
         },
         "api_vip_lease": {
-          "description": "Contents of last aquired lease for API virtual IP.",
+          "description": "Contents of last acquired lease for API virtual IP.",
           "type": "string"
         },
         "ingress_vip_address": {
@@ -11908,7 +11908,7 @@ func init() {
           "format": "ipv4"
         },
         "ingress_vip_lease": {
-          "description": "Contents of last aquired lease for Ingress virtual IP.",
+          "description": "Contents of last acquired lease for Ingress virtual IP.",
           "type": "string"
         }
       }
@@ -11943,7 +11943,7 @@ func init() {
               "type": "boolean"
             },
             "not_eligible_reasons": {
-              "description": "Reasons for why this disk is not elligible for installation.",
+              "description": "Reasons for why this disk is not eligible for installation.",
               "type": "array",
               "items": {
                 "type": "string"

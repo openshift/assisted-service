@@ -30,7 +30,7 @@ type GetNextStepsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The cluster of the host that is retreiving instructions.
+	/*The cluster of the host that is retrieving instructions.
 	  Required: true
 	  In: path
 	*/
@@ -39,7 +39,7 @@ type GetNextStepsParams struct {
 	  In: header
 	*/
 	DiscoveryAgentVersion *string
-	/*The host that is retreiving instructions.
+	/*The host that is retrieving instructions.
 	  Required: true
 	  In: path
 	*/

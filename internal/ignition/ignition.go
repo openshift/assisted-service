@@ -183,7 +183,7 @@ func (g *installerGenerator) createManifestDirectory(installerPath string, envVa
 	g.log.Info("Creating Manifest directory")
 	err := g.runCreateCommand(installerPath, "manifests", envVars)
 	if err != nil {
-		g.log.Error("Error occured while creating manifest directory ", err)
+		g.log.Error("Error occurred while creating manifest directory ", err)
 		return err
 	}
 	return nil

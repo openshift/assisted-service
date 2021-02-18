@@ -61,7 +61,7 @@ for the get next steps operation typically these are written to a http.Request
 type GetNextStepsParams struct {
 
 	/*ClusterID
-	  The cluster of the host that is retreiving instructions.
+	  The cluster of the host that is retrieving instructions.
 
 	*/
 	ClusterID strfmt.UUID
@@ -71,7 +71,7 @@ type GetNextStepsParams struct {
 	*/
 	DiscoveryAgentVersion *string
 	/*HostID
-	  The host that is retreiving instructions.
+	  The host that is retrieving instructions.
 
 	*/
 	HostID strfmt.UUID

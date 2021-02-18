@@ -140,7 +140,7 @@ type DiskInstallationEligibility struct {
 	// Whether the disk is eligible for installation or not.
 	Eligible bool `json:"eligible,omitempty"`
 
-	// Reasons for why this disk is not elligible for installation.
+	// Reasons for why this disk is not eligible for installation.
 	NotEligibleReasons []string `json:"not_eligible_reasons"`
 }
 

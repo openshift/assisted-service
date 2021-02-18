@@ -44,7 +44,7 @@ type GetClusterParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*The software version of the discovery agent that is retreiving the cluster details.
+	/*The software version of the discovery agent that is retrieving the cluster details.
 	  In: header
 	*/
 	DiscoveryAgentVersion *string

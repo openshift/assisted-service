@@ -22,7 +22,7 @@ type DhcpAllocationResponse struct {
 	// Format: ipv4
 	APIVipAddress *strfmt.IPv4 `json:"api_vip_address"`
 
-	// Contents of last aquired lease for API virtual IP.
+	// Contents of last acquired lease for API virtual IP.
 	APIVipLease string `json:"api_vip_lease,omitempty"`
 
 	// The IPv4 address that was allocated by DHCP for the Ingress virtual IP.
@@ -30,7 +30,7 @@ type DhcpAllocationResponse struct {
 	// Format: ipv4
 	IngressVipAddress *strfmt.IPv4 `json:"ingress_vip_address"`
 
-	// Contents of last aquired lease for Ingress virtual IP.
+	// Contents of last acquired lease for Ingress virtual IP.
 	IngressVipLease string `json:"ingress_vip_lease,omitempty"`
 }
 

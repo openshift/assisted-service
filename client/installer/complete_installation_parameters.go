@@ -68,7 +68,7 @@ type CompleteInstallationParams struct {
 	*/
 	ClusterID strfmt.UUID
 	/*CompletionParams
-	  The final status of the cluster installationthe cluster installation.
+	  The final status of the cluster installation.
 
 	*/
 	CompletionParams *models.CompletionParams
