@@ -125,7 +125,7 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 	}
 	defer func() {
 		if err := fo.Close(); err != nil {
-			log.Error("Unable to close file %s", filePath)
+			log.Errorf("Unable to close file %s", filePath)
 		}
 	}()
 	for {
