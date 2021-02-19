@@ -643,7 +643,7 @@ func (g *installerGenerator) addIpv6FileInIgnition(ignition string) error {
 	return nil
 }
 
-func (g *installerGenerator) addStaticIPsConfigToIgnition(ignition string) error {
+func (g *installerGenerator) addStaticNetworkConfigToIgnition(ignition string) error {
 	path := filepath.Join(g.workDir, ignition)
 	config, err := parseIgnitionFile(path)
 	if err != nil {
@@ -700,8 +700,9 @@ func (g *installerGenerator) updateIgnitions() error {
 			if err = g.addIpv6FileInIgnition(ignition); err != nil {
 				return err
 			}
-			if g.cluster.ImageInfo.StaticIpsConfig != "" {
-				if err := g.addStaticIPsConfigToIgnition(ignition); err != nil {
+
+			if g.cluster.ImageInfo.StaticNetworkConfig != "" {
+				if err := g.addStaticNetworkConfigToIgnition(ignition); err != nil {
 					return err
 				}
 			}

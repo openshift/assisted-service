@@ -5925,16 +5925,11 @@ func init() {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
         },
-        "static_ips_config": {
+        "static_network_config": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/static-ip-config"
-          }
-        },
-        "vlans_config": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/vlan-config"
+            "description": "array of string in nmstate yaml format, each string is one host configuration",
+            "type": "string"
           }
         }
       }
@@ -5966,17 +5961,13 @@ func init() {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
         },
-        "static_ips_config": {
-          "description": "static ips configuration string in the format expected by discovery ignition",
+        "static_network_config": {
+          "description": "static network configuration string in the format expected by discovery ignition generation",
           "type": "string"
         },
         "type": {
           "type": "string",
           "$ref": "#/definitions/image_type"
-        },
-        "vlans_config": {
-          "description": "vlans configuration in the format expected by discovery ignition",
-          "type": "string"
         }
       }
     },
@@ -6375,61 +6366,6 @@ func init() {
         "unreachable"
       ]
     },
-    "static-ip-config": {
-      "type": "object",
-      "properties": {
-        "ipv4_config": {
-          "$ref": "#/definitions/static-ipv4-config"
-        },
-        "ipv6_config": {
-          "$ref": "#/definitions/static-ipv6-config"
-        },
-        "mac": {
-          "type": "string",
-          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
-        }
-      }
-    },
-    "static-ipv4-config": {
-      "type": "object",
-      "properties": {
-        "dns": {
-          "type": "string"
-        },
-        "gateway": {
-          "type": "string",
-          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
-        },
-        "ip": {
-          "type": "string",
-          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
-        },
-        "mask": {
-          "type": "string",
-          "pattern": "^[0-9]|[1-2][0-9]|3[0-2]?$"
-        }
-      }
-    },
-    "static-ipv6-config": {
-      "type": "object",
-      "properties": {
-        "dns": {
-          "type": "string"
-        },
-        "gateway": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
-        },
-        "ip": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
-        },
-        "mask": {
-          "type": "string",
-          "pattern": "^([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$"
-        }
-      }
-    },
     "step": {
       "type": "object",
       "properties": {
@@ -6544,25 +6480,6 @@ func init() {
       "type": "object",
       "additionalProperties": {
         "type": "string"
-      }
-    },
-    "vlan-config": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "vlan id",
-          "type": "integer"
-        },
-        "ipv4_config": {
-          "$ref": "#/definitions/static-ipv4-config"
-        },
-        "ipv6_config": {
-          "$ref": "#/definitions/static-ipv6-config"
-        },
-        "mac": {
-          "type": "string",
-          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
-        }
       }
     }
   },
@@ -12587,16 +12504,11 @@ func init() {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
         },
-        "static_ips_config": {
+        "static_network_config": {
           "type": "array",
           "items": {
-            "$ref": "#/definitions/static-ip-config"
-          }
-        },
-        "vlans_config": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/vlan-config"
+            "description": "array of string in nmstate yaml format, each string is one host configuration",
+            "type": "string"
           }
         }
       }
@@ -12629,17 +12541,13 @@ func init() {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
         },
-        "static_ips_config": {
-          "description": "static ips configuration string in the format expected by discovery ignition",
+        "static_network_config": {
+          "description": "static network configuration string in the format expected by discovery ignition generation",
           "type": "string"
         },
         "type": {
           "type": "string",
           "$ref": "#/definitions/image_type"
-        },
-        "vlans_config": {
-          "description": "vlans configuration in the format expected by discovery ignition",
-          "type": "string"
         }
       }
     },
@@ -13038,61 +12946,6 @@ func init() {
         "unreachable"
       ]
     },
-    "static-ip-config": {
-      "type": "object",
-      "properties": {
-        "ipv4_config": {
-          "$ref": "#/definitions/static-ipv4-config"
-        },
-        "ipv6_config": {
-          "$ref": "#/definitions/static-ipv6-config"
-        },
-        "mac": {
-          "type": "string",
-          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
-        }
-      }
-    },
-    "static-ipv4-config": {
-      "type": "object",
-      "properties": {
-        "dns": {
-          "type": "string"
-        },
-        "gateway": {
-          "type": "string",
-          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
-        },
-        "ip": {
-          "type": "string",
-          "pattern": "^([0-9]{1,3}\\.){3}[0-9]{1,3}$"
-        },
-        "mask": {
-          "type": "string",
-          "pattern": "^[0-9]|[1-2][0-9]|3[0-2]?$"
-        }
-      }
-    },
-    "static-ipv6-config": {
-      "type": "object",
-      "properties": {
-        "dns": {
-          "type": "string"
-        },
-        "gateway": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
-        },
-        "ip": {
-          "type": "string",
-          "pattern": "^(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}$"
-        },
-        "mask": {
-          "type": "string",
-          "pattern": "^([0-9]|[1-9][0-9]|1[0-1][0-9]|12[0-8])$"
-        }
-      }
-    },
     "step": {
       "type": "object",
       "properties": {
@@ -13207,25 +13060,6 @@ func init() {
       "type": "object",
       "additionalProperties": {
         "type": "string"
-      }
-    },
-    "vlan-config": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "description": "vlan id",
-          "type": "integer"
-        },
-        "ipv4_config": {
-          "$ref": "#/definitions/static-ipv4-config"
-        },
-        "ipv6_config": {
-          "$ref": "#/definitions/static-ipv6-config"
-        },
-        "mac": {
-          "type": "string",
-          "pattern": "^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$"
-        }
       }
     }
   },

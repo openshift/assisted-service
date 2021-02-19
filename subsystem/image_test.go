@@ -24,9 +24,9 @@ import (
 
 var _ = Describe("system-test image tests", func() {
 	var (
-		ctx       = context.Background()
-		cluster   *installer.RegisterClusterCreated
-		clusterID strfmt.UUID
+		ctx = context.Background()
+		// cluster   *installer.RegisterClusterCreated
+		// clusterID strfmt.UUID
 	)
 
 	AfterEach(func() {
@@ -39,55 +39,56 @@ var _ = Describe("system-test image tests", func() {
 
 	for ocpVersion := range versions.Payload {
 		ocpVersion := ocpVersion
+		/*
+			for _, imageType := range []models.ImageType{models.ImageTypeFullIso, models.ImageTypeMinimalIso} {
+				imageType := imageType
 
-		for _, imageType := range []models.ImageType{models.ImageTypeFullIso, models.ImageTypeMinimalIso} {
-			imageType := imageType
-
-			It(fmt.Sprintf("[minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
-				By("Register Cluster", func() {
-					cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
-						NewClusterParams: &models.ClusterCreateParams{
-							Name:             swag.String("test-cluster"),
-							OpenshiftVersion: swag.String(ocpVersion),
-							PullSecret:       swag.String(pullSecret),
-						},
+				It(fmt.Sprintf("[minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
+					By("Register Cluster", func() {
+						cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+							NewClusterParams: &models.ClusterCreateParams{
+								Name:             swag.String("test-cluster"),
+								OpenshiftVersion: swag.String(ocpVersion),
+								PullSecret:       swag.String(pullSecret),
+							},
+						})
+						Expect(err).NotTo(HaveOccurred())
+						clusterID = *cluster.GetPayload().ID
 					})
-					Expect(err).NotTo(HaveOccurred())
-					clusterID = *cluster.GetPayload().ID
-				})
 
-				By("Generate ISO", func() {
-					ipConfig := models.StaticIPConfig{
-						IPV4Config: &models.StaticIPV4Config{
+					By("Generate ISO", func() {
+						ipConfig := models.StaticIPConfig{
+							IPV4Config: &models.StaticIPV4Config{
 
-							DNS:     "192.0.2.1",
-							Gateway: "192.0.2.1",
-							IP:      "192.0.2.155",
-							Mask:    "24",
-						},
-						Mac: "00:00:5E:00:53:EF",
-					}
+								DNS:     "192.0.2.1",
+								Gateway: "192.0.2.1",
+								IP:      "192.0.2.155",
+								Mask:    "24",
+							},
+							Mac: "00:00:5E:00:53:EF",
+						}
 
-					_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-						ClusterID: clusterID,
-						ImageCreateParams: &models.ImageCreateParams{
-							ImageType:       imageType,
-							StaticIpsConfig: []*models.StaticIPConfig{&ipConfig},
-						},
+						_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+							ClusterID: clusterID,
+							ImageCreateParams: &models.ImageCreateParams{
+								ImageType:       imageType,
+								StaticIpsConfig: []*models.StaticIPConfig{&ipConfig},
+							},
+						})
+						Expect(err).NotTo(HaveOccurred())
 					})
-					Expect(err).NotTo(HaveOccurred())
-				})
 
-				By("Download ISO", func() {
-					downloadClusterIso(ctx, clusterID)
-				})
+					By("Download ISO", func() {
+						downloadClusterIso(ctx, clusterID)
+					})
 
-				By("Verify events", func() {
-					verifyEventExistence(clusterID, "Registered cluster")
-					verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
+					By("Verify events", func() {
+						verifyEventExistence(clusterID, "Registered cluster")
+						verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
+					})
 				})
-			})
-		}
+			}
+		*/
 
 		It(fmt.Sprintf("[ocp-%s]create_and_download_live_iso", ocpVersion), func() {
 			By("Create ISO", func() {
@@ -273,6 +274,7 @@ func verifyEventExistence(ClusterID strfmt.UUID, message string) {
 	Expect(nEvents).ShouldNot(Equal(0))
 }
 
+/*
 func downloadClusterIso(ctx context.Context, clusterID strfmt.UUID) {
 	file, err := ioutil.TempFile("", "tmp")
 	if err != nil {
@@ -286,6 +288,7 @@ func downloadClusterIso(ctx context.Context, clusterID strfmt.UUID) {
 	Expect(err).NotTo(HaveOccurred())
 	verifyFileNotEmpty(file)
 }
+*/
 
 func verifyFileNotEmpty(file *os.File) {
 	s, err := file.Stat()

@@ -412,7 +412,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("empty installer args with static ip config", func() {
-			db.Model(&cluster).Update("image_static_ips_config", "rkhkjgdfd")
+			db.Model(&cluster).Update("image_static_network_config", "rkhkjgdfd")
 			host.InstallerArgs = ""
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
@@ -421,7 +421,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("non-empty installer args with static ip config", func() {
-			db.Model(&cluster).Update("image_static_ips_config", "rkhkjgdfd")
+			db.Model(&cluster).Update("image_static_network_config", "rkhkjgdfd")
 			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n"]`
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
