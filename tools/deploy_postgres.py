@@ -44,7 +44,7 @@ def deploy_postgres_secret(deploy_options):
 
 def deploy_postgres(deploy_options):
     postgres_dep_file = 'deploy/postgres/postgres-deployment.yaml'
-    if deploy_options.target == utils.OCP_TARGET:
+    if deploy_options.persistent_storage is False:
         postgres_dep_file = 'deploy/postgres/postgres-deployment-ephemeral.yaml'
     docs = utils.load_yaml_file_docs(postgres_dep_file)
 

@@ -220,15 +220,15 @@ deploy-postgres: deploy-namespace
 		--apply-manifest $(APPLY_MANIFEST)
 
 deploy-service-on-ocp-cluster:
-	export TARGET=ocp && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
+	export TARGET=ocp && export PERSISTENT_STORAGE=False && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
 
 deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
 
 create-ocp-manifests:
 	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
-	export ENABLE_KUBE_API=true && \
-	$(MAKE) deploy-service-on-ocp-cluster deploy-ui-on-ocp-cluster
+	export ENABLE_KUBE_API=true && export TARGET=ocp && \
+	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 

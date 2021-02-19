@@ -31,6 +31,12 @@ def load_deployment_options(parser=None):
         default='minikube'
     )
     parser.add_argument(
+        '--persistent-storage',
+        help='Persistent storage is used',
+        type=bool,
+        default=True
+    )
+    parser.add_argument(
         '--domain',
         help='Target domain',
         type=str
