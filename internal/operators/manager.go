@@ -6,7 +6,6 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
@@ -34,18 +33,18 @@ type API interface {
 }
 
 // NewManager creates new instance of an Operator Manager
-func NewManager(log logrus.FieldLogger, hostApi host.API) Manager {
+func NewManager(log logrus.FieldLogger) Manager {
 	cfg := ocs.Config{}
 	err := envconfig.Process("myapp", &cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	return NewManagerWithConfig(log, hostApi, &cfg)
+	return NewManagerWithConfig(log, &cfg)
 }
 
 // NewManagerWithConfig creates new instance of an Operator Manager
-func NewManagerWithConfig(log logrus.FieldLogger, hostApi host.API, cfg *ocs.Config) Manager {
-	ocsValidator := ocs.NewOCSValidator(log.WithField("pkg", "ocs-operator-state"), hostApi, cfg)
+func NewManagerWithConfig(log logrus.FieldLogger, cfg *ocs.Config) Manager {
+	ocsValidator := ocs.NewOCSValidator(log.WithField("pkg", "ocs-operator-state"), cfg)
 	return Manager{
 		log:                log,
 		ocsValidatorConfig: cfg,

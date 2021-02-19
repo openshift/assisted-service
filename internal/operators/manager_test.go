@@ -37,7 +37,7 @@ var _ = BeforeEach(func() {
 
 	ctrl = gomock.NewController(GinkgoT())
 	mockHostAPI = host.NewMockAPI(ctrl)
-	manager = operators.NewManager(log, mockHostAPI)
+	manager = operators.NewManager(log)
 })
 
 var _ = AfterEach(func() {
