@@ -28,6 +28,7 @@ const (
 	IsNtpServerConfigured               = validationID(models.ClusterValidationIDNtpServerConfigured)
 	IsOcsRequirementsSatisfied          = validationID(models.ClusterValidationIDOcsRequirementsSatisfied)
 	IsLsoRequirementsSatisfied          = validationID(models.ClusterValidationIDLsoRequirementsSatisfied)
+	IsCnvRequirementsSatisfied          = validationID(models.ClusterValidationIDCnvRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
@@ -39,7 +40,7 @@ func (v validationID) category() (string, error) {
 		return "hosts-data", nil
 	case IsPullSecretSet:
 		return "configuration", nil
-	case IsOcsRequirementsSatisfied, IsLsoRequirementsSatisfied:
+	case IsOcsRequirementsSatisfied, IsLsoRequirementsSatisfied, IsCnvRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))

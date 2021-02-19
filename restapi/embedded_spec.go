@@ -5234,7 +5234,8 @@ func init() {
         "pull-secret-set",
         "ntp-server-configured",
         "lso-requirements-satisfied",
-        "ocs-requirements-satisfied"
+        "ocs-requirements-satisfied",
+        "cnv-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -6261,7 +6262,8 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed"
+        "sufficient-installation-disk-speed",
+        "cnv-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -12366,7 +12368,8 @@ func init() {
         "pull-secret-set",
         "ntp-server-configured",
         "lso-requirements-satisfied",
-        "ocs-requirements-satisfied"
+        "ocs-requirements-satisfied",
+        "cnv-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -13357,7 +13360,8 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed"
+        "sufficient-installation-disk-speed",
+        "cnv-requirements-satisfied"
       ]
     },
     "host_network": {

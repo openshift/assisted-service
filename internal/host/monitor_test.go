@@ -57,6 +57,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
 	})
 
@@ -148,6 +149,7 @@ var _ = Describe("TestHostMonitoring", func() {
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
 	})
 

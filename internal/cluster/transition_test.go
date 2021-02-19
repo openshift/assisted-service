@@ -3655,6 +3655,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		operatorsManager := operators.NewManager(common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
+
 		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")
 		hid2 = strfmt.UUID("514c8480-cda5-46e5-afce-e146def2066f")
 		hid3 = strfmt.UUID(uuid.New().String())

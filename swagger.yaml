@@ -2821,7 +2821,6 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
-
   /host_requirements:
     get:
       tags:
@@ -4612,6 +4611,7 @@ definitions:
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'
       - 'sufficient-installation-disk-speed'
+      - 'cnv-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -4772,6 +4772,7 @@ definitions:
       - 'ntp-server-configured'
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'
+      - 'cnv-requirements-satisfied'
 
   logs_type:
     type: string
@@ -4798,7 +4799,6 @@ definitions:
       logs_state:
         description: The state of collecting logs.
         $ref: '#/definitions/logs_state'
-
   list-manifests:
     type: array
     items:

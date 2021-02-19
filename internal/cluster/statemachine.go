@@ -92,7 +92,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	var pendingConditions = stateswitch.And(If(IsMachineCidrDefined), If(isClusterCidrDefined), If(isServiceCidrDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
 	var vipsDefinedConditions = stateswitch.And(If(isApiVipDefined), If(isIngressVipDefined))
 	var requiredForInstall = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid), If(isIngressVipValid), If(AllHostsAreReadyToInstall),
-		If(SufficientMastersCount), If(networkPrefixValid), If(noCidrOverlapping), If(IsNtpServerConfigured), If(IsOcsRequirementsSatisfied), If(IsLsoRequirementsSatisfied))
+		If(SufficientMastersCount), If(networkPrefixValid), If(noCidrOverlapping), If(IsNtpServerConfigured), If(IsOcsRequirementsSatisfied), If(IsLsoRequirementsSatisfied), If(IsCnvRequirementsSatisfied))
 
 	// Refresh cluster status conditions - Non DHCP
 	var requiredInputFieldsExistNonDhcp = stateswitch.And(vipsDefinedConditions, pendingConditions)

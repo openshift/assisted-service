@@ -22,6 +22,8 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -1505,6 +1507,176 @@ var _ = Describe("Refresh Host", func() {
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(Equal(info))
 		})
 
+	})
+
+	Context("Validate host", func() {
+		tests := []struct {
+			// Test parameters
+			name               string
+			statusInfoMsg      string
+			validationsChecker *validationsChecker
+
+			// Host fields
+			hostID    strfmt.UUID
+			inventory string
+			role      models.HostRole
+			dstState  string
+			srcState  string
+		}{
+			{
+				name:          "insufficient worker memory",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(4, 104857600, "worker"),
+				role:          models.HostRoleWorker,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient memory to deploy CNV. Required memory is 360 MiB but found 100 MiB",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster bec"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role worker, found only 0"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname worker is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient memory to deploy CNV. Required memory is 360 MiB but found 100 MiB"},
+				}),
+			},
+			{
+				name:          "insufficient master memory",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(4, 104857600, "master"),
+				role:          models.HostRoleMaster,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient memory to deploy CNV. Required memory is 150 MiB but found 100 MiB",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster bec"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 0"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname master is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient memory to deploy CNV. Required memory is 150 MiB but found 100 MiB"},
+				}),
+			},
+			{
+				name:          "insufficient worker cpu",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, hardware.GibToBytes(16), "worker"),
+				role:          models.HostRoleWorker,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient CPU to deploy CNV. Required CPU count is 2 but found 1",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is 2, found only 1"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 2 CPU cores for worker role, found only 1"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname worker is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy CNV. Required CPU count is 2 but found 1"},
+				}),
+			},
+			{
+				name:          "insufficient master cpu",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, hardware.GibToBytes(16), "master"),
+				role:          models.HostRoleMaster,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient CPU to deploy CNV. Required CPU count is 4 but found 1",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is 2, found only 1"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 1"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname master is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy CNV. Required CPU count is 4 but found 1"},
+				}),
+			},
+		}
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster.MonitoredOperators = []*models.MonitoredOperator{
+					&lso.Operator,
+					&cnv.Operator,
+				}
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				host = hostutil.GenerateTestHost(t.hostID, clusterId, t.srcState)
+				host.Inventory = t.inventory
+				host.Role = t.role
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					AnyTimes()
+
+				err := hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ToNot(HaveOccurred())
+
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", t.hostID, clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Role).To(Equal(t.role))
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+
+				Expect(strings.Contains(*resultHost.StatusInfo, t.statusInfoMsg))
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(resultHost.ValidationsInfo)
+				}
+			})
+		}
 	})
 
 	Context("All transitions", func() {
