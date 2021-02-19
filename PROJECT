@@ -1,12 +1,8 @@
 domain: openshift.io
 layout: go.kubebuilder.io/v3
 projectName: assisted-service-operator
-repo: github.com/openshift/assisted-service-operator
+repo: github.com/openshift/assisted-service
 resources:
-- crdVersion: v1
-  group: assistedservice.openshift.io
-  kind: AssistedService
-  version: v1alpha1
 version: 3-alpha
 plugins:
   manifests.sdk.operatorframework.io/v2: {}

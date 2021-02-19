@@ -33,4 +33,3 @@ config/assisted-service/assisted-installer-sso.yaml
 config/assisted-service/assisted-service-configmap.yaml
 config/assisted-service/assisted-service-service.yaml
 config/assisted-service/assisted-service.yaml
-config/assisted-service/deploy_ui.yaml
