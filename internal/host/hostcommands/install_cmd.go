@@ -268,7 +268,7 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 	set --copy-nework, function will set only one such argument
 */
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host) (string, error) {
-	if cluster.ImageInfo.StaticIpsConfig == "" {
+	if cluster.ImageInfo.StaticNetworkConfig == "" {
 		return host.InstallerArgs, nil
 	}
 

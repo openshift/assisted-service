@@ -332,196 +332,199 @@ var _ = Describe("GenerateClusterISO", func() {
 		verifyApiError(generateReply, http.StatusInternalServerError)
 	})
 
-	Context("static ip and vlan", func() {
+	// [TODO] change the tests once nmstate-based implementation is in
+	/*
+				Context("static ip and vlan", func() {
 
-		ipv4Configs := []*models.StaticIPV4Config{
-			{
-				DNS: "dns1", Gateway: "gateway1", IP: "IP1", Mask: "mask1",
-			},
-			{
-				DNS: "dns2", Gateway: "gateway2", IP: "IP2", Mask: "mask2",
-			},
-		}
-		staticIPsConfig := []*models.StaticIPConfig{
-			{
-				Mac: "mac1", IPV4Config: ipv4Configs[0], IPV6Config: nil,
-			},
-			{
-				Mac: "mac2", IPV4Config: ipv4Configs[1], IPV6Config: nil,
-			},
-		}
-		vlansConfig := []*models.VlanConfig{
-			{
-				Mac: "mac1", ID: 100,
-			},
-			{
-				Mac: "mac2", ID: 200,
-			},
-		}
+					ipv4Configs := []*models.StaticIPV4Config{
+						{
+							DNS: "dns1", Gateway: "gateway1", IP: "IP1", Mask: "mask1",
+						},
+						{
+							DNS: "dns2", Gateway: "gateway2", IP: "IP2", Mask: "mask2",
+						},
+					}
+					staticIPsConfig := []*models.StaticIPConfig{
+						{
+							Mac: "mac1", IPV4Config: ipv4Configs[0], IPV6Config: nil,
+						},
+						{
+							Mac: "mac2", IPV4Config: ipv4Configs[1], IPV6Config: nil,
+						},
+					}
+					vlansConfig := []*models.VlanConfig{
+						{
+							Mac: "mac1", ID: 100,
+						},
+						{
+							Mac: "mac2", ID: 200,
+						},
+					}
 
-		It("static ips and vlan config - success", func() {
-			cluster := registerCluster(true)
-			clusterId := cluster.ID
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			mockUploadIso(cluster, nil)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig, VlansConfig: vlansConfig},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-		})
+					It("static ips and vlan config - success", func() {
+						cluster := registerCluster(true)
+						clusterId := cluster.ID
+						mockS3Client.EXPECT().IsAwsS3().Return(false)
+						mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+						mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+						mockUploadIso(cluster, nil)
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+						generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+							ClusterID:         *clusterId,
+							ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig, VlansConfig: vlansConfig},
+						})
+						Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+					})
 
-		It("static ip and config  - same static ip and vlan config image already exists", func() {
-			cluster := registerCluster(true)
-			clusterId := cluster.ID
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			mockUploadIso(cluster, nil)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig, VlansConfig: vlansConfig},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+					It("static ip and config  - same static ip and vlan config image already exists", func() {
+						cluster := registerCluster(true)
+						clusterId := cluster.ID
+						mockS3Client.EXPECT().IsAwsS3().Return(false)
+						mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+						mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+						mockUploadIso(cluster, nil)
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+						generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+							ClusterID:         *clusterId,
+							ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig, VlansConfig: vlansConfig},
+						})
+						Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 
-			rollbackClusterImageCreationDate(clusterId)
+						rollbackClusterImageCreationDate(clusterId)
 
-			newIPV4Configs := []*models.StaticIPV4Config{
-				{
-					DNS: "dns2", Gateway: "gateway2", IP: "IP2", Mask: "mask2",
-				},
-				{
-					DNS: "dns1", Gateway: "gateway1", IP: "IP1", Mask: "mask1",
-				},
-			}
-			newStaticIPsConfig := []*models.StaticIPConfig{
-				{
-					Mac: "mac1", IPV4Config: newIPV4Configs[1], IPV6Config: nil,
-				},
-				{
-					Mac: "mac2", IPV4Config: newIPV4Configs[0], IPV6Config: nil,
-				},
-			}
-			newVlansConfig := []*models.VlanConfig{
-				{
-					Mac: "mac2", ID: 200,
-				},
-				{
-					Mac: "mac1", ID: 100,
-				},
-			}
+						newIPV4Configs := []*models.StaticIPV4Config{
+							{
+								DNS: "dns2", Gateway: "gateway2", IP: "IP2", Mask: "mask2",
+							},
+							{
+								DNS: "dns1", Gateway: "gateway1", IP: "IP1", Mask: "mask1",
+							},
+						}
+						newStaticIPsConfig := []*models.StaticIPConfig{
+							{
+								Mac: "mac1", IPV4Config: newIPV4Configs[1], IPV6Config: nil,
+							},
+							{
+								Mac: "mac2", IPV4Config: newIPV4Configs[0], IPV6Config: nil,
+							},
+						}
+						newVlansConfig := []*models.VlanConfig{
+							{
+								Mac: "mac2", ID: 200,
+							},
+							{
+								Mac: "mac1", ID: 100,
+							},
+						}
 
-			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
-			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig, VlansConfig: newVlansConfig},
-			})
+						mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+						mockS3Client.EXPECT().IsAwsS3().Return(false)
+						mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
+						generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+							ClusterID:         *clusterId,
+							ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig, VlansConfig: newVlansConfig},
+						})
 
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-		})
+						Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+					})
 
-		It("static ip and vlan config  - different static ip config", func() {
-			cluster := registerCluster(true)
-			clusterId := cluster.ID
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			mockUploadIso(cluster, nil)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+					It("static ip and vlan config  - different static ip config", func() {
+						cluster := registerCluster(true)
+						clusterId := cluster.ID
+						mockS3Client.EXPECT().IsAwsS3().Return(false)
+						mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+						mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+						mockUploadIso(cluster, nil)
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+						generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+							ClusterID:         *clusterId,
+							ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: staticIPsConfig},
+						})
+						Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 
-			updatedTime := time.Now().Add(-11 * time.Second)
-			updates := map[string]interface{}{}
-			updates["image_created_at"] = updatedTime
-			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
-			newIPV4Configs := []*models.StaticIPV4Config{
-				{
-					DNS: "dns11", Gateway: "gateway11", IP: "IP11", Mask: "mask11",
-				},
-				{
-					DNS: "dns22", Gateway: "gateway22", IP: "IP22", Mask: "mask22",
-				},
-			}
-			newStaticIPsConfig := []*models.StaticIPConfig{
-				{
-					Mac: "mac11", IPV4Config: newIPV4Configs[0], IPV6Config: nil,
-				},
-				{
-					Mac: "mac22", IPV4Config: newIPV4Configs[1], IPV6Config: nil,
-				},
-			}
+						updatedTime := time.Now().Add(-11 * time.Second)
+						updates := map[string]interface{}{}
+						updates["image_created_at"] = updatedTime
+						db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
+						newIPV4Configs := []*models.StaticIPV4Config{
+							{
+								DNS: "dns11", Gateway: "gateway11", IP: "IP11", Mask: "mask11",
+							},
+							{
+								DNS: "dns22", Gateway: "gateway22", IP: "IP22", Mask: "mask22",
+							},
+						}
+						newStaticIPsConfig := []*models.StaticIPConfig{
+							{
+								Mac: "mac11", IPV4Config: newIPV4Configs[0], IPV6Config: nil,
+							},
+							{
+								Mac: "mac22", IPV4Config: newIPV4Configs[1], IPV6Config: nil,
+							},
+						}
 
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			mockUploadIso(cluster, nil)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+						mockS3Client.EXPECT().IsAwsS3().Return(false)
+						mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+						mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+						mockUploadIso(cluster, nil)
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
 
-			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig, VlansConfig: vlansConfig},
-			})
+						generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+							ClusterID:         *clusterId,
+							ImageCreateParams: &models.ImageCreateParams{StaticIpsConfig: newStaticIPsConfig, VlansConfig: vlansConfig},
+						})
 
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
-			Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
-		})
+						Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+						getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		                                Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
+					})
 
-		It("static ip and vlan config  - different vlan config", func() {
-			cluster := registerCluster(true)
-			clusterId := cluster.ID
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			mockUploadIso(cluster, nil)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
-			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{VlansConfig: vlansConfig},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+					It("static ip and vlan config  - different vlan config", func() {
+						cluster := registerCluster(true)
+						clusterId := cluster.ID
+						mockS3Client.EXPECT().IsAwsS3().Return(false)
+						mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+						mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+						mockUploadIso(cluster, nil)
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+						generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+							ClusterID:         *clusterId,
+							ImageCreateParams: &models.ImageCreateParams{VlansConfig: vlansConfig},
+						})
+						Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 
-			updatedTime := time.Now().Add(-11 * time.Second)
-			updates := map[string]interface{}{}
-			updates["image_created_at"] = updatedTime
-			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
+						updatedTime := time.Now().Add(-11 * time.Second)
+						updates := map[string]interface{}{}
+						updates["image_created_at"] = updatedTime
+						db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
 
-			newVlansConfig := []*models.VlanConfig{
-				{
-					Mac: "mac1", ID: 200,
-				},
-				{
-					Mac: "mac2", ID: 100,
-				},
-			}
+						newVlansConfig := []*models.VlanConfig{
+							{
+								Mac: "mac1", ID: 200,
+							},
+							{
+								Mac: "mac2", ID: 100,
+							},
+						}
 
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
-			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			mockUploadIso(cluster, nil)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
+						mockS3Client.EXPECT().IsAwsS3().Return(false)
+						mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+						mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+						mockUploadIso(cluster, nil)
+						mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (SSH public key is not set)", gomock.Any())
 
-			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
-				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{VlansConfig: newVlansConfig},
-			})
-			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
-			getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
-			Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
-		})
+						generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+							ClusterID:         *clusterId,
+							ImageCreateParams: &models.ImageCreateParams{VlansConfig: newVlansConfig},
+						})
+						Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
+						getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+						Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
+					})
 
-	})
+				})
+	*/
 
 	Context("minimal iso", func() {
 		var (
@@ -838,38 +841,43 @@ var _ = Describe("IgnitionParameters", func() {
 			}, log, false)
 			Expect(err).To(HaveOccurred())
 		})
-		It("produces a valid ignition v3.1 spec with static ips paramters", func() {
-			cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;dns1;gw1;mask1\nmac2;ip2;dns2;gw2;mask2"
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
-			Expect(err).NotTo(HaveOccurred())
-			_, report, err := ign_3_1.Parse([]byte(text))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(report.IsFatal()).To(BeFalse())
-		})
+		// [TODO]  - change the tests once nmstate-based implementation is in
+		/*
+			It("produces a valid ignition v3.1 spec with static ips paramters", func() {
+				cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;dns1;gw1;mask1\nmac2;ip2;dns2;gw2;mask2"
+				text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+					ImageCreateParams: &models.ImageCreateParams{},
+				}, log, false)
+				Expect(err).NotTo(HaveOccurred())
+				_, report, err := ign_3_1.Parse([]byte(text))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(report.IsFatal()).To(BeFalse())
+			})
+		*/
 
-		It("Doesn't include the static ip data for minimal isos", func() {
-			cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;mask1;dns1;gw1;ip6;mask6;dns6;gw6\nmac2;ip2;mask2;dns2;gw2;;;;"
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{
-					ImageType: models.ImageTypeMinimalIso,
-				},
-			}, log, false)
-			Expect(err).NotTo(HaveOccurred())
-			config, report, err := ign_3_1.Parse([]byte(text))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(report.IsFatal()).To(BeFalse())
+		/*
+			It("Doesn't include the static ip data for minimal isos", func() {
+				cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;mask1;dns1;gw1;ip6;mask6;dns6;gw6\nmac2;ip2;mask2;dns2;gw2;;;;"
+				text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+					ImageCreateParams: &models.ImageCreateParams{
+						ImageType: models.ImageTypeMinimalIso,
+					},
+				}, log, false)
+				Expect(err).NotTo(HaveOccurred())
+				config, report, err := ign_3_1.Parse([]byte(text))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(report.IsFatal()).To(BeFalse())
 
-			for _, f := range config.Systemd.Units {
-				Expect(f.Name).ToNot(Equal("configure-static-ip.service"))
-			}
+				for _, f := range config.Systemd.Units {
+					Expect(f.Name).ToNot(Equal("configure-static-ip.service"))
+				}
 
-			for _, f := range config.Storage.Files {
-				Expect(f.Path).ToNot(Equal("/etc/static_ips_config.csv"))
-				Expect(f.Path).ToNot(Equal("/usr/local/bin/configure-static-ip.sh"))
-			}
-		})
+				for _, f := range config.Storage.Files {
+					Expect(f.Path).ToNot(Equal("/etc/static_ips_config.csv"))
+					Expect(f.Path).ToNot(Equal("/usr/local/bin/configure-static-ip.sh"))
+				}
+			})
+		*/
 	}
 
 	Context("start with clean configuration", func() {
