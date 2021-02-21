@@ -227,6 +227,7 @@ ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
 deploy-test: $(VERIFY_CLUSTER) generate-keys
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export OPENSHIFT_VERSIONS='$(shell echo '${OPENSHIFT_VERSIONS}' | jq 'with_entries(select(.value.support_level == "production"))' | tr -d "\n\t ")' && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
