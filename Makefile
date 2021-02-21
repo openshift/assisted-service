@@ -196,7 +196,7 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		--check-cvo $(CHECK_CLUSTER_VERSION) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
 
 deploy-resources: generate-manifests
-	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD)
+	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-resources
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
