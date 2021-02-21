@@ -1003,6 +1003,14 @@ func (b *bareMetalInventory) GenerateClusterISO(ctx context.Context, params inst
 func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("prepare image for cluster %s", params.ClusterID)
+
+	if params.ImageCreateParams.SSHPublicKey != "" {
+		if err := validations.ValidateSSHPublicKey(params.ImageCreateParams.SSHPublicKey); err != nil {
+			log.Error(err)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	var cluster common.Cluster
 
 	txSuccess := false

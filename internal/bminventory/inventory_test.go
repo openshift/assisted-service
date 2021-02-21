@@ -332,6 +332,21 @@ var _ = Describe("GenerateClusterISO", func() {
 		verifyApiError(generateReply, http.StatusInternalServerError)
 	})
 
+	It("failed corrupted ssh public key", func() {
+		clusterID := registerCluster(true).ID
+		reply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID: *clusterID,
+			ImageCreateParams: &models.ImageCreateParams{
+				SSHPublicKey: "anything but a valid key",
+			},
+		})
+
+		Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+		errorResponse := reply.(*common.ApiErrorResponse)
+		Expect(errorResponse.StatusCode()).To(BeNumerically("==", http.StatusBadRequest))
+		Expect(errorResponse.Error()).To(ContainSubstring("SSH"))
+	})
+
 	// [TODO] change the tests once nmstate-based implementation is in
 	/*
 				Context("static ip and vlan", func() {
