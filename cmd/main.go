@@ -405,6 +405,7 @@ func main() {
 	go func() {
 		pullSecretUpdatesChannel := make(chan event.GenericEvent)
 
+		//TODO: remove ImageReconciler and ClusterReconciler
 		if Options.EnableKubeAPI {
 			failOnError((&controllers.ImageReconciler{
 				Client:                   ctrlMgr.GetClient(),
@@ -413,6 +414,13 @@ func main() {
 				Installer:                bm,
 				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Image")
+
+			failOnError((&controllers.InstallEnvReconciler{
+				Client:                   ctrlMgr.GetClient(),
+				Log:                      log,
+				Installer:                bm,
+				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+			}).SetupWithManager(ctrlMgr), "unable to create controller InstallEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
 				Client:                   ctrlMgr.GetClient(),

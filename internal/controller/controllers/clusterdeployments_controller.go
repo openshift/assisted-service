@@ -250,12 +250,12 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 func (r *ClusterDeploymentsReconciler) notifyPullSecretUpdate(ctx context.Context, isPullSecretUpdate bool,
 	c *common.Cluster) error {
 	if isPullSecretUpdate {
-		images := &adiiov1alpha1.ImageList{}
-		if err := r.List(ctx, images); err != nil {
+		installEnv := &adiiov1alpha1.InstallEnvList{}
+		if err := r.List(ctx, installEnv); err != nil {
 			return err
 		}
-		for _, image := range images.Items {
-			r.Log.Infof("Notify that image %s should be re-created for cluster %s",
+		for _, image := range installEnv.Items {
+			r.Log.Infof("Notify that installEnv %s should be re-created for cluster %s",
 				image.Name, image.UID)
 			if image.Spec.ClusterRef.Name == c.KubeKeyName {
 				r.PullSecretUpdatesChannel <- event.GenericEvent{

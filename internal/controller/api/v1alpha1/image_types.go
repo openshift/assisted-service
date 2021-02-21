@@ -20,11 +20,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-const (
-	ImageStateCreated        = "Image has been created"
-	ImageStateFailedToCreate = "Failed to create image"
-)
-
 // ImageSpec defines the desired state of Image
 type ImageSpec struct {
 	// The name of the Cluster CR
