@@ -3,7 +3,6 @@ module github.com/openshift/assisted-service
 go 1.15
 
 require (
-	github.com/ajeddeloh/go-json v0.0.0-20170920214419-6a2fe990e083 // indirect
 	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d
 	github.com/alessio/shellescape v1.4.1
 	github.com/asaskevich/govalidator v0.0.0-20200428143746-21a406dcc535
@@ -45,6 +44,7 @@ require (
 	github.com/openshift-online/ocm-sdk-go v0.1.160
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
+	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
 	github.com/openshift/hive/pkg/apis v0.0.0
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible

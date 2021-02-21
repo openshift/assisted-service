@@ -17,8 +17,31 @@ limitations under the License.
 package v1alpha1
 
 import (
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
+
+const (
+	ImageCreatedReason       = "ImageCreated"
+	ImageStateCreated        = "Image has been created"
+	ImageCreationErrorReason = "ImageCreationError"
+	ImageStateFailedToCreate = "Failed to create image"
+)
+
+// ClusterReference represents a Cluster Reference. It has enough information to retrieve cluster
+// in any namespace
+type ClusterReference struct {
+	// Name is unique within a namespace to reference a cluster resource.
+	// +optional
+	Name string `json:"name,omitempty"`
+	// Namespace defines the space within which the cluster name must be unique.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+}
+
+const (
+	ImageCreatedCondition conditionsv1.ConditionType = "ImageCreated"
 )
 
 type InstallEnvSpec struct {
@@ -82,7 +105,8 @@ type Proxy struct {
 type InstallEnvStatus struct {
 	// ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the
 	// configuration from this InstallEnv.
-	ISODownloadURL string `json:"isoDownloadURL,omitempty"`
+	ISODownloadURL string                   `json:"isoDownloadURL,omitempty"`
+	Conditions     []conditionsv1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

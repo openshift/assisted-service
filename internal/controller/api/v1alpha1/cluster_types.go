@@ -23,17 +23,6 @@ import (
 
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// ClusterReference represents a Cluster Reference. It has enough information to retrieve cluster
-// in any namespace
-type ClusterReference struct {
-	// Name is unique within a namespace to reference a cluster resource.
-	// +optional
-	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
-	// Namespace defines the space within which the cluster name must be unique.
-	// +optional
-	Namespace string `json:"namespace,omitempty" protobuf:"bytes,2,opt,name=namespace"`
-}
-
 // ClusterSpec defines the desired state of Cluster
 type ClusterSpec struct {
 	// Cluster name
