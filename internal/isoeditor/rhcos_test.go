@@ -1,8 +1,6 @@
 package isoeditor
 
 import (
-	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -74,6 +72,8 @@ var _ = Context("with test files", func() {
 	Describe("CreateMinimalISOTemplate", func() {
 		It("iso created successfully", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
+			err := editor.(*rhcosEditor).embedOffsetsInSystemArea(isoFile)
+			Expect(err).ToNot(HaveOccurred())
 			file, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -92,13 +92,12 @@ var _ = Context("with test files", func() {
 	})
 
 	Describe("CreateClusterMinimalISO", func() {
-		It("removes the workspace", func() {
+		It("cluster ISO created successfully", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 			proxyInfo := &ClusterProxyInfo{}
 			file, err := editor.CreateClusterMinimalISO("ignition", "", proxyInfo)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Creating the template should remove the working directory
 			_, err = os.Stat(workDir)
 			Expect(os.IsNotExist(err)).To(BeTrue())
 
@@ -141,49 +140,30 @@ var _ = Context("with test files", func() {
 			isoPath, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 
-			// Open image and read header
-			iso, err := os.OpenFile(isoPath, os.O_RDONLY, 0o664)
-			Expect(err).ToNot(HaveOccurred())
-			header := make([]byte, int64(32768))
-			_, err = iso.Read(header)
-			Expect(err).ToNot(HaveOccurred())
-
 			// Read offsets
-
-			headerBytes := header[len(header)-24:]
-			buf := bytes.NewReader(headerBytes)
-			offsetInfo := new(OffsetInfo)
-			err = binary.Read(buf, binary.LittleEndian, offsetInfo)
+			ignitionOffsetInfo, ramDiskOffsetInfo, err := readHeader(isoPath)
 			Expect(err).ToNot(HaveOccurred())
 
+			// Validate ignitionOffsetInfo
 			ignitionOffset, err := isoutil.GetFileLocation(ignitionImagePath, isoPath)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(offsetInfo.Key[:])).To(Equal(ignitionHeaderKey))
-			Expect(offsetInfo.Offset).To(Equal(ignitionOffset))
-			Expect(offsetInfo.Length).To(Equal(IgnitionPaddingLength))
+			Expect(string(ignitionOffsetInfo.Key[:])).To(Equal(ignitionHeaderKey))
+			Expect(ignitionOffsetInfo.Offset).To(Equal(ignitionOffset))
+			Expect(ignitionOffsetInfo.Length).To(Equal(IgnitionPaddingLength))
 
-			headerBytes = header[len(header)-48 : len(header)-24]
-			buf = bytes.NewReader(headerBytes)
-			offsetInfo = new(OffsetInfo)
-			err = binary.Read(buf, binary.LittleEndian, offsetInfo)
-			Expect(err).ToNot(HaveOccurred())
-
+			// Validate ramDiskOffsetInfo
 			ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoPath)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(string(offsetInfo.Key[:])).To(Equal(ramdiskHeaderKey))
-			Expect(offsetInfo.Offset).To(Equal(ramDiskOffset))
-			Expect(offsetInfo.Length).To(Equal(RamDiskPaddingLength))
+			Expect(string(ramDiskOffsetInfo.Key[:])).To(Equal(ramdiskHeaderKey))
+			Expect(ramDiskOffsetInfo.Offset).To(Equal(ramDiskOffset))
+			Expect(ramDiskOffsetInfo.Length).To(Equal(RamDiskPaddingLength))
 		})
 	})
 
 	Describe("addCustomRAMDisk", func() {
 		It("adds a new archive correctly", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
-
 			isoHandler := editor.(*rhcosEditor).isoHandler
-			err := isoHandler.Extract()
-			Expect(err).ToNot(HaveOccurred())
-
 			clusterProxyInfo := ClusterProxyInfo{
 				HTTPProxy:  "http://10.10.1.1:3128",
 				HTTPSProxy: "https://10.10.1.1:3128",
@@ -201,7 +181,14 @@ var _ = Context("with test files", func() {
 				},
 			}
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData("staticnetworkconfig").Return(staticnetworkConfigOutput, nil).Times(1)
-			err = editor.(*rhcosEditor).addCustomRAMDisk("staticnetworkconfig", &clusterProxyInfo)
+
+			ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = editor.(*rhcosEditor).addCustomRAMDisk(isoFile, "staticnetworkconfig", &clusterProxyInfo, ramDiskOffset)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
 			By("checking that the files are present in the archive")
