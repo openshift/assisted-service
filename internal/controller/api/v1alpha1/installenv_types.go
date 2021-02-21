@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
@@ -39,32 +40,9 @@ type ClusterReference struct {
 	Namespace string `json:"namespace,omitempty"`
 }
 
-// InstallEnvConditionType is a valid value for InstallEnvCondition.Type
-type InstallEnvConditionType string
-
 const (
-	ImageCreatedCondition InstallEnvConditionType = "ImageCreated"
+	ImageCreatedCondition conditionsv1.ConditionType = "ImageCreated"
 )
-
-// InstallEnvCondition contains details for the current condition of a install environment
-type InstallEnvCondition struct {
-	// Type is the type of the condition.
-	Type InstallEnvConditionType `json:"type"`
-	// Status is the status of the condition.
-	Status corev1.ConditionStatus `json:"status"`
-	// LastProbeTime is the last time we probed the condition.
-	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty"`
-	// LastTransitionTime is the last time the condition transitioned from one status to another.
-	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty"`
-	// Reason is a unique, one-word, CamelCase reason for the condition's last transition.
-	// +optional
-	Reason string `json:"reason,omitempty"`
-	// Message is a human-readable message indicating details about last transition.
-	// +optional
-	Message string `json:"message,omitempty"`
-}
 
 type InstallEnvSpec struct {
 	// Proxy defines the proxy settings for agents and clusters that use the InstallEnv. If
@@ -127,8 +105,8 @@ type Proxy struct {
 type InstallEnvStatus struct {
 	// ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the
 	// configuration from this InstallEnv.
-	ISODownloadURL string                `json:"isoDownloadURL,omitempty"`
-	Conditions     []InstallEnvCondition `json:"conditions,omitempty"`
+	ISODownloadURL string                   `json:"isoDownloadURL,omitempty"`
+	Conditions     []conditionsv1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
