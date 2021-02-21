@@ -264,8 +264,8 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 
 /*
 	This function combines existing InstallerArgs ( set by user for his own reasons ) with the
-	--copy-nework argument needed by the static ips configuration. In case user has also
-	set --copy-nework, function will set only one such argument
+	--copy-network argument needed by the static ips configuration. In case user has also
+	set --copy-network, function will set only one such argument
 */
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host) (string, error) {
 	if cluster.ImageInfo.StaticNetworkConfig == "" {

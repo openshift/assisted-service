@@ -35,6 +35,7 @@ import (
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
@@ -175,7 +176,13 @@ const ignitionConfigFormat = `{
 		"name": "selinux.service",
 		"enabled": true,
 		"contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
-	}]
+	}{{if .StaticNetworkConfig}},
+	{
+		"name": "pre-network-manager-config.service",
+		"enabled": true,
+		"contents": "[Unit]\nDescription=Prepare network manager config content\nBefore=NetworkManager.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=10\nExecStart=/bin/bash /usr/local/bin/pre-network-manager-config.sh\nPrivateTmp=true\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
+    }{{end}}
+    ]
   },
   "storage": {
     "files": [{
@@ -239,7 +246,16 @@ const ignitionConfigFormat = `{
 	    "name": "root"
 	  },
 	  "append": [{ "source": "{{.ServiceIPs}}" }]
-  	}{{end}}{{range .StaticNetworkConfig}},
+    }{{end}}{{if .StaticNetworkConfig}},
+	{
+		"path": "/usr/local/bin/pre-network-manager-config.sh",
+		"mode": 493,
+		"overwrite": true,
+		"user": {
+			"name": "root"
+		},
+		"contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
+	}{{end}}{{range .StaticNetworkConfig}},
 	{
 	  "path": "{{.FilePath}}",
 	  "mode": 384,
@@ -248,7 +264,7 @@ const ignitionConfigFormat = `{
 	    "name": "root"
 	  },
 	  "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
-        }{{end}}]
+    }{{end}}]
   }
 }`
 
@@ -434,6 +450,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 			return "", newErr
 		}
 		ignitionParams["StaticNetworkConfig"] = filesList
+		ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
 	}
 
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
