@@ -60,6 +60,22 @@ import (
 const ClusterStatusInstalled = "installed"
 const FakeServiceBaseURL = "http://192.168.11.22:12345"
 
+var (
+	ctrl                 *gomock.Controller
+	mockClusterApi       *cluster.MockAPI
+	mockHostApi          *host.MockAPI
+	mockEvents           *events.MockHandler
+	mockS3Client         *s3wrapper.MockAPI
+	mockSecretValidator  *validations.MockPullSecretValidator
+	mockIsoEditorFactory *isoeditor.MockFactory
+	mockGenerator        *generator.MockISOInstallConfigGenerator
+	mockVersions         *versions.MockHandler
+	mockMetric           *metrics.MockAPI
+	mockK8sClient        *k8sclient.MockK8SClient
+	mockCRDUtils         *MockCRDUtils
+	mockAccountsMgmt     *ocm.MockOCMAccountsMgmt
+)
+
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
 	common.InitializeDBTest()
@@ -96,17 +112,12 @@ func mockAbortInstallConfig(mockGenerator *generator.MockISOInstallConfigGenerat
 
 var _ = Describe("GenerateClusterISO", func() {
 	var (
-		bm                   *bareMetalInventory
-		cfg                  Config
-		db                   *gorm.DB
-		ctx                  = context.Background()
-		ctrl                 *gomock.Controller
-		mockEvents           *events.MockHandler
-		mockS3Client         *s3wrapper.MockAPI
-		mockSecretValidator  *validations.MockPullSecretValidator
-		mockIsoEditorFactory *isoeditor.MockFactory
-		dbName               = "generate_cluster_iso"
-		ignitionReader       = ioutil.NopCloser(strings.NewReader(`{
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		dbName         = "generate_cluster_iso"
+		ignitionReader = ioutil.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.1.0"},
 				"storage":{
 					"files":[
@@ -124,16 +135,11 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockGenerator := generator.NewMockISOInstallConfigGenerator(ctrl)
-		mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
 		cfg.ServiceBaseURL = FakeServiceBaseURL
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, mockGenerator, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, mockIsoEditorFactory, nil)
+		bm = createInventory(db, cfg)
+
+		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
 	})
 
 	AfterEach(func() {
@@ -908,31 +914,18 @@ func createCluster(db *gorm.DB, status string) *common.Cluster {
 
 var _ = Describe("RegisterHost", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		dbName              = "register_host_api"
-		hostID              strfmt.UUID
-		ctrl                *gomock.Controller
-		mockClusterAPI      *cluster.MockAPI
-		mockHostAPI         *host.MockAPI
-		mockEventsHandler   *events.MockHandler
-		mockSecretValidator *validations.MockPullSecretValidator
-		mockCRDUtils        *MockCRDUtils
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName = "register_host_api"
+		hostID strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		mockHostAPI = host.NewMockAPI(ctrl)
-		mockEventsHandler = events.NewMockHandler(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockCRDUtils = NewMockCRDUtils(ctrl)
 		hostID = strfmt.UUID(uuid.New().String())
 		db = common.PrepareTestDB(dbName)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostAPI, mockClusterAPI, cfg, nil, mockEventsHandler,
-			nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, mockCRDUtils)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
@@ -964,9 +957,9 @@ var _ = Describe("RegisterHost", func() {
 			"Cluster %s is in installing state, host can register only in one of %s",
 			cluster.ID, allowedStates)
 
-		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(err).Times(1)
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(err).Times(1)
 
-		mockEventsHandler.EXPECT().
+		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
 			Times(1)
 
@@ -1000,16 +993,16 @@ var _ = Describe("RegisterHost", func() {
 				test.availability, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
 
-				mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-				mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
+				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 						// validate that host is registered with auto-assign role
 						Expect(h.Role).Should(Equal(test.expectedRole))
 						return nil
 					}).Times(1)
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockHostAPI.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockEventsHandler.EXPECT().
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockEvents.EXPECT().
 					AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 					Times(1)
 
@@ -1043,16 +1036,16 @@ var _ = Describe("RegisterHost", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
 		expectedErrMsg := "some-internal-error"
 
-		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockHostAPI.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
 			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 				// validate that host is registered with auto-assign role
 				Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
 				return nil
 			}).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
-		mockEventsHandler.EXPECT().
+		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(1)
 		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
@@ -1073,9 +1066,9 @@ var _ = Describe("RegisterHost", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
 		expectedErrMsg := "some-internal-error"
 
-		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
-		mockEventsHandler.EXPECT().
+		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
+		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityError, gomock.Any(), gomock.Any()).
 			Times(1)
 		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
@@ -1094,27 +1087,19 @@ var _ = Describe("RegisterHost", func() {
 
 var _ = Describe("GetNextSteps", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockHostApi         *host.MockAPI
-		mockEvents          *events.MockHandler
-		mockSecretValidator *validations.MockPullSecretValidator
-		defaultNextStepIn   int64
-		dbName              = "get_next_steps"
+		bm                *bareMetalInventory
+		cfg               Config
+		db                *gorm.DB
+		ctx               = context.Background()
+		defaultNextStepIn int64
+		dbName            = "get_next_steps"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		defaultNextStepIn = 60
 		db = common.PrepareTestDB(dbName)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
@@ -1181,27 +1166,17 @@ func makeFreeNetworksAddressesStr(elems ...*models.FreeNetworkAddresses) string 
 
 var _ = Describe("PostStepReply", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockClusterApi      *cluster.MockAPI
-		mockHostApi         *host.MockAPI
-		mockEvents          *events.MockHandler
-		mockSecretValidator *validations.MockPullSecretValidator
-		dbName              = "post_step_reply"
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName = "post_step_reply"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockClusterApi = cluster.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
@@ -1553,25 +1528,17 @@ var _ = Describe("PostStepReply", func() {
 
 var _ = Describe("GetFreeAddresses", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockHostApi         *host.MockAPI
-		mockEvents          *events.MockHandler
-		mockSecretValidator *validations.MockPullSecretValidator
-		dbName              = "get_free_addresses"
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName = "get_free_addresses"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
@@ -1701,25 +1668,17 @@ var _ = Describe("GetFreeAddresses", func() {
 
 var _ = Describe("UpdateHostInstallProgress", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockHostApi         *host.MockAPI
-		mockEvents          *events.MockHandler
-		mockSecretValidator *validations.MockPullSecretValidator
-		dbName              = "update_host_install_progress"
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		ctx    = context.Background()
+		dbName = "update_host_install_progress"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, nil, cfg, nil, mockEvents, nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
@@ -1799,36 +1758,21 @@ var _ = Describe("cluster", func() {
 	diskID2 := "/dev/sdb"
 
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockHostApi         *host.MockAPI
-		mockClusterApi      *cluster.MockAPI
-		mockS3Client        *s3wrapper.MockAPI
-		mockGenerator       *generator.MockISOInstallConfigGenerator
-		mockSecretValidator *validations.MockPullSecretValidator
-		clusterID           strfmt.UUID
-		mockEvents          *events.MockHandler
-		mockVersions        *versions.MockHandler
-		mockMetric          *metrics.MockAPI
-		dbName              = "inventory_cluster"
-		ignitionReader      io.ReadCloser
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		clusterID      strfmt.UUID
+		dbName         = "inventory_cluster"
+		ignitionReader io.ReadCloser
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
-		mockClusterApi = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockVersions = versions.NewMockHandler(ctrl)
-		mockMetric = metrics.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
+		bm = createInventory(db, cfg)
+		bm.ocmClient = nil
+
 		ignitionReader = ioutil.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.1.0"},
 				"storage":{
@@ -1844,7 +1788,6 @@ var _ = Describe("cluster", func() {
 				"systemd":{}
 		}`))
 		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg, mockGenerator, mockEvents, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, mockVersions, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -3668,31 +3611,21 @@ var _ = Describe("cluster", func() {
 var _ = Describe("KubeConfig download", func() {
 
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockS3Client        *s3wrapper.MockAPI
-		mockSecretValidator *validations.MockPullSecretValidator
-		clusterID           strfmt.UUID
-		c                   common.Cluster
-		clusterApi          cluster.API
-		dbName              = "kubeconfig_download"
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "kubeconfig_download"
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockOperators := operators.NewMockAPI(ctrl)
-		clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil, mockOperators)
 
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -3787,22 +3720,17 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		cfg                 Config
 		db                  *gorm.DB
 		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockS3Client        *s3wrapper.MockAPI
 		clusterID           strfmt.UUID
 		c                   common.Cluster
 		ingressCa           models.IngressCertParams
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
 		kubeconfigObject    string
-		clusterApi          cluster.API
 		dbName              = "upload_cluster_ingress_cert"
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		ingressCa = "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
@@ -3816,11 +3744,10 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 			"RsQa1w9ZGebtEWLuGsrJtR7gaFECqJnDbb0aPUMixmpMHID8kt154TrLhVFmMEqGGC1GvZVlQ9Of3GP9y7X4vDpHshdlWotOnYKHaeu2d5cRVFHhEbrslkISgh/TRuyl7VIpnjOYUwMBpCiVH6M" +
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
-		clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil, nil, mockOperators)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -3968,33 +3895,23 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 var _ = Describe("List unregistered clusters", func() {
 
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		clusterID           strfmt.UUID
-		hostID              strfmt.UUID
-		c                   common.Cluster
-		kubeconfigFile      *os.File
-		mockClusterAPI      *cluster.MockAPI
-		dbName              = "upload_logs"
-		mockS3Client        *s3wrapper.MockAPI
-		mockHostApi         *host.MockAPI
-		mockSecretValidator *validations.MockPullSecretValidator
-		host1               models.Host
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		dbName         = "upload_logs"
+		host1          models.Host
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -4046,33 +3963,23 @@ var _ = Describe("List unregistered clusters", func() {
 var _ = Describe("Get unregistered clusters", func() {
 
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		clusterID           strfmt.UUID
-		hostID              strfmt.UUID
-		c                   common.Cluster
-		kubeconfigFile      *os.File
-		mockClusterAPI      *cluster.MockAPI
-		dbName              = "get_unregistered_clusters"
-		mockS3Client        *s3wrapper.MockAPI
-		mockHostApi         *host.MockAPI
-		mockSecretValidator *validations.MockPullSecretValidator
-		host1               models.Host
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		dbName         = "get_unregistered_clusters"
+		host1          models.Host
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -4123,36 +4030,26 @@ var _ = Describe("Get unregistered clusters", func() {
 var _ = Describe("Upload and Download logs test", func() {
 
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		clusterID           strfmt.UUID
-		hostID              strfmt.UUID
-		c                   common.Cluster
-		kubeconfigFile      *os.File
-		mockClusterAPI      *cluster.MockAPI
-		dbName              = "upload_logs"
-		mockS3Client        *s3wrapper.MockAPI
-		request             *http.Request
-		mockHostApi         *host.MockAPI
-		mockSecretValidator *validations.MockPullSecretValidator
-		host1               models.Host
-		hostLogsType        = string(models.LogsTypeHost)
+		bm             *bareMetalInventory
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
+		clusterID      strfmt.UUID
+		hostID         strfmt.UUID
+		c              common.Cluster
+		kubeconfigFile *os.File
+		dbName         = "upload_logs"
+		request        *http.Request
+		host1          models.Host
+		hostLogsType   = string(models.LogsTypeHost)
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -4243,7 +4140,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		}
 		fileName := bm.getLogsFullName(clusterID.String(), string(models.LogsTypeController))
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
-		mockClusterAPI.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		reply := bm.UploadLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
 	})
@@ -4405,7 +4302,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		params := installer.DownloadClusterLogsParams{
 			ClusterID: clusterID,
 		}
-		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
 		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
 
@@ -4414,7 +4311,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s_logs.zip", clusterID)
-		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusInternalServerError)
 	})
@@ -4424,7 +4321,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			ClusterID: clusterID,
 		}
 		fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", clusterID)
-		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
+		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return(fileName, nil)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadClusterLogs(ctx, params)
@@ -4434,7 +4331,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	It("Logs presigned cluster logs failed", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
+		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("", errors.Errorf("dummy"))
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
 			FileName:  "logs",
@@ -4444,7 +4341,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	It("Logs presigned cluster logs happy flow", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockClusterAPI.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("tarred", nil)
+		mockClusterApi.EXPECT().CreateTarredClusterLogs(ctx, gomock.Any(), gomock.Any()).Return("tarred", nil)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, "tarred", fmt.Sprintf("mycluster_%s.tar", clusterID.String()), gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
@@ -4493,23 +4390,19 @@ var _ = Describe("Upload and Download logs test", func() {
 
 var _ = Describe("GetClusterInstallConfig", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		clusterID           strfmt.UUID
-		c                   common.Cluster
-		dbName              = "get_cluster_install_config"
-		ctrl                *gomock.Controller
-		mockSecretValidator *validations.MockPullSecretValidator
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "get_cluster_install_config"
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterID,
 			BaseDNSDomain:          "example.com",
@@ -4565,23 +4458,19 @@ var _ = Describe("GetClusterInstallConfig", func() {
 
 var _ = Describe("UpdateClusterInstallConfig", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		clusterID           strfmt.UUID
-		c                   common.Cluster
-		dbName              = "update_cluster_install_config"
-		ctrl                *gomock.Controller
-		mockSecretValidator *validations.MockPullSecretValidator
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "update_cluster_install_config"
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		c = common.Cluster{
 			Cluster: models.Cluster{
 				ID:               &clusterID,
@@ -4646,23 +4535,19 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 
 var _ = Describe("GetDiscoveryIgnition", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		clusterID           strfmt.UUID
-		c                   common.Cluster
-		dbName              = "get_discovery_ignition"
-		ctrl                *gomock.Controller
-		mockSecretValidator *validations.MockPullSecretValidator
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "get_discovery_ignition"
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:            &clusterID,
 			PullSecretSet: true,
@@ -4723,27 +4608,19 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 
 var _ = Describe("UpdateDiscoveryIgnition", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		clusterID           strfmt.UUID
-		c                   common.Cluster
-		dbName              = "update_discovery_ignition"
-		ctrl                *gomock.Controller
-		mockSecretValidator *validations.MockPullSecretValidator
-		mockS3Client        *s3wrapper.MockAPI
-		mockEvents          *events.MockHandler
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		c         common.Cluster
+		dbName    = "update_discovery_ignition"
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, mockEvents, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -4946,39 +4823,25 @@ var _ = Describe("proxySettingsForIgnition", func() {
 var _ = Describe("Register OCPCluster test", func() {
 
 	var (
-		bm                  *bareMetalInventory
-		configMap           v1.ConfigMap
-		pullSecret          v1.Secret
-		clusterVersion      configv1.ClusterVersion
-		ips                 []string
-		names               []string
-		roles               []string
-		statuses            []v1.ConditionStatus
-		nodesList           *v1.NodeList
-		archituctures       []string
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		mockClusterAPI      *cluster.MockAPI
-		mockHostApi         *host.MockAPI
-		mockS3Client        *s3wrapper.MockAPI
-		mockMetric          *metrics.MockAPI
-		mockK8sClient       *k8sclient.MockK8SClient
-		mockSecretValidator *validations.MockPullSecretValidator
+		bm             *bareMetalInventory
+		configMap      v1.ConfigMap
+		pullSecret     v1.Secret
+		clusterVersion configv1.ClusterVersion
+		ips            []string
+		names          []string
+		roles          []string
+		statuses       []v1.ConditionStatus
+		nodesList      *v1.NodeList
+		archituctures  []string
+		cfg            Config
+		db             *gorm.DB
+		ctx            = context.Background()
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB("register_ocp_cluster")
-		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockMetric = metrics.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), mockK8sClient, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		configMap.Data = make(map[string]string)
 		configMap.Data["install-config"] = "baseDomain: redhat.com\nnetworking:\n  machineNetwork:\n  - cidr: 192.168.126.0/24\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2\nsshKey: ssh-rsa kjfhkefkfsk"
 		pullSecret.Data = make(map[string][]byte)
@@ -4998,7 +4861,7 @@ var _ = Describe("Register OCPCluster test", func() {
 	})
 
 	It("Register OCP cluster", func() {
-		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
@@ -5061,13 +4924,13 @@ var _ = Describe("Register OCPCluster test", func() {
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		err := bm.RegisterOCPCluster(ctx)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("Register OCP cluster failed to get node list", func() {
-		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
 		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
@@ -5077,7 +4940,7 @@ var _ = Describe("Register OCPCluster test", func() {
 	})
 
 	It("Register OCP cluster failed to register host", func() {
-		mockClusterAPI.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
 		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
 		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
@@ -5092,37 +4955,23 @@ var _ = Describe("Register OCPCluster test", func() {
 var _ = Describe("Register AddHostsCluster test", func() {
 
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		clusterID           strfmt.UUID
-		clusterName         string
-		apiVIPDnsname       string
-		mockClusterAPI      *cluster.MockAPI
-		mockHostApi         *host.MockAPI
-		mockS3Client        *s3wrapper.MockAPI
-		mockMetric          *metrics.MockAPI
-		mockVersions        *versions.MockHandler
-		mockSecretValidator *validations.MockPullSecretValidator
-		request             *http.Request
+		bm            *bareMetalInventory
+		cfg           Config
+		db            *gorm.DB
+		ctx           = context.Background()
+		clusterID     strfmt.UUID
+		clusterName   string
+		apiVIPDnsname string
+		request       *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB("register_add_hosts_cluster")
 		clusterID = strfmt.UUID(uuid.New().String())
 		clusterName = "add-hosts-cluster"
 		apiVIPDnsname = "api-vip.redhat.com"
-		mockClusterAPI = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockMetric = metrics.NewMockAPI(ctrl)
-		mockVersions = versions.NewMockHandler(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterAPI, cfg, nil, nil, mockS3Client, mockMetric, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, mockVersions, nil, nil)
+		bm = createInventory(db, cfg)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 	})
@@ -5142,7 +4991,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 			},
 		}
-		mockClusterAPI.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.OpenShiftVersion, clusterID, "Unknown").Times(1)
 		mockVersions.EXPECT().GetSupportedVersionFormat(common.TestDefaultConfig.OpenShiftVersion).Return(common.TestDefaultConfig.OpenShiftVersion, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
@@ -5173,22 +5022,19 @@ var _ = Describe("Register AddHostsCluster test", func() {
 
 var _ = Describe("Reset Host test", func() {
 	var (
-		bm          *bareMetalInventory
-		cfg         Config
-		db          *gorm.DB
-		ctx         = context.Background()
-		ctrl        *gomock.Controller
-		clusterID   strfmt.UUID
-		hostID      strfmt.UUID
-		mockHostApi *host.MockAPI
-		dbName      = "reset_host_cluster"
-		request     *http.Request
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		hostID    strfmt.UUID
+		dbName    = "reset_host_cluster"
+		request   *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db = common.PrepareTestDB(dbName)
-		ctrl = gomock.NewController(GinkgoT())
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -5198,8 +5044,7 @@ var _ = Describe("Reset Host test", func() {
 			Status:           swag.String(models.ClusterStatusAddingHosts),
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		mockHostApi = host.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil, nil, nil, nil, nil)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
@@ -5245,23 +5090,19 @@ var _ = Describe("Reset Host test", func() {
 
 var _ = Describe("Install Host test", func() {
 	var (
-		bm           *bareMetalInventory
-		cfg          Config
-		db           *gorm.DB
-		ctx          = context.Background()
-		ctrl         *gomock.Controller
-		clusterID    strfmt.UUID
-		hostID       strfmt.UUID
-		mockHostApi  *host.MockAPI
-		mockS3Client *s3wrapper.MockAPI
-		dbName       = "reset_host_cluster"
-		request      *http.Request
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		hostID    strfmt.UUID
+		dbName    = "reset_host_cluster"
+		request   *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db = common.PrepareTestDB(dbName)
-		ctrl = gomock.NewController(GinkgoT())
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -5271,9 +5112,7 @@ var _ = Describe("Install Host test", func() {
 			Status:           swag.String(models.ClusterStatusAddingHosts),
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, nil, nil, nil, nil)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
@@ -5347,24 +5186,18 @@ var _ = Describe("Install Host test", func() {
 var _ = Describe("Install Hosts test", func() {
 
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctx                 = context.Background()
-		ctrl                *gomock.Controller
-		clusterID           strfmt.UUID
-		mockClusterApi      *cluster.MockAPI
-		mockHostApi         *host.MockAPI
-		mockS3Client        *s3wrapper.MockAPI
-		mockSecretValidator *validations.MockPullSecretValidator
-		dbName              = "inventory_cluster"
-		request             *http.Request
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		dbName    = "inventory_cluster"
+		request   *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db = common.PrepareTestDB(dbName)
-		ctrl = gomock.NewController(GinkgoT())
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
@@ -5374,11 +5207,7 @@ var _ = Describe("Install Hosts test", func() {
 		}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
-		mockClusterApi = cluster.NewMockAPI(ctrl)
-		mockHostApi = host.NewMockAPI(ctrl)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, nil, nil, nil)
+		bm = createInventory(db, cfg)
 		body := &bytes.Buffer{}
 		request, _ = http.NewRequest("POST", "test", body)
 		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -5442,34 +5271,20 @@ var _ = Describe("Install Hosts test", func() {
 
 var _ = Describe("TestRegisterCluster", func() {
 	var (
-		bm                  *bareMetalInventory
-		cfg                 Config
-		db                  *gorm.DB
-		ctrl                *gomock.Controller
-		mockClusterApi      *cluster.MockAPI
-		mockEvents          *events.MockHandler
-		mockVersions        *versions.MockHandler
-		mockMetric          *metrics.MockAPI
-		mockSecretValidator *validations.MockPullSecretValidator
-		dbName              = "register_cluster_api"
-		ctx                 = context.Background()
+		bm     *bareMetalInventory
+		cfg    Config
+		db     *gorm.DB
+		dbName = "register_cluster_api"
+		ctx    = context.Background()
 	)
 
 	BeforeEach(func() {
 		cfg.DefaultNTPSource = ""
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		db = common.PrepareTestDB(dbName)
-		ctrl = gomock.NewController(GinkgoT())
-
-		mockClusterApi = cluster.NewMockAPI(ctrl)
-		mockEvents = events.NewMockHandler(ctrl)
-		mockVersions = versions.NewMockHandler(ctrl)
-		mockMetric = metrics.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		clusterApi := cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+		bm = createInventory(db, cfg)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents,
-			nil, mockMetric, getTestAuthHandler(), nil, nil, nil, mockSecretValidator, mockVersions, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -5701,38 +5516,17 @@ func (e eventMsgMatcher) String() string {
 var _ = Describe("AMS subscriptions", func() {
 
 	var (
-		ctx                 = context.Background()
-		cfg                 = Config{WithAMSSubscriptions: true}
-		bm                  *bareMetalInventory
-		db                  *gorm.DB
-		dbName              = "register_cluster_with_ams_subscription"
-		ctrl                *gomock.Controller
-		clusterApi          *cluster.Manager
-		mockCluster         *cluster.MockAPI
-		mockEvents          *events.MockHandler
-		mockVersions        *versions.MockHandler
-		mockMetric          *metrics.MockAPI
-		mockSecretValidator *validations.MockPullSecretValidator
-		mockAccountsMgmt    *ocm.MockOCMAccountsMgmt
-		ocmClient           *ocm.Client
+		ctx    = context.Background()
+		cfg    = Config{WithAMSSubscriptions: true}
+		bm     *bareMetalInventory
+		db     *gorm.DB
+		dbName = "register_cluster_with_ams_subscription"
 	)
 
 	BeforeEach(func() {
-
 		db = common.PrepareTestDB(dbName)
-		ctrl = gomock.NewController(GinkgoT())
-
-		mockEvents = events.NewMockHandler(ctrl)
-		mockVersions = versions.NewMockHandler(ctrl)
-		mockMetric = metrics.NewMockAPI(ctrl)
-		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
-		mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
-		mockCluster = cluster.NewMockAPI(ctrl)
-		ocmClient = &ocm.Client{AccountsMgmt: mockAccountsMgmt}
-		clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
-			getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil, nil)
-
+		bm = createInventory(db, cfg)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil)
 		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	})
@@ -5743,12 +5537,7 @@ var _ = Describe("AMS subscriptions", func() {
 	})
 
 	Context("With AMS subscriptions", func() {
-
 		It("register cluster happy flow", func() {
-
-			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
-				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil, nil)
-
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Registered cluster"}}, gomock.Any())
@@ -5770,13 +5559,10 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("register cluster - deregister if we failed to create AMS subscription", func() {
-
-			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, mockCluster, cfg, nil, mockEvents, nil, mockMetric,
-				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil, nil)
-
-			mockCluster.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
+			bm.clusterApi = mockClusterApi
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(nil, errors.New("dummy"))
-			mockCluster.EXPECT().DeregisterCluster(ctx, gomock.Any())
+			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 
 			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -5789,14 +5575,11 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("register cluster - delete AMS subscription if we failed to patch DB with ams_subscription_id", func() {
-
-			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, mockCluster, cfg, nil, mockEvents, nil, mockMetric,
-				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil, nil)
-
-			mockCluster.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
+			bm.clusterApi = mockClusterApi
+			mockClusterApi.EXPECT().RegisterCluster(ctx, gomock.Any()).Return(nil)
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
-			mockCluster.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))
-			mockCluster.EXPECT().DeregisterCluster(ctx, gomock.Any())
+			mockClusterApi.EXPECT().UpdateAmsSubscriptionID(ctx, gomock.Any(), strfmt.UUID("")).Return(common.NewApiError(http.StatusInternalServerError, errors.New("dummy")))
+			mockClusterApi.EXPECT().DeregisterCluster(ctx, gomock.Any())
 			mockAccountsMgmt.EXPECT().DeleteSubscription(ctx, strfmt.UUID("")).Return(nil)
 
 			err := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -5810,10 +5593,6 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("deregister cluster that don't have 'Reserved' subscriptions", func() {
-
-			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
-				getTestAuthHandler(), nil, ocmClient, nil, mockSecretValidator, mockVersions, nil, nil)
-
 			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Registered cluster"}}, gomock.Any())
@@ -5838,11 +5617,7 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("register and deregister cluster happy flow - nil OCM client", func() {
-
-			// register
-			bm = NewBareMetalInventory(db, common.GetTestLog(), nil, clusterApi, cfg, nil, mockEvents, nil, mockMetric,
-				getTestAuthHandler(), nil, nil, nil, mockSecretValidator, mockVersions, nil, nil)
-
+			bm.ocmClient = nil
 			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any())
 			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Registered cluster"}}, gomock.Any())
 			mockEvents.EXPECT().AddEvent(ctx, gomock.Any(), nil, models.EventSeverityInfo, eventMsgMatcher{subStrings: []string{"Successfully registered cluster", "with id"}},
@@ -5904,22 +5679,18 @@ var _ = Describe("convert pull secret validation error to user error", func() {
 
 var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 	var (
-		bm           *bareMetalInventory
-		cfg          Config
-		db           *gorm.DB
-		ctx          = context.Background()
-		ctrl         *gomock.Controller
-		mockS3Client *s3wrapper.MockAPI
-		dbName       = "get_download_host_ignition"
-		clusterID    strfmt.UUID
-		hostID       strfmt.UUID
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		dbName    = "get_download_host_ignition"
+		clusterID strfmt.UUID
+		hostID    strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
-		mockS3Client = s3wrapper.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, nil, mockS3Client, nil, getTestAuthHandler(), nil, nil, nil, validations.NewMockPullSecretValidator(ctrl), nil, nil, nil)
+		bm = createInventory(db, cfg)
 
 		// create a cluster
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -6048,17 +5819,15 @@ var _ = Describe("UpdateHostIgnition", func() {
 		cfg       Config
 		db        *gorm.DB
 		ctx       = context.Background()
-		ctrl      *gomock.Controller
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
 		dbName    = "update_host_ignition"
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil, validations.NewMockPullSecretValidator(ctrl), nil, nil, nil)
+		bm = createInventory(db, cfg)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -6155,17 +5924,15 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 		cfg       Config
 		db        *gorm.DB
 		ctx       = context.Background()
-		ctrl      *gomock.Controller
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
 		dbName    = "update_host_installer_args"
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
-		bm = NewBareMetalInventory(db, common.GetTestLog(), nil, nil, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil, nil, validations.NewMockPullSecretValidator(ctrl), nil, nil, nil)
+		bm = createInventory(db, cfg)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -6274,33 +6041,31 @@ var _ = Describe("Calculate host networks", func() {
 
 var _ = Describe("Get Cluster by Kube Key", func() {
 	var (
-		ctrl        *gomock.Controller
-		mockCluster *cluster.MockAPI
-		bm          *bareMetalInventory
-		cfg         Config
+		db     *gorm.DB
+		dbName = "cluster_by_kube_api"
+		bm     *bareMetalInventory
+		cfg    Config
 	)
 
 	BeforeEach(func() {
-		ctrl = gomock.NewController(GinkgoT())
-		mockCluster = cluster.NewMockAPI(ctrl)
-		bm = NewBareMetalInventory(
-			nil, common.GetTestLog(), nil, mockCluster, cfg, nil, nil, nil, nil, getTestAuthHandler(), nil, nil,
-			nil, validations.NewMockPullSecretValidator(ctrl), nil, nil, nil)
+		db = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("get cluster by kube key success", func() {
-		mockCluster.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+		mockClusterApi.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
 		cluster, err := bm.GetClusterByKubeKey(types.NamespacedName{Name: "name", Namespace: "namespace"})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(cluster).Should(Equal(&common.Cluster{}))
 	})
 
 	It("get cluster by kube key failure", func() {
-		mockCluster.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		mockClusterApi.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
 		cluster, err := bm.GetClusterByKubeKey(types.NamespacedName{Name: "name", Namespace: "namespace"})
 		Expect(err).Should(HaveOccurred())
 		Expect(gorm.IsRecordNotFoundError(err)).Should(Equal(true))
@@ -6336,4 +6101,26 @@ func operatorsFromString(operatorsStr string) models.Operators {
 		return operators
 	}
 	return nil
+}
+
+func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
+	ctrl = gomock.NewController(GinkgoT())
+
+	mockClusterApi = cluster.NewMockAPI(ctrl)
+	mockHostApi = host.NewMockAPI(ctrl)
+	mockGenerator = generator.NewMockISOInstallConfigGenerator(ctrl)
+	mockEvents = events.NewMockHandler(ctrl)
+	mockS3Client = s3wrapper.NewMockAPI(ctrl)
+	mockMetric = metrics.NewMockAPI(ctrl)
+	mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
+	mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
+	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt}
+	mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
+	mockVersions = versions.NewMockHandler(ctrl)
+	mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
+	mockCRDUtils = NewMockCRDUtils(ctrl)
+
+	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
+		mockGenerator, mockEvents, mockS3Client, mockMetric,
+		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions, mockIsoEditorFactory, mockCRDUtils)
 }
