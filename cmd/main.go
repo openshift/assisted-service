@@ -292,10 +292,16 @@ func main() {
 	Options.BMConfig.S3EndpointURL = newUrl
 
 	generator := newISOInstallConfigGenerator(log, objectHandler, operatorsManager)
+	var crdUtils bminventory.CRDUtils
+	if ctrlMgr != nil {
+		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient())
+	} else {
+		crdUtils = controllers.NewDummyCRDUtils()
+	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
-		versionHandler, isoEditorFactory)
+		versionHandler, isoEditorFactory, crdUtils)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),

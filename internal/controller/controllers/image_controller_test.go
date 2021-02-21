@@ -34,10 +34,6 @@ func newImageRequest(image *v1alpha1.Image) ctrl.Request {
 
 func newImage(name, namespace string, spec v1alpha1.ImageSpec) *v1alpha1.Image {
 	return &v1alpha1.Image{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Image",
-			APIVersion: "adi.io.my.domain/v1alpha1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

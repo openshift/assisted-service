@@ -25,10 +25,6 @@ func newHostRequest(host *v1alpha1.Agent) ctrl.Request {
 
 func newHost(name, namespace string, spec v1alpha1.AgentSpec) *v1alpha1.Agent {
 	return &v1alpha1.Agent{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Agent",
-			APIVersion: "adi.io.my.domain/v1alpha1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
