@@ -255,6 +255,7 @@ var _ = Describe("installcfg", func() {
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("fe80::/64"))
+		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
 	})
 
 	It("UserManagedNetworking BareMetal", func() {
@@ -285,6 +286,24 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		Expect(*result.Platform.None).Should(Equal(platformNone{}))
 		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
+	})
+
+	It("Single node IPV6 only", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.MachineNetworkCidr = "fe80::/64"
+		host1.Bootstrap = true
+		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
+		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		var none = platformNone{}
+		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(cluster.MachineNetworkCidr))
+		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
 	})
 
 	AfterEach(func() {

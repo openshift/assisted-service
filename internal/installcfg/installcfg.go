@@ -315,6 +315,9 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			}{
 				{Cidr: bootstrapCidr},
 			}
+			cluster.MachineNetworkCidr = bootstrapCidr
+			cfg.Networking.NetworkType = getNetworkType(cluster)
+
 		} else {
 			cfg.Networking.MachineNetwork = nil
 		}
