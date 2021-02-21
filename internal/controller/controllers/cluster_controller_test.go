@@ -39,10 +39,6 @@ func newClusterRequest(cluster *v1alpha1.Cluster) ctrl.Request {
 func newCluster(name, namespace string, spec v1alpha1.ClusterSpec) *v1alpha1.Cluster {
 	return &v1alpha1.Cluster{
 		Spec: spec,
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Cluster",
-			APIVersion: "adi.io.my.domain/v1alpha1",
-		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,

@@ -102,6 +102,13 @@ func getClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, key t
 	return cluster
 }
 
+func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1alpha1.Agent {
+	agent := &v1alpha1.Agent{}
+	err := client.Get(ctx, key, agent)
+	Expect(err).To(BeNil())
+	return agent
+}
+
 func waitForClusterDeploymentCRDState(
 	ctx context.Context, client k8sclient.Client, key types.NamespacedName, state string, timeout int) {
 
@@ -164,6 +171,7 @@ func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hi
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Image{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &v1alpha1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 }
 
 func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses models.FreeNetworksAddresses) {
@@ -219,5 +227,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
 		waitForClusterDeploymentCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForClusterReconcileTimeout)
+		for _, host := range hosts {
+			key = types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			getAgentCRD(ctx, kubeClient, key)
+		}
 	})
 })

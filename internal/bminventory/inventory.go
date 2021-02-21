@@ -290,6 +290,10 @@ type InstallerInternals interface {
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
 }
 
+//go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
+type CRDUtils interface {
+	CreateAgentCR(ctx context.Context, log logrus.FieldLogger, hostId, clusterNamespace, clusterName string) error
+}
 type bareMetalInventory struct {
 	Config
 	db               *gorm.DB
@@ -307,6 +311,7 @@ type bareMetalInventory struct {
 	secretValidator  validations.PullSecretValidator
 	versionsHandler  versions.Handler
 	isoEditorFactory isoeditor.Factory
+	crdUtils         CRDUtils
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -338,6 +343,7 @@ func NewBareMetalInventory(
 	pullSecretValidator validations.PullSecretValidator,
 	versionsHandler versions.Handler,
 	isoEditorFactory isoeditor.Factory,
+	crdUtils CRDUtils,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:               db,
@@ -356,6 +362,7 @@ func NewBareMetalInventory(
 		secretValidator:  pullSecretValidator,
 		versionsHandler:  versionsHandler,
 		isoEditorFactory: isoEditorFactory,
+		crdUtils:         crdUtils,
 	}
 }
 
@@ -2391,6 +2398,13 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		return installer.NewRegisterHostInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
+
+	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), cluster.KubeKeyNamespace, cluster.KubeKeyName); err != nil {
+		log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, Cluster: %s, HostID: %s", cluster.KubeKeyNamespace, cluster.KubeKeyName, params.NewHostParams.HostID.String())
+		return installer.NewRegisterHostInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
 	txSuccess = true
 
 	return installer.NewRegisterHostCreated().WithPayload(&hostRegistration)
