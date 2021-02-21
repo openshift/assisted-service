@@ -889,16 +889,21 @@ var _ = Describe("IgnitionParameters", func() {
 	})
 })
 
-func createCluster(db *gorm.DB, status string) *common.Cluster {
+func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityMode string) *common.Cluster {
 	clusterID := strfmt.UUID(uuid.New().String())
 	c := &common.Cluster{
 		Cluster: models.Cluster{
-			ID:     &clusterID,
-			Status: swag.String(status),
+			ID:                   &clusterID,
+			Status:               swag.String(status),
+			HighAvailabilityMode: &highAvailabilityMode,
 		},
 	}
 	Expect(db.Create(c).Error).ToNot(HaveOccurred())
 	return c
+}
+
+func createCluster(db *gorm.DB, status string) *common.Cluster {
+	return createClusterWithAvailability(db, status, models.ClusterCreateParamsHighAvailabilityModeFull)
 }
 
 var _ = Describe("RegisterHost", func() {
@@ -981,44 +986,57 @@ var _ = Describe("RegisterHost", func() {
 		Expect(apiErr.Error()).Should(Equal(err.Error()))
 	})
 
-	It("register_success", func() {
-		cluster := createCluster(db, models.ClusterStatusInsufficient)
+	Context("Register success", func() {
+		for _, test := range []struct {
+			availability string
+			expectedRole models.HostRole
+		}{
+			{availability: models.ClusterHighAvailabilityModeFull, expectedRole: models.HostRoleAutoAssign},
+			{availability: models.ClusterHighAvailabilityModeNone, expectedRole: models.HostRoleMaster},
+		} {
+			test := test
 
-		mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
-		mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
-				// validate that host is registered with auto-assign role
-				Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
-				return nil
-			}).Times(1)
-		mockHostAPI.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockEventsHandler.EXPECT().
-			AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(1)
+			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
+				test.availability, test.expectedRole), func() {
+				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
 
-		bm.ServiceBaseURL = uuid.New().String()
-		bm.ServiceCACertPath = uuid.New().String()
-		bm.AgentDockerImg = uuid.New().String()
-		bm.SkipCertVerification = true
+				mockClusterAPI.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
+				mockHostAPI.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
+					DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
+						// validate that host is registered with auto-assign role
+						Expect(h.Role).Should(Equal(test.expectedRole))
+						return nil
+					}).Times(1)
+				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostAPI.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockEventsHandler.EXPECT().
+					AddEvent(gomock.Any(), *cluster.ID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
+					Times(1)
 
-		reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
-			ClusterID: *cluster.ID,
-			NewHostParams: &models.HostCreateParams{
-				DiscoveryAgentVersion: "v1",
-				HostID:                &hostID,
-			},
-		})
-		_, ok := reply.(*installer.RegisterHostCreated)
-		Expect(ok).Should(BeTrue())
+				bm.ServiceBaseURL = uuid.New().String()
+				bm.ServiceCACertPath = uuid.New().String()
+				bm.AgentDockerImg = uuid.New().String()
+				bm.SkipCertVerification = true
 
-		By("register_returns_next_step_runner_command")
-		payload := reply.(*installer.RegisterHostCreated).Payload
-		Expect(payload).ShouldNot(BeNil())
-		command := payload.NextStepRunnerCommand
-		Expect(command).ShouldNot(BeNil())
-		Expect(command.Command).ShouldNot(BeEmpty())
-		Expect(command.Args).ShouldNot(BeEmpty())
+				reply := bm.RegisterHost(ctx, installer.RegisterHostParams{
+					ClusterID: *cluster.ID,
+					NewHostParams: &models.HostCreateParams{
+						DiscoveryAgentVersion: "v1",
+						HostID:                &hostID,
+					},
+				})
+				_, ok := reply.(*installer.RegisterHostCreated)
+				Expect(ok).Should(BeTrue())
+
+				By("register_returns_next_step_runner_command")
+				payload := reply.(*installer.RegisterHostCreated).Payload
+				Expect(payload).ShouldNot(BeNil())
+				command := payload.NextStepRunnerCommand
+				Expect(command).ShouldNot(BeNil())
+				Expect(command.Command).ShouldNot(BeEmpty())
+				Expect(command.Args).ShouldNot(BeEmpty())
+			})
+		}
 	})
 
 	It("add_crd_failure", func() {

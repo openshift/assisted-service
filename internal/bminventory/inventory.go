@@ -2359,6 +2359,17 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 	case models.ClusterKindAddHostsOCPCluster:
 		kind = swag.String(models.HostKindAddToExistingClusterOCPHost)
 	}
+
+	// We immediately set the role to master in single node clusters to have more strict (master) validations.
+	// Typically, the validations are "weak" because an auto-assign host has the potential to only be a worker,
+	// which has less strict hardware requirements. This early role assignment results in clearer, more early
+	// errors for the user in case of insufficient hardware. In the future, single-node clusters might support
+	// extra nodes (as workers). In that case, this line might need to be removed.
+	defaultRole := models.HostRoleAutoAssign
+	if common.IsSingleNodeCluster(&cluster) {
+		defaultRole = models.HostRoleMaster
+	}
+
 	host = models.Host{
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
@@ -2367,7 +2378,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
-		Role:                  models.HostRoleAutoAssign,
+		Role:                  defaultRole,
 	}
 
 	if err = b.hostApi.RegisterHost(ctx, &host, tx); err != nil {
