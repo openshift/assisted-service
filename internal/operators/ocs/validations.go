@@ -180,9 +180,9 @@ func (o *ocsValidator) nodeResources(host *models.Host, cpuCount *int64, totalRA
 			*insufficientHosts = append(*insufficientHosts, status)
 			o.log.Info(status)
 		} else {
-			*cpuCount += (inventory.CPU.Count - diskCPU)          // cpus excluding the cpus required for disks
-			*totalRAM += (inventory.Memory.UsableBytes - diskRAM) // ram excluding the ram required for disks
-			*diskCount += (int64)(len(disks) - 1)                 // not counting the boot disk
+			*cpuCount += (inventory.CPU.Count - diskCPU)                     // cpus excluding the cpus required for disks
+			*totalRAM += (inventory.Memory.UsableBytes - gbToBytes(diskRAM)) // ram excluding the ram required for disks
+			*diskCount += (int64)(len(disks) - 1)                            // not counting the boot disk
 			*hostsWithDisks++
 		}
 	} else {
