@@ -2011,6 +2011,11 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
 		updates["api_vip_dns_name"] = *params.ClusterUpdateParams.APIVipDNSName
 	}
+
+	if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, machineCidr); err != nil {
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))

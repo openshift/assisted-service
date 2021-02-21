@@ -616,6 +616,55 @@ var _ = Describe("NTP source", func() {
 	}
 })
 
+var _ = Describe("vip dhcp allocation", func() {
+	tests := []struct {
+		vipDHCPAllocation  bool
+		machineNetworkCIDR string
+		valid              bool
+	}{
+		{
+			vipDHCPAllocation:  true,
+			machineNetworkCIDR: "1001:db8::/120",
+			valid:              false,
+		},
+		{
+			vipDHCPAllocation:  false,
+			machineNetworkCIDR: "1001:db8::/120",
+			valid:              true,
+		},
+		{
+			vipDHCPAllocation:  true,
+			machineNetworkCIDR: "10.56.20.0/24",
+			valid:              true,
+		},
+		{
+			vipDHCPAllocation:  false,
+			machineNetworkCIDR: "10.56.20.0/24",
+			valid:              true,
+		},
+		{
+			vipDHCPAllocation:  true,
+			machineNetworkCIDR: "",
+			valid:              true,
+		},
+		{
+			vipDHCPAllocation:  false,
+			machineNetworkCIDR: "",
+			valid:              true,
+		},
+	}
+	for _, t := range tests {
+		t := t
+		It(fmt.Sprintf("VIP DHCP allocation: %t, machine network: %s", t.vipDHCPAllocation, t.machineNetworkCIDR), func() {
+			if t.valid {
+				Expect(ValidateVipDHCPAllocationWithIPv6(t.vipDHCPAllocation, t.machineNetworkCIDR)).ToNot(HaveOccurred())
+			} else {
+				Expect(ValidateVipDHCPAllocationWithIPv6(t.vipDHCPAllocation, t.machineNetworkCIDR)).To(HaveOccurred())
+			}
+		})
+	}
+})
+
 func TestCluster(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "cluster validations tests")

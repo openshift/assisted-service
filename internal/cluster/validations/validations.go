@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
@@ -410,4 +411,16 @@ func getRegistriesWithAuth(ignoreList string, ignoreSeparator string, images ...
 	}
 
 	return &registries, nil
+}
+
+//ValidateVipDHCPAllocationWithIPv6 returns an error in case of VIP DHCP allocation
+//being used with IPv6 machine network
+func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCIDR string) error {
+	if !vipDhcpAllocation {
+		return nil
+	}
+	if network.IsIPv6CIDR(machineNetworkCIDR) {
+		return errors.Errorf("VIP DHCP allocation is unsupported with IPv6 network")
+	}
+	return nil
 }
