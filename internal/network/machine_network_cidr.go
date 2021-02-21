@@ -244,6 +244,12 @@ func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.Fie
 
 	networks := GetClusterNetworks([]*models.Host{bootstrap}, log)
 	if len(networks) > 0 {
+		// if there is ipv4 network, return it or return the first one
+		for _, network := range networks {
+			if IsIPV4CIDR(network) {
+				return network
+			}
+		}
 		return networks[0]
 	}
 	return ""
