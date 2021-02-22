@@ -13,14 +13,11 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: Host
-      name: hosts.adi.io.my.domain
+    - kind: Agents
+      name: agents.adi.io.my.domain
       version: v1alpha1
-    - kind: Cluster
-      name: clusters.adi.io.my.domain
-      version: v1alpha1
-    - kind: Image
-      name: images.adi.io.my.domain
+    - kind: InstallEnv
+      name: installenvs.adi.io.my.domain
       version: v1alpha1
   description: |-
     Assisted Service is used to orchestrate baremetal OpenShift installations.
