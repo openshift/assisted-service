@@ -5307,13 +5307,21 @@ var _ = Describe("TestRegisterCluster", func() {
 		ctrl.Finish()
 	})
 
-	It("success", func() {
+	mockClusterRegisterSuccess := func() {
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
 			Times(2)
 		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+
+		if bm.Config.WithAMSSubscriptions {
+			mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
+		}
+	}
+
+	It("success", func() {
+		mockClusterRegisterSuccess()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -5326,12 +5334,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("UserManagedNetworking default value", func() {
-		mockEvents.EXPECT().
-			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(2)
-		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+		mockClusterRegisterSuccess()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -5346,12 +5349,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("UserManagedNetworking non default value", func() {
-		mockEvents.EXPECT().
-			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(2)
-		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+		mockClusterRegisterSuccess()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -5398,12 +5396,7 @@ var _ = Describe("TestRegisterCluster", func() {
 			defaultNtpSource := "clock.redhat.com"
 			bm.Config.DefaultNTPSource = defaultNtpSource
 
-			mockEvents.EXPECT().
-				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(2)
-			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+			mockClusterRegisterSuccess()
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -5420,12 +5413,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		It("NTPSource non default value", func() {
 			newNtpSource := "new.ntp.source"
 
-			mockEvents.EXPECT().
-				AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-				Times(2)
-			mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+			mockClusterRegisterSuccess()
 
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 				NewClusterParams: &models.ClusterCreateParams{
@@ -5459,12 +5447,7 @@ var _ = Describe("TestRegisterCluster", func() {
 
 	It("Host Networks default value", func() {
 		defaultHostNetworks := make([]*models.HostNetwork, 0)
-		mockEvents.EXPECT().
-			AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).
-			Times(2)
-		mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+		mockClusterRegisterSuccess()
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
