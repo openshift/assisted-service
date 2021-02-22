@@ -42,6 +42,7 @@ type rhcosEditor struct {
 	isoHandler       isoutil.Handler
 	openshiftVersion string
 	log              logrus.FieldLogger
+	workDir          string
 }
 
 func (e *rhcosEditor) getRootFSURL(serviceBaseURL string) string {
@@ -63,11 +64,6 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 	if err := e.isoHandler.Extract(); err != nil {
 		return "", err
 	}
-	defer func() {
-		if err := e.isoHandler.CleanWorkDir(); err != nil {
-			e.log.WithError(err).Warnf("Failed to clean isoHandler work dir")
-		}
-	}()
 
 	if err := os.Remove(e.isoHandler.ExtractedPath("images/pxeboot/rootfs.img")); err != nil {
 		return "", err
@@ -86,11 +82,6 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig st
 	if err := e.isoHandler.Extract(); err != nil {
 		return "", errors.Wrap(err, "failed to extract iso")
 	}
-	defer func() {
-		if err := e.isoHandler.CleanWorkDir(); err != nil {
-			e.log.WithError(err).Warnf("Failed to clean isoHandler work dir")
-		}
-	}()
 
 	if err := e.addIgnitionArchive(ignition); err != nil {
 		return "", errors.Wrap(err, "failed to add ignition archive")
@@ -203,7 +194,7 @@ func addFileToArchive(w *cpio.Writer, path string, content string, mode cpio.Fil
 }
 
 func (e *rhcosEditor) create() (string, error) {
-	isoPath, err := tempFileName()
+	isoPath, err := tempFileName(e.workDir)
 	if err != nil {
 		return "", err
 	}
@@ -256,8 +247,8 @@ func editFile(fileName string, reString string, replacement string) error {
 	return nil
 }
 
-func tempFileName() (string, error) {
-	f, err := ioutil.TempFile("", "isoeditor")
+func tempFileName(baseDir string) (string, error) {
+	f, err := ioutil.TempFile(baseDir, "isoeditor")
 	if err != nil {
 		return "", err
 	}

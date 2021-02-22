@@ -9,7 +9,8 @@ import (
 )
 
 type Config struct {
-	ConcurrentEdits int `envconfig:"CONCURRENT_EDITS" default:"10"`
+	ConcurrentEdits  int    `envconfig:"CONCURRENT_ISO_EDITS" default:"10"`
+	WorkspaceBaseDir string `envconfig:"ISO_WORKSPACE_BASE_DIR" default:""`
 }
 
 type EditFunc func(myEditor Editor) error
@@ -22,12 +23,14 @@ type Factory interface {
 type token struct{}
 type RhcosFactory struct {
 	// "semaphore" for tracking editors in use, send to checkout, receive to checkin
-	sem chan token
+	sem              chan token
+	workspaceBaseDir string
 }
 
 func NewFactory(config Config) Factory {
 	f := &RhcosFactory{
-		sem: make(chan token, config.ConcurrentEdits),
+		sem:              make(chan token, config.ConcurrentEdits),
+		workspaceBaseDir: config.WorkspaceBaseDir,
 	}
 	return f
 }
@@ -52,7 +55,7 @@ func (f *RhcosFactory) WithEditor(ctx context.Context, isoPath string, openshift
 }
 
 func (f *RhcosFactory) newEditor(isoPath string, openshiftVersion string, log logrus.FieldLogger) (Editor, error) {
-	isoTmpWorkDir, err := ioutil.TempDir("", "isoeditor")
+	isoTmpWorkDir, err := ioutil.TempDir(f.workspaceBaseDir, "isoutil")
 	if err != nil {
 		return nil, err
 	}
@@ -60,5 +63,6 @@ func (f *RhcosFactory) newEditor(isoPath string, openshiftVersion string, log lo
 		isoHandler:       isoutil.NewHandler(isoPath, isoTmpWorkDir),
 		openshiftVersion: openshiftVersion,
 		log:              log,
+		workDir:          f.workspaceBaseDir,
 	}, nil
 }
