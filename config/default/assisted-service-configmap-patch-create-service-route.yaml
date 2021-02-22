@@ -1,7 +1,0 @@
-apiVersion: v1
-data:
-  CREATE_SERVICE_ROUTE: "True"
-kind: ConfigMap
-metadata:
-  name: assisted-service-config
-  namespace: assisted-installer

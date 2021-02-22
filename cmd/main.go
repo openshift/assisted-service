@@ -17,7 +17,6 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
-	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/bootfiles"
@@ -63,12 +62,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
-	corev1 "k8s.io/api/core/v1"
-	apiErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/intstr"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -114,7 +108,6 @@ var Options struct {
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	ISOEditorConfig             isoeditor.Config
-	CreateServiceRoute          bool `envconfig:"CREATE_SERVICE_ROUTE" default:"false"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -179,10 +172,6 @@ func main() {
 
 	ctrlMgr, err := createControllerManager()
 	failOnError(err, "failed to create controller manager")
-
-	if Options.CreateServiceRoute {
-		createRouteAndUpdateServiceBaseURL(log, failOnError)
-	}
 
 	prometheusRegistry := prometheus.DefaultRegisterer
 	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
@@ -589,83 +578,4 @@ func createControllerManager() (manager.Manager, error) {
 		})
 	}
 	return nil, nil
-}
-
-func newAssistedServiceRoute(service *corev1.Service) *routev1.Route {
-	return &routev1.Route{
-		TypeMeta: metav1.TypeMeta{},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      service.Name,
-			Namespace: service.Namespace,
-			Labels:    map[string]string{"app": service.Name},
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					APIVersion: "v1",
-					Kind:       "Service",
-					Name:       service.Name,
-					UID:        service.UID,
-				},
-			}},
-		Spec: routev1.RouteSpec{
-			Port: &routev1.RoutePort{
-				TargetPort: intstr.FromString(service.Name)},
-			To: routev1.RouteTargetReference{
-				Kind: "Service",
-				Name: service.Name},
-			TLS: &routev1.TLSConfig{
-				Termination:                   routev1.TLSTerminationEdge,
-				InsecureEdgeTerminationPolicy: routev1.InsecureEdgeTerminationPolicyAllow}},
-		Status: routev1.RouteStatus{},
-	}
-}
-
-func createRouteAndUpdateServiceBaseURL(log logrus.FieldLogger, failOnError func(err error, msg string, args ...interface{})) {
-	log.Info("Creating route for service")
-
-	failOnError(routev1.AddToScheme(scheme.Scheme),
-		"Failed to add routev1 to scheme")
-
-	client, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
-	failOnError(err, "failed to create controller-runtime client")
-
-	ctx := context.Background()
-
-	serviceName := "assisted-service"
-	namespace := "assisted-installer"
-	foundService := &corev1.Service{}
-	failOnError(client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: namespace}, foundService), "failed to get service")
-
-	found := &routev1.Route{}
-	route := newAssistedServiceRoute(foundService)
-	err = client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: route.Namespace}, found)
-	if err != nil && apiErrors.IsNotFound(err) {
-		log.Info("Creating Route ", "Namespace ", route.Namespace, " Name ", route.Name)
-		failOnError(client.Create(ctx, route), "failed to create route")
-	} else if err != nil {
-		log.WithError(err).Error("Get route failed")
-	}
-
-	assistedServiceRoute := &routev1.Route{}
-	err = client.Get(ctx, types.NamespacedName{Name: route.Name, Namespace: route.Namespace}, assistedServiceRoute)
-	if err != nil {
-		log.WithError(err).Error("Get route after create failed")
-	}
-
-	assistedServiceConfigMap := &corev1.ConfigMap{}
-	err = client.Get(ctx, types.NamespacedName{Name: "assisted-service-config", Namespace: namespace}, assistedServiceConfigMap)
-	if err != nil {
-		log.WithError(err).Error("Get assisted service ConfigMap failed")
-	}
-
-	routeURL := "http://" + assistedServiceRoute.Status.Ingress[0].Host
-	Options.BMConfig.ServiceBaseURL = routeURL
-	Options.JobConfig.ServiceBaseURL = routeURL
-	Options.InstructionConfig.ServiceBaseURL = routeURL
-	assistedServiceConfigMap.Data["SERVICE_BASE_URL"] = routeURL
-	err = client.Update(ctx, assistedServiceConfigMap)
-	if err != nil {
-		log.WithError(err).Error("Updating assisted service ConfigMap failed")
-	} else {
-		log.Info("SERVICE_BASE_URL updated to ", routeURL)
-	}
 }

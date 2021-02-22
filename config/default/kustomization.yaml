@@ -48,11 +48,11 @@ patchesStrategicMerge:
 # 'CERTMANAGER' needs to be enabled to use ca injection
 #- webhookcainjection_patch.yaml
 
-# Enables assisted-service startup to create a route for the service.
-# This is toggled through the CREATE_SERVICE_ROUTE environment variable.
-# This used by in-cluster deployments so that a route to the service is
-# created and the SERVICE_BASE_URL is updated to match the route's URL.
-- assisted-service-configmap-patch-create-service-route.yaml
+# Enables assisted-service startup to create a route for the service
+# through an init container. This used by in-cluster deployments so that 
+# a route to the service is created and the SERVICE_BASE_URL is updated 
+# to match the route's URL.
+- assisted-service-patch-init-containers.yaml
 
 # Uncomment to set a mininum disk size allowed by the hardware validator.
 # By default the minimum disk size allowed is 120GB. The patch sets the
