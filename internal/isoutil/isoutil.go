@@ -3,7 +3,6 @@ package isoutil
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,7 +20,6 @@ type Handler interface {
 	Create(outPath string, volumeLabel string) error
 	ReadFile(filePath string) (io.ReadWriteSeeker, error)
 	VolumeIdentifier() (string, error)
-	CleanWorkDir() error
 }
 
 type installerHandler struct {
@@ -141,40 +139,14 @@ func (h *installerHandler) Create(outPath string, volumeLabel string) error {
 	}
 
 	d.LogicalBlocksize = 2048
-	fspec := disk.FilesystemSpec{Partition: 0, FSType: filesystem.TypeISO9660, VolumeLabel: volumeLabel}
+	fspec := disk.FilesystemSpec{
+		Partition:   0,
+		FSType:      filesystem.TypeISO9660,
+		VolumeLabel: volumeLabel,
+		WorkDir:     h.workDir,
+	}
 	fs, err := d.CreateFilesystem(fspec)
 	if err != nil {
-		return err
-	}
-
-	addFileToISO := func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		p, err := filepath.Rel(h.workDir, path)
-		if err != nil {
-			return err
-		}
-
-		if info.IsDir() {
-			return fs.Mkdir(p)
-		}
-
-		content, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-
-		rw, err := fs.OpenFile(p, os.O_CREATE|os.O_RDWR)
-		if err != nil {
-			return err
-		}
-
-		_, err = rw.Write(content)
-		return err
-	}
-	if err := filepath.Walk(h.workDir, addFileToISO); err != nil {
 		return err
 	}
 
@@ -255,8 +227,4 @@ func (h *installerHandler) VolumeIdentifier() (string, error) {
 	}
 
 	return strings.TrimSpace(string(volumeId)), nil
-}
-
-func (h *installerHandler) CleanWorkDir() error {
-	return os.RemoveAll(h.workDir)
 }
