@@ -78,10 +78,10 @@ func (mr *MockAPIMockRecorder) GetOperatorStatus(arg0, arg1 interface{}) *gomock
 }
 
 // ValidateOCSRequirements mocks base method
-func (m *MockAPI) ValidateOCSRequirements(arg0 *common.Cluster) bool {
+func (m *MockAPI) ValidateOCSRequirements(arg0 *common.Cluster) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateOCSRequirements", arg0)
-	ret0, _ := ret[0].(bool)
+	ret0, _ := ret[0].(string)
 	return ret0
 }
 

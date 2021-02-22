@@ -132,7 +132,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 		shouldHaveUpdated = false
 
 		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return(true)
+		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
 	})
 	Context("single cluster monitoring", func() {
 		Context("from installing state", func() {
@@ -556,7 +556,7 @@ var _ = Describe("lease timeout event", func() {
 			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOperators)
 
 		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return(true)
+		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
 	})
 	tests := []struct {
 		name                string
@@ -662,7 +662,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOperators)
 
 		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return(true)
+		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
 	})
 	tests := []struct {
 		name                    string
@@ -1746,7 +1746,7 @@ var _ = Describe("Majority groups", func() {
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return(true)
+		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
 	})
 
 	setup := func(ips []string) {
@@ -1850,7 +1850,7 @@ var _ = Describe("ready_state", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
 		mockOperators.EXPECT().GetOperatorStatus(&cluster, models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(&cluster).AnyTimes().Return(true)
+		mockOperators.EXPECT().ValidateOCSRequirements(&cluster).AnyTimes().Return("success")
 	})
 
 	Context("refresh_state", func() {
