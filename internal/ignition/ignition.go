@@ -18,9 +18,9 @@ import (
 
 	"github.com/coreos/ignition/v2/config/merge"
 	config_31 "github.com/coreos/ignition/v2/config/v3_1"
-	config_32 "github.com/coreos/ignition/v2/config/v3_2"
-	config_32_trans "github.com/coreos/ignition/v2/config/v3_2/translate"
-	config_32_types "github.com/coreos/ignition/v2/config/v3_2/types"
+	config_latest "github.com/coreos/ignition/v2/config/v3_2"
+	config_latest_trans "github.com/coreos/ignition/v2/config/v3_2/translate"
+	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/swag"
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
@@ -326,7 +326,7 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(installerPath strin
 	}
 	//Although BIP works with 4.8 and above we want to support early 4.8 CI images
 	// To that end we set the dummy master ignition version to the same version as the bootstrap ignition
-	config := config_32_types.Config{Ignition: config_32_types.Ignition{Version: bootstrapConfig.Ignition.Version}}
+	config := config_latest_types.Config{Ignition: config_latest_types.Ignition{Version: bootstrapConfig.Ignition.Version}}
 	for _, file := range []string{masterIgn, workerIgn} {
 		err = writeIgnitionFile(filepath.Join(g.workDir, file), &config)
 		if err != nil {
@@ -361,7 +361,7 @@ func ExtractClusterID(reader io.ReadCloser) (string, error) {
 		return "", err
 	}
 
-	config, err := ParseTo32(bs)
+	config, err := ParseToLatest(bs)
 	if err != nil {
 		return "", err
 	}
@@ -402,7 +402,7 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 		return err
 	}
 
-	newFiles := []config_32_types.File{}
+	newFiles := []config_latest_types.File{}
 
 	masters, workers := sortHosts(g.cluster.Hosts)
 	for i, file := range config.Storage.Files {
@@ -461,19 +461,19 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 	return nil
 }
 
-func isBMHFile(file *config_32_types.File) bool {
+func isBMHFile(file *config_latest_types.File) bool {
 	return strings.Contains(file.Node.Path, "openshift-cluster-api_hosts")
 }
 
-func isMOTD(file *config_32_types.File) bool {
+func isMOTD(file *config_latest_types.File) bool {
 	return file.Node.Path == "/etc/motd"
 }
 
-func isBaremetalProvisioningConfig(file *config_32_types.File) bool {
+func isBaremetalProvisioningConfig(file *config_latest_types.File) bool {
 	return strings.Contains(file.Node.Path, "baremetal-provisioning-config")
 }
 
-func fileToBMH(file *config_32_types.File) (*bmh_v1alpha1.BareMetalHost, error) {
+func fileToBMH(file *config_latest_types.File) (*bmh_v1alpha1.BareMetalHost, error) {
 	parts := strings.Split(*file.Contents.Source, "base64,")
 	if len(parts) != 2 {
 		return nil, errors.Errorf("could not parse source for file %s", file.Node.Path)
@@ -499,7 +499,7 @@ func fileToBMH(file *config_32_types.File) (*bmh_v1alpha1.BareMetalHost, error) 
 // overwriting the existing /etc/motd with whatever content had been indended
 // to be appened.
 // https://github.com/openshift/machine-config-operator/issues/2086
-func (g *installerGenerator) fixMOTDFile(file *config_32_types.File) {
+func (g *installerGenerator) fixMOTDFile(file *config_latest_types.File) {
 	if file.Contents.Source != nil {
 		// the bug only happens if Source == nil, so no need to take action
 		return
@@ -514,7 +514,7 @@ func (g *installerGenerator) fixMOTDFile(file *config_32_types.File) {
 
 // modifyBMHFile modifies the File contents so that the serialized BareMetalHost
 // includes a status annotation
-func (g *installerGenerator) modifyBMHFile(file *config_32_types.File, bmh *bmh_v1alpha1.BareMetalHost, host *models.Host) error {
+func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *bmh_v1alpha1.BareMetalHost, host *models.Host) error {
 	inventory := models.Inventory{}
 	err := json.Unmarshal([]byte(host.Inventory), &inventory)
 	if err != nil {
@@ -779,26 +779,26 @@ func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3
 	return nil
 }
 
-func ParseTo32(content []byte) (*config_32_types.Config, error) {
-	configv32, _, err := config_32.Parse(content)
+func ParseToLatest(content []byte) (*config_latest_types.Config, error) {
+	config, _, err := config_latest.Parse(content)
 	if err != nil {
 		configv31, _, err := config_31.Parse(content)
 		if err != nil {
 			return nil, errors.Errorf("error parsing ignition: %v", err)
 		}
-		configv32 = config_32_trans.Translate(configv31)
-		configv32.Ignition.Version = "3.1.0"
+		config = config_latest_trans.Translate(configv31)
+		config.Ignition.Version = "3.1.0"
 	}
 
-	return &configv32, nil
+	return &config, nil
 }
 
-func parseIgnitionFile(path string) (*config_32_types.Config, error) {
+func parseIgnitionFile(path string) (*config_latest_types.Config, error) {
 	configBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, errors.Errorf("error reading file %s: %v", path, err)
 	}
-	return ParseTo32(configBytes)
+	return ParseToLatest(configBytes)
 }
 
 func (g *installerGenerator) getInterfaceIP(cidr string) string {
@@ -811,7 +811,7 @@ func (g *installerGenerator) getInterfaceIP(cidr string) string {
 }
 
 // writeIgnitionFile writes an ignition config to a given path on disk
-func writeIgnitionFile(path string, config *config_32_types.Config) error {
+func writeIgnitionFile(path string, config *config_latest_types.Config) error {
 	updatedBytes, err := json.Marshal(config)
 	if err != nil {
 		return err
@@ -825,36 +825,36 @@ func writeIgnitionFile(path string, config *config_32_types.Config) error {
 	return nil
 }
 
-func setFileInIgnition(config *config_32_types.Config, filePath string, fileContents string, appendContent bool, mode int) {
+func setFileInIgnition(config *config_latest_types.Config, filePath string, fileContents string, appendContent bool, mode int) {
 	rootUser := "root"
-	file := config_32_types.File{
-		Node: config_32_types.Node{
+	file := config_latest_types.File{
+		Node: config_latest_types.Node{
 			Path:      filePath,
 			Overwrite: nil,
-			Group:     config_32_types.NodeGroup{},
-			User:      config_32_types.NodeUser{Name: &rootUser},
+			Group:     config_latest_types.NodeGroup{},
+			User:      config_latest_types.NodeUser{Name: &rootUser},
 		},
-		FileEmbedded1: config_32_types.FileEmbedded1{
-			Append: []config_32_types.Resource{},
-			Contents: config_32_types.Resource{
+		FileEmbedded1: config_latest_types.FileEmbedded1{
+			Append: []config_latest_types.Resource{},
+			Contents: config_latest_types.Resource{
 				Source: &fileContents,
 			},
 			Mode: &mode,
 		},
 	}
 	if appendContent {
-		file.FileEmbedded1.Append = []config_32_types.Resource{
+		file.FileEmbedded1.Append = []config_latest_types.Resource{
 			{
 				Source: &fileContents,
 			},
 		}
-		file.FileEmbedded1.Contents = config_32_types.Resource{}
+		file.FileEmbedded1.Contents = config_latest_types.Resource{}
 	}
 	config.Storage.Files = append(config.Storage.Files, file)
 }
 
-func setUnitInIgnition(config *config_32_types.Config, contents, name string, enabled bool) {
-	newUnit := config_32_types.Unit{
+func setUnitInIgnition(config *config_latest_types.Config, contents, name string, enabled bool) {
+	newUnit := config_latest_types.Unit{
 		Contents: swag.String(contents),
 		Name:     name,
 		Enabled:  swag.Bool(enabled),
@@ -945,12 +945,12 @@ func (g *installerGenerator) createHostIgnitions() error {
 }
 
 func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
-	baseConfig, err := ParseTo32(base)
+	baseConfig, err := ParseToLatest(base)
 	if err != nil {
 		return "", err
 	}
 
-	overrideConfig, err := ParseTo32(overrides)
+	overrideConfig, err := ParseToLatest(overrides)
 	if err != nil {
 		return "", err
 	}
@@ -966,7 +966,7 @@ func MergeIgnitionConfig(base []byte, overrides []byte) (string, error) {
 	if baseConfig.Ignition.Version == "3.1.0" {
 		_, report, err = config_31.Parse(res)
 	} else {
-		_, report, err = config_32.Parse(res)
+		_, report, err = config_latest.Parse(res)
 	}
 	if err != nil {
 		return "", err
@@ -1041,7 +1041,7 @@ func (g *installerGenerator) downloadManifest(ctx context.Context, manifest stri
 }
 
 func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, error) {
-	config, err := ParseTo32(ignition)
+	config, err := ParseToLatest(ignition)
 	if err != nil {
 		return nil, errors.Errorf("error parsing ignition: %v", err)
 	}

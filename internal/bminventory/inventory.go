@@ -499,7 +499,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 		return common.GenerateErrorResponder(err)
 	}
 
-	_, err = ignition.ParseTo32([]byte(params.DiscoveryIgnitionParams.Config))
+	_, err = ignition.ParseToLatest([]byte(params.DiscoveryIgnitionParams.Config))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.DiscoveryIgnitionParams)
 		return installer.NewUpdateDiscoveryIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
@@ -3225,7 +3225,7 @@ func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params inst
 		return common.GenerateErrorResponder(err)
 	}
 
-	_, err = ignition.ParseTo32([]byte(params.HostIgnitionParams.Config))
+	_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
 		return installer.NewUpdateHostIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
