@@ -132,7 +132,7 @@ var _ = Describe("Operators manager", func() {
 
 		valid := manager.ValidateOCSRequirements(cluster)
 
-		Expect(valid).To(BeTrue())
+		Expect(valid).To(Equal("success"))
 	})
 
 	It("should deem OCS operator valid when it's disabled", func() {
@@ -142,7 +142,7 @@ var _ = Describe("Operators manager", func() {
 
 		valid := manager.ValidateOCSRequirements(cluster)
 
-		Expect(valid).To(BeTrue())
+		Expect(valid).To(Equal("success"))
 	})
 
 	It("should deem OCS operator invalid when it's enabled and invalid", func() {
@@ -152,7 +152,7 @@ var _ = Describe("Operators manager", func() {
 
 		valid := manager.ValidateOCSRequirements(cluster)
 
-		Expect(valid).To(BeFalse())
+		Expect(valid).To(Equal("failure"))
 	})
 })
 

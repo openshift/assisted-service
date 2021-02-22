@@ -529,7 +529,13 @@ func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext,
 }
 
 func (v *clusterValidator) isOcsRequirementsSatisfied(c *clusterPreprocessContext) validationStatus {
-	return boolValue(v.operatorsManager.ValidateOCSRequirements(c.cluster))
+	validationStatus := (v.operatorsManager.ValidateOCSRequirements(c.cluster))
+	if validationStatus == "pending" {
+		return ValidationPending
+	} else if validationStatus == "success" {
+		return ValidationSuccess
+	}
+	return ValidationFailure
 }
 
 func (v *clusterValidator) printOcsRequirementsSatisfied(c *clusterPreprocessContext, status validationStatus) string {
@@ -537,6 +543,9 @@ func (v *clusterValidator) printOcsRequirementsSatisfied(c *clusterPreprocessCon
 	switch status {
 	case ValidationSuccess, ValidationFailure:
 		return v.operatorsManager.GetOperatorStatus(c.cluster, models.OperatorTypeOcs)
+	//	return v.getOCSOperatorStatus(&c.cluster.Cluster)
+	case ValidationPending:
+		return "Missing Inventory in some of the hosts"
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
 	}
