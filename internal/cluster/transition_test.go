@@ -486,13 +486,13 @@ type validationsChecker struct {
 }
 
 func (j *validationsChecker) check(validationsStr string) {
-	validationMap := make(map[string][]ValidationResult)
-	Expect(json.Unmarshal([]byte(validationsStr), &validationMap)).ToNot(HaveOccurred())
+	validationRes := make(validationsStatus)
+	Expect(json.Unmarshal([]byte(validationsStr), &validationRes)).ToNot(HaveOccurred())
 next:
 	for id, checkedResult := range j.expected {
 		category, err := id.Category()
 		Expect(err).ToNot(HaveOccurred())
-		results, ok := validationMap[category]
+		results, ok := validationRes[category]
 		Expect(ok).To(BeTrue())
 		for _, r := range results {
 			if r.ID == id {
@@ -1136,6 +1136,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				if t.candidateChecker != nil {
 					t.candidateChecker()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -1146,14 +1147,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
 				} else {
-					//refresh status in installing calls to PostRefreshCluster and update the validation info
-					if t.dstState == models.ClusterStatusInstalling {
-						Expect(clusterAfterRefresh.ValidationsInfo).To(Equal("{}"))
-					} else {
-						//refresh status in PreparingForInstallation, Finalizing, Installed, Error and AddingHosts will not update the validation info
-						Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
-					}
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -1582,6 +1578,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -1592,6 +1589,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -1980,6 +1980,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -1990,6 +1991,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -2488,6 +2492,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
 
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -2498,14 +2503,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
 				} else {
-					//refresh status in installing calls to PostRefreshCluster and update the validation info
-					if t.dstState == models.ClusterStatusInstalling {
-						Expect(clusterAfterRefresh.ValidationsInfo).To(Equal("{}"))
-					} else {
-						//refresh status in PreparingForInstallation, Finalizing, Installed, Error and AddingHosts will not update the validation info
-						Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
-					}
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -2777,7 +2777,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				} else if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+				Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
@@ -3286,6 +3288,7 @@ var _ = Describe("NTP refresh cluster", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -3296,6 +3299,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -3641,6 +3647,7 @@ var _ = Describe("NTP refresh cluster", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -3651,6 +3658,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}

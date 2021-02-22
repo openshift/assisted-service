@@ -268,3 +268,44 @@ func isJSON(s []byte) bool {
 	return json.Unmarshal(s, &js) == nil
 
 }
+
+func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses models.FreeNetworksAddresses) {
+	fa, err := json.Marshal(&freeAddresses)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		ClusterID: h.ClusterID,
+		HostID:    *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			Output:   string(fa),
+			StepID:   string(models.StepTypeFreeNetworkAddresses),
+			StepType: models.StepTypeFreeNetworkAddresses,
+		},
+	})
+	Expect(err).To(BeNil())
+}
+
+func updateVipParams(ctx context.Context, clusterID strfmt.UUID) {
+	apiVip := "1.2.3.5"
+	ingressVip := "1.2.3.6"
+	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		ClusterUpdateParams: &models.ClusterUpdateParams{
+			VipDhcpAllocation: swag.Bool(false),
+			APIVip:            &apiVip,
+			IngressVip:        &ingressVip,
+		},
+		ClusterID: clusterID,
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func register3nodes(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
+	h1 := registerNode(ctx, clusterID, "h1")
+	generateFAPostStepReply(ctx, h1, validFreeAddresses)
+	h2 := registerNode(ctx, clusterID, "h2")
+	h3 := registerNode(ctx, clusterID, "h3")
+	updateVipParams(ctx, clusterID)
+	generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
+
+	return []*models.Host{h1, h2, h3}
+}

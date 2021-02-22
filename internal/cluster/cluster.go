@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	reflect "reflect"
 	"strings"
 	"time"
 
@@ -197,6 +198,10 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 			metricsErr = multierror.Append(metricsErr, err)
 		}
 	}
+	if err := m.reportValidationFailedMetrics(ctx, c, c.OpenshiftVersion, c.EmailDomain); err != nil {
+		m.log.WithError(err).Errorf("Failed to report metrics for failed validations on cluster %s", c.ID)
+		metricsErr = multierror.Append(metricsErr, err)
+	}
 	if metricsErr != nil {
 		return metricsErr
 	}
@@ -212,6 +217,81 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	return err
 }
 
+func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.Cluster, ocpVersion, emailDomain string) error {
+	log := logutil.FromContext(ctx, m.log)
+	if c.ValidationsInfo == "" {
+		log.Warnf("Cluster %s doesn't contain any validations info, cannot report metrics for that cluster", *c.ID)
+		return nil
+	}
+	var validationRes validationsStatus
+	if err := json.Unmarshal([]byte(c.ValidationsInfo), &validationRes); err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal validations info from cluster %s", *c.ID)
+		return err
+	}
+	for _, vRes := range validationRes {
+		for _, v := range vRes {
+			if v.Status == ValidationFailure {
+				m.metricAPI.ClusterValidationFailed(ocpVersion, emailDomain, models.ClusterValidationID(v.ID))
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.Cluster,
+	newValidationRes, currentValidationRes validationsStatus) {
+	for vCategory, vRes := range newValidationRes {
+		for _, v := range vRes {
+			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
+				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
+					m.metricAPI.ClusterValidationChanged(c.OpenshiftVersion, c.EmailDomain, models.ClusterValidationID(v.ID))
+					eventMsg := fmt.Sprintf("Cluster validation '%s' that used to succeed is now failing", v.ID)
+					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, eventMsg, time.Now())
+				}
+				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+					eventMsg := fmt.Sprintf("Cluster validation '%s' is now fixed", v.ID)
+					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, eventMsg, time.Now())
+				}
+			}
+		}
+	}
+}
+
+func (m *Manager) getValidationStatus(vs validationsStatus, category string, vID ValidationID) (ValidationStatus, bool) {
+	for _, v := range vs[category] {
+		if v.ID == vID {
+			return v.Status, true
+		}
+	}
+	return ValidationStatus(""), false
+}
+
+func (m *Manager) getValidations(ctx context.Context, c *common.Cluster) (validationsStatus, error) {
+	var currentValidationRes validationsStatus
+	if c.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes); err != nil {
+			return validationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from cluster %s", *c.ID)
+		}
+	}
+	return currentValidationRes, nil
+}
+
+func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes validationsStatus) bool {
+	if len(newValidationRes) == 0 {
+		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
+		return false
+	}
+	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
+}
+
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *common.Cluster, newValidationRes validationsStatus) (*common.Cluster, error) {
+	b, err := json.Marshal(newValidationRes)
+	if err != nil {
+		return nil, err
+	}
+	return UpdateCluster(logutil.FromContext(ctx, m.log), db, *c.ID, *c.Status, "validations_info", string(b))
+}
+
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	//new transition code
 	if db == nil {
@@ -221,9 +301,23 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if err != nil {
 		return c, err
 	}
-	conditions, validationsResults, err := m.rp.preprocess(ctx, vc)
+	conditions, newValidationRes, err := m.rp.preprocess(ctx, vc)
 	if err != nil {
 		return c, err
+	}
+	currentValidationRes, err := m.getValidations(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
+		// Validation status changes are detected when new validations are different from the
+		// current validations in the DB.
+		// For changes to be detected and reported correctly, the comparison needs to be
+		// performed before the new validations are updated to the DB.
+		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+		if _, err = m.updateValidationsInDB(ctx, db, c, newValidationRes); err != nil {
+			return nil, err
+		}
 	}
 	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), &TransitionArgsRefreshCluster{
 		ctx:               ctx,
@@ -232,7 +326,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 		metricApi:         m.metricAPI,
 		hostApi:           m.hostAPI,
 		conditions:        conditions,
-		validationResults: validationsResults,
+		validationResults: newValidationRes,
 		clusterAPI:        m,
 		objectHandler:     m.objectHandler,
 	})

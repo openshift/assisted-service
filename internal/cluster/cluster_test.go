@@ -2599,3 +2599,103 @@ var _ = Describe("Update AMS subscription ID", func() {
 		Expect(c.AmsSubscriptionID).To(Equal(subID))
 	})
 })
+
+var _ = Describe("Validation metrics and events", func() {
+
+	const (
+		openshiftVersion = "dummyVersion"
+		emailDomain      = "dummy.com"
+	)
+
+	var (
+		ctrl       *gomock.Controller
+		ctx        = context.Background()
+		db         *gorm.DB
+		dbName     = "validation_metrics_and_events"
+		mockEvents *events.MockHandler
+		mockHost   *host.MockAPI
+		mockMetric *metrics.MockAPI
+		m          *Manager
+		c          *common.Cluster
+	)
+
+	generateTestValidationResult := func(status ValidationStatus) validationsStatus {
+		validationRes := validationsStatus{
+			"hw": {
+				{
+					ID:     SufficientMastersCount,
+					Status: status,
+				},
+			},
+		}
+		return validationRes
+	}
+
+	registerTestClusterWithValidationsAndHost := func() *common.Cluster {
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		mockEvents.EXPECT().AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: openshiftVersion,
+				EmailDomain:      emailDomain,
+			},
+		}
+		validationRes := generateTestValidationResult(ValidationFailure)
+		bytes, err := json.Marshal(validationRes)
+		Expect(err).ShouldNot(HaveOccurred())
+		c.ValidationsInfo = string(bytes)
+		err = m.RegisterCluster(ctx, &c)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		createHost(clusterID, models.HostStatusInsufficient, db)
+
+		c = getClusterFromDB(clusterID, db)
+		return &c
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHost = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		m = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, mockHost, mockMetric, nil, nil, nil, nil, nil)
+		c = registerTestClusterWithValidationsAndHost()
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("Test DeregisterCluster", func() {
+
+		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
+		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
+		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+
+		err := m.DeregisterCluster(ctx, c)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("Test reportValidationStatusChanged", func() {
+
+		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+
+		newValidationRes := generateTestValidationResult(ValidationSuccess)
+		var currentValidationRes validationsStatus
+		err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes)
+		Expect(err).ToNot(HaveOccurred())
+		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+
+		mockMetric.EXPECT().ClusterValidationChanged(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
+		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, gomock.Any(), gomock.Any())
+
+		currentValidationRes = newValidationRes
+		newValidationRes = generateTestValidationResult(ValidationFailure)
+		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+	})
+})
