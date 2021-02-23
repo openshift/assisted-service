@@ -320,7 +320,10 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 		}
 
 		if common.IsSingleNodeCluster(cluster) {
-			cfg.BootstrapInPlace = bootstrapInPlace{InstallationDisk: common.GetBootstrapHost(cluster).InstallationDiskPath}
+			bootstrap := common.GetBootstrapHost(cluster)
+			if bootstrap != nil {
+				cfg.BootstrapInPlace = bootstrapInPlace{InstallationDisk: bootstrap.InstallationDiskPath}
+			}
 		}
 
 	} else {
