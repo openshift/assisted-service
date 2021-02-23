@@ -21,7 +21,7 @@ coreos-installer
 livecd.iso
 
 # Operator bundle files
-bundle/
+bundle*
 config/rbac/ocp_role.yaml
 config/rbac/kube_api_roles.yaml
 config/rbac/controller_roles.yaml

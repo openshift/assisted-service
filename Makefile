@@ -355,7 +355,7 @@ clean:
 	-rm config/assisted-service/assisted-service-service.yaml
 	-rm config/assisted-service/assisted-service.yaml
 	-rm config/assisted-service/deploy_ui.yaml
-	-rm -rf bundle
+	-rm -rf bundle*
 
 subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete --force --grace-period=0 1> /dev/null || true
