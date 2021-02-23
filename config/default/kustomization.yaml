@@ -53,6 +53,9 @@ patchesStrategicMerge:
 # a route to the service is created and the SERVICE_BASE_URL is updated 
 # to match the route's URL.
 - assisted-service-patch-init-containers.yaml
+# An init container that creates a random password and secret for postgres
+# if a secret does not already exist.
+- postgres-patch-init-container.yaml
 
 # Uncomment to set a mininum disk size allowed by the hardware validator.
 # By default the minimum disk size allowed is 120GB. The patch sets the

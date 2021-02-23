@@ -26,6 +26,15 @@ rules:
       - get
       - watch
       - list
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - secrets
+  - verbs:
+      - get
+      - watch
+      - list
       - delete
       - create
     apiGroups:
@@ -60,10 +69,6 @@ rules:
   - verbs:
       - create
       - get
-      - list
-      - patch
-      - update
-      - watch
     apiGroups:
       - route.openshift.io
     resources:

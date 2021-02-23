@@ -4,7 +4,6 @@ resources:
 - scality-secret.yaml
 - scality-public-secret.yaml
 - postgres-deployment.yaml
-- postgres-secret.yaml
 - assisted-service.yaml
 - assisted-service-configmap.yaml
 - assisted-service-service.yaml

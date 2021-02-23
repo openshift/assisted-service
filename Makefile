@@ -395,7 +395,6 @@ operator-bundle: create-ocp-manifests
 	cp ./build/assisted-installer/scality-secret.yaml config/assisted-service
 	cp ./build/assisted-installer/scality-public-secret.yaml config/assisted-service
 	cp ./build/assisted-installer/postgres-deployment.yaml config/assisted-service
-	cp ./build/assisted-installer/postgres-secret.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-installer-sso.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service-configmap.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
