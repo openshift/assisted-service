@@ -543,7 +543,6 @@ func (v *clusterValidator) printOcsRequirementsSatisfied(c *clusterPreprocessCon
 	switch status {
 	case ValidationSuccess, ValidationFailure:
 		return v.operatorsManager.GetOperatorStatus(c.cluster, models.OperatorTypeOcs)
-	//	return v.getOCSOperatorStatus(&c.cluster.Cluster)
 	case ValidationPending:
 		return "Missing Inventory in some of the hosts"
 	default:

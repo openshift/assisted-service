@@ -272,7 +272,7 @@ func main() {
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
-	operatorsManager := operators.NewManager(log, hostApi)
+	operatorsManager := operators.NewManager(log)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, &operatorsManager)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
