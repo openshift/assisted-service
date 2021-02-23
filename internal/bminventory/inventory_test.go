@@ -6027,9 +6027,9 @@ var _ = Describe("Calculate host networks", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 	It("Duplicates and IPv6", func() {
-		var cluster common.Cluster
-		Expect(db.Preload("Hosts").Take(&cluster, "id = ?", clusterID.String()).Error).ToNot(HaveOccurred())
-		networks := calculateHostNetworks(logrus.New(), &cluster)
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		networks := calculateHostNetworks(logrus.New(), cluster)
 		Expect(len(networks)).To(Equal(1))
 		Expect(networks[0].Cidr).To(Equal("1.1.1.0/24"))
 		Expect(len(networks[0].HostIds)).To(Equal(1))

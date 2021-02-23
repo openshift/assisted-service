@@ -223,12 +223,9 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
+
 	//return updated cluster
-	var clusterAfterRefresh common.Cluster
-	if err := db.Preload("Hosts").Take(&clusterAfterRefresh, "id = ?", c.ID.String()).Error; err != nil {
-		return nil, errors.Wrapf(err, "failed to get cluster %s", c.ID.String())
-	}
-	return &clusterAfterRefresh, nil
+	return common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading)
 
 }
 
@@ -273,7 +270,7 @@ func (m *Manager) autoAssignMachineNetworkCidrs() error {
 	 * For these clusters the hosts query is all hosts that are not in status (disabled, disconnected, discovering),
 	 * since we want to calculate the host networks only from hosts wkith relevant inventory
 	 */
-	err := m.db.Preload("Hosts", "status not in (?)", []string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
+	err := common.LoadHostsFromDB(m.db, "status not in (?)", []string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
 		Find(&clusters, "vip_dhcp_allocation = ? and machine_network_cidr = '' and status in (?)", true, []string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}).Error
 	if err != nil {
 		m.log.WithError(err).Warn("Query for clusters for machine network cidr allocation")
@@ -789,8 +786,8 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 }
 
 func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
-	c := &common.Cluster{}
-	if err := m.db.Preload("Hosts").Take(c, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace).Error; err != nil {
+	c, err := common.GetClusterFromDBWhere(m.db, common.UseEagerLoading, common.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+	if err != nil {
 		return nil, err
 	}
 	return c, nil

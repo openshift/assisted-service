@@ -39,7 +39,7 @@ var _ = Describe("registrar", func() {
 		updateErr = registerManager.RegisterCluster(ctx, &cluster)
 		Expect(updateErr).Should(BeNil())
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
-		cluster = geCluster(*cluster.ID, db)
+		cluster = getClusterFromDB(*cluster.ID, db)
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 	})
 
@@ -48,7 +48,7 @@ var _ = Describe("registrar", func() {
 			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).Should(HaveOccurred())
 
-			cluster = geCluster(*cluster.ID, db)
+			cluster = getClusterFromDB(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		})
 
@@ -58,7 +58,7 @@ var _ = Describe("registrar", func() {
 			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 
-			cluster = geCluster(*cluster.ID, db)
+			cluster = getClusterFromDB(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
 			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
@@ -69,7 +69,7 @@ var _ = Describe("registrar", func() {
 			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).ShouldNot(HaveOccurred())
 
-			cluster = geCluster(*cluster.ID, db)
+			cluster = getClusterFromDB(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
 		})
 	})
@@ -79,9 +79,10 @@ var _ = Describe("registrar", func() {
 			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
 			Expect(updateErr).Should(BeNil())
 
-			Expect(db.Preload("Hosts").First(&cluster, "id = ?", cluster.ID).Error).Should(HaveOccurred())
+			_, err := common.GetClusterFromDB(db, *cluster.ID, common.UseEagerLoading)
+			Expect(err).Should(HaveOccurred())
 
-			Expect(db.First(&cluster, "id = ?", cluster.ID).Error).Should(HaveOccurred())
+			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).Error).Should(HaveOccurred())
 			Expect(db.First(&host, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
 
 		})

@@ -65,7 +65,7 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 		}
 	}
 
-	if err := tx.Preload("Hosts").Create(cluster).Error; err != nil {
+	if err := common.LoadHostsFromDB(tx).Create(cluster).Error; err != nil {
 		r.log.Errorf("Error registering cluster %s", cluster.Name)
 		return err
 	}
