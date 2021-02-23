@@ -104,7 +104,7 @@ func (a accountsMgmt) UpdateSubscription(ctx context.Context, subscriptionID, op
 }
 
 func (a accountsMgmt) DeleteSubscription(ctx context.Context, subscriptionID strfmt.UUID) error {
-	defer commonutils.MeasureOperation("OCM-GetSubscription", a.client.log, a.client.metricsApi)()
+	defer commonutils.MeasureOperation("OCM-DeleteSubscription", a.client.log, a.client.metricsApi)()
 
 	// send the request
 	response, err := a.client.connection.AccountsMgmt().V1().Subscriptions().Subscription(subscriptionID.String()).Delete().SendContext(ctx)
