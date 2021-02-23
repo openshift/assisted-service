@@ -310,7 +310,7 @@ _NOTE: To use these features, you need to have mkdocs installed in your system, 
 
 <https://github.com/oshercc/coreos_installation_iso>
 
-Image in charge of generating the Fedora-coreOs image used to install the host with the relevant ignition file.\
+Image in charge of generating the Fedora-CoreOS image used to install the host with the relevant ignition file.\
 Image is uploaded to deployed S3 under the name template "installer-image-\<cluster-id\>".
 
 ## Assisted Service on cloud.redhat.com
