@@ -2028,12 +2028,16 @@ var _ = Describe("cluster", func() {
 					OpenshiftVersion:     swag.String(MinimalOpenShiftVersionForNoneHA),
 					PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
 					HighAvailabilityMode: &noneHaMode,
+					VipDhcpAllocation:    swag.Bool(true),
 				},
 			})
 			Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
 			actual := reply.(*installer.RegisterClusterCreated)
 			Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+			// verify VipDhcpAllocation was set to false even though it was sent as true
+			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+
 		})
 
 		It("create non ha cluster fail", func() {
