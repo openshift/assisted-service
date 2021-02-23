@@ -5328,7 +5328,8 @@ func init() {
                 "description": "The domain name that should be resolved",
                 "type": "string"
               }
-            }
+            },
+            "x-go-name": "DomainResolutionRequestDomain"
           }
         }
       }
@@ -5367,7 +5368,8 @@ func init() {
                   "format": "ipv6"
                 }
               }
-            }
+            },
+            "x-go-name": "DomainResolutionResponseDomain"
           }
         }
       }
@@ -10853,7 +10855,8 @@ func init() {
           "description": "The domain name that should be resolved",
           "type": "string"
         }
-      }
+      },
+      "x-go-name": "DomainResolutionRequestDomain"
     },
     "DomainResolutionResponseResolutionsItems0": {
       "type": "object",
@@ -10881,7 +10884,8 @@ func init() {
             "format": "ipv6"
           }
         }
-      }
+      },
+      "x-go-name": "DomainResolutionResponseDomain"
     },
     "HostRegistrationResponseAO1NextStepRunnerCommand": {
       "description": "Command for starting the next step runner",

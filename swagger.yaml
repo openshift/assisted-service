@@ -4186,6 +4186,7 @@ definitions:
       domains:
         type: array
         items:
+          x-go-name: DomainResolutionRequestDomain
           type: object
           required:
             - domain_name
@@ -4202,6 +4203,7 @@ definitions:
       resolutions:
         type: array
         items:
+          x-go-name: DomainResolutionResponseDomain
           type: object
           required:
             - domain_name
