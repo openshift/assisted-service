@@ -623,6 +623,20 @@ func (mr *MockInstallerAPIMockRecorder) UpdateHostInstallerArgs(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostInstallerArgs", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateHostInstallerArgs), arg0, arg1)
 }
 
+// UpdateLogsProgress mocks base method
+func (m *MockInstallerAPI) UpdateLogsProgress(arg0 context.Context, arg1 installer.UpdateLogsProgressParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLogsProgress", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// UpdateLogsProgress indicates an expected call of UpdateLogsProgress
+func (mr *MockInstallerAPIMockRecorder) UpdateLogsProgress(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLogsProgress", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateLogsProgress), arg0, arg1)
+}
+
 // UploadClusterIngressCert mocks base method
 func (m *MockInstallerAPI) UploadClusterIngressCert(arg0 context.Context, arg1 installer.UploadClusterIngressCertParams) middleware.Responder {
 	m.ctrl.T.Helper()

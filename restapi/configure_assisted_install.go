@@ -189,6 +189,9 @@ type InstallerAPI interface {
 	/* UpdateHostInstallerArgs Updates a host's installer arguments. */
 	UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder
 
+	/* UpdateLogsProgress Update log collection state and progress. */
+	UpdateLogsProgress(ctx context.Context, params installer.UpdateLogsProgressParams) middleware.Responder
+
 	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
 	UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder
 
@@ -605,6 +608,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateHostInstallerArgs(ctx, params)
+	})
+	api.InstallerUpdateLogsProgressHandler = installer.UpdateLogsProgressHandlerFunc(func(params installer.UpdateLogsProgressParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UpdateLogsProgress(ctx, params)
 	})
 	api.InstallerUploadClusterIngressCertHandler = installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

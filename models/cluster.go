@@ -49,6 +49,10 @@ type Cluster struct {
 	// Format: date-time
 	ControllerLogsCollectedAt strfmt.DateTime `json:"controller_logs_collected_at,omitempty" gorm:"type:timestamp with time zone"`
 
+	// controller logs started at
+	// Format: date-time
+	ControllerLogsStartedAt strfmt.DateTime `json:"controller_logs_started_at,omitempty" gorm:"type:timestamp with time zone"`
+
 	// The time that this cluster was created.
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
@@ -120,6 +124,9 @@ type Cluster struct {
 	// Required: true
 	// Enum: [Cluster AddHostsCluster AddHostsOCPCluster]
 	Kind *string `json:"kind"`
+
+	// The progress of log collection or empty if logs are not applicable
+	LogsInfo string `json:"logs_info,omitempty" gorm:"type:varchar(2048)"`
 
 	// A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
@@ -204,6 +211,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateControllerLogsCollectedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateControllerLogsStartedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -343,6 +354,19 @@ func (m *Cluster) validateControllerLogsCollectedAt(formats strfmt.Registry) err
 	}
 
 	if err := validate.FormatOf("controller_logs_collected_at", "body", "date-time", m.ControllerLogsCollectedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateControllerLogsStartedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ControllerLogsStartedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("controller_logs_started_at", "body", "date-time", m.ControllerLogsStartedAt.String(), formats); err != nil {
 		return err
 	}
 

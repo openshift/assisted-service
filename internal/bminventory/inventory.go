@@ -3959,6 +3959,11 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 	return installer.NewGetFreeAddressesOK().WithPayload(results)
 }
 
+func (b *bareMetalInventory) UpdateLogsProgress(ctx context.Context, params installer.UpdateLogsProgressParams) middleware.Responder {
+	//TODO: Add Implementation
+	return installer.NewUpdateLogsProgressNoContent()
+}
+
 func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
 	err := b.uploadLogs(ctx, params)
 	if err != nil {
