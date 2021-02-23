@@ -62,6 +62,9 @@ function generate_from_swagger() {
 }
 
 function generate_ocp_version() {
+    OPENSHIFT_VERSIONS=$(< ${__root}/default_ocp_versions.json tr -d "\n\t ")
+    PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/default_public_container_registries.txt)
+
     sed -i "s|value: '.*' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/openshift/template.yaml
 
     sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" ${__root}/onprem-environment
