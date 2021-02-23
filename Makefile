@@ -228,7 +228,7 @@ deploy-ui-on-ocp-cluster:
 create-ocp-manifests:
 	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
 	export ENABLE_KUBE_API=true && export TARGET=ocp && \
-	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
+	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 
@@ -350,11 +350,11 @@ clean:
 	-rm config/assisted-service/scality-secret.yaml
 	-rm config/assisted-service/scality-public-secret.yaml
 	-rm config/assisted-service/postgres-deployment.yaml
-	-rm config/assisted-service/postgres-secret.yaml
 	-rm config/assisted-service/assisted-installer-sso.yaml
 	-rm config/assisted-service/assisted-service-configmap.yaml
 	-rm config/assisted-service/assisted-service-service.yaml
 	-rm config/assisted-service/assisted-service.yaml
+	-rm config/assisted-service/deploy_ui.yaml
 	-rm -rf bundle
 
 subsystem-clean:
@@ -399,6 +399,7 @@ operator-bundle: create-ocp-manifests
 	cp ./build/assisted-installer/assisted-service-configmap.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
+	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
 	#operator-sdk generate kustomize manifests -q
 	#cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
