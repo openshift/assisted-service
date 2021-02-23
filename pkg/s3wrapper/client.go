@@ -224,6 +224,7 @@ func (c *S3Client) UploadStreamToPublicBucket(ctx context.Context, reader io.Rea
 
 func (c *S3Client) uploadFile(ctx context.Context, filePath, objectName, bucket string, uploader s3manageriface.UploaderAPI) error {
 	log := logutil.FromContext(ctx, c.log)
+	log.Infof("Uploading file %s as object %s to bucket %s", filePath, objectName, bucket)
 	file, err := os.Open(filePath)
 	if err != nil {
 		err = errors.Wrapf(err, "Unable to open file %s for upload", filePath)
