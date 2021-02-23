@@ -153,7 +153,7 @@ paths:
           required: true
         - in: header
           name: discovery_agent_version
-          description: The software version of the discovery agent that is retreiving the cluster details.
+          description: The software version of the discovery agent that is retrieving the cluster details.
           type: string
           required: false
         - in: header
@@ -1330,7 +1330,7 @@ paths:
           required: true
         - in: body
           name: completion-params
-          description: The final status of the cluster installationthe cluster installation.
+          description: The final status of the cluster installation.
           required: true
           schema:
             $ref: '#/definitions/completion-params'
@@ -1494,13 +1494,13 @@ paths:
       parameters:
         - in: path
           name: cluster_id
-          description: The cluster of the host that should be retreived.
+          description: The cluster of the host that should be retrieved.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
-          description: The host that should be retreived.
+          description: The host that should be retrieved.
           type: string
           format: uuid
           required: true
@@ -1893,13 +1893,13 @@ paths:
       parameters:
         - in: path
           name: cluster_id
-          description: The cluster of the host that is retreiving instructions.
+          description: The cluster of the host that is retrieving instructions.
           type: string
           format: uuid
           required: true
         - in: path
           name: host_id
-          description: The host that is retreiving instructions.
+          description: The host that is retrieving instructions.
           type: string
           format: uuid
           required: true
@@ -3682,7 +3682,7 @@ definitions:
         x-go-custom-tag: gorm:"type:timestamp with time zone"
       connectivity_majority_groups:
         type: string
-        description: Json formatted string containing the majority groups for conectivity checks.
+        description: Json formatted string containing the majority groups for connectivity checks.
         x-go-custom-tag: gorm:"type:text"
       deleted_at:
         type: string
@@ -4020,7 +4020,7 @@ definitions:
             description: Whether the disk is eligible for installation or not.
           not_eligible_reasons:
             type: array
-            description: Reasons for why this disk is not elligible for installation.
+            description: Reasons for why this disk is not eligible for installation.
             items:
               type: string
       smart:
@@ -4149,7 +4149,7 @@ definitions:
     properties:
       is_success:
         type: boolean
-        description: API VIP connecitivty check result.
+        description: API VIP connectivity check result.
 
   fio_perf_check_request:
     type: object
@@ -4324,10 +4324,10 @@ definitions:
         description: The IPv4 address that was allocated by DHCP for the Ingress virtual IP.
       api_vip_lease:
         type: string
-        description: Contents of last aquired lease for API virtual IP.
+        description: Contents of last acquired lease for API virtual IP.
       ingress_vip_lease:
         type: string
-        description: Contents of last aquired lease for Ingress virtual IP.
+        description: Contents of last acquired lease for Ingress virtual IP.
 
   ntp_synchronization_request:
     type: object

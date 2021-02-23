@@ -79,7 +79,7 @@ type GetClusterParams struct {
 	*/
 	ClusterID strfmt.UUID
 	/*DiscoveryAgentVersion
-	  The software version of the discovery agent that is retreiving the cluster details.
+	  The software version of the discovery agent that is retrieving the cluster details.
 
 	*/
 	DiscoveryAgentVersion *string

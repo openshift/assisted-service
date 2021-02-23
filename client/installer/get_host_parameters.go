@@ -61,12 +61,12 @@ for the get host operation typically these are written to a http.Request
 type GetHostParams struct {
 
 	/*ClusterID
-	  The cluster of the host that should be retreived.
+	  The cluster of the host that should be retrieved.
 
 	*/
 	ClusterID strfmt.UUID
 	/*HostID
-	  The host that should be retreived.
+	  The host that should be retrieved.
 
 	*/
 	HostID strfmt.UUID

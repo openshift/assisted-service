@@ -30,12 +30,12 @@ type GetHostParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
-	/*The cluster of the host that should be retreived.
+	/*The cluster of the host that should be retrieved.
 	  Required: true
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*The host that should be retreived.
+	/*The host that should be retrieved.
 	  Required: true
 	  In: path
 	*/
