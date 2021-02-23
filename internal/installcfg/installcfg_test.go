@@ -325,6 +325,15 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		err := ValidateInstallConfigPatch(logrus.New(), cluster, s)
 		Expect(err).Should(HaveOccurred())
 	})
+
+	It("Single node - valid json without bootstrap node", func() {
+		s := `{"apiVersion": "v3", "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		cluster.UserManagedNetworking = swag.Bool(true)
+		mode := models.ClusterHighAvailabilityModeNone
+		cluster.HighAvailabilityMode = &mode
+		err := ValidateInstallConfigPatch(logrus.New(), cluster, s)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
 })
 
 func getInventoryStr(hostname, bootMode string, ipv6only bool) string {
