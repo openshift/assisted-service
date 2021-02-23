@@ -1197,6 +1197,44 @@ func defaultInventory() string {
 	return string(b)
 }
 
+func ocsInventoryWithTwoDisks(cpus int64, ram int64) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		CPU: &models.CPU{
+			Count: cpus,
+		},
+		Memory: &models.Memory{
+			UsableBytes: ram,
+		},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 20000000000,
+				DriveType: "HDD",
+			}, {
+				SizeBytes: 40000000000,
+				DriveType: "SSD",
+			},
+			{
+				SizeBytes: 40000000000,
+				DriveType: "HDD",
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func ocsInventoryWithDisks(cpus int64, ram int64) string {
 	inventory := models.Inventory{
 		Interfaces: []*models.Interface{
@@ -1219,8 +1257,10 @@ func ocsInventoryWithDisks(cpus int64, ram int64) string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 20000000000,
+				DriveType: "HDD",
 			}, {
 				SizeBytes: 40000000000,
+				DriveType: "SSD",
 			},
 		},
 	}
@@ -1274,8 +1314,10 @@ func defaultInventoryWithTimestamp(timestamp int64) string {
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 20000000000,
+				DriveType: "HDD",
 			}, {
 				SizeBytes: 40000000000,
+				DriveType: "SSD",
 			},
 		},
 	}

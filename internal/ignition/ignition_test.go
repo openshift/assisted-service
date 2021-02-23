@@ -21,7 +21,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
@@ -36,7 +35,6 @@ var (
 	workDir           string
 	operatorsManager  operators.Manager
 	ctrl              *gomock.Controller
-	mockHostAPI       *host.MockAPI
 )
 
 var _ = BeforeEach(func() {
@@ -56,8 +54,7 @@ var _ = BeforeEach(func() {
 	cluster.ImageInfo = &models.ImageInfo{}
 
 	ctrl = gomock.NewController(GinkgoT())
-	mockHostAPI = host.NewMockAPI(ctrl)
-	operatorsManager = operators.NewManager(log, mockHostAPI)
+	operatorsManager = operators.NewManager(log)
 })
 
 var _ = AfterEach(func() {

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/docker/go-units"
-	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -15,23 +14,15 @@ type OcsValidator interface {
 	ValidateOCSRequirements(cluster *models.Cluster) string
 }
 
-const (
-	validationSuccess string = "success"
-	validationFailure string = "failure"
-	validationPending string = "pending"
-)
-
 type ocsValidator struct {
 	*Config
-	log     logrus.FieldLogger
-	hostApi host.API
+	log logrus.FieldLogger
 }
 
-func NewOCSValidator(log logrus.FieldLogger, hostApi host.API, cfg *Config) OcsValidator {
+func NewOCSValidator(log logrus.FieldLogger, cfg *Config) OcsValidator {
 	return &ocsValidator{
-		log:     log,
-		Config:  cfg,
-		hostApi: hostApi,
+		log:    log,
+		Config: cfg,
 	}
 }
 
@@ -46,7 +37,7 @@ type Config struct {
 	OCSRequiredRAMGB               int64  `envconfig:"OCS_REQUIRED_RAM_GB" default:"57"`                 // Standard Mode
 	OCSRequiredCompactModeCPUCount int64  `envconfig:"OCS_REQUIRED_COMAPCT_MODE_CPU_COUNT" default:"30"` // Compact Mode cpu requirements for 3 nodes( 4*3(master)+6*3(OCS) cpus)
 	OCSRequiredCompactModeRAMGB    int64  `envconfig:"OCS_REQUIRED_COMAPCT_MODE_RAM_GB" default:"81"`    //Compact Mode ram requirements (8*3(master)+57(OCS) GB)
-	OCSMasterWorkerHosts           int    `envconfig:"OCS_REQUIRED_MASTER_WORKER_HOSTS" default:"5"`
+	OCSMasterWorkerHosts           int    `envconfig:"OCS_REQUIRED_MASTER_WORKER_HOSTS" default:"6"`
 	OCSMinimalDeployment           bool   `envconfig:"OCS_MINIMAL_DEPLOYMENT" default:"false"`
 	OCSDisksAvailable              int64  `envconfig:"OCS_DISKS_AVAILABLE" default:"3"`
 	OCSDeploymentType              string `envconfig:"OCS_DEPLOYMENT_TYPE" default:"None"`
@@ -106,7 +97,7 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 			}
 		}
 
-	} else if len(hosts) <= o.OCSMasterWorkerHosts { // not supporting OCS installation for 2 Workers and 3 Masters
+	} else if len(hosts) < o.OCSMasterWorkerHosts { // not supporting OCS installation for 2 Workers and 3 Masters
 		status = "Not supporting OCS Installation for 3 Masters and 2 Workers"
 		o.log.Info(status)
 		o.log.Info("Setting Operator Status")
@@ -184,24 +175,20 @@ func (o *ocsValidator) nodeResources(host *models.Host, cpuCount *int64, totalRA
 		return false, err
 	}
 
-	disks, err := o.hostApi.GetHostValidDisks(host)
-	if err != nil {
-		o.log.Error("failed to get valid disks due to ", err.Error())
-		return false, err
-	}
+	disks := getValidOCSDiskCount(inventory.Disks)
 
-	if len(disks) > 1 { // OCS must use the non-boot disks
-		diskCPU := int64((len(disks) - 1)) * o.OCSRequiredDiskCPUCount
-		diskRAM := int64((len(disks) - 1)) * o.OCSRequiredDiskRAMGB
+	if disks > 1 { // OCS must use the non-boot disks
+		requiredDiskCPU := int64(disks-1) * o.OCSRequiredDiskCPUCount
+		requiredDiskRAM := int64(disks-1) * o.OCSRequiredDiskRAMGB
 
-		if inventory.CPU.Count < diskCPU || inventory.Memory.UsableBytes < gbToBytes(diskRAM) {
-			status := fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", len(disks), " disks that require ", diskCPU, " CPUs, ", diskRAM, " RAMGB")
+		if inventory.CPU.Count < requiredDiskCPU || inventory.Memory.UsableBytes < gbToBytes(requiredDiskRAM) {
+			status := fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", disks, " disks that require ", requiredDiskCPU, " CPUs, ", requiredDiskRAM, " RAMGB")
 			*insufficientHosts = append(*insufficientHosts, status)
 			o.log.Info(status)
 		} else {
-			*cpuCount += (inventory.CPU.Count - diskCPU)                     // cpus excluding the cpus required for disks
-			*totalRAM += (inventory.Memory.UsableBytes - gbToBytes(diskRAM)) // ram excluding the ram required for disks
-			*diskCount += (int64)(len(disks) - 1)                            // not counting the boot disk
+			*cpuCount += (inventory.CPU.Count - requiredDiskCPU)                     // cpus excluding the cpus required for disks
+			*totalRAM += (inventory.Memory.UsableBytes - gbToBytes(requiredDiskRAM)) // ram excluding the ram required for disks
+			*diskCount += (int64)(disks - 1)                                         // not counting the boot disk
 			*hostsWithDisks++
 		}
 	} else {
@@ -213,6 +200,21 @@ func (o *ocsValidator) nodeResources(host *models.Host, cpuCount *int64, totalRA
 
 func gbToBytes(gb int64) int64 {
 	return gb * int64(units.GB)
+}
+
+// count all disks of drive type ssd or hdd
+func getValidOCSDiskCount(disks []*models.Disk) int {
+
+	var countDisks int
+
+	for _, disk := range disks {
+		if disk.DriveType == ssdDrive || disk.DriveType == hddDrive {
+			countDisks++
+		}
+	}
+
+	return countDisks
+
 }
 
 // used to validate resource requirements for OCS excluding disk requirements and set a status message

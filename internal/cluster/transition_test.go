@@ -34,7 +34,6 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler events.Handler
 		ctrl          *gomock.Controller
 		mockMetric    *metrics.MockAPI
-		mockHostAPI   *host.MockAPI
 		dbName        = "cluster_transition_test"
 	)
 
@@ -43,8 +42,7 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		mockHostAPI = host.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, nil, &operatorsManager)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -161,7 +159,6 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl              *gomock.Controller
 		mockEventsHandler *events.MockHandler
 		mockMetric        *metrics.MockAPI
-		mockHostAPI       *host.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -169,8 +166,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		mockHostAPI = host.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil, &operatorsManager)
 	})
 
@@ -234,15 +230,13 @@ var _ = Describe("Reset cluster", func() {
 		db                *gorm.DB
 		ctrl              *gomock.Controller
 		mockEventsHandler *events.MockHandler
-		mockHostAPI       *host.MockAPI
 	)
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		mockHostAPI = host.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil, &operatorsManager)
 	})
 
@@ -377,7 +371,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
@@ -1014,7 +1008,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
@@ -1850,7 +1844,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
@@ -2367,7 +2361,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
@@ -2637,7 +2631,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 		hid1 = strfmt.UUID(uuid.New().String())
@@ -2991,7 +2985,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), mockHostAPI)
+		operatorsManager := operators.NewManager(common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 
@@ -3349,7 +3343,7 @@ var _ = Describe("Single node", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, getOcsConfig())
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), getOcsConfig())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 		hid1 = strfmt.UUID(uuid.New().String())
@@ -3658,7 +3652,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		cfg = getOcsConfig()
-		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), mockHostAPI, cfg)
+		operatorsManager := operators.NewManagerWithConfig(common.GetTestLog(), cfg)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, &operatorsManager)
 		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")
@@ -3791,7 +3785,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			hosts: []models.Host{
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(6, 64000000000), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(7, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(6, 64000000000), Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3908,9 +3902,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3938,9 +3932,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(14, 32000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(14, 32000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(14, 32000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(14, 32000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(14, 32000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(14, 32000000000), Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -3968,9 +3962,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(3, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(2, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(3, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(2, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4133,9 +4127,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4166,9 +4160,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(2, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(3, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(2, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(3, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -4251,30 +4245,6 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			for i := range t.hosts {
 				t.hosts[i].ClusterID = clusterId
 				Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
-			}
-			if t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources (cpu)" || t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient disk resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient cluster resources" || t.name == "ocs enabled, 6 nodes with 3 worker nodes with 3 disk with insufficient disk resources" || t.name == "ocs enabled, 3 nodes with 2 OCS disks, insufficient cluster resources (ram)" {
-				disks := []*models.Disk{
-					{
-						SizeBytes: 20000000000,
-					}, {
-						SizeBytes: 40000000000,
-					}, {
-						SizeBytes: 60000000000,
-					},
-				}
-				mockHostAPI.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
-			} else if t.name == "ocs enabled, 6 nodes with 3 insufficient worker nodes due to insufficient disks" || t.name == "ocs enabled, 3 nodes with less than 3 disks" {
-				disks := []*models.Disk{}
-				mockHostAPI.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
-			} else {
-				disks := []*models.Disk{
-					{
-						SizeBytes: 20000000000,
-					}, {
-						SizeBytes: 40000000000,
-					},
-				}
-				mockHostAPI.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
 			}
 			cluster = getCluster(clusterId, db)
 			if t.dstState == models.ClusterStatusInsufficient {
