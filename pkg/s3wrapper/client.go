@@ -481,6 +481,8 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 }
 
 func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error {
+	log := logutil.FromContext(ctx, c.log)
+	log.Infof("Uploading openshift version %s", openshiftVersion)
 	rhcosImage, err := c.versionsHandler.GetRHCOSImage(openshiftVersion)
 	if err != nil {
 		return err

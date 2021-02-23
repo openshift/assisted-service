@@ -371,20 +371,21 @@ func main() {
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
 
-			for version := range openshiftVersionsMap {
-				currVresion := version
-				errs.Go(func() error {
-					return errors.Wrapf(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
-						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL)
-					}), "Failed uploading boot files for OCP version %s", currVresion)
-				})
-			}
+			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
+				for version := range openshiftVersionsMap {
+					currVersion := version
+					errs.Go(func() error {
+						return objectHandler.UploadBootFiles(context.Background(), currVersion, Options.BMConfig.ServiceBaseURL)
+					})
+				}
+				return errs.Wait()
+			}), "failed to get leader to upload iso")
 		case deployment_type_onprem, deployment_type_ocp:
 			for version := range openshiftVersionsMap {
-				currVresion := version
+				currVersion := version
 				errs.Go(func() error {
-					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL),
-						"Failed uploading boot files for OCP version %s", currVresion)
+					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVersion, Options.BMConfig.ServiceBaseURL),
+						"Failed uploading boot files for OCP version %s", currVersion)
 				})
 			}
 
