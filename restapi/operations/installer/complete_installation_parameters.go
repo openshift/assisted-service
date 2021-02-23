@@ -39,7 +39,7 @@ type CompleteInstallationParams struct {
 	  In: path
 	*/
 	ClusterID strfmt.UUID
-	/*The final status of the cluster installationthe cluster installation.
+	/*The final status of the cluster installation.
 	  Required: true
 	  In: body
 	*/

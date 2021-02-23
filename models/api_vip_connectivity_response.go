@@ -15,7 +15,7 @@ import (
 // swagger:model api_vip_connectivity_response
 type APIVipConnectivityResponse struct {
 
-	// API VIP connecitivty check result.
+	// API VIP connectivity check result.
 	IsSuccess bool `json:"is_success,omitempty"`
 }
 
