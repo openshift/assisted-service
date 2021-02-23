@@ -90,7 +90,7 @@ Pull secrets are saved to a file located at /etc/assisted-service/auth.json.
 
 ## How to use the FCC file to generate the base ignition config file
 
-The ignition file is created using a predefined Fedore CoreOS Config (FCC) file provided in /config/onprem-iso-fcc.yaml. FCC files are easier to read and edit than the machine readable ignition files.
+The ignition file is created using a predefined Fedora CoreOS Config (FCC) file provided in /config/onprem-iso-fcc.yaml. FCC files are easier to read and edit than the machine readable ignition files.
 
 The FCC file transpiles to an ignition config using:
 
