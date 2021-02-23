@@ -24,7 +24,22 @@ spec:
 
     # Requirements
 
-    Two PersistentVolumes, 10GB and 20GB in size, are required.
+    A PersistentVolumeClaim named postgres-pv-claim is required.
+
+    ````
+    cat <<EOF | oc create -f -
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      labels: {app: postgres}
+      name: postgres-pv-claim
+      namespace: assisted-installer
+    spec:
+      accessModes: [ReadWriteOnce]
+      resources:
+        requests: {storage: 10Gi}
+    EOF
+    ````
   displayName: Assisted Service Operator
   icon:
   - base64data: ""
