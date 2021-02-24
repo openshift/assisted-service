@@ -35,13 +35,15 @@ def main():
            f"-i {image_fqdn} -n {deploy_options.namespace} > {dst_file}"
 
     utils.check_output(cmd)
-    log.info("Deploying %s", dst_file)
-    utils.apply(
-        target=deploy_options.target,
-        namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
-        file=dst_file
-    )
+
+    if deploy_options.apply_manifest:
+        log.info("Deploying %s", dst_file)
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file
+        )
 
     # in case of openshift deploy ingress as well
     if deploy_options.target == "oc-ingress":
@@ -58,14 +60,15 @@ def main():
                     deploy_options.namespace,
                     deploy_options.profile
                 ))
-                log.info("Deploying ingress from %s", dst_file)
                 dst.write(data)
-        utils.apply(
-            target=deploy_options.target,
-            namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
-            file=dst_file
-        )
+        if deploy_options.apply_manifest:
+            log.info("Deploying ingress from %s", dst_file)
+            utils.apply(
+                target=deploy_options.target,
+                namespace=deploy_options.namespace,
+                profile=deploy_options.profile,
+                file=dst_file
+            )
 
 
 if __name__ == "__main__":

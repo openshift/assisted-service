@@ -26,6 +26,15 @@ rules:
       - get
       - watch
       - list
+      - create
+    apiGroups:
+      - ''
+    resources:
+      - secrets
+  - verbs:
+      - get
+      - watch
+      - list
       - delete
       - create
     apiGroups:
@@ -57,6 +66,13 @@ rules:
     resources:
       - configmaps
     resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
+  - verbs:
+      - create
+      - get
+    apiGroups:
+      - route.openshift.io
+    resources:
+      - routes
 
 ---
 kind: ClusterRoleBinding

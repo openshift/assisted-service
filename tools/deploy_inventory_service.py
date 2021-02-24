@@ -20,12 +20,13 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    utils.apply(
-        target=deploy_options.target,
-        namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
-        file=dst_file
-    )
+    if deploy_options.apply_manifest:
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file
+        )
     # in case of OpenShift deploy ingress as well
     if deploy_options.target == "oc-ingress":
         hostname = utils.get_service_host(
@@ -60,12 +61,13 @@ def deploy_ingress(hostname, namespace, template_file):
             data = data.replace("REPLACE_HOSTNAME", hostname)
             print("Deploying {}".format(dst_file))
             dst.write(data)
-    utils.apply(
-        target=deploy_options.target,
-        namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
-        file=dst_file
-    )
+    if deploy_options.apply_manifest:
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=dst_file
+        )
 
 
 if __name__ == "__main__":

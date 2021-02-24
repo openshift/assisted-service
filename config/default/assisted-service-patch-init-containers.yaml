@@ -1,0 +1,18 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assisted-service
+  namespace: assisted-installer
+spec:
+  template:
+    metadata:
+      labels:
+        app: assisted-service
+    spec:
+      initContainers:
+      - name: init-wait-for-service
+        image: busybox:1.28
+        command: ['sh', '-c', "until nslookup assisted-service.$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace).svc.cluster.local; do echo waiting for assisted-service; sleep 2; done"]
+      - name: init-add-route-and-update-config-map
+        image: quay.io/openshift/origin-cli:latest
+        command: ['sh', '-c', 'export NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace) && export HAS_ROUTE=$(oc get routes -n $NAMESPACE assisted-service) && if [ "$HAS_ROUTE" == "" ] ; then oc expose service -n $NAMESPACE assisted-service ; fi && export ROUTE_URL=$(oc get routes -n $NAMESPACE assisted-service -o jsonpath={.spec.host}) && oc get configmap -n $NAMESPACE assisted-service-config -o yaml | sed -e "s|REPLACE_BASE_URL|http\:\/\/$ROUTE_URL|" | oc apply -f - ']

@@ -17,6 +17,9 @@ def deploy(src_file):
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
+    if not deploy_options.apply_manifest:
+        return
+
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,

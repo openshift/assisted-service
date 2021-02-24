@@ -36,7 +36,7 @@ spec:
                   name: assisted-installer-rds
                   key: db.password
           volumeMounts:
-            - mountPath: /var/lib/postgress
+            - mountPath: /var/lib/pgsql/data
               name: postgredb
           resources:
             limits:

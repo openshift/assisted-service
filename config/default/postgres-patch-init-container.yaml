@@ -1,0 +1,15 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: assisted-installer
+spec:
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      initContainers:
+      - name: init-add-postgres-secret-if-missing
+        image: quay.io/openshift/origin-cli:latest
+        command: ['sh', '-c', 'export NAMESPACE=$(cat /var/run/secrets/kubernetes.io/serviceaccount/namespace) && export HAS_PG_SECRET=$(oc get secrets -n $NAMESPACE assisted-installer-rds) && if [ "$HAS_PG_SECRET" == "" ] ; then export PASSWORD=$(cat /dev/urandom | tr -dc "a-zA-Z0-9" | head -c 20) && oc create secret generic assisted-installer-rds --from-literal=db.host=postgres --from-literal=db.name=installer --from-literal=db.port=5432 --from-literal=db.user=admin --type=opaque --from-literal=db.password=$PASSWORD -n assisted-installer; fi']

@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assisted-service
+  namespace: assisted-installer
+spec:
+  template:
+    metadata:
+      labels:
+        app: assisted-service
+    spec:
+      containers:
+      - env:
+        - name: DEPLOY_TARGET
+          value: k8s
+        name: assisted-service

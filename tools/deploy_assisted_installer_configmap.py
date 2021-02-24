@@ -50,12 +50,14 @@ def main():
         with open(DST_FILE, "w+") as dst:
             data = src.read()
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
-            data = data.replace("REPLACE_BASE_URL", utils.get_service_url(service=SERVICE,
-                                                                          target=deploy_options.target,
-                                                                          domain=deploy_options.domain,
-                                                                          namespace=deploy_options.namespace,
-                                                                          profile=deploy_options.profile,
-                                                                          disable_tls=deploy_options.disable_tls))
+
+            if deploy_options.apply_manifest:
+                data = data.replace("REPLACE_BASE_URL", utils.get_service_url(service=SERVICE,
+                                                                            target=deploy_options.target,
+                                                                            domain=deploy_options.domain,
+                                                                            namespace=deploy_options.namespace,
+                                                                            profile=deploy_options.profile,
+                                                                            disable_tls=deploy_options.disable_tls))
 
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
             data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
@@ -106,13 +108,14 @@ def main():
             data = yaml.dump(y)
             dst.write(data)
 
-    log.info("Deploying {}".format(DST_FILE))
-    utils.apply(
-        target=deploy_options.target,
-        namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
-        file=DST_FILE
-    )
+    if deploy_options.apply_manifest:
+        log.info("Deploying {}".format(DST_FILE))
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=DST_FILE
+        )
 
 def log_image_revision(image: str):
 

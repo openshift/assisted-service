@@ -43,6 +43,7 @@ OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_
 DUMMY_IGNITION := $(or ${DUMMY_IGNITION},False)
 GIT_REVISION := $(shell git rev-parse HEAD)
 PUBLISH_TAG := $(or ${GIT_REVISION})
+APPLY_MANIFEST := $(or ${APPLY_MANIFEST},True)
 APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
@@ -55,6 +56,7 @@ TESTING_PUBLIC_CONTAINER_REGISTRIES := quay.io,registry.svc.ci.openshift.org
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUBLIC_CONTAINER_REGISTRIES))
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
+PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
 
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
@@ -170,13 +172,15 @@ deploy-all: $(BUILD_FOLDER) $(VERIFY_CLUSTER) deploy-namespace deploy-postgres d
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
-	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" $(DEPLOY_TAG_OPTION)
+	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST) $(DEPLOY_TAG_OPTION)
 
 deploy-namespace: $(BUILD_FOLDER)
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-s3-secret:
-	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+		--apply-manifest $(APPLY_MANIFEST)
 
 deploy-s3: deploy-namespace
 	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
@@ -187,10 +191,12 @@ deploy-route53: deploy-namespace
 	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-ocm-secret: deploy-namespace
-	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-inventory-service-file: deploy-namespace
-	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
+	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
+		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST)
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
@@ -198,30 +204,37 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
-		--check-cvo $(CHECK_CLUSTER_VERSION) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
+		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
 
 deploy-resources: generate-manifests
-	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"
 
 deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-resources
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
+		--apply-manifest $(APPLY_MANIFEST) \
 		$(ENABLE_KUBE_API_CMD)
 	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)"
+		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-role: deploy-namespace generate-manifests
 	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
-		$(ENABLE_KUBE_API_CMD)
+		--apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD)
 
 deploy-postgres: deploy-namespace
-	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+		--apply-manifest $(APPLY_MANIFEST) --persistent-storage $(PERSISTENT_STORAGE)
 
 deploy-service-on-ocp-cluster:
-	export TARGET=ocp && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
+	export TARGET=ocp && export PERSISTENT_STORAGE=False && $(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service
 
 deploy-ui-on-ocp-cluster:
 	export TARGET=ocp && $(MAKE) deploy-ui
+
+create-ocp-manifests:
+	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
+	export ENABLE_KUBE_API=true && export TARGET=ocp && \
+	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 
@@ -337,6 +350,18 @@ clear-all: clean subsystem-clean clear-deployment clear-images clean-onprem
 
 clean:
 	-rm -rf $(BUILD_FOLDER) $(REPORTS)
+	-rm config/rbac/ocp_role.yaml
+	-rm config/rbac/kube_api_roles.yaml
+	-rm config/rbac/controller_roles.yaml
+	-rm config/assisted-service/scality-secret.yaml
+	-rm config/assisted-service/scality-public-secret.yaml
+	-rm config/assisted-service/postgres-deployment.yaml
+	-rm config/assisted-service/assisted-installer-sso.yaml
+	-rm config/assisted-service/assisted-service-configmap.yaml
+	-rm config/assisted-service/assisted-service-service.yaml
+	-rm config/assisted-service/assisted-service.yaml
+	-rm config/assisted-service/deploy_ui.yaml
+	-rm -rf bundle*
 
 subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete --force --grace-period=0 1> /dev/null || true
@@ -358,3 +383,35 @@ delete-minikube-profile:
 
 delete-all-minikube-profiles:
 	minikube delete --all
+
+############
+# Operator #
+############
+
+# Current Operator version
+OPERATOR_VERSION ?= 0.0.1
+
+# Generate bundle manifests and metadata, then validate generated files.
+.PHONY: operator-bundle
+operator-bundle: create-ocp-manifests
+	set -eux
+	cp ./build/assisted-installer/ocp_role.yaml config/rbac
+	cp ./build/assisted-installer/kube_api_roles.yaml config/rbac
+	cp ./build/assisted-installer/controller_roles.yaml config/rbac
+	cp ./build/assisted-installer/scality-secret.yaml config/assisted-service
+	cp ./build/assisted-installer/scality-public-secret.yaml config/assisted-service
+	cp ./build/assisted-installer/postgres-deployment.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-installer-sso.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-service-configmap.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
+	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
+	#operator-sdk generate kustomize manifests -q
+	#cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
+	operator-sdk bundle validate ./bundle
+
+# Build the bundle image.
+.PHONY: operator-bundle-build
+operator-bundle-build:
+	podman build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
