@@ -121,6 +121,9 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 			Reason:  adiiov1alpha1.ImageCreationErrorReason,
 			Message: adiiov1alpha1.ImageStateFailedToCreate + ": " + inventoryErr.Error(),
 		})
+		if updateErr := r.Status().Update(ctx, installEnv); updateErr != nil {
+			r.Log.WithError(updateErr).Error("failed to update installEnv status")
+		}
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
 
@@ -173,7 +176,6 @@ func (r *InstallEnvReconciler) handleEnsureISOErrors(
 			Reason:  adiiov1alpha1.ImageCreatedReason,
 			Message: adiiov1alpha1.ImageStateCreated,
 		})
-		return ctrl.Result{Requeue: Requeue}, nil
 	} else { // Actual errors
 		r.Log.WithError(err).Error("installEnv reconcile failed")
 		if isClientError(err) {
@@ -191,9 +193,9 @@ func (r *InstallEnvReconciler) handleEnsureISOErrors(
 		})
 		// In a case of an error, clear the download URL.
 		installEnv.Status.ISODownloadURL = ""
-		if updateErr := r.Status().Update(ctx, installEnv); updateErr != nil {
-			r.Log.WithError(updateErr).Error("failed to update installEnv status")
-		}
+	}
+	if updateErr := r.Status().Update(ctx, installEnv); updateErr != nil {
+		r.Log.WithError(updateErr).Error("failed to update installEnv status")
 	}
 	return ctrl.Result{Requeue: Requeue}, nil
 }
