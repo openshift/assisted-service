@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
@@ -56,6 +57,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/transaction"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
@@ -74,6 +76,8 @@ const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
 // 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
 const ContainerAlreadyRunningExitCode = 125
+
+const tempNMConnectionsDir = "/etc/assisted/network"
 
 type Config struct {
 	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
@@ -171,12 +175,7 @@ const ignitionConfigFormat = `{
 		"name": "selinux.service",
 		"enabled": true,
 		"contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
-	}{{if .StaticIPsData}},
-        {
-                "name": "configure-static-ip.service",
-                "enabled": true,
-                "contents": "[Unit]\nDescription=Static IP Configuration\nBefore=NetworkManager.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=10\nExecStart=/bin/bash /usr/local/bin/configure-static-ip.sh\nPrivateTmp=yes\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
-        }{{end}}]
+	}]
   },
   "storage": {
     "files": [{
@@ -214,25 +213,7 @@ const ignitionConfigFormat = `{
 			"name": "root"
 		},
 		"contents": { "source": "data:text/plain;base64,{{.SELINUX_POLICY}}" }
-	}{{if .StaticIPsData}},
-	{
-		"path": "/etc/static_ips_config.csv",
-		"mode": 420,
-		"overwrite": true,
-		"user": {
-			"name": "root"
-		},
-		"contents": { "source": "data:text/plain;base64,{{.StaticIPsData}}" }
-        },
-	{
-		"path": "/usr/local/bin/configure-static-ip.sh",
-		"mode": 493,
-		"overwrite": true,
-		"user": {
-			"name": "root"
-		},
-		"contents": { "source": "data:text/plain;base64,{{.StaticIPsConfigScript}}"}
-        }{{end}}{{if .RH_ROOT_CA}},
+	}{{if .RH_ROOT_CA}},
 	{
 	  "overwrite": true,
 	  "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
@@ -258,7 +239,16 @@ const ignitionConfigFormat = `{
 	    "name": "root"
 	  },
 	  "append": [{ "source": "{{.ServiceIPs}}" }]
-  	}{{end}}]
+  	}{{end}}{{range .StaticNetworkConfig}},
+	{
+	  "path": "{{.FilePath}}",
+	  "mode": 384,
+	  "overwrite": true,
+	  "user": {
+	    "name": "root"
+	  },
+	  "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
+        }{{end}}]
   }
 }`
 
@@ -400,7 +390,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 	if b.Config.InstallRHCa {
 		rhCa = url.PathEscape(redhatRootCA)
 	}
-	var ignitionParams = map[string]string{
+	var ignitionParams = map[string]interface{}{
 		"userSshKey":           b.getUserSshKey(params),
 		"AgentDockerImg":       b.AgentDockerImg,
 		"ServiceBaseURL":       strings.TrimSpace(b.ServiceBaseURL),
@@ -436,7 +426,15 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(ignition.GetServiceIPHostnames(b.Config.ServiceIPs)))
 	}
 
-	// [TODO] - add static network configuration only in case it was provided and this is a FullIso image
+	// [TODO] - check if this is relvant for minimal ISO also
+	if cluster.ImageInfo.StaticNetworkConfig != "" && params.ImageCreateParams.ImageType == models.ImageTypeFullIso {
+		filesList, newErr := prepareStaticNetworkConfigForIgnition(cluster, b.log)
+		if newErr != nil {
+			logger.WithError(newErr).Errorf("Failed to add static network config to ignition for cluster %s", cluster.ID)
+			return "", newErr
+		}
+		ignitionParams["StaticNetworkConfig"] = filesList
+	}
 
 	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
 	if err != nil {
@@ -1077,7 +1075,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	staticNetworkConfig := formatStaticNetwork(params.ImageCreateParams.StaticNetworkConfig)
+	staticNetworkConfig := staticnetworkconfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
 
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
@@ -4458,15 +4456,21 @@ func (b *bareMetalInventory) setPullSecretFromOCP(cluster *common.Cluster, log l
 	return nil
 }
 
-func formatStaticNetwork(staticNetworkConfig []string) string {
-	lines := make([]string, len(staticNetworkConfig))
-
-	copy(lines, staticNetworkConfig)
-	sort.Strings(lines)
-	// delimeter between hosts config - will be used during nmconnections files generations for ISO ignition
-	return strings.Join(lines, "ZZZZZ")
-}
-
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
 	return b.clusterApi.GetClusterByKubeKey(key)
+}
+
+func prepareStaticNetworkConfigForIgnition(cluster *common.Cluster, log logrus.FieldLogger) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
+	staticNetworkGenerator := staticnetworkconfig.New(log)
+	filesList, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(cluster.ImageInfo.StaticNetworkConfig)
+	if err != nil {
+		log.WithError(err).Errorf("staticNetworkGenerator failed to produce the static network connection files for cluster %s", cluster.ID)
+		return nil, err
+	}
+	for i := range filesList {
+		filesList[i].FilePath = filepath.Join(tempNMConnectionsDir, filesList[i].FilePath)
+		filesList[i].FileContents = base64.StdEncoding.EncodeToString([]byte(filesList[i].FileContents))
+	}
+
+	return filesList, nil
 }
