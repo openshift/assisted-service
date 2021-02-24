@@ -106,17 +106,16 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 }
 
 func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, host *models.Host) ([]string, error) {
-
-	var cluster common.Cluster
-	if err := i.db.Preload("Hosts", "cluster_id = ?", host.ClusterID).First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
+	cluster, err := common.GetClusterFromDB(i.db, host.ClusterID, common.UseEagerLoading)
+	if err != nil {
 		i.log.WithError(err).Errorf("failed to get cluster for host %s", host.ID)
 		return nil, err
 	}
 
 	if swag.BoolValue(cluster.UserManagedNetworking) {
-		return i.getHostsIps(cluster)
+		return i.getHostsIps(*cluster)
 	}
-	return i.getHostsIpsfromMachineCIDR(cluster)
+	return i.getHostsIpsfromMachineCIDR(*cluster)
 }
 
 func (i *logsCmd) getHostsIpsfromMachineCIDR(cluster common.Cluster) ([]string, error) {

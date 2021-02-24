@@ -450,14 +450,14 @@ var _ = Describe("TestClusterMonitoring", func() {
 
 		AfterEach(func() {
 			before := time.Now().Truncate(10 * time.Millisecond)
-			c = geCluster(id, db)
+			c = getClusterFromDB(id, db)
 			saveUpdatedTime := c.StatusUpdatedAt
 			saveStatusInfo := c.StatusInfo
 			mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockHostAPIIsRequireUserActionResetFalse()
 			clusterApi.ClusterMonitoring()
 			after := time.Now().Truncate(10 * time.Millisecond)
-			c = geCluster(id, db)
+			c = getClusterFromDB(id, db)
 			Expect(swag.StringValue(c.Status)).Should(Equal(expectedState))
 			if shouldHaveUpdated {
 				Expect(c.StatusInfo).ShouldNot(BeNil())
@@ -844,7 +844,7 @@ var _ = Describe("VerifyRegisterHost", func() {
 	checkVerifyRegisterHost := func(clusterStatus string, expectErr bool) {
 		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(clusterStatus)}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		cluster = geCluster(id, db)
+		cluster = getClusterFromDB(id, db)
 		err := clusterApi.AcceptRegistration(&cluster)
 		if expectErr {
 			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate, id, clusterStatus).Error()))
@@ -898,7 +898,7 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 	checkVerifyClusterUpdatability := func(clusterStatus string, expectErr bool) {
 		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(clusterStatus)}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		cluster = geCluster(id, db)
+		cluster = getClusterFromDB(id, db)
 		err := clusterApi.VerifyClusterUpdatability(&cluster)
 		if expectErr {
 			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate, id, clusterStatus).Error()))
@@ -1090,11 +1090,6 @@ func createWorkerHost(clusterId strfmt.UUID, state string, db *gorm.DB) {
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 }
 
-func geCluster(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
-	var cluster common.Cluster
-	Expect(db.Preload("Hosts").First(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
-	return cluster
-}
 func addInstallationRequirements(clusterId strfmt.UUID, db *gorm.DB) {
 	var hostId strfmt.UUID
 	var host models.Host
@@ -1794,12 +1789,12 @@ var _ = Describe("Majority groups", func() {
 	setup := func(ips []string) {
 		addInstallationRequirementsWithConnectivity(id, db, ips...)
 
-		cluster = geCluster(*cluster.ID, db)
+		cluster = getClusterFromDB(*cluster.ID, db)
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusReady))
 		Expect(len(cluster.Hosts)).Should(Equal(3))
 	}
 	expect := func(networks ...string) {
-		c := getCluster(*cluster.ID, db)
+		c := getClusterFromDB(*cluster.ID, db)
 		majorityGroups := make(map[string][]strfmt.UUID)
 		Expect(json.Unmarshal([]byte(c.ConnectivityMajorityGroups), &majorityGroups)).ToNot(HaveOccurred())
 		Expect(majorityGroups).ToNot(BeEmpty())
@@ -1886,7 +1881,7 @@ var _ = Describe("ready_state", func() {
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)
 
-		cluster = geCluster(*cluster.ID, db)
+		cluster = getClusterFromDB(*cluster.ID, db)
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusReady))
 		Expect(len(cluster.Hosts)).Should(Equal(3))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -1906,7 +1901,7 @@ var _ = Describe("ready_state", func() {
 		It("cluster is not satisfying the install requirements", func() {
 			Expect(db.Where("cluster_id = ?", cluster.ID).Delete(&models.Host{}).Error).NotTo(HaveOccurred())
 
-			cluster = geCluster(*cluster.ID, db)
+			cluster = getClusterFromDB(*cluster.ID, db)
 			clusterAfterRefresh, updateErr := clusterApi.RefreshStatus(ctx, &cluster, db)
 
 			Expect(updateErr).Should(BeNil())
@@ -1956,7 +1951,7 @@ var _ = Describe("insufficient_state", func() {
 		replyErr := clusterApi.RegisterCluster(ctx, &cluster)
 		Expect(replyErr).Should(BeNil())
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
-		c := geCluster(*cluster.ID, db)
+		c := getClusterFromDB(*cluster.ID, db)
 		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 	})
 })
@@ -2349,7 +2344,7 @@ var _ = Describe("Update AMS subscription ID", func() {
 		err = api.UpdateAmsSubscriptionID(ctx, clusterID, subID)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		c = getCluster(*c.ID, db)
+		c = getClusterFromDB(*c.ID, db)
 		Expect(c.AmsSubscriptionID).To(Equal(subID))
 	})
 })

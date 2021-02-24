@@ -946,7 +946,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -1395,7 +1395,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -1793,7 +1793,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -2297,7 +2297,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -2584,7 +2584,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -2933,7 +2933,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -3288,7 +3288,7 @@ var _ = Describe("NTP refresh cluster", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -3595,7 +3595,7 @@ var _ = Describe("Single node", func() {
 					t.hosts[i].ClusterID = clusterId
 					Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 				}
-				cluster = getCluster(clusterId, db)
+				cluster = getClusterFromDB(clusterId, db)
 				if srcState != t.dstState {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
@@ -4246,7 +4246,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				t.hosts[i].ClusterID = clusterId
 				Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
 			}
-			cluster = getCluster(clusterId, db)
+			cluster = getClusterFromDB(clusterId, db)
 			if t.dstState == models.ClusterStatusInsufficient {
 				mockHostAPIIsRequireUserActionResetFalse()
 			}
@@ -4278,8 +4278,8 @@ var _ = Describe("Ocs Operator use-cases", func() {
 
 })
 
-func getCluster(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
-	var cluster common.Cluster
-	Expect(db.Preload("Hosts").First(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
-	return cluster
+func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
+	c, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+	Expect(err).ShouldNot(HaveOccurred())
+	return *c
 }

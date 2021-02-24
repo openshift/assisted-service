@@ -81,7 +81,7 @@ func getClusterFromDB(
 	cluster := &common.Cluster{}
 	start := time.Now()
 	for time.Duration(timeout)*time.Second > time.Since(start) {
-		err = db.Preload("Hosts").Take(&cluster, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace).Error
+		cluster, err = common.GetClusterFromDBWhere(db, common.UseEagerLoading, common.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
 		if err == nil {
 			return cluster
 		}

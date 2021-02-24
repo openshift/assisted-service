@@ -113,20 +113,14 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
 	}
 
-	var cluster common.Cluster
-
-	if err := db.Preload("Hosts").Take(&cluster, "id = ?", clusterId.String()).Error; err != nil {
-		return nil, errors.Wrapf(err, "failed to get cluster %s", clusterId.String())
-	}
-
-	return &cluster, nil
+	return common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
 }
 
 func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
-
-	var cluster common.Cluster
+	var cluster *common.Cluster
+	var err error
 	var masterNodesIds []*strfmt.UUID
-	if err := db.Preload("Hosts").First(&cluster, "id = ?", c.ID).Error; err != nil {
+	if cluster, err = common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading); err != nil {
 		return nil, errors.Errorf("cluster %s not found", c.ID)
 	}
 
