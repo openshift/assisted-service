@@ -1969,7 +1969,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 				srcState:  models.HostStatusPendingForInput,
 				srcRole:   models.HostRoleAutoAssign,
 				inventory: hostutil.GenerateMasterInventory(),
-				isValid:   false,
+				isValid:   true,
 			}, {
 				name:      "role is already assigned as worker",
 				srcState:  models.HostStatusKnown,
