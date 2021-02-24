@@ -11,6 +11,7 @@ import (
 	"github.com/diskfs/go-diskfs/disk"
 	"github.com/diskfs/go-diskfs/filesystem"
 	"github.com/diskfs/go-diskfs/filesystem/iso9660"
+	"github.com/pkg/errors"
 )
 
 //go:generate mockgen -package=isoutil -destination=mock_isoutil.go . Handler
@@ -227,4 +228,41 @@ func (h *installerHandler) VolumeIdentifier() (string, error) {
 	}
 
 	return strings.TrimSpace(string(volumeId)), nil
+}
+
+func GetFileLocation(filePath, isoPath string) (uint64, error) {
+	myFile, err := GetFile(filePath, isoPath)
+	if err != nil {
+		return 0, errors.Wrapf(err, "Failed to fetch ISO file %s", filePath)
+	}
+	defaultSectorSize := uint64(2 * 1024)
+	offset := uint64(myFile.Location()) * defaultSectorSize
+	return offset, nil
+}
+
+func GetFileSize(filePath, isoPath string) (uint64, error) {
+	myFile, err := GetFile(filePath, isoPath)
+	if err != nil {
+		return 0, errors.Wrapf(err, "Failed to fetch ISO file %s", filePath)
+	}
+	return uint64(myFile.Size()), nil
+}
+
+func GetFile(filePath, isoPath string) (*iso9660.File, error) {
+	d, err := diskfs.OpenWithMode(isoPath, diskfs.ReadOnly)
+	if err != nil {
+		return nil, err
+	}
+
+	fs, err := d.GetFilesystem(0)
+	if err != nil {
+		return nil, err
+	}
+
+	isoFile, err := fs.OpenFile(filePath, os.O_RDONLY)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to open file %s", filePath)
+	}
+
+	return isoFile.(*iso9660.File), nil
 }
