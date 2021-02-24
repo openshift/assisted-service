@@ -122,7 +122,7 @@ func (mgr *Manager) generateLSOManifests(cluster *common.Cluster) (map[string]st
 
 func (mgr *Manager) generateOCSManifests(cluster *common.Cluster) (map[string]string, error) {
 	mgr.log.Info("Creating OCS Manifests")
-	return ocs.Manifests(mgr.ocsValidatorConfig.OCSMinimalDeployment, cluster.OpenshiftVersion, mgr.ocsValidatorConfig.OCSDisksAvailable, len(cluster.Cluster.Hosts))
+	return ocs.Manifests(mgr.ocsValidatorConfig.OCSMinimalDeployment, mgr.ocsValidatorConfig.OCSDisksAvailable, len(cluster.Cluster.Hosts))
 }
 
 func (mgr *Manager) checkLSOEnabled(cluster *common.Cluster) bool {
