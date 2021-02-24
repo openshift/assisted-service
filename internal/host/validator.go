@@ -62,10 +62,9 @@ type validation struct {
 }
 
 func (c *validationContext) loadCluster() error {
-	var cluster common.Cluster
-	err := c.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Take(&cluster, "id = ?", c.host.ClusterID.String()).Error
+	clusterFromDB, err := common.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
 	if err == nil {
-		c.cluster = &cluster
+		c.cluster = clusterFromDB
 	}
 	return err
 }

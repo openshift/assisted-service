@@ -78,8 +78,7 @@ var _ = Describe("installer", func() {
 			err := installerManager.Install(ctx, &cluster, db)
 			Expect(err).Should(BeNil())
 
-			Expect(db.Preload("Hosts").First(&cluster, "id = ?", cluster.ID).Error).ShouldNot(HaveOccurred())
-
+			cluster = getClusterFromDB(*cluster.ID, db)
 			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInstalling))
 		})
 	})
