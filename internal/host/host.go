@@ -874,7 +874,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 }
 
 func (m *Manager) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error) {
-	if swag.StringValue(h.Status) != models.HostStatusKnown || h.Role == models.HostRoleWorker {
+	if h.Role == models.HostRoleWorker {
 		return false, nil
 	}
 
