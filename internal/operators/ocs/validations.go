@@ -99,17 +99,27 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 
 	} else if len(hosts) < o.OCSMasterWorkerHosts { // not supporting OCS installation for 2 Workers and 3 Masters
 		status = "Not supporting OCS Installation for 3 Masters and 2 Workers"
-		o.log.Info(status)
-		o.log.Info("Setting Operator Status")
+		o.log.Info("Setting Operator Status", status)
 		err = setOperatorStatus(cluster, status)
 		if err != nil {
 			o.log.Error("Failed to set Operator status ", err)
-			return validationFailure
 		}
-		o.log.Info(status)
 		return validationFailure
 	} else {
 		for _, host := range hosts { // if the worker nodes >=3 , install OCS on all the worker nodes if they satisfy OCS requirements
+			/* If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
+			As OCS will use only worker nodes for non-compact deployments, the OCS validations cannot be performed as it cannot know which nodes will be worker nodes.
+			We ignore the role check for a cluster of 3 nodes as they will all be master nodes. OCS validations will proceed as for a compact deployment.
+			*/
+			if host.Role == models.HostRoleAutoAssign {
+				status = "All host roles must be assigned to enable OCS."
+				o.log.Info("Setting Operator Status ", status)
+				err = setOperatorStatus(cluster, status)
+				if err != nil {
+					o.log.Error("Failed to set Operator status", err)
+				}
+				return validationFailure
+			}
 			if host.Role == models.HostRoleWorker {
 				inventoryMissing, err = o.nodeResources(host, &cpuCount, &totalRAM, &diskCount, &hostsWithDisks, &insufficientHosts)
 				if err != nil {
