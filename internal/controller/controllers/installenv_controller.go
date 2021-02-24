@@ -198,6 +198,10 @@ func (r *InstallEnvReconciler) handleEnsureISOErrors(
 	return ctrl.Result{Requeue: Requeue}, nil
 }
 
+func imageBeingCreated(err error) bool {
+	return IsHTTPError(err, http.StatusConflict)
+}
+
 func (r *InstallEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adiiov1alpha1.InstallEnv{}).

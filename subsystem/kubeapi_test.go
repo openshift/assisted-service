@@ -170,7 +170,7 @@ func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hi
 
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1alpha1.Image{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &v1alpha1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 }
 

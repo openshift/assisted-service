@@ -54,6 +54,7 @@ const (
 )
 
 const HighAvailabilityModeNone = "None"
+const defaultRequeueAfterOnError = 10 * time.Second
 
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
