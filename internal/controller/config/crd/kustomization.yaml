@@ -2,9 +2,7 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/adi.io.my.domain_images.yaml
 - bases/adi.io.my.domain_installenvs.yaml
-- bases/adi.io.my.domain_clusters.yaml
 - bases/adi.io.my.domain_agents.yaml
 - bases/hive.openshift.io_clusterdeployments.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
