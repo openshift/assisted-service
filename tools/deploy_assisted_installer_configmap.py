@@ -1,8 +1,8 @@
 import argparse
 import json
 import os
-
 import yaml
+import subprocess
 
 import deployment_options
 import utils
@@ -28,6 +28,7 @@ def handle_arguments():
 
 
 deploy_options = handle_arguments()
+log = utils.get_logger('deploy-service-configmap')
 
 SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-service-configmap.yaml')
 DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service-configmap.yaml')
@@ -42,7 +43,6 @@ def get_deployment_tag(args):
 
 
 def main():
-    log = utils.get_logger('deploy-service-configmap')
     utils.verify_build_directory(deploy_options.namespace)
     verify_ocp_versions(json.loads(json.loads('"{}"'.format(deploy_options.ocp_versions))))
 
@@ -71,6 +71,7 @@ def main():
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
+                log_image_revision(versions[env_var_name])
 
             # Edge case for controller image override
             if os.environ.get("INSTALLER_IMAGE") and not os.environ.get("CONTROLLER_IMAGE"):
@@ -78,6 +79,7 @@ def main():
                     deployment_options.get_tag(versions["INSTALLER_IMAGE"]))
 
             versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
+            log_image_revision(versions["SELF_VERSION"])
             deploy_tag = get_deployment_tag(deploy_options)
             if deploy_tag:
                 versions["RELEASE_TAG"] = deploy_tag
@@ -112,6 +114,31 @@ def main():
         file=DST_FILE
     )
 
+def log_image_revision(image: str):
+
+    cmd = f"docker run --rm quay.io/skopeo/stable inspect docker://{image}"
+    try:
+        image_inspect_str = subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+        log.warn(f"failed to pull image {image} inspect data, error: {e.output}")
+        return
+
+    try:
+        image_inspect = json.loads(image_inspect_str)
+    except ValueError as e:
+        log.warn(f"image inspect did not return an expected value while running {cmd}")
+        return
+
+    created = image_inspect.get("Created", None)
+
+    image_labels = image_inspect.get("Labels", None)
+    if not image_labels:
+       log.info(f"Using image: {image}, created: {created} (image has no labels)")
+       return
+
+    git_revision = image_labels.get("git_revision", None)
+
+    log.info(f"Using image: {image}, git_revision: {git_revision}, created: {created}")
 
 def get_admin_users():
     admins_file = os.path.join(os.getcwd(), 'ADMINS')
