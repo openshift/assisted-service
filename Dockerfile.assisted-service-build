@@ -17,7 +17,9 @@ RUN go get -u github.com/onsi/ginkgo/ginkgo@v1.14.2 \
               github.com/axw/gocov/gocov \
               sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0 \
               github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
-RUN pip3 install boto3==1.13.14 waiting==1.4.1 requests==2.22.0 mkdocs==1.1.2
+RUN pip3 install --upgrade pip
+RUN pip3 install boto3==1.13.14 waiting==1.4.1 requests==2.22.0 mkdocs==1.1.2 \
+    vcversioner==2.16.0.0 twine==3.3.0 wheel==0.36.2 setuptools==53.0.0
 RUN curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.10.1/minikube-linux-amd64 \
   && chmod +x minikube && mkdir -p /usr/local/bin/ && install minikube /usr/local/bin/
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl

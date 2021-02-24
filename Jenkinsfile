@@ -14,6 +14,11 @@ pipeline {
         // Credentials
         SLACK_TOKEN = credentials('slack-token')
         QUAY_IO_CREDS = credentials('ocpmetal_cred')
+        TWINE_CREDS = credentials('assisted-pypi')
+
+        TWINE_USERNAME="${TWINE_CREDS_USR}"
+        TWINE_PASSWORD="${TWINE_CREDS_PSW}"
+        TWINE_REPOSITORY="pypi"
     }
     options {
       timeout(time: 2, unit: 'HOURS')

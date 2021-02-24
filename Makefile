@@ -146,6 +146,10 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
+	skipper make publish-client
+
+publish-client: generate-python-client
+	python3 -m twine upload "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
 build-openshift-ci-test-bin:
 	pip3 install pyyaml waiting
