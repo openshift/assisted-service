@@ -5,35 +5,6 @@ import (
 	"text/template"
 )
 
-func ocsSubscription(OpenShiftVersion string) (string, error) {
-	data := map[string]string{
-		"OPENSHIFT_VERSION": "stable-" + OpenShiftVersion,
-	}
-	const OCSSubscription = `
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: ocs-operator
-  namespace: openshift-storage
-spec:
-  channel: {{.OPENSHIFT_VERSION}}
-  installPlanApproval: Automatic
-  name: ocs-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace`
-
-	tmpl, err := template.New("ocsSubscription").Parse(OCSSubscription)
-	if err != nil {
-		return "", err
-	}
-	buf := &bytes.Buffer{}
-	err = tmpl.Execute(buf, data)
-	if err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
 type storageInfo struct {
 	OCSDisks int64
 }
@@ -58,7 +29,7 @@ func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) (stri
 
 }
 
-func Manifests(ocsMinDeploy bool, OpenShiftVersion string, ocsDiskCounts int64, totalHosts int) (map[string]string, error) {
+func Manifests(ocsMinDeploy bool, ocsDiskCounts int64, totalHosts int) (map[string]string, error) {
 	manifests := make(map[string]string)
 	if totalHosts == 3 { // for 3 hosts use the same CR as for Min Deployment
 		ocsSC, err := OCSStorageCluster(ocsMinDeploySC, ocsDiskCounts)
@@ -82,11 +53,7 @@ func Manifests(ocsMinDeploy bool, OpenShiftVersion string, ocsDiskCounts int64, 
 
 	manifests["99_openshift-ocssc_crd.yaml"] = ocsCRD
 	manifests["99_openshift-ocs_ns.yaml"] = ocsNamespace
-	ocsSubs, err := ocsSubscription(OpenShiftVersion)
-	if err != nil {
-		return map[string]string{}, err
-	}
-	manifests["99_openshift-ocs_subscription.yaml"] = ocsSubs
+	manifests["99_openshift-ocs_subscription.yaml"] = ocsSubscription
 	manifests["99_openshift-ocs_operator_group.yaml"] = ocsOperatorGroup
 	return manifests, nil
 }
@@ -107,6 +74,18 @@ metadata:
 spec:
   targetNamespaces:
   - openshift-storage`
+
+const ocsSubscription = `
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: ocs-operator
+  namespace: openshift-storage
+spec:
+  installPlanApproval: Automatic
+  name: ocs-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace`
 
 const ocsCRD = `apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
