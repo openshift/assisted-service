@@ -78,14 +78,13 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("discovering", func() {
 				checkStep(models.HostStatusDiscovering, []models.StepType{
-					models.StepTypeInventory, models.StepTypeContainerImageAvailability,
+					models.StepTypeInventory,
 				})
 			})
 			It("known", func() {
 				checkStep(models.HostStatusKnown, []models.StepType{
 					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
 					models.StepTypeInventory, models.StepTypeNtpSynchronizer,
-					models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("disconnected", func() {
@@ -97,14 +96,12 @@ var _ = Describe("instruction_manager", func() {
 				checkStep(models.HostStatusInsufficient, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
-					models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("pending-for-input", func() {
 				checkStep(models.HostStatusPendingForInput, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeNtpSynchronizer,
-					models.StepTypeContainerImageAvailability,
 				})
 			})
 			It("error", func() {
@@ -150,14 +147,14 @@ var _ = Describe("instruction_manager", func() {
 			})
 			It("discovering", func() {
 				checkStep(models.HostStatusDiscovering, []models.StepType{
-					models.StepTypeInventory, models.StepTypeContainerImageAvailability,
+					models.StepTypeInventory,
 				})
 			})
 			It("known", func() {
 				checkStep(models.HostStatusKnown, []models.StepType{
 					models.StepTypeConnectivityCheck, models.StepTypeFreeNetworkAddresses,
 					models.StepTypeDhcpLeaseAllocate, models.StepTypeInventory,
-					models.StepTypeNtpSynchronizer, models.StepTypeContainerImageAvailability,
+					models.StepTypeNtpSynchronizer,
 				})
 			})
 			It("disconnected", func() {
@@ -169,14 +166,14 @@ var _ = Describe("instruction_manager", func() {
 				checkStep(models.HostStatusInsufficient, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
-					models.StepTypeNtpSynchronizer, models.StepTypeContainerImageAvailability,
+					models.StepTypeNtpSynchronizer,
 				})
 			})
 			It("pending-for-input", func() {
 				checkStep(models.HostStatusPendingForInput, []models.StepType{
 					models.StepTypeInventory, models.StepTypeConnectivityCheck,
 					models.StepTypeFreeNetworkAddresses, models.StepTypeDhcpLeaseAllocate,
-					models.StepTypeNtpSynchronizer, models.StepTypeContainerImageAvailability,
+					models.StepTypeNtpSynchronizer,
 				})
 			})
 			It("error", func() {

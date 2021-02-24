@@ -68,18 +68,17 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	logsCmd := NewLogsCmd(log, db, instructionConfig)
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.AgentImage, db)
 	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.AgentImage, instructionConfig.SupportL2)
-	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig)
 	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.AgentImage, db)
 
 	return &InstructionManager{
 		log: log,
 		db:  db,
 		installingClusterStateToSteps: stateToStepsMap{
-			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, ntpSynchronizerCmd, imageAvailabilityCmd}, defaultNextInstructionInSec},
-			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, imageAvailabilityCmd}, defaultNextInstructionInSec},
+			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
+			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:             {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
-			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd, imageAvailabilityCmd}, defaultNextInstructionInSec},
-			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd, imageAvailabilityCmd}, defaultNextInstructionInSec},
+			models.HostStatusDiscovering:              {[]CommandGetter{inventoryCmd}, defaultNextInstructionInSec},
+			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
 			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusInstallingInProgress:     {[]CommandGetter{inventoryCmd, dhcpAllocateCmd}, defaultNextInstructionInSec}, //TODO inventory step here is a temporary solution until format command is moved to a different state
 			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec},
@@ -92,7 +91,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd, inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:         {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisconnected:         {[]CommandGetter{inventoryCmd}, defaultBackedOffInstructionInSec},
-			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd, imageAvailabilityCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
+			models.HostStatusDiscovering:          {[]CommandGetter{inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
 			models.HostStatusPendingForInput:      {[]CommandGetter{inventoryCmd, connectivityCmd, apivipConnectivityCmd}, defaultNextInstructionInSec},
 			models.HostStatusInstalling:           {[]CommandGetter{installCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusInstallingInProgress: {[]CommandGetter{}, defaultNextInstructionInSec},

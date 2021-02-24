@@ -410,6 +410,7 @@ var _ = Describe("Host tests", func() {
 		)
 
 		BeforeEach(func() {
+			Skip("OCPBUGSM-25447 AreContainerImagesAvailable isn't mandatory validation for host isSufficientForInstall")
 			h = &registerHost(clusterID).Host
 		})
 
