@@ -21,7 +21,7 @@ type DomainResolutionResponse struct {
 
 	// resolutions
 	// Required: true
-	Resolutions []*DomainResolutionResponseResolutionsItems0 `json:"resolutions"`
+	Resolutions []*DomainResolutionResponseDomain `json:"resolutions"`
 }
 
 // Validate validates this domain resolution response
@@ -81,10 +81,10 @@ func (m *DomainResolutionResponse) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// DomainResolutionResponseResolutionsItems0 domain resolution response resolutions items0
+// DomainResolutionResponseDomain domain resolution response domain
 //
-// swagger:model DomainResolutionResponseResolutionsItems0
-type DomainResolutionResponseResolutionsItems0 struct {
+// swagger:model DomainResolutionResponseDomain
+type DomainResolutionResponseDomain struct {
 
 	// The domain that was resolved
 	// Required: true
@@ -97,8 +97,8 @@ type DomainResolutionResponseResolutionsItems0 struct {
 	IPV6Addresses []strfmt.IPv6 `json:"ipv6_addresses"`
 }
 
-// Validate validates this domain resolution response resolutions items0
-func (m *DomainResolutionResponseResolutionsItems0) Validate(formats strfmt.Registry) error {
+// Validate validates this domain resolution response domain
+func (m *DomainResolutionResponseDomain) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateDomainName(formats); err != nil {
@@ -119,7 +119,7 @@ func (m *DomainResolutionResponseResolutionsItems0) Validate(formats strfmt.Regi
 	return nil
 }
 
-func (m *DomainResolutionResponseResolutionsItems0) validateDomainName(formats strfmt.Registry) error {
+func (m *DomainResolutionResponseDomain) validateDomainName(formats strfmt.Registry) error {
 
 	if err := validate.Required("domain_name", "body", m.DomainName); err != nil {
 		return err
@@ -128,7 +128,7 @@ func (m *DomainResolutionResponseResolutionsItems0) validateDomainName(formats s
 	return nil
 }
 
-func (m *DomainResolutionResponseResolutionsItems0) validateIPV4Addresses(formats strfmt.Registry) error {
+func (m *DomainResolutionResponseDomain) validateIPV4Addresses(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.IPV4Addresses) { // not required
 		return nil
@@ -145,7 +145,7 @@ func (m *DomainResolutionResponseResolutionsItems0) validateIPV4Addresses(format
 	return nil
 }
 
-func (m *DomainResolutionResponseResolutionsItems0) validateIPV6Addresses(formats strfmt.Registry) error {
+func (m *DomainResolutionResponseDomain) validateIPV6Addresses(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.IPV6Addresses) { // not required
 		return nil
@@ -163,7 +163,7 @@ func (m *DomainResolutionResponseResolutionsItems0) validateIPV6Addresses(format
 }
 
 // MarshalBinary interface implementation
-func (m *DomainResolutionResponseResolutionsItems0) MarshalBinary() ([]byte, error) {
+func (m *DomainResolutionResponseDomain) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -171,8 +171,8 @@ func (m *DomainResolutionResponseResolutionsItems0) MarshalBinary() ([]byte, err
 }
 
 // UnmarshalBinary interface implementation
-func (m *DomainResolutionResponseResolutionsItems0) UnmarshalBinary(b []byte) error {
-	var res DomainResolutionResponseResolutionsItems0
+func (m *DomainResolutionResponseDomain) UnmarshalBinary(b []byte) error {
+	var res DomainResolutionResponseDomain
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

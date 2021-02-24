@@ -21,7 +21,7 @@ type DomainResolutionRequest struct {
 
 	// domains
 	// Required: true
-	Domains []*DomainResolutionRequestDomainsItems0 `json:"domains"`
+	Domains []*DomainResolutionRequestDomain `json:"domains"`
 }
 
 // Validate validates this domain resolution request
@@ -81,18 +81,18 @@ func (m *DomainResolutionRequest) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// DomainResolutionRequestDomainsItems0 domain resolution request domains items0
+// DomainResolutionRequestDomain domain resolution request domain
 //
-// swagger:model DomainResolutionRequestDomainsItems0
-type DomainResolutionRequestDomainsItems0 struct {
+// swagger:model DomainResolutionRequestDomain
+type DomainResolutionRequestDomain struct {
 
 	// The domain name that should be resolved
 	// Required: true
 	DomainName *string `json:"domain_name"`
 }
 
-// Validate validates this domain resolution request domains items0
-func (m *DomainResolutionRequestDomainsItems0) Validate(formats strfmt.Registry) error {
+// Validate validates this domain resolution request domain
+func (m *DomainResolutionRequestDomain) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateDomainName(formats); err != nil {
@@ -105,7 +105,7 @@ func (m *DomainResolutionRequestDomainsItems0) Validate(formats strfmt.Registry)
 	return nil
 }
 
-func (m *DomainResolutionRequestDomainsItems0) validateDomainName(formats strfmt.Registry) error {
+func (m *DomainResolutionRequestDomain) validateDomainName(formats strfmt.Registry) error {
 
 	if err := validate.Required("domain_name", "body", m.DomainName); err != nil {
 		return err
@@ -115,7 +115,7 @@ func (m *DomainResolutionRequestDomainsItems0) validateDomainName(formats strfmt
 }
 
 // MarshalBinary interface implementation
-func (m *DomainResolutionRequestDomainsItems0) MarshalBinary() ([]byte, error) {
+func (m *DomainResolutionRequestDomain) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -123,8 +123,8 @@ func (m *DomainResolutionRequestDomainsItems0) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *DomainResolutionRequestDomainsItems0) UnmarshalBinary(b []byte) error {
-	var res DomainResolutionRequestDomainsItems0
+func (m *DomainResolutionRequestDomain) UnmarshalBinary(b []byte) error {
+	var res DomainResolutionRequestDomain
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
