@@ -36,7 +36,7 @@ def main():
 
     utils.check_output(cmd)
 
-    if deploy_options.apply_manifest is True:
+    if deploy_options.apply_manifest:
         log.info("Deploying %s", dst_file)
         utils.apply(
             target=deploy_options.target,
@@ -61,7 +61,7 @@ def main():
                     deploy_options.profile
                 ))
                 dst.write(data)
-        if deploy_options.apply_manifest is True:
+        if deploy_options.apply_manifest:
             log.info("Deploying ingress from %s", dst_file)
             utils.apply(
                 target=deploy_options.target,

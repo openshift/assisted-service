@@ -31,12 +31,6 @@ def load_deployment_options(parser=None):
         default='minikube'
     )
     parser.add_argument(
-        '--persistent-storage',
-        help='Persistent storage is used',
-        type=bool,
-        default=True
-    )
-    parser.add_argument(
         '--domain',
         help='Target domain',
         type=str
@@ -57,6 +51,7 @@ def load_deployment_options(parser=None):
     )
 
     parser.add_argument("--apply-manifest", type=lambda x: (str(x).lower() == 'true'), default=True)
+    parser.add_argument("--persistent-storage", type=lambda x: (str(x).lower() == 'true'), default=True)
 
     deploy_options = parser.add_mutually_exclusive_group()
     deploy_options.add_argument("--deploy-tag", help='Tag for all deployment images', type=str)

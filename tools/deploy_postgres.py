@@ -31,7 +31,7 @@ def deploy_postgres_secret(deploy_options):
         docs=docs
     )
 
-    if deploy_options.apply_manifest is False:
+    if not deploy_options.apply_manifest:
         return
     log.info('Deploying %s', dst_file)
     utils.apply(
@@ -44,7 +44,7 @@ def deploy_postgres_secret(deploy_options):
 
 def deploy_postgres(deploy_options):
     postgres_dep_file = 'deploy/postgres/postgres-deployment.yaml'
-    if deploy_options.persistent_storage is False:
+    if not deploy_options.persistent_storage:
         postgres_dep_file = 'deploy/postgres/postgres-deployment-ephemeral.yaml'
     docs = utils.load_yaml_file_docs(postgres_dep_file)
 
@@ -55,7 +55,7 @@ def deploy_postgres(deploy_options):
         docs=docs
     )
 
-    if deploy_options.apply_manifest is False:
+    if not deploy_options.apply_manifest:
         return
 
     log.info('Deploying %s', dst_file)
@@ -86,7 +86,7 @@ def deploy_postgres_storage(deploy_options):
         docs=docs
     )
 
-    if deploy_options.apply_manifest is False:
+    if not deploy_options.apply_manifest:
         return
     log.info('Deploying %s', dst_file)
     utils.apply(

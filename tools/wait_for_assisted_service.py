@@ -25,7 +25,7 @@ def wait_for_request(url: str) -> bool:
 
 def main():
     deploy_options = handle_arguments()
-    if deploy_options.apply_manifest is False:
+    if not deploy_options.apply_manifest:
         return
 
     service_url = utils.get_service_url(service=SERVICE, target=deploy_options.target, domain=deploy_options.domain,

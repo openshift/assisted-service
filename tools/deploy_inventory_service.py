@@ -20,7 +20,7 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    if deploy_options.apply_manifest is True:
+    if deploy_options.apply_manifest:
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
@@ -61,7 +61,7 @@ def deploy_ingress(hostname, namespace, template_file):
             data = data.replace("REPLACE_HOSTNAME", hostname)
             print("Deploying {}".format(dst_file))
             dst.write(data)
-    if deploy_options.apply_manifest is True:
+    if deploy_options.apply_manifest:
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,

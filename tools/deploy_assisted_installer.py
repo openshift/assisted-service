@@ -70,7 +70,7 @@ def main():
     with open(DST_FILE, "w+") as dst:
         yaml.dump(data, dst, default_flow_style=False)
 
-    if deploy_options.apply_manifest is False:
+    if not deploy_options.apply_manifest:
         return
 
     print("Deploying {}".format(DST_FILE))

@@ -23,7 +23,7 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    if deploy_options.apply_manifest is True:
+    if deploy_options.apply_manifest:
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
@@ -41,7 +41,7 @@ def main():
                 data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
                 dst.write(data)
 
-        if deploy_options.apply_manifest is True:
+        if deploy_options.apply_manifest:
             print("Deploying {}".format(dst_file))
             utils.apply(
                 target=deploy_options.target,
@@ -53,7 +53,7 @@ def main():
         src_file = os.path.join(os.getcwd(), controller_roles_path, 'role.yaml')
         dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'controller_roles.yaml')
         shutil.copy(src_file, dst_file)
-        if deploy_options.apply_manifest is True:
+        if deploy_options.apply_manifest:
             print("Deploying {}".format(dst_file))
             utils.apply(
                 target=deploy_options.target,

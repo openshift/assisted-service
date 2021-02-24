@@ -30,7 +30,7 @@ def main():
             print("Deploying {}".format(dst_file))
             dst.write(data)
 
-    if deploy_options.apply_manifest is False:
+    if not deploy_options.apply_manifest:
         return
 
     utils.apply(

@@ -51,7 +51,7 @@ def main():
             data = src.read()
             data = data.replace("REPLACE_DOMAINS", '"{}"'.format(deploy_options.base_dns_domains))
 
-            if deploy_options.apply_manifest is True:
+            if deploy_options.apply_manifest:
                 data = data.replace("REPLACE_BASE_URL", utils.get_service_url(service=SERVICE,
                                                                             target=deploy_options.target,
                                                                             domain=deploy_options.domain,
@@ -106,7 +106,7 @@ def main():
             data = yaml.dump(y)
             dst.write(data)
 
-    if deploy_options.apply_manifest is True:
+    if deploy_options.apply_manifest:
         log.info("Deploying {}".format(DST_FILE))
         utils.apply(
             target=deploy_options.target,
