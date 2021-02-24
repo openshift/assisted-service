@@ -3644,7 +3644,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
-
+	mockIsValidMasterCandidate := func() {
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+	}
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName, &events.Event{})
 		ctrl = gomock.NewController(GinkgoT())
@@ -4214,6 +4216,69 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			}),
 			errorExpected: false,
 		},
+		{
+			name:               "ocs enabled, 6 nodes, with role of one as auto-assign (ocs validation failure)",
+			srcState:           models.ClusterStatusPendingForInput,
+			dstState:           models.ClusterStatusInsufficient,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleAutoAssign},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoInsufficient),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationFailure, messagePattern: "All host roles must be assigned to enable OCS."},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 3 nodes, with role of one as auto-assign (ocs validation success)",
+			srcState:           models.ClusterStatusPendingForInput,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleAutoAssign},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+			},
+			statusInfoChecker: makeValueChecker(statusInfoReady),
+			validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+				IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				isMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				isApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				isApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				isIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				isIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+				IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+				SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				IsOcsRequirementsSatisfied:          {status: ValidationSuccess, messagePattern: "OCS Requirements for Compact Mode are satisfied"},
+			}),
+			errorExpected: false,
+		},
 	}
 
 	for i := range tests {
@@ -4242,6 +4307,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			}
 
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			mockIsValidMasterCandidate()
 			for i := range t.hosts {
 				t.hosts[i].ClusterID = clusterId
 				Expect(db.Create(&t.hosts[i]).Error).ShouldNot(HaveOccurred())
