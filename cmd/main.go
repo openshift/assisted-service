@@ -15,7 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
-	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/bootfiles"
@@ -241,9 +241,6 @@ func main() {
 	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
 	Options.JobConfig.S3EndpointURL = newUrl
 
-	failOnError(bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme),
-		"Failed to add BareMetalHost to scheme")
-
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
 	case deployment_type_k8s:
@@ -438,6 +435,12 @@ func main() {
 				Installer: bm,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
+			failOnError((&controllers.BMACReconciler{
+				Client: ctrlMgr.GetClient(),
+				Log:    log,
+				Scheme: ctrlMgr.GetScheme(),
+			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
+
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
 	}()
@@ -613,6 +616,7 @@ func createControllerManager() (manager.Manager, error) {
 		utilruntime.Must(scheme.AddToScheme(schemes))
 		utilruntime.Must(adiiov1alpha1.AddToScheme(schemes))
 		utilruntime.Must(hivev1.AddToScheme(schemes))
+		utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 
 		syncPeriod := 10 * time.Second
 
