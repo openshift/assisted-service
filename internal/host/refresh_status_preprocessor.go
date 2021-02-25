@@ -1,7 +1,12 @@
 package host
 
 import (
+	"context"
+	"strings"
+
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,14 +17,16 @@ type validationResult struct {
 }
 
 type refreshPreprocessor struct {
-	log         logrus.FieldLogger
-	validations []validation
+	log          logrus.FieldLogger
+	validations  []validation
+	operatorsApi operators.API
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API) *refreshPreprocessor {
 	return &refreshPreprocessor{
-		log:         log,
-		validations: newValidations(log, hwValidatorCfg, hwValidator),
+		log:          log,
+		validations:  newValidations(log, hwValidatorCfg, hwValidator),
+		operatorsApi: operatorsApi,
 	}
 }
 
@@ -41,6 +48,30 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID
 			Message: message,
 		})
 	}
+
+	// Validate operators
+	results, err := r.operatorsApi.ValidateHost(context.TODO(), c.cluster, c.host)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, result := range results {
+		id := validationID(result.ValidationId)
+		stateMachineInput[id] = result.Status == api.Success
+		category, err := id.category()
+		if err != nil {
+			logrus.WithError(err).Warn("id.category()")
+			return nil, nil, err
+		}
+
+		status := ValidationStatus(result.Status)
+
+		validationsOutput[category] = append(validationsOutput[category], validationResult{
+			ID:      id,
+			Status:  status,
+			Message: strings.Join(result.Reasons, "\n"),
+		})
+	}
+
 	return stateMachineInput, validationsOutput, nil
 }
 

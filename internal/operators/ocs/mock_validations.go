@@ -6,43 +6,45 @@ package ocs
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	api "github.com/openshift/assisted-service/internal/operators/api"
 	models "github.com/openshift/assisted-service/models"
 	reflect "reflect"
 )
 
-// MockOcsValidator is a mock of OcsValidator interface
-type MockOcsValidator struct {
+// MockOCSValidator is a mock of OCSValidator interface
+type MockOCSValidator struct {
 	ctrl     *gomock.Controller
-	recorder *MockOcsValidatorMockRecorder
+	recorder *MockOCSValidatorMockRecorder
 }
 
-// MockOcsValidatorMockRecorder is the mock recorder for MockOcsValidator
-type MockOcsValidatorMockRecorder struct {
-	mock *MockOcsValidator
+// MockOCSValidatorMockRecorder is the mock recorder for MockOCSValidator
+type MockOCSValidatorMockRecorder struct {
+	mock *MockOCSValidator
 }
 
-// NewMockOcsValidator creates a new mock instance
-func NewMockOcsValidator(ctrl *gomock.Controller) *MockOcsValidator {
-	mock := &MockOcsValidator{ctrl: ctrl}
-	mock.recorder = &MockOcsValidatorMockRecorder{mock}
+// NewMockOCSValidator creates a new mock instance
+func NewMockOCSValidator(ctrl *gomock.Controller) *MockOCSValidator {
+	mock := &MockOCSValidator{ctrl: ctrl}
+	mock.recorder = &MockOCSValidatorMockRecorder{mock}
 	return mock
 }
 
 // EXPECT returns an object that allows the caller to indicate expected use
-func (m *MockOcsValidator) EXPECT() *MockOcsValidatorMockRecorder {
+func (m *MockOCSValidator) EXPECT() *MockOCSValidatorMockRecorder {
 	return m.recorder
 }
 
-// ValidateOCSRequirements mocks base method
-func (m *MockOcsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
+// ValidateRequirements mocks base method
+func (m *MockOCSValidator) ValidateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ValidateOCSRequirements", cluster)
-	ret0, _ := ret[0].(string)
-	return ret0
+	ret := m.ctrl.Call(m, "ValidateRequirements", cluster)
+	ret0, _ := ret[0].(api.ValidationStatus)
+	ret1, _ := ret[1].(string)
+	return ret0, ret1
 }
 
-// ValidateOCSRequirements indicates an expected call of ValidateOCSRequirements
-func (mr *MockOcsValidatorMockRecorder) ValidateOCSRequirements(cluster interface{}) *gomock.Call {
+// ValidateRequirements indicates an expected call of ValidateRequirements
+func (mr *MockOCSValidatorMockRecorder) ValidateRequirements(cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateOCSRequirements", reflect.TypeOf((*MockOcsValidator)(nil).ValidateOCSRequirements), cluster)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateRequirements", reflect.TypeOf((*MockOCSValidator)(nil).ValidateRequirements), cluster)
 }

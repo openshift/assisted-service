@@ -11,7 +11,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/network"
-	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -83,9 +82,8 @@ func boolValue(b bool) validationStatus {
 }
 
 type clusterValidator struct {
-	log              logrus.FieldLogger
-	hostAPI          host.API
-	operatorsManager operators.API
+	log     logrus.FieldLogger
+	hostAPI host.API
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) validationStatus {
@@ -524,27 +522,5 @@ func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext,
 		return "Host clocks are not synchronized, please configure an NTP server via DHCP."
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
-	}
-}
-
-func (v *clusterValidator) isOcsRequirementsSatisfied(c *clusterPreprocessContext) validationStatus {
-	validationStatus := (v.operatorsManager.ValidateOCSRequirements(c.cluster))
-	if validationStatus == "pending" {
-		return ValidationPending
-	} else if validationStatus == "success" {
-		return ValidationSuccess
-	}
-	return ValidationFailure
-}
-
-func (v *clusterValidator) printOcsRequirementsSatisfied(c *clusterPreprocessContext, status validationStatus) string {
-
-	switch status {
-	case ValidationSuccess, ValidationFailure:
-		return v.operatorsManager.GetOperatorStatus(c.cluster, models.OperatorTypeOcs)
-	case ValidationPending:
-		return "Missing Inventory in some of the hosts"
-	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
 	}
 }

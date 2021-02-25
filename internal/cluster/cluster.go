@@ -207,7 +207,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if err != nil {
 		return c, err
 	}
-	conditions, validationsResults, err := m.rp.preprocess(vc)
+	conditions, validationsResults, err := m.rp.preprocess(ctx, vc)
 	if err != nil {
 		return c, err
 	}

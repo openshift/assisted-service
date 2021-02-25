@@ -50,22 +50,22 @@ type Config struct {
 	DummyIgnition        bool   `envconfig:"DUMMY_IGNITION"`
 }
 
-func New(log logrus.FieldLogger, kube client.Client, s3Client s3wrapper.API, cfg Config, operatorsManager *operators.Manager) *kubeJob {
+func New(log logrus.FieldLogger, kube client.Client, s3Client s3wrapper.API, cfg Config, operatorsApi operators.API) *kubeJob {
 	return &kubeJob{
-		Config:           cfg,
-		log:              log,
-		kube:             kube,
-		s3Client:         s3Client,
-		operatorsManager: operatorsManager,
+		Config:       cfg,
+		log:          log,
+		kube:         kube,
+		s3Client:     s3Client,
+		operatorsApi: operatorsApi,
 	}
 }
 
 type kubeJob struct {
 	Config
-	log              logrus.FieldLogger
-	kube             client.Client
-	s3Client         s3wrapper.API
-	operatorsManager *operators.Manager
+	log          logrus.FieldLogger
+	kube         client.Client
+	s3Client     s3wrapper.API
+	operatorsApi operators.API
 }
 
 func (k *kubeJob) getJob(ctx context.Context, job *batch.Job, name, namespace string) error {
@@ -200,7 +200,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 	if k.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(workDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, "", k.Config.ServiceCACertPath, k.s3Client, log, k.operatorsManager)
+		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, "", k.Config.ServiceCACertPath, k.s3Client, log, k.operatorsApi)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {

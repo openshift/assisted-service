@@ -15,6 +15,8 @@ func all() []*gormigrate.Migration {
 	allMigrations := []*gormigrate.Migration{
 		changeOverridesToText(),
 		changeImageSSHKeyToText(),
+		changeClusterValidationsInfoToText(),
+		changeHostValidationsInfoToText(),
 	}
 
 	sort.SliceStable(allMigrations, func(i, j int) bool { return allMigrations[i].ID < allMigrations[j].ID })

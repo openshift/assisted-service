@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/docker/go-units"
+	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 
 //go:generate mockgen -source=validations.go -package=ocs -destination=mock_validations.go
-type OcsValidator interface {
-	ValidateOCSRequirements(cluster *models.Cluster) string
+type OCSValidator interface {
+	ValidateRequirements(cluster *models.Cluster) (api.ValidationStatus, string)
 }
 
 type ocsValidator struct {
@@ -19,7 +20,7 @@ type ocsValidator struct {
 	log logrus.FieldLogger
 }
 
-func NewOCSValidator(log logrus.FieldLogger, cfg *Config) OcsValidator {
+func NewOCSValidator(log logrus.FieldLogger, cfg *Config) OCSValidator {
 	return &ocsValidator{
 		log:    log,
 		Config: cfg,
@@ -65,7 +66,7 @@ func setOperatorStatus(cluster *models.Cluster, status string) error {
 }
 
 // ValidateOCSRequirements is used to validate min requirements of OCS
-func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
+func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	var status string
 	var err error
 	var inventoryMissing bool
@@ -76,10 +77,10 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 		err = setOperatorStatus(cluster, status)
 		if err != nil {
 			o.log.Error("Failed to set Operator status ", err)
-			return validationFailure
+			return api.Failure, "Failed to set Operator status "
 		}
 		o.log.Info("Setting Operator Status ", status)
-		return validationFailure
+		return api.Failure, status
 	}
 	var cpuCount int64 = 0       //count the total CPUs on the cluster
 	var totalRAM int64 = 0       // count the total available RAM on the cluster
@@ -91,9 +92,9 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 			inventoryMissing, err = o.nodeResources(host, &cpuCount, &totalRAM, &diskCount, &hostsWithDisks, &insufficientHosts)
 			if err != nil {
 				o.log.Fatal("Error occured while calculating Node requirements ", err)
-				return validationFailure
+				return api.Failure, "Error occured while calculating Node requirements "
 			} else if inventoryMissing {
-				return validationPending
+				return api.Pending, "Missing Inventory in some of the hosts"
 			}
 		}
 
@@ -103,8 +104,9 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 		err = setOperatorStatus(cluster, status)
 		if err != nil {
 			o.log.Error("Failed to set Operator status ", err)
+			return api.Failure, "Failed to set Operator status "
 		}
-		return validationFailure
+		return api.Failure, status
 	} else {
 		for _, host := range hosts { // if the worker nodes >=3 , install OCS on all the worker nodes if they satisfy OCS requirements
 			/* If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
@@ -118,15 +120,15 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 				if err != nil {
 					o.log.Error("Failed to set Operator status", err)
 				}
-				return validationFailure
+				return api.Failure, status
 			}
 			if host.Role == models.HostRoleWorker {
 				inventoryMissing, err = o.nodeResources(host, &cpuCount, &totalRAM, &diskCount, &hostsWithDisks, &insufficientHosts)
 				if err != nil {
 					o.log.Error("Error occured while calculating Node requirements ", err)
-					return validationFailure
+					return api.Failure, "Error occured while calculating Node requirements "
 				} else if inventoryMissing {
-					return validationPending
+					return api.Pending, "Missing Inventory in some of the hosts"
 				}
 
 			}
@@ -140,10 +142,10 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 		err = setOperatorStatus(cluster, status)
 		if err != nil {
 			o.log.Error("Failed to set Operator status ", err)
-			return validationFailure
+			return api.Failure, status
 		}
 		o.log.Info("Setting Operator Status ", status)
-		return validationFailure
+		return api.Failure, status
 	}
 
 	// total disks excluding boot disk must be a multiple of 3
@@ -154,24 +156,24 @@ func (o *ocsValidator) ValidateOCSRequirements(cluster *models.Cluster) string {
 		if err != nil {
 			o.log.Error("Failed to set Operator status ", err)
 		}
-		return validationFailure
+		return api.Failure, "Failed to set Operator status "
 	}
 
 	// this will be used to set count of StorageDevices in StorageCluster manifest
 	o.OCSDisksAvailable = diskCount
-	canDeployOCS, status := o.validateOCS(o.log, hosts, cpuCount, totalRAM, diskCount, hostsWithDisks)
+	canDeployOCS, status := o.validate(hosts, cpuCount, totalRAM, diskCount, hostsWithDisks)
 
 	o.log.Info(status)
 	err = setOperatorStatus(cluster, status)
 	if err != nil {
 		o.log.Error("Failed to set Operator status ", err)
-		return validationFailure
+		return api.Failure, "Failed to set Operator status "
 	}
 
 	if canDeployOCS {
-		return validationSuccess
+		return api.Success, status
 	}
-	return validationFailure
+	return api.Failure, status
 }
 
 func (o *ocsValidator) nodeResources(host *models.Host, cpuCount *int64, totalRAM *int64, diskCount *int64, hostsWithDisks *int64, insufficientHosts *[]string) (bool, error) {
@@ -185,7 +187,7 @@ func (o *ocsValidator) nodeResources(host *models.Host, cpuCount *int64, totalRA
 		return false, err
 	}
 
-	disks := getValidOCSDiskCount(inventory.Disks)
+	disks := getValidDiskCount(inventory.Disks)
 
 	if disks > 1 { // OCS must use the non-boot disks
 		requiredDiskCPU := int64(disks-1) * o.OCSRequiredDiskCPUCount
@@ -213,7 +215,7 @@ func gbToBytes(gb int64) int64 {
 }
 
 // count all disks of drive type ssd or hdd
-func getValidOCSDiskCount(disks []*models.Disk) int {
+func getValidDiskCount(disks []*models.Disk) int {
 
 	var countDisks int
 
@@ -228,7 +230,7 @@ func getValidOCSDiskCount(disks []*models.Disk) int {
 }
 
 // used to validate resource requirements for OCS excluding disk requirements and set a status message
-func (o *ocsValidator) validateOCS(log logrus.FieldLogger, hosts []*models.Host, cpu int64, ram int64, disk int64, hostsWithDisks int64) (bool, string) {
+func (o *ocsValidator) validate(hosts []*models.Host, cpu int64, ram int64, disk int64, hostsWithDisks int64) (bool, string) {
 	var TotalCPUs int64
 	var TotalRAM int64
 	var status string

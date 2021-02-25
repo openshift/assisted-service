@@ -24,7 +24,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -38,12 +38,6 @@ func getDefaultConfig() Config {
 	var cfg Config
 	Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 	return cfg
-}
-
-func getOcsConfig() *ocs.Config {
-	var cfg ocs.Config
-	Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
-	return &cfg
 }
 
 var _ = Describe("stateMachine", func() {
@@ -70,7 +64,10 @@ var _ = Describe("stateMachine", func() {
 		}}
 
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		mockOperators.EXPECT().GetOperatorStatus(cluster, models.OperatorTypeOcs).AnyTimes().Return("Mock status")
+		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 
 	Context("unknown_cluster_state", func() {
@@ -131,8 +128,10 @@ var _ = Describe("TestClusterMonitoring", func() {
 		expectedState = ""
 		shouldHaveUpdated = false
 
-		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
+		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 	Context("single cluster monitoring", func() {
 		Context("from installing state", func() {
@@ -555,8 +554,10 @@ var _ = Describe("lease timeout event", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOperators)
 
-		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
+		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 	tests := []struct {
 		name                string
@@ -661,8 +662,10 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOperators)
 
-		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
+		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 	tests := []struct {
 		name                    string
@@ -1782,8 +1785,10 @@ var _ = Describe("Majority groups", func() {
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
-		mockOperators.EXPECT().GetOperatorStatus(gomock.Any(), models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(gomock.Any()).AnyTimes().Return("success")
+		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 
 	setup := func(ips []string) {
@@ -1886,8 +1891,10 @@ var _ = Describe("ready_state", func() {
 		Expect(len(cluster.Hosts)).Should(Equal(3))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 
-		mockOperators.EXPECT().GetOperatorStatus(&cluster, models.OperatorTypeOcs).AnyTimes().Return("Mock status")
-		mockOperators.EXPECT().ValidateOCSRequirements(&cluster).AnyTimes().Return("success")
+		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
+			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
+		}, nil)
 	})
 
 	Context("refresh_state", func() {

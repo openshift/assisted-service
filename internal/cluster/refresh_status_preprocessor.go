@@ -1,9 +1,13 @@
 package cluster
 
 import (
+	"context"
+	"strings"
+
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -20,20 +24,22 @@ type stringer interface {
 }
 
 type refreshPreprocessor struct {
-	log         logrus.FieldLogger
-	validations []validation
-	conditions  []condition
+	log          logrus.FieldLogger
+	validations  []validation
+	conditions   []condition
+	operatorsApi operators.API
 }
 
 func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsApi operators.API) *refreshPreprocessor {
 	return &refreshPreprocessor{
-		log:         log,
-		validations: newValidations(log, hostAPI, operatorsApi),
-		conditions:  newConditions(),
+		log:          log,
+		validations:  newValidations(log, hostAPI),
+		conditions:   newConditions(),
+		operatorsApi: operatorsApi,
 	}
 }
 
-func (r *refreshPreprocessor) preprocess(c *clusterPreprocessContext) (map[string]bool, map[string][]validationResult, error) {
+func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreprocessContext) (map[string]bool, map[string][]validationResult, error) {
 	stateMachineInput := make(map[string]bool)
 	validationsOutput := make(map[string][]validationResult)
 	checkValidationsInStatuses := []string{
@@ -58,17 +64,38 @@ func (r *refreshPreprocessor) preprocess(c *clusterPreprocessContext) (map[strin
 			Message: message,
 		})
 	}
+	// Validate operators
+	results, err := r.operatorsApi.ValidateCluster(ctx, c.cluster)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, result := range results {
+		stateMachineInput[result.ValidationId] = result.Status == api.Success
+		id := validationID(result.ValidationId)
+		category, err := id.category()
+		if err != nil {
+			logrus.WithError(err).Warn("id.category()")
+			return nil, nil, err
+		}
+
+		status := validationStatus(result.Status)
+		validationsOutput[category] = append(validationsOutput[category], validationResult{
+			ID:      id,
+			Status:  status,
+			Message: strings.Join(result.Reasons, "\n"),
+		})
+	}
+
 	for _, condition := range r.conditions {
 		stateMachineInput[condition.id.String()] = condition.fn(c)
 	}
 	return stateMachineInput, validationsOutput, nil
 }
 
-func newValidations(log logrus.FieldLogger, api host.API, operatorsManager operators.API) []validation {
+func newValidations(log logrus.FieldLogger, api host.API) []validation {
 	v := clusterValidator{
-		log:              log,
-		hostAPI:          api,
-		operatorsManager: operatorsManager,
+		log:     log,
+		hostAPI: api,
 	}
 	ret := []validation{
 		{
@@ -145,11 +172,6 @@ func newValidations(log logrus.FieldLogger, api host.API, operatorsManager opera
 			id:        IsNtpServerConfigured,
 			condition: v.isNtpServerConfigured,
 			formatter: v.printNtpServerConfigured,
-		},
-		{
-			id:        IsOcsRequirementsSatisfied,
-			condition: v.isOcsRequirementsSatisfied,
-			formatter: v.printOcsRequirementsSatisfied,
 		},
 	}
 	return ret

@@ -27,6 +27,8 @@ const (
 	IsPlatformValid             = validationID(models.HostValidationIDValidPlatform)
 	IsNTPSynced                 = validationID(models.HostValidationIDNtpSynced)
 	AreContainerImagesAvailable = validationID(models.HostValidationIDContainerImagesAvailable)
+	AreLsoRequirementsSatisfied = validationID(models.HostValidationIDLsoRequirementsSatisfied)
+	AreOcsRequirementsSatisfied = validationID(models.HostValidationIDOcsRequirementsSatisfied)
 )
 
 func (v validationID) category() (string, error) {
@@ -37,6 +39,8 @@ func (v validationID) category() (string, error) {
 	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory,
 		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid, IsPlatformValid:
 		return "hardware", nil
+	case AreLsoRequirementsSatisfied, AreOcsRequirementsSatisfied:
+		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected validation id %s", string(v)))
 }

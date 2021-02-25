@@ -268,11 +268,11 @@ func main() {
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
+	operatorsManager := operators.NewManager(log)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
-		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead)
+		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, &operatorsManager)
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
-	operatorsManager := operators.NewManager(log)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, &operatorsManager)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
@@ -291,7 +291,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := newISOInstallConfigGenerator(log, objectHandler, operatorsManager)
+	generator := newISOInstallConfigGenerator(log, objectHandler, &operatorsManager)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient())
@@ -436,7 +436,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
 }
 
-func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsManager operators.Manager) generator.ISOInstallConfigGenerator {
+func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsApi operators.API) generator.ISOInstallConfigGenerator {
 	var configGenerator generator.ISOInstallConfigGenerator
 	switch Options.DeployTarget {
 	case deployment_type_k8s:
@@ -444,9 +444,9 @@ func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API
 		if err != nil {
 			log.WithError(err).Fatalf("failed to create controller-runtime client")
 		}
-		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, &operatorsManager)
+		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, operatorsApi)
 	case deployment_type_onprem, deployment_type_ocp:
-		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, &operatorsManager)
+		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, operatorsApi)
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}

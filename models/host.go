@@ -137,7 +137,7 @@ type Host struct {
 	UserName string `json:"user_name,omitempty"`
 
 	// JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)
-	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:varchar(2048)"`
+	ValidationsInfo string `json:"validations_info,omitempty" gorm:"type:text"`
 }
 
 // Validate validates this host
