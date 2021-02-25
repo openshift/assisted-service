@@ -5491,6 +5491,60 @@ func init() {
         "install"
       ]
     },
+    "disk_info": {
+      "type": "object",
+      "properties": {
+        "disk_speed": {
+          "$ref": "#/definitions/disk_speed"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "disk_speed": {
+      "type": "object",
+      "properties": {
+        "exit_code": {
+          "type": "integer"
+        },
+        "speed_ms": {
+          "type": "integer"
+        },
+        "tested": {
+          "type": "boolean"
+        }
+      }
+    },
+    "disk_speed_check_request": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "description": "--filename argument for fio (expects a file or a block device path).",
+          "type": "string"
+        }
+      }
+    },
+    "disk_speed_check_response": {
+      "type": "object",
+      "properties": {
+        "io_sync_duration": {
+          "description": "The 99th percentile of fdatasync durations in milliseconds.",
+          "type": "integer"
+        },
+        "path": {
+          "description": "The device path.",
+          "type": "string"
+        }
+      }
+    },
     "domain_resolution_request": {
       "type": "object",
       "required": [
@@ -5763,6 +5817,11 @@ func init() {
         "discovery_agent_version": {
           "type": "string"
         },
+        "disks_info": {
+          "description": "Additional information about disks, formatted as JSON.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "free_addresses": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
@@ -5873,6 +5932,7 @@ func init() {
             "insufficient",
             "disabled",
             "preparing-for-installation",
+            "preparing-successful",
             "pending-for-input",
             "installing",
             "installing-in-progress",
@@ -6002,6 +6062,9 @@ func init() {
         "disk_size_gb": {
           "type": "integer"
         },
+        "installation_disk_speed_threshold_ms": {
+          "type": "integer"
+        },
         "ram_gib": {
           "type": "integer"
         }
@@ -6060,7 +6123,8 @@ func init() {
         "ntp-synced",
         "container-images-available",
         "lso-requirements-satisfied",
-        "ocs-requirements-satisfied"
+        "ocs-requirements-satisfied",
+        "sufficient-installation-disk-speed"
       ]
     },
     "host_network": {
@@ -6636,6 +6700,7 @@ func init() {
         "api-vip-connectivity-check",
         "ntp-synchronizer",
         "fio-perf-check",
+        "installation-disk-speed-check",
         "container-image-availability",
         "domain-resolution"
       ]
@@ -12323,6 +12388,60 @@ func init() {
         "install"
       ]
     },
+    "disk_info": {
+      "type": "object",
+      "properties": {
+        "disk_speed": {
+          "$ref": "#/definitions/disk_speed"
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
+    "disk_speed": {
+      "type": "object",
+      "properties": {
+        "exit_code": {
+          "type": "integer"
+        },
+        "speed_ms": {
+          "type": "integer"
+        },
+        "tested": {
+          "type": "boolean"
+        }
+      }
+    },
+    "disk_speed_check_request": {
+      "type": "object",
+      "required": [
+        "path"
+      ],
+      "properties": {
+        "path": {
+          "description": "--filename argument for fio (expects a file or a block device path).",
+          "type": "string"
+        }
+      }
+    },
+    "disk_speed_check_response": {
+      "type": "object",
+      "properties": {
+        "io_sync_duration": {
+          "description": "The 99th percentile of fdatasync durations in milliseconds.",
+          "type": "integer"
+        },
+        "path": {
+          "description": "The device path.",
+          "type": "string"
+        }
+      }
+    },
     "domain_resolution_request": {
       "type": "object",
       "required": [
@@ -12559,6 +12678,11 @@ func init() {
         "discovery_agent_version": {
           "type": "string"
         },
+        "disks_info": {
+          "description": "Additional information about disks, formatted as JSON.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "free_addresses": {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
@@ -12669,6 +12793,7 @@ func init() {
             "insufficient",
             "disabled",
             "preparing-for-installation",
+            "preparing-successful",
             "pending-for-input",
             "installing",
             "installing-in-progress",
@@ -12798,6 +12923,9 @@ func init() {
         "disk_size_gb": {
           "type": "integer"
         },
+        "installation_disk_speed_threshold_ms": {
+          "type": "integer"
+        },
         "ram_gib": {
           "type": "integer"
         }
@@ -12856,7 +12984,8 @@ func init() {
         "ntp-synced",
         "container-images-available",
         "lso-requirements-satisfied",
-        "ocs-requirements-satisfied"
+        "ocs-requirements-satisfied",
+        "sufficient-installation-disk-speed"
       ]
     },
     "host_network": {
@@ -13433,6 +13562,7 @@ func init() {
         "api-vip-connectivity-check",
         "ntp-synchronizer",
         "fio-perf-check",
+        "installation-disk-speed-check",
         "container-image-availability",
         "domain-resolution"
       ]

@@ -21,6 +21,9 @@ type HostRequirementsRole struct {
 	// disk size gb
 	DiskSizeGb int64 `json:"disk_size_gb,omitempty"`
 
+	// installation disk speed threshold ms
+	InstallationDiskSpeedThresholdMs int64 `json:"installation_disk_speed_threshold_ms,omitempty"`
+
 	// ram gib
 	RAMGib int64 `json:"ram_gib,omitempty"`
 }

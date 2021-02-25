@@ -48,6 +48,9 @@ type Host struct {
 	// discovery agent version
 	DiscoveryAgentVersion string `json:"discovery_agent_version,omitempty"`
 
+	// Additional information about disks, formatted as JSON.
+	DisksInfo string `json:"disks_info,omitempty" gorm:"type:text"`
+
 	// free addresses
 	FreeAddresses string `json:"free_addresses,omitempty" gorm:"type:text"`
 
@@ -125,7 +128,7 @@ type Host struct {
 
 	// status
 	// Required: true
-	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster cancelled]
+	// Enum: [discovering known disconnected insufficient disabled preparing-for-installation preparing-successful pending-for-input installing installing-in-progress installing-pending-user-action resetting-pending-user-action installed error resetting added-to-existing-cluster cancelled]
 	Status *string `json:"status"`
 
 	// status info
@@ -479,7 +482,7 @@ var hostTypeStatusPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster","cancelled"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["discovering","known","disconnected","insufficient","disabled","preparing-for-installation","preparing-successful","pending-for-input","installing","installing-in-progress","installing-pending-user-action","resetting-pending-user-action","installed","error","resetting","added-to-existing-cluster","cancelled"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -506,6 +509,9 @@ const (
 
 	// HostStatusPreparingForInstallation captures enum value "preparing-for-installation"
 	HostStatusPreparingForInstallation string = "preparing-for-installation"
+
+	// HostStatusPreparingSuccessful captures enum value "preparing-successful"
+	HostStatusPreparingSuccessful string = "preparing-successful"
 
 	// HostStatusPendingForInput captures enum value "pending-for-input"
 	HostStatusPendingForInput string = "pending-for-input"
