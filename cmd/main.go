@@ -424,9 +424,10 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
-				Client: ctrlMgr.GetClient(),
-				Log:    log,
-				Scheme: ctrlMgr.GetScheme(),
+				Client:    ctrlMgr.GetClient(),
+				Log:       log,
+				Scheme:    ctrlMgr.GetScheme(),
+				Installer: bm,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")

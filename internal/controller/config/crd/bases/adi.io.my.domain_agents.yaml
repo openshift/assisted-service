@@ -77,6 +77,32 @@ spec:
                 description: 'Name in REST API: checked_in_at'
                 format: date-time
                 type: string
+              conditions:
+                items:
+                  description: Condition represents the state of the operator's reconciliation
+                    functionality.
+                  properties:
+                    lastHeartbeatTime:
+                      format: date-time
+                      type: string
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      type: string
+                    type:
+                      description: ConditionType is the state of the operator's reconciliation
+                        functionality.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
               connectivity:
                 items:
                   properties:
@@ -194,8 +220,6 @@ spec:
                         type: array
                       modelName:
                         type: string
-                    required:
-                    - flags
                     type: object
                   disks:
                     items:
@@ -312,9 +336,6 @@ spec:
                       virtual:
                         type: boolean
                     type: object
-                required:
-                - disks
-                - interfaces
                 type: object
               logsCollectedTime:
                 description: 'Name in REST API: logs_collected_at'
@@ -339,14 +360,10 @@ spec:
                     type: string
                   stageStartTime:
                     description: 'Name in REST API: stage_started_at'
-                    format: date-time
                     type: string
                   stageUpdateTime:
                     description: 'Name in REST API: stage_updated_at'
-                    format: date-time
                     type: string
-                required:
-                - currentStage
                 type: object
               state:
                 type: string
