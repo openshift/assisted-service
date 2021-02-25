@@ -12,32 +12,40 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func createInventory(interfaces ...*models.Interface) string {
+	inventory := models.Inventory{Interfaces: interfaces}
+	ret, _ := json.Marshal(&inventory)
+	return string(ret)
+}
+
+func createInterface(ipv4Addresses ...string) *models.Interface {
+	return &models.Interface{
+		IPV4Addresses: append([]string{}, ipv4Addresses...),
+	}
+}
+
+func addIPv6Addresses(nic *models.Interface, ipv6Addresses ...string) *models.Interface {
+	nic.IPV6Addresses = append([]string{}, ipv6Addresses...)
+	return nic
+}
+
+func createHosts(inventories ...string) []*models.Host {
+	ret := make([]*models.Host, 0)
+	for _, i := range inventories {
+		ret = append(ret, &models.Host{Inventory: i})
+	}
+	return ret
+}
+
+func createCluster(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
+	return &common.Cluster{Cluster: models.Cluster{
+		APIVip:             apiVip,
+		MachineNetworkCidr: machineCidr,
+		Hosts:              createHosts(inventories...),
+	}}
+}
+
 var _ = Describe("inventory", func() {
-
-	createInterface := func(ipv4Addresses ...string) *models.Interface {
-		return &models.Interface{
-			IPV4Addresses: append([]string{}, ipv4Addresses...),
-		}
-	}
-
-	addIPv6Addresses := func(nic *models.Interface, ipv6Addresses ...string) *models.Interface {
-		nic.IPV6Addresses = append([]string{}, ipv6Addresses...)
-		return nic
-	}
-
-	createInventory := func(interfaces ...*models.Interface) string {
-		inventory := models.Inventory{Interfaces: interfaces}
-		ret, _ := json.Marshal(&inventory)
-		return string(ret)
-	}
-
-	createHosts := func(inventories ...string) []*models.Host {
-		ret := make([]*models.Host, 0)
-		for _, i := range inventories {
-			ret = append(ret, &models.Host{Inventory: i})
-		}
-		return ret
-	}
 
 	createDisabledHosts := func(inventories ...string) []*models.Host {
 		ret := make([]*models.Host, 0)
@@ -48,13 +56,6 @@ var _ = Describe("inventory", func() {
 		return ret
 	}
 
-	createCluster := func(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
-		return &common.Cluster{Cluster: models.Cluster{
-			APIVip:             apiVip,
-			MachineNetworkCidr: machineCidr,
-			Hosts:              createHosts(inventories...),
-		}}
-	}
 	createDisabledCluster := func(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
 		return &common.Cluster{Cluster: models.Cluster{
 			APIVip:             apiVip,

@@ -22,6 +22,7 @@ import (
 
 type ManifestsGeneratorAPI interface {
 	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 }
 
 type ManifestsGenerator struct {
@@ -68,7 +69,71 @@ spec:
   osImageURL: ""
 `
 
-func createChronyManifestContent(c *common.Cluster, role models.HostRole) (string, error) {
+const snoDnsmasqConf = `
+address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
+address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
+`
+
+const forceDnsDispatcherScript = `
+export IP="{{.HOST_IP}}"
+if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
+    if ! grep -q "$IP" /etc/resolv.conf; then
+      sed -i "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" /etc/resolv.conf
+      sed -i "s/search /search {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" /etc/resolv.conf
+      sed -i "0,/nameserver/s/nameserver/nameserver $IP\nnameserver/" /etc/resolv.conf
+    fi
+fi
+`
+
+const dnsMachineConfigManifest = `
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-master-dnsmasq-configuration
+spec:
+  config:
+    ignition:
+      config: {}
+      security:
+        tls: {}
+      timeouts: {}
+      version: 2.2.0
+    networkd: {}
+    passwd: {}
+    storage:
+      files:
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
+          verification: {}
+        filesystem: root
+        mode: 420
+        path: /etc/dnsmasq.d/single-node.conf
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
+          verification: {}
+        filesystem: root
+        mode: 365
+        path: /etc/NetworkManager/dispatcher.d/forcedns
+    systemd:
+      units:
+      - name: dnsmasq.service
+        enabled: true
+        contents: |
+         [Unit]
+         Description=Run dnsmasq to provide local dns for Singe Node OpenShift
+         Before=kubelet.service crio.service
+         After=network.target
+         
+         [Service]
+         ExecStart=/usr/sbin/dnsmasq -k
+         
+         [Install]
+         WantedBy=multi-user.target
+`
+
+func createChronyManifestContent(c *common.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {
@@ -78,7 +143,8 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole) (strin
 
 		var ntpSources []*models.NtpSource
 		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
-			return "", errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources)
+			log.Errorln("sss", "sss", "ssss")
+			return nil, errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources)
 		}
 
 		for _, source := range ntpSources {
@@ -103,46 +169,118 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole) (strin
 		"ROLE":           string(role),
 	}
 
-	tmpl, err := template.New("chronyManifest").Parse(ntpMachineConfigManifest)
-	if err != nil {
-		return "", errors.Wrapf(err, "Failed to create template")
-	}
-	buf := &bytes.Buffer{}
-	if err = tmpl.Execute(buf, manifestParams); err != nil {
-		return "", errors.Wrapf(err, "Failed to set manifest params %v to template", manifestParams)
-	}
-	return buf.String(), nil
+	return fillTemplate(manifestParams, ntpMachineConfigManifest, log)
 }
 
-func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
 	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
-		content, err := createChronyManifestContent(c, role)
+		content, err := createChronyManifestContent(cluster, role, log)
 
 		if err != nil {
-			return errors.Wrapf(err, "Failed to create chrony manifest content for role %s cluster id %s", role, *c.ID)
+			return errors.Wrapf(err, "Failed to create chrony manifest content for role %s cluster id %s", role, *cluster.ID)
 		}
 
 		chronyManifestFileName := fmt.Sprintf("%ss-chrony-configuration.yaml", string(role))
-		folder := models.ManifestFolderOpenshift
-		base64Content := base64.StdEncoding.EncodeToString([]byte(content))
-
-		response := m.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
-			ClusterID: *c.ID,
-			CreateManifestParams: &models.CreateManifestParams{
-				Content:  &base64Content,
-				FileName: &chronyManifestFileName,
-				Folder:   &folder,
-			},
-		})
-
-		if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
-			if apiErr, ok := response.(*common.ApiErrorResponse); ok {
-				return errors.Wrapf(apiErr, "Failed to create manifest %s", chronyManifestFileName)
-			}
-
-			return errors.Errorf("Failed to create manifest %s", chronyManifestFileName)
+		err = m.createManifests(ctx, cluster, chronyManifestFileName, content)
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
+	// all relevant logs of creating manifest weill be inside CreateClusterManifest
+	response := m.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+		ClusterID: *cluster.ID,
+		CreateManifestParams: &models.CreateManifestParams{
+			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),
+			FileName: &filename,
+			Folder:   swag.String(models.ManifestFolderOpenshift),
+		},
+	})
+
+	if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
+		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
+			return errors.Wrapf(apiErr, "Failed to create manifest %s", filename)
+		}
+		return errors.Errorf("Failed to create manifest %s", filename)
+	}
+	return nil
+}
+
+func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
+	filename := "dnsmasq-bootstrap-in-place.yaml"
+
+	content, err := createDnsmasqForSingleNode(log, cluster)
+	if err != nil {
+		return err
+	}
+
+	return m.createManifests(ctx, cluster, filename, content)
+}
+
+func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
+	// TODO Enable after MGMT-4125 will be pushed
+	//hostIp, err := GetMachineCIDRIP(common.GetBootstrapHost(cluster), cluster)
+	//if hostIp == "" || err != nil {
+	//	msg := "failed to get ip for bootstrap in place dnsmasq manifest"
+	//	if err != nil {
+	//		msg = errors.Wrapf(err, msg).Error()
+	//	}
+	//	return errors.Errorf(msg)
+	//}
+
+	// TODO remove after MGMT-4125 will be pushed
+	hostIp, _ := common.GetBootstrapMachineNetworkAndIp(cluster)
+	if hostIp == "" {
+		return nil, errors.Errorf("failed to get ip for bootstrap in place dnsmasq manifest")
+	}
+
+	var manifestParams = map[string]string{
+		"CLUSTER_NAME": cluster.Cluster.Name,
+		"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
+		"HOST_IP":      hostIp,
+	}
+
+	log.Infof("Creating dnsmasq manifest with values: cluster name: %q, domain - %q, host ip - %q",
+		cluster.Cluster.Name, cluster.Cluster.BaseDNSDomain, hostIp)
+
+	content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+	if err != nil {
+		return nil, err
+	}
+	dnsmasqContent := base64.StdEncoding.EncodeToString(content)
+
+	content, err = fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+	if err != nil {
+		return nil, err
+	}
+	forceDnsDispatcherScriptContent := base64.StdEncoding.EncodeToString(content)
+
+	manifestParams = map[string]string{
+		"DNSMASQ_CONTENT":  dnsmasqContent,
+		"FORCE_DNS_SCRIPT": forceDnsDispatcherScriptContent,
+	}
+
+	content, err = fillTemplate(manifestParams, dnsMachineConfigManifest, log)
+	if err != nil {
+		return nil, err
+	}
+
+	return content, nil
+}
+
+func fillTemplate(manifestParams map[string]string, templateData string, log logrus.FieldLogger) ([]byte, error) {
+	tmpl, err := template.New("template").Parse(templateData)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create template")
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, manifestParams); err != nil {
+		log.WithError(err).Errorf("Failed to set manifest params %v to template", manifestParams)
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }

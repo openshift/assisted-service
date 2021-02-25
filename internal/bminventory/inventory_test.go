@@ -1871,6 +1871,10 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 	}
 
+	mockGenerateAdditionalManifestsSuccess := func() {
+		mockClusterApi.EXPECT().GenerateAdditionalManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+	}
+
 	sortedHosts := func(arr []strfmt.UUID) []strfmt.UUID {
 		sort.Slice(arr, func(i, j int) bool { return arr[i] < arr[j] })
 		return arr
@@ -3364,6 +3368,7 @@ var _ = Describe("cluster", func() {
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateAdditionalManifestsSuccess()
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)
@@ -3467,6 +3472,7 @@ var _ = Describe("cluster", func() {
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateAdditionalManifestsSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockHostPrepareForRefresh(mockHostApi)
@@ -3491,6 +3497,7 @@ var _ = Describe("cluster", func() {
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateAdditionalManifestsSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
@@ -3572,6 +3579,7 @@ var _ = Describe("cluster", func() {
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
+			mockGenerateAdditionalManifestsSuccess()
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)
