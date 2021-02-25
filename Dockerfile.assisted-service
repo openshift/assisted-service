@@ -47,7 +47,7 @@ RUN dnf install -y libvirt-libs python3 && \
     dnf install -y cairo-devel && \
     dnf install -y cairo-gobject-devel && \
     dnf install -y python3-devel && \
-    dnf install -y nispor && \
+    dnf install -y python3-nispor && \
     dnf install -y NetworkManager && \
     dnf install -y NetworkManager-ovs && \
     dnf install -y NetworkManager-team && \
