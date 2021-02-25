@@ -81,7 +81,7 @@ type InstallerConfigBaremetal struct {
 		Replicas       int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
 	Platform              platform         `yaml:"platform"`
-	BootstrapInPlace      bootstrapInPlace `yaml:"bootstrapInPlace"`
+	BootstrapInPlace      bootstrapInPlace `yaml:"bootstrapInPlace,omitempty"`
 	FIPS                  bool             `yaml:"fips"`
 	PullSecret            string           `yaml:"pullSecret"`
 	SSHKey                string           `yaml:"sshKey"`
@@ -315,6 +315,9 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			}{
 				{Cidr: bootstrapCidr},
 			}
+			cluster.MachineNetworkCidr = bootstrapCidr
+			cfg.Networking.NetworkType = getNetworkType(cluster)
+
 		} else {
 			cfg.Networking.MachineNetwork = nil
 		}
