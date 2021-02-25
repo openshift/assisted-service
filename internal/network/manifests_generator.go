@@ -22,6 +22,7 @@ import (
 
 type ManifestsGeneratorAPI interface {
 	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 }
 
 type ManifestsGenerator struct {
@@ -66,6 +67,81 @@ spec:
         mode: 420
         path: /etc/chrony.conf
   osImageURL: ""
+`
+
+const snoDnsmasqConf = `
+address=/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
+addn-hosts=/etc/api-int.host
+`
+
+const apiIntHosts = `
+{{.HOST_IP}} api-int api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}
+`
+
+const forceDnsDispatcherScript = `
+export IP="{{.HOST_IP}}"
+if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
+    grep -q $IP /etc/resolv.conf
+    if [ "$?" != "0" ] ; then
+      sed -i "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" /etc/resolv.conf
+      sed -i "s/search /search {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" /etc/resolv.conf
+      sed -i "0,/nameserver/s/nameserver/nameserver $IP\nnameserver/" /etc/resolv.conf
+    fi
+fi
+`
+
+const dnsMachineConfigManifest = `
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: {{.ROLE}}
+  name: 99-{{.ROLE}}s-dnsmasq-configuration
+spec:
+  config:
+    ignition:
+      config: {}
+      security:
+        tls: {}
+      timeouts: {}
+      version: 2.2.0
+    networkd: {}
+    passwd: {}
+    storage:
+      files:
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONF}}
+          verification: {}
+        filesystem: root
+        mode: 420
+        path: /etc/dnsmasq.d/sno.conf
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,{{.API_INT_HOST_FILE}}
+          verification: {}
+        filesystem: root
+        mode: 420
+        path: /etc/api-int.host
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
+          verification: {}
+        filesystem: root
+        mode: 365
+        path: /etc/NetworkManager/dispatcher.d/forcedns
+    systemd:
+      units:
+      - name: dnsmasq.service
+        enabled: true
+        contents: |
+         [Unit]
+         Description=Run dnsmasq to provide local dns
+         Before=kubelet.service crio.service
+         After=network.target
+         
+         [Service]
+         ExecStart=/usr/sbin/dnsmasq -k
+         
+         [Install]
+         WantedBy=multi-user.target
 `
 
 func createChronyManifestContent(c *common.Cluster, role models.HostRole) (string, error) {
@@ -142,6 +218,69 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 
 			return errors.Errorf("Failed to create manifest %s", chronyManifestFileName)
 		}
+	}
+
+	return nil
+}
+
+func fillTemplate(manifestParams map[string]string, templateData string) ([]byte, error) {
+	tmpl, err := template.New("template").Parse(templateData)
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to create template")
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, manifestParams); err != nil {
+		return nil, errors.Wrapf(err, "Failed to set manifest params %v to template", manifestParams)
+	}
+	return buf.Bytes(), nil
+}
+
+func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	apiVip, _ := GetMachineCIDRIP(c.Hosts[0], c)
+	if apiVip == "" {
+		return errors.Errorf("failed to get ip for bootstrap in place dnsmasq manifest")
+	}
+
+	var manifestParams = map[string]string{
+		"CLUSTER_NAME": c.Cluster.Name,
+		"DNS_DOMAIN":   c.Cluster.BaseDNSDomain,
+		"HOST_IP":      apiVip,
+	}
+
+	conf, _ := fillTemplate(manifestParams, snoDnsmasqConf)
+	dnsmasqConf := base64.StdEncoding.EncodeToString(conf)
+
+	conf, _ = fillTemplate(manifestParams, apiIntHosts)
+	apiIntHostsContent := base64.StdEncoding.EncodeToString(conf)
+
+	conf, _ = fillTemplate(manifestParams, forceDnsDispatcherScript)
+	forceDnsDispatcherScriptContent := base64.StdEncoding.EncodeToString(conf)
+
+	manifestParams = map[string]string{
+		"DNSMASQ_CONF":      dnsmasqConf,
+		"API_INT_HOST_FILE": apiIntHostsContent,
+		"FORCE_DNS_SCRIPT":  forceDnsDispatcherScriptContent,
+		"ROLE":              "master",
+	}
+
+	conf, _ = fillTemplate(manifestParams, dnsMachineConfigManifest)
+	filename := "dnsmasq-bootstrap-in-place.yaml"
+
+	response := m.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+		ClusterID: *c.ID,
+		CreateManifestParams: &models.CreateManifestParams{
+			Content:  swag.String(base64.StdEncoding.EncodeToString(conf)),
+			FileName: &filename,
+			Folder:   swag.String(models.ManifestFolderOpenshift),
+		},
+	})
+
+	if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
+		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
+			return errors.Wrapf(apiErr, "Failed to create manifest %s", filename)
+		}
+
+		return errors.Errorf("Failed to create manifest %s", filename)
 	}
 
 	return nil

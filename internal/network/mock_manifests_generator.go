@@ -48,3 +48,17 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddChronyManifest(ctx, log, c i
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddChronyManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddChronyManifest), ctx, log, c)
 }
+
+// AddDnsmasqForSingleNode mocks base method
+func (m *MockManifestsGeneratorAPI) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddDnsmasqForSingleNode", ctx, log, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddDnsmasqForSingleNode indicates an expected call of AddDnsmasqForSingleNode
+func (mr *MockManifestsGeneratorAPIMockRecorder) AddDnsmasqForSingleNode(ctx, log, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDnsmasqForSingleNode", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddDnsmasqForSingleNode), ctx, log, c)
+}

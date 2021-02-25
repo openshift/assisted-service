@@ -561,3 +561,17 @@ func (mr *MockAPIMockRecorder) UpdateAmsSubscriptionID(ctx, clusterID, amsSubscr
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateAmsSubscriptionID", reflect.TypeOf((*MockAPI)(nil).UpdateAmsSubscriptionID), ctx, clusterID, amsSubscriptionID)
 }
+
+// GenerateAdditionalManifests mocks base method
+func (m *MockAPI) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GenerateAdditionalManifests", ctx, cluster)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GenerateAdditionalManifests indicates an expected call of GenerateAdditionalManifests
+func (mr *MockAPIMockRecorder) GenerateAdditionalManifests(ctx, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAdditionalManifests", reflect.TypeOf((*MockAPI)(nil).GenerateAdditionalManifests), ctx, cluster)
+}

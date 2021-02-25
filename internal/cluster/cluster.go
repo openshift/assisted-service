@@ -93,6 +93,7 @@ type API interface {
 	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
+	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
 }
 
 type PrepareConfig struct {
@@ -791,4 +792,49 @@ func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster
 		return nil, err
 	}
 	return c, nil
+}
+
+func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
+	if err := m.manifestsGeneratorAPI.AddChronyManifest(ctx, logutil.FromContext(ctx, m.log), cluster); err != nil {
+		return errors.Wrap(err, "PostPrepareForInstallation failed to add chrony manifest")
+	}
+	sendNTPMetric(logutil.FromContext(ctx, m.log), m.metricAPI, cluster)
+
+	if common.IsSingleNodeCluster(cluster) {
+		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, logutil.FromContext(ctx, m.log), cluster); err != nil {
+			return errors.Wrap(err, "PostPrepareForInstallation failed to add dnsmasq manifest")
+		}
+	}
+	return nil
+}
+
+func sendNTPMetric(log logrus.FieldLogger, metricApi metrics.API, cluster *common.Cluster) {
+	ntpFailures := 0
+
+	for _, host := range cluster.Hosts {
+		if swag.StringValue(host.Status) == models.HostStatusDisabled || host.NtpSources == "" {
+			continue
+		}
+
+		var ntpSources []*models.NtpSource
+		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
+			log.Error(errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources))
+			continue
+		}
+
+		isHostSynced := false
+
+		for _, source := range ntpSources {
+			if source.SourceState == models.SourceStateSynced {
+				isHostSynced = true
+				break
+			}
+		}
+
+		if !isHostSynced {
+			ntpFailures += 1
+		}
+	}
+
+	metricApi.ClusterHostsNTPFailures(*cluster.ID, cluster.EmailDomain, ntpFailures)
 }
