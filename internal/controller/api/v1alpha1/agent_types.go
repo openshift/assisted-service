@@ -133,6 +133,7 @@ type AgentSpec struct {
 	Enabled                 *bool             `json:"enabled,omitempty"`
 	IgnitionConfigOverrides string            `json:"ignitionConfigOverrides,omitempty"`
 	InstallerArgs           string            `json:"installerArgs,omitempty"`
+	Approved                bool              `json:"approved"`
 }
 
 type HardwareValidationInfo struct {

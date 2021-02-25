@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/models"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	agentv1 "github.com/openshift/hive/pkg/apis/hive/v1/agent"
 	corev1 "k8s.io/api/core/v1"
@@ -253,10 +254,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		agent := getAgentCRD(ctx, kubeClient, key)
 		agent.Spec.Hostname = "newhostname"
+		agent.Spec.Approved = true
 		err := kubeClient.Update(ctx, agent)
 		Expect(err).To(BeNil())
 		Eventually(func() string {
 			return getHost(*cluster.ID, *host.ID).RequestedHostname
 		}, "2m", "10s").Should(Equal("newhostname"))
+
+		Eventually(func() bool {
+			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
+		}, "2m", "10s").Should(Equal(true))
 	})
 })

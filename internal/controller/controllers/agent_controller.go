@@ -126,10 +126,38 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alpha1.Agent, c *common.Cluster) (ctrl.Result, error) {
 	spec := agent.Spec
+	var Requeue bool
+	var inventoryErr error
 	host := getHostFromCluster(c, agent.Name)
 	if host == nil {
 		r.Log.Errorf("Host %s not found in cluster %s", agent.Name, c.Name)
 		return ctrl.Result{}, errors.New("Host not found in cluster")
+	}
+
+	internalHost, err := r.Installer.GetCommonHostInternal(ctx, string(*c.ID), agent.Name)
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			Requeue = true
+			inventoryErr = common.NewApiError(http.StatusNotFound, err)
+		} else {
+			Requeue = false
+			inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
+		}
+		return ctrl.Result{Requeue: Requeue}, inventoryErr
+	}
+
+	if internalHost.Approved != spec.Approved {
+		err = r.Installer.UpdateHostApprovedInternal(ctx, string(*c.ID), agent.Name, spec.Approved)
+		if err != nil {
+			if gorm.IsRecordNotFoundError(err) {
+				Requeue = true
+				inventoryErr = common.NewApiError(http.StatusNotFound, err)
+			} else {
+				Requeue = false
+				inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
+			}
+			return ctrl.Result{Requeue: Requeue}, inventoryErr
+		}
 	}
 
 	clusterUpdate := false
@@ -168,7 +196,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alph
 		return ctrl.Result{}, nil
 	}
 
-	_, err := r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+	_, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *c.ID,
 	})

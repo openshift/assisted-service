@@ -43,7 +43,12 @@ type Event struct {
 }
 
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&models.Host{}, &Cluster{}, &Event{}).Error
+	return db.AutoMigrate(&Host{}, &Cluster{}, &Event{}).Error
+}
+
+type Host struct {
+	models.Host
+	Approved bool `json:"approved"`
 }
 
 type EagerLoadingState bool
@@ -117,4 +122,13 @@ func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, include
 	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Find(&clusters, where...).Error
 	return clusters, err
+}
+
+func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
+	var host Host
+	err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error
+	if err != nil {
+		return nil, errors.Wrapf(err, "Failed to get host %s in cluster %s", hostId, clusterId)
+	}
+	return &host, nil
 }

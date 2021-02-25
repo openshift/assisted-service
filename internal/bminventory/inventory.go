@@ -294,6 +294,8 @@ type InstallerInternals interface {
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
+	GetCommonHostInternal(ctx context.Context, clusterId string, hostId string) (*common.Host, error)
+	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -4118,6 +4120,25 @@ func (b *bareMetalInventory) getHost(ctx context.Context, clusterId string, host
 		return nil, common.NewApiError(http.StatusNotFound, errors.Errorf("Host %s not found", hostId))
 	}
 	return &host, nil
+}
+
+func (b *bareMetalInventory) GetCommonHostInternal(ctx context.Context, clusterId, hostId string) (*common.Host, error) {
+	return common.GetHostFromDB(b.db, clusterId, hostId)
+}
+
+func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, clusterId, hostId string, approved bool) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating Approved to %t Host %s Cluster %s", approved, hostId, clusterId)
+	_, err := b.GetCommonHostInternal(ctx, clusterId, hostId)
+	if err != nil {
+		return err
+	}
+	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), hostId, clusterId).Update("approved", approved).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to update 'approved' in host: %s", hostId)
+		return err
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, flags ...interface{}) (*common.Cluster, error) {
