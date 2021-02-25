@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/swag"
@@ -65,6 +66,7 @@ type ClusterDeploymentsReconciler struct {
 	ClusterApi               cluster.API
 	HostApi                  host.API
 	PullSecretUpdatesChannel chan event.GenericEvent
+	InstallEnvUpdatesChannel chan event.GenericEvent
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -196,11 +198,20 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip)
 	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
 
-	// TODO: get from AgentEnvSpec
-	//updateString(spec.HTTPProxy, c.HTTPProxy, &params.HTTPProxy)
-	//updateString(spec.HTTPSProxy, c.HTTPSProxy, &params.HTTPSProxy)
-	//updateString(spec.NoProxy, c.NoProxy, &params.NoProxy)
-	//updateString(spec.AdditionalNtpSource, c.AdditionalNtpSource, &params.AdditionalNtpSource)
+	installEnv, err := getInstallEnvByClusterDeployment(ctx, r.Client, cluster)
+
+	// It is possible that the clusterDeployment doesn't have an installEnv. ClusterDeploymentsReconciler should not fail for that reason.
+	if err != nil && !gorm.IsRecordNotFoundError(err) {
+		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for installEnv for clusterDeployment %s", cluster.Name))
+	}
+	if installEnv != nil {
+		if len(installEnv.Spec.AdditionalNTPSources) > 0 {
+			updateString(installEnv.Spec.AdditionalNTPSources[0], c.AdditionalNtpSource, &params.AdditionalNtpSource)
+		}
+		updateString(installEnv.Spec.Proxy.NoProxy, c.NoProxy, &params.NoProxy)
+		updateString(installEnv.Spec.Proxy.HTTPProxy, c.HTTPProxy, &params.HTTPProxy)
+		updateString(installEnv.Spec.Proxy.HTTPSProxy, c.HTTPSProxy, &params.HTTPSProxy)
+	}
 
 	if userManagedNetwork := isUserManagedNetwork(cluster); userManagedNetwork != swag.BoolValue(c.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
@@ -290,11 +301,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	}
 
 	clusterParams := &models.ClusterCreateParams{
-		//AdditionalNtpSource:      swag.String(spec.AdditionalNtpSource), // TODO: get from AgentEnvSpec
-		//HTTPProxy:                swag.String(spec.HTTPProxy), // TODO: get from AgentEnvSpec
-		//HTTPSProxy:               swag.String(spec.HTTPSProxy), // TODO: get from AgentEnvSpec
-		//NoProxy:                  swag.String(spec.NoProxy), // TODO: get from AgentEnvSpec
-		//SSHPublicKey:          spec.SSHPublicKey, // TODO: get from AgentEnvSpec
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
 		OpenshiftVersion:      swag.String(r.getOCPVersion(cluster)),
@@ -304,6 +310,16 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		IngressVip:            spec.Platform.AgentBareMetal.IngressVIP,
 		SSHPublicKey:          spec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(cluster)),
+	}
+
+	installEnv, err := getInstallEnvByClusterDeployment(ctx, r.Client, cluster)
+	if err == nil && installEnv != nil {
+		if len(installEnv.Spec.AdditionalNTPSources) > 0 {
+			clusterParams.AdditionalNtpSource = &installEnv.Spec.AdditionalNTPSources[0]
+		}
+		clusterParams.NoProxy = &installEnv.Spec.Proxy.NoProxy
+		clusterParams.HTTPProxy = &installEnv.Spec.Proxy.HTTPProxy
+		clusterParams.HTTPSProxy = &installEnv.Spec.Proxy.HTTPSProxy
 	}
 
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
@@ -496,7 +512,7 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
-		Watches(&source.Kind{Type: &corev1.Secret{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
+		Watches(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
+		Watches(&source.Channel{Source: r.InstallEnvUpdatesChannel}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

@@ -413,6 +413,7 @@ func main() {
 
 	go func() {
 		pullSecretUpdatesChannel := make(chan event.GenericEvent)
+		installEnvUpdatesChannel := make(chan event.GenericEvent)
 
 		if Options.EnableKubeAPI {
 			failOnError((&controllers.InstallEnvReconciler{
@@ -420,6 +421,7 @@ func main() {
 				Log:                      log,
 				Installer:                bm,
 				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+				InstallEnvUpdatesChannel: installEnvUpdatesChannel,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InstallEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
@@ -430,6 +432,7 @@ func main() {
 				ClusterApi:               clusterApi,
 				HostApi:                  hostApi,
 				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+				InstallEnvUpdatesChannel: installEnvUpdatesChannel,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{

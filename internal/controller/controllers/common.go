@@ -3,7 +3,10 @@ package controllers
 import (
 	"context"
 
+	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -25,4 +28,19 @@ func getPullSecret(ctx context.Context, c client.Client, name, namespace string)
 	}
 
 	return string(data), nil
+}
+
+func getInstallEnvByClusterDeployment(ctx context.Context, c client.Client, cluster *hivev1.ClusterDeployment) (*adiiov1alpha1.InstallEnv, error) {
+	installEnvs := &adiiov1alpha1.InstallEnvList{}
+	if err := c.List(ctx, installEnvs); err != nil {
+		logrus.WithError(err).Errorf("failed to search for installEnv for clusterDeployment %s", cluster.Name)
+		return nil, err
+	}
+	for _, installEnv := range installEnvs.Items {
+		if installEnv.Spec.ClusterRef.Name == cluster.Name {
+			return &installEnv, nil
+		}
+	}
+	logrus.Infof("no installEnv for the clusterDeployment %s", cluster.Name)
+	return nil, nil
 }

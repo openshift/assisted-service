@@ -33,6 +33,7 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -47,6 +48,7 @@ type InstallEnvReconciler struct {
 	Log                      logrus.FieldLogger
 	Installer                bminventory.InstallerInternals
 	PullSecretUpdatesChannel chan event.GenericEvent
+	InstallEnvUpdatesChannel chan event.GenericEvent
 }
 
 // +kubebuilder:rbac:groups=adi.io.my.domain,resources=installenvs,verbs=get;list;watch;create;update;patch;delete
@@ -61,6 +63,33 @@ func (r *InstallEnvReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	}
 
 	return r.ensureISO(ctx, installEnv)
+}
+
+func (r *InstallEnvReconciler) notifyClusterUpdatesIfNeeded(installEnv *adiiov1alpha1.InstallEnv, c *common.Cluster) {
+	update := false
+
+	if installEnv.Spec.Proxy != nil {
+		if installEnv.Spec.Proxy.NoProxy != "" && installEnv.Spec.Proxy.NoProxy != c.NoProxy {
+			update = true
+		}
+		if installEnv.Spec.Proxy.HTTPProxy != "" && installEnv.Spec.Proxy.HTTPProxy != c.HTTPProxy {
+			update = true
+		}
+		if installEnv.Spec.Proxy.HTTPSProxy != "" && installEnv.Spec.Proxy.HTTPSProxy != c.HTTPSProxy {
+			update = true
+		}
+	}
+	if len(installEnv.Spec.AdditionalNTPSources) > 0 && c.AdditionalNtpSource != installEnv.Spec.AdditionalNTPSources[0] {
+		update = true
+	}
+	if update {
+		r.InstallEnvUpdatesChannel <- event.GenericEvent{
+			Meta: &metav1.ObjectMeta{
+				Namespace: installEnv.Spec.ClusterRef.Namespace,
+				Name:      installEnv.Spec.ClusterRef.Name,
+			},
+		}
+	}
 }
 
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
@@ -126,6 +155,9 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 		}
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
+
+	// Check for updates from user, compare spec and trigger ClusterDeploymentsReconciler if found relevant
+	r.notifyClusterUpdatesIfNeeded(installEnv, c)
 
 	// Generate ISO
 	isoParams := installer.GenerateClusterISOParams{
