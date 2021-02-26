@@ -1,6 +1,7 @@
 package staticnetworkconfig
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"sort"
@@ -8,6 +9,7 @@ import (
 
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
 )
 
@@ -18,6 +20,7 @@ type StaticNetworkConfigData struct {
 	FileContents string
 }
 
+//go:generate mockgen -source=generator.go -package=staticnetworkconfig -destination=mock_generator.go
 type StaticNetworkConfig interface {
 	GenerateStaticNetworkConfigData(hostsYAMLS string) ([]StaticNetworkConfigData, error)
 }
@@ -88,16 +91,22 @@ func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput str
 	return nil
 }
 
-// TODO - in case we will need additional formating, consider using https://github.com/go-ini/ini
 func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (string, error) {
-	start := strings.Index(nmConnection, "interface-name=")
-	if start == -1 {
-		msg := "Failed to find interface-name label in nmconnection string"
+	ini.PrettyFormat = false
+	cfg, err := ini.LoadSources(ini.LoadOptions{IgnoreInlineComment: true}, []byte(nmConnection))
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to load the ini format string %s", nmConnection)
+		return "", err
+	}
+	connectionSection := cfg.Section("connection")
+	ifaceName := connectionSection.Key("interface-name")
+	if ifaceName == nil {
+		msg := "interface-name key is not present in section connection"
 		s.log.Errorf("%s", msg)
 		return "", fmt.Errorf("%s", msg)
 	}
-	end := strings.Index(nmConnection[start:], "\n")
-	mac := nmConnection[start+len("interface-name=") : start+end]
+
+	mac := ifaceName.String()
 	splitMac := []string{}
 	i := 0
 	for i < len(mac) {
@@ -105,8 +114,38 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 		i += 2
 	}
 	mac = strings.Join(splitMac, ":")
-	output := nmConnection[:start] + nmConnection[start+end+1:] + "\n[802-3-ethernet]\nmac-address=" + mac + "\n"
-	return output, nil
+
+	connectionSection.DeleteKey("interface-name")
+	_, err = connectionSection.NewKey("autoconnect", "true")
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to add autoconnect key to section connection")
+		return "", err
+	}
+	_, err = connectionSection.NewKey("autoconnect-priority", "1")
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to add autoconnect-priority key to section connection")
+		return "", err
+	}
+
+	ethernetSection, err := cfg.NewSection("802-3-ethernet")
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to add 802-3-ethernet section to nm connection")
+		return "", err
+	}
+
+	_, err = ethernetSection.NewKey("mac-address", mac)
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to add key mac-address, value %s to 802-3-ethernet connection", mac)
+		return "", err
+	}
+
+	buf := new(bytes.Buffer)
+	_, err = cfg.WriteTo(buf)
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to output nmconnection ini file to buffer")
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func FormatStaticNetworkConfigForDB(staticNetworkConfig []string) string {

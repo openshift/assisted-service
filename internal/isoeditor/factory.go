@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/openshift/assisted-service/internal/isoutil"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,14 +24,16 @@ type Factory interface {
 type token struct{}
 type RhcosFactory struct {
 	// "semaphore" for tracking editors in use, send to checkout, receive to checkin
-	sem              chan token
-	workspaceBaseDir string
+	sem                 chan token
+	workspaceBaseDir    string
+	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
 }
 
-func NewFactory(config Config) Factory {
+func NewFactory(config Config, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig) Factory {
 	f := &RhcosFactory{
-		sem:              make(chan token, config.ConcurrentEdits),
-		workspaceBaseDir: config.WorkspaceBaseDir,
+		sem:                 make(chan token, config.ConcurrentEdits),
+		workspaceBaseDir:    config.WorkspaceBaseDir,
+		staticNetworkConfig: staticNetworkConfig,
 	}
 	return f
 }
@@ -60,9 +63,10 @@ func (f *RhcosFactory) newEditor(isoPath string, openshiftVersion string, log lo
 		return nil, err
 	}
 	return &rhcosEditor{
-		isoHandler:       isoutil.NewHandler(isoPath, isoTmpWorkDir),
-		openshiftVersion: openshiftVersion,
-		log:              log,
-		workDir:          f.workspaceBaseDir,
+		isoHandler:          isoutil.NewHandler(isoPath, isoTmpWorkDir),
+		openshiftVersion:    openshiftVersion,
+		log:                 log,
+		workDir:             f.workspaceBaseDir,
+		staticNetworkConfig: f.staticNetworkConfig,
 	}, nil
 }

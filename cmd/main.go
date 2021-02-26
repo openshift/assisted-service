@@ -55,6 +55,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
 	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
@@ -218,7 +219,9 @@ func main() {
 	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
 	Options.JobConfig.S3EndpointURL = newUrl
 
-	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
+	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
+
+	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
 	var objectHandler s3wrapper.API
 
@@ -301,7 +304,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
-		versionHandler, isoEditorFactory, crdUtils)
+		versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),

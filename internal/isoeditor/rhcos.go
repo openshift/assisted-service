@@ -15,6 +15,7 @@ import (
 	"github.com/cavaliercoder/go-cpio"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/isoutil"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -50,14 +51,15 @@ type OffsetInfo struct {
 //go:generate mockgen -package=isoeditor -destination=mock_editor.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
-	CreateClusterMinimalISO(ignition string, staticIPConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error)
+	CreateClusterMinimalISO(ignition string, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error)
 }
 
 type rhcosEditor struct {
-	isoHandler       isoutil.Handler
-	openshiftVersion string
-	log              logrus.FieldLogger
-	workDir          string
+	isoHandler          isoutil.Handler
+	openshiftVersion    string
+	log                 logrus.FieldLogger
+	workDir             string
+	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
 }
 
 func (e *rhcosEditor) getRootFSURL(serviceBaseURL string) string {
@@ -109,7 +111,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 	return isoPath, nil
 }
 
-func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error) {
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error) {
 	if err := e.isoHandler.Extract(); err != nil {
 		return "", errors.Wrap(err, "failed to extract iso")
 	}
@@ -118,8 +120,8 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticIPConfig st
 		return "", errors.Wrap(err, "failed to add ignition archive")
 	}
 
-	if staticIPConfig != "" || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
-		if err := e.addCustomRAMDisk(staticIPConfig, clusterProxyInfo); err != nil {
+	if staticNetworkConfig != "" || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
+		if err := e.addCustomRAMDisk(staticNetworkConfig, clusterProxyInfo); err != nil {
 			return "", errors.Wrap(err, "failed to add additional ramdisk")
 		}
 	}
@@ -194,21 +196,27 @@ func (e *rhcosEditor) addIgnitionArchive(ignition string) error {
 	return ioutil.WriteFile(e.isoHandler.ExtractedPath("images/ignition.img"), archiveBytes, 0644) //nolint:gosec
 }
 
-func (e *rhcosEditor) addCustomRAMDisk(staticIPConfig string, clusterProxyInfo *ClusterProxyInfo) error {
+func (e *rhcosEditor) addCustomRAMDisk(staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) error {
 	f, err := os.Create(e.isoHandler.ExtractedPath(ramDiskImagePath))
 	if err != nil {
 		return err
 	}
 
 	w := cpio.NewWriter(f)
-	if staticIPConfig != "" {
-		configPath := "/etc/static_ips_config.csv"
-		scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-static-ip-config.sh"
-		scriptContent := constants.ConfigStaticIpsScript
-
-		if err = addFileToArchive(w, configPath, staticIPConfig, 0o664); err != nil {
-			return err
+	if staticNetworkConfig != "" {
+		filesList, newErr := e.staticNetworkConfig.GenerateStaticNetworkConfigData(staticNetworkConfig)
+		if newErr != nil {
+			return newErr
 		}
+		for _, file := range filesList {
+			err = addFileToArchive(w, filepath.Join("/etc/assisted/network", file.FilePath), file.FileContents, 0o600)
+			if err != nil {
+				return err
+			}
+		}
+		scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-pre-static-network-config.sh"
+		scriptContent := constants.PreNetworkConfigScript
+
 		if err = addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
 			return err
 		}
@@ -248,10 +256,14 @@ func (e *rhcosEditor) formatRootfsServiceConfigFile(clusterProxyInfo *ClusterPro
 }
 
 func addFileToArchive(w *cpio.Writer, path string, content string, mode cpio.FileMode) error {
-	// add all the directories in path
+	// add all the directories in path in the correct order, using dirsStack as FILO
+	dirsStack := []string{}
 	for dir := filepath.Dir(path); dir != "" && dir != "/"; dir = filepath.Dir(dir) {
+		dirsStack = append(dirsStack, dir)
+	}
+	for i := len(dirsStack) - 1; i >= 0; i-- {
 		hdr := &cpio.Header{
-			Name: dir,
+			Name: dirsStack[i],
 			Mode: 040755,
 			Size: 0,
 		}
