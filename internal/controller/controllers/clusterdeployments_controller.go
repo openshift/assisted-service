@@ -178,8 +178,9 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
 		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr)
-		if int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix) != c.ClusterNetworkHostPrefix {
-			params.ClusterNetworkHostPrefix = swag.Int64(int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix))
+		hostPrefix := int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
+		if hostPrefix > 0 && hostPrefix != c.ClusterNetworkHostPrefix {
+			params.ClusterNetworkHostPrefix = swag.Int64(hostPrefix)
 			update = true
 		}
 	}
