@@ -1882,6 +1882,47 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	return nil
 }
 
+func (b *bareMetalInventory) updateKubeAPIClusterNetworkParams(
+	updates map[string]interface{},
+	cluster *common.Cluster,
+	params installer.UpdateClusterParams,
+	log logrus.FieldLogger,
+	machineCidr *string,
+) error {
+
+	apiVip := cluster.APIVip
+	ingressVip := cluster.IngressVip
+	if params.ClusterUpdateParams.APIVip != nil {
+		apiVip = *params.ClusterUpdateParams.APIVip
+		log.Infof("setting api_vip for kube-api cluster id=%s name=%s value=%s",
+			cluster.ID, cluster.KubeKeyName, apiVip)
+	}
+	updates["api_vip"] = apiVip
+
+	if params.ClusterUpdateParams.IngressVip != nil {
+		ingressVip = *params.ClusterUpdateParams.IngressVip
+		log.Infof("setting ingress_vip for kube-api cluster id=%s name=%s value=%s",
+			cluster.ID, cluster.KubeKeyName, ingressVip)
+	}
+	updates["ingress_vip"] = ingressVip
+
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil &&
+		*machineCidr != swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr) {
+		*machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		log.Infof("setting machine_cidr for kube-api cluster id=%s name=%s value=%s",
+			cluster.ID, cluster.KubeKeyName, *machineCidr)
+	} else {
+		*machineCidr = cluster.MachineNetworkCidr
+	}
+	setMachineNetworkCIDRForUpdate(updates, *machineCidr)
+
+	if err := network.VerifyDifferentVipAddresses(apiVip, ingressVip); err != nil {
+		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	return nil
+}
+
 func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	var err error
 	updates := map[string]interface{}{}
@@ -1891,6 +1932,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
 	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
 	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
+	isKubeAPICluster := cluster.KubeKeyNamespace != "" && cluster.KubeKeyName != ""
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
 	optionalParam(params.ClusterUpdateParams.BaseDNSDomain, "base_dns_domain", updates)
 	optionalParam(params.ClusterUpdateParams.HTTPProxy, "http_proxy", updates)
@@ -1939,7 +1981,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
 		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
 		updates["user_managed_networking"] = userManagedNetworking
-		if userManagedNetworking {
+		if userManagedNetworking && !isKubeAPICluster {
 			err = validateUserManagedNetworkConflicts(params.ClusterUpdateParams, log)
 			if err != nil {
 				return err
@@ -1960,15 +2002,18 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		machineCidr = ""
 		setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	}
-	if !userManagedNetworking {
+
+	if isKubeAPICluster {
+		err = b.updateKubeAPIClusterNetworkParams(updates, cluster, params, log, &machineCidr)
+	} else if !userManagedNetworking {
 		if vipDhcpAllocation {
 			err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
 		} else {
 			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
 		}
-		if err != nil {
-			return err
-		}
+	}
+	if err != nil {
+		return err
 	}
 
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
@@ -1984,11 +2029,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	if params.ClusterUpdateParams.PullSecret != nil {
 		cluster.PullSecret = *params.ClusterUpdateParams.PullSecret
 		updates["pull_secret"] = *params.ClusterUpdateParams.PullSecret
-		if cluster.PullSecret != "" {
-			updates["pull_secret_set"] = true
-		} else {
-			updates["pull_secret_set"] = false
-		}
+		updates["pull_secret_set"] = cluster.PullSecret != ""
 	}
 	if params.ClusterUpdateParams.APIVipDNSName != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)

@@ -3127,6 +3127,421 @@ var _ = Describe("cluster", func() {
 				})
 			})
 		})
+		Context("Update Network Kube API", func() {
+			BeforeEach(func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{
+					Cluster: models.Cluster{
+						ID: &clusterID,
+					},
+					KubeKeyName:      "name",
+					KubeKeyNamespace: "namespace",
+				}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+				addHost(masterHostId2, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname1", "bootMode", "1.2.3.5/24", "10.11.50.80/16"), db)
+				addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
+				err = db.Model(&models.Host{ID: &masterHostId3, ClusterID: clusterID}).UpdateColumn("free_addresses",
+					makeFreeNetworksAddressesStr(makeFreeAddresses("10.11.0.0/16", "10.11.12.15", "10.11.12.16"))).Error
+				Expect(err).ToNot(HaveOccurred())
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			})
+
+			mockSuccess := func(times int) {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(times * 3) // Number of hosts
+				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times * 3)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(times * 1)
+				mockSetConnectivityMajorityGroupsForClusterTimes(mockClusterApi, times)
+			}
+
+			Context("Non DHCP", func() {
+				It("No machine network", func() {
+					mockSuccess(1)
+
+					apiVip := "8.8.8.8"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip: &apiVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+				})
+				It("Api and ingress mismatch", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "1.2.3.20"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+				})
+				It("Same api and ingress", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := apiVip
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Update success", func() {
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+					mockSuccess(2)
+
+					machineCidr := "10.11.0.0/16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							MachineNetworkCidr: swag.String(machineCidr),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal(machineCidr))
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual = reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal(machineCidr))
+
+					expectedNetworks := sortedNetworks([]*models.HostNetwork{
+						{
+							Cidr: "1.2.3.0/24",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+								masterHostId3,
+							}),
+						},
+						{
+							Cidr: "10.11.0.0/16",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+							}),
+						},
+						{
+							Cidr: "7.8.9.0/24",
+							HostIds: []strfmt.UUID{
+								masterHostId3,
+							},
+						},
+					})
+					actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+					Expect(len(actualNetworks)).To(Equal(3))
+					actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+					actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+					Expect(actualNetworks).To(Equal(expectedNetworks))
+				})
+				It("Machine network CIDR in non dhcp", func() {
+					mockSuccess(1)
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					machineCidr := "10.12.0.0/16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:             &apiVip,
+							IngressVip:         &ingressVip,
+							MachineNetworkCidr: swag.String(machineCidr),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal(machineCidr))
+				})
+			})
+			Context("Advanced networking validations", func() {
+
+				It("Update success", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
+							ServiceNetworkCidr:       swag.String("193.168.5.0/24"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.0.0/21"))
+					Expect(actual.Payload.ServiceNetworkCidr).To(Equal("193.168.5.0/24"))
+					expectedNetworks := sortedNetworks([]*models.HostNetwork{
+						{
+							Cidr: "1.2.3.0/24",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+								masterHostId3,
+							}),
+						},
+						{
+							Cidr: "10.11.0.0/16",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+							}),
+						},
+						{
+							Cidr: "7.8.9.0/24",
+							HostIds: []strfmt.UUID{
+								masterHostId3,
+							},
+						},
+					})
+					actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+					Expect(len(actualNetworks)).To(Equal(3))
+					actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+					actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+					Expect(actualNetworks).To(Equal(expectedNetworks))
+				})
+				It("Overlapping", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/21"),
+							ServiceNetworkCidr:       swag.String("192.168.4.0/23"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Prefix out of range", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.5.0/24"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/23"),
+							ClusterNetworkHostPrefix: swag.Int64(26),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Subnet prefix out of range", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/27"),
+							ClusterNetworkHostPrefix: swag.Int64(25),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("OK", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+							ClusterNetworkHostPrefix: swag.Int64(25),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				})
+				It("Bad subnet", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("1.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/1"),
+							ClusterNetworkHostPrefix: swag.Int64(23),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+				It("Not enough addresses", func() {
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:                   &apiVip,
+							IngressVip:               &ingressVip,
+							ClusterNetworkCidr:       swag.String("192.168.0.0/23"),
+							ServiceNetworkCidr:       swag.String("193.168.4.0/25"),
+							ClusterNetworkHostPrefix: swag.Int64(24),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				})
+			})
+			Context("DHCP", func() {
+
+				It("Vips in DHCP", func() {
+					mockSuccess(1)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:             &apiVip,
+							IngressVip:         &ingressVip,
+							MachineNetworkCidr: swag.String("10.11.0.0/16"),
+							VipDhcpAllocation:  swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+				})
+
+				It("Success in DHCP", func() {
+					mockSuccess(3)
+					mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(2)
+
+					apiVip := "10.11.12.15"
+					ingressVip := "10.11.12.16"
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:     &apiVip,
+							IngressVip: &ingressVip,
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+
+					reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							MachineNetworkCidr: swag.String("1.2.3.0/24"),
+							VipDhcpAllocation:  swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual = reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
+					expectedNetworks := sortedNetworks([]*models.HostNetwork{
+						{
+							Cidr: "1.2.3.0/24",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+								masterHostId3,
+							}),
+						},
+						{
+							Cidr: "10.11.0.0/16",
+							HostIds: sortedHosts([]strfmt.UUID{
+								masterHostId1,
+								masterHostId2,
+							}),
+						},
+						{
+							Cidr: "7.8.9.0/24",
+							HostIds: []strfmt.UUID{
+								masterHostId3,
+							},
+						},
+					})
+					actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+					Expect(len(actualNetworks)).To(Equal(3))
+					actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+					actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+					actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+					Expect(actualNetworks).To(Equal(expectedNetworks))
+					reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							APIVip:            &apiVip,
+							IngressVip:        &ingressVip,
+							VipDhcpAllocation: swag.Bool(false),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual = reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
+				})
+				It("DHCP non existent network", func() {
+					mockSuccess(1)
+
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							MachineNetworkCidr: swag.String("10.13.0.0/16"),
+							VipDhcpAllocation:  swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.13.0.0/16"))
+				})
+
+			})
+		})
 	})
 
 	Context("Install", func() {
