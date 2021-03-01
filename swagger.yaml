@@ -2273,6 +2273,70 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/logs_progress:
+    put:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Update log collection state and progress.
+      operationId: UpdateLogsProgress
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose log progress is being updated.
+          type: string
+          format: uuid
+          required: true
+        - in: query
+          name: logs_type
+          description: The type of log file.
+          type: string
+          enum: ['host', 'controller']
+          required: true
+        - in: query
+          name: host_id
+          description: The host whose log progress is being updated.
+          type: string
+          format: uuid
+          required: false
+        - in: query
+          name: logs_state
+          description: The state of collecting logs.
+          type: string
+          enum: ['requested', 'collecting', 'completed']
+          required: true
+      responses:
+        "204":
+          description: Update cluster install progress.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
 
   /clusters/{cluster_id}/logs:
     post:
@@ -3052,6 +3116,10 @@ definitions:
         type: string
         description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hardware, etc.)
         x-go-custom-tag: gorm:"type:text"
+      logs_info:
+        $ref: '#/definitions/logs_state'
+        description: The progress of log collection or empty if logs are not applicable
+        x-go-custom-tag: gorm:"type:varchar(2048)"
       status_updated_at:
         type: string
         format: date-time
@@ -3096,6 +3164,10 @@ definitions:
       bootstrap:
         type: boolean
       logs_collected_at:
+        type: string
+        format: datetime
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+      logs_started_at:
         type: string
         format: datetime
         x-go-custom-tag: gorm:"type:timestamp with time zone"
@@ -3666,6 +3738,10 @@ definitions:
         type: string
         description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
         x-go-custom-tag: gorm:"type:text"
+      logs_info:
+        type: string
+        description: The progress of log collection or empty if logs are not applicable
+        x-go-custom-tag: gorm:"type:varchar(2048)"
       install_config_overrides:
         x-go-custom-tag: gorm:"type:text"
         type: string
@@ -3677,6 +3753,10 @@ definitions:
         description: Json formatted string containing the user overrides for the initial ignition config
         example: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
       controller_logs_collected_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+      controller_logs_started_at:
         type: string
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
@@ -4453,6 +4533,15 @@ definitions:
       - 'host'
       - 'controller'
       - 'all'
+      - ''
+
+  logs_state:
+    type: string
+    enum:
+      - 'requested'
+      - 'collecting'
+      - 'completed'
+      - 'timeout'
       - ''
 
   operators:

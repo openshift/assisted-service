@@ -3529,6 +3529,107 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/logs_progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update log collection state and progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "UpdateLogsProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose log progress is being updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller"
+            ],
+            "type": "string",
+            "description": "The type of log file.",
+            "name": "logs_type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose log progress is being updated.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "requested",
+              "collecting",
+              "completed"
+            ],
+            "type": "string",
+            "description": "The state of collecting logs.",
+            "name": "logs_state",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Update cluster install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/manifests": {
       "get": {
         "security": [
@@ -4380,6 +4481,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "controller_logs_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "created_at": {
           "description": "The time that this cluster was created.",
           "type": "string",
@@ -4482,6 +4588,11 @@ func init() {
             "AddHostsCluster",
             "AddHostsOCPCluster"
           ]
+        },
+        "logs_info": {
+          "description": "The progress of log collection or empty if logs are not applicable",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
@@ -5636,6 +5747,16 @@ func init() {
           "format": "datetime",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "logs_info": {
+          "description": "The progress of log collection or empty if logs are not applicable",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "$ref": "#/definitions/logs_state"
+        },
+        "logs_started_at": {
+          "type": "string",
+          "format": "datetime",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "machine_config_pool_name": {
           "type": "string"
         },
@@ -6188,6 +6309,16 @@ func init() {
           "$ref": "#/definitions/versions"
         }
       }
+    },
+    "logs_state": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "collecting",
+        "completed",
+        "timeout",
+        ""
+      ]
     },
     "logs_type": {
       "type": "string",
@@ -10058,6 +10189,107 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/logs_progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update log collection state and progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "UpdateLogsProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose log progress is being updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "enum": [
+              "host",
+              "controller"
+            ],
+            "type": "string",
+            "description": "The type of log file.",
+            "name": "logs_type",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose log progress is being updated.",
+            "name": "host_id",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "requested",
+              "collecting",
+              "completed"
+            ],
+            "type": "string",
+            "description": "The state of collecting logs.",
+            "name": "logs_state",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Update cluster install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/manifests": {
       "get": {
         "security": [
@@ -11039,6 +11271,11 @@ func init() {
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "controller_logs_started_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "created_at": {
           "description": "The time that this cluster was created.",
           "type": "string",
@@ -11141,6 +11378,11 @@ func init() {
             "AddHostsCluster",
             "AddHostsOCPCluster"
           ]
+        },
+        "logs_info": {
+          "description": "The progress of log collection or empty if logs are not applicable",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
         },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
@@ -12219,6 +12461,16 @@ func init() {
           "format": "datetime",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
         },
+        "logs_info": {
+          "description": "The progress of log collection or empty if logs are not applicable",
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "$ref": "#/definitions/logs_state"
+        },
+        "logs_started_at": {
+          "type": "string",
+          "format": "datetime",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
         "machine_config_pool_name": {
           "type": "string"
         },
@@ -12772,6 +13024,16 @@ func init() {
           "$ref": "#/definitions/versions"
         }
       }
+    },
+    "logs_state": {
+      "type": "string",
+      "enum": [
+        "requested",
+        "collecting",
+        "completed",
+        "timeout",
+        ""
+      ]
     },
     "logs_type": {
       "type": "string",

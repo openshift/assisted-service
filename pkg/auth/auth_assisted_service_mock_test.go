@@ -23,6 +23,10 @@ func (f fakeInventory) CancelInstallation(ctx context.Context, params installer.
 	return installer.NewCancelInstallationAccepted()
 }
 
+func (f fakeInventory) UpdateLogsProgress(ctx context.Context, params installer.UpdateLogsProgressParams) middleware.Responder {
+	return installer.NewUpdateLogsProgressNoContent()
+}
+
 func (f fakeInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
 	return installer.NewUpdateClusterInstallProgressNoContent()
 }

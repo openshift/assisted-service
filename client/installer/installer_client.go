@@ -145,6 +145,9 @@ type API interface {
 	   UpdateHostInstallerArgs Updates a host's installer arguments.*/
 	UpdateHostInstallerArgs(ctx context.Context, params *UpdateHostInstallerArgsParams) (*UpdateHostInstallerArgsCreated, error)
 	/*
+	   UpdateLogsProgress Update log collection state and progress.*/
+	UpdateLogsProgress(ctx context.Context, params *UpdateLogsProgressParams) (*UpdateLogsProgressNoContent, error)
+	/*
 	   UploadClusterIngressCert Transfer the ingress certificate for the cluster.*/
 	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
 	/*
@@ -1220,6 +1223,31 @@ func (a *Client) UpdateHostInstallerArgs(ctx context.Context, params *UpdateHost
 		return nil, err
 	}
 	return result.(*UpdateHostInstallerArgsCreated), nil
+
+}
+
+/*
+UpdateLogsProgress Update log collection state and progress.
+*/
+func (a *Client) UpdateLogsProgress(ctx context.Context, params *UpdateLogsProgressParams) (*UpdateLogsProgressNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateLogsProgress",
+		Method:             "PUT",
+		PathPattern:        "/clusters/{cluster_id}/logs_progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateLogsProgressReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateLogsProgressNoContent), nil
 
 }
 
