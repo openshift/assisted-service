@@ -185,4 +185,19 @@ var _ = Describe("Operators manager", func() {
 			),
 		)
 	})
+
+	Context("Supported Operators", func() {
+		It("should provide list of supported operators", func() {
+			supportedOperators := manager.GetSupportedOperators()
+
+			Expect(supportedOperators).To(ConsistOf("ocs", "lso"))
+		})
+
+		It("should provide properties of an operator", func() {
+			properties, err := manager.GetOperatorProperties("ocs")
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(properties).To(BeEquivalentTo(models.OperatorProperties{}))
+		})
+	})
 })

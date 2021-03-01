@@ -331,6 +331,7 @@ func main() {
 		}
 	}
 
+	operatorsHandler := operators.NewHandler(operatorsManager, log.WithField("pkg", "operators"))
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:         authHandler.AuthAgentAuth,
 		AuthUserAuth:          authHandler.AuthUserAuth,
@@ -345,6 +346,7 @@ func main() {
 		InnerMiddleware:       innerHandler(),
 		ManifestsAPI:          manifestsApi,
 		BootfilesAPI:          bootFilesApi,
+		OperatorsAPI:          operatorsHandler,
 	})
 	failOnError(err, "Failed to init rest handler")
 

@@ -237,6 +237,9 @@ type OperatorsAPI interface {
 	/* ListOfClusterOperators Lists operators to be monitored for a cluster. */
 	ListOfClusterOperators(ctx context.Context, params operators.ListOfClusterOperatorsParams) middleware.Responder
 
+	/* ListOperatorProperties Lists properties for an operator. */
+	ListOperatorProperties(ctx context.Context, params operators.ListOperatorPropertiesParams) middleware.Responder
+
 	/* ListSupportedOperators Retrieves the list of supported operators. */
 	ListSupportedOperators(ctx context.Context, params operators.ListSupportedOperatorsParams) middleware.Responder
 
@@ -539,6 +542,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.OperatorsAPI.ListOfClusterOperators(ctx, params)
+	})
+	api.OperatorsListOperatorPropertiesHandler = operators.ListOperatorPropertiesHandlerFunc(func(params operators.ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.ListOperatorProperties(ctx, params)
 	})
 	api.VersionsListSupportedOpenshiftVersionsHandler = versions.ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -19,6 +20,7 @@ type Manager struct {
 	monitoredOperators map[string]*models.MonitoredOperator
 }
 
+// API defines Operator management operation
 //go:generate mockgen -package=operators -destination=mock_operators_api.go . API
 type API interface {
 	// ValidateCluster validates cluster requirements
@@ -38,6 +40,10 @@ type API interface {
 	GetOperatorByName(operatorName string) (*models.MonitoredOperator, error)
 	// GetSupportedOperatorsByType returns the manager's supported operator objects by type.
 	GetSupportedOperatorsByType(operatorType models.OperatorType) []*models.MonitoredOperator
+	// GetSupportedOperators returns a list of OLM operators that are supported
+	GetSupportedOperators() []string
+	// GetOperatorProperties provides description of properties of an operator
+	GetOperatorProperties(operatorName string) (models.OperatorProperties, error)
 }
 
 // GenerateManifests generates manifests for all enabled operators.
@@ -191,6 +197,23 @@ func (mgr *Manager) UpdateDependencies(cluster *common.Cluster) error {
 
 	cluster.MonitoredOperators = operators
 	return nil
+}
+
+// GetSupportedOperators returns a list of OLM operators that are supported
+func (mgr *Manager) GetSupportedOperators() []string {
+	keys := make([]string, 0, len(mgr.olmOperators))
+	for k := range mgr.olmOperators {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// GetOperatorProperties provides description of properties of an operator
+func (mgr *Manager) GetOperatorProperties(operatorName string) (models.OperatorProperties, error) {
+	if operator, ok := mgr.olmOperators[operatorName]; ok {
+		return operator.GetProperties(), nil
+	}
+	return nil, errors.Errorf("Operator %s not found", operatorName)
 }
 
 func (mgr *Manager) resolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {

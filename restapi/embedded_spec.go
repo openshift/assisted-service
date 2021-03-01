@@ -4476,7 +4476,10 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/monitored-operators-list"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "401": {
@@ -4489,6 +4492,65 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-properties"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -6742,6 +6804,50 @@ func init() {
         "status_info": {
           "description": "Detailed information about the operator state.",
           "type": "string"
+        }
+      }
+    },
+    "operator-properties": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-property"
+      }
+    },
+    "operator-property": {
+      "type": "object",
+      "properties": {
+        "data_type": {
+          "description": "Type of the property",
+          "type": "string",
+          "enum": [
+            "boolean",
+            "string",
+            "integer",
+            "float"
+          ]
+        },
+        "default_value": {
+          "description": "Default value for the property",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description of a property",
+          "type": "string"
+        },
+        "mandatory": {
+          "description": "Indicates whether the property is reqired",
+          "type": "boolean"
+        },
+        "name": {
+          "description": "Name of the property",
+          "type": "string"
+        },
+        "options": {
+          "description": "Values to select from",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -11414,7 +11520,10 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/monitored-operators-list"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "401": {
@@ -11427,6 +11536,65 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-properties"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -13735,6 +13903,50 @@ func init() {
         "status_info": {
           "description": "Detailed information about the operator state.",
           "type": "string"
+        }
+      }
+    },
+    "operator-properties": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-property"
+      }
+    },
+    "operator-property": {
+      "type": "object",
+      "properties": {
+        "data_type": {
+          "description": "Type of the property",
+          "type": "string",
+          "enum": [
+            "boolean",
+            "string",
+            "integer",
+            "float"
+          ]
+        },
+        "default_value": {
+          "description": "Default value for the property",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description of a property",
+          "type": "string"
+        },
+        "mandatory": {
+          "description": "Indicates whether the property is reqired",
+          "type": "boolean"
+        },
+        "name": {
+          "description": "Name of the property",
+          "type": "string"
+        },
+        "options": {
+          "description": "Values to select from",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

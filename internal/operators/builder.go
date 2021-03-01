@@ -37,6 +37,7 @@ func NewManager(log logrus.FieldLogger) *Manager {
 	return NewManagerWithOperators(log, lso.NewLSOperator(), ocs.NewOcsOperator(log))
 }
 
+// NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators
 func NewManagerWithOperators(log logrus.FieldLogger, olmOperators ...api.Operator) *Manager {
 	nameToOperator := make(map[string]api.Operator)
 	for _, olmOperator := range olmOperators {

@@ -21,6 +21,9 @@ type API interface {
 	   ListOfClusterOperators Lists operators to be monitored for a cluster.*/
 	ListOfClusterOperators(ctx context.Context, params *ListOfClusterOperatorsParams) (*ListOfClusterOperatorsOK, error)
 	/*
+	   ListOperatorProperties Lists properties for an operator.*/
+	ListOperatorProperties(ctx context.Context, params *ListOperatorPropertiesParams) (*ListOperatorPropertiesOK, error)
+	/*
 	   ListSupportedOperators Retrieves the list of supported operators.*/
 	ListSupportedOperators(ctx context.Context, params *ListSupportedOperatorsParams) (*ListSupportedOperatorsOK, error)
 	/*
@@ -68,6 +71,31 @@ func (a *Client) ListOfClusterOperators(ctx context.Context, params *ListOfClust
 		return nil, err
 	}
 	return result.(*ListOfClusterOperatorsOK), nil
+
+}
+
+/*
+ListOperatorProperties Lists properties for an operator.
+*/
+func (a *Client) ListOperatorProperties(ctx context.Context, params *ListOperatorPropertiesParams) (*ListOperatorPropertiesOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListOperatorProperties",
+		Method:             "GET",
+		PathPattern:        "/supported-operators/{operator_name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListOperatorPropertiesReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListOperatorPropertiesOK), nil
 
 }
 

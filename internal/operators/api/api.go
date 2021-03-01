@@ -59,4 +59,6 @@ type Operator interface {
 	GetClusterValidationID() string
 	// GetHostValidationID returns host validation ID for the Operator
 	GetHostValidationID() string
+	// GetProperties provides description of operator properties
+	GetProperties() models.OperatorProperties
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+// lsOperator is an LSO OLM operator plugin; it implements api.Operator
 type lsOperator struct {
 }
 
@@ -87,4 +88,9 @@ func (l *lsOperator) GetDisksRequirementForMaster(context.Context, *common.Clust
 // GetDisksRequirementForWorker provides a number of disks required in a worker
 func (l *lsOperator) GetDisksRequirementForWorker(context.Context, *common.Cluster) (int64, error) {
 	return 1, nil
+}
+
+// GetProperties provides description of operator properties: none required
+func (l *lsOperator) GetProperties() models.OperatorProperties {
+	return models.OperatorProperties{}
 }
