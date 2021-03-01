@@ -4591,8 +4591,8 @@ func init() {
         },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "$ref": "#/definitions/logs_state"
         },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
@@ -11381,8 +11381,8 @@ func init() {
         },
         "logs_info": {
           "description": "The progress of log collection or empty if logs are not applicable",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
+          "x-go-custom-tag": "gorm:\"type:varchar(2048)\"",
+          "$ref": "#/definitions/logs_state"
         },
         "machine_network_cidr": {
           "description": "A CIDR that all hosts belonging to the cluster should have an interfaces with IP address that belongs to this CIDR. The api_vip belongs to this CIDR.",
