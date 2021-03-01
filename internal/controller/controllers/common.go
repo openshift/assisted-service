@@ -19,9 +19,9 @@ func getPullSecret(ctx context.Context, c client.Client, name, namespace string)
 		return "", errors.Wrapf(err, "failed to get pull secret %s", key)
 	}
 
-	data, ok := secret.Data["pullSecret"]
+	data, ok := secret.Data[corev1.DockerConfigJsonKey]
 	if !ok {
-		return "", errors.Errorf("pullSecret is not configured")
+		return "", errors.Errorf("secret %s did not contain key %s", name, corev1.DockerConfigJsonKey)
 	}
 
 	return string(data), nil
