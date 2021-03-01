@@ -73,5 +73,5 @@ require (
 replace (
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20200715132148-0f91f62a41fe // Use OpenShift fork
 	github.com/openshift/hive/pkg/apis => github.com/carbonin/hive/pkg/apis v0.0.0-20210209195732-57e8c3ae12d1
-	k8s.io/client-go => k8s.io/client-go v0.19.5
+	k8s.io/client-go => k8s.io/client-go v0.20.0
 )
