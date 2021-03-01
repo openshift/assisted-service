@@ -347,11 +347,7 @@ var _ = Describe("GenerateClusterISO", func() {
 				SSHPublicKey: "anything but a valid key",
 			},
 		})
-
-		Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-		errorResponse := reply.(*common.ApiErrorResponse)
-		Expect(errorResponse.StatusCode()).To(BeNumerically("==", http.StatusBadRequest))
-		Expect(errorResponse.Error()).To(ContainSubstring("SSH"))
+		verifyApiErrorString(reply, http.StatusBadRequest, "SSH")
 	})
 
 	Context("static network config", func() {
@@ -3126,6 +3122,69 @@ var _ = Describe("cluster", func() {
 					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 				})
 			})
+
+			Context("VIP DHCP allocation with IPv6", func() {
+
+				It("Fail to set IPv6 machine CIDR and VIP DHCP true", func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID: &clusterID,
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					addHost(masterHostId1, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID,
+						getInventoryStrWithIPv6("host", "bios", []string{}, []string{"2001:db8::a/64"}), db)
+
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							MachineNetworkCidr: swag.String("2001:db8::/64"),
+							VipDhcpAllocation:  swag.Bool(true),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP allocation is unsupported with IPv6 network")
+				})
+
+				It("Fail to set IPv6 machine CIDR when VIP DHCP was true", func() {
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                &clusterID,
+						VipDhcpAllocation: swag.Bool(true),
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					addHost(masterHostId1, models.HostRoleMaster, models.HostStatusInsufficient, "kind", clusterID,
+						getInventoryStrWithIPv6("host", "bios", []string{}, []string{"2001:db8::a/64"}), db)
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							MachineNetworkCidr: swag.String("2001:db8::/64"),
+						},
+					})
+					verifyApiErrorString(reply, http.StatusBadRequest, "VIP DHCP allocation is unsupported with IPv6 network")
+				})
+
+				It("Set VIP DHCP true when machine CIDR was IPv6", func() {
+					mockClusterRefreshStatusSuccess()
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+					clusterID = strfmt.UUID(uuid.New().String())
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:                 &clusterID,
+						MachineNetworkCidr: "2001:db8::/64",
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+						ClusterID: clusterID,
+						ClusterUpdateParams: &models.ClusterUpdateParams{
+							VipDhcpAllocation: swag.Bool(true),
+						},
+					})
+					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+					actual := reply.(*installer.UpdateClusterCreated)
+					Expect(actual.Payload.MachineNetworkCidr).To(BeEmpty())
+					Expect(actual.Payload.VipDhcpAllocation).NotTo(BeNil())
+					Expect(*actual.Payload.VipDhcpAllocation).To(BeTrue())
+
+				})
+			})
 		})
 	})
 
@@ -4648,8 +4707,15 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 
 func verifyApiError(responder middleware.Responder, expectedHttpStatus int32) {
 	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
-	conncreteError := responder.(*common.ApiErrorResponse)
-	ExpectWithOffset(1, conncreteError.StatusCode()).To(Equal(expectedHttpStatus))
+	concreteError := responder.(*common.ApiErrorResponse)
+	ExpectWithOffset(1, concreteError.StatusCode()).To(Equal(expectedHttpStatus))
+}
+
+func verifyApiErrorString(responder middleware.Responder, expectedHttpStatus int32, expectedSubstring string) {
+	ExpectWithOffset(1, responder).To(BeAssignableToTypeOf(common.NewApiError(expectedHttpStatus, nil)))
+	concreteError := responder.(*common.ApiErrorResponse)
+	ExpectWithOffset(1, concreteError.StatusCode()).To(Equal(expectedHttpStatus))
+	ExpectWithOffset(1, concreteError.Error()).To(ContainSubstring(expectedSubstring))
 }
 
 func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
