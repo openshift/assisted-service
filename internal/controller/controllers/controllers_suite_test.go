@@ -38,16 +38,13 @@ func newSecret(name, namespace string, data map[string][]byte) *corev1.Secret {
 			Namespace: namespace,
 		},
 		Data: data,
+		Type: corev1.SecretTypeDockerConfigJson,
 	}
 
 	return secret
 }
 
 func getDefaultTestPullSecret(name, namespace string) *corev1.Secret {
-	var (
-		pullSecretFiled = "pullSecret"
-		pullSecretValue = testPullSecretVal
-	)
 	return newSecret(name, namespace,
-		map[string][]byte{pullSecretFiled: []byte(pullSecretValue)})
+		map[string][]byte{corev1.DockerConfigJsonKey: []byte(testPullSecretVal)})
 }
