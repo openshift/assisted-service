@@ -1,6 +1,8 @@
 package isoeditor
 
 import (
+	"bytes"
+	"encoding/binary"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -125,6 +127,49 @@ var _ = Context("with test files", func() {
 		})
 	})
 
+	Describe("embedOffsetsInSystemArea", func() {
+		It("embeds offsets in system area correctly", func() {
+			editor := editorForFile(isoFile, workDir)
+
+			// Create template
+			isoPath, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Open image and read header
+			iso, err := os.OpenFile(isoPath, os.O_RDONLY, 0o664)
+			Expect(err).ToNot(HaveOccurred())
+			header := make([]byte, int64(32768))
+			_, err = iso.Read(header)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Read offsets
+
+			headerBytes := header[len(header)-24:]
+			buf := bytes.NewReader(headerBytes)
+			offsetInfo := new(OffsetInfo)
+			err = binary.Read(buf, binary.LittleEndian, offsetInfo)
+			Expect(err).ToNot(HaveOccurred())
+
+			ignitionOffset, err := isoutil.GetFileLocation(ignitionImagePath, isoPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(offsetInfo.Key[:])).To(Equal(ignitionHeaderKey))
+			Expect(offsetInfo.Offset).To(Equal(ignitionOffset))
+			Expect(offsetInfo.Length).To(Equal(IgnitionPaddingLength))
+
+			headerBytes = header[len(header)-48 : len(header)-24]
+			buf = bytes.NewReader(headerBytes)
+			offsetInfo = new(OffsetInfo)
+			err = binary.Read(buf, binary.LittleEndian, offsetInfo)
+			Expect(err).ToNot(HaveOccurred())
+
+			ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoPath)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(string(offsetInfo.Key[:])).To(Equal(ramdiskHeaderKey))
+			Expect(offsetInfo.Offset).To(Equal(ramDiskOffset))
+			Expect(offsetInfo.Length).To(Equal(RamDiskPaddingLength))
+		})
+	})
+
 	Describe("addCustomRAMDisk", func() {
 		It("adds a new archive correctly", func() {
 			editor := editorForFile(isoFile, workDir)
@@ -226,6 +271,10 @@ label linux
 	err = os.MkdirAll(filepath.Join(filesDir, "files/isolinux"), 0755)
 	Expect(err).ToNot(HaveOccurred())
 	err = ioutil.WriteFile(filepath.Join(filesDir, "files/isolinux/isolinux.cfg"), []byte(isoLinuxConfig), 0600)
+	Expect(err).ToNot(HaveOccurred())
+	err = ioutil.WriteFile(filepath.Join(filesDir, "files/images/assisted_installer_custom.img"), make([]byte, RamDiskPaddingLength), 0600)
+	Expect(err).ToNot(HaveOccurred())
+	err = ioutil.WriteFile(filepath.Join(filesDir, "files/images/ignition.img"), make([]byte, IgnitionPaddingLength), 0600)
 	Expect(err).ToNot(HaveOccurred())
 	cmd := exec.Command("genisoimage", "-rational-rock", "-J", "-joliet-long", "-V", volumeID, "-o", isoFile, filepath.Join(filesDir, "files"))
 	err = cmd.Run()
