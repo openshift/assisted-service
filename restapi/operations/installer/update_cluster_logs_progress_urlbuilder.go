@@ -14,13 +14,9 @@ import (
 	"github.com/go-openapi/strfmt"
 )
 
-// UpdateLogsProgressURL generates an URL for the update logs progress operation
-type UpdateLogsProgressURL struct {
+// UpdateClusterLogsProgressURL generates an URL for the update cluster logs progress operation
+type UpdateClusterLogsProgressURL struct {
 	ClusterID strfmt.UUID
-
-	HostID    *strfmt.UUID
-	LogsState string
-	LogsType  string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -30,7 +26,7 @@ type UpdateLogsProgressURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *UpdateLogsProgressURL) WithBasePath(bp string) *UpdateLogsProgressURL {
+func (o *UpdateClusterLogsProgressURL) WithBasePath(bp string) *UpdateClusterLogsProgressURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -38,12 +34,12 @@ func (o *UpdateLogsProgressURL) WithBasePath(bp string) *UpdateLogsProgressURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *UpdateLogsProgressURL) SetBasePath(bp string) {
+func (o *UpdateClusterLogsProgressURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *UpdateLogsProgressURL) Build() (*url.URL, error) {
+func (o *UpdateClusterLogsProgressURL) Build() (*url.URL, error) {
 	var _result url.URL
 
 	var _path = "/clusters/{cluster_id}/logs_progress"
@@ -52,7 +48,7 @@ func (o *UpdateLogsProgressURL) Build() (*url.URL, error) {
 	if clusterID != "" {
 		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {
-		return nil, errors.New("clusterId is required on UpdateLogsProgressURL")
+		return nil, errors.New("clusterId is required on UpdateClusterLogsProgressURL")
 	}
 
 	_basePath := o._basePath
@@ -61,33 +57,11 @@ func (o *UpdateLogsProgressURL) Build() (*url.URL, error) {
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
-	qs := make(url.Values)
-
-	var hostIDQ string
-	if o.HostID != nil {
-		hostIDQ = o.HostID.String()
-	}
-	if hostIDQ != "" {
-		qs.Set("host_id", hostIDQ)
-	}
-
-	logsStateQ := o.LogsState
-	if logsStateQ != "" {
-		qs.Set("logs_state", logsStateQ)
-	}
-
-	logsTypeQ := o.LogsType
-	if logsTypeQ != "" {
-		qs.Set("logs_type", logsTypeQ)
-	}
-
-	_result.RawQuery = qs.Encode()
-
 	return &_result, nil
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *UpdateLogsProgressURL) Must(u *url.URL, err error) *url.URL {
+func (o *UpdateClusterLogsProgressURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -98,17 +72,17 @@ func (o *UpdateLogsProgressURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *UpdateLogsProgressURL) String() string {
+func (o *UpdateClusterLogsProgressURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *UpdateLogsProgressURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *UpdateClusterLogsProgressURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on UpdateLogsProgressURL")
+		return nil, errors.New("scheme is required for a full url on UpdateClusterLogsProgressURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on UpdateLogsProgressURL")
+		return nil, errors.New("host is required for a full url on UpdateClusterLogsProgressURL")
 	}
 
 	base, err := o.Build()
@@ -122,6 +96,6 @@ func (o *UpdateLogsProgressURL) BuildFull(scheme, host string) (*url.URL, error)
 }
 
 // StringFull returns the string representation of a complete url
-func (o *UpdateLogsProgressURL) StringFull(scheme, host string) string {
+func (o *UpdateClusterLogsProgressURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

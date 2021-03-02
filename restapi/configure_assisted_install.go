@@ -177,6 +177,9 @@ type InstallerAPI interface {
 	/* UpdateClusterInstallProgress Update cluster installation progress. */
 	UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder
 
+	/* UpdateClusterLogsProgress Update log collection state and progress. */
+	UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder
+
 	/* UpdateDiscoveryIgnition Override values in the discovery ignition config */
 	UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder
 
@@ -189,8 +192,8 @@ type InstallerAPI interface {
 	/* UpdateHostInstallerArgs Updates a host's installer arguments. */
 	UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder
 
-	/* UpdateLogsProgress Update log collection state and progress. */
-	UpdateLogsProgress(ctx context.Context, params installer.UpdateLogsProgressParams) middleware.Responder
+	/* UpdateHostLogsProgress Update log collection state and progress. */
+	UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder
 
 	/* UploadClusterIngressCert Transfer the ingress certificate for the cluster. */
 	UploadClusterIngressCert(ctx context.Context, params installer.UploadClusterIngressCertParams) middleware.Responder
@@ -589,6 +592,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateClusterInstallProgress(ctx, params)
 	})
+	api.InstallerUpdateClusterLogsProgressHandler = installer.UpdateClusterLogsProgressHandlerFunc(func(params installer.UpdateClusterLogsProgressParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.UpdateClusterLogsProgress(ctx, params)
+	})
 	api.InstallerUpdateDiscoveryIgnitionHandler = installer.UpdateDiscoveryIgnitionHandlerFunc(func(params installer.UpdateDiscoveryIgnitionParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
@@ -609,10 +617,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UpdateHostInstallerArgs(ctx, params)
 	})
-	api.InstallerUpdateLogsProgressHandler = installer.UpdateLogsProgressHandlerFunc(func(params installer.UpdateLogsProgressParams, principal interface{}) middleware.Responder {
+	api.InstallerUpdateHostLogsProgressHandler = installer.UpdateHostLogsProgressHandlerFunc(func(params installer.UpdateHostLogsProgressParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.UpdateLogsProgress(ctx, params)
+		return c.InstallerAPI.UpdateHostLogsProgress(ctx, params)
 	})
 	api.InstallerUploadClusterIngressCertHandler = installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -23,10 +23,6 @@ func (f fakeInventory) CancelInstallation(ctx context.Context, params installer.
 	return installer.NewCancelInstallationAccepted()
 }
 
-func (f fakeInventory) UpdateLogsProgress(ctx context.Context, params installer.UpdateLogsProgressParams) middleware.Responder {
-	return installer.NewUpdateLogsProgressNoContent()
-}
-
 func (f fakeInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
 	return installer.NewUpdateClusterInstallProgressNoContent()
 }
@@ -189,6 +185,14 @@ func (f fakeInventory) UploadClusterIngressCert(ctx context.Context, params inst
 
 func (f fakeInventory) UploadHostLogs(ctx context.Context, params installer.UploadHostLogsParams) middleware.Responder {
 	return installer.NewUploadHostLogsNoContent()
+}
+
+func (f fakeInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
+	return installer.NewUpdateClusterLogsProgressNoContent()
+}
+
+func (f fakeInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
+	return installer.NewUpdateHostLogsProgressNoContent()
 }
 
 func (f fakeInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
