@@ -5341,6 +5341,9 @@ func init() {
         "bootable": {
           "type": "boolean"
         },
+        "by_id": {
+          "type": "string"
+        },
         "by_path": {
           "type": "string"
         },
@@ -12090,6 +12093,9 @@ func init() {
       "properties": {
         "bootable": {
           "type": "boolean"
+        },
+        "by_id": {
+          "type": "string"
         },
         "by_path": {
           "type": "string"

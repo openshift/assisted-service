@@ -19,6 +19,9 @@ type Disk struct {
 	// bootable
 	Bootable bool `json:"bootable,omitempty"`
 
+	// by id
+	ByID string `json:"by_id,omitempty"`
+
 	// by path
 	ByPath string `json:"by_path,omitempty"`
 

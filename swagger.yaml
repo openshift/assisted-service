@@ -4078,6 +4078,8 @@ definitions:
         type: string
       by_path:
         type: string
+      by_id:
+        type: string
       model:
         type: string
       wwn:
