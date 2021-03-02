@@ -3739,7 +3739,7 @@ definitions:
         description: JSON-formatted string containing the validation results for each validation id grouped by category (network, hosts-data, etc.)
         x-go-custom-tag: gorm:"type:text"
       logs_info:
-        type: string
+        $ref: '#/definitions/logs_state'
         description: The progress of log collection or empty if logs are not applicable
         x-go-custom-tag: gorm:"type:varchar(2048)"
       install_config_overrides:
