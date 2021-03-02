@@ -1916,7 +1916,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
 	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
 		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ClusterNetworkCidr); err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
+			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Cluster network CIDR"))
 		}
 		clusterCidr = *params.ClusterUpdateParams.ClusterNetworkCidr
 		updates["cluster_network_cidr"] = clusterCidr
@@ -1936,7 +1936,7 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
 		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ServiceNetworkCidr); err != nil {
-			return common.NewApiError(http.StatusBadRequest, err)
+			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Service network CIDR"))
 		}
 		serviceCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
 		updates["service_network_cidr"] = serviceCidr

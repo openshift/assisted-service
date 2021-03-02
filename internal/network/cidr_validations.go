@@ -44,7 +44,7 @@ func VerifySubnetCIDR(cidrStr string) error {
 		return errors.Errorf("Address mask size must be between 1 to %d and must include at least 128 addresses", bits-7)
 	}
 	if cidr.IP.IsUnspecified() {
-		return errors.New("address must not be unspecified.  Unspecified address is the address with all zeroes")
+		return errors.Errorf("The specified CIDR %s is invalid because its resulting routing prefix matches the unspecified address", cidrStr)
 	}
 	if !ip.Equal(cidr.IP) {
 		return errors.Errorf("%s is not a valid network CIDR", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String())
