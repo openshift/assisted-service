@@ -44,27 +44,6 @@ type Config struct {
 	OCSDeploymentType              string `envconfig:"OCS_DEPLOYMENT_TYPE" default:"None"`
 }
 
-func setOperatorStatus(cluster *models.Cluster, status string) error {
-	var operators models.Operators
-	err := json.Unmarshal([]byte(cluster.Operators), &operators)
-	if err != nil {
-		return err
-	}
-	for _, operator := range operators {
-		if operator.OperatorType == models.OperatorTypeOcs {
-			operator.Status = status
-			break
-		}
-	}
-	clusterOperators, err := json.Marshal(operators)
-	if err != nil {
-		return err
-	}
-
-	cluster.Operators = string(clusterOperators)
-	return nil
-}
-
 // ValidateOCSRequirements is used to validate min requirements of OCS
 func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
 	var status string
@@ -74,12 +53,7 @@ func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.Valida
 
 	if int64(len(hosts)) < o.OCSRequiredHosts {
 		status = "Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS. "
-		err = setOperatorStatus(cluster, status)
-		if err != nil {
-			o.log.Error("Failed to set Operator status ", err)
-			return api.Failure, "Failed to set Operator status "
-		}
-		o.log.Info("Setting Operator Status ", status)
+		o.log.Info("Validate Requirements status ", status)
 		return api.Failure, status
 	}
 	var cpuCount int64 = 0       //count the total CPUs on the cluster
@@ -100,26 +74,18 @@ func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.Valida
 
 	} else if len(hosts) < o.OCSMasterWorkerHosts { // not supporting OCS installation for 2 Workers and 3 Masters
 		status = "Not supporting OCS Installation for 3 Masters and 2 Workers"
-		o.log.Info("Setting Operator Status", status)
-		err = setOperatorStatus(cluster, status)
-		if err != nil {
-			o.log.Error("Failed to set Operator status ", err)
-			return api.Failure, "Failed to set Operator status "
-		}
+		o.log.Info("Validate Requirements status ", status)
 		return api.Failure, status
 	} else {
 		for _, host := range hosts { // if the worker nodes >=3 , install OCS on all the worker nodes if they satisfy OCS requirements
+
 			/* If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 			As OCS will use only worker nodes for non-compact deployments, the OCS validations cannot be performed as it cannot know which nodes will be worker nodes.
 			We ignore the role check for a cluster of 3 nodes as they will all be master nodes. OCS validations will proceed as for a compact deployment.
 			*/
 			if host.Role == models.HostRoleAutoAssign {
 				status = "All host roles must be assigned to enable OCS."
-				o.log.Info("Setting Operator Status ", status)
-				err = setOperatorStatus(cluster, status)
-				if err != nil {
-					o.log.Error("Failed to set Operator status", err)
-				}
+				o.log.Info("Validate Requirements status ", status)
 				return api.Failure, status
 			}
 			if host.Role == models.HostRoleWorker {
@@ -139,12 +105,7 @@ func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.Valida
 		for _, hostStatus := range insufficientHosts {
 			status = status + hostStatus + ".\n"
 		}
-		err = setOperatorStatus(cluster, status)
-		if err != nil {
-			o.log.Error("Failed to set Operator status ", err)
-			return api.Failure, status
-		}
-		o.log.Info("Setting Operator Status ", status)
+		o.log.Info("Validate Requirements status ", status)
 		return api.Failure, status
 	}
 
@@ -152,10 +113,6 @@ func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.Valida
 	if diskCount%3 != 0 {
 		status = "Total disks on the cluster must be a multiple of 3"
 		o.log.Info(status)
-		err = setOperatorStatus(cluster, status)
-		if err != nil {
-			o.log.Error("Failed to set Operator status ", err)
-		}
 		return api.Failure, "Failed to set Operator status "
 	}
 
@@ -164,11 +121,6 @@ func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.Valida
 	canDeployOCS, status := o.validate(hosts, cpuCount, totalRAM, diskCount, hostsWithDisks)
 
 	o.log.Info(status)
-	err = setOperatorStatus(cluster, status)
-	if err != nil {
-		o.log.Error("Failed to set Operator status ", err)
-		return api.Failure, "Failed to set Operator status "
-	}
 
 	if canDeployOCS {
 		return api.Success, status
