@@ -80,7 +80,13 @@ var InstallationTimeout = 20 * time.Minute
 
 var MaxHostDisconnectionTime = 3 * time.Minute
 
+type LogTimeoutConfig struct {
+	LogCollectionTimeout time.Duration `envconfig:"HOST_LOG_COLLECTION_TIMEOUT" default:"10m"`
+	LogPendingTimeout    time.Duration `envconfig:"HOST_LOG_PENDING_TIMEOUT" default:"2m"`
+}
+
 type Config struct {
+	LogTimeoutConfig
 	EnableAutoReset  bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	ResetTimeout     time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize int           `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
@@ -117,6 +123,7 @@ type API interface {
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
+	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
 	PermanentHostsDeletion(olderThen strfmt.DateTime) error
 	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
@@ -149,6 +156,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
+		config:        config,
 		eventsHandler: eventsHandler,
 	}
 	return &Manager{
@@ -444,6 +452,11 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 			fmt.Sprintf("Host %s: set as bootstrap", hostutil.GetHostnameForMsg(h)), time.Now())
 	}
 	return nil
+}
+func (m *Manager) UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error {
+	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		swag.StringValue(h.Status), progress)
+	return err
 }
 
 func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error {

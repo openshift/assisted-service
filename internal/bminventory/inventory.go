@@ -4031,16 +4031,37 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 }
 
 func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
-	//TODO: Add Implementation
+	var err error
+	var currentCluster *common.Cluster
+
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("update log progress on %s cluster to %s", params.ClusterID, params.LogsProgressParams.LogsState)
+	currentCluster, err = b.getCluster(ctx, params.ClusterID.String())
+	if err == nil {
+		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(params.LogsProgressParams.LogsState))
+	}
+	if err != nil {
+		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s", params.LogsProgressParams.LogsState, params.ClusterID.String())
+		return common.GenerateErrorResponder(err)
+	}
+
 	return installer.NewUpdateClusterLogsProgressNoContent()
 }
 
 func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
-	//TODO: Add Implementation
+	var err error
+	var currentHost *models.Host
+
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("update log progress on host %s on %s cluster to %s", params.HostID, params.ClusterID, params.LogsProgressParams.LogsState)
+	currentHost, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err == nil {
+		err = b.hostApi.UpdateLogsProgress(ctx, currentHost, string(params.LogsProgressParams.LogsState))
+	}
+	if err != nil {
+		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s host %s", params.LogsProgressParams.LogsState, params.ClusterID.String(), params.HostID.String())
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewUpdateHostLogsProgressNoContent()
 }
 
@@ -4091,6 +4112,11 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 			log.WithError(err).Errorf("Failed update cluster %s controller_logs_collected_at flag", params.ClusterID)
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
+		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(models.LogsStateCollecting))
+		if err != nil {
+			log.WithError(err).Errorf("Failed update cluster %s log progress %s", params.ClusterID, string(models.LogsStateCollecting))
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 
 	log.Infof("Done uploading file %s", fileName)
@@ -4116,6 +4142,11 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, clusterId strin
 	err = b.hostApi.SetUploadLogsAt(ctx, currentHost, b.db)
 	if err != nil {
 		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", hostId)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	err = b.hostApi.UpdateLogsProgress(ctx, currentHost, string(models.LogsStateCollecting))
+	if err != nil {
+		log.WithError(err).Errorf("Failed update host %s log progress %s", hostId, string(models.LogsStateCollecting))
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil

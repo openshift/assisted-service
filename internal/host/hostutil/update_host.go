@@ -14,6 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var ResetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
+
 func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string,
 	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*models.Host, error) {
@@ -26,6 +28,26 @@ func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB
 	}
 
 	return UpdateHostStatus(ctx, log, db, eventsHandler, clusterId, hostId, srcStatus, newStatus, statusInfo, extra...)
+}
+
+func UpdateLogsProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID, srcStatus string, progress string, extra ...interface{}) (*models.Host, error) {
+	var host *models.Host
+	var err error
+
+	switch progress {
+	case string(models.LogsStateRequested):
+		extra = append(append(append(make([]interface{}, 0), "logs_info", progress),
+			"logs_started_at", strfmt.DateTime(time.Now())), extra...)
+	default:
+		extra = append(append(make([]interface{}, 0), "logs_info", progress), extra...)
+	}
+
+	if host, err = UpdateHost(log, db, clusterId, hostId, srcStatus, extra...); err != nil {
+		log.WithError(err).Errorf("failed to update log progress %+v on host %s", extra, hostId)
+		return nil, err
+	}
+	log.Infof("host %s has been updated with the following log progress %+v", hostId, extra)
+	return host, nil
 }
 
 func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID,

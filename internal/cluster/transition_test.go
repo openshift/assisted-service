@@ -2608,6 +2608,168 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 	})
 })
 
+var _ = Describe("Log Collection - refresh cluster", func() {
+	var (
+		ctx         = context.Background()
+		db          *gorm.DB
+		clusterId   strfmt.UUID
+		cluster     common.Cluster
+		clusterApi  *Manager
+		mockEvents  *events.MockHandler
+		mockHostAPI *host.MockAPI
+		mockMetric  *metrics.MockAPI
+		ctrl        *gomock.Controller
+		dbName      string = "log_refresh_cluster"
+	)
+
+	var (
+		StatusUpdatedAt           strfmt.DateTime
+		ControllerLogsCollectedAt strfmt.DateTime
+		ControllerLogsStartedAt   strfmt.DateTime
+		srclogsInfo               models.LogsState
+		dstlogsInfo               models.LogsState
+		srcState                  string
+		srcStatusInfo             string
+	)
+
+	logTimeoutConfig := func() Config {
+		cfg := getDefaultConfig()
+		cfg.PrepareConfig.LogCollectionTimeout = 1 * time.Second
+		cfg.PrepareConfig.LogPendingTimeout = 1 * time.Second
+		return cfg
+	}
+
+	verifyStatusNotChanged := func(c *common.Cluster, srcState string, srcStatusInfo string) {
+		Expect(c.Status).To(Equal(&srcState))
+		Expect(c.StatusInfo).To(Equal(&srcStatusInfo))
+		Expect(c.ValidationsInfo).To(BeEmpty())
+	}
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHostAPI = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog())
+		clusterApi = NewManager(logTimeoutConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
+			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
+		clusterId = strfmt.UUID(uuid.New().String())
+	})
+
+	Context("refresh on error state", func() {
+
+		BeforeEach(func() {
+			srcState = models.ClusterStatusError
+			srcStatusInfo = statusInfoError
+		})
+
+		It("logs not requested when cluster enter error -> mark as timeout to signal that we do not wait for them", func() {
+			srclogsInfo = ""
+			dstlogsInfo = "timeout"
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Time{})
+			ControllerLogsStartedAt = strfmt.DateTime(time.Time{})
+		})
+
+		It("logs requested when cluster enter error -> timeout", func() {
+			srclogsInfo = models.LogsStateRequested
+			dstlogsInfo = models.LogsStateTimeout
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Time{})
+			ControllerLogsStartedAt = strfmt.DateTime(time.Time{})
+		})
+
+		It("logs requested when cluster enter error -> no timeout", func() {
+			srclogsInfo = models.LogsStateRequested
+			dstlogsInfo = models.LogsStateRequested
+			StatusUpdatedAt = strfmt.DateTime(time.Now())
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Time{})
+			ControllerLogsStartedAt = strfmt.DateTime(time.Now())
+		})
+
+		It("logs collected in the past but not completed -> timeout", func() {
+			srclogsInfo = models.LogsStateCollecting
+			dstlogsInfo = models.LogsStateTimeout
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsStartedAt = strfmt.DateTime(time.Now().Add(-3 * time.Second))
+		})
+
+		It("logs collected in the past and then re-requested but not collected again -> timeout", func() {
+			srclogsInfo = models.LogsStateRequested
+			dstlogsInfo = models.LogsStateTimeout
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Now().Add(-3 * time.Second))
+			ControllerLogsStartedAt = strfmt.DateTime(time.Now())
+		})
+
+		It("logs collected in the past and then re-requested within timeout limits -> no timeout", func() {
+			srclogsInfo = models.LogsStateRequested
+			dstlogsInfo = models.LogsStateRequested
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Now().Add(-500 * time.Millisecond))
+			ControllerLogsStartedAt = strfmt.DateTime(time.Now())
+		})
+
+		It("logs completed -> no timeout", func() {
+			srclogsInfo = models.LogsStateCompleted
+			dstlogsInfo = models.LogsStateCompleted
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsStartedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+		})
+	})
+
+	Context("refresh on cancel state", func() {
+
+		BeforeEach(func() {
+			srcState = models.ClusterStatusCancelled
+			srcStatusInfo = "cancelled"
+		})
+
+		It("logs not requested when cluster enter cancel -> mark as timeout to signal that we do not wait for them", func() {
+			srclogsInfo = ""
+			dstlogsInfo = models.LogsStateTimeout
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Time{})
+			ControllerLogsStartedAt = strfmt.DateTime(time.Time{})
+		})
+
+		It("logs requested when cluster enter cancel -> timeout", func() {
+			srclogsInfo = models.LogsStateRequested
+			dstlogsInfo = models.LogsStateTimeout
+			StatusUpdatedAt = strfmt.DateTime(time.Now().Add(-2 * time.Second))
+			ControllerLogsCollectedAt = strfmt.DateTime(time.Time{})
+			ControllerLogsStartedAt = strfmt.DateTime(time.Time{})
+		})
+	})
+	AfterEach(func() {
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				ID:                        &clusterId,
+				Status:                    &srcState,
+				StatusInfo:                &srcStatusInfo,
+				StatusUpdatedAt:           StatusUpdatedAt,
+				LogsInfo:                  srclogsInfo,
+				ControllerLogsCollectedAt: ControllerLogsCollectedAt,
+				ControllerLogsStartedAt:   ControllerLogsStartedAt,
+			},
+		}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		cluster = getClusterFromDB(clusterId, db)
+		clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+		Expect(err).ToNot(HaveOccurred())
+		verifyStatusNotChanged(clusterAfterRefresh, srcState, srcStatusInfo)
+		Expect(clusterAfterRefresh.LogsInfo).To(Equal(dstlogsInfo))
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+})
+
 var _ = Describe("NTP refresh cluster", func() {
 	var (
 		ctx                                     = context.Background()

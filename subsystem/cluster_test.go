@@ -1225,6 +1225,50 @@ var _ = Describe("cluster install", func() {
 		//	Expect(err).NotTo(HaveOccurred())
 		//})
 
+		Context("report logs progress", func() {
+			verifyLogProgress := func(c *models.Cluster, host_progress models.LogsState, cluster_progress models.LogsState) {
+				Expect(c.ControllerLogsStartedAt).NotTo(Equal(strfmt.DateTime(time.Time{})))
+				Expect(c.LogsInfo).To(Equal(cluster_progress))
+				for _, host := range c.Hosts {
+					Expect(host.LogsStartedAt).NotTo(Equal(strfmt.DateTime(time.Time{})))
+					Expect(host.LogsInfo).To(Equal(host_progress))
+				}
+			}
+			It("log progress installation succeed", func() {
+				By("report log progress by host and cluster during installation")
+				c := installCluster(clusterID)
+				requested := models.LogsStateRequested
+				completed := models.LogsStateCompleted
+				for _, host := range c.Hosts {
+					updateHostLogProgress(clusterID, *host.ID, requested)
+				}
+				updateClusterLogProgress(clusterID, requested)
+
+				c = getCluster(clusterID)
+				verifyLogProgress(c, requested, requested)
+
+				By("report log progress by cluster during finalizing")
+				for _, host := range c.Hosts {
+					updateHostLogProgress(clusterID, *host.ID, completed)
+					updateProgress(*host.ID, clusterID, models.HostStageDone)
+				}
+				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+				updateClusterLogProgress(clusterID, requested)
+				c = getCluster(clusterID)
+				verifyLogProgress(c, completed, requested)
+
+				By("report log progress by cluster after installation")
+				success := true
+				_, err := agentBMClient.Installer.CompleteInstallation(ctx,
+					&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
+				Expect(err).NotTo(HaveOccurred())
+				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, "installed")
+				updateClusterLogProgress(clusterID, completed)
+				c = getCluster(clusterID)
+				verifyLogProgress(c, completed, completed)
+			})
+		})
+
 		It("report_cluster_progress", func() {
 			By("report_cluster_install_progress_before_install_starts")
 			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{

@@ -487,6 +487,20 @@ func (mr *MockAPIMockRecorder) UpdateInventory(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInventory", reflect.TypeOf((*MockAPI)(nil).UpdateInventory), arg0, arg1, arg2)
 }
 
+// UpdateLogsProgress mocks base method
+func (m *MockAPI) UpdateLogsProgress(arg0 context.Context, arg1 *models.Host, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLogsProgress", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateLogsProgress indicates an expected call of UpdateLogsProgress
+func (mr *MockAPIMockRecorder) UpdateLogsProgress(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLogsProgress", reflect.TypeOf((*MockAPI)(nil).UpdateLogsProgress), arg0, arg1, arg2)
+}
+
 // UpdateMachineConfigPoolName mocks base method
 func (m *MockAPI) UpdateMachineConfigPoolName(arg0 context.Context, arg1 *gorm.DB, arg2 *models.Host, arg3 string) error {
 	m.ctrl.T.Helper()
