@@ -36,7 +36,7 @@ var _ = Describe("monitor_disconnection", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -132,7 +132,7 @@ var _ = Describe("TestHostMonitoring", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockEvents.EXPECT().

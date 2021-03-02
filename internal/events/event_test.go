@@ -35,7 +35,7 @@ var _ = Describe("Events library", func() {
 		host      = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 	})
 	numOfEvents := func(clusterID strfmt.UUID, hostID *strfmt.UUID) int {
@@ -135,25 +135,25 @@ var _ = Describe("Events library", func() {
 })
 
 func WithRequestID(requestID string) types.GomegaMatcher {
-	return WithTransform(func(e *events.Event) string {
+	return WithTransform(func(e *common.Event) string {
 		return e.RequestID.String()
 	}, Equal(requestID))
 }
 
 func WithMessage(msg *string) types.GomegaMatcher {
-	return WithTransform(func(e *events.Event) *string {
+	return WithTransform(func(e *common.Event) *string {
 		return e.Message
 	}, Equal(msg))
 }
 
 func WithSeverity(severity *string) types.GomegaMatcher {
-	return WithTransform(func(e *events.Event) *string {
+	return WithTransform(func(e *common.Event) *string {
 		return e.Severity
 	}, Equal(severity))
 }
 
 func WithTime(t time.Time) types.GomegaMatcher {
-	return WithTransform(func(e *events.Event) time.Time {
+	return WithTransform(func(e *common.Event) time.Time {
 		return time.Time(*e.EventTime)
 	}, BeTemporally("~", t, time.Millisecond*100))
 }

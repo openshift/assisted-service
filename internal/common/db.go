@@ -37,6 +37,15 @@ type Cluster struct {
 	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
 }
 
+type Event struct {
+	gorm.Model
+	models.Event
+}
+
+func AutoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(&models.Host{}, &Cluster{}, &Event{}).Error
+}
+
 type EagerLoadingState bool
 
 const (
@@ -75,7 +84,7 @@ func GetClusterFromDBWithoutDisabledHosts(db *gorm.DB, clusterId strfmt.UUID) (*
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
 }
 
-func handleDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState) *gorm.DB {
+func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState) *gorm.DB {
 	if includeDeleted {
 		db = db.Unscoped()
 	}
@@ -97,7 +106,7 @@ func handleDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted Delete
 func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) (*Cluster, error) {
 	var cluster Cluster
 
-	db = handleDB(db, eagerLoading, includeDeleted)
+	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Take(&cluster, where...).Error
 	return &cluster, err
 }
@@ -105,7 +114,7 @@ func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeD
 func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) ([]*Cluster, error) {
 	var clusters []*Cluster
 
-	db = handleDB(db, eagerLoading, includeDeleted)
+	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Find(&clusters, where...).Error
 	return clusters, err
 }

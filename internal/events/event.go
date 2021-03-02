@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/requestid"
@@ -21,16 +22,11 @@ type Handler interface {
 	//     the cluster-id as another ID that this event should be related to
 	// otherEntities arguments provides for specifying mor IDs that are relevant for this event
 	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time)
-	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*Event, error)
+	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error)
 	DeleteClusterEvents(clusterID strfmt.UUID)
 }
 
 var _ Handler = &Events{}
-
-type Event struct {
-	gorm.Model
-	models.Event
-}
 
 type Events struct {
 	db  *gorm.DB
@@ -49,7 +45,7 @@ func addEventToDB(log logrus.FieldLogger, db *gorm.DB, clusterID strfmt.UUID, ho
 	uid := clusterID
 	rid := strfmt.UUID(requestID)
 
-	e := Event{
+	e := common.Event{
 		Event: models.Event{
 			EventTime: &tt,
 			ClusterID: &uid,
@@ -89,8 +85,8 @@ func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *st
 	isSuccess = true
 }
 
-func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*Event, error) {
-	var evs []*Event
+func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error) {
+	var evs []*common.Event
 	var err error
 	if hostID == nil {
 		err = e.db.Order("event_time").Find(&evs, "cluster_id = ?", clusterID.String()).Error

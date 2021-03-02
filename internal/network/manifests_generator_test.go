@@ -14,7 +14,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/mocks"
 	"github.com/openshift/assisted-service/models"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
@@ -125,7 +124,7 @@ var _ = Describe("chrony manifest", func() {
 			ctrl = gomock.NewController(GinkgoT())
 			manifestsApi = mocks.NewMockManifestsAPI(ctrl)
 			ntpUtils = NewManifestsGenerator(manifestsApi)
-			db = common.PrepareTestDB(dbName, &events.Event{})
+			db = common.PrepareTestDB(dbName)
 			clusterId = strfmt.UUID(uuid.New().String())
 
 			hosts := make([]*models.Host, 0)
