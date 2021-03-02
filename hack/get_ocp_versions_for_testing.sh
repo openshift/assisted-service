@@ -2,9 +2,8 @@
 
 set -euo pipefail
 
-SCRIPT_DIR=$(dirname "$(readlink -f "$0")")
-PROJECT_ROOT_DIR=${SCRIPT_DIR}/..
-
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT_DIR="$(cd "$(dirname "${__dir}")" && pwd)"
 OPENSHIFT_SNO_IMAGE="registry.svc.ci.openshift.org/sno-dev/openshift-bip:0.6.0"
 
 # Append single node image as 4.8 for local deployments
