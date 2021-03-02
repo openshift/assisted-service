@@ -240,10 +240,14 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	It("image already exists", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{Cluster: models.Cluster{
-			ID:            &clusterId,
-			PullSecretSet: true,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:            &clusterId,
+				PullSecretSet: true,
+			},
+			PullSecret:     "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			ImageGenerated: true,
+		}
 		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
 		cluster.ImageInfo = &models.ImageInfo{Type: models.ImageTypeFullIso}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -265,11 +269,15 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	It("image expired", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterId,
-			PullSecretSet:    true,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		cluster := common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterId,
+				PullSecretSet:    true,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			},
+			PullSecret:     "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			ImageGenerated: true,
+		}
 		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
 		cluster.ImageInfo = &models.ImageInfo{Type: models.ImageTypeFullIso}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
