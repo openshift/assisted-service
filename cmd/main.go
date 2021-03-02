@@ -412,27 +412,27 @@ func main() {
 	}()
 
 	go func() {
-		pullSecretUpdatesChannel := make(chan event.GenericEvent)
-		installEnvUpdatesChannel := make(chan event.GenericEvent)
+		installEnvToClusterDeploymentUpdates := make(chan event.GenericEvent)
+		clusterDeploymentToInstallEnvUpdates := make(chan event.GenericEvent)
 
 		if Options.EnableKubeAPI {
 			failOnError((&controllers.InstallEnvReconciler{
-				Client:                   ctrlMgr.GetClient(),
-				Log:                      log,
-				Installer:                bm,
-				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
-				InstallEnvUpdatesChannel: installEnvUpdatesChannel,
+				Client:                               ctrlMgr.GetClient(),
+				Log:                                  log,
+				Installer:                            bm,
+				InstallEnvToClusterDeploymentUpdates: installEnvToClusterDeploymentUpdates,
+				ClusterDeploymentToInstallEnvUpdates: clusterDeploymentToInstallEnvUpdates,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InstallEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
-				Client:                   ctrlMgr.GetClient(),
-				Log:                      log,
-				Scheme:                   ctrlMgr.GetScheme(),
-				Installer:                bm,
-				ClusterApi:               clusterApi,
-				HostApi:                  hostApi,
-				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
-				InstallEnvUpdatesChannel: installEnvUpdatesChannel,
+				Client:                               ctrlMgr.GetClient(),
+				Log:                                  log,
+				Scheme:                               ctrlMgr.GetScheme(),
+				Installer:                            bm,
+				ClusterApi:                           clusterApi,
+				HostApi:                              hostApi,
+				InstallEnvToClusterDeploymentUpdates: installEnvToClusterDeploymentUpdates,
+				ClusterDeploymentToInstallEnvUpdates: clusterDeploymentToInstallEnvUpdates,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{

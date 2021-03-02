@@ -60,13 +60,13 @@ const defaultRequeueAfterOnError = 10 * time.Second
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
-	Log                      logrus.FieldLogger
-	Scheme                   *runtime.Scheme
-	Installer                bminventory.InstallerInternals
-	ClusterApi               cluster.API
-	HostApi                  host.API
-	PullSecretUpdatesChannel chan event.GenericEvent
-	InstallEnvUpdatesChannel chan event.GenericEvent
+	Log                                  logrus.FieldLogger
+	Scheme                               *runtime.Scheme
+	Installer                            bminventory.InstallerInternals
+	ClusterApi                           cluster.API
+	HostApi                              host.API
+	InstallEnvToClusterDeploymentUpdates chan event.GenericEvent
+	ClusterDeploymentToInstallEnvUpdates chan event.GenericEvent
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -162,24 +162,27 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	c *common.Cluster) (bool, ctrl.Result, error) {
 
 	update := false
-	isPullSecretUpdate := false
+	notifyInstallEnv := false
 
 	params := &models.ClusterUpdateParams{}
 
 	spec := cluster.Spec
 
-	updateString := func(new, old string, target **string) {
+	updateString := func(new, old string, target **string, isInstallEnvUpdate bool) {
 		if new != old {
 			*target = swag.String(new)
 			update = true
+			if isInstallEnvUpdate {
+				notifyInstallEnv = true
+			}
 		}
 	}
 
-	updateString(spec.ClusterName, c.Name, &params.Name)
-	updateString(spec.BaseDomain, c.BaseDNSDomain, &params.BaseDNSDomain)
+	updateString(spec.ClusterName, c.Name, &params.Name, false)
+	updateString(spec.BaseDomain, c.BaseDNSDomain, &params.BaseDNSDomain, false)
 
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr, false)
 		hostPrefix := int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
 		if hostPrefix > 0 && hostPrefix != c.ClusterNetworkHostPrefix {
 			params.ClusterNetworkHostPrefix = swag.Int64(hostPrefix)
@@ -187,16 +190,16 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		}
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], c.ServiceNetworkCidr, &params.ServiceNetworkCidr)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], c.ServiceNetworkCidr, &params.ServiceNetworkCidr, false)
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, c.MachineNetworkCidr, &params.MachineNetworkCidr)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, c.MachineNetworkCidr, &params.MachineNetworkCidr, false)
 	}
 
-	updateString(spec.Platform.AgentBareMetal.APIVIP, c.APIVip, &params.APIVip)
-	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName)
-	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip)
-	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
+	updateString(spec.Platform.AgentBareMetal.APIVIP, c.APIVip, &params.APIVip, false)
+	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName, false)
+	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip, false)
+	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey, false)
 
 	installEnv, err := getInstallEnvByClusterDeployment(ctx, r.Client, cluster)
 
@@ -206,11 +209,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	}
 	if installEnv != nil {
 		if len(installEnv.Spec.AdditionalNTPSources) > 0 {
-			updateString(installEnv.Spec.AdditionalNTPSources[0], c.AdditionalNtpSource, &params.AdditionalNtpSource)
+			updateString(installEnv.Spec.AdditionalNTPSources[0], c.AdditionalNtpSource, &params.AdditionalNtpSource, true)
 		}
-		updateString(installEnv.Spec.Proxy.NoProxy, c.NoProxy, &params.NoProxy)
-		updateString(installEnv.Spec.Proxy.HTTPProxy, c.HTTPProxy, &params.HTTPProxy)
-		updateString(installEnv.Spec.Proxy.HTTPSProxy, c.HTTPSProxy, &params.HTTPSProxy)
+		updateString(installEnv.Spec.Proxy.NoProxy, c.NoProxy, &params.NoProxy, true)
+		updateString(installEnv.Spec.Proxy.HTTPProxy, c.HTTPProxy, &params.HTTPProxy, true)
+		updateString(installEnv.Spec.Proxy.HTTPSProxy, c.HTTPSProxy, &params.HTTPSProxy, true)
 	}
 
 	if userManagedNetwork := isUserManagedNetwork(cluster); userManagedNetwork != swag.BoolValue(c.UserManagedNetworking) {
@@ -219,15 +222,12 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 
 	// TODO: handle InstallConfigOverrides
 
-	data, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, cluster.Namespace)
+	pullSecretData, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, cluster.Namespace)
 	if err != nil {
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
 	}
-	if data != c.PullSecret {
-		params.PullSecret = swag.String(data)
-		update = true
-		isPullSecretUpdate = true
-	}
+	// TODO: change isInstallEnvUpdate to false, once clusterDeployment pull-secret can differ from installEnv
+	updateString(pullSecretData, c.PullSecret, &params.PullSecret, true)
 
 	if !update {
 		return update, ctrl.Result{}, nil
@@ -245,7 +245,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 			errors.Wrap(err, "failed to update cluster")
 	}
 
-	if err = r.notifyPullSecretUpdate(ctx, isPullSecretUpdate, c); err != nil {
+	if err = r.notifyInstallEnvUpdate(ctx, notifyInstallEnv, c); err != nil {
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get a list of images to update")
 	}
 
@@ -254,21 +254,21 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	return update, reply, err
 }
 
-func (r *ClusterDeploymentsReconciler) notifyPullSecretUpdate(ctx context.Context, isPullSecretUpdate bool,
+func (r *ClusterDeploymentsReconciler) notifyInstallEnvUpdate(ctx context.Context, notifyInstallEnv bool,
 	c *common.Cluster) error {
-	if isPullSecretUpdate {
-		installEnv := &adiiov1alpha1.InstallEnvList{}
-		if err := r.List(ctx, installEnv); err != nil {
+	if notifyInstallEnv {
+		installEnvs := &adiiov1alpha1.InstallEnvList{}
+		if err := r.List(ctx, installEnvs); err != nil {
 			return err
 		}
-		for _, image := range installEnv.Items {
-			r.Log.Infof("Notify that installEnv %s should be re-created for cluster %s",
-				image.Name, image.UID)
-			if image.Spec.ClusterRef.Name == c.KubeKeyName {
-				r.PullSecretUpdatesChannel <- event.GenericEvent{
+		for _, installEnv := range installEnvs.Items {
+			r.Log.Infof("Notify that installEnvs %s should re-generate the image for cluster %s",
+				installEnv.Name, installEnv.UID)
+			if installEnv.Spec.ClusterRef.Name == c.KubeKeyName {
+				r.ClusterDeploymentToInstallEnvUpdates <- event.GenericEvent{
 					Meta: &metav1.ObjectMeta{
-						Namespace: image.Namespace,
-						Name:      image.Name,
+						Namespace: installEnv.Namespace,
+						Name:      installEnv.Name,
 					},
 				}
 			}
@@ -513,6 +513,6 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
 		Watches(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
-		Watches(&source.Channel{Source: r.InstallEnvUpdatesChannel}, &handler.EnqueueRequestForObject{}).
+		Watches(&source.Channel{Source: r.InstallEnvToClusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

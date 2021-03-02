@@ -45,10 +45,10 @@ import (
 // InstallEnvReconciler reconciles a InstallEnv object
 type InstallEnvReconciler struct {
 	client.Client
-	Log                      logrus.FieldLogger
-	Installer                bminventory.InstallerInternals
-	PullSecretUpdatesChannel chan event.GenericEvent
-	InstallEnvUpdatesChannel chan event.GenericEvent
+	Log                                  logrus.FieldLogger
+	Installer                            bminventory.InstallerInternals
+	InstallEnvToClusterDeploymentUpdates chan event.GenericEvent
+	ClusterDeploymentToInstallEnvUpdates chan event.GenericEvent
 }
 
 // +kubebuilder:rbac:groups=adi.io.my.domain,resources=installenvs,verbs=get;list;watch;create;update;patch;delete
@@ -83,7 +83,7 @@ func (r *InstallEnvReconciler) notifyClusterUpdatesIfNeeded(installEnv *adiiov1a
 		update = true
 	}
 	if update {
-		r.InstallEnvUpdatesChannel <- event.GenericEvent{
+		r.InstallEnvToClusterDeploymentUpdates <- event.GenericEvent{
 			Meta: &metav1.ObjectMeta{
 				Namespace: installEnv.Spec.ClusterRef.Namespace,
 				Name:      installEnv.Spec.ClusterRef.Name,
@@ -239,7 +239,7 @@ func imageBeingCreated(err error) bool {
 func (r *InstallEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adiiov1alpha1.InstallEnv{}).
-		Watches(&source.Channel{Source: r.PullSecretUpdatesChannel},
+		Watches(&source.Channel{Source: r.ClusterDeploymentToInstallEnvUpdates},
 			&handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
