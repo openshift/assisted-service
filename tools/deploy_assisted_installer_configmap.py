@@ -73,6 +73,7 @@ def main():
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
+                log.info(log.info(f"Logging {image_short_name} information"))
                 log_image_revision(versions[env_var_name])
 
             # Edge case for controller image override
@@ -81,6 +82,7 @@ def main():
                     deployment_options.get_tag(versions["INSTALLER_IMAGE"]))
 
             versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
+            log.info(log.info(f"Logging assisted-service information"))
             log_image_revision(versions["SELF_VERSION"])
             deploy_tag = get_deployment_tag(deploy_options)
             if deploy_tag:
@@ -118,30 +120,47 @@ def main():
         )
 
 def log_image_revision(image: str):
-
-    cmd = f"docker run --rm quay.io/skopeo/stable inspect docker://{image}"
-    try:
-        image_inspect_str = subprocess.check_output(cmd, shell=True)
-    except subprocess.CalledProcessError as e:
-        log.warn(f"failed to pull image {image} inspect data, error: {e.output}")
-        return
-
-    try:
-        image_inspect = json.loads(image_inspect_str)
-    except ValueError as e:
-        log.warn(f"image inspect did not return an expected value while running {cmd}")
+    image_inspect = get_image_inspect(image)
+    if not image_inspect:
+        log.warn(f"failed to pull image {image} inspect data")
         return
 
     created = image_inspect.get("Created", None)
-
     image_labels = image_inspect.get("Labels", None)
     if not image_labels:
        log.info(f"Using image: {image}, created: {created} (image has no labels)")
        return
 
     git_revision = image_labels.get("git_revision", None)
-
     log.info(f"Using image: {image}, git_revision: {git_revision}, created: {created}")
+
+def get_image_inspect(image: str):
+    image_inspect = get_local_image_inspect_json(image)
+    if image_inspect:
+        return image_inspect
+    else:
+        return get_remote_image_inspect_json(image)
+
+def get_local_image_inspect_json(image: str):
+    image_id = docker_cmd(f"docker images -q {image}")
+    if not image_id:
+        return None
+
+    image_inspect = docker_cmd(f"docker inspect {image}")
+    return convert_image_inspect_to_json(image_inspect)[0]
+
+def get_remote_image_inspect_json(image: str):
+    image_inspect_str = docker_cmd(f"docker run --rm quay.io/skopeo/stable inspect docker://{image}")
+    if not image_inspect_str:
+        return None
+    return convert_image_inspect_to_json(image_inspect_str)
+
+def convert_image_inspect_to_json(image_inspect_str):
+    try:
+        image_inspect = json.loads(image_inspect_str)
+    except ValueError as e:
+        return None
+    return image_inspect
 
 def get_admin_users():
     admins_file = os.path.join(os.getcwd(), 'ADMINS')
@@ -150,6 +169,13 @@ def get_admin_users():
 
     with open(admins_file) as fp:
         return ','.join([x.strip() for x in fp.readlines()])
+
+def docker_cmd(cmd):
+    try:
+        out = subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+         return None
+    return out
 
 
 if __name__ == "__main__":
