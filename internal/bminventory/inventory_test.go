@@ -3884,16 +3884,17 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 var _ = Describe("List unregistered clusters", func() {
 
 	var (
-		bm             *bareMetalInventory
-		cfg            Config
-		db             *gorm.DB
-		ctx            = context.Background()
-		clusterID      strfmt.UUID
-		hostID         strfmt.UUID
-		c              common.Cluster
-		kubeconfigFile *os.File
-		dbName         = "upload_logs"
-		host1          models.Host
+		bm                 *bareMetalInventory
+		cfg                Config
+		db                 *gorm.DB
+		ctx                = context.Background()
+		clusterID          strfmt.UUID
+		hostID             strfmt.UUID
+		openshiftClusterID = strToUUID("41940ee8-ec99-43de-8766-174381b4921d")
+		c                  common.Cluster
+		kubeconfigFile     *os.File
+		dbName             = "upload_logs"
+		host1              models.Host
 	)
 
 	BeforeEach(func() {
@@ -3902,10 +3903,11 @@ var _ = Describe("List unregistered clusters", func() {
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Name:             "mycluster",
-			APIVip:           "10.11.12.13",
+			ID:                 &clusterID,
+			OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+			Name:               "mycluster",
+			APIVip:             "10.11.12.13",
+			OpenshiftClusterID: *openshiftClusterID,
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -3946,6 +3948,26 @@ var _ = Describe("List unregistered clusters", func() {
 		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
 		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 		Expect(resp).Should(BeAssignableToTypeOf(installer.NewListClustersForbidden()))
+	})
+
+	It("filters based on openshift cluster ID", func() {
+		By("searching for an existing openshift cluster ID", func() {
+			resp := bm.ListClusters(ctx, installer.ListClustersParams{OpenshiftClusterID: openshiftClusterID})
+			payload := resp.(*installer.ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+		})
+
+		By("discarding cluster ID field", func() {
+			resp := bm.ListClusters(ctx, installer.ListClustersParams{})
+			payload := resp.(*installer.ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+		})
+
+		By("searching for a non-existing openshift cluster ID", func() {
+			resp := bm.ListClusters(ctx, installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+			payload := resp.(*installer.ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(0))
+		})
 	})
 })
 
