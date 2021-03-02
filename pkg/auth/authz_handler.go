@@ -14,23 +14,23 @@ import (
 )
 
 type AuthzHandler struct {
-	EnableAuth bool
-	log        logrus.FieldLogger
-	client     *ocm.Client
+	Enabled bool
+	log     logrus.FieldLogger
+	client  *ocm.Client
 }
 
-func NewAuthzHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthzHandler {
+func NewAuthzHandler(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthzHandler {
 	a := &AuthzHandler{
-		EnableAuth: cfg.EnableAuth,
-		client:     ocmCLient,
-		log:        log,
+		Enabled: cfg.ResolvedAuthType() == TypeRHSSO,
+		client:  ocmCLient,
+		log:     log,
 	}
 	return a
 }
 
 // CreateAuthorizer returns Authorizer if auth is enabled
 func (a *AuthzHandler) CreateAuthorizer() func(*http.Request) error {
-	if !a.EnableAuth {
+	if !a.Enabled {
 		return func(*http.Request) error {
 			return nil
 		}
