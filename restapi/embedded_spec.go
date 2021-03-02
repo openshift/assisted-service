@@ -3129,6 +3129,94 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/logs_progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update log collection state and progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "UpdateHostLogsProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose log progress is being updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose log progress is being updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Parameters for updating log progress.",
+            "name": "logs-progress-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/logs-progress-params"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Update cluster install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
@@ -3540,7 +3628,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "operationId": "UpdateLogsProgress",
+        "operationId": "UpdateClusterLogsProgress",
         "parameters": [
           {
             "type": "string",
@@ -3551,34 +3639,13 @@ func init() {
             "required": true
           },
           {
-            "enum": [
-              "host",
-              "controller"
-            ],
-            "type": "string",
-            "description": "The type of log file.",
-            "name": "logs_type",
-            "in": "query",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The host whose log progress is being updated.",
-            "name": "host_id",
-            "in": "query"
-          },
-          {
-            "enum": [
-              "requested",
-              "collecting",
-              "completed"
-            ],
-            "type": "string",
-            "description": "The state of collecting logs.",
-            "name": "logs_state",
-            "in": "query",
-            "required": true
+            "description": "Parameters for updating log progress.",
+            "name": "logs-progress-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/logs-progress-params"
+            }
           }
         ],
         "responses": {
@@ -6310,6 +6377,18 @@ func init() {
         },
         "versions": {
           "$ref": "#/definitions/versions"
+        }
+      }
+    },
+    "logs-progress-params": {
+      "type": "object",
+      "required": [
+        "logs_state"
+      ],
+      "properties": {
+        "logs_state": {
+          "description": "The state of collecting logs.",
+          "$ref": "#/definitions/logs_state"
         }
       }
     },
@@ -9792,6 +9871,94 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/hosts/{host_id}/logs_progress": {
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Update log collection state and progress.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "UpdateHostLogsProgress",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose log progress is being updated.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host whose log progress is being updated.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "Parameters for updating log progress.",
+            "name": "logs-progress-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/logs-progress-params"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Update cluster install progress."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
@@ -10203,7 +10370,7 @@ func init() {
         "tags": [
           "installer"
         ],
-        "operationId": "UpdateLogsProgress",
+        "operationId": "UpdateClusterLogsProgress",
         "parameters": [
           {
             "type": "string",
@@ -10214,34 +10381,13 @@ func init() {
             "required": true
           },
           {
-            "enum": [
-              "host",
-              "controller"
-            ],
-            "type": "string",
-            "description": "The type of log file.",
-            "name": "logs_type",
-            "in": "query",
-            "required": true
-          },
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The host whose log progress is being updated.",
-            "name": "host_id",
-            "in": "query"
-          },
-          {
-            "enum": [
-              "requested",
-              "collecting",
-              "completed"
-            ],
-            "type": "string",
-            "description": "The state of collecting logs.",
-            "name": "logs_state",
-            "in": "query",
-            "required": true
+            "description": "Parameters for updating log progress.",
+            "name": "logs-progress-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/logs-progress-params"
+            }
           }
         ],
         "responses": {
@@ -13028,6 +13174,18 @@ func init() {
         },
         "versions": {
           "$ref": "#/definitions/versions"
+        }
+      }
+    },
+    "logs-progress-params": {
+      "type": "object",
+      "required": [
+        "logs_state"
+      ],
+      "properties": {
+        "logs_state": {
+          "description": "The state of collecting logs.",
+          "$ref": "#/definitions/logs_state"
         }
       }
     },

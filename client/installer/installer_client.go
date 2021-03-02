@@ -133,6 +133,9 @@ type API interface {
 	   UpdateClusterInstallProgress Update cluster installation progress.*/
 	UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressNoContent, error)
 	/*
+	   UpdateClusterLogsProgress Update log collection state and progress.*/
+	UpdateClusterLogsProgress(ctx context.Context, params *UpdateClusterLogsProgressParams) (*UpdateClusterLogsProgressNoContent, error)
+	/*
 	   UpdateDiscoveryIgnition Override values in the discovery ignition config*/
 	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
 	/*
@@ -145,8 +148,8 @@ type API interface {
 	   UpdateHostInstallerArgs Updates a host's installer arguments.*/
 	UpdateHostInstallerArgs(ctx context.Context, params *UpdateHostInstallerArgsParams) (*UpdateHostInstallerArgsCreated, error)
 	/*
-	   UpdateLogsProgress Update log collection state and progress.*/
-	UpdateLogsProgress(ctx context.Context, params *UpdateLogsProgressParams) (*UpdateLogsProgressNoContent, error)
+	   UpdateHostLogsProgress Update log collection state and progress.*/
+	UpdateHostLogsProgress(ctx context.Context, params *UpdateHostLogsProgressParams) (*UpdateHostLogsProgressNoContent, error)
 	/*
 	   UploadClusterIngressCert Transfer the ingress certificate for the cluster.*/
 	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
@@ -1127,6 +1130,31 @@ func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *Updat
 }
 
 /*
+UpdateClusterLogsProgress Update log collection state and progress.
+*/
+func (a *Client) UpdateClusterLogsProgress(ctx context.Context, params *UpdateClusterLogsProgressParams) (*UpdateClusterLogsProgressNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateClusterLogsProgress",
+		Method:             "PUT",
+		PathPattern:        "/clusters/{cluster_id}/logs_progress",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateClusterLogsProgressReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateClusterLogsProgressNoContent), nil
+
+}
+
+/*
 UpdateDiscoveryIgnition Override values in the discovery ignition config
 */
 func (a *Client) UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error) {
@@ -1227,19 +1255,19 @@ func (a *Client) UpdateHostInstallerArgs(ctx context.Context, params *UpdateHost
 }
 
 /*
-UpdateLogsProgress Update log collection state and progress.
+UpdateHostLogsProgress Update log collection state and progress.
 */
-func (a *Client) UpdateLogsProgress(ctx context.Context, params *UpdateLogsProgressParams) (*UpdateLogsProgressNoContent, error) {
+func (a *Client) UpdateHostLogsProgress(ctx context.Context, params *UpdateHostLogsProgressParams) (*UpdateHostLogsProgressNoContent, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "UpdateLogsProgress",
+		ID:                 "UpdateHostLogsProgress",
 		Method:             "PUT",
-		PathPattern:        "/clusters/{cluster_id}/logs_progress",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/logs_progress",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &UpdateLogsProgressReader{formats: a.formats},
+		Reader:             &UpdateHostLogsProgressReader{formats: a.formats},
 		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
@@ -1247,7 +1275,7 @@ func (a *Client) UpdateLogsProgress(ctx context.Context, params *UpdateLogsProgr
 	if err != nil {
 		return nil, err
 	}
-	return result.(*UpdateLogsProgressNoContent), nil
+	return result.(*UpdateHostLogsProgressNoContent), nil
 
 }
 

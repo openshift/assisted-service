@@ -2000,6 +2000,65 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/hosts/{host_id}/logs_progress:
+    put:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Update log collection state and progress.
+      operationId: UpdateHostLogsProgress
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose log progress is being updated.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host whose log progress is being updated.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: logs-progress-params
+          description: Parameters for updating log progress.
+          required: true
+          schema:
+            $ref: '#/definitions/logs-progress-params'
+      responses:
+        "204":
+          description: Update cluster install progress.
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
   /clusters/{cluster_id}/hosts/{host_id}/logs:
     post:
       tags:
@@ -2280,7 +2339,7 @@ paths:
       security:
         - agentAuth: []
       description: Update log collection state and progress.
-      operationId: UpdateLogsProgress
+      operationId: UpdateClusterLogsProgress
       parameters:
         - in: path
           name: cluster_id
@@ -2288,24 +2347,12 @@ paths:
           type: string
           format: uuid
           required: true
-        - in: query
-          name: logs_type
-          description: The type of log file.
-          type: string
-          enum: ['host', 'controller']
+        - in: body
+          name: logs-progress-params
+          description: Parameters for updating log progress.
           required: true
-        - in: query
-          name: host_id
-          description: The host whose log progress is being updated.
-          type: string
-          format: uuid
-          required: false
-        - in: query
-          name: logs_state
-          description: The state of collecting logs.
-          type: string
-          enum: ['requested', 'collecting', 'completed']
-          required: true
+          schema:
+            $ref: '#/definitions/logs-progress-params'
       responses:
         "204":
           description: Update cluster install progress.
@@ -4545,6 +4592,15 @@ definitions:
       - 'completed'
       - 'timeout'
       - ''
+
+  logs-progress-params:
+    type: object
+    required:
+      - logs_state
+    properties:
+      logs_state:
+        description: The state of collecting logs.
+        $ref: '#/definitions/logs_state'
 
   operators:
     type: array

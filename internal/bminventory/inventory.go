@@ -3964,9 +3964,18 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 	return installer.NewGetFreeAddressesOK().WithPayload(results)
 }
 
-func (b *bareMetalInventory) UpdateLogsProgress(ctx context.Context, params installer.UpdateLogsProgressParams) middleware.Responder {
+func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
 	//TODO: Add Implementation
-	return installer.NewUpdateLogsProgressNoContent()
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("update log progress on %s cluster to %s", params.ClusterID, params.LogsProgressParams.LogsState)
+	return installer.NewUpdateClusterLogsProgressNoContent()
+}
+
+func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
+	//TODO: Add Implementation
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("update log progress on host %s on %s cluster to %s", params.HostID, params.ClusterID, params.LogsProgressParams.LogsState)
+	return installer.NewUpdateHostLogsProgressNoContent()
 }
 
 func (b *bareMetalInventory) UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder {
