@@ -106,13 +106,8 @@ func TestValidator(t *testing.T) {
 	RunSpecs(t, "inventory_test")
 }
 
-func getTestAuthHandler() auth.AuthHandler {
-	fakeConfigDisabled := auth.Config{
-		EnableAuth: false,
-		JwkCertURL: "",
-		JwkCert:    "",
-	}
-	return *auth.NewAuthHandler(fakeConfigDisabled, nil, common.GetTestLog().WithField("pkg", "auth"), nil)
+func getTestAuthHandler() auth.Authenticator {
+	return auth.NewNoneAuthenticator(common.GetTestLog().WithField("pkg", "auth"))
 }
 
 func strToUUID(s string) *strfmt.UUID {
@@ -638,17 +633,19 @@ var _ = Describe("IgnitionParameters", func() {
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		cluster.ImageInfo = &models.ImageInfo{}
+		bm = createInventory(nil, Config{})
 	})
 
-	RunIgnitionConfigurationTests := func() {
+	Context("with auth enabled", func() {
+		BeforeEach(func() {
+			bm.authHandler = &auth.RHSSOAuthenticator{}
+		})
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
 			clusterWithoutToken := common.Cluster{Cluster: models.Cluster{
 				ID:            strToUUID("a640ef36-dcb1-11ea-87d0-0242ac130003"),
 				PullSecretSet: false,
 			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-
-			bm.authHandler.EnableAuth = true
 
 			_, err := bm.formatIgnitionFile(&clusterWithoutToken, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
@@ -658,8 +655,6 @@ var _ = Describe("IgnitionParameters", func() {
 		})
 
 		It("ignition_file_contains_pull_secret_token", func() {
-			bm.authHandler.EnableAuth = true
-
 			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{},
 			}, log, false)
@@ -667,177 +662,169 @@ var _ = Describe("IgnitionParameters", func() {
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("PULL_SECRET_TOKEN"))
 		})
+	})
 
-		It("auth_disabled_no_pull_secret_token", func() {
-			bm.authHandler.EnableAuth = false
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
+	It("auth_disabled_no_pull_secret_token", func() {
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
 
-			Expect(err).Should(BeNil())
-			Expect(text).ShouldNot(ContainSubstring("PULL_SECRET_TOKEN"))
-		})
+		Expect(err).Should(BeNil())
+		Expect(text).ShouldNot(ContainSubstring("PULL_SECRET_TOKEN"))
+	})
 
-		It("ignition_file_contains_url", func() {
-			bm.ServiceBaseURL = "file://10.56.20.70:7878"
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
+	It("ignition_file_contains_url", func() {
+		bm.ServiceBaseURL = "file://10.56.20.70:7878"
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
 
-			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", bm.ServiceBaseURL)))
-		})
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", bm.ServiceBaseURL)))
+	})
 
-		It("ignition_file_safe_for_logging", func() {
-			bm.ServiceBaseURL = "file://10.56.20.70:7878"
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, true)
+	It("ignition_file_safe_for_logging", func() {
+		bm.ServiceBaseURL = "file://10.56.20.70:7878"
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, true)
 
-			Expect(err).Should(BeNil())
-			Expect(text).ShouldNot(ContainSubstring("cloud.openshift.com"))
-			Expect(text).Should(ContainSubstring("data:,*****"))
-		})
+		Expect(err).Should(BeNil())
+		Expect(text).ShouldNot(ContainSubstring("cloud.openshift.com"))
+		Expect(text).Should(ContainSubstring("data:,*****"))
+	})
 
-		It("enabled_cert_verification", func() {
-			bm.SkipCertVerification = false
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
+	It("enabled_cert_verification", func() {
+		bm.SkipCertVerification = false
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
 
-			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring("--insecure=false"))
-		})
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("--insecure=false"))
+	})
 
-		It("disabled_cert_verification", func() {
-			bm.SkipCertVerification = true
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
+	It("disabled_cert_verification", func() {
+		bm.SkipCertVerification = true
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
 
-			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring("--insecure=true"))
-		})
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("--insecure=true"))
+	})
 
-		It("cert_verification_enabled_by_default", func() {
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
+	It("cert_verification_enabled_by_default", func() {
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
 
-			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring("--insecure=false"))
-		})
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("--insecure=false"))
+	})
 
-		It("ignition_file_contains_http_proxy", func() {
-			bm.ServiceBaseURL = "file://10.56.20.70:7878"
-			cluster.HTTPProxy = "http://10.10.1.1:3128"
-			cluster.NoProxy = "quay.io"
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
+	It("ignition_file_contains_http_proxy", func() {
+		bm.ServiceBaseURL = "file://10.56.20.70:7878"
+		cluster.HTTPProxy = "http://10.10.1.1:3128"
+		cluster.NoProxy = "quay.io"
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
 
-			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
-		})
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
+	})
 
-		It("produces a valid ignition v3.1 spec by default", func() {
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
-			Expect(err).NotTo(HaveOccurred())
-			config, report, err := ign_3_1.Parse([]byte(text))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(report.IsFatal()).To(BeFalse())
-			Expect(config.Ignition.Version).To(Equal("3.1.0"))
-		})
+	It("produces a valid ignition v3.1 spec by default", func() {
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
+		Expect(err).NotTo(HaveOccurred())
+		config, report, err := ign_3_1.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+	})
 
-		It("produces a valid ignition v3.1 spec with overrides", func() {
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
-			Expect(err).NotTo(HaveOccurred())
+	It("produces a valid ignition v3.1 spec with overrides", func() {
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
+		Expect(err).NotTo(HaveOccurred())
 
-			config, report, err := ign_3_1.Parse([]byte(text))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(report.IsFatal()).To(BeFalse())
-			orig_files := len(config.Storage.Files)
+		config, report, err := ign_3_1.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		orig_files := len(config.Storage.Files)
 
-			cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-			text, err = bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
-			Expect(err).NotTo(HaveOccurred())
+		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		text, err = bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
+		Expect(err).NotTo(HaveOccurred())
 
-			config, report, err = ign_3_1.Parse([]byte(text))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(report.IsFatal()).To(BeFalse())
-			Expect(len(config.Storage.Files)).To(Equal(orig_files + 1))
-		})
+		config, report, err = ign_3_1.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(len(config.Storage.Files)).To(Equal(orig_files + 1))
+	})
 
-		It("fails when given overrides with an incompatible version", func() {
-			cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-			_, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
-			Expect(err).To(HaveOccurred())
-		})
+	It("fails when given overrides with an incompatible version", func() {
+		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		_, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{},
+		}, log, false)
+		Expect(err).To(HaveOccurred())
+	})
 
-		/* [TODO] enable once nmstate is installed in Docker.assisted-service-build
-		It("produces a valid ignition v3.1 spec with static ips paramters", func() {
-			staticNetworkConfig := []string{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1"),
-				formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1"),
-				formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1")}
-			cluster.ImageInfo.StaticNetworkConfig = strings.Join(staticNetworkConfig, "ZZZZZ")
+	/* [TODO] enable once nmstate is installed in Docker.assisted-service-build
+	It("produces a valid ignition v3.1 spec with static ips paramters", func() {
+		staticNetworkConfig := []string{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1"),
+			formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1"),
+			formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1")}
+		cluster.ImageInfo.StaticNetworkConfig = strings.Join(staticNetworkConfig, "ZZZZZ")
+		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
+			ImageCreateParams: &models.ImageCreateParams{
+				ImageType: models.ImageTypeFullIso,
+			},
+		}, log, false)
+		Expect(err).NotTo(HaveOccurred())
+		config, report, err := ign_3_1.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		count := 0
+		for _, f := range config.Storage.Files {
+			if strings.HasSuffix(f.Path, "nmconnection") {
+				count += 1
+			}
+		}
+		Expect(count).Should(Equal(6))
+	})
+	*/
+	// [TODO]  - change the tests once nmstate-based implementation is in - add the check for Motti's service ( not supposed to be in ignition)
+	/*
+		It("Doesn't include the static ip data for minimal isos", func() {
+			cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;mask1;dns1;gw1;ip6;mask6;dns6;gw6\nmac2;ip2;mask2;dns2;gw2;;;;"
 			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
 				ImageCreateParams: &models.ImageCreateParams{
-					ImageType: models.ImageTypeFullIso,
+					ImageType: models.ImageTypeMinimalIso,
 				},
 			}, log, false)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := ign_3_1.Parse([]byte(text))
 			Expect(err).NotTo(HaveOccurred())
 			Expect(report.IsFatal()).To(BeFalse())
-			count := 0
-			for _, f := range config.Storage.Files {
-				if strings.HasSuffix(f.Path, "nmconnection") {
-					count += 1
-				}
+
+			for _, f := range config.Systemd.Units {
+				Expect(f.Name).ToNot(Equal("configure-static-ip.service"))
 			}
-			Expect(count).Should(Equal(6))
+
+			for _, f := range config.Storage.Files {
+				Expect(f.Path).ToNot(Equal("/etc/static_ips_config.csv"))
+				Expect(f.Path).ToNot(Equal("/usr/local/bin/configure-static-ip.sh"))
+			}
 		})
-		*/
-		// [TODO]  - change the tests once nmstate-based implementation is in - add the check for Motti's service ( not supposed to be in ignition)
-		/*
-			It("Doesn't include the static ip data for minimal isos", func() {
-				cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;mask1;dns1;gw1;ip6;mask6;dns6;gw6\nmac2;ip2;mask2;dns2;gw2;;;;"
-				text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-					ImageCreateParams: &models.ImageCreateParams{
-						ImageType: models.ImageTypeMinimalIso,
-					},
-				}, log, false)
-				Expect(err).NotTo(HaveOccurred())
-				config, report, err := ign_3_1.Parse([]byte(text))
-				Expect(err).NotTo(HaveOccurred())
-				Expect(report.IsFatal()).To(BeFalse())
-
-				for _, f := range config.Systemd.Units {
-					Expect(f.Name).ToNot(Equal("configure-static-ip.service"))
-				}
-
-				for _, f := range config.Storage.Files {
-					Expect(f.Path).ToNot(Equal("/etc/static_ips_config.csv"))
-					Expect(f.Path).ToNot(Equal("/usr/local/bin/configure-static-ip.sh"))
-				}
-			})
-		*/
-	}
-
-	Context("start with clean configuration", func() {
-		BeforeEach(func() {
-			bm = &bareMetalInventory{log: common.GetTestLog()}
-		})
-		RunIgnitionConfigurationTests()
-	})
+	*/
 })
 
 func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityMode string) *common.Cluster {

@@ -40,7 +40,8 @@ var _ = Describe("AssistedServiceISO", func() {
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 		mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 		cfg.IgnitionConfigBaseFilename = "../../config/onprem-iso-config.ign"
-		api = NewAssistedServiceISOApi(mockS3Client, getTestAuthHandler(), common.GetTestLog(), mockSecretValidator, cfg)
+		logger := common.GetTestLog()
+		api = NewAssistedServiceISOApi(mockS3Client, auth.NewNoneAuthenticator(logger), logger, mockSecretValidator, cfg)
 	})
 
 	uploadIsoSuccess := func() {
@@ -183,13 +184,4 @@ var _ = Describe("AssistedServiceISO", func() {
 func TestAssistedServiceISO(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "AssistedServiceISO test Suite")
-}
-
-func getTestAuthHandler() auth.AuthHandler {
-	fakeConfigDisabled := auth.Config{
-		EnableAuth: false,
-		JwkCertURL: "",
-		JwkCert:    "",
-	}
-	return *auth.NewAuthHandler(fakeConfigDisabled, nil, common.GetTestLog().WithField("pkg", "auth"), nil)
 }

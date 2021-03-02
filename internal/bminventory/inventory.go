@@ -314,7 +314,7 @@ type bareMetalInventory struct {
 	metricApi           metrics.API
 	operatorManagerApi  operators.API
 	generator           generator.ISOInstallConfigGenerator
-	authHandler         auth.AuthHandler
+	authHandler         auth.Authenticator
 	k8sClient           k8sclient.K8SClient
 	ocmClient           *ocm.Client
 	leaderElector       leader.Leader
@@ -348,7 +348,7 @@ func NewBareMetalInventory(
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
 	operatorManagerApi operators.API,
-	authHandler auth.AuthHandler,
+	authHandler auth.Authenticator,
 	k8sClient k8sclient.K8SClient,
 	ocmClient *ocm.Client,
 	leaderElector leader.Leader,
@@ -399,7 +399,7 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		return "", err
 	}
 	pullSecretToken := ""
-	if b.authHandler.EnableAuth {
+	if b.authHandler.AuthType() == auth.TypeRHSSO {
 		r, ok := creds["cloud.openshift.com"]
 		if !ok {
 			return "", errors.Errorf("Pull secret does not contain auth for cloud.openshift.com")

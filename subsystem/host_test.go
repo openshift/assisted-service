@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	serviceHost "github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 )
 
 var _ = Describe("Host tests", func() {
@@ -610,7 +611,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("register_wrong_pull_secret", func() {
-		if !Options.EnableAuth {
+		if Options.AuthType == auth.TypeNone {
 			Skip("auth is disabled")
 		}
 

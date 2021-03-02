@@ -42,7 +42,7 @@ const (
 // it verifies the format of the pull secrete and access to required image registries
 // go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
 type PullSecretValidator interface {
-	ValidatePullSecret(secret string, username string, authHandler auth.AuthHandler) error
+	ValidatePullSecret(secret string, username string, authHandler auth.Authenticator) error
 }
 
 type registryPullSecretValidator struct {
@@ -148,13 +148,14 @@ func NewPullSecretValidator(config Config, images ...string) (PullSecretValidato
 }
 
 // ValidatePullSecret validates that a pull secret is well formed and contains all required data
-func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, authHandler auth.AuthHandler) error {
+func (v *registryPullSecretValidator) ValidatePullSecret(secret string, username string, authHandler auth.Authenticator) error {
 	creds, err := ParsePullSecret(secret)
 	if err != nil {
 		return err
 	}
 
-	if authHandler.EnableAuth {
+	// only check for cloud creds if we're authenticating against Red Hat SSO
+	if authHandler.AuthType() == auth.TypeRHSSO {
 
 		r, ok := creds["cloud.openshift.com"]
 		if !ok {

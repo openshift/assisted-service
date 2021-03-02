@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/pkg/auth"
 )
 
 const psTemplate = "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"%s\",\"email\":\"r@r.com\"}}}"
@@ -27,7 +28,7 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewAdminStubID string
 
 	BeforeSuite(func() {
-		if !Options.EnableAuth {
+		if Options.AuthType == auth.TypeNone {
 			return
 		}
 
@@ -45,7 +46,7 @@ var _ = Describe("test authorization", func() {
 	})
 
 	AfterSuite(func() {
-		if !Options.EnableAuth {
+		if Options.AuthType == auth.TypeNone {
 			return
 		}
 
@@ -63,7 +64,7 @@ var _ = Describe("test authorization", func() {
 	})
 
 	BeforeEach(func() {
-		if !Options.EnableAuth {
+		if Options.AuthType == auth.TypeNone {
 			Skip("auth is disabled")
 		}
 
