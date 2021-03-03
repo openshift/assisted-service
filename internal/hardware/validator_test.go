@@ -93,7 +93,7 @@ var _ = Describe("hardware_validator", func() {
 		host3 = &models.Host{ID: &id3, ClusterID: clusterID, Status: &status, RequestedHostname: "reqhostname3"}
 		inventory = &models.Inventory{
 			CPU:    &models.CPU{Count: 16},
-			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+			Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
 			Interfaces: []*models.Interface{
 				{
 					IPV4Addresses: []string{

@@ -44,32 +44,32 @@ func (l *lsOperator) GetHostValidationID() string {
 }
 
 // ValidateCluster always return "valid" result
-func (l *lsOperator) ValidateCluster(ctx context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
+func (l *lsOperator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.ValidationResult, error) {
 	return api.ValidationResult{Status: api.Success, ValidationId: l.GetClusterValidationID(), Reasons: []string{}}, nil
 }
 
 // ValidateHost always return "valid" result
-func (l *lsOperator) ValidateHost(context.Context, *common.Cluster, *models.Host) (api.ValidationResult, error) {
+func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *models.Host) (api.ValidationResult, error) {
 	return api.ValidationResult{Status: api.Success, ValidationId: l.GetHostValidationID(), Reasons: []string{}}, nil
 }
 
 // GetCPURequirementForWorker provides worker CPU requirements for the operator
-func (l *lsOperator) GetCPURequirementForWorker(context.Context, *common.Cluster) (int64, error) {
+func (l *lsOperator) GetCPURequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetCPURequirementForMaster provides master CPU requirements for the operator
-func (l *lsOperator) GetCPURequirementForMaster(context.Context, *common.Cluster) (int64, error) {
+func (l *lsOperator) GetCPURequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetMemoryRequirementForWorker provides worker memory requirements for the operator
-func (l *lsOperator) GetMemoryRequirementForWorker(context.Context, *common.Cluster) (int64, error) {
+func (l *lsOperator) GetMemoryRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetMemoryRequirementForMaster provides master memory requirements for the operator
-func (l *lsOperator) GetMemoryRequirementForMaster(context.Context, *common.Cluster) (int64, error) {
+func (l *lsOperator) GetMemoryRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
@@ -79,12 +79,12 @@ func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, er
 }
 
 // GetDisksRequirementForMaster provides a number of disks required in a master
-func (l *lsOperator) GetDisksRequirementForMaster(context.Context, *common.Cluster) (int64, error) {
+func (l *lsOperator) GetDisksRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetDisksRequirementForWorker provides a number of disks required in a worker
-func (l *lsOperator) GetDisksRequirementForWorker(context.Context, *common.Cluster) (int64, error) {
+func (l *lsOperator) GetDisksRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 1, nil
 }
 

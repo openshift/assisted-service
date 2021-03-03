@@ -305,9 +305,9 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 	}
 
 	hosts := make([]*models.Host, 0)
-	for k, v := range MapHostsByStatus(c.cluster) {
+	for k, h := range MapHostsByStatus(c.cluster) {
 		if k != models.HostStatusDisabled {
-			hosts = append(hosts, v...)
+			hosts = append(hosts, h...)
 		}
 	}
 	masters := make([]*models.Host, 0)

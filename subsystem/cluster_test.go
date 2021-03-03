@@ -55,7 +55,7 @@ const (
 var (
 	validWorkerHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 2},
-		Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB)},
+		Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
 		Disks: []*models.Disk{
 			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
 			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
@@ -67,7 +67,7 @@ var (
 	}
 	validHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
-		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
 		Disks: []*models.Disk{
 			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
 			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
@@ -2452,7 +2452,7 @@ var _ = Describe("cluster install", func() {
 		By("set host with log hw info for master")
 		hwInfo := &models.Inventory{
 			CPU:    &models.CPU{Count: 2},
-			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB)},
+			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
 			Disks: []*models.Disk{
 				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
 			},

@@ -72,7 +72,7 @@ func (o *ocsOperator) ValidateCluster(_ context.Context, cluster *common.Cluster
 }
 
 // ValidateHost verifies whether this operator is valid for given host
-func (o *ocsOperator) ValidateHost(context.Context, *common.Cluster, *models.Host) (api.ValidationResult, error) {
+func (o *ocsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *models.Host) (api.ValidationResult, error) {
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 }
 
@@ -83,32 +83,32 @@ func (o *ocsOperator) GenerateManifests(cluster *common.Cluster) (map[string][]b
 }
 
 // GetCPURequirementForWorker provides worker CPU requirements for the operator
-func (o *ocsOperator) GetCPURequirementForWorker(context.Context, *common.Cluster) (int64, error) {
+func (o *ocsOperator) GetCPURequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetCPURequirementForMaster provides master CPU requirements for the operator
-func (o *ocsOperator) GetCPURequirementForMaster(context.Context, *common.Cluster) (int64, error) {
+func (o *ocsOperator) GetCPURequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetMemoryRequirementForWorker provides worker memory requirements for the operator in MB
-func (o *ocsOperator) GetMemoryRequirementForWorker(context.Context, *common.Cluster) (int64, error) {
+func (o *ocsOperator) GetMemoryRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetMemoryRequirementForMaster provides master memory requirements for the operator
-func (o *ocsOperator) GetMemoryRequirementForMaster(context.Context, *common.Cluster) (int64, error) {
+func (o *ocsOperator) GetMemoryRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetDisksRequirementForMaster provides a number of disks required in a master
-func (o *ocsOperator) GetDisksRequirementForMaster(context.Context, *common.Cluster) (int64, error) {
+func (o *ocsOperator) GetDisksRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 
 // GetDisksRequirementForWorker provides a number of disks required in a worker
-func (o *ocsOperator) GetDisksRequirementForWorker(context.Context, *common.Cluster) (int64, error) {
+func (o *ocsOperator) GetDisksRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
 	return 0, nil
 }
 

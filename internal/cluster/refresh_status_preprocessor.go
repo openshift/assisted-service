@@ -27,15 +27,15 @@ type refreshPreprocessor struct {
 	log          logrus.FieldLogger
 	validations  []validation
 	conditions   []condition
-	operatorsApi operators.API
+	operatorsAPI operators.API
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsApi operators.API) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsAPI operators.API) *refreshPreprocessor {
 	return &refreshPreprocessor{
 		log:          log,
 		validations:  newValidations(log, hostAPI),
 		conditions:   newConditions(),
-		operatorsApi: operatorsApi,
+		operatorsAPI: operatorsAPI,
 	}
 }
 
@@ -65,7 +65,7 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 		})
 	}
 	// Validate operators
-	results, err := r.operatorsApi.ValidateCluster(ctx, c.cluster)
+	results, err := r.operatorsAPI.ValidateCluster(ctx, c.cluster)
 	if err != nil {
 		return nil, nil, err
 	}
