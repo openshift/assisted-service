@@ -10,11 +10,15 @@ import (
 	"net/url"
 	golangswaggerpaths "path"
 	"strings"
+
+	"github.com/go-openapi/strfmt"
 )
 
-// ListOperatorPropertiesURL generates an URL for the list operator properties operation
-type ListOperatorPropertiesURL struct {
-	OperatorType string
+// ListOfClusterOperatorsURL generates an URL for the list of cluster operators operation
+type ListOfClusterOperatorsURL struct {
+	ClusterID strfmt.UUID
+
+	OperatorName *string
 
 	_basePath string
 	// avoid unkeyed usage
@@ -24,7 +28,7 @@ type ListOperatorPropertiesURL struct {
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListOperatorPropertiesURL) WithBasePath(bp string) *ListOperatorPropertiesURL {
+func (o *ListOfClusterOperatorsURL) WithBasePath(bp string) *ListOfClusterOperatorsURL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -32,21 +36,21 @@ func (o *ListOperatorPropertiesURL) WithBasePath(bp string) *ListOperatorPropert
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *ListOperatorPropertiesURL) SetBasePath(bp string) {
+func (o *ListOfClusterOperatorsURL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *ListOperatorPropertiesURL) Build() (*url.URL, error) {
+func (o *ListOfClusterOperatorsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/supported-operators/{operator_type}"
+	var _path = "/clusters/{cluster_id}/monitored_operators"
 
-	operatorType := o.OperatorType
-	if operatorType != "" {
-		_path = strings.Replace(_path, "{operator_type}", operatorType, -1)
+	clusterID := o.ClusterID.String()
+	if clusterID != "" {
+		_path = strings.Replace(_path, "{cluster_id}", clusterID, -1)
 	} else {
-		return nil, errors.New("operatorType is required on ListOperatorPropertiesURL")
+		return nil, errors.New("clusterId is required on ListOfClusterOperatorsURL")
 	}
 
 	_basePath := o._basePath
@@ -55,11 +59,23 @@ func (o *ListOperatorPropertiesURL) Build() (*url.URL, error) {
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
+	qs := make(url.Values)
+
+	var operatorNameQ string
+	if o.OperatorName != nil {
+		operatorNameQ = *o.OperatorName
+	}
+	if operatorNameQ != "" {
+		qs.Set("operator_name", operatorNameQ)
+	}
+
+	_result.RawQuery = qs.Encode()
+
 	return &_result, nil
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *ListOperatorPropertiesURL) Must(u *url.URL, err error) *url.URL {
+func (o *ListOfClusterOperatorsURL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -70,17 +86,17 @@ func (o *ListOperatorPropertiesURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *ListOperatorPropertiesURL) String() string {
+func (o *ListOfClusterOperatorsURL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *ListOperatorPropertiesURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *ListOfClusterOperatorsURL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on ListOperatorPropertiesURL")
+		return nil, errors.New("scheme is required for a full url on ListOfClusterOperatorsURL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on ListOperatorPropertiesURL")
+		return nil, errors.New("host is required for a full url on ListOfClusterOperatorsURL")
 	}
 
 	base, err := o.Build()
@@ -94,6 +110,6 @@ func (o *ListOperatorPropertiesURL) BuildFull(scheme, host string) (*url.URL, er
 }
 
 // StringFull returns the string representation of a complete url
-func (o *ListOperatorPropertiesURL) StringFull(scheme, host string) string {
+func (o *ListOfClusterOperatorsURL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

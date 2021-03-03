@@ -25,7 +25,7 @@ type ListSupportedOperatorsOK struct {
 	/*
 	  In: Body
 	*/
-	Payload models.SupportedOperatorsList `json:"body,omitempty"`
+	Payload models.MonitoredOperatorsList `json:"body,omitempty"`
 }
 
 // NewListSupportedOperatorsOK creates ListSupportedOperatorsOK with default headers values
@@ -35,13 +35,13 @@ func NewListSupportedOperatorsOK() *ListSupportedOperatorsOK {
 }
 
 // WithPayload adds the payload to the list supported operators o k response
-func (o *ListSupportedOperatorsOK) WithPayload(payload models.SupportedOperatorsList) *ListSupportedOperatorsOK {
+func (o *ListSupportedOperatorsOK) WithPayload(payload models.MonitoredOperatorsList) *ListSupportedOperatorsOK {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the list supported operators o k response
-func (o *ListSupportedOperatorsOK) SetPayload(payload models.SupportedOperatorsList) {
+func (o *ListSupportedOperatorsOK) SetPayload(payload models.MonitoredOperatorsList) {
 	o.Payload = payload
 }
 
@@ -52,7 +52,7 @@ func (o *ListSupportedOperatorsOK) WriteResponse(rw http.ResponseWriter, produce
 	payload := o.Payload
 	if payload == nil {
 		// return empty array
-		payload = models.SupportedOperatorsList{}
+		payload = models.MonitoredOperatorsList{}
 	}
 
 	if err := producer.Produce(rw, payload); err != nil {

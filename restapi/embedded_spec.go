@@ -4011,6 +4011,154 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/monitored_operators": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Lists operators to be monitored for a cluster.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "ListOfClusterOperators",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return operators for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "An operator in the specified cluster to return its data.",
+            "name": "operator_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/monitored-operators-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Controller API to report of monitored operators.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "ReportMonitoredOperatorStatus",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose operators are being monitored.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The operators monitor report.",
+            "name": "report-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/operator-monitor-report"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/progress": {
       "put": {
         "security": [
@@ -4328,7 +4476,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/supported-operators-list"
+              "$ref": "#/definitions/monitored-operators-list"
             }
           },
           "401": {
@@ -4341,69 +4489,6 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/supported-operators/{operator_type}": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Lists properties for an operator type.",
-        "tags": [
-          "operators"
-        ],
-        "operationId": "ListOperatorProperties",
-        "parameters": [
-          {
-            "enum": [
-              "lso",
-              "ocs"
-            ],
-            "type": "string",
-            "description": "The operator type.",
-            "name": "operator_type",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -4666,6 +4751,15 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
+        "monitored_operators": {
+          "description": "Operators that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/monitored-operator"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+        },
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
@@ -4682,11 +4776,6 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
-        },
-        "operators": {
-          "description": "Operators that are associated with this cluster and their properties.",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "org_id": {
           "type": "string"
@@ -4827,12 +4916,16 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "olm_operators": {
+          "description": "List of OLM operators to be installed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-create-params"
+          }
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
-        },
-        "operators": {
-          "$ref": "#/definitions/list-operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -4866,28 +4959,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
-      }
-    },
-    "cluster-operator": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false
-        },
-        "operator_type": {
-          "$ref": "#/definitions/operator-type"
-        },
-        "properties": {
-          "description": "JSON-formatted string containing the properties for each operator",
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "status_info": {
-          "type": "string"
-        }
       }
     },
     "cluster-progress-info": {
@@ -5047,8 +5118,12 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "operators": {
-          "$ref": "#/definitions/list-operators"
+        "olm_operators": {
+          "description": "List of OLM operators to be installed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-create-params"
+          }
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -6425,14 +6500,6 @@ func init() {
         "$ref": "#/definitions/manifest"
       }
     },
-    "list-operators": {
-      "type": "array",
-      "items": {
-        "description": "Operators that are associated with this cluster and their properties.",
-        "x-nullable": true,
-        "$ref": "#/definitions/operator"
-      }
-    },
     "list-versions": {
       "type": "object",
       "properties": {
@@ -6517,6 +6584,57 @@ func init() {
         }
       }
     },
+    "monitored-operator": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "description": "The cluster that this operator is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+        },
+        "name": {
+          "description": "Unique name of the operator.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "namespace": {
+          "description": "Namespace where to deploy an operator. Only some operators require a namespace.",
+          "type": "string"
+        },
+        "operator_type": {
+          "$ref": "#/definitions/operator-type"
+        },
+        "properties": {
+          "description": "Blob of operator-dependent parameters that are required for installation.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "status": {
+          "$ref": "#/definitions/operator-status"
+        },
+        "status_info": {
+          "description": "Detailed information about the operator state.",
+          "type": "string"
+        },
+        "status_updated_at": {
+          "description": "Time at which the operator was last updated.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "timeout_seconds": {
+          "description": "Positive number represents a timeout in seconds for the operator to be available.",
+          "type": "integer"
+        }
+      }
+    },
+    "monitored-operators-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/monitored-operator"
+      }
+    },
     "ntp_source": {
       "type": "object",
       "properties": {
@@ -6594,36 +6712,51 @@ func init() {
         "$ref": "#/definitions/openshift-version"
       }
     },
-    "operator": {
+    "operator-create-params": {
       "type": "object",
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false
-        },
-        "operator_type": {
-          "$ref": "#/definitions/operator-type"
+        "name": {
+          "type": "string"
         },
         "properties": {
-          "description": "JSON-formatted string containing the properties for each operator",
+          "description": "Blob of operator-dependent parameters that are required for installation.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        }
+      }
+    },
+    "operator-monitor-report": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Unique name of the operator.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/operator-status"
+        },
+        "status_info": {
+          "description": "Detailed information about the operator state.",
           "type": "string"
         }
       }
     },
-    "operator-type": {
+    "operator-status": {
+      "description": "Represents the operator state.",
       "type": "string",
       "enum": [
-        "lso",
-        "ocs"
+        "failed",
+        "progressing",
+        "available"
       ]
     },
-    "operators": {
-      "description": "Operators that are associated with this cluster and their properties.",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/cluster-operator"
-      },
-      "x-nullable": true
+    "operator-type": {
+      "description": "Kind of operator. Different types are monitored by the service differently.",
+      "type": "string",
+      "enum": [
+        "builtin",
+        "olm"
+      ]
     },
     "presigned": {
       "type": "object",
@@ -6732,12 +6865,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/step-reply"
-      }
-    },
-    "supported-operators-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/operator-type"
       }
     },
     "system_vendor": {
@@ -10818,6 +10945,154 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/monitored_operators": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Lists operators to be monitored for a cluster.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "ListOfClusterOperators",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return operators for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "An operator in the specified cluster to return its data.",
+            "name": "operator_name",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/monitored-operators-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "put": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Controller API to report of monitored operators.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "ReportMonitoredOperatorStatus",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose operators are being monitored.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The operators monitor report.",
+            "name": "report-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/operator-monitor-report"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success."
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/progress": {
       "put": {
         "security": [
@@ -11135,7 +11410,7 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/supported-operators-list"
+              "$ref": "#/definitions/monitored-operators-list"
             }
           },
           "401": {
@@ -11148,69 +11423,6 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/supported-operators/{operator_type}": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Lists properties for an operator type.",
-        "tags": [
-          "operators"
-        ],
-        "operationId": "ListOperatorProperties",
-        "parameters": [
-          {
-            "enum": [
-              "lso",
-              "ocs"
-            ],
-            "type": "string",
-            "description": "The operator type.",
-            "name": "operator_type",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "string"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -11603,6 +11815,15 @@ func init() {
           "type": "string",
           "pattern": "^(?:(?:(?:[0-9]{1,3}\\.){3}[0-9]{1,3}\\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$"
         },
+        "monitored_operators": {
+          "description": "Operators that are associated with this cluster.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/monitored-operator"
+          },
+          "x-go-custom-tag": "gorm:\"foreignkey:ClusterID;association_foreignkey:ID\""
+        },
         "name": {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
@@ -11619,11 +11840,6 @@ func init() {
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
-        },
-        "operators": {
-          "description": "Operators that are associated with this cluster and their properties.",
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "org_id": {
           "type": "string"
@@ -11764,12 +11980,16 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
+        "olm_operators": {
+          "description": "List of OLM operators to be installed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-create-params"
+          }
+        },
         "openshift_version": {
           "description": "Version of the OpenShift cluster.",
           "type": "string"
-        },
-        "operators": {
-          "$ref": "#/definitions/list-operators"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -11803,28 +12023,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
-      }
-    },
-    "cluster-operator": {
-      "type": "object",
-      "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false
-        },
-        "operator_type": {
-          "$ref": "#/definitions/operator-type"
-        },
-        "properties": {
-          "description": "JSON-formatted string containing the properties for each operator",
-          "type": "string"
-        },
-        "status": {
-          "type": "string"
-        },
-        "status_info": {
-          "type": "string"
-        }
       }
     },
     "cluster-progress-info": {
@@ -11944,8 +12142,12 @@ func init() {
           "type": "string",
           "x-nullable": true
         },
-        "operators": {
-          "$ref": "#/definitions/list-operators"
+        "olm_operators": {
+          "description": "List of OLM operators to be installed.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-create-params"
+          }
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -13287,14 +13489,6 @@ func init() {
         "$ref": "#/definitions/manifest"
       }
     },
-    "list-operators": {
-      "type": "array",
-      "items": {
-        "description": "Operators that are associated with this cluster and their properties.",
-        "x-nullable": true,
-        "$ref": "#/definitions/operator"
-      }
-    },
     "list-versions": {
       "type": "object",
       "properties": {
@@ -13379,6 +13573,57 @@ func init() {
         }
       }
     },
+    "monitored-operator": {
+      "type": "object",
+      "properties": {
+        "cluster_id": {
+          "description": "The cluster that this operator is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+        },
+        "name": {
+          "description": "Unique name of the operator.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "namespace": {
+          "description": "Namespace where to deploy an operator. Only some operators require a namespace.",
+          "type": "string"
+        },
+        "operator_type": {
+          "$ref": "#/definitions/operator-type"
+        },
+        "properties": {
+          "description": "Blob of operator-dependent parameters that are required for installation.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
+        "status": {
+          "$ref": "#/definitions/operator-status"
+        },
+        "status_info": {
+          "description": "Detailed information about the operator state.",
+          "type": "string"
+        },
+        "status_updated_at": {
+          "description": "Time at which the operator was last updated.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "timeout_seconds": {
+          "description": "Positive number represents a timeout in seconds for the operator to be available.",
+          "type": "integer"
+        }
+      }
+    },
+    "monitored-operators-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/monitored-operator"
+      }
+    },
     "ntp_source": {
       "type": "object",
       "properties": {
@@ -13456,36 +13701,51 @@ func init() {
         "$ref": "#/definitions/openshift-version"
       }
     },
-    "operator": {
+    "operator-create-params": {
       "type": "object",
       "properties": {
-        "enabled": {
-          "type": "boolean",
-          "default": false
-        },
-        "operator_type": {
-          "$ref": "#/definitions/operator-type"
+        "name": {
+          "type": "string"
         },
         "properties": {
-          "description": "JSON-formatted string containing the properties for each operator",
+          "description": "Blob of operator-dependent parameters that are required for installation.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        }
+      }
+    },
+    "operator-monitor-report": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Unique name of the operator.",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/operator-status"
+        },
+        "status_info": {
+          "description": "Detailed information about the operator state.",
           "type": "string"
         }
       }
     },
-    "operator-type": {
+    "operator-status": {
+      "description": "Represents the operator state.",
       "type": "string",
       "enum": [
-        "lso",
-        "ocs"
+        "failed",
+        "progressing",
+        "available"
       ]
     },
-    "operators": {
-      "description": "Operators that are associated with this cluster and their properties.",
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/cluster-operator"
-      },
-      "x-nullable": true
+    "operator-type": {
+      "description": "Kind of operator. Different types are monitored by the service differently.",
+      "type": "string",
+      "enum": [
+        "builtin",
+        "olm"
+      ]
     },
     "presigned": {
       "type": "object",
@@ -13594,12 +13854,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/step-reply"
-      }
-    },
-    "supported-operators-list": {
-      "type": "array",
-      "items": {
-        "$ref": "#/definitions/operator-type"
       }
     },
     "system_vendor": {

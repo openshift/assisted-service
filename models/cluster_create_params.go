@@ -7,6 +7,7 @@ package models
 
 import (
 	"encoding/json"
+	"strconv"
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
@@ -63,12 +64,12 @@ type ClusterCreateParams struct {
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
+	// List of OLM operators to be installed.
+	OlmOperators []*OperatorCreateParams `json:"olm_operators"`
+
 	// Version of the OpenShift cluster.
 	// Required: true
 	OpenshiftVersion *string `json:"openshift_version"`
-
-	// operators
-	Operators ListOperators `json:"operators,omitempty"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	// Required: true
@@ -112,11 +113,11 @@ func (m *ClusterCreateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateOpenshiftVersion(formats); err != nil {
+	if err := m.validateOlmOperators(formats); err != nil {
 		res = append(res, err)
 	}
 
-	if err := m.validateOperators(formats); err != nil {
+	if err := m.validateOpenshiftVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -237,25 +238,34 @@ func (m *ClusterCreateParams) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
+func (m *ClusterCreateParams) validateOlmOperators(formats strfmt.Registry) error {
 
-	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
-		return err
+	if swag.IsZero(m.OlmOperators) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.OlmOperators); i++ {
+		if swag.IsZero(m.OlmOperators[i]) { // not required
+			continue
+		}
+
+		if m.OlmOperators[i] != nil {
+			if err := m.OlmOperators[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("olm_operators" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
 }
 
-func (m *ClusterCreateParams) validateOperators(formats strfmt.Registry) error {
+func (m *ClusterCreateParams) validateOpenshiftVersion(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Operators) { // not required
-		return nil
-	}
-
-	if err := m.Operators.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("operators")
-		}
+	if err := validate.Required("openshift_version", "body", m.OpenshiftVersion); err != nil {
 		return err
 	}
 

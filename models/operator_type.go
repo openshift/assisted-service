@@ -13,18 +13,18 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// OperatorType operator type
+// OperatorType Kind of operator. Different types are monitored by the service differently.
 //
 // swagger:model operator-type
 type OperatorType string
 
 const (
 
-	// OperatorTypeLso captures enum value "lso"
-	OperatorTypeLso OperatorType = "lso"
+	// OperatorTypeBuiltin captures enum value "builtin"
+	OperatorTypeBuiltin OperatorType = "builtin"
 
-	// OperatorTypeOcs captures enum value "ocs"
-	OperatorTypeOcs OperatorType = "ocs"
+	// OperatorTypeOlm captures enum value "olm"
+	OperatorTypeOlm OperatorType = "olm"
 )
 
 // for schema
@@ -32,7 +32,7 @@ var operatorTypeEnum []interface{}
 
 func init() {
 	var res []OperatorType
-	if err := json.Unmarshal([]byte(`["lso","ocs"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["builtin","olm"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

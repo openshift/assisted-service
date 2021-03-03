@@ -132,6 +132,9 @@ type Cluster struct {
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	MachineNetworkCidr string `json:"machine_network_cidr,omitempty"`
 
+	// Operators that are associated with this cluster.
+	MonitoredOperators []*MonitoredOperator `json:"monitored_operators" gorm:"foreignkey:ClusterID;association_foreignkey:ID"`
+
 	// Name of the OpenShift cluster.
 	Name string `json:"name,omitempty"`
 
@@ -144,9 +147,6 @@ type Cluster struct {
 
 	// Version of the OpenShift cluster.
 	OpenshiftVersion string `json:"openshift_version,omitempty"`
-
-	// Operators that are associated with this cluster and their properties.
-	Operators string `json:"operators,omitempty" gorm:"type:text"`
 
 	// org id
 	OrgID string `json:"org_id,omitempty"`
@@ -271,6 +271,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateMachineNetworkCidr(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMonitoredOperators(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -645,6 +649,31 @@ func (m *Cluster) validateMachineNetworkCidr(formats strfmt.Registry) error {
 
 	if err := validate.Pattern("machine_network_cidr", "body", string(m.MachineNetworkCidr), `^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$`); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateMonitoredOperators(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.MonitoredOperators) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.MonitoredOperators); i++ {
+		if swag.IsZero(m.MonitoredOperators[i]) { // not required
+			continue
+		}
+
+		if m.MonitoredOperators[i] != nil {
+			if err := m.MonitoredOperators[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("monitored_operators" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
