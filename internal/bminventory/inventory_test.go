@@ -2293,7 +2293,8 @@ var _ = Describe("cluster", func() {
 						})
 						Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 						actual := reply.(*installer.UpdateClusterCreated)
-						Expect(actual.Payload.MonitoredOperators).To(Equal(test.expectedOperators))
+						Expect(actual.Payload.MonitoredOperators).To(HaveLen(len(test.expectedOperators)))
+						Expect(actual.Payload.MonitoredOperators).To(ContainElements(test.expectedOperators))
 					})
 				}
 			})

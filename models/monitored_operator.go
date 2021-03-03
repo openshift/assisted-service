@@ -30,6 +30,9 @@ type MonitoredOperator struct {
 	// operator type
 	OperatorType OperatorType `json:"operator_type,omitempty"`
 
+	// Prefix of the operator to be searched by.
+	PrefixName string `json:"prefix_name,omitempty"`
+
 	// Blob of operator-dependent parameters that are required for installation.
 	Properties string `json:"properties,omitempty" gorm:"type:text"`
 

@@ -62,7 +62,7 @@ func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]strin
 		if operator != nil {
 			manifests, err := operator.GenerateManifests(cluster)
 			if err != nil {
-				mgr.log.Error(fmt.Sprintf("Cannot generate %v manifests due to ", clusterOperator.Name), err)
+				mgr.log.Error(fmt.Sprintf("Cannot generate %s manifests due to ", clusterOperator.Name), err)
 				return nil, err
 			}
 			if manifests != nil {
@@ -127,7 +127,7 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 			Status:       api.Success,
 			ValidationId: operator.GetHostValidationID(),
 			Reasons: []string{
-				fmt.Sprintf("%v is disabled", OpName),
+				fmt.Sprintf("%s is disabled", OpName),
 			},
 		}
 		results = append(results, result)
@@ -168,13 +168,13 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 		}
 	}
 	// Add successful validation result for disabled operators
-	for opType := range pendingOperators {
-		operator := mgr.olmOperators[opType]
+	for opName := range pendingOperators {
+		operator := mgr.olmOperators[opName]
 		result := api.ValidationResult{
 			Status:       api.Success,
 			ValidationId: operator.GetClusterValidationID(),
 			Reasons: []string{
-				fmt.Sprintf("%v is disabled", opType),
+				fmt.Sprintf("%s is disabled", opName),
 			},
 		}
 		results = append(results, result)

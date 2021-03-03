@@ -20,6 +20,8 @@ var OperatorConsole models.MonitoredOperator = models.MonitoredOperator{
 	TimeoutSeconds: 60 * 60,
 }
 
+// monitoredOperators includes all the supported operators to be monitored.
+// In order to add a new operator - it must be added to this map.
 var monitoredOperators = map[string]*models.MonitoredOperator{
 	// Builtins
 	OperatorCVO.Name:     &OperatorCVO,

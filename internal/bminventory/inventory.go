@@ -657,8 +657,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		kubeKey = &types.NamespacedName{}
 	}
 
-	monitoredOperators := make([]*models.MonitoredOperator, 0)
-	monitoredOperators = append(monitoredOperators, b.operatorManagerApi.GetSupportedOperatorsByType(models.OperatorTypeBuiltin)[:]...)
+	monitoredOperators := b.operatorManagerApi.GetSupportedOperatorsByType(models.OperatorTypeBuiltin)
 
 	if params.NewClusterParams.OlmOperators != nil {
 		var newOLMOperators []*models.MonitoredOperator
@@ -2206,6 +2205,7 @@ func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *c
 		}
 	}
 
+	// After we aligned to the new update OLM info, we need to delete the old OLMs remainders that are still connected to the cluster
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
 			continue

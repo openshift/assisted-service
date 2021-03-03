@@ -6605,6 +6605,10 @@ func init() {
         "operator_type": {
           "$ref": "#/definitions/operator-type"
         },
+        "prefix_name": {
+          "description": "Prefix of the operator to be searched by.",
+          "type": "string"
+        },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
           "type": "string",
@@ -13593,6 +13597,10 @@ func init() {
         },
         "operator_type": {
           "$ref": "#/definitions/operator-type"
+        },
+        "prefix_name": {
+          "description": "Prefix of the operator to be searched by.",
+          "type": "string"
         },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",

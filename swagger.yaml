@@ -3006,6 +3006,9 @@ definitions:
       namespace:
         type: string
         description: Namespace where to deploy an operator. Only some operators require a namespace.
+      prefix_name:
+        type: string
+        description: Prefix of the operator to be searched by.
       operator_type:
         $ref: '#/definitions/operator-type'
       properties:

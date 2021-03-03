@@ -97,7 +97,7 @@ func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDelete
 	}
 
 	if eagerLoading {
-		for _, tableName := range ClusterSubTables[:] {
+		for _, tableName := range ClusterSubTables {
 			db = LoadTableFromDB(db, tableName, func(db *gorm.DB) *gorm.DB {
 				if includeDeleted {
 					return db.Unscoped()
