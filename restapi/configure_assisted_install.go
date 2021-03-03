@@ -234,11 +234,14 @@ type ManifestsAPI interface {
 
 /* OperatorsAPI  */
 type OperatorsAPI interface {
-	/* ListOperatorProperties Lists properties for an operator type. */
-	ListOperatorProperties(ctx context.Context, params operators.ListOperatorPropertiesParams) middleware.Responder
+	/* ListOfClusterOperators Lists operators to be monitored for a cluster. */
+	ListOfClusterOperators(ctx context.Context, params operators.ListOfClusterOperatorsParams) middleware.Responder
 
 	/* ListSupportedOperators Retrieves the list of supported operators. */
 	ListSupportedOperators(ctx context.Context, params operators.ListSupportedOperatorsParams) middleware.Responder
+
+	/* ReportMonitoredOperatorStatus Controller API to report of monitored operators. */
+	ReportMonitoredOperatorStatus(ctx context.Context, params operators.ReportMonitoredOperatorStatusParams) middleware.Responder
 }
 
 //go:generate mockery -name VersionsAPI -inpkg
@@ -532,10 +535,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.ManagedDomainsAPI.ListManagedDomains(ctx, params)
 	})
-	api.OperatorsListOperatorPropertiesHandler = operators.ListOperatorPropertiesHandlerFunc(func(params operators.ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
+	api.OperatorsListOfClusterOperatorsHandler = operators.ListOfClusterOperatorsHandlerFunc(func(params operators.ListOfClusterOperatorsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.OperatorsAPI.ListOperatorProperties(ctx, params)
+		return c.OperatorsAPI.ListOfClusterOperators(ctx, params)
 	})
 	api.VersionsListSupportedOpenshiftVersionsHandler = versions.ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
@@ -566,6 +569,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.RegisterHost(ctx, params)
+	})
+	api.OperatorsReportMonitoredOperatorStatusHandler = operators.ReportMonitoredOperatorStatusHandlerFunc(func(params operators.ReportMonitoredOperatorStatusParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.ReportMonitoredOperatorStatus(ctx, params)
 	})
 	api.InstallerResetClusterHandler = installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

@@ -59,8 +59,8 @@ var _ = Describe("stateMachine", func() {
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, dummy, mockOperators)
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
-			ID:     &id,
-			Status: swag.String("not a known state"),
+			ID:         &id,
+			StatusInfo: swag.String("not a known state"),
 		}}
 
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2187,7 +2187,8 @@ var _ = Describe("Permanently delete clusters", func() {
 		id := strfmt.UUID(uuid.New().String())
 		eventsHandler.AddEvent(ctx, id, &id, "", "", time.Now())
 		c := common.Cluster{Cluster: models.Cluster{
-			ID: &id,
+			ID:                 &id,
+			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
 		}}
 		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 		return c
@@ -2234,6 +2235,10 @@ var _ = Describe("Permanently delete clusters", func() {
 		c3Events, err3 := eventsHandler.GetEvents(*c3.ID, c3.ID)
 		Expect(err3).ShouldNot(HaveOccurred())
 		Expect(len(c3Events)).ShouldNot(Equal(0))
+
+		var operators []*models.MonitoredOperator
+		Expect(db.Find(&operators, "cluster_id = ?", *c1.ID).Error).ShouldNot(HaveOccurred())
+		Expect(operators).Should(HaveLen(0))
 	})
 
 	It("permanently delete clusters - nothing to delete", func() {
@@ -2253,6 +2258,10 @@ var _ = Describe("Permanently delete clusters", func() {
 		c3Events, err3 := eventsHandler.GetEvents(*c3.ID, c3.ID)
 		Expect(err3).ShouldNot(HaveOccurred())
 		Expect(len(c3Events)).ShouldNot(Equal(0))
+
+		var operators []*models.MonitoredOperator
+		Expect(db.Find(&operators, "cluster_id = ?", *c1.ID).Error).ShouldNot(HaveOccurred())
+		Expect(operators).ShouldNot(HaveLen(0))
 	})
 
 	AfterEach(func() {

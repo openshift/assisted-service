@@ -47,6 +47,7 @@ import (
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -311,6 +312,7 @@ type bareMetalInventory struct {
 	eventsHandler       events.Handler
 	objectHandler       s3wrapper.API
 	metricApi           metrics.API
+	operatorManagerApi  operators.API
 	generator           generator.ISOInstallConfigGenerator
 	authHandler         auth.AuthHandler
 	k8sClient           k8sclient.K8SClient
@@ -345,6 +347,7 @@ func NewBareMetalInventory(
 	eventsHandler events.Handler,
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
+	operatorManagerApi operators.API,
 	authHandler auth.AuthHandler,
 	k8sClient k8sclient.K8SClient,
 	ocmClient *ocm.Client,
@@ -365,6 +368,7 @@ func NewBareMetalInventory(
 		eventsHandler:       eventsHandler,
 		objectHandler:       objectHandler,
 		metricApi:           metricApi,
+		operatorManagerApi:  operatorManagerApi,
 		authHandler:         authHandler,
 		k8sClient:           k8sClient,
 		ocmClient:           ocmClient,
@@ -653,6 +657,18 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		kubeKey = &types.NamespacedName{}
 	}
 
+	monitoredOperators := b.operatorManagerApi.GetSupportedOperatorsByType(models.OperatorTypeBuiltin)
+
+	if params.NewClusterParams.OlmOperators != nil {
+		var newOLMOperators []*models.MonitoredOperator
+		newOLMOperators, err = b.getOLMOperators(params.NewClusterParams.OlmOperators)
+		if err != nil {
+			return nil, err
+		}
+
+		monitoredOperators = append(monitoredOperators, newOLMOperators...)
+	}
+
 	cluster := common.Cluster{
 		Cluster: models.Cluster{
 			ID:                       &id,
@@ -676,7 +692,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			VipDhcpAllocation:        params.NewClusterParams.VipDhcpAllocation,
 			UserManagedNetworking:    params.NewClusterParams.UserManagedNetworking,
 			AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
-			Operators:                convertFromClusterOperators(params.NewClusterParams.Operators),
+			MonitoredOperators:       monitoredOperators,
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 		},
 		KubeKeyName:      kubeKey.Name,
@@ -758,22 +774,6 @@ func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Con
 		return err
 	}
 	return nil
-}
-
-func convertFromClusterOperators(operators models.ListOperators) string {
-	if operators == nil {
-		return ""
-	} else {
-		var clusterOperators []*models.ClusterOperator
-		for _, operator := range operators {
-			clusterOperators = append(clusterOperators, &models.ClusterOperator{OperatorType: operator.OperatorType, Enabled: operator.Enabled, Properties: operator.Properties})
-		}
-		reply, err := json.Marshal(clusterOperators)
-		if err != nil {
-			return ""
-		}
-		return string(reply)
-	}
 }
 
 func verifyMinimalOpenShiftVersionForSingleNode(requestedOpenshiftVersion string) error {
@@ -1810,6 +1810,11 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
+	err = b.updateOperatorsData(ctx, cluster, params, tx, log)
+	if err != nil {
+		return nil, err
+	}
+
 	err = b.updateHostsAndClusterStatus(ctx, cluster, tx, log)
 	if err != nil {
 		return nil, err
@@ -1993,12 +1998,6 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 
 	if err = network.VerifyClusterCIDRsNotOverlap(machineCidr, clusterCidr, serviceCidr, userManagedNetworking); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
-	}
-
-	if params.ClusterUpdateParams.Operators != nil {
-		clusterOperators := convertFromClusterOperators(params.ClusterUpdateParams.Operators)
-		updates["operators"] = clusterOperators
-		cluster.Operators = clusterOperators
 	}
 
 	if params.ClusterUpdateParams.PullSecret != nil {
@@ -2185,6 +2184,59 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 	}
 
 	return nil
+}
+
+func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+	if params.ClusterUpdateParams.OlmOperators == nil {
+		return nil
+	}
+
+	updateOLMOperators, err := b.getOLMOperators(params.ClusterUpdateParams.OlmOperators)
+	if err != nil {
+		return err
+	}
+
+	for _, updatedOperator := range updateOLMOperators {
+		updatedOperator.ClusterID = *cluster.ID
+		if err = db.Save(updatedOperator).Error; err != nil {
+			err = errors.Wrapf(err, "failed to update operator %s of cluster %s", updatedOperator.Name, params.ClusterID)
+			log.Error(err)
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+
+	// After we aligned to the new update OLM info, we need to delete the old OLMs remainders that are still connected to the cluster
+	for _, clusterOperator := range cluster.MonitoredOperators {
+		if clusterOperator.OperatorType != models.OperatorTypeOlm {
+			continue
+		}
+
+		if !operators.IsEnabled(updateOLMOperators, clusterOperator.Name) {
+			if err = db.Where("name = ? and cluster_id = ?", clusterOperator.Name, params.ClusterID).Delete(&models.MonitoredOperator{}).Error; err != nil {
+				err = errors.Wrapf(err, "failed to delete operator %s of cluster %s", clusterOperator.Name, params.ClusterID)
+				log.Error(err)
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) getOLMOperators(newOperators []*models.OperatorCreateParams) ([]*models.MonitoredOperator, error) {
+	monitoredOperators := make([]*models.MonitoredOperator, 0)
+
+	for _, newOperator := range newOperators {
+		operator, err := b.operatorManagerApi.GetOperatorByName(newOperator.Name)
+		if err != nil {
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+		operator.Properties = newOperator.Properties
+
+		monitoredOperators = append(monitoredOperators, operator)
+	}
+
+	return monitoredOperators, nil
 }
 
 func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {

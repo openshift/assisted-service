@@ -173,8 +173,8 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		ManagedDomainsListManagedDomainsHandler: managed_domains.ListManagedDomainsHandlerFunc(func(params managed_domains.ListManagedDomainsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation managed_domains.ListManagedDomains has not yet been implemented")
 		}),
-		OperatorsListOperatorPropertiesHandler: operators.ListOperatorPropertiesHandlerFunc(func(params operators.ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation operators.ListOperatorProperties has not yet been implemented")
+		OperatorsListOfClusterOperatorsHandler: operators.ListOfClusterOperatorsHandlerFunc(func(params operators.ListOfClusterOperatorsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.ListOfClusterOperators has not yet been implemented")
 		}),
 		VersionsListSupportedOpenshiftVersionsHandler: versions.ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation versions.ListSupportedOpenshiftVersions has not yet been implemented")
@@ -193,6 +193,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerRegisterHostHandler: installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterHost has not yet been implemented")
+		}),
+		OperatorsReportMonitoredOperatorStatusHandler: operators.ReportMonitoredOperatorStatusHandlerFunc(func(params operators.ReportMonitoredOperatorStatusParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.ReportMonitoredOperatorStatus has not yet been implemented")
 		}),
 		InstallerResetClusterHandler: installer.ResetClusterHandlerFunc(func(params installer.ResetClusterParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ResetCluster has not yet been implemented")
@@ -378,8 +381,8 @@ type AssistedInstallAPI struct {
 	InstallerListHostsHandler installer.ListHostsHandler
 	// ManagedDomainsListManagedDomainsHandler sets the operation handler for the list managed domains operation
 	ManagedDomainsListManagedDomainsHandler managed_domains.ListManagedDomainsHandler
-	// OperatorsListOperatorPropertiesHandler sets the operation handler for the list operator properties operation
-	OperatorsListOperatorPropertiesHandler operators.ListOperatorPropertiesHandler
+	// OperatorsListOfClusterOperatorsHandler sets the operation handler for the list of cluster operators operation
+	OperatorsListOfClusterOperatorsHandler operators.ListOfClusterOperatorsHandler
 	// VersionsListSupportedOpenshiftVersionsHandler sets the operation handler for the list supported openshift versions operation
 	VersionsListSupportedOpenshiftVersionsHandler versions.ListSupportedOpenshiftVersionsHandler
 	// OperatorsListSupportedOperatorsHandler sets the operation handler for the list supported operators operation
@@ -392,6 +395,8 @@ type AssistedInstallAPI struct {
 	InstallerRegisterClusterHandler installer.RegisterClusterHandler
 	// InstallerRegisterHostHandler sets the operation handler for the register host operation
 	InstallerRegisterHostHandler installer.RegisterHostHandler
+	// OperatorsReportMonitoredOperatorStatusHandler sets the operation handler for the report monitored operator status operation
+	OperatorsReportMonitoredOperatorStatusHandler operators.ReportMonitoredOperatorStatusHandler
 	// InstallerResetClusterHandler sets the operation handler for the reset cluster operation
 	InstallerResetClusterHandler installer.ResetClusterHandler
 	// InstallerResetHostHandler sets the operation handler for the reset host operation
@@ -629,8 +634,8 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.ManagedDomainsListManagedDomainsHandler == nil {
 		unregistered = append(unregistered, "managed_domains.ListManagedDomainsHandler")
 	}
-	if o.OperatorsListOperatorPropertiesHandler == nil {
-		unregistered = append(unregistered, "operators.ListOperatorPropertiesHandler")
+	if o.OperatorsListOfClusterOperatorsHandler == nil {
+		unregistered = append(unregistered, "operators.ListOfClusterOperatorsHandler")
 	}
 	if o.VersionsListSupportedOpenshiftVersionsHandler == nil {
 		unregistered = append(unregistered, "versions.ListSupportedOpenshiftVersionsHandler")
@@ -649,6 +654,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerRegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterHostHandler")
+	}
+	if o.OperatorsReportMonitoredOperatorStatusHandler == nil {
+		unregistered = append(unregistered, "operators.ReportMonitoredOperatorStatusHandler")
 	}
 	if o.InstallerResetClusterHandler == nil {
 		unregistered = append(unregistered, "installer.ResetClusterHandler")
@@ -960,7 +968,7 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/supported-operators/{operator_type}"] = operators.NewListOperatorProperties(o.context, o.OperatorsListOperatorPropertiesHandler)
+	o.handlers["GET"]["/clusters/{cluster_id}/monitored_operators"] = operators.NewListOfClusterOperators(o.context, o.OperatorsListOfClusterOperatorsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
@@ -985,6 +993,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/hosts"] = installer.NewRegisterHost(o.context, o.InstallerRegisterHostHandler)
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/clusters/{cluster_id}/monitored_operators"] = operators.NewReportMonitoredOperatorStatus(o.context, o.OperatorsReportMonitoredOperatorStatusHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

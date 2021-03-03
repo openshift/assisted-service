@@ -13,13 +13,13 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// Operators Operators that are associated with this cluster and their properties.
+// MonitoredOperatorsList monitored operators list
 //
-// swagger:model operators
-type Operators []*ClusterOperator
+// swagger:model monitored-operators-list
+type MonitoredOperatorsList []*MonitoredOperator
 
-// Validate validates this operators
-func (m Operators) Validate(formats strfmt.Registry) error {
+// Validate validates this monitored operators list
+func (m MonitoredOperatorsList) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	for i := 0; i < len(m); i++ {

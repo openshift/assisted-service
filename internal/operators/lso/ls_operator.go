@@ -11,19 +11,25 @@ import (
 type lsOperator struct {
 }
 
+var Operator models.MonitoredOperator = models.MonitoredOperator{
+	Name:           "lso",
+	OperatorType:   models.OperatorTypeOlm,
+	TimeoutSeconds: 60 * 60,
+}
+
 // New LSOperator creates new instance of a Local Storage Operator installation plugin
 func NewLSOperator() *lsOperator {
 	return &lsOperator{}
 }
 
-// GetType reports type of an operator this Operator manages
-func (l *lsOperator) GetType() models.OperatorType {
-	return models.OperatorTypeLso
+// GetName reports the name of an operator this Operator manages
+func (l *lsOperator) GetName() string {
+	return Operator.Name
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (l *lsOperator) GetDependencies() []models.OperatorType {
-	return make([]models.OperatorType, 0)
+func (l *lsOperator) GetDependencies() []string {
+	return make([]string, 0)
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator

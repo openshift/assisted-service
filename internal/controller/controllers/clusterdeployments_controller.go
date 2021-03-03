@@ -308,7 +308,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
 		OpenshiftVersion:      swag.String(r.getOCPVersion(cluster)),
-		Operators:             nil, // TODO: handle operators
+		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(isVipDHCPAllocationEnabled(cluster)),
 		IngressVip:            spec.Platform.AgentBareMetal.IngressVIP,

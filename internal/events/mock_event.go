@@ -62,15 +62,3 @@ func (mr *MockHandlerMockRecorder) GetEvents(clusterID, hostID interface{}) *gom
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), clusterID, hostID)
 }
-
-// DeleteClusterEvents mocks base method
-func (m *MockHandler) DeleteClusterEvents(clusterID strfmt.UUID) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "DeleteClusterEvents", clusterID)
-}
-
-// DeleteClusterEvents indicates an expected call of DeleteClusterEvents
-func (mr *MockHandlerMockRecorder) DeleteClusterEvents(clusterID interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteClusterEvents", reflect.TypeOf((*MockHandler)(nil).DeleteClusterEvents), clusterID)
-}

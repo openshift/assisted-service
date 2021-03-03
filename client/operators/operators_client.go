@@ -18,11 +18,14 @@ import (
 // API is the interface of the operators client
 type API interface {
 	/*
-	   ListOperatorProperties Lists properties for an operator type.*/
-	ListOperatorProperties(ctx context.Context, params *ListOperatorPropertiesParams) (*ListOperatorPropertiesOK, error)
+	   ListOfClusterOperators Lists operators to be monitored for a cluster.*/
+	ListOfClusterOperators(ctx context.Context, params *ListOfClusterOperatorsParams) (*ListOfClusterOperatorsOK, error)
 	/*
 	   ListSupportedOperators Retrieves the list of supported operators.*/
 	ListSupportedOperators(ctx context.Context, params *ListSupportedOperatorsParams) (*ListSupportedOperatorsOK, error)
+	/*
+	   ReportMonitoredOperatorStatus Controller API to report of monitored operators.*/
+	ReportMonitoredOperatorStatus(ctx context.Context, params *ReportMonitoredOperatorStatusParams) (*ReportMonitoredOperatorStatusOK, error)
 }
 
 // New creates a new operators API client.
@@ -44,19 +47,19 @@ type Client struct {
 }
 
 /*
-ListOperatorProperties Lists properties for an operator type.
+ListOfClusterOperators Lists operators to be monitored for a cluster.
 */
-func (a *Client) ListOperatorProperties(ctx context.Context, params *ListOperatorPropertiesParams) (*ListOperatorPropertiesOK, error) {
+func (a *Client) ListOfClusterOperators(ctx context.Context, params *ListOfClusterOperatorsParams) (*ListOfClusterOperatorsOK, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "ListOperatorProperties",
+		ID:                 "ListOfClusterOperators",
 		Method:             "GET",
-		PathPattern:        "/supported-operators/{operator_type}",
+		PathPattern:        "/clusters/{cluster_id}/monitored_operators",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
 		Params:             params,
-		Reader:             &ListOperatorPropertiesReader{formats: a.formats},
+		Reader:             &ListOfClusterOperatorsReader{formats: a.formats},
 		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
@@ -64,7 +67,7 @@ func (a *Client) ListOperatorProperties(ctx context.Context, params *ListOperato
 	if err != nil {
 		return nil, err
 	}
-	return result.(*ListOperatorPropertiesOK), nil
+	return result.(*ListOfClusterOperatorsOK), nil
 
 }
 
@@ -90,5 +93,30 @@ func (a *Client) ListSupportedOperators(ctx context.Context, params *ListSupport
 		return nil, err
 	}
 	return result.(*ListSupportedOperatorsOK), nil
+
+}
+
+/*
+ReportMonitoredOperatorStatus Controller API to report of monitored operators.
+*/
+func (a *Client) ReportMonitoredOperatorStatus(ctx context.Context, params *ReportMonitoredOperatorStatusParams) (*ReportMonitoredOperatorStatusOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ReportMonitoredOperatorStatus",
+		Method:             "PUT",
+		PathPattern:        "/clusters/{cluster_id}/monitored_operators",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ReportMonitoredOperatorStatusReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ReportMonitoredOperatorStatusOK), nil
 
 }

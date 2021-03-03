@@ -79,8 +79,8 @@ type ClusterUpdateParams struct {
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
-	// operators
-	Operators ListOperators `json:"operators,omitempty"`
+	// List of OLM operators to be installed.
+	OlmOperators []*OperatorCreateParams `json:"olm_operators"`
 
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	PullSecret *string `json:"pull_secret,omitempty"`
@@ -143,7 +143,7 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateOperators(formats); err != nil {
+	if err := m.validateOlmOperators(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -343,17 +343,26 @@ func (m *ClusterUpdateParams) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ClusterUpdateParams) validateOperators(formats strfmt.Registry) error {
+func (m *ClusterUpdateParams) validateOlmOperators(formats strfmt.Registry) error {
 
-	if swag.IsZero(m.Operators) { // not required
+	if swag.IsZero(m.OlmOperators) { // not required
 		return nil
 	}
 
-	if err := m.Operators.Validate(formats); err != nil {
-		if ve, ok := err.(*errors.Validation); ok {
-			return ve.ValidateName("operators")
+	for i := 0; i < len(m.OlmOperators); i++ {
+		if swag.IsZero(m.OlmOperators[i]) { // not required
+			continue
 		}
-		return err
+
+		if m.OlmOperators[i] != nil {
+			if err := m.OlmOperators[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("olm_operators" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil
