@@ -41,7 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -60,13 +59,12 @@ const defaultRequeueAfterOnError = 10 * time.Second
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
-	Log                                  logrus.FieldLogger
-	Scheme                               *runtime.Scheme
-	Installer                            bminventory.InstallerInternals
-	ClusterApi                           cluster.API
-	HostApi                              host.API
-	InstallEnvToClusterDeploymentUpdates chan event.GenericEvent
-	ClusterDeploymentToInstallEnvUpdates chan event.GenericEvent
+	Log              logrus.FieldLogger
+	Scheme           *runtime.Scheme
+	Installer        bminventory.InstallerInternals
+	ClusterApi       cluster.API
+	HostApi          host.API
+	CRDEventsHandler CRDEventsHandler
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -74,6 +72,7 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/status,verbs=get;update;patch
 
 func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	r.Log.Info("XXXXX: ClusterDeploymentsReconciler: Reconcile start")
 	ctx := context.Background()
 	cluster := &hivev1.ClusterDeployment{}
 	err := r.Get(ctx, req.NamespacedName, cluster)
@@ -265,12 +264,10 @@ func (r *ClusterDeploymentsReconciler) notifyInstallEnvUpdate(ctx context.Contex
 			r.Log.Infof("Notify that installEnvs %s should re-generate the image for cluster %s",
 				installEnv.Name, installEnv.UID)
 			if installEnv.Spec.ClusterRef.Name == c.KubeKeyName {
-				r.ClusterDeploymentToInstallEnvUpdates <- event.GenericEvent{
-					Meta: &metav1.ObjectMeta{
-						Namespace: installEnv.Namespace,
-						Name:      installEnv.Name,
-					},
-				}
+				r.CRDEventsHandler.NotifyInstallEnvUpdates(
+					installEnv.Name,
+					installEnv.Namespace,
+				)
 			}
 		}
 	}
@@ -510,9 +507,10 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			return reply
 		})
 
+	ClusterDeploymentUpdates := r.CRDEventsHandler.GetClusterDeploymentUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
 		Watches(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
-		Watches(&source.Channel{Source: r.InstallEnvToClusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
+		Watches(&source.Channel{Source: ClusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

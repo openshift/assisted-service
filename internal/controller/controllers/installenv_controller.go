@@ -33,11 +33,9 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
@@ -45,10 +43,9 @@ import (
 // InstallEnvReconciler reconciles a InstallEnv object
 type InstallEnvReconciler struct {
 	client.Client
-	Log                                  logrus.FieldLogger
-	Installer                            bminventory.InstallerInternals
-	InstallEnvToClusterDeploymentUpdates chan event.GenericEvent
-	ClusterDeploymentToInstallEnvUpdates chan event.GenericEvent
+	Log              logrus.FieldLogger
+	Installer        bminventory.InstallerInternals
+	CRDEventsHandler CRDEventsHandler
 }
 
 // +kubebuilder:rbac:groups=adi.io.my.domain,resources=installenvs,verbs=get;list;watch;create;update;patch;delete
@@ -83,12 +80,10 @@ func (r *InstallEnvReconciler) notifyClusterUpdatesIfNeeded(installEnv *adiiov1a
 		update = true
 	}
 	if update {
-		r.InstallEnvToClusterDeploymentUpdates <- event.GenericEvent{
-			Meta: &metav1.ObjectMeta{
-				Namespace: installEnv.Spec.ClusterRef.Namespace,
-				Name:      installEnv.Spec.ClusterRef.Name,
-			},
-		}
+		r.CRDEventsHandler.NotifyClusterDeploymentUpdates(
+			installEnv.Spec.ClusterRef.Name,
+			installEnv.Spec.ClusterRef.Namespace,
+		)
 	}
 }
 
@@ -237,9 +232,10 @@ func imageBeingCreated(err error) bool {
 }
 
 func (r *InstallEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	InstallEnvUpdates := r.CRDEventsHandler.GetInstallEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adiiov1alpha1.InstallEnv{}).
-		Watches(&source.Channel{Source: r.ClusterDeploymentToInstallEnvUpdates},
+		Watches(&source.Channel{Source: InstallEnvUpdates},
 			&handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

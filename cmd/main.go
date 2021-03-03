@@ -45,7 +45,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/app"
 	"github.com/openshift/assisted-service/pkg/auth"
 	paramctx "github.com/openshift/assisted-service/pkg/context"
-	dbPkg "github.com/openshift/assisted-service/pkg/db"
+	"github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
@@ -71,7 +71,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -86,7 +85,7 @@ const deployment_type_ocp = "ocp"
 var Options struct {
 	Auth                        auth.Config
 	BMConfig                    bminventory.Config
-	DBConfig                    dbPkg.Config
+	DBConfig                    db.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           hostcommands.InstructionConfig
@@ -412,27 +411,23 @@ func main() {
 	}()
 
 	go func() {
-		installEnvToClusterDeploymentUpdates := make(chan event.GenericEvent)
-		clusterDeploymentToInstallEnvUpdates := make(chan event.GenericEvent)
-
 		if Options.EnableKubeAPI {
+			crdEventsHandler := controllers.NewCRDEventsHandler()
 			failOnError((&controllers.InstallEnvReconciler{
-				Client:                               ctrlMgr.GetClient(),
-				Log:                                  log,
-				Installer:                            bm,
-				InstallEnvToClusterDeploymentUpdates: installEnvToClusterDeploymentUpdates,
-				ClusterDeploymentToInstallEnvUpdates: clusterDeploymentToInstallEnvUpdates,
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				Installer:        bm,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InstallEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
-				Client:                               ctrlMgr.GetClient(),
-				Log:                                  log,
-				Scheme:                               ctrlMgr.GetScheme(),
-				Installer:                            bm,
-				ClusterApi:                           clusterApi,
-				HostApi:                              hostApi,
-				InstallEnvToClusterDeploymentUpdates: installEnvToClusterDeploymentUpdates,
-				ClusterDeploymentToInstallEnvUpdates: clusterDeploymentToInstallEnvUpdates,
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				Scheme:           ctrlMgr.GetScheme(),
+				Installer:        bm,
+				ClusterApi:       clusterApi,
+				HostApi:          hostApi,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
