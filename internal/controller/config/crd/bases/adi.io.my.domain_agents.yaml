@@ -36,6 +36,8 @@ spec:
           spec:
             description: AgentSpec defines the desired state of Agent
             properties:
+              approved:
+                type: boolean
               clusterDeploymentName:
                 description: ClusterReference represents a Cluster Reference. It has
                   enough information to retrieve cluster in any namespace
@@ -63,6 +65,7 @@ spec:
                 description: "HostRole host role \n swagger:model host-role"
                 type: string
             required:
+            - approved
             - clusterDeploymentName
             - role
             type: object

@@ -6003,6 +6003,48 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 	})
 })
 
+var _ = Describe("UpdateHostApproved", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		hostID    strfmt.UUID
+		dbName    = "update_host_approved"
+	)
+
+	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID = strfmt.UUID(uuid.New().String())
+		bm = createInventory(db, cfg)
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		hostID = strfmt.UUID(uuid.New().String())
+		addHost(hostID, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID, "{}", db)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("get default approved value", func() {
+		h, err := bm.GetCommonHostInternal(ctx, string(clusterID), string(hostID))
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(h.Approved).To(Equal(false))
+	})
+
+	It("update approved value", func() {
+		err := bm.UpdateHostApprovedInternal(ctx, string(clusterID), string(hostID), true)
+		Expect(err).ShouldNot(HaveOccurred())
+		h, err := bm.GetCommonHostInternal(ctx, string(clusterID), string(hostID))
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(h.Approved).To(Equal(true))
+	})
+
+})
+
 var _ = Describe("Calculate host networks", func() {
 	var (
 		db        *gorm.DB

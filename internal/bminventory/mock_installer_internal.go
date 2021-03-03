@@ -95,6 +95,21 @@ func (mr *MockInstallerInternalsMockRecorder) GetClusterInternal(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetClusterInternal), arg0, arg1)
 }
 
+// GetCommonHostInternal mocks base method
+func (m *MockInstallerInternals) GetCommonHostInternal(arg0 context.Context, arg1, arg2 string) (*common.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCommonHostInternal", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*common.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCommonHostInternal indicates an expected call of GetCommonHostInternal
+func (mr *MockInstallerInternalsMockRecorder) GetCommonHostInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommonHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetCommonHostInternal), arg0, arg1, arg2)
+}
+
 // InstallClusterInternal mocks base method
 func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.InstallClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
@@ -138,4 +153,18 @@ func (m *MockInstallerInternals) UpdateClusterInternal(arg0 context.Context, arg
 func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInternal), arg0, arg1)
+}
+
+// UpdateHostApprovedInternal mocks base method
+func (m *MockInstallerInternals) UpdateHostApprovedInternal(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHostApprovedInternal", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHostApprovedInternal indicates an expected call of UpdateHostApprovedInternal
+func (mr *MockInstallerInternalsMockRecorder) UpdateHostApprovedInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostApprovedInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostApprovedInternal), arg0, arg1, arg2, arg3)
 }

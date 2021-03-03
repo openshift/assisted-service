@@ -210,6 +210,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, param installer.UpdateClusterParams) {
 				Expect(param.ClusterUpdateParams.HostsNames[0].Hostname).To(Equal(newHostName))
@@ -249,6 +250,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		errString := "update internal error"
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString))
 		Expect(c.Create(ctx, host)).To(BeNil())
@@ -267,4 +269,38 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncErrorReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
+
+	It("Agent update approved", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				{
+					ID: &hostId,
+				},
+			}}}
+
+		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host.Spec.Approved = true
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1alpha1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(v1alpha1.AgentStateSynced))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncedReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+	})
+
 })

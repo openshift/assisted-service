@@ -46,6 +46,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 					Name:      clusterName,
 					Namespace: clusterNamespace,
 				},
+				Approved: false,
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      hostId,
