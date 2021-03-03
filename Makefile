@@ -243,6 +243,7 @@ ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
 	$(MAKE) deploy-wiremock deploy-all
 
 deploy-test: $(VERIFY_CLUSTER) generate-keys
+	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
