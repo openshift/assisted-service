@@ -3011,6 +3011,8 @@ definitions:
         type: integer
       disk_size_gb:
         type: integer
+      installation_disk_speed_threshold_ms:
+        type: integer
 
   event-list:
     type: array
@@ -3146,6 +3148,7 @@ definitions:
           - insufficient
           - disabled
           - preparing-for-installation
+          - preparing-successful
           - pending-for-input
           - installing
           - installing-in-progress
@@ -3206,6 +3209,10 @@ definitions:
         x-go-custom-tag: gorm:"type:text"
         type: string
         description: The configured NTP sources on the host.
+      disks_info:
+        x-go-custom-tag: gorm:"type:text"
+        type: string
+        description: Additional information about disks, formatted as JSON.
       role:
         $ref: '#/definitions/host-role'
       bootstrap:
@@ -3305,6 +3312,7 @@ definitions:
       - api-vip-connectivity-check
       - ntp-synchronizer
       - fio-perf-check
+      - installation-disk-speed-check
       - container-image-availability
       - domain-resolution
 
@@ -4307,6 +4315,25 @@ definitions:
         type: string
         description: The device path.
 
+  disk_speed_check_request:
+    type: object
+    required:
+      - path
+    properties:
+      path:
+        type: string
+        description: --filename argument for fio (expects a file or a block device path).
+
+  disk_speed_check_response:
+    type: object
+    properties:
+      io_sync_duration:
+        type: integer
+        description: The 99th percentile of fdatasync durations in milliseconds.
+      path:
+        type: string
+        description: The device path.
+
   domain_resolution_request:
     type: object
     required:
@@ -4352,6 +4379,26 @@ definitions:
               items:
                 type: string
                 format: ipv6
+  disk_speed:
+    type: object
+    properties:
+      tested:
+        type: boolean
+      exit_code:
+        type: integer
+      speed_ms:
+        type: integer
+
+  disk_info:
+    type: object
+    properties:
+      id:
+        type: string
+        format: uuid
+      path:
+        type: string
+      disk_speed:
+        $ref: '#/definitions/disk_speed'
 
   credentials:
     type: object
@@ -4415,6 +4462,7 @@ definitions:
       - 'container-images-available'
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'
+      - 'sufficient-installation-disk-speed'
 
   dhcp_allocation_request:
     type: object
