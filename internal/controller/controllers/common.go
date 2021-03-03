@@ -20,9 +20,15 @@ func getPullSecret(ctx context.Context, c client.Client, name, namespace string)
 	}
 
 	data, ok := secret.Data[corev1.DockerConfigJsonKey]
-	if !ok {
-		return "", errors.Errorf("secret %s did not contain key %s", name, corev1.DockerConfigJsonKey)
+	if ok {
+		return string(data), nil
 	}
 
-	return string(data), nil
+	stringData, ok := secret.StringData[corev1.DockerConfigJsonKey]
+	if ok {
+		return stringData, nil
+	}
+
+	return "", errors.Errorf("secret %s did not contain key %s", name, corev1.DockerConfigJsonKey)
+
 }

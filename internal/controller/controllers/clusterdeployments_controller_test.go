@@ -244,6 +244,23 @@ var _ = Describe("cluster reconcile", func() {
 
 				validateCreation(cluster)
 			})
+
+			It("pull secret in string data", func() {
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+					Return(clusterReply, nil)
+
+				secretName := "new-secret"
+				pullSecret := getDefaultTestPullSecret(secretName, testNamespace)
+				pullSecret.Data = nil
+				pullSecret.StringData = map[string]string{corev1.DockerConfigJsonKey: testPullSecretVal}
+				Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				cluster.Spec.PullSecretRef.Name = secretName
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				validateCreation(cluster)
+			})
 		})
 
 		It("create new cluster backend failure", func() {
@@ -286,6 +303,26 @@ var _ = Describe("cluster reconcile", func() {
 		result, err := cr.Reconcile(request)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result).Should(Equal(ctrl.Result{}))
+	})
+
+	It("secret not found", func() {
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		secretName := "fake-secret"
+		cluster.Spec.PullSecretRef.Name = secretName
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(&common.Cluster{}, nil)
+
+		request := newClusterDeploymentRequest(cluster)
+		result, err := cr.Reconcile(request)
+		Expect(err).To(BeNil())
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+		cluster = getTestCluster()
+
+		expectedErr := fmt.Sprintf(`failed to get pull secret for update: failed to get pull secret %s/%s: secrets "%s" not found`,
+			testNamespace, secretName, secretName)
+		Expect(getConditionByReason(AgentPlatformError, cluster).Message).To(Equal(expectedErr))
 	})
 
 	It("failed to get cluster from backend", func() {
