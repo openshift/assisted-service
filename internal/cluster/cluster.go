@@ -226,7 +226,6 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 
 	//return updated cluster
 	return common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading)
-
 }
 
 func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
@@ -780,7 +779,13 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThen strfmt
 			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)
 		}
 
-		m.eventsHandler.DeleteClusterEvents(*c.ID)
+		if err := common.DeleteRecordsByClusterID(db, *c.ID, models.Event{}); err != nil {
+			m.log.WithError(err).Warnf("Failed deleting events from db for cluster %s", c.ID.String())
+		}
+
+		if err := common.DeleteRecordsByClusterID(db, *c.ID, models.MonitoredOperator{}); err != nil {
+			m.log.WithError(err).Warnf("Failed deleting operators from db for cluster %s", c.ID.String())
+		}
 	}
 	return nil
 }

@@ -273,11 +273,11 @@ func main() {
 
 	operatorsManager := operators.NewManager(log)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
-		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, &operatorsManager)
+		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, &operatorsManager)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
@@ -294,7 +294,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := newISOInstallConfigGenerator(log, objectHandler, &operatorsManager)
+	generator := newISOInstallConfigGenerator(log, objectHandler, operatorsManager)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient())
@@ -303,7 +303,7 @@ func main() {
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
+		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
 		versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
 
 	deletionWorker := thread.New(

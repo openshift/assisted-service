@@ -167,7 +167,7 @@ func (g *installerGenerator) writeManifests(manifests map[string]string) error {
 }
 
 func (g *installerGenerator) writeOperatorManifests(installerPath string, envVars []string) error {
-	if !g.operatorsApi.AnyOperatorEnabled(g.cluster) {
+	if !g.operatorsApi.AnyOLMOperatorEnabled(g.cluster) {
 		return nil
 	}
 	err := g.createManifestDirectory(installerPath, envVars)

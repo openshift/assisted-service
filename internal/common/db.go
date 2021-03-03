@@ -43,7 +43,7 @@ type Event struct {
 }
 
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&Host{}, &Cluster{}, &Event{}).Error
+	return db.AutoMigrate(&models.MonitoredOperator{}, &Host{}, &Cluster{}, &Event{}).Error
 }
 
 type Host struct {
@@ -66,10 +66,11 @@ const (
 )
 
 const (
-	HostsTable = "Hosts"
+	HostsTable              = "Hosts"
+	MonitoredOperatorsTable = "MonitoredOperators"
 )
 
-var ClusterSubTables = [...]string{HostsTable}
+var ClusterSubTables = [...]string{HostsTable, MonitoredOperatorsTable}
 
 func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *gorm.DB {
 	return db.Preload(tableName, conditions...)
@@ -86,6 +87,7 @@ func GetClusterFromDB(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoad
 
 func GetClusterFromDBWithoutDisabledHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
 	db = LoadTableFromDB(db, HostsTable, "status <> ?", models.HostStatusDisabled)
+	db = LoadTableFromDB(db, MonitoredOperatorsTable)
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
 }
 
@@ -131,4 +133,8 @@ func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
 		return nil, errors.Wrapf(err, "Failed to get host %s in cluster %s", hostId, clusterId)
 	}
 	return &host, nil
+}
+
+func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, value interface{}, where ...interface{}) error {
+	return db.Where("cluster_id = ?", clusterID).Delete(value, where...).Error
 }

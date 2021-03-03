@@ -2,10 +2,8 @@ package operators_test
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -13,6 +11,8 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +21,7 @@ var (
 	cluster     *common.Cluster
 	clusterHost *models.Host
 	log         = logrus.New()
-	manager     operators.Manager
+	manager     *operators.Manager
 )
 
 var _ = BeforeEach(func() {
@@ -39,256 +39,150 @@ var _ = BeforeEach(func() {
 })
 
 var _ = Describe("Operators manager", func() {
-	It("should generate OCS and LSO manifests when OCS operator is enabled", func() {
-		clusterOperators := []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)}}
-		cluster.Operators = convertFromClusterOperators(clusterOperators)
+	Context("GenerateManifests", func() {
+		It("should generate OCS and LSO manifests when OCS operator is enabled", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&ocs.Operator,
+			}
 
-		manifests, err := manager.GenerateManifests(cluster)
+			manifests, err := manager.GenerateManifests(cluster)
 
-		Expect(err).NotTo(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 
-		Expect(manifests).NotTo(BeNil())
-		Expect(len(manifests)).To(Equal(10))
-		Expect(manifests).To(HaveKey(ContainSubstring("openshift-ocs")))
-		Expect(manifests).To(HaveKey(ContainSubstring("openshift-lso")))
+			Expect(manifests).NotTo(BeNil())
+			Expect(len(manifests)).To(Equal(10))
+			Expect(manifests).To(HaveKey(ContainSubstring("openshift-ocs")))
+			Expect(manifests).To(HaveKey(ContainSubstring("openshift-lso")))
+		})
+
+		It("should generate LSO manifests when LSO operator is enabled", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&lso.Operator,
+			}
+
+			manifests, err := manager.GenerateManifests(cluster)
+
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(manifests).NotTo(BeNil())
+			Expect(len(manifests)).To(Equal(5))
+			Expect(manifests).To(HaveKey(ContainSubstring("openshift-lso")))
+		})
+
+		It("should generate no manifests when no operator is present", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{}
+			manifests, err := manager.GenerateManifests(cluster)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(manifests).NotTo(BeNil())
+			Expect(manifests).To(BeEmpty())
+		})
 	})
 
-	It("should generate LSO manifests when LSO operator is enabled", func() {
-		clusterOperators := []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}}
-		cluster.Operators = convertFromClusterOperators(clusterOperators)
+	Context("AnyOLMOperatorEnabled", func() {
+		table.DescribeTable("should report any operator enabled", func(operators []*models.MonitoredOperator, expected bool) {
+			cluster.MonitoredOperators = operators
 
-		manifests, err := manager.GenerateManifests(cluster)
-
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(manifests).NotTo(BeNil())
-		Expect(len(manifests)).To(Equal(5))
-		Expect(manifests).To(HaveKey(ContainSubstring("openshift-lso")))
+			results := manager.AnyOLMOperatorEnabled(cluster)
+			Expect(results).To(Equal(expected))
+		},
+			table.Entry("false for no operators", []*models.MonitoredOperator{}, false),
+			table.Entry("true for lso operator", []*models.MonitoredOperator{
+				&lso.Operator,
+			}, true),
+			table.Entry("true for ocs operator", []*models.MonitoredOperator{
+				&ocs.Operator,
+			}, true),
+			table.Entry("true for lso and ocs operators", []*models.MonitoredOperator{
+				&lso.Operator,
+				&ocs.Operator,
+			}, true),
+		)
 	})
 
-	It("should generate no manifests when no operator is present", func() {
-		cluster.Operators = ""
-		manifests, err := manager.GenerateManifests(cluster)
-		Expect(err).NotTo(HaveOccurred())
+	Context("ValidateCluster", func() {
+		It("should deem operators cluster-valid when none is present", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{}
 
-		Expect(manifests).NotTo(BeNil())
-		Expect(manifests).To(BeEmpty())
+			results, err := manager.ValidateCluster(context.TODO(), cluster)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(results).To(HaveLen(2))
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
+			))
+		})
+
+		It("should deem OCS operator cluster-invalid when it's enabled and invalid", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&ocs.Operator,
+			}
+
+			results, err := manager.ValidateCluster(context.TODO(), cluster)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(results).To(HaveLen(2))
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
+				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied),
+					Reasons: []string{"Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS. "}},
+			))
+		})
 	})
 
-	table.DescribeTable("should report any operator enabled", func(operators []*models.ClusterOperator, expected bool) {
-		cluster.Operators = convertFromClusterOperators(operators)
+	Context("ValidateHost", func() {
+		It("should deem operators host-valid when none is present", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{}
 
-		results := manager.AnyOperatorEnabled(cluster)
-		Expect(results).To(Equal(expected))
-	},
-		table.Entry("false for no operators", []*models.ClusterOperator{}, false),
-		table.Entry("false for lso operator disabled", []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
-		}, false),
-		table.Entry("false for ocs operator disabled", []*models.ClusterOperator{{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)}}, false),
-		table.Entry("false for lso and ocs operators disabled", []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-		}, false),
+			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
 
-		table.Entry("true for lso operator enabled", []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-		}, true),
-		table.Entry("true for ocs operator enabled", []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-		}, true),
-		table.Entry("true for lso and ocs operators enabled", []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-		}, true),
-		table.Entry("true for lso enabled and ocs disabled", []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-		}, true),
-		table.Entry("true for lso disabled and ocs enabled", []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-		}, true),
-	)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(results).To(HaveLen(2))
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
+			))
+		})
 
-	It("should report operators disabled for unmarshalling error", func() {
-		cluster.Operators = "{{"
+		It("should deem operators host-valid when OCS is enabled", func() {
+			cluster.MonitoredOperators = []*models.MonitoredOperator{
+				&ocs.Operator,
+			}
 
-		results := manager.AnyOperatorEnabled(cluster)
-		Expect(results).To(BeFalse())
+			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(results).To(HaveLen(2))
+
+			Expect(results).To(ContainElements(
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
+				api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied), Reasons: []string{}},
+			))
+		})
 	})
 
-	It("should deem operators cluster-valid when none is present", func() {
-		cluster.Operators = ""
+	Context("UpdateDependencies", func() {
+		table.DescribeTable("should resolve dependencies", func(input []*models.MonitoredOperator, expected []*models.MonitoredOperator) {
+			cluster.MonitoredOperators = input
+			err := manager.UpdateDependencies(cluster)
+			Expect(err).ToNot(HaveOccurred())
 
-		results, err := manager.ValidateCluster(context.TODO(), cluster)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(results).To(HaveLen(2))
-		Expect(results).To(ContainElements(
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
-		))
+			Expect(cluster.MonitoredOperators).To(HaveLen(len(expected)))
+			Expect(cluster.MonitoredOperators).To(ContainElements(expected))
+		},
+			table.Entry("when only LSO is specified",
+				[]*models.MonitoredOperator{&lso.Operator},
+				[]*models.MonitoredOperator{&lso.Operator},
+			),
+			table.Entry("when only OCS is specified",
+				[]*models.MonitoredOperator{&ocs.Operator},
+				[]*models.MonitoredOperator{&ocs.Operator, &lso.Operator},
+			),
+			table.Entry("when both OCS and LSO are specified",
+				[]*models.MonitoredOperator{&ocs.Operator, &lso.Operator},
+				[]*models.MonitoredOperator{&ocs.Operator, &lso.Operator},
+			),
+		)
 	})
-
-	It("should deem operators cluster-valid when OCS is disabled", func() {
-		clusterOperators := []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)}}
-		cluster.Operators = convertFromClusterOperators(clusterOperators)
-
-		results, err := manager.ValidateCluster(context.TODO(), cluster)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(results).To(HaveLen(2))
-
-		Expect(results).To(ContainElements(
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
-		))
-	})
-
-	It("should deem OCS operator cluster-invalid when it's enabled and invalid", func() {
-		clusterOperators := []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)}}
-		cluster.Operators = convertFromClusterOperators(clusterOperators)
-
-		results, err := manager.ValidateCluster(context.TODO(), cluster)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(results).To(HaveLen(2))
-		Expect(results).To(ContainElements(
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
-			api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied),
-				Reasons: []string{"Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS. "}},
-		))
-	})
-
-	It("should deem operators host-valid when none is present", func() {
-		cluster.Operators = ""
-
-		results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(results).To(HaveLen(2))
-		Expect(results).To(ContainElements(
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
-		))
-	})
-
-	It("should deem operators host-valid when OCS is disabled", func() {
-		clusterOperators := []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)}}
-		cluster.Operators = convertFromClusterOperators(clusterOperators)
-
-		results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(results).To(HaveLen(2))
-
-		Expect(results).To(ContainElements(
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{"lso is disabled"}},
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied), Reasons: []string{"ocs is disabled"}},
-		))
-	})
-
-	It("should deem operators host-valid when OCS is enabled", func() {
-		clusterOperators := []*models.ClusterOperator{
-			{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)}}
-		cluster.Operators = convertFromClusterOperators(clusterOperators)
-
-		results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
-
-		Expect(err).ToNot(HaveOccurred())
-		Expect(results).To(HaveLen(2))
-
-		Expect(results).To(ContainElements(
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
-			api.ValidationResult{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied), Reasons: []string{}},
-		))
-	})
-
-	table.DescribeTable("should resolve dependencies", func(input models.Operators, expected models.Operators) {
-		cluster.Operators = convertFromClusterOperators(input)
-		err := manager.UpdateDependencies(cluster)
-		Expect(err).ToNot(HaveOccurred())
-		var operators []*models.ClusterOperator
-		err = json.Unmarshal([]byte(cluster.Operators), &operators)
-		Expect(err).ToNot(HaveOccurred())
-		Expect(operators).To(HaveLen(len(expected)))
-		Expect(operators).To(ContainElements(expected))
-	},
-		table.Entry("when only LSO is specified",
-			models.Operators{&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}},
-			models.Operators{&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)}},
-		),
-		table.Entry("when only OCS is specified",
-			models.Operators{&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)}},
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			},
-		),
-		table.Entry("when both OCS and LSO are specified",
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			},
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			},
-		),
-		table.Entry("when OCS is disabled and LSO enabled",
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			},
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			},
-		),
-		table.Entry("when both OCS and LSO are disabled",
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
-			},
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
-			},
-		),
-		table.Entry("when OCS is specified and disabled",
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-			},
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(false)},
-			},
-		),
-		table.Entry("when OCS is enabled and LSO  disabled",
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(false)},
-			},
-			models.Operators{
-				&models.ClusterOperator{OperatorType: models.OperatorTypeOcs, Enabled: swag.Bool(true)},
-				&models.ClusterOperator{OperatorType: models.OperatorTypeLso, Enabled: swag.Bool(true)},
-			},
-		),
-	)
 })
-
-func convertFromClusterOperators(operators []*models.ClusterOperator) string {
-	if operators == nil {
-		return ""
-	}
-	reply, err := json.Marshal(operators)
-	if err != nil {
-		return ""
-	}
-	return string(reply)
-}

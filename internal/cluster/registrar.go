@@ -65,7 +65,12 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 		}
 	}
 
-	if err := common.LoadTableFromDB(tx, common.HostsTable).Create(cluster).Error; err != nil {
+	db := tx
+	for _, tableName := range common.ClusterSubTables[:] {
+		db = common.LoadTableFromDB(db, tableName)
+	}
+
+	if err := db.Create(cluster).Error; err != nil {
 		r.log.Errorf("Error registering cluster %s", cluster.Name)
 		return err
 	}

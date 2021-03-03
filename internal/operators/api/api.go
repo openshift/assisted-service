@@ -33,10 +33,10 @@ type Manifests struct {
 
 // Operator provides generic API of an OLM operator installation plugin
 type Operator interface {
-	// GetType reports type of an operator this Operator manages
-	GetType() models.OperatorType
+	// GetName reports the name of an operator this Operator manages
+	GetName() string
 	// GetDependencies provides a list of dependencies of the Operator
-	GetDependencies() []models.OperatorType
+	GetDependencies() []string
 	// ValidateCluster verifies whether this operator is valid for given cluster
 	ValidateCluster(ctx context.Context, cluster *common.Cluster) (ValidationResult, error)
 	// ValidateHost verifies whether this operator is valid for given host

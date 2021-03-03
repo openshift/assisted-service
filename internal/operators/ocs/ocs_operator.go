@@ -6,6 +6,7 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -14,6 +15,12 @@ type ocsOperator struct {
 	log                logrus.FieldLogger
 	ocsValidatorConfig Config
 	ocsValidator       OCSValidator
+}
+
+var Operator models.MonitoredOperator = models.MonitoredOperator{
+	Name:           "ocs",
+	OperatorType:   models.OperatorTypeOlm,
+	TimeoutSeconds: 30 * 60,
 }
 
 // NewOcsOperator creates new OCSOperator
@@ -36,14 +43,14 @@ func NewOcsOperatorWithConfig(log logrus.FieldLogger, config Config, validator O
 	}
 }
 
-// GetType reports type of an operator this Operator manages
-func (o *ocsOperator) GetType() models.OperatorType {
-	return models.OperatorTypeOcs
+// GetName reports the name of an operator this Operator manages
+func (o *ocsOperator) GetName() string {
+	return Operator.Name
 }
 
 // GetDependencies provides a list of dependencies of the Operator
-func (o *ocsOperator) GetDependencies() []models.OperatorType {
-	return []models.OperatorType{models.OperatorTypeLso}
+func (o *ocsOperator) GetDependencies() []string {
+	return []string{lso.Operator.Name}
 }
 
 // GetClusterValidationID returns cluster validation ID for the Operator

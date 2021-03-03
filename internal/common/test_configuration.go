@@ -17,6 +17,8 @@ type TestConfiguration struct {
 
 	Disks     *models.Disk
 	ImageName string
+
+	MonitoredOperator models.MonitoredOperator
 }
 
 // Defaults to be used by all testing modules
@@ -36,6 +38,11 @@ var TestDefaultConfig = &TestConfiguration{
 	},
 
 	ImageName: "image",
+
+	MonitoredOperator: models.MonitoredOperator{
+		Name:         "dummy",
+		OperatorType: models.OperatorTypeBuiltin,
+	},
 }
 
 var TestNTPSourceSynced = &models.NtpSource{SourceName: "clock.dummy.com", SourceState: models.SourceStateSynced}
