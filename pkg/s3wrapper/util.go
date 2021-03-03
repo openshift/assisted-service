@@ -1,7 +1,9 @@
 package s3wrapper
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -15,6 +17,15 @@ import (
 	"github.com/prometheus/common/log"
 	"github.com/sirupsen/logrus"
 )
+
+const (
+	minimalTemplatesVersionFileName = "minimal_templates_version.json"
+	minimalTemplatesVersionLatest   = 1 // increase if templates update is needed
+)
+
+type templatesVersion struct {
+	Version int
+}
 
 func FixEndpointURL(endpoint string) (string, error) {
 	_, err := url.ParseRequestURI(endpoint)
@@ -145,5 +156,63 @@ func CreateAndUploadMinimalIso(ctx context.Context, log logrus.FieldLogger,
 
 	// upload the minimal iso
 	log.Infof("Uploading minimal ISO (%s)", minimalIsoPath)
-	return api.UploadFileToPublicBucket(ctx, minimalIsoPath, minimalIsoObject)
+	if err := api.UploadFileToPublicBucket(ctx, minimalIsoPath, minimalIsoObject); err != nil {
+		return err
+	}
+
+	// Update version file in bucket
+	return updateISOTemplatesVersion(ctx, log, api)
+}
+
+// HaveLatestMinimalTemplate Returns true if latest version already exists in bucket; otherwise, false.
+func HaveLatestMinimalTemplate(ctx context.Context, log logrus.FieldLogger, api API) bool {
+	versionFromBucket, err := getISOTemplatesVersion(ctx, log, api)
+	if err != nil {
+		log.WithError(err).Warning("Missing ISO templates version file")
+		// Ignoring if missing, i.e. uploading a new version
+		return false
+	}
+
+	// We assume that the code contains the latest version
+	if versionFromBucket.Version < minimalTemplatesVersionLatest {
+		log.Warnf("Templates version is stale: %d", versionFromBucket.Version)
+		return false
+	}
+
+	// No need to update
+	return true
+}
+
+func getISOTemplatesVersion(ctx context.Context, log logrus.FieldLogger, api API) (*templatesVersion, error) {
+	// Fetch version file from bucket
+	reader, _, err := api.Download(ctx, minimalTemplatesVersionFileName)
+	if err != nil {
+		log.WithError(err).Error("Failed downloading ISO templates version file")
+		return nil, err
+	}
+
+	// Read and parse version
+	bytes, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	var version templatesVersion
+	err = json.Unmarshal(bytes, &version)
+	if err != nil {
+		return nil, err
+	}
+
+	return &version, nil
+}
+
+func updateISOTemplatesVersion(ctx context.Context, log logrus.FieldLogger, api API) error {
+	currentVersion := &templatesVersion{
+		Version: minimalTemplatesVersionLatest,
+	}
+	b, err := json.Marshal(currentVersion)
+	if err != nil {
+		return err
+	}
+	reader := bytes.NewReader(b)
+	return api.UploadStream(ctx, reader, minimalTemplatesVersionFileName)
 }

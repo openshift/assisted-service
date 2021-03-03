@@ -348,13 +348,13 @@ var _ = Describe("s3client", func() {
 			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 
-			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
+			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
 			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
-			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL)
+			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL, false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("missing iso and rootfs", func() {
@@ -395,10 +395,6 @@ var _ = Describe("s3client", func() {
 				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound"))).Times(2)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
 				Bucket: &publicBucket,
-				Key:    aws.String(defaultTestRhcosObjectMinimal)}).
-				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound"))).Times(1)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
 				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
@@ -411,7 +407,10 @@ var _ = Describe("s3client", func() {
 				Return(&s3.HeadObjectOutput{}, nil)
 			publicUploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(3)
 
-			err := client.uploadBootFiles(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
+			// Should upload version file
+			uploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(1)
+
+			err := client.uploadBootFiles(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
