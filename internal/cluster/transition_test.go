@@ -37,7 +37,7 @@ var _ = Describe("Transition tests", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -161,7 +161,7 @@ var _ = Describe("Cancel cluster installation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -232,7 +232,7 @@ var _ = Describe("Reset cluster", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog())
@@ -365,7 +365,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1002,7 +1002,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1838,7 +1838,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2355,7 +2355,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2625,7 +2625,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2979,7 +2979,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -3337,7 +3337,7 @@ var _ = Describe("Single node", func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -3646,7 +3646,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)

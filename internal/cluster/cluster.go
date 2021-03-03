@@ -270,7 +270,7 @@ func (m *Manager) autoAssignMachineNetworkCidrs() error {
 	 * For these clusters the hosts query is all hosts that are not in status (disabled, disconnected, discovering),
 	 * since we want to calculate the host networks only from hosts wkith relevant inventory
 	 */
-	err := common.LoadHostsFromDB(m.db, "status not in (?)", []string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
+	err := common.LoadTableFromDB(m.db, common.HostsTable, "status not in (?)", []string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
 		Find(&clusters, "vip_dhcp_allocation = ? and machine_network_cidr = '' and status in (?)", true, []string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}).Error
 	if err != nil {
 		m.log.WithError(err).Warn("Query for clusters for machine network cidr allocation")

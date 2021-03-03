@@ -45,7 +45,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/app"
 	"github.com/openshift/assisted-service/pkg/auth"
 	paramctx "github.com/openshift/assisted-service/pkg/context"
-	"github.com/openshift/assisted-service/pkg/db"
+	dbPkg "github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
@@ -85,7 +85,7 @@ const deployment_type_ocp = "ocp"
 var Options struct {
 	Auth                        auth.Config
 	BMConfig                    bminventory.Config
-	DBConfig                    db.Config
+	DBConfig                    dbPkg.Config
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           hostcommands.InstructionConfig
@@ -522,7 +522,7 @@ func (a *ApiEnabler) Enable() {
 func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.DB, log logrus.FieldLogger) error {
 	return migrationLeader.RunWithLeader(context.Background(), func() error {
 		log.Infof("Start automigration")
-		err := db.AutoMigrate(&models.Host{}, &common.Cluster{}, &events.Event{}).Error
+		err := common.AutoMigrate(db)
 		if err != nil {
 			log.WithError(err).Fatal("Failed auto migration process")
 			return err

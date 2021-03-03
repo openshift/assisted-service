@@ -37,6 +37,15 @@ type Cluster struct {
 	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
 }
 
+type Event struct {
+	gorm.Model
+	models.Event
+}
+
+func AutoMigrate(db *gorm.DB) error {
+	return db.AutoMigrate(&models.Host{}, &Cluster{}, &Event{}).Error
+}
+
 type EagerLoadingState bool
 
 const (
@@ -51,8 +60,14 @@ const (
 	SkipDeletedRecords    DeleteRecordsState = false
 )
 
-func LoadHostsFromDB(db *gorm.DB, conditions ...interface{}) *gorm.DB {
-	return db.Preload("Hosts", conditions...)
+const (
+	HostsTable = "Hosts"
+)
+
+var ClusterSubTables = [...]string{HostsTable}
+
+func LoadTableFromDB(db *gorm.DB, tableName string, conditions ...interface{}) *gorm.DB {
+	return db.Preload(tableName, conditions...)
 }
 
 func GetClusterFromDB(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoadingState) (*Cluster, error) {
@@ -65,26 +80,41 @@ func GetClusterFromDB(db *gorm.DB, clusterId strfmt.UUID, eagerLoading EagerLoad
 }
 
 func GetClusterFromDBWithoutDisabledHosts(db *gorm.DB, clusterId strfmt.UUID) (*Cluster, error) {
-	db = LoadHostsFromDB(db, "status <> ?", models.HostStatusDisabled)
+	db = LoadTableFromDB(db, HostsTable, "status <> ?", models.HostStatusDisabled)
 	return GetClusterFromDB(db, clusterId, SkipEagerLoading)
 }
 
-func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) (*Cluster, error) {
-	var cluster Cluster
-
+func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState) *gorm.DB {
 	if includeDeleted {
 		db = db.Unscoped()
 	}
 
 	if eagerLoading {
-		db = LoadHostsFromDB(db, func(db *gorm.DB) *gorm.DB {
-			if includeDeleted {
-				return db.Unscoped()
-			}
-			return db
-		})
+		for _, tableName := range ClusterSubTables[:] {
+			db = LoadTableFromDB(db, tableName, func(db *gorm.DB) *gorm.DB {
+				if includeDeleted {
+					return db.Unscoped()
+				}
+				return db
+			})
+		}
 	}
 
+	return db
+}
+
+func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) (*Cluster, error) {
+	var cluster Cluster
+
+	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Take(&cluster, where...).Error
 	return &cluster, err
+}
+
+func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) ([]*Cluster, error) {
+	var clusters []*Cluster
+
+	db = prepareClusterDB(db, eagerLoading, includeDeleted)
+	err := db.Find(&clusters, where...).Error
+	return clusters, err
 }

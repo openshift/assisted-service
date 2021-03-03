@@ -52,7 +52,7 @@ var _ = Describe("RegisterHost", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog())
@@ -433,7 +433,7 @@ var _ = Describe("HostInstallationFailed", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
@@ -477,7 +477,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
@@ -513,7 +513,7 @@ var _ = Describe("Cancel host installation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -600,7 +600,7 @@ var _ = Describe("Reset host", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -688,7 +688,7 @@ var _ = Describe("Install", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -843,7 +843,7 @@ var _ = Describe("Disable", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -976,7 +976,7 @@ var _ = Describe("Enable", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -1176,7 +1176,7 @@ var _ = Describe("Refresh Host", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName, &events.Event{})
+		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
