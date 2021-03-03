@@ -53,7 +53,7 @@ var _ = Describe("s3client", func() {
 		uploader = NewMockUploaderAPI(ctrl)
 		publicUploader = NewMockUploaderAPI(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
-		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10})
+		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10}, nil)
 		log.SetOutput(ioutil.Discard)
 		bucket = "test"
 		publicBucket = "pub-test"

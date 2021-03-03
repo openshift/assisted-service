@@ -302,22 +302,23 @@ type CRDUtils interface {
 }
 type bareMetalInventory struct {
 	Config
-	db               *gorm.DB
-	log              logrus.FieldLogger
-	hostApi          host.API
-	clusterApi       clusterPkg.API
-	eventsHandler    events.Handler
-	objectHandler    s3wrapper.API
-	metricApi        metrics.API
-	generator        generator.ISOInstallConfigGenerator
-	authHandler      auth.AuthHandler
-	k8sClient        k8sclient.K8SClient
-	ocmClient        *ocm.Client
-	leaderElector    leader.Leader
-	secretValidator  validations.PullSecretValidator
-	versionsHandler  versions.Handler
-	isoEditorFactory isoeditor.Factory
-	crdUtils         CRDUtils
+	db                  *gorm.DB
+	log                 logrus.FieldLogger
+	hostApi             host.API
+	clusterApi          clusterPkg.API
+	eventsHandler       events.Handler
+	objectHandler       s3wrapper.API
+	metricApi           metrics.API
+	generator           generator.ISOInstallConfigGenerator
+	authHandler         auth.AuthHandler
+	k8sClient           k8sclient.K8SClient
+	ocmClient           *ocm.Client
+	leaderElector       leader.Leader
+	secretValidator     validations.PullSecretValidator
+	versionsHandler     versions.Handler
+	isoEditorFactory    isoeditor.Factory
+	crdUtils            CRDUtils
+	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -350,25 +351,27 @@ func NewBareMetalInventory(
 	versionsHandler versions.Handler,
 	isoEditorFactory isoeditor.Factory,
 	crdUtils CRDUtils,
+	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:               db,
-		log:              log,
-		Config:           cfg,
-		hostApi:          hostApi,
-		clusterApi:       clusterApi,
-		generator:        generator,
-		eventsHandler:    eventsHandler,
-		objectHandler:    objectHandler,
-		metricApi:        metricApi,
-		authHandler:      authHandler,
-		k8sClient:        k8sClient,
-		ocmClient:        ocmClient,
-		leaderElector:    leaderElector,
-		secretValidator:  pullSecretValidator,
-		versionsHandler:  versionsHandler,
-		isoEditorFactory: isoEditorFactory,
-		crdUtils:         crdUtils,
+		db:                  db,
+		log:                 log,
+		Config:              cfg,
+		hostApi:             hostApi,
+		clusterApi:          clusterApi,
+		generator:           generator,
+		eventsHandler:       eventsHandler,
+		objectHandler:       objectHandler,
+		metricApi:           metricApi,
+		authHandler:         authHandler,
+		k8sClient:           k8sClient,
+		ocmClient:           ocmClient,
+		leaderElector:       leaderElector,
+		secretValidator:     pullSecretValidator,
+		versionsHandler:     versionsHandler,
+		isoEditorFactory:    isoEditorFactory,
+		crdUtils:            crdUtils,
+		staticNetworkConfig: staticNetworkConfig,
 	}
 }
 
@@ -442,9 +445,8 @@ func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(ignition.GetServiceIPHostnames(b.Config.ServiceIPs)))
 	}
 
-	// [TODO] - check if this is relvant for minimal ISO also
 	if cluster.ImageInfo.StaticNetworkConfig != "" && params.ImageCreateParams.ImageType == models.ImageTypeFullIso {
-		filesList, newErr := prepareStaticNetworkConfigForIgnition(cluster, b.log)
+		filesList, newErr := b.prepareStaticNetworkConfigForIgnition(cluster, logger)
 		if newErr != nil {
 			logger.WithError(newErr).Errorf("Failed to add static network config to ignition for cluster %s", cluster.ID)
 			return "", newErr
@@ -1235,8 +1237,7 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 			HTTPSProxy: cluster.HTTPSProxy,
 			NoProxy:    cluster.NoProxy,
 		}
-		// [TODO] - need to pass new network configuration to isocreator
-		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, "", &clusterProxyInfo)
+		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, cluster.ImageInfo.StaticNetworkConfig, &clusterProxyInfo)
 		return createError
 	})
 
@@ -4486,9 +4487,8 @@ func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*com
 	return b.clusterApi.GetClusterByKubeKey(key)
 }
 
-func prepareStaticNetworkConfigForIgnition(cluster *common.Cluster, log logrus.FieldLogger) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
-	staticNetworkGenerator := staticnetworkconfig.New(log)
-	filesList, err := staticNetworkGenerator.GenerateStaticNetworkConfigData(cluster.ImageInfo.StaticNetworkConfig)
+func (b *bareMetalInventory) prepareStaticNetworkConfigForIgnition(cluster *common.Cluster, log logrus.FieldLogger) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
+	filesList, err := b.staticNetworkConfig.GenerateStaticNetworkConfigData(cluster.ImageInfo.StaticNetworkConfig)
 	if err != nil {
 		log.WithError(err).Errorf("staticNetworkGenerator failed to produce the static network connection files for cluster %s", cluster.ID)
 		return nil, err

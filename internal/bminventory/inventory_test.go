@@ -48,6 +48,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
@@ -61,19 +62,20 @@ const ClusterStatusInstalled = "installed"
 const FakeServiceBaseURL = "http://192.168.11.22:12345"
 
 var (
-	ctrl                 *gomock.Controller
-	mockClusterApi       *cluster.MockAPI
-	mockHostApi          *host.MockAPI
-	mockEvents           *events.MockHandler
-	mockS3Client         *s3wrapper.MockAPI
-	mockSecretValidator  *validations.MockPullSecretValidator
-	mockIsoEditorFactory *isoeditor.MockFactory
-	mockGenerator        *generator.MockISOInstallConfigGenerator
-	mockVersions         *versions.MockHandler
-	mockMetric           *metrics.MockAPI
-	mockK8sClient        *k8sclient.MockK8SClient
-	mockCRDUtils         *MockCRDUtils
-	mockAccountsMgmt     *ocm.MockOCMAccountsMgmt
+	ctrl                    *gomock.Controller
+	mockClusterApi          *cluster.MockAPI
+	mockHostApi             *host.MockAPI
+	mockEvents              *events.MockHandler
+	mockS3Client            *s3wrapper.MockAPI
+	mockSecretValidator     *validations.MockPullSecretValidator
+	mockIsoEditorFactory    *isoeditor.MockFactory
+	mockGenerator           *generator.MockISOInstallConfigGenerator
+	mockVersions            *versions.MockHandler
+	mockMetric              *metrics.MockAPI
+	mockK8sClient           *k8sclient.MockK8SClient
+	mockCRDUtils            *MockCRDUtils
+	mockAccountsMgmt        *ocm.MockOCMAccountsMgmt
+	mockStaticNetworkConfig *staticnetworkconfig.MockStaticNetworkConfig
 )
 
 func TestValidator(t *testing.T) {
@@ -6120,10 +6122,11 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockVersions = versions.NewMockHandler(ctrl)
 	mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
 	mockCRDUtils = NewMockCRDUtils(ctrl)
+	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric,
-		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions, mockIsoEditorFactory, mockCRDUtils)
+		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions, mockIsoEditorFactory, mockCRDUtils, mockStaticNetworkConfig)
 }
 
 type StaticNetworkConfig struct {

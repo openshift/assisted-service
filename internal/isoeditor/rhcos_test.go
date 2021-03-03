@@ -13,10 +13,12 @@ import (
 	"testing"
 
 	"github.com/cavaliercoder/go-cpio"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/isoutil"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/sirupsen/logrus"
 )
 
@@ -38,11 +40,13 @@ func TestIsoEditor(t *testing.T) {
 
 var _ = Context("with test files", func() {
 	var (
-		isoDir   string
-		isoFile  string
-		filesDir string
-		workDir  string
-		volumeID = "Assisted123"
+		isoDir                  string
+		isoFile                 string
+		filesDir                string
+		workDir                 string
+		volumeID                = "Assisted123"
+		ctrl                    *gomock.Controller
+		mockStaticNetworkConfig *staticnetworkconfig.MockStaticNetworkConfig
 	)
 
 	BeforeSuite(func() {
@@ -56,6 +60,8 @@ var _ = Context("with test files", func() {
 
 	BeforeEach(func() {
 		var err error
+		ctrl = gomock.NewController(GinkgoT())
+		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		workDir, err = ioutil.TempDir("", "testisoeditor")
 		Expect(err).NotTo(HaveOccurred())
 	})
@@ -67,7 +73,7 @@ var _ = Context("with test files", func() {
 
 	Describe("CreateMinimalISOTemplate", func() {
 		It("iso created successfully", func() {
-			editor := editorForFile(isoFile, workDir)
+			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 			file, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -79,7 +85,7 @@ var _ = Context("with test files", func() {
 		})
 
 		It("missing iso file", func() {
-			editor := editorForFile("invalid", workDir)
+			editor := editorForFile("invalid", workDir, mockStaticNetworkConfig)
 			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
 			Expect(err).To(HaveOccurred())
 		})
@@ -87,7 +93,7 @@ var _ = Context("with test files", func() {
 
 	Describe("CreateClusterMinimalISO", func() {
 		It("removes the workspace", func() {
-			editor := editorForFile(isoFile, workDir)
+			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 			proxyInfo := &ClusterProxyInfo{}
 			file, err := editor.CreateClusterMinimalISO("ignition", "", proxyInfo)
 			Expect(err).ToNot(HaveOccurred())
@@ -102,7 +108,7 @@ var _ = Context("with test files", func() {
 
 	Describe("fixTemplateConfigs", func() {
 		It("alters the kernel parameters correctly", func() {
-			editor := editorForFile(isoFile, workDir)
+			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 			rootfsURL := fmt.Sprintf("%s/api/assisted-install/v1/boot-files?file_type=rootfs.img&openshift_version=%s",
 				defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			isoHandler := editor.(*rhcosEditor).isoHandler
@@ -129,7 +135,7 @@ var _ = Context("with test files", func() {
 
 	Describe("embedOffsetsInSystemArea", func() {
 		It("embeds offsets in system area correctly", func() {
-			editor := editorForFile(isoFile, workDir)
+			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 
 			// Create template
 			isoPath, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
@@ -172,7 +178,7 @@ var _ = Context("with test files", func() {
 
 	Describe("addCustomRAMDisk", func() {
 		It("adds a new archive correctly", func() {
-			editor := editorForFile(isoFile, workDir)
+			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 
 			isoHandler := editor.(*rhcosEditor).isoHandler
 			err := isoHandler.Extract()
@@ -184,14 +190,25 @@ var _ = Context("with test files", func() {
 				NoProxy:    "quay.io",
 			}
 
-			err = editor.(*rhcosEditor).addCustomRAMDisk("staticipconfig", &clusterProxyInfo)
+			staticnetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
+				{
+					FilePath:     "1.nmconnection",
+					FileContents: "1.nmconnection contents",
+				},
+				{
+					FilePath:     "2.nmconnection",
+					FileContents: "2.nmconnection contents",
+				},
+			}
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData("staticnetworkconfig").Return(staticnetworkConfigOutput, nil).Times(1)
+			err = editor.(*rhcosEditor).addCustomRAMDisk("staticnetworkconfig", &clusterProxyInfo)
 			Expect(err).ToNot(HaveOccurred())
 
 			By("checking that the files are present in the archive")
 			f, err := os.Open(isoHandler.ExtractedPath("images/assisted_installer_custom.img"))
 			Expect(err).ToNot(HaveOccurred())
 
-			var configContent, scriptContent, rootfsServiceConfigContent string
+			var scriptContent, rootfsServiceConfigContent string
 			r := cpio.NewReader(f)
 			for {
 				hdr, err := r.Next()
@@ -200,11 +217,15 @@ var _ = Context("with test files", func() {
 				}
 				Expect(err).ToNot(HaveOccurred())
 				switch hdr.Name {
-				case "/etc/static_ips_config.csv":
+				case "/etc/1.nmconnection":
 					configBytes, err := ioutil.ReadAll(r)
 					Expect(err).ToNot(HaveOccurred())
-					configContent = string(configBytes)
-				case "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-static-ip-config.sh":
+					Expect(string(configBytes)).To(Equal("1.nmconnection contents"))
+				case "/etc/2.nmconnection":
+					configBytes, err := ioutil.ReadAll(r)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(string(configBytes)).To(Equal("2.nmconnection contents"))
+				case "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-pre-static-network-config.sh":
 					scriptBytes, err := ioutil.ReadAll(r)
 					Expect(err).ToNot(HaveOccurred())
 					scriptContent = string(scriptBytes)
@@ -215,8 +236,7 @@ var _ = Context("with test files", func() {
 				}
 			}
 
-			Expect(configContent).To(Equal("staticipconfig"))
-			Expect(scriptContent).To(Equal(constants.ConfigStaticIpsScript))
+			Expect(scriptContent).To(Equal(constants.PreNetworkConfigScript))
 
 			rootfsServiceConfig := fmt.Sprintf("[Service]\n"+
 				"Environment=http_proxy=%s\nEnvironment=https_proxy=%s\nEnvironment=no_proxy=%s\n"+
@@ -228,11 +248,12 @@ var _ = Context("with test files", func() {
 	})
 })
 
-func editorForFile(iso string, workDir string) Editor {
+func editorForFile(iso string, workDir string, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig) Editor {
 	return &rhcosEditor{
-		isoHandler:       isoutil.NewHandler(iso, workDir),
-		openshiftVersion: defaultTestOpenShiftVersion,
-		log:              getTestLog(),
+		isoHandler:          isoutil.NewHandler(iso, workDir),
+		openshiftVersion:    defaultTestOpenShiftVersion,
+		log:                 getTestLog(),
+		staticNetworkConfig: staticNetworkConfig,
 	}
 }
 
