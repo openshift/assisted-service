@@ -767,6 +767,7 @@ spec:
                               description: WorkerAgents is the minimum number of matching
                                 approved and ready Agents with the worker role required
                                 to launch the install.
+                              minimum: 0
                               type: integer
                           required:
                             - controlPlaneAgents
@@ -1042,6 +1043,10 @@ spec:
                       type: integer
                   type: object
               type: object
+            installVersion:
+              description: InstallVersion is the version of OpenShift as reported
+                by the release image resolved for the installation.
+              type: string
             installedTimestamp:
               description: InstalledTimestamp is the time we first detected that the
                 cluster has been successfully installed.

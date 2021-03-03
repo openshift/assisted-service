@@ -29,8 +29,8 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	"github.com/openshift/hive/pkg/apis/hive/v1/agent"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -196,12 +196,6 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip)
 	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
 
-	vipDHCPAllocationEnabled := isVipDHCPAllocationEnabled(cluster)
-	if vipDHCPAllocationEnabled != swag.BoolValue(c.VipDhcpAllocation) {
-		params.VipDhcpAllocation = swag.Bool(vipDHCPAllocationEnabled)
-		update = true
-	}
-
 	// TODO: get from AgentEnvSpec
 	//updateString(spec.HTTPProxy, c.HTTPProxy, &params.HTTPProxy)
 	//updateString(spec.HTTPSProxy, c.HTTPSProxy, &params.HTTPSProxy)
@@ -272,10 +266,6 @@ func (r *ClusterDeploymentsReconciler) notifyPullSecretUpdate(ctx context.Contex
 	return nil
 }
 
-func isVipDHCPAllocationEnabled(cluster *hivev1.ClusterDeployment) bool {
-	return cluster.Spec.Platform.AgentBareMetal.VIPDHCPAllocation == agent.Enabled
-}
-
 func (r *ClusterDeploymentsReconciler) getOCPVersion(cluster *hivev1.ClusterDeployment) string {
 	// TODO: fix when HIVE-1383 is resolved, As for now single node supported only with 4.8, default version is 4.7
 	if cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
@@ -310,7 +300,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		OpenshiftVersion:      swag.String(r.getOCPVersion(cluster)),
 		Operators:             nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
-		VipDhcpAllocation:     swag.Bool(isVipDHCPAllocationEnabled(cluster)),
+		VipDhcpAllocation:     swag.Bool(false),
 		IngressVip:            spec.Platform.AgentBareMetal.IngressVIP,
 		SSHPublicKey:          spec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(cluster)),

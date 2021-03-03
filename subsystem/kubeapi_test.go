@@ -15,8 +15,8 @@ import (
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	agentv1 "github.com/openshift/hive/pkg/apis/hive/v1/agent"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -161,9 +161,8 @@ func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hi
 		},
 		Platform: hivev1.Platform{
 			AgentBareMetal: &agentv1.BareMetalPlatform{
-				APIVIP:            "1.2.3.8",
-				IngressVIP:        "1.2.3.9",
-				VIPDHCPAllocation: agentv1.Disabled,
+				APIVIP:     "1.2.3.8",
+				IngressVIP: "1.2.3.9",
 			},
 		},
 		PullSecretRef: secretRef,
