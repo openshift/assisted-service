@@ -977,7 +977,7 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		contentLength)
 }
 
-func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType) error {
+func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType, generated bool) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(*cluster.ID)
 	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
@@ -1013,6 +1013,10 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 	updates["image_type"] = imageType
 	cluster.ImageInfo.Type = imageType
 
+	if generated {
+		updates["image_generated"] = true
+		cluster.ImageGenerated = true
+	}
 	dbReply := b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.New("Failed to generate image: error updating image record")
@@ -1108,6 +1112,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
 		cluster.ImageInfo.StaticNetworkConfig == staticNetworkConfig &&
+		cluster.ImageGenerated &&
 		cluster.ImageInfo.Type == params.ImageCreateParams.ImageType {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
@@ -1125,6 +1130,11 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_download_url"] = ""
 	updates["image_static_network_config"] = staticNetworkConfig
+	if !imageExists {
+		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
+		// state of the image creation based on the cluster parameters which will be committed to the DB
+		updates["image_generated"] = false
+	}
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
@@ -1148,7 +1158,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType, false); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 
@@ -1156,6 +1166,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 	}
+
 	ignitionConfig, formatErr := b.formatIgnitionFile(cluster, params, log, false)
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
@@ -1189,15 +1200,19 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		}
 	}
 
-	if err := b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType); err != nil {
+	if err := b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType, true); err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	msg := b.getIgnitionConfigForLogging(cluster, params, log)
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
+	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+}
+
+func (b *bareMetalInventory) getIgnitionConfigForLogging(cluster *common.Cluster, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {
 	ignitionConfigForLogging, _ := b.formatIgnitionFile(cluster, params, log, true)
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
-
 	msg := "Generated image"
-
 	var msgExtras []string
 
 	if cluster.HTTPProxy != "" {
@@ -1214,9 +1229,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	msgExtras = append(msgExtras, sshExtra)
 
 	msg = fmt.Sprintf("%s (%s)", msg, strings.Join(msgExtras, ", "))
-
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
-	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+	return msg
 }
 
 func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
