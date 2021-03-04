@@ -51,13 +51,7 @@ spec:
                       name must be unique.
                     type: string
                 type: object
-              enabled:
-                type: boolean
               hostname:
-                type: string
-              ignitionConfigOverrides:
-                type: string
-              installerArgs:
                 type: string
               machineConfigPool:
                 type: string
