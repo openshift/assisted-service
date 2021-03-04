@@ -32,6 +32,7 @@ type Manifests struct {
 }
 
 // Operator provides generic API of an OLM operator installation plugin
+//go:generate mockgen -package=api -self_package=github.com/openshift/assisted-service/internal/operators/api -destination=mock_operator_api.go . Operator
 type Operator interface {
 	// GetName reports the name of an operator this Operator manages
 	GetName() string
@@ -61,4 +62,6 @@ type Operator interface {
 	GetHostValidationID() string
 	// GetProperties provides description of operator properties
 	GetProperties() models.OperatorProperties
+	// GetMonitoredOperator returns MonitoredOperator corresponding to the Operator implementation
+	GetMonitoredOperator() *models.MonitoredOperator
 }

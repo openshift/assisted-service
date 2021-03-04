@@ -12,7 +12,7 @@ import (
 type lsOperator struct {
 }
 
-var Operator models.MonitoredOperator = models.MonitoredOperator{
+var Operator = models.MonitoredOperator{
 	Name:           "lso",
 	OperatorType:   models.OperatorTypeOlm,
 	TimeoutSeconds: 60 * 60,
@@ -93,4 +93,9 @@ func (l *lsOperator) GetDisksRequirementForWorker(context.Context, *common.Clust
 // GetProperties provides description of operator properties: none required
 func (l *lsOperator) GetProperties() models.OperatorProperties {
 	return models.OperatorProperties{}
+}
+
+// GetMonitoredOperator returns MonitoredOperator corresponding to the LSO
+func (l *lsOperator) GetMonitoredOperator() *models.MonitoredOperator {
+	return &Operator
 }

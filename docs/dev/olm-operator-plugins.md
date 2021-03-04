@@ -9,27 +9,6 @@
 
 To implement support for a new OLM operator plugin you need to make following changes:
 
- 1. Introduce a new OLM operator type in the [swagger specification](../../swagger.yaml):
-    - by adding the new value in the `operator-type` definition:
-      ```yaml
-       operator-type:
-       type: string
-       enum:
-         - 'lso'
-         - 'ocs'
-         - 'cnv'
-       ``` 
-    - by adding the new value in the `ListOperatorProperties` operation `operator_type` parameter enum:
-      ```yaml
-      operationId: ListOperatorProperties
-      parameters:
-        - in: path
-          name: operator_type
-          description: The operator type.
-          type: string
-          enum: ['lso', 'ocs', 'cnv']
-          required: true
-      ```                      
  1. Introduce new validation IDs for the new operator in the [swagger specification](../../swagger.yaml):
     - for host validation:
       ```yaml

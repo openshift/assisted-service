@@ -9,29 +9,16 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var OperatorCVO models.MonitoredOperator = models.MonitoredOperator{
+var OperatorCVO = models.MonitoredOperator{
 	Name:           "cvo",
 	OperatorType:   models.OperatorTypeBuiltin,
 	TimeoutSeconds: 60 * 60,
 }
 
-var OperatorConsole models.MonitoredOperator = models.MonitoredOperator{
+var OperatorConsole = models.MonitoredOperator{
 	Name:           "console",
 	OperatorType:   models.OperatorTypeBuiltin,
 	TimeoutSeconds: 60 * 60,
-}
-
-// monitoredOperators includes all the supported operators to be monitored.
-// In order to add a new operator - it must be added to this map.
-var monitoredOperators = map[string]*models.MonitoredOperator{
-	// Builtins
-	OperatorCVO.Name:     &OperatorCVO,
-	OperatorConsole.Name: &OperatorConsole,
-
-	// OLMs
-	lso.Operator.Name: &lso.Operator,
-	ocs.Operator.Name: &ocs.Operator,
-	cnv.Operator.Name: &cnv.Operator,
 }
 
 // NewManager creates new instance of an Operator Manager
@@ -42,8 +29,18 @@ func NewManager(log logrus.FieldLogger) *Manager {
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators
 func NewManagerWithOperators(log logrus.FieldLogger, olmOperators ...api.Operator) *Manager {
 	nameToOperator := make(map[string]api.Operator)
+
+	// monitoredOperators includes all the supported operators to be monitored.
+	monitoredOperators := map[string]*models.MonitoredOperator{
+		// Builtins
+		OperatorCVO.Name:     &OperatorCVO,
+		OperatorConsole.Name: &OperatorConsole,
+	}
+
 	for _, olmOperator := range olmOperators {
 		nameToOperator[olmOperator.GetName()] = olmOperator
+		// Add OLM operator to the monitoredOperators map
+		monitoredOperators[olmOperator.GetName()] = olmOperator.GetMonitoredOperator()
 	}
 
 	return &Manager{

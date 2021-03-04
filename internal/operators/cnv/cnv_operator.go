@@ -26,7 +26,7 @@ type operator struct {
 	log logrus.FieldLogger
 }
 
-var Operator models.MonitoredOperator = models.MonitoredOperator{
+var Operator = models.MonitoredOperator{
 	Name:           "cnv",
 	OperatorType:   models.OperatorTypeOlm,
 	TimeoutSeconds: 60 * 60,
@@ -139,4 +139,9 @@ func (o *operator) GetDisksRequirementForWorker(context.Context, *common.Cluster
 // GetProperties provides description of operator properties: none required
 func (o *operator) GetProperties() models.OperatorProperties {
 	return models.OperatorProperties{}
+}
+
+// GetMonitoredOperator returns MonitoredOperator corresponding to the CNV Operator
+func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
+	return &Operator
 }
