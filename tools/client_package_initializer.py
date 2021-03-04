@@ -140,6 +140,8 @@ class SetupInitializer:
             cmd = f"python3 {self._setup_path} bdist_wheel sdist --dist-dir {os.path.join(self._project_path, 'dist/')}"
             out = subprocess.check_output(cmd.split())
             print(out.decode())
+            with open(os.path.join(self._project_path, pkg.DEFAULT_VERSION_PATH)) as f:
+                print(f"version: {f.read()}")
         except subprocess.CalledProcessError as e:
             print(e.output)
 
