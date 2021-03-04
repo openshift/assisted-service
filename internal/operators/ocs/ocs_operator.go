@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// ocsOperator is an OCS OLM operator plugin; it implements api.Operator
 type ocsOperator struct {
 	log                logrus.FieldLogger
 	ocsValidatorConfig Config
@@ -109,4 +110,9 @@ func (o *ocsOperator) GetDisksRequirementForMaster(context.Context, *common.Clus
 // GetDisksRequirementForWorker provides a number of disks required in a worker
 func (o *ocsOperator) GetDisksRequirementForWorker(context.Context, *common.Cluster) (int64, error) {
 	return 0, nil
+}
+
+// GetProperties provides description of operator properties: none required
+func (o *ocsOperator) GetProperties() models.OperatorProperties {
+	return models.OperatorProperties{}
 }

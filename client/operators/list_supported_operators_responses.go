@@ -63,14 +63,14 @@ func NewListSupportedOperatorsOK() *ListSupportedOperatorsOK {
 Success.
 */
 type ListSupportedOperatorsOK struct {
-	Payload models.MonitoredOperatorsList
+	Payload []string
 }
 
 func (o *ListSupportedOperatorsOK) Error() string {
 	return fmt.Sprintf("[GET /supported-operators][%d] listSupportedOperatorsOK  %+v", 200, o.Payload)
 }
 
-func (o *ListSupportedOperatorsOK) GetPayload() models.MonitoredOperatorsList {
+func (o *ListSupportedOperatorsOK) GetPayload() []string {
 	return o.Payload
 }
 

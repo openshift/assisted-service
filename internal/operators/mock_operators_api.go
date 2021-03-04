@@ -94,6 +94,35 @@ func (mr *MockAPIMockRecorder) GetOperatorByName(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorByName", reflect.TypeOf((*MockAPI)(nil).GetOperatorByName), arg0)
 }
 
+// GetOperatorProperties mocks base method
+func (m *MockAPI) GetOperatorProperties(arg0 string) (models.OperatorProperties, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOperatorProperties", arg0)
+	ret0, _ := ret[0].(models.OperatorProperties)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOperatorProperties indicates an expected call of GetOperatorProperties
+func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorProperties", reflect.TypeOf((*MockAPI)(nil).GetOperatorProperties), arg0)
+}
+
+// GetSupportedOperators mocks base method
+func (m *MockAPI) GetSupportedOperators() []string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSupportedOperators")
+	ret0, _ := ret[0].([]string)
+	return ret0
+}
+
+// GetSupportedOperators indicates an expected call of GetSupportedOperators
+func (mr *MockAPIMockRecorder) GetSupportedOperators() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedOperators", reflect.TypeOf((*MockAPI)(nil).GetSupportedOperators))
+}
+
 // GetSupportedOperatorsByType mocks base method
 func (m *MockAPI) GetSupportedOperatorsByType(arg0 models.OperatorType) []*models.MonitoredOperator {
 	m.ctrl.T.Helper()

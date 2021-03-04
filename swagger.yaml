@@ -2770,7 +2770,9 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/monitored-operators-list'
+            type: array
+            items:
+              type: string
         "401":
           description: Unauthorized.
           schema:
@@ -2779,6 +2781,42 @@ paths:
           description: Forbidden.
           schema:
             $ref: '#/definitions/infra_error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /supported-operators/{operator_name}:
+    get:
+      tags:
+        - operators
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Lists properties for an operator.
+      operationId: ListOperatorProperties
+      parameters:
+        - in: path
+          name: operator_name
+          description: The operator name.
+          type: string
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/operator-properties'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
         "500":
           description: Error.
           schema:
@@ -4825,3 +4863,33 @@ definitions:
         type: string
         enum: [beta, production]
         description: Level of support of the version.
+
+  operator-property:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the property
+      data_type:
+        type: string
+        enum: ['boolean', 'string', 'integer', 'float']
+        description: Type of the property
+      mandatory:
+        type: boolean
+        description: Indicates whether the property is reqired
+      options:
+        type: array
+        items:
+          type: string
+        description: Values to select from
+      description:
+        type: string
+        description: Description of a property
+      default_value:
+        type: string
+        description: Default value for the property
+
+  operator-properties:
+    type: array
+    items:
+      $ref: '#/definitions/operator-property'
