@@ -21,6 +21,14 @@ def main():
             file=file_path
         )
 
+        file_path = os.path.join(os.getcwd(), 'hack/crds/hive.openshift.io_clusterdeployments.yaml')
+        utils.apply(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            profile=deploy_options.profile,
+            file=file_path
+        )
+
 
 if __name__ == "__main__":
     main()
