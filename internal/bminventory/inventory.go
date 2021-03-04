@@ -103,6 +103,7 @@ type Config struct {
 	DefaultClusterNetworkHostPrefix int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
 	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
 	WithAMSSubscriptions            bool              `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
+	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 }
 
 const agentMessageOfTheDay = `
@@ -1039,6 +1040,11 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		}
 	}
 
+	// set the default value for REST API case, in case it was not provided in the request
+	if params.ImageCreateParams.ImageType == "" {
+		params.ImageCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
+	}
+
 	txSuccess := false
 	tx := b.db.Begin()
 	defer func() {
@@ -1198,9 +1204,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, cluster.HTTPProxy))
 	}
 
-	if params.ImageCreateParams.ImageType != "" {
-		msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
-	}
+	msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
 
 	sshExtra := "SSH public key is not set"
 	if params.ImageCreateParams.SSHPublicKey != "" {

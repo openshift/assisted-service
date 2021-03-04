@@ -3167,7 +3167,6 @@ definitions:
           type: string
           description: array of string in nmstate yaml format, each string is one host configuration
       image_type:
-        type: string
         description: Type of image that should be generated.
         $ref: '#/definitions/image_type'
 
@@ -3979,7 +3978,6 @@ definitions:
         type: string
         description: static network configuration string in the format expected by discovery ignition generation
       type:
-        type: string
         $ref: '#/definitions/image_type'
 
   image_type:
