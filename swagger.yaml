@@ -4270,6 +4270,9 @@ definitions:
   disk:
     type: object
     properties:
+      id:
+        type: string
+        description: Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise
       drive_type:
         type: string
       vendor:
@@ -4282,8 +4285,10 @@ definitions:
         type: string
       by_path:
         type: string
+        description: by-path is the shortest physical path to the device
       by_id:
         type: string
+        description: by-id is the wwn/enve-ei which guaranteed to be unique for every storage device
       model:
         type: string
       wwn:

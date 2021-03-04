@@ -5546,15 +5546,21 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
+          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
+          "description": "by-path is the shortest physical path to the device",
           "type": "string"
         },
         "drive_type": {
           "type": "string"
         },
         "hctl": {
+          "type": "string"
+        },
+        "id": {
+          "description": "Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise",
           "type": "string"
         },
         "installation_eligibility": {
@@ -12678,15 +12684,21 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
+          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
+          "description": "by-path is the shortest physical path to the device",
           "type": "string"
         },
         "drive_type": {
           "type": "string"
         },
         "hctl": {
+          "type": "string"
+        },
+        "id": {
+          "description": "Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise",
           "type": "string"
         },
         "installation_eligibility": {

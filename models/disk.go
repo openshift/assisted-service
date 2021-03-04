@@ -19,10 +19,10 @@ type Disk struct {
 	// bootable
 	Bootable bool `json:"bootable,omitempty"`
 
-	// by id
+	// by-id is the wwn/enve-ei which guaranteed to be unique for every storage device
 	ByID string `json:"by_id,omitempty"`
 
-	// by path
+	// by-path is the shortest physical path to the device
 	ByPath string `json:"by_path,omitempty"`
 
 	// drive type
@@ -30,6 +30,9 @@ type Disk struct {
 
 	// hctl
 	Hctl string `json:"hctl,omitempty"`
+
+	// Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise
+	ID string `json:"id,omitempty"`
 
 	// installation eligibility
 	InstallationEligibility DiskInstallationEligibility `json:"installation_eligibility,omitempty"`
