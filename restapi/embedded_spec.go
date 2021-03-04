@@ -6252,7 +6252,6 @@ func init() {
       "properties": {
         "image_type": {
           "description": "Type of image that should be generated.",
-          "type": "string",
           "$ref": "#/definitions/image_type"
         },
         "ssh_public_key": {
@@ -6300,7 +6299,6 @@ func init() {
           "type": "string"
         },
         "type": {
-          "type": "string",
           "$ref": "#/definitions/image_type"
         }
       }
@@ -13244,7 +13242,6 @@ func init() {
       "properties": {
         "image_type": {
           "description": "Type of image that should be generated.",
-          "type": "string",
           "$ref": "#/definitions/image_type"
         },
         "ssh_public_key": {
@@ -13293,7 +13290,6 @@ func init() {
           "type": "string"
         },
         "type": {
-          "type": "string",
           "$ref": "#/definitions/image_type"
         }
       }
