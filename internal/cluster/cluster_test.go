@@ -1359,24 +1359,23 @@ func nonDefaultInventory() string {
 
 var _ = Describe("PrepareForInstallation", func() {
 	var (
-		ctx                = context.Background()
-		capi               API
-		db                 *gorm.DB
-		clusterId          strfmt.UUID
-		dbName             = "cluster_prepare_for_installation"
-		ctrl               *gomock.Controller
-		manifestsGenerator *network.MockManifestsGeneratorAPI
-		mockMetric         *metrics.MockAPI
+		ctx       = context.Background()
+		capi      API
+		db        *gorm.DB
+		clusterId strfmt.UUID
+		dbName    = "cluster_prepare_for_installation"
+		ctrl      *gomock.Controller
+
+		mockMetric *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		manifestsGenerator = network.NewMockManifestsGeneratorAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		db = common.PrepareTestDB(dbName)
 		dummy := &leader.DummyElector{}
 		mockOperators := operators.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, mockMetric, manifestsGenerator, dummy, mockOperators)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, mockMetric, nil, dummy, mockOperators)
 		clusterId = strfmt.UUID(uuid.New().String())
 
 		mockMetric.EXPECT().ClusterHostsNTPFailures(gomock.Any(), gomock.Any(), gomock.Any())
@@ -1439,7 +1438,6 @@ var _ = Describe("PrepareForInstallation", func() {
 	for i := range tests {
 		t := tests[i]
 		It(t.name, func() {
-			manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			cluster := common.Cluster{
 				Cluster: models.Cluster{
 					ID:                        &clusterId,
@@ -1451,19 +1449,6 @@ var _ = Describe("PrepareForInstallation", func() {
 			t.validation(&cluster)
 		})
 	}
-
-	It("Add manifest failure", func() {
-		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
-		cluster := common.Cluster{
-			Cluster: models.Cluster{
-				ID:                        &clusterId,
-				Status:                    swag.String(models.ClusterStatusReady),
-				ControllerLogsCollectedAt: strfmt.DateTime(time.Now()),
-			}}
-		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		Expect(db.Take(&cluster, "id = ?", clusterId).Error).ShouldNot(HaveOccurred())
-		failure(&cluster)
-	})
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -2160,6 +2145,64 @@ var _ = Describe("CompleteInstallation", func() {
 		db.First(&clusterInfo)
 		completionTime := time.Time(clusterInfo.InstallCompletedAt).In(time.UTC)
 		Expect(time.Until(completionTime)).Should(BeNumerically("<", 1*time.Second))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("GenerateAdditionalManifests", func() {
+	var (
+		ctrl               *gomock.Controller
+		ctx                = context.Background()
+		db                 *gorm.DB
+		capi               API
+		c                  common.Cluster
+		eventsHandler      events.Handler
+		mockMetric         *metrics.MockAPI
+		dbName             = "generate_additional_manifests"
+		manifestsGenerator *network.MockManifestsGeneratorAPI
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		manifestsGenerator = network.NewMockManifestsGeneratorAPI(ctrl)
+		db = common.PrepareTestDB(dbName)
+		eventsHandler = events.New(db, logrus.New())
+		dummy := &leader.DummyElector{}
+		mockOperators := operators.NewMockAPI(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, dummy, mockOperators)
+		id := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{Cluster: models.Cluster{
+			ID:     &id,
+			Status: swag.String(models.ClusterStatusReady),
+		}}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+	})
+
+	It("Add manifest failure", func() {
+		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
+		err := capi.GenerateAdditionalManifests(ctx, &c)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("Single node manifests success", func() {
+		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		manifestsGenerator.EXPECT().AddDnsmasqForSingleNode(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		err := capi.GenerateAdditionalManifests(ctx, &c)
+		Expect(err).To(Not(HaveOccurred()))
+	})
+
+	It("Single node manifests failure", func() {
+		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		manifestsGenerator.EXPECT().AddDnsmasqForSingleNode(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("some error")).Times(1)
+		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		err := capi.GenerateAdditionalManifests(ctx, &c)
+		Expect(err).To(HaveOccurred())
 	})
 
 	AfterEach(func() {

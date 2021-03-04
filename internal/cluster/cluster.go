@@ -93,6 +93,7 @@ type API interface {
 	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
+	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
 }
 
 type PrepareConfig struct {
@@ -796,4 +797,17 @@ func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster
 		return nil, err
 	}
 	return c, nil
+}
+
+func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
+	if err := m.manifestsGeneratorAPI.AddChronyManifest(ctx, logutil.FromContext(ctx, m.log), cluster); err != nil {
+		return errors.Wrap(err, "failed to add chrony manifest")
+	}
+
+	if common.IsSingleNodeCluster(cluster) {
+		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, logutil.FromContext(ctx, m.log), cluster); err != nil {
+			return errors.Wrap(err, "failed to add dnsmasq manifest")
+		}
+	}
+	return nil
 }

@@ -61,13 +61,14 @@ func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations
 	fileName := filepath.Join(*params.CreateManifestParams.Folder, *params.CreateManifestParams.FileName)
 	manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
 	if err != nil {
-		log.Errorf("Cluster manifest %s for cluster %s failed to base64 decode: [%s]",
+		log.WithError(err).Errorf("Cluster manifest %s for cluster %s failed to base64 decode: [%s]",
 			fileName, cluster.ID, *params.CreateManifestParams.Content)
 		return common.GenerateErrorResponderWithDefault(errors.New("failed to base64-decode cluster manifest content"), http.StatusBadRequest)
 	}
 
 	objectName := GetManifestObjectName(*cluster.ID, fileName)
 	if err := m.objectHandler.Upload(ctx, manifestContent, objectName); err != nil {
+		log.WithError(err).Errorf("Failed to upload %s", objectName)
 		return common.GenerateErrorResponder(errors.Errorf("failed to upload %s to s3", objectName))
 	}
 

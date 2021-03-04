@@ -1441,13 +1441,17 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
 		return nil, err
+	}
+
+	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
+		b.log.WithError(err).Errorf("Failed to generated additional cluster manifest")
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generated additional cluster manifest"))
 	}
 
 	// Delete previews installation log files from object storage (if exist).
