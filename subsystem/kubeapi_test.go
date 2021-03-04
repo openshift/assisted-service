@@ -243,7 +243,7 @@ func getDefaultClusterDeploymentSNOSpec(secretRef *corev1.LocalObjectReference) 
 			AgentBareMetal: &agentv1.BareMetalPlatform{
 				APIVIP:            "",
 				IngressVIP:        "",
-				VIPDHCPAllocation: agentv1.Disabled,
+				VIPDHCPAllocation: agentv1.VIPDHCPAllocationDisabled,
 			},
 		},
 		PullSecretRef: secretRef,
@@ -253,7 +253,7 @@ func getDefaultClusterDeploymentSNOSpec(secretRef *corev1.LocalObjectReference) 
 func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference, clusterDeployment *hivev1.ClusterDeploymentSpec) *v1alpha1.InstallEnvSpec {
 	return &v1alpha1.InstallEnvSpec{
 		ClusterRef: &v1alpha1.ClusterReference{
-			Name: clusterDeployment.ClusterName,
+			Name:      clusterDeployment.ClusterName,
 			Namespace: Options.Namespace,
 		},
 		Proxy: &v1alpha1.Proxy{
@@ -262,8 +262,8 @@ func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference, clusterDep
 			HTTPSProxy: "http://192.168.1.3",
 		},
 		AdditionalNTPSources: []string{"http://192.168.1.4"},
-		PullSecretRef: secretRef,
-		SSHAuthorizedKeys: []string{sshPublicKey},
+		PullSecretRef:        secretRef,
+		SSHAuthorizedKeys:    []string{sshPublicKey},
 	}
 }
 
@@ -379,7 +379,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		deployInstallEnvCRD(ctx, kubeClient, "env",installEnvSpec)
+		deployInstallEnvCRD(ctx, kubeClient, "env", installEnvSpec)
 		waitForInstallEnvCRDState(ctx, kubeClient, clusterKubeName, models.ClusterStatusInsufficient, waitForClusterReconcileTimeout)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForClusterReconcileTimeout)
 		waitForClusterDeploymentCRDState(ctx, kubeClient, clusterKubeName, models.ClusterStatusInsufficient, waitForClusterReconcileTimeout)

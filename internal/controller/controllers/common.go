@@ -4,7 +4,7 @@ import (
 	"context"
 
 	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
