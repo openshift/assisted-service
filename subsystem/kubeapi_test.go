@@ -162,9 +162,10 @@ func waitForInstallEnvCRDState(
 	installEnv := &v1alpha1.InstallEnv{}
 	successInARaw := 0
 	start := time.Now()
+
 	for time.Duration(timeout)*time.Second > time.Since(start) {
 		installEnv = getInstallEnvCRD(ctx, client, key)
-		if installEnv.Status.Conditions[0].Message == state {
+		if len(installEnv.Status.Conditions) > 0 && installEnv.Status.Conditions[0].Message == state {
 			successInARaw++
 		} else {
 			successInARaw = 0
@@ -257,11 +258,11 @@ func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference, clusterDep
 			Namespace: Options.Namespace,
 		},
 		Proxy: &v1alpha1.Proxy{
-			NoProxy:    "http://192.168.1.1",
+			NoProxy:    "192.168.1.1",
 			HTTPProxy:  "http://192.168.1.2",
 			HTTPSProxy: "http://192.168.1.3",
 		},
-		AdditionalNTPSources: []string{"http://192.168.1.4"},
+		AdditionalNTPSources: []string{"192.168.1.4"},
 		PullSecretRef:        secretRef,
 		SSHAuthorizedKeys:    []string{sshPublicKey},
 	}
@@ -302,7 +303,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	ctx := context.Background()
 
-	waitForClusterReconcileTimeout := 30
+	waitForReconcileTimeout := 30
 
 	AfterEach(func() {
 		cleanUP(ctx, kubeClient)
@@ -317,7 +318,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      spec.ClusterName,
 		}
-		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForClusterReconcileTimeout)
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
@@ -325,7 +326,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
-		waitForClusterDeploymentCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForClusterReconcileTimeout)
+		waitForClusterDeploymentCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForReconcileTimeout)
 		for _, host := range hosts {
 			key = types.NamespacedName{
 				Namespace: Options.Namespace,
@@ -343,7 +344,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      spec.ClusterName,
 		}
-		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForClusterReconcileTimeout)
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		host := setupNewHost(ctx, "hostname1", *cluster.ID)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -363,7 +364,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "10s").Should(Equal(true))
 	})
 
-	It("WIP: deploy clusterDeployment and installEnv and verify updates", func() {
+	It("deploy clusterDeployment and installEnv and verify updates", func() {
+		installEnvName := "installenv"
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -371,22 +373,26 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForClusterReconcileTimeout)
-		waitForClusterDeploymentCRDState(ctx, kubeClient, clusterKubeName, models.ClusterStatusInsufficient, waitForClusterReconcileTimeout)
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		waitForClusterDeploymentCRDState(ctx, kubeClient, clusterKubeName, models.ClusterStatusInsufficient, waitForReconcileTimeout)
 		Expect(cluster.NoProxy).Should(Equal(""))
 		Expect(cluster.HTTPProxy).Should(Equal(""))
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		deployInstallEnvCRD(ctx, kubeClient, "env", installEnvSpec)
-		waitForInstallEnvCRDState(ctx, kubeClient, clusterKubeName, models.ClusterStatusInsufficient, waitForClusterReconcileTimeout)
-		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForClusterReconcileTimeout)
-		waitForClusterDeploymentCRDState(ctx, kubeClient, clusterKubeName, models.ClusterStatusInsufficient, waitForClusterReconcileTimeout)
 
-		Expect(cluster.NoProxy).Should(Equal("http://192.168.1.1"))
+		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
+		installEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      installEnvName,
+		}
+		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		waitForInstallEnvCRDState(ctx, kubeClient, installEnvKubeName, v1alpha1.ImageStateCreated, waitForReconcileTimeout*2)
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.NoProxy).Should(Equal("192.168.1.1"))
 		Expect(cluster.HTTPProxy).Should(Equal("http://192.168.1.2"))
-		Expect(cluster.HTTPSProxy).Should(Equal("http://192.168.1.1"))
-		Expect(cluster.AdditionalNtpSource).Should(Equal("http://192.168.1.4"))
+		Expect(cluster.HTTPSProxy).Should(Equal("http://192.168.1.3"))
+		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("192.168.1.4"))
 	})
 })
