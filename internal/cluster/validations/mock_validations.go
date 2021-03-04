@@ -35,7 +35,7 @@ func (m *MockPullSecretValidator) EXPECT() *MockPullSecretValidatorMockRecorder 
 }
 
 // ValidatePullSecret mocks base method
-func (m *MockPullSecretValidator) ValidatePullSecret(secret, username string, authHandler auth.AuthHandler) error {
+func (m *MockPullSecretValidator) ValidatePullSecret(secret, username string, authHandler auth.Authenticator) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidatePullSecret", secret, username, authHandler)
 	ret0, _ := ret[0].(error)

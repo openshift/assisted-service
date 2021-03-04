@@ -8,13 +8,14 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 )
 
 var _ = Describe("test AMS subscriptions", func() {
 	ctx := context.Background()
 
 	BeforeEach(func() {
-		if !Options.EnableAuth {
+		if Options.AuthType == auth.TypeNone {
 			Skip("auth is disabled")
 		}
 		if !Options.WithAMSSubscriptions {

@@ -185,8 +185,9 @@ func main() {
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
-	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
-	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
+	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
+	failOnError(err, "failed to create authenticator")
+	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{})
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
@@ -303,8 +304,8 @@ func main() {
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
-		versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
+		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
+		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),
@@ -320,7 +321,7 @@ func main() {
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
-	assistedServiceISO := assistedserviceiso.NewAssistedServiceISOApi(objectHandler, *authHandler, logrus.WithField("pkg", "assistedserviceiso"), pullSecretValidator, Options.AssistedServiceISOConfig)
+	assistedServiceISO := assistedserviceiso.NewAssistedServiceISOApi(objectHandler, authHandler, logrus.WithField("pkg", "assistedserviceiso"), pullSecretValidator, Options.AssistedServiceISOConfig)
 
 	//Set inner handler chain. Inner handlers requires access to the Route
 	innerHandler := func() func(http.Handler) http.Handler {
@@ -475,7 +476,7 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 func getOCMClient(log logrus.FieldLogger, metrics metrics.API) *ocm.Client {
 	var ocmClient *ocm.Client
 	var err error
-	if Options.Auth.EnableAuth {
+	if Options.Auth.ResolvedAuthType() == auth.TypeRHSSO {
 		ocmClient, err = ocm.NewClient(Options.OCMConfig, log.WithField("pkg", "ocm"), metrics)
 		if err != nil {
 			log.WithError(err).Fatal("Failed to Create OCM Client")

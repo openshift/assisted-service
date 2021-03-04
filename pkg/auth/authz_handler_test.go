@@ -35,6 +35,26 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+var _ = Describe("NewAuthzHandler", func() {
+	It("Is disabled unless auth type is rhsso", func() {
+		cfg := &Config{EnableAuth: true}
+		handler := NewAuthzHandler(cfg, nil, logrus.New())
+		Expect(handler.Enabled).To(BeTrue())
+
+		cfg = &Config{AuthType: TypeRHSSO}
+		handler = NewAuthzHandler(cfg, nil, logrus.New())
+		Expect(handler.Enabled).To(BeTrue())
+
+		cfg = &Config{}
+		handler = NewAuthzHandler(cfg, nil, logrus.New())
+		Expect(handler.Enabled).To(BeFalse())
+
+		cfg = &Config{AuthType: TypeNone}
+		handler = NewAuthzHandler(cfg, nil, logrus.New())
+		Expect(handler.Enabled).To(BeFalse())
+	})
+})
+
 var _ = Describe("Authz email domain", func() {
 	tests := []struct {
 		name           string
@@ -192,8 +212,8 @@ var _ = Describe("authz", func() {
 			AuthUserAuth:        mockUserAuth,
 			APIKeyAuthenticator: mockCreateAuthenticator,
 			Authorizer: NewAuthzHandler(
-				Config{
-					EnableAuth: true,
+				&Config{
+					AuthType:   TypeRHSSO,
 					JwkCertURL: "",
 					JwkCert:    string(JwkCert),
 				},

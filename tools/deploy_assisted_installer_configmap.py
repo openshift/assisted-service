@@ -12,7 +12,7 @@ from handle_ocp_versions import verify_ocp_versions
 def handle_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-dns-domains")
-    parser.add_argument("--enable-auth", default="False")
+    parser.add_argument("--auth-type", default="none")
     parser.add_argument("--with-ams-subscriptions", default="False")
     parser.add_argument("--subsystem-test", action='store_true')
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
@@ -60,7 +60,7 @@ def main():
                                                                             disable_tls=deploy_options.disable_tls))
 
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-            data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
+            data = data.replace('REPLACE_AUTH_TYPE_FLAG', '"{}"'.format(deploy_options.auth_type))
             data = data.replace('REPLACE_WITH_AMS_SUBSCRIPTIONS', '"{}"'.format(deploy_options.with_ams_subscriptions))
             data = data.replace('REPLACE_CHECK_CLUSTER_VERSION_FLAG', '"{}"'.format(deploy_options.check_cvo))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))

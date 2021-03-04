@@ -34,13 +34,13 @@ var _ restapi.AssistedServiceIsoAPI = &assistedServiceISOApi{}
 
 type assistedServiceISOApi struct {
 	objectHandler       s3wrapper.API
-	authHandler         auth.AuthHandler
+	authHandler         auth.Authenticator
 	log                 logrus.FieldLogger
 	pullSecretValidator validations.PullSecretValidator
 	config              Config
 }
 
-func NewAssistedServiceISOApi(objectHandler s3wrapper.API, authHandler auth.AuthHandler, log logrus.FieldLogger, pullSecretValidator validations.PullSecretValidator, config Config) *assistedServiceISOApi {
+func NewAssistedServiceISOApi(objectHandler s3wrapper.API, authHandler auth.Authenticator, log logrus.FieldLogger, pullSecretValidator validations.PullSecretValidator, config Config) *assistedServiceISOApi {
 	return &assistedServiceISOApi{
 		objectHandler:       objectHandler,
 		authHandler:         authHandler,
