@@ -85,6 +85,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 	// ignore unsupported platforms
 	if !isSupportedPlatform(cluster) {
+		r.Log.Debugf("Platform is not supported for cluster=%s", cluster.Name)
 		return ctrl.Result{}, nil
 	}
 
@@ -109,6 +110,8 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	}
 
 	if r.isReadyForInstallation(cluster, c) {
+		r.Log.Infof("Starting installation for cluster %s", cluster.Name)
+
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
 			ClusterID: *c.ID,
@@ -166,38 +169,56 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 
 	spec := cluster.Spec
 
-	updateString := func(new, old string, target **string) {
+	updateString := func(new, old string, target **string, targetName string) {
 		if new != old {
+			r.Log.Debugf("Found value to update in cluster=%s target=%s new value=%s old value=%s",
+				cluster.Name, targetName, new, old)
 			*target = swag.String(new)
 			update = true
 		}
 	}
 
-	updateString(spec.ClusterName, c.Name, &params.Name)
-	updateString(spec.BaseDomain, c.BaseDNSDomain, &params.BaseDNSDomain)
+	updateString(spec.ClusterName, c.Name, &params.Name, "ClusterName")
+	updateString(spec.BaseDomain, c.BaseDNSDomain, &params.BaseDNSDomain, "BaseDNSDomain")
 
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr)
+		updateString(
+			spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+			c.ClusterNetworkCidr,
+			&params.ClusterNetworkCidr,
+			"ClusterNetworkCidr")
 		hostPrefix := int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
 		if hostPrefix > 0 && hostPrefix != c.ClusterNetworkHostPrefix {
+			r.Log.Debugf("Found value to update in cluster=%s target=ClusterNetworkHostPrefix new value=%d old value=%d",
+				cluster.Name, c.ClusterNetworkHostPrefix, hostPrefix)
 			params.ClusterNetworkHostPrefix = swag.Int64(hostPrefix)
 			update = true
 		}
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], c.ServiceNetworkCidr, &params.ServiceNetworkCidr)
+		updateString(
+			spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+			c.ServiceNetworkCidr,
+			&params.ServiceNetworkCidr,
+			"ServiceNetworkCidr")
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, c.MachineNetworkCidr, &params.MachineNetworkCidr)
+		updateString(
+			spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR,
+			c.MachineNetworkCidr,
+			&params.MachineNetworkCidr,
+			"MachineNetworkCidr")
 	}
 
-	updateString(spec.Platform.AgentBareMetal.APIVIP, c.APIVip, &params.APIVip)
-	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName)
-	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip)
-	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
+	updateString(spec.Platform.AgentBareMetal.APIVIP, c.APIVip, &params.APIVip, "APIVip")
+	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName, "APIVipDNSName")
+	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip, "IngressVip")
+	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey, "SSHPublicKey")
 
 	vipDHCPAllocationEnabled := isVipDHCPAllocationEnabled(cluster)
 	if vipDHCPAllocationEnabled != swag.BoolValue(c.VipDhcpAllocation) {
+		r.Log.Debugf("Found value to update in cluster=%s target=VipDhcpAllocation new value=%t old value=%t",
+			cluster.Name, vipDHCPAllocationEnabled, c.VipDhcpAllocation)
 		params.VipDhcpAllocation = swag.Bool(vipDHCPAllocationEnabled)
 		update = true
 	}
@@ -209,6 +230,8 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	//updateString(spec.AdditionalNtpSource, c.AdditionalNtpSource, &params.AdditionalNtpSource)
 
 	if userManagedNetwork := isUserManagedNetwork(cluster); userManagedNetwork != swag.BoolValue(c.UserManagedNetworking) {
+		r.Log.Debugf("Found value to update in cluster=%s target=UserManagedNetworking new value=%t old value=%t",
+			cluster.Name, userManagedNetwork, c.UserManagedNetworking)
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
 
@@ -219,6 +242,8 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
 	}
 	if data != c.PullSecret {
+		r.Log.Debugf("Found value to update in cluster=%s target=PullSecret new value=%q",
+			cluster.Name, spec.PullSecretRef)
 		params.PullSecret = swag.String(data)
 		update = true
 		isPullSecretUpdate = true
