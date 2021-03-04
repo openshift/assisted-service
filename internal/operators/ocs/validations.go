@@ -113,7 +113,7 @@ func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.Valida
 	if diskCount%3 != 0 {
 		status = "Total disks on the cluster must be a multiple of 3"
 		o.log.Info(status)
-		return api.Failure, "Failed to set Operator status "
+		return api.Failure, status
 	}
 
 	// this will be used to set count of StorageDevices in StorageCluster manifest
