@@ -40,7 +40,7 @@ func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Clien
 }
 
 func deployPullSecretResource(ctx context.Context, client k8sclient.Client, name, secret string) {
-	data := map[string]string{corev1.DockerConfigJsonKey: secret}
+	data := map[string][]byte{corev1.DockerConfigJsonKey: []byte(secret)}
 	s := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Secret",
@@ -50,8 +50,8 @@ func deployPullSecretResource(ctx context.Context, client k8sclient.Client, name
 			Namespace: Options.Namespace,
 			Name:      name,
 		},
-		StringData: data,
-		Type:       corev1.SecretTypeDockerConfigJson,
+		Data: data,
+		Type: corev1.SecretTypeDockerConfigJson,
 	}
 	Expect(client.Create(ctx, s)).To(BeNil())
 }
