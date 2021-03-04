@@ -72,7 +72,6 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/status,verbs=get;update;patch
 
 func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Info("XXXXX: ClusterDeploymentsReconciler: Reconcile start")
 	ctx := context.Background()
 	cluster := &hivev1.ClusterDeployment{}
 	err := r.Get(ctx, req.NamespacedName, cluster)
