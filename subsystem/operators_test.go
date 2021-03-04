@@ -67,7 +67,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			ops, err := agentBMClient.Operators.ListOfClusterOperators(ctx, opclient.NewListOfClusterOperatorsParams().WithClusterID(*cluster.Payload.ID))
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(ops.GetPayload()).To(HaveLen(4))
+			Expect(len(ops.GetPayload())).To(BeNumerically(">=", 3))
 
 			var operatorNames []string
 			for _, op := range ops.GetPayload() {
@@ -78,7 +78,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				lso.Operator.Name,
 
 				operators.OperatorConsole.Name,
-				operators.OperatorCVO.Name))
+			))
 		})
 
 		It("should selected be returned", func() {

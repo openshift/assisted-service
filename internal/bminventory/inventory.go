@@ -71,8 +71,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const kubeconfig = "kubeconfig"
-
 const DefaultUser = "kubeadmin"
 const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
@@ -102,7 +100,6 @@ type Config struct {
 	DefaultClusterNetworkCidr       string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
 	DefaultClusterNetworkHostPrefix int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
 	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
-	WithAMSSubscriptions            bool              `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
 	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 }
 
@@ -740,7 +737,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
 		if err = b.integrateWithAMSClusterRegistration(ctx, &cluster); err != nil {
 			err = errors.Wrapf(err, "cluster %s failed to integrate with AMS on cluster registration", id)
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -918,7 +915,7 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
 		if err = b.integrateWithAMSClusterDeregistration(ctx, cluster); err != nil {
 			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster deregistration", params.ClusterID)
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -1860,7 +1857,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	}
 
 	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
-	if b.ocmClient != nil && b.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
+	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
 		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *params.ClusterUpdateParams.Name); err != nil {
 			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
 			return nil, err
@@ -3296,15 +3293,15 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), kubeconfig); err != nil {
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig))
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
@@ -3366,7 +3363,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	}
 
 	switch fileName {
-	case kubeconfig:
+	case constants.Kubeconfig:
 		err = clusterPkg.CanDownloadKubeconfig(cluster)
 	case manifests.ManifestFolder, "discovery.ign":
 		// do nothing. manifests can be downloaded at any given cluster state
@@ -3550,7 +3547,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
-	objectName := fmt.Sprintf("%s/%s", cluster.ID, kubeconfig)
+	objectName := fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)
 	exists, err := b.objectHandler.DoesObjectExist(ctx, objectName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload ingress ca")
@@ -3563,7 +3560,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 		return installer.NewUploadClusterIngressCertCreated()
 	}
 
-	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, kubeconfig)
+	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, constants.Kubeconfig)
 	resp, _, err := b.objectHandler.Download(ctx, noingress)
 	if err != nil {
 		return installer.NewUploadClusterIngressCertInternalServerError().
@@ -3876,6 +3873,10 @@ func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.Res
 }
 
 func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
+	// TODO: MGMT-4458
+	// This function can be removed once the controller will stop sending this request
+	// The service is already capable of completing the installation on its own
+
 	log := logutil.FromContext(ctx, b.log)
 
 	log.Infof("complete cluster %s installation", params.ClusterID)
@@ -3889,29 +3890,16 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 		return common.GenerateErrorResponder(err)
 	}
 
-	if err := b.clusterApi.CompleteInstallation(ctx, cluster, *params.CompletionParams.IsSuccess, params.CompletionParams.ErrorInfo); err != nil {
-		log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
-		return common.GenerateErrorResponder(err)
-	}
-
-	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
-		if err = b.integrateWithAMSClusterUpdatePostInstallation(ctx, cluster); err != nil {
-			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update post installation", *cluster.ID)
-			return common.NewApiError(http.StatusInternalServerError, err)
+	if !*params.CompletionParams.IsSuccess {
+		if _, err := b.clusterApi.CompleteInstallation(ctx, b.db, cluster, false, params.CompletionParams.ErrorInfo); err != nil {
+			log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
+			return common.GenerateErrorResponder(err)
 		}
+	} else {
+		log.Warnf("Cluster %s tried to complete its installation using deprecated CompleteInstallation API. The service decides whether the cluster completed", params.ClusterID)
 	}
 
 	return installer.NewCompleteInstallationAccepted().WithPayload(&cluster.Cluster)
-}
-
-func (b *bareMetalInventory) integrateWithAMSClusterUpdatePostInstallation(ctx context.Context, cluster *common.Cluster) error {
-	log := logutil.FromContext(ctx, b.log)
-	log.Infof("Updating AMS subscription for cluster %s post installation", *cluster.ID)
-	if err := b.ocmClient.AccountsMgmt.UpdateSubscriptionPostInstallation(ctx, cluster.AmsSubscriptionID, cluster.OpenshiftClusterID); err != nil {
-		log.WithError(err).Errorf("Failed to update AMS subscription for cluster %s post installation", *cluster.ID)
-		return err
-	}
-	return nil
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {

@@ -51,10 +51,10 @@ type InstructionConfig struct {
 	ControllerImage      string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
 	AgentImage           string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	SkipCertVerification bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	CheckClusterVersion  bool   `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
 	SupportL2            bool   `envconfig:"SUPPORT_L2" default:"true"`
 	InstallationTimeout  uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 	ReleaseImageMirror   string
+	CheckClusterVersion  bool
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,

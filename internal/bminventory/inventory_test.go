@@ -34,6 +34,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -1967,7 +1968,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("happy flow", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -1992,7 +1993,7 @@ var _ = Describe("cluster", func() {
 
 		It("create non ha cluster fail", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7"
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -2211,7 +2212,7 @@ var _ = Describe("cluster", func() {
 			Context("RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-						db, mockEvents, nil, nil, nil, nil, nil)
+						db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
 				})
 
 				It("OLM register default value - only builtins", func() {
@@ -3845,25 +3846,39 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("complete installation", func() {
-			success := true
 			errorInfo := "dummy"
 			It("complete success", func() {
-				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(nil).Times(1)
+				success := true
+				// TODO: MGMT-4458
+				// This function can be removed once the controller will stop sending this request
+				// The service is already capable of completing the installation on its own
+
 				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
 				})
 				Expect(reply).Should(BeAssignableToTypeOf(installer.NewCompleteInstallationAccepted()))
 			})
-			It("complete bad request", func() {
-				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), success, errorInfo).Return(common.NewApiError(http.StatusBadRequest, nil)).Times(1)
+			It("complete failure", func() {
+				success := false
+				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, nil).Times(1)
+
+				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
+					ClusterID:        clusterID,
+					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewCompleteInstallationAccepted()))
+			})
+			It("complete failure bad request", func() {
+				success := false
+				mockClusterApi.EXPECT().CompleteInstallation(ctx, gomock.Any(), gomock.Any(), success, errorInfo).Return(nil, errors.New("error")).Times(1)
 
 				reply := bm.CompleteInstallation(ctx, installer.CompleteInstallationParams{
 					ClusterID:        clusterID,
 					CompletionParams: &models.CompletionParams{ErrorInfo: errorInfo, IsSuccess: &success},
 				})
 
-				verifyApiError(reply, http.StatusBadRequest)
+				verifyApiError(reply, http.StatusInternalServerError)
 			})
 		})
 
@@ -3910,7 +3925,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  kubeconfig,
+			FileName:  constants.Kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
@@ -3919,7 +3934,7 @@ var _ = Describe("KubeConfig download", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  kubeconfig,
+			FileName:  constants.Kubeconfig,
 		})
 		Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
@@ -3928,12 +3943,12 @@ var _ = Describe("KubeConfig download", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, kubeconfig, gomock.Any()).Return("url", nil)
+		mockS3Client.EXPECT().GeneratePresignedDownloadURL(ctx, fileName, constants.Kubeconfig, gomock.Any()).Return("url", nil)
 		generateReply := bm.GetPresignedForClusterFiles(ctx, installer.GetPresignedForClusterFilesParams{
 			ClusterID: clusterID,
-			FileName:  kubeconfig,
+			FileName:  constants.Kubeconfig,
 		})
 		Expect(generateReply).Should(BeAssignableToTypeOf(&installer.GetPresignedForClusterFilesOK{}))
 		replyPayload := generateReply.(*installer.GetPresignedForClusterFilesOK).Payload
@@ -3959,7 +3974,7 @@ var _ = Describe("KubeConfig download", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), errors.Errorf("dummy"))
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
@@ -3970,13 +3985,13 @@ var _ = Describe("KubeConfig download", func() {
 		status := ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
-		fileName := fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		mockS3Client.EXPECT().Download(ctx, fileName).Return(r, int64(4), nil)
 		generateReply := bm.DownloadClusterKubeconfig(ctx, installer.DownloadClusterKubeconfigParams{
 			ClusterID: clusterID,
 		})
-		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), kubeconfig, 4)))
+		Expect(generateReply).Should(Equal(filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(r), constants.Kubeconfig, 4)))
 	})
 })
 
@@ -4013,14 +4028,14 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil, mockOperators)
+			db, nil, nil, nil, nil, nil, mockOperators, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			APIVip:           "10.11.12.13",
 		}}
 		kubeconfigNoingress = fmt.Sprintf("%s/%s", clusterID, "kubeconfig-noingress")
-		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, kubeconfig)
+		kubeconfigObject = fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		kubeconfigFile, err = os.Open("../../subsystem/test_kubeconfig")
@@ -5612,7 +5627,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		db = common.PrepareTestDB(dbName)
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, mockEvents, nil, nil, nil, nil, nil)
+			db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -5815,7 +5830,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 	var (
 		ctx         = context.Background()
-		cfg         = Config{WithAMSSubscriptions: true}
+		cfg         = Config{}
 		bm          *bareMetalInventory
 		db          *gorm.DB
 		dbName      = "register_cluster_with_ams_subscription"
@@ -5825,7 +5840,8 @@ var _ = Describe("AMS subscriptions", func() {
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		bm = createInventory(db, cfg)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
+		bm.ocmClient.Config.WithAMSSubscriptions = true
 	})
 
 	AfterEach(func() {
@@ -5912,7 +5928,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name happy flow", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
@@ -5947,7 +5963,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name with same name", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
@@ -5980,7 +5996,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster without name field", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
@@ -6537,7 +6553,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockMetric = metrics.NewMockAPI(ctrl)
 	mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
 	mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
-	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt}
+	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{}}
 	mockSecretValidator = validations.NewMockPullSecretValidator(ctrl)
 	mockVersions = versions.NewMockHandler(ctrl)
 	mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)

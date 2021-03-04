@@ -12,7 +12,7 @@ import (
 )
 
 type Client struct {
-	config     *Config
+	Config     *Config
 	logger     sdkClient.Logger
 	connection *sdkClient.Connection
 	Cache      *cache.Cache
@@ -25,12 +25,13 @@ type Client struct {
 }
 
 type Config struct {
-	BaseURL      string `envconfig:"OCM_BASE_URL" default:""`
-	ClientID     string `envconfig:"OCM_SERVICE_CLIENT_ID" default:""`
-	ClientSecret string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
-	SelfToken    string `envconfig:"OCM_SELF_TOKEN" default:""`
-	TokenURL     string `envconfig:"OCM_TOKEN_URL" default:""`
-	LogLevel     string `envconfig:"OCM_LOG_LEVEL" default:"info"`
+	BaseURL              string `envconfig:"OCM_BASE_URL" default:""`
+	ClientID             string `envconfig:"OCM_SERVICE_CLIENT_ID" default:""`
+	ClientSecret         string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
+	SelfToken            string `envconfig:"OCM_SELF_TOKEN" default:""`
+	TokenURL             string `envconfig:"OCM_TOKEN_URL" default:""`
+	LogLevel             string `envconfig:"OCM_LOG_LEVEL" default:"info"`
+	WithAMSSubscriptions bool   `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
 }
 
 type SdKLogger struct {
@@ -78,7 +79,7 @@ func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*
 	}
 
 	client := &Client{
-		config:     &config,
+		Config:     &config,
 		logger:     logger,
 		Cache:      cache.New(10*time.Minute, 30*time.Minute),
 		metricsApi: metricsApi,
@@ -103,14 +104,14 @@ func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*
 func (c *Client) newConnection() error {
 	builder := sdkClient.NewConnectionBuilder().
 		Logger(c.logger).
-		URL(c.config.BaseURL).
-		TokenURL(c.config.TokenURL).
+		URL(c.Config.BaseURL).
+		TokenURL(c.Config.TokenURL).
 		MetricsSubsystem("api_outbound")
 
-	if c.config.ClientID != "" && c.config.ClientSecret != "" {
-		builder = builder.Client(c.config.ClientID, c.config.ClientSecret)
-	} else if c.config.SelfToken != "" {
-		builder = builder.Tokens(c.config.SelfToken)
+	if c.Config.ClientID != "" && c.Config.ClientSecret != "" {
+		builder = builder.Client(c.Config.ClientID, c.Config.ClientSecret)
+	} else if c.Config.SelfToken != "" {
+		builder = builder.Tokens(c.Config.SelfToken)
 	} else {
 		return errors.Errorf("Can't build OCM client connection. No Client/Secret or Token has been provided.")
 	}

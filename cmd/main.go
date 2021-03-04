@@ -110,6 +110,7 @@ var Options struct {
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	InstallEnvConfig            controllers.InstallEnvConfig
 	ISOEditorConfig             isoeditor.Config
+	CheckClusterVersion         bool `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -270,12 +271,12 @@ func main() {
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
-	operatorsManager := operators.NewManager(log, manifestsApi)
+	operatorsManager := operators.NewManager(log, manifestsApi, operators.Options{})
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(

@@ -297,11 +297,11 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		var cfg clust.Config
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil)
 
 		hid1 = strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d")
 		hid2 = strfmt.UUID("514c8480-cda5-46e5-afce-e146def2066f")

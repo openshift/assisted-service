@@ -10,7 +10,6 @@ const (
 	TransitionTypeResetCluster               = "ResetCluster"
 	TransitionTypePrepareForInstallation     = "PrepareForInstallation"
 	TransitionTypeUpdateInstallationProgress = "UpdateInstallationProgress"
-	TransitionTypeCompleteInstallation       = "CompleteInstallation"
 	TransitionTypeHandlePreInstallationError = "Handle pre-installation-error"
 	TransitionTypeRefreshStatus              = "RefreshStatus"
 )
@@ -52,31 +51,6 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		DestinationState: stateswitch.State(models.ClusterStatusPreparingForInstallation),
 		PostTransition:   th.PostPrepareForInstallation,
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeCompleteInstallation,
-		Condition:      th.isSuccess,
-		Transition: func(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-			params, _ := args.(*TransitionArgsCompleteInstallation)
-			params.reason = statusInfoInstalled
-			return nil
-		},
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusFinalizing),
-		},
-		DestinationState: stateswitch.State(models.ClusterStatusInstalled),
-		PostTransition:   th.PostCompleteInstallation,
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeCompleteInstallation,
-		Condition:      th.notSuccess,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusFinalizing),
-		},
-		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostCompleteInstallation,
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{
@@ -256,6 +230,15 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			th.IsInstalling),
 		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
 		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
+	})
+
+	// This transition is fired when the cluster is in finalizing
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		Condition:        th.hasClusterCompleteInstallation,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusFinalizing)},
+		DestinationState: stateswitch.State(models.ClusterStatusInstalled),
+		PostTransition:   th.PostCompleteInstallation,
 	})
 
 	// This transition is fired when the cluster is in installing and should move to error

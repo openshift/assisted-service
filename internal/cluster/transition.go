@@ -11,15 +11,16 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
 
 var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
@@ -142,33 +143,80 @@ func (th *transitionHandler) PostUpdateInstallationProgress(sw stateswitch.State
 // Complete installation
 ////////////////////////////////////////////////////////////////////////////
 
-type TransitionArgsCompleteInstallation struct {
-	ctx       context.Context
-	isSuccess bool
-	reason    string
-}
-
 func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
 		return errors.New("PostCompleteInstallation incompatible type of StateSwitch")
 	}
-	params, ok := args.(*TransitionArgsCompleteInstallation)
+	params, ok := args.(*TransitionArgsRefreshCluster)
 	if !ok {
 		return errors.New("PostCompleteInstallation invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster, params.reason)
+	if cluster, err := params.clusterAPI.CompleteInstallation(params.ctx, params.db, sCluster.cluster, true, statusInfoInstalled); err != nil {
+		return err
+	} else {
+		sCluster.cluster = cluster
+		return nil
+	}
 }
 
-func (th *transitionHandler) isSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
-	params, _ := args.(*TransitionArgsCompleteInstallation)
-	return params.isSuccess, nil
+func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("hasClusterCompleteInstallation incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return false, errors.New("hasClusterCompleteInstallation invalid argument")
+	}
+
+	objectName := fmt.Sprintf("%s/%s", sCluster.cluster.ID, constants.Kubeconfig)
+	exists, err := params.objectHandler.DoesObjectExist(params.ctx, objectName)
+	if err != nil {
+		return false, err
+	}
+	if !exists {
+		return false, nil
+	}
+
+	// TODO: MGMT-4458
+	// Backward-compatible solution for clusters that don't have monitored operators data
+	// Those clusters shouldn't finish until the controller would tell them.
+	if len(sCluster.cluster.MonitoredOperators) == 0 {
+		return true, nil
+	}
+
+	isComplete, statuses := getClusterMonitoringOperatorsStatus(sCluster.cluster)
+
+	log := logutil.FromContext(params.ctx, th.log)
+	log.Infof("Cluster %s Monitoring status: %s", *sCluster.cluster.ID, statuses)
+
+	return isComplete, nil
 }
 
-func (th *transitionHandler) notSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
-	params, _ := args.(*TransitionArgsCompleteInstallation)
-	return !params.isSuccess, nil
+func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, map[models.OperatorStatus][]string) {
+	numberOfBuiltInOperators := 0
+
+	operatorsStatuses := map[models.OperatorStatus][]string{
+		models.OperatorStatusAvailable:   {},
+		models.OperatorStatusProgressing: {},
+		models.OperatorStatusFailed:      {},
+	}
+
+	for _, operator := range cluster.MonitoredOperators {
+		if operator.OperatorType == models.OperatorTypeOlm {
+			// TODO: MGMT-3368
+			// Should change cluster state to be degraded
+			continue
+		}
+
+		numberOfBuiltInOperators++
+
+		operatorsStatuses[operator.Status] = append(operatorsStatuses[operator.Status], operator.Name)
+	}
+
+	return len(operatorsStatuses[models.OperatorStatusAvailable]) == numberOfBuiltInOperators, operatorsStatuses
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -210,6 +258,8 @@ type TransitionArgsRefreshCluster struct {
 	conditions        map[string]bool
 	validationResults map[string][]ValidationResult
 	db                *gorm.DB
+	objectHandler     s3wrapper.API
+	clusterAPI        API
 }
 
 func If(id stringer) stateswitch.Condition {
@@ -339,13 +389,6 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		if updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
 			msg := fmt.Sprintf("Updated status of cluster %s to %s", updatedCluster.Name, *updatedCluster.Status)
 			params.eventHandler.AddEvent(params.ctx, *updatedCluster.ID, nil, models.EventSeverityInfo, msg, time.Now())
-			//report installation finished metric if needed
-			reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
-			if sCluster.srcState == models.ClusterStatusInstalling &&
-				funk.ContainsString(reportInstallationCompleteStatuses, swag.StringValue(updatedCluster.Status)) {
-				params.metricApi.ClusterInstallationFinished(logutil.FromContext(params.ctx, th.log), swag.StringValue(updatedCluster.Status),
-					updatedCluster.OpenshiftVersion, *updatedCluster.ID, updatedCluster.EmailDomain, updatedCluster.InstallStartedAt)
-			}
 		}
 
 		return nil
