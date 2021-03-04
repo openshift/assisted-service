@@ -370,6 +370,9 @@ func main() {
 		//cancel the context in case this method ends
 		defer cancel()
 
+		// Checks whether latest version of minimal ISO templates already exists
+		haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(context.Background(), log, objectHandler)
+
 		switch Options.DeployTarget {
 		case deployment_type_k8s:
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
@@ -381,7 +384,7 @@ func main() {
 				currVresion := version
 				errs.Go(func() error {
 					return errors.Wrapf(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
-						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL)
+						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
 					}), "Failed uploading boot files for OCP version %s", currVresion)
 				})
 			}
@@ -389,7 +392,7 @@ func main() {
 			for version := range openshiftVersionsMap {
 				currVresion := version
 				errs.Go(func() error {
-					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL),
+					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate),
 						"Failed uploading boot files for OCP version %s", currVresion)
 				})
 			}

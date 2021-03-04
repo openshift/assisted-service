@@ -175,13 +175,13 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).Should(BeNil())
 
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
-			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
+			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
 			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
-			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL)
+			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL, false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("iso exists", func() {
@@ -215,7 +215,7 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
-			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL)
+			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, false)
 			Expect(err).ToNot(HaveOccurred())
 
 			srcObject, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion)

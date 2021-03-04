@@ -307,7 +307,7 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return matches, nil
 }
 
-func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error {
+func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, f.log)
 	isoObjectName, err := f.GetBaseIsoObject(openshiftVersion)
 	if err != nil {
