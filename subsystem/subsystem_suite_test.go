@@ -14,9 +14,9 @@ import (
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/pkg/auth"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/deprecated/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
 )

@@ -29,7 +29,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"

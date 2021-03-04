@@ -18,9 +18,9 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	"github.com/openshift/hive/pkg/apis/hive/v1/agent"
-	"github.com/openshift/hive/pkg/apis/hive/v1/aws"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"github.com/openshift/hive/apis/hive/v1/agent"
+	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,9 +113,8 @@ func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.
 		},
 		Platform: hivev1.Platform{
 			AgentBareMetal: &agent.BareMetalPlatform{
-				APIVIP:            "1.2.3.8",
-				IngressVIP:        "1.2.3.9",
-				VIPDHCPAllocation: agent.Disabled,
+				APIVIP:     "1.2.3.8",
+				IngressVIP: "1.2.3.9",
 			},
 		},
 		PullSecretRef: &corev1.LocalObjectReference{
