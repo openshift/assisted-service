@@ -111,7 +111,7 @@ func (o *ocsValidator) ValidateRequirements(cluster *models.Cluster) (api.Valida
 
 	// total disks excluding boot disk must be a multiple of 3
 	if diskCount%3 != 0 {
-		status = "Total disks on the cluster must be a multiple of 3"
+		status = fmt.Sprint("Total disks on the cluster must be a multiple of 3 of size >= ", minDiskSize, " GB")
 		o.log.Info(status)
 		return api.Failure, status
 	}
@@ -172,7 +172,7 @@ func getValidDiskCount(disks []*models.Disk) int {
 	var countDisks int
 
 	for _, disk := range disks {
-		if disk.DriveType == ssdDrive || disk.DriveType == hddDrive {
+		if disk.SizeBytes >= gbToBytes(minDiskSize) && (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) {
 			countDisks++
 		}
 	}
@@ -236,7 +236,7 @@ func (o *ocsValidator) setStatusInsufficientResources(cpu int64, ram int64, disk
 		status = status + fmt.Sprint(TotalRAMGB, " RAM, excluding disk RAM resources ")
 	}
 	if disk < o.OCSRequiredDisk {
-		status = status + fmt.Sprint(o.OCSRequiredDisk, " Disks, ")
+		status = status + fmt.Sprint(o.OCSRequiredDisk, " Disks of minimum ", minDiskSize, "GB is required.")
 	}
 	if hostsWithDisks < o.OCSRequiredHosts {
 		status = status + fmt.Sprint(o.OCSRequiredHosts, " Hosts with disks, ")
