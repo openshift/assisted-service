@@ -8,6 +8,7 @@ BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
 TARGET := $(or ${TARGET},minikube)
 PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
+INSTALL_TYPE := $(or $(INSTALL_TYPE),IPV4)
 
 ifeq ($(BUILD_TYPE), standalone)
     UNIT_TEST_TARGET = unit-test
@@ -205,6 +206,9 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
+	@if [ $(INSTALL_TYPE) = "IPV6" ]; then\
+		python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py --target "$(TARGET)" --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD);\
+    fi
 
 deploy-resources: generate-manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"

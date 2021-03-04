@@ -144,8 +144,18 @@ spec:
             - name: route53-creds
               mountPath: "/etc/.aws"
               readOnly: true
+            - name: registry-ca
+              mountPath: "/etc/pki/ca-trust/extracted/pem"
+              readOnly: true
       volumes:
         - name: route53-creds
           secret:
             secretName: route53-creds
             optional: true
+        - name: registry-ca
+          configMap:
+            name: registry-ca
+            defaultMode: 420
+            items:
+              - key: ca-bundle.crt
+                path: tls-ca-bundle.pem

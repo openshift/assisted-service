@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-ca
+  namespace: REPLACE_NAMESPACE
+  labels:
+    app: assisted-service
+data:
+  ca-bundle.crt: |
+REPLACE_WITH_TLS_CA_BUNDLE_PEM
