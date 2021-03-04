@@ -26,21 +26,17 @@ function generate_go_client() {
 }
 
 function generate_python_client() {
-    if [ $# -ne 1 ]; then
-        echo 'Usage: generate_python_client <dest>'
-        exit 1
-    fi
+    local dest="${BUILD_FOLDER}"
+    rm -rf "${dest}"/assisted-service-client/*
 
-    local dest=$1
-
-    rm -rf ${dest}/assisted-service-client*
-    docker run --rm -u $(id -u) --entrypoint /bin/sh \
-        -v ${dest}:/local:Z \
-        -v ${__root}/swagger.yaml:/swagger.yaml:ro,Z \
-        -v ${__root}/tools/generate_python_client.sh:/script.sh:ro,Z \
+    docker run --rm -u "$(id -u)" --entrypoint /bin/sh \
+        -v "${dest}":/local:Z \
+        -v "${__root}"/swagger.yaml:/swagger.yaml:ro,Z \
+        -v "${__root}"/tools/generate_python_client.sh:/script.sh:ro,Z \
         -e SWAGGER_FILE=/swagger.yaml -e OUTPUT=/local/assisted-service-client/ \
         swaggerapi/swagger-codegen-cli:2.4.15 /script.sh
-    cd ${dest}/assisted-service-client/ && python3 setup.py sdist --dist-dir ${dest}
+     cd "${dest}"/assisted-service-client/ && python3 setup.py sdist --dist-dir "${dest}"
+     cd "${dest}"/assisted-service-client/ && python3 "${__root}"/tools/client_package_initializer.py "${dest}"/assisted-service-client/  https://github.com/openshift/assisted-service --build
 }
 
 function generate_mocks() {
