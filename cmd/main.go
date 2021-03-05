@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -331,7 +332,7 @@ func main() {
 		}
 	}
 
-	operatorsHandler := operators.NewHandler(operatorsManager, log.WithField("pkg", "operators"))
+	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db)
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:         authHandler.AuthAgentAuth,
 		AuthUserAuth:          authHandler.AuthUserAuth,
