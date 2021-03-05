@@ -73,7 +73,8 @@ def main():
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
-                log_image_revision(versions[env_var_name])
+                if deploy_options.apply_manifest:
+                    log_image_revision(versions[env_var_name])
 
             # Edge case for controller image override
             if os.environ.get("INSTALLER_IMAGE") and not os.environ.get("CONTROLLER_IMAGE"):
@@ -81,7 +82,8 @@ def main():
                     deployment_options.get_tag(versions["INSTALLER_IMAGE"]))
 
             versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
-            log_image_revision(versions["SELF_VERSION"])
+            if deploy_options.apply_manifest:
+                log_image_revision(versions["SELF_VERSION"])
             deploy_tag = get_deployment_tag(deploy_options)
             if deploy_tag:
                 versions["RELEASE_TAG"] = deploy_tag
