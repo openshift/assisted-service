@@ -23,7 +23,7 @@ parameters:
   value: ''
 - name: AUTH_TYPE
   value: ''
-  required: true
+  required: false
 - name: WITH_AMS_SUBSCRIPTIONS
   value: ''
   required: true
