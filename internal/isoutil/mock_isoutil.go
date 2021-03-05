@@ -33,6 +33,34 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 	return m.recorder
 }
 
+// CleanWorkDir mocks base method
+func (m *MockHandler) CleanWorkDir() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanWorkDir")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanWorkDir indicates an expected call of CleanWorkDir
+func (mr *MockHandlerMockRecorder) CleanWorkDir() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanWorkDir", reflect.TypeOf((*MockHandler)(nil).CleanWorkDir))
+}
+
+// Copy mocks base method
+func (m *MockHandler) Copy(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Copy", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Copy indicates an expected call of Copy
+func (mr *MockHandlerMockRecorder) Copy(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Copy", reflect.TypeOf((*MockHandler)(nil).Copy), arg0)
+}
+
 // Create mocks base method
 func (m *MockHandler) Create(arg0, arg1 string) error {
 	m.ctrl.T.Helper()

@@ -21,6 +21,8 @@ type Handler interface {
 	Create(outPath string, volumeLabel string) error
 	ReadFile(filePath string) (io.ReadWriteSeeker, error)
 	VolumeIdentifier() (string, error)
+	Copy(filePath string) error
+	CleanWorkDir() error
 }
 
 type installerHandler struct {
@@ -228,6 +230,35 @@ func (h *installerHandler) VolumeIdentifier() (string, error) {
 	}
 
 	return strings.TrimSpace(string(volumeId)), nil
+}
+
+func (h *installerHandler) Copy(filePath string) error {
+	srcFile, err := os.OpenFile(h.isoPath, os.O_RDONLY, 0o664)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	dstFile, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+
+	_, err = io.Copy(dstFile, srcFile)
+	if err != nil {
+		dstFile.Close()
+		return err
+	}
+
+	if err := dstFile.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (h *installerHandler) CleanWorkDir() error {
+	return os.RemoveAll(h.workDir)
 }
 
 func GetFileLocation(filePath, isoPath string) (uint64, error) {
