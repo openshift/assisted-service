@@ -69,6 +69,14 @@ func BytesToGiB(bytes int64) int64 {
 	return bytes / int64(units.GiB)
 }
 
+func MibToBytes(mib int64) int64 {
+	return mib * int64(units.MiB)
+}
+
+func BytesToMib(bytes int64) int64 {
+	return bytes / int64(units.MiB)
+}
+
 func isNvme(name string) bool {
 	return strings.HasPrefix(name, "nvme")
 }

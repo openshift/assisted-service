@@ -16,7 +16,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			reply, err := userBMClient.Operators.ListSupportedOperators(context.TODO(), operators.NewListSupportedOperatorsParams())
 
 			Expect(err).ToNot(HaveOccurred())
-			Expect(reply.GetPayload()).To(ConsistOf("ocs", "lso"))
+			Expect(reply.GetPayload()).To(ConsistOf("ocs", "lso", "cnv"))
 		})
 
 		It("should provide operator properties", func() {

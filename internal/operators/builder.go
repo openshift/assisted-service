@@ -2,6 +2,7 @@ package operators
 
 import (
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
@@ -34,7 +35,7 @@ var monitoredOperators = map[string]*models.MonitoredOperator{
 
 // NewManager creates new instance of an Operator Manager
 func NewManager(log logrus.FieldLogger) *Manager {
-	return NewManagerWithOperators(log, lso.NewLSOperator(), ocs.NewOcsOperator(log))
+	return NewManagerWithOperators(log, lso.NewLSOperator(), ocs.NewOcsOperator(log), cnv.NewCNVOperator(log))
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators
