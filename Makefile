@@ -240,6 +240,7 @@ jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 
 ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
 	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && WITH_AMS_SUBSCRIPTIONS="True" && \
+	export ENABLE_KUBE_API="True" \
 	$(MAKE) deploy-wiremock deploy-all
 
 deploy-test: $(VERIFY_CLUSTER) generate-keys
