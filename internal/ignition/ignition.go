@@ -47,30 +47,6 @@ const (
 	workerIgn = "worker.ign"
 )
 
-const CopyStaticIpsConfigurationsScript = `
-#!/bin/bash
-
-mkdir -p /etc/NetworkManager/system-connections-merged
-
-/usr/bin/cp /etc/NetworkManager/system-connections/* /etc/NetworkManager/system-connections-merged
-`
-
-const CopyStaticIpsConfigServiceContents = `
-[Unit]
-Description=Copy Static Ip configuration
-Before=NetworkManager.service
-DefaultDependencies=no
-[Service]
-User=root
-Type=oneshot
-TimeoutSec=10
-ExecStart=/bin/bash /usr/local/bin/copy-static-ip-configuration.sh
-PrivateTmp=yes
-RemainAfterExit=no
-[Install]
-WantedBy=multi-user.target
-`
-
 const SystemConnectionsMerged = `
 [Unit]
 After=systemd-tmpfiles-setup.service
