@@ -287,6 +287,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			agent := getAgentCRD(ctx, kubeClient, hostkey)
+			agent.Spec.Approved = true
+			err := kubeClient.Update(ctx, agent)
+			Expect(err).To(BeNil())
+		}
 		Eventually(func() string {
 			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, key).Status.Conditions, hivev1.UnreachableCondition)
 			if condition != nil {
@@ -294,13 +304,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusPreparingForInstallation))
-		for _, host := range hosts {
-			key = types.NamespacedName{
-				Namespace: Options.Namespace,
-				Name:      host.ID.String(),
-			}
-			getAgentCRD(ctx, kubeClient, key)
-		}
 	})
 
 	It("deploy clusterDeployment with agent and update agent", func() {

@@ -107,7 +107,11 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return result, err
 	}
 
-	if r.isReadyForInstallation(clusterDeployment, cluster) {
+	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, cluster)
+	if err != nil {
+		return r.updateState(ctx, clusterDeployment, cluster, err)
+	}
+	if ready {
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
 			ClusterID: *cluster.ID,
@@ -121,21 +125,25 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	return r.updateState(ctx, clusterDeployment, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) isReadyForInstallation(cluster *hivev1.ClusterDeployment, c *common.Cluster) bool {
+func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (bool, error) {
 	if ready, _ := r.ClusterApi.IsReadyForInstallation(c); !ready {
-		return false
+		return false, nil
 	}
 
 	readyHosts := 0
 	for _, h := range c.Hosts {
-		if r.HostApi.IsInstallable(h) {
+		commonh, err := r.Installer.GetCommonHostInternal(ctx, c.ID.String(), h.ID.String())
+		if err != nil {
+			return false, err
+		}
+		if r.HostApi.IsInstallable(h) && commonh.Approved {
 			readyHosts += 1
 		}
 	}
 
 	expectedHosts := cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents +
 		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents
-	return readyHosts == expectedHosts
+	return readyHosts == expectedHosts, nil
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
