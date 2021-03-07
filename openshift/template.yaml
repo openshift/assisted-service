@@ -95,6 +95,10 @@ parameters:
 - name: ENABLE_SINGLE_NODE_DNSMASQ
   value: "true"
   required: false
+- name: ENABLE_DEREGISTER_INACTIVE_GC
+  value: "false"
+- name: ENABLE_DELETE_UNREGISTER_GC
+  value: "true"
 apiVersion: v1
 kind: Template
 metadata:
