@@ -7,7 +7,6 @@ import (
 
 //go:generate mockgen -package controllers -destination mock_crd_events_handler.go . CRDEventsHandler
 type CRDEventsHandler interface {
-	NotifyUpdates(ch chan<- event.GenericEvent, name string, namespace string)
 	NotifyClusterDeploymentUpdates(clusterDeploymentName string, clusterDeploymentNamespace string)
 	NotifyInstallEnvUpdates(installEnvName string, installEnvNamespace string)
 	GetInstallEnvUpdates() chan event.GenericEvent

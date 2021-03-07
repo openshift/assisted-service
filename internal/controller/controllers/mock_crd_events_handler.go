@@ -85,15 +85,3 @@ func (mr *MockCRDEventsHandlerMockRecorder) NotifyInstallEnvUpdates(arg0, arg1 i
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyInstallEnvUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyInstallEnvUpdates), arg0, arg1)
 }
-
-// NotifyUpdates mocks base method
-func (m *MockCRDEventsHandler) NotifyUpdates(arg0 chan<- event.GenericEvent, arg1, arg2 string) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NotifyUpdates", arg0, arg1, arg2)
-}
-
-// NotifyUpdates indicates an expected call of NotifyUpdates
-func (mr *MockCRDEventsHandlerMockRecorder) NotifyUpdates(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyUpdates), arg0, arg1, arg2)
-}

@@ -62,29 +62,24 @@ func (r *InstallEnvReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return r.ensureISO(ctx, installEnv)
 }
 
-func (r *InstallEnvReconciler) notifyClusterUpdatesIfNeeded(installEnv *adiiov1alpha1.InstallEnv, c *common.Cluster) {
-	update := false
+func (r *InstallEnvReconciler) shouldNotifyClusterDeployment(installEnv *adiiov1alpha1.InstallEnv, cluster *common.Cluster) bool {
+	notifyClusterDeployment := false
 
 	if installEnv.Spec.Proxy != nil {
-		if installEnv.Spec.Proxy.NoProxy != "" && installEnv.Spec.Proxy.NoProxy != c.NoProxy {
-			update = true
+		if installEnv.Spec.Proxy.NoProxy != "" && installEnv.Spec.Proxy.NoProxy != cluster.NoProxy {
+			notifyClusterDeployment = true
 		}
-		if installEnv.Spec.Proxy.HTTPProxy != "" && installEnv.Spec.Proxy.HTTPProxy != c.HTTPProxy {
-			update = true
+		if installEnv.Spec.Proxy.HTTPProxy != "" && installEnv.Spec.Proxy.HTTPProxy != cluster.HTTPProxy {
+			notifyClusterDeployment = true
 		}
-		if installEnv.Spec.Proxy.HTTPSProxy != "" && installEnv.Spec.Proxy.HTTPSProxy != c.HTTPSProxy {
-			update = true
+		if installEnv.Spec.Proxy.HTTPSProxy != "" && installEnv.Spec.Proxy.HTTPSProxy != cluster.HTTPSProxy {
+			notifyClusterDeployment = true
 		}
 	}
-	if len(installEnv.Spec.AdditionalNTPSources) > 0 && c.AdditionalNtpSource != installEnv.Spec.AdditionalNTPSources[0] {
-		update = true
+	if len(installEnv.Spec.AdditionalNTPSources) > 0 && cluster.AdditionalNtpSource != installEnv.Spec.AdditionalNTPSources[0] {
+		notifyClusterDeployment = true
 	}
-	if update {
-		r.CRDEventsHandler.NotifyClusterDeploymentUpdates(
-			installEnv.Spec.ClusterRef.Name,
-			installEnv.Spec.ClusterRef.Namespace,
-		)
-	}
+	return notifyClusterDeployment
 }
 
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
@@ -126,7 +121,7 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 	}
 
 	// Retrieve cluster from the database
-	c, err := r.Installer.GetClusterByKubeKey(types.NamespacedName{
+	cluster, err := r.Installer.GetClusterByKubeKey(types.NamespacedName{
 		Name:      clusterDeployment.Name,
 		Namespace: clusterDeployment.Namespace,
 	})
@@ -151,12 +146,16 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
 
-	// Check for updates from user, compare spec and trigger ClusterDeploymentsReconciler if found relevant
-	r.notifyClusterUpdatesIfNeeded(installEnv, c)
+	// Check for updates from user, compare spec and trigger ClusterDeploymentsReconciler if found relevant.
+	// This will end the reconcile loop to allow the cluster object to get updates before we attempt to generate the image.
+	if r.shouldNotifyClusterDeployment(installEnv, cluster) {
+		r.CRDEventsHandler.NotifyClusterDeploymentUpdates(installEnv.Spec.ClusterRef.Name, installEnv.Spec.ClusterRef.Namespace)
+		return ctrl.Result{Requeue: false}, nil
+	}
 
 	// Generate ISO
 	isoParams := installer.GenerateClusterISOParams{
-		ClusterID:         *c.ID,
+		ClusterID:         *cluster.ID,
 		ImageCreateParams: &models.ImageCreateParams{},
 	}
 	if len(installEnv.Spec.SSHAuthorizedKeys) > 0 {
@@ -232,10 +231,10 @@ func imageBeingCreated(err error) bool {
 }
 
 func (r *InstallEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	InstallEnvUpdates := r.CRDEventsHandler.GetInstallEnvUpdates()
+	installEnvUpdates := r.CRDEventsHandler.GetInstallEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adiiov1alpha1.InstallEnv{}).
-		Watches(&source.Channel{Source: InstallEnvUpdates},
+		Watches(&source.Channel{Source: installEnvUpdates},
 			&handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

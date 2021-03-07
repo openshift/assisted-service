@@ -228,9 +228,6 @@ var _ = Describe("cluster reconcile", func() {
 			})
 
 			It("create cluster and validate installEnv updates", func() {
-				imageInfo := models.ImageInfo{
-					DownloadURL: "downloadurl",
-				}
 				updateReply := &common.Cluster{
 					Cluster: models.Cluster{
 						ID:         clusterReply.ID,
@@ -248,10 +245,6 @@ var _ = Describe("cluster reconcile", func() {
 				validateCreation(clusterDeployment)
 				//Create InstallEnv
 				mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(gomock.Any(), gomock.Any()).Times(1)
-				mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
-					Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
-						Expect(params.ClusterID).To(Equal(*clusterReply.ID))
-					}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 				installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
 					ClusterRef: &adiiov1alpha1.ClusterReference{Name: clusterDeployment.Name, Namespace: clusterDeployment.Namespace},
 					Proxy: &adiiov1alpha1.Proxy{ // These changes are expected to trigger a notification to clusterDeployments controller to Reconcile.
@@ -262,9 +255,10 @@ var _ = Describe("cluster reconcile", func() {
 				})
 				Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 				res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+				mockCRDEventsHandler.EXPECT().NotifyInstallEnvUpdates(gomock.Any(), gomock.Any()).Times(1)
 				Expect(err).To(BeNil())
 				Expect(res).To(Equal(ctrl.Result{}))
-				// Reconcile clusterDepyloyment to get the updates
+				// Reconcile clusterDeployment to get the updates
 				mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(updateReply, nil)
 				res, err = cr.Reconcile(newClusterDeploymentRequest(clusterDeployment))
 				Expect(err).To(BeNil())

@@ -133,51 +133,15 @@ func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.Namespa
 	return agent
 }
 
-func waitForClusterDeploymentCRDState(
-	ctx context.Context, client k8sclient.Client, key types.NamespacedName, state string, timeout int) {
-
-	clusterDeployment := &hivev1.ClusterDeployment{}
-	successInARaw := 0
-	start := time.Now()
-	for time.Duration(timeout)*time.Second > time.Since(start) {
-		clusterDeployment = getClusterDeploymentCRD(ctx, client, key)
-		if clusterDeployment.Status.Conditions[0].Message == state {
-			successInARaw++
-		} else {
-			successInARaw = 0
+// FindStatusClusterDeploymentCondition is a port of conditionsv1.FindStatusCondition
+func FindStatusClusterDeploymentCondition(conditions []hivev1.ClusterDeploymentCondition,
+	conditionType hivev1.ClusterDeploymentConditionType) *hivev1.ClusterDeploymentCondition {
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			return &conditions[i]
 		}
-		if successInARaw == minSuccessesInRow {
-			return
-		}
-		time.Sleep(time.Second)
 	}
-	Expect(clusterDeployment.Status.Conditions[0].Message).Should(Equal(state))
-	successInARaw++
-	Expect(successInARaw).Should(Equal(minSuccessesInRow))
-}
-
-func waitForInstallEnvCRDState(
-	ctx context.Context, client k8sclient.Client, key types.NamespacedName, state string, timeout int) {
-
-	installEnv := &v1alpha1.InstallEnv{}
-	successInARaw := 0
-	start := time.Now()
-
-	for time.Duration(timeout)*time.Second > time.Since(start) {
-		installEnv = getInstallEnvCRD(ctx, client, key)
-		if len(installEnv.Status.Conditions) > 0 && installEnv.Status.Conditions[0].Message == state {
-			successInARaw++
-		} else {
-			successInARaw = 0
-		}
-		if successInARaw == minSuccessesInRow {
-			return
-		}
-		time.Sleep(time.Second)
-	}
-	Expect(installEnv.Status.Conditions[0].Message).Should(Equal(state))
-	successInARaw++
-	Expect(successInARaw).Should(Equal(minSuccessesInRow))
+	return nil
 }
 
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
@@ -241,17 +205,14 @@ func getDefaultClusterDeploymentSNOSpec(secretRef *corev1.LocalObjectReference) 
 			},
 		},
 		Platform: hivev1.Platform{
-			AgentBareMetal: &agentv1.BareMetalPlatform{
-				APIVIP:            "",
-				IngressVIP:        "",
-				VIPDHCPAllocation: agentv1.VIPDHCPAllocationDisabled,
-			},
+			AgentBareMetal: &agentv1.BareMetalPlatform{},
 		},
 		PullSecretRef: secretRef,
 	}
 }
 
-func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference, clusterDeployment *hivev1.ClusterDeploymentSpec) *v1alpha1.InstallEnvSpec {
+func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
+	clusterDeployment *hivev1.ClusterDeploymentSpec) *v1alpha1.InstallEnvSpec {
 	return &v1alpha1.InstallEnvSpec{
 		ClusterRef: &v1alpha1.ClusterReference{
 			Name:      clusterDeployment.ClusterName,
@@ -326,7 +287,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
-		waitForClusterDeploymentCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForReconcileTimeout)
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, key).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusPreparingForInstallation))
 		for _, host := range hosts {
 			key = types.NamespacedName{
 				Namespace: Options.Namespace,
@@ -373,8 +340,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		waitForClusterDeploymentCRDState(ctx, kubeClient, clusterKubeName, models.ClusterStatusInsufficient, waitForReconcileTimeout)
 		Expect(cluster.NoProxy).Should(Equal(""))
 		Expect(cluster.HTTPProxy).Should(Equal(""))
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
@@ -388,7 +361,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      installEnvName,
 		}
 		// InstallEnv Reconcile takes longer, since it needs to generate the image.
-		waitForInstallEnvCRDState(ctx, kubeClient, installEnvKubeName, v1alpha1.ImageStateCreated, waitForReconcileTimeout*2)
+		Eventually(func() string {
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.NoProxy).Should(Equal("192.168.1.1"))
 		Expect(cluster.HTTPProxy).Should(Equal("http://192.168.1.2"))
