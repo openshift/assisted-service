@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -106,14 +107,10 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 		return "", fmt.Errorf("%s", msg)
 	}
 
-	mac := ifaceName.String()
-	splitMac := []string{}
-	i := 0
-	for i < len(mac) {
-		splitMac = append(splitMac, mac[i:i+2])
-		i += 2
+	mac, err := s.validateAndCalculateMAC(ifaceName.String())
+	if err != nil {
+		return "", err
 	}
-	mac = strings.Join(splitMac, ":")
 
 	connectionSection.DeleteKey("interface-name")
 	_, err = connectionSection.NewKey("autoconnect", "true")
@@ -146,6 +143,28 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+func (s *StaticNetworkConfigGenerator) validateAndCalculateMAC(ifaceName string) (string, error) {
+	// check the format of the interface name
+	ifaceNameRegexp := "^[0-9A-Fa-f]{12}$"
+	match, err := regexp.MatchString(ifaceNameRegexp, ifaceName)
+	if err != nil {
+		s.log.WithError(err).Errorf("Invalid regexp expression %s", ifaceNameRegexp)
+		return "", err
+	}
+	if !match {
+		msg := "Interface name %s is in invalid format: must be mac address without\":\""
+		s.log.Errorf("%s", msg)
+		return "", fmt.Errorf("%s", msg)
+	}
+	splitMac := []string{}
+	i := 0
+	for i < len(ifaceName) {
+		splitMac = append(splitMac, ifaceName[i:i+2])
+		i += 2
+	}
+	return strings.Join(splitMac, ":"), nil
 }
 
 func FormatStaticNetworkConfigForDB(staticNetworkConfig []string) string {
