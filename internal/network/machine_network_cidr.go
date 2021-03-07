@@ -231,6 +231,30 @@ func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*mo
 	return ret, nil
 }
 
+// GetMachineCidrForUserManagedNetwork used to get machine cidr in case of none platform and sno
+func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
+	if cluster.MachineNetworkCidr != "" {
+		return cluster.MachineNetworkCidr
+	}
+
+	bootstrap := common.GetBootstrapHost(cluster)
+	if bootstrap == nil {
+		return ""
+	}
+
+	networks := GetClusterNetworks([]*models.Host{bootstrap}, log)
+	if len(networks) > 0 {
+		// if there is ipv4 network, return it or return the first one
+		for _, network := range networks {
+			if IsIPV4CIDR(network) {
+				return network
+			}
+		}
+		return networks[0]
+	}
+	return ""
+}
+
 func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {
 	var err error
 	cidrs := make(map[string]bool)

@@ -215,6 +215,7 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 
 	content, err := createDnsmasqForSingleNode(log, cluster)
 	if err != nil {
+		log.WithError(err).Errorf("Failed to create dnsmasq manifest")
 		return err
 	}
 
@@ -222,20 +223,20 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 }
 
 func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
-	// TODO Enable after MGMT-4125 will be pushed
-	//hostIp, err := GetMachineCIDRIP(common.GetBootstrapHost(cluster), cluster)
-	//if hostIp == "" || err != nil {
-	//	msg := "failed to get ip for bootstrap in place dnsmasq manifest"
-	//	if err != nil {
-	//		msg = errors.Wrapf(err, msg).Error()
-	//	}
-	//	return errors.Errorf(msg)
-	//}
+	bootstrap := common.GetBootstrapHost(cluster)
+	if bootstrap == nil {
+		return nil, errors.Errorf("no bootstap host were found in cluter")
+	}
 
-	// TODO remove after MGMT-4125 will be pushed
-	hostIp, _ := common.GetBootstrapMachineNetworkAndIp(cluster)
-	if hostIp == "" {
-		return nil, errors.Errorf("failed to get ip for bootstrap in place dnsmasq manifest")
+	cidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+	cluster.MachineNetworkCidr = cidr
+	hostIp, err := getMachineCIDRObj(bootstrap, cluster, "ip")
+	if hostIp == "" || err != nil {
+		msg := "failed to get ip for bootstrap in place dnsmasq manifest"
+		if err != nil {
+			msg = errors.Wrapf(err, msg).Error()
+		}
+		return nil, errors.Errorf(msg)
 	}
 
 	var manifestParams = map[string]string{

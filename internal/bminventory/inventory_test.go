@@ -2069,9 +2069,11 @@ var _ = Describe("cluster", func() {
 		It("update usernetworkmode in none ha mode", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			noneHaMode := models.ClusterHighAvailabilityModeNone
+			userManagedNetworking := true
 			err := db.Create(&common.Cluster{Cluster: models.Cluster{
-				ID:                   &clusterID,
-				HighAvailabilityMode: &noneHaMode,
+				ID:                    &clusterID,
+				HighAvailabilityMode:  &noneHaMode,
+				UserManagedNetworking: &userManagedNetworking,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -2086,6 +2088,101 @@ var _ = Describe("cluster", func() {
 				},
 			})
 			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("update machine cidr in none ha mode", func() {
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			userManagedNetworking := true
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                    &clusterID,
+				HighAvailabilityMode:  &noneHaMode,
+				APIVip:                "1.2.3.15",
+				IngressVip:            "1.2.3.16",
+				UserManagedNetworking: &userManagedNetworking,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			machineCidr := "1.2.3.0/24"
+
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					MachineNetworkCidr: &machineCidr,
+				},
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+			Expect(actual.Payload.APIVip).To(Equal(""))
+			Expect(actual.Payload.IngressVip).To(Equal(""))
+			Expect(actual.Payload.MachineNetworkCidr).To(Equal(machineCidr))
+		})
+
+		It("update with bad machine cidr in none ha mode", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			userManagedNetworking := true
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                    &clusterID,
+				HighAvailabilityMode:  &noneHaMode,
+				UserManagedNetworking: &userManagedNetworking,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			badMachineCidr := "2.2.3.128/24"
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					MachineNetworkCidr: &badMachineCidr,
+				},
+			})
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("update with machine cidr that is not part of cluster networks in none ha mode", func() {
+			clusterID = strfmt.UUID(uuid.New().String())
+			noneHaMode := models.ClusterHighAvailabilityModeNone
+			userManagedNetworking := true
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                    &clusterID,
+				HighAvailabilityMode:  &noneHaMode,
+				UserManagedNetworking: &userManagedNetworking,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			addHost(masterHostId1, models.HostRoleMaster, models.HostStatusKnown, models.HostKindHost, clusterID,
+				getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			wrongMachineCidr := "2.2.3.0/24"
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					MachineNetworkCidr: &wrongMachineCidr,
+				},
+			})
+
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+			Expect(actual.Payload.APIVip).To(Equal(""))
+			Expect(actual.Payload.IngressVip).To(Equal(""))
+			Expect(actual.Payload.MachineNetworkCidr).To(Equal(wrongMachineCidr))
 		})
 
 		Context("Monitored Operators", func() {

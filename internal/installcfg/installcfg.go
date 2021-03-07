@@ -307,7 +307,7 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			None:      &platformNone{},
 		}
 
-		_, bootstrapCidr := common.GetBootstrapMachineNetworkAndIp(cluster)
+		bootstrapCidr := network.GetMachineCidrForUserManagedNetwork(cluster, log)
 		if bootstrapCidr != "" {
 			log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
 			cfg.Networking.MachineNetwork = []struct {

@@ -73,7 +73,7 @@ var _ = Describe("inventory", func() {
 			Expect(cidr).To(Equal("1.2.4.0/23"))
 		})
 
-		It("happpy flow IPv6", func() {
+		It("happy flow IPv6", func() {
 			cluster := createCluster("1001:db8::64", "",
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")),
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::2/120")),
@@ -317,6 +317,43 @@ var _ = Describe("inventory", func() {
 			Expect(nets).To(HaveLen(2))
 			Expect(nets).To(ContainElements("2001:db8::/120", "1.2.3.0/28"))
 		})
+	})
+
+	Context("GetMachineCidrForUserManagedNetwork", func() {
+
+		var log logrus.FieldLogger
+
+		BeforeEach(func() {
+			log = logrus.New()
+		})
+
+		It("No bootstrap host", func() {
+			cluster := createCluster("", "",
+				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
+				createInventory(createInterface("127.0.0.1/17")))
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			Expect(machineCidr).To(BeEmpty())
+		})
+
+		It("No machine cidr was set - cidr from bootstrap must be set", func() {
+			cluster := createCluster("", "",
+				createInventory(addIPv6Addresses(createInterface("1.2.3.4/28"), "2001:db8::a1/120")),
+				createInventory(addIPv6Addresses(createInterface("10.2.3.20/24"), "fe80:5054::4/120")))
+			cluster.Hosts[0].Bootstrap = true
+
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			Expect(true).To(Equal(machineCidr == "1.2.3.0/28" || machineCidr == "2001:db8::/120"))
+		})
+
+		It("Machine cidr exists", func() {
+			cluster := createCluster("", "",
+				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
+				createInventory(createInterface("127.0.0.1/17")))
+			cluster.MachineNetworkCidr = "1.2.5.0/23"
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			Expect(machineCidr).To(Equal(cluster.MachineNetworkCidr))
+		})
+
 	})
 })
 
