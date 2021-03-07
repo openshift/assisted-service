@@ -95,6 +95,7 @@ type API interface {
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
+	InactiveClusterDeregister(ctx context.Context, inactiveSince strfmt.DateTime, objectHandler s3wrapper.API) error
 }
 
 type LogTimeoutConfig struct {
@@ -773,6 +774,24 @@ func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 		return common.NewApiError(
 			http.StatusInternalServerError,
 			errors.Errorf("failed to delete s3 files: %q", failedToDelete))
+	}
+	return nil
+}
+
+func (m Manager) InactiveClusterDeregister(ctx context.Context, inactiveSince strfmt.DateTime, objectHandler s3wrapper.API) error {
+	var clusters []*common.Cluster
+	db := m.db.Unscoped()
+	if reply := db.Where("updated_at < ?", inactiveSince).Find(&clusters); reply.Error != nil {
+		return reply.Error
+	}
+	for i := range clusters {
+		c := clusters[i]
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
+			fmt.Sprintf("Cluster is deregistered due to inactivity"), time.Now())
+		if err := m.DeregisterCluster(ctx, c); err != nil {
+			m.log.WithError(err).Errorf("failed to deregister inactive cluster %s ", c.ID)
+			continue
+		}
 	}
 	return nil
 }

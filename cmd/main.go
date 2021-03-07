@@ -104,6 +104,7 @@ var Options struct {
 	LogConfig                   logconfig.Config
 	LeaderConfig                leader.Config
 	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
+	DeregisterWorkerInterval    time.Duration `envconfig:"DEREGISTER_WORKER_INTERVAL" default:"1h"`
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
@@ -306,11 +307,21 @@ func main() {
 		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
 		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
 
+	deregisterWorker := thread.New(
+		log.WithField("inventory", "Deregister Worker"),
+		"Deregister Worker",
+		Options.DeregisterWorkerInterval,
+		bm.PermanentlyDeleteUnregisteredClustersAndHosts)
+
+	deregisterWorker.Start()
+	defer deregisterWorker.Stop()
+
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),
 		"Deletion Worker",
 		Options.DeletionWorkerInterval,
 		bm.PermanentlyDeleteUnregisteredClustersAndHosts)
+
 	deletionWorker.Start()
 	defer deletionWorker.Stop()
 

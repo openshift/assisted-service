@@ -97,6 +97,7 @@ type Config struct {
 	AgentTimeoutStart               time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
 	ServiceIPs                      string            `envconfig:"SERVICE_IPS" default:""`
 	DeletedUnregisteredAfter        time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
+	DeregisterInactiveAfter         time.Duration     `envconfig:"DELETED_INACTIVE_AFTER" default:"168h"`
 	DefaultNTPSource                string            `envconfig:"NTP_DEFAULT_SERVER"`
 	ISOCacheDir                     string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
 	DefaultClusterNetworkCidr       string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
@@ -4529,6 +4530,14 @@ func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) 
 		return "", err
 	}
 	return k8sclient.GetClusterVersion(clusterVersion)
+}
+
+func (b bareMetalInventory) DeregisterInactiveClusters() {
+	olderThen := strfmt.DateTime(time.Now().Add(-b.Config.DeregisterInactiveAfter))
+	if err := b.clusterApi.InactiveClusterDeregister(context.Background(), olderThen, b.objectHandler); err != nil {
+		b.log.WithError(err).Errorf("Failed deregister inactive cluster")
+		return
+	}
 }
 
 func (b bareMetalInventory) PermanentlyDeleteUnregisteredClustersAndHosts() {

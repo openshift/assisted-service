@@ -2258,6 +2258,62 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 	})
 })
 
+var _ = Describe("Deregister inactive clusters", func() {
+	var (
+		ctrl          *gomock.Controller
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		c             common.Cluster
+		eventsHandler events.Handler
+		mockMetric    *metrics.MockAPI
+		dbName        = "permanently_delete_clusters"
+		mockS3Api     *s3wrapper.MockAPI
+	)
+
+	registerCluster := func() common.Cluster {
+		id := strfmt.UUID(uuid.New().String())
+		eventsHandler.AddEvent(ctx, id, &id, "", "", time.Now())
+		cl := common.Cluster{Cluster: models.Cluster{
+			ID:                 &id,
+			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
+		}}
+		Expect(db.Create(&cl).Error).ShouldNot(HaveOccurred())
+		return cl
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		mockOperators := operators.NewMockAPI(ctrl)
+		db = common.PrepareTestDB(dbName)
+		eventsHandler = events.New(db, logrus.New())
+		dummy := &leader.DummyElector{}
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators)
+		c = registerCluster()
+
+	})
+	It("Deregister inactive cluster testing_now", func() {
+		Expect(state.InactiveClusterDeregister(ctx, strfmt.DateTime(time.Now()), mockS3Api)).ShouldNot(HaveOccurred())
+		_, err := common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("Do noting, active cluster testing_now", func() {
+		lastActive := strfmt.DateTime(time.Now().Add(-time.Hour))
+		Expect(state.InactiveClusterDeregister(ctx, lastActive, mockS3Api)).ShouldNot(HaveOccurred())
+		c = getClusterFromDB(*c.ID, db)
+		_, err := common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
 var _ = Describe("Permanently delete clusters", func() {
 	var (
 		ctrl          *gomock.Controller
