@@ -1133,13 +1133,13 @@ type validationsChecker struct {
 }
 
 func (j *validationsChecker) check(validationsStr string) {
-	validationMap := make(map[string][]validationResult)
-	Expect(json.Unmarshal([]byte(validationsStr), &validationMap)).ToNot(HaveOccurred())
+	validationRes := make(validationsStatus)
+	Expect(json.Unmarshal([]byte(validationsStr), &validationRes)).ToNot(HaveOccurred())
 next:
 	for id, checkedResult := range j.expected {
 		category, err := id.category()
 		Expect(err).ToNot(HaveOccurred())
-		results, ok := validationMap[category]
+		results, ok := validationRes[category]
 		Expect(ok).To(BeTrue())
 		for _, r := range results {
 			if r.ID == id {
@@ -2351,6 +2351,12 @@ var _ = Describe("Refresh Host", func() {
 			},
 		}
 
+		getHost := func(clusterID, hostID strfmt.UUID) *models.Host {
+			var h models.Host
+			Expect(db.First(&h, "id = ? and cluster_id = ?", hostID, clusterID).Error).ToNot(HaveOccurred())
+			return &h
+		}
+
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
@@ -2403,11 +2409,13 @@ var _ = Describe("Refresh Host", func() {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
+				Expect(getHost(clusterId, hostId).ValidationsInfo).To(Equal(""))
 				err = hapi.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
+					Expect(getHost(clusterId, hostId).ValidationsInfo).ToNot(Equal(""))
 				}
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())

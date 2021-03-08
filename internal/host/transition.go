@@ -385,7 +385,7 @@ type TransitionArgsRefreshHost struct {
 	ctx               context.Context
 	eventHandler      events.Handler
 	conditions        map[validationID]bool
-	validationResults map[string][]validationResult
+	validationResults validationsStatus
 	db                *gorm.DB
 }
 
@@ -502,13 +502,8 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			return errors.New("PostRefreshHost invalid argument")
 		}
 		var (
-			b   []byte
 			err error
 		)
-		b, err = json.Marshal(&params.validationResults)
-		if err != nil {
-			return err
-		}
 		if sHost.host.Progress.CurrentStage == models.HostStageWritingImageToDisk &&
 			reason == statusInfoInstallationInProgressTimedOut {
 			template = statusInfoInstallationInProgressWritingImageToDiskTimedOut
@@ -523,7 +518,7 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 		}
 
 		_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
-			sHost.srcState, swag.StringValue(sHost.host.Status), template, "validations_info", string(b))
+			sHost.srcState, swag.StringValue(sHost.host.Status), template)
 		return err
 	}
 	return ret
