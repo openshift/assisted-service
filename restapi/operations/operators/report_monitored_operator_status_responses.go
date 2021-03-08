@@ -37,6 +37,50 @@ func (o *ReportMonitoredOperatorStatusOK) WriteResponse(rw http.ResponseWriter, 
 	rw.WriteHeader(200)
 }
 
+// ReportMonitoredOperatorStatusBadRequestCode is the HTTP code returned for type ReportMonitoredOperatorStatusBadRequest
+const ReportMonitoredOperatorStatusBadRequestCode int = 400
+
+/*ReportMonitoredOperatorStatusBadRequest Bad Request
+
+swagger:response reportMonitoredOperatorStatusBadRequest
+*/
+type ReportMonitoredOperatorStatusBadRequest struct {
+
+	/*
+	  In: Body
+	*/
+	Payload *models.Error `json:"body,omitempty"`
+}
+
+// NewReportMonitoredOperatorStatusBadRequest creates ReportMonitoredOperatorStatusBadRequest with default headers values
+func NewReportMonitoredOperatorStatusBadRequest() *ReportMonitoredOperatorStatusBadRequest {
+
+	return &ReportMonitoredOperatorStatusBadRequest{}
+}
+
+// WithPayload adds the payload to the report monitored operator status bad request response
+func (o *ReportMonitoredOperatorStatusBadRequest) WithPayload(payload *models.Error) *ReportMonitoredOperatorStatusBadRequest {
+	o.Payload = payload
+	return o
+}
+
+// SetPayload sets the payload to the report monitored operator status bad request response
+func (o *ReportMonitoredOperatorStatusBadRequest) SetPayload(payload *models.Error) {
+	o.Payload = payload
+}
+
+// WriteResponse to the client
+func (o *ReportMonitoredOperatorStatusBadRequest) WriteResponse(rw http.ResponseWriter, producer runtime.Producer) {
+
+	rw.WriteHeader(400)
+	if o.Payload != nil {
+		payload := o.Payload
+		if err := producer.Produce(rw, payload); err != nil {
+			panic(err) // let the recovery middleware deal with this
+		}
+	}
+}
+
 // ReportMonitoredOperatorStatusUnauthorizedCode is the HTTP code returned for type ReportMonitoredOperatorStatusUnauthorized
 const ReportMonitoredOperatorStatusUnauthorizedCode int = 401
 

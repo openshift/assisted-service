@@ -4114,6 +4114,12 @@ func init() {
           "200": {
             "description": "Success."
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "401": {
             "description": "Unauthorized.",
             "schema": {
@@ -11163,6 +11169,12 @@ func init() {
         "responses": {
           "200": {
             "description": "Success."
+          },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
           },
           "401": {
             "description": "Unauthorized.",

@@ -29,6 +29,12 @@ func (o *ReportMonitoredOperatorStatusReader) ReadResponse(response runtime.Clie
 			return nil, err
 		}
 		return result, nil
+	case 400:
+		result := NewReportMonitoredOperatorStatusBadRequest()
+		if err := result.readResponse(response, consumer, o.formats); err != nil {
+			return nil, err
+		}
+		return nil, result
 	case 401:
 		result := NewReportMonitoredOperatorStatusUnauthorized()
 		if err := result.readResponse(response, consumer, o.formats); err != nil {
@@ -94,6 +100,39 @@ func (o *ReportMonitoredOperatorStatusOK) Error() string {
 }
 
 func (o *ReportMonitoredOperatorStatusOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	return nil
+}
+
+// NewReportMonitoredOperatorStatusBadRequest creates a ReportMonitoredOperatorStatusBadRequest with default headers values
+func NewReportMonitoredOperatorStatusBadRequest() *ReportMonitoredOperatorStatusBadRequest {
+	return &ReportMonitoredOperatorStatusBadRequest{}
+}
+
+/*ReportMonitoredOperatorStatusBadRequest handles this case with default header values.
+
+Bad Request
+*/
+type ReportMonitoredOperatorStatusBadRequest struct {
+	Payload *models.Error
+}
+
+func (o *ReportMonitoredOperatorStatusBadRequest) Error() string {
+	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusBadRequest  %+v", 400, o.Payload)
+}
+
+func (o *ReportMonitoredOperatorStatusBadRequest) GetPayload() *models.Error {
+	return o.Payload
+}
+
+func (o *ReportMonitoredOperatorStatusBadRequest) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
+
+	o.Payload = new(models.Error)
+
+	// response payload
+	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {
+		return err
+	}
 
 	return nil
 }
