@@ -4940,7 +4940,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
 		}
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionBadRequest{}))
+		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("returns bad request when provided invalid options", func() {
@@ -4951,7 +4951,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
 		}
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionBadRequest{}))
+		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("returns bad request when provided an old version", func() {
@@ -4962,7 +4962,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 			DiscoveryIgnitionParams: &models.DiscoveryIgnitionParams{Config: override},
 		}
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionBadRequest{}))
+		Expect(response).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 	})
 
 	It("returns an error if we fail to delete the iso", func() {

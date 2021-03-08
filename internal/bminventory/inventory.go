@@ -293,6 +293,7 @@ type InstallerInternals interface {
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
 	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
+	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
@@ -516,22 +517,30 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
+	err := b.UpdateDiscoveryIgnitionInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewUpdateDiscoveryIgnitionCreated()
+}
+
+func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return err
 	}
 
 	_, err = ignition.ParseToLatest([]byte(params.DiscoveryIgnitionParams.Config))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.DiscoveryIgnitionParams)
-		return installer.NewUpdateDiscoveryIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	err = b.db.Model(&common.Cluster{}).Where(identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Update("ignition_config_overrides", params.DiscoveryIgnitionParams.Config).Error
 	if err != nil {
-		return installer.NewUpdateDiscoveryIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID))
@@ -542,7 +551,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 		b.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", time.Now())
 	}
 
-	return installer.NewUpdateDiscoveryIgnitionCreated()
+	return nil
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {

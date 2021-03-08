@@ -155,6 +155,20 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInternal(arg0, arg1 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInternal), arg0, arg1)
 }
 
+// UpdateDiscoveryIgnitionInternal mocks base method
+func (m *MockInstallerInternals) UpdateDiscoveryIgnitionInternal(arg0 context.Context, arg1 installer.UpdateDiscoveryIgnitionParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateDiscoveryIgnitionInternal", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateDiscoveryIgnitionInternal indicates an expected call of UpdateDiscoveryIgnitionInternal
+func (mr *MockInstallerInternalsMockRecorder) UpdateDiscoveryIgnitionInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDiscoveryIgnitionInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateDiscoveryIgnitionInternal), arg0, arg1)
+}
+
 // UpdateHostApprovedInternal mocks base method
 func (m *MockInstallerInternals) UpdateHostApprovedInternal(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
 	m.ctrl.T.Helper()

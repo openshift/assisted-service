@@ -134,7 +134,7 @@ var _ = Describe("installEnv reconcile", func() {
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
 		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
 		key := types.NamespacedName{
@@ -244,7 +244,7 @@ var _ = Describe("installEnv reconcile", func() {
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
 		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 
 		key := types.NamespacedName{
@@ -310,6 +310,50 @@ var _ = Describe("installEnv reconcile", func() {
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 	})
 
+	It("create image with ignition config override", func() {
+		imageInfo := models.ImageInfo{DownloadURL: "downloadurl"}
+		ignitionConfigOverride := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
+			adiiov1alpha1.InstallEnvSpec{
+				ClusterRef:             &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+				IgnitionConfigOverride: ignitionConfigOverride,
+			})
+		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().UpdateDiscoveryIgnitionInternal(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, param installer.UpdateDiscoveryIgnitionParams) {
+				Expect(swag.StringValue(&param.DiscoveryIgnitionParams.Config)).To(Equal(ignitionConfigOverride))
+			}).Return(nil).Times(1)
+		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
+			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+
+		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
+	})
+
+	It("create image with an invalid ignition config override", func() {
+		ignitionConfigOverride := `bad ignition config`
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
+			adiiov1alpha1.InstallEnvSpec{
+				ClusterRef:             &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+				IgnitionConfigOverride: ignitionConfigOverride,
+			})
+		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().UpdateDiscoveryIgnitionInternal(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, param installer.UpdateDiscoveryIgnitionParams) {
+				Expect(swag.StringValue(&param.DiscoveryIgnitionParams.Config)).To(Equal(ignitionConfigOverride))
+			}).Return(errors.Errorf("error")).Times(1)
+		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+		Expect(err).ToNot(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+	})
+
 	It("failed to update cluster with proxy", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -325,7 +369,7 @@ var _ = Describe("installEnv reconcile", func() {
 			Return(nil, errors.Errorf("failure")).Times(1)
 
 		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
 		key := types.NamespacedName{
