@@ -73,13 +73,11 @@ func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, authenticat
 }
 
 func validateToken(token string, pub crypto.PublicKey) (*jwt.Token, error) {
-	parsed, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) { return pub, nil })
+	parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodES256.Alg()}}
+	parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return pub, nil })
 
 	if err != nil {
 		return nil, errors.Errorf("Failed to parse token: %v\n", err)
-	}
-	if jwt.SigningMethodES256.Alg() != parsed.Header["alg"] {
-		return nil, errors.Errorf("Signing algorithm mismatch. Expected %s, token has %s", jwt.SigningMethodES256.Alg(), parsed.Header["alg"])
 	}
 	if !parsed.Valid {
 		return nil, errors.Errorf("Invalid token")
