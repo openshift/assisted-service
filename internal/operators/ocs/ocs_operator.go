@@ -18,7 +18,7 @@ type ocsOperator struct {
 	ocsValidator       OCSValidator
 }
 
-var Operator models.MonitoredOperator = models.MonitoredOperator{
+var Operator = models.MonitoredOperator{
 	Name:           "ocs",
 	OperatorType:   models.OperatorTypeOlm,
 	TimeoutSeconds: 30 * 60,
@@ -115,4 +115,9 @@ func (o *ocsOperator) GetDisksRequirementForWorker(context.Context, *common.Clus
 // GetProperties provides description of operator properties: none required
 func (o *ocsOperator) GetProperties() models.OperatorProperties {
 	return models.OperatorProperties{}
+}
+
+// GetMonitoredOperator returns MonitoredOperator corresponding to the OCS Operator
+func (o *ocsOperator) GetMonitoredOperator() *models.MonitoredOperator {
+	return &Operator
 }
