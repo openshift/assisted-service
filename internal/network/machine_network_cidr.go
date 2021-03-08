@@ -151,14 +151,14 @@ func findMatchingIP(ipnet *net.IPNet, intf *models.Interface, isIPv4 bool) (bool
 	}
 }
 
-func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (string, error) {
+func getMachineCIDRObj(host *models.Host, machineNetworkCidr string, obj string) (string, error) {
 	var inventory models.Inventory
 	var err error
-	isIPv4 := IsIPV4CIDR(cluster.MachineNetworkCidr)
+	isIPv4 := IsIPV4CIDR(machineNetworkCidr)
 	if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		return "", err
 	}
-	_, ipNet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
+	_, ipNet, err := net.ParseCIDR(machineNetworkCidr)
 	if err != nil {
 		return "", err
 	}
@@ -179,11 +179,11 @@ func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (
 }
 
 func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
-	return getMachineCIDRObj(host, cluster, "interface")
+	return getMachineCIDRObj(host, cluster.MachineNetworkCidr, "interface")
 }
 
 func GetMachineCIDRIP(host *models.Host, cluster *common.Cluster) (string, error) {
-	return getMachineCIDRObj(host, cluster, "ip")
+	return getMachineCIDRObj(host, cluster.MachineNetworkCidr, "ip")
 }
 
 func IpInCidr(ipAddr, cidr string) (bool, error) {
@@ -253,6 +253,24 @@ func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.Fie
 		return networks[0]
 	}
 	return ""
+}
+
+func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLogger) (string, error) {
+	bootstrap := common.GetBootstrapHost(cluster)
+	if bootstrap == nil {
+		return "", errors.Errorf("no bootstrap host were found in cluster")
+	}
+	cidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+	hostIp, err := getMachineCIDRObj(bootstrap, cidr, "ip")
+	if hostIp == "" || err != nil {
+		msg := "failed to get ip for bootstrap in place dnsmasq manifest"
+		if err != nil {
+			msg = errors.Wrapf(err, msg).Error()
+		}
+		return "", errors.Errorf(msg)
+	}
+
+	return hostIp, nil
 }
 
 func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {

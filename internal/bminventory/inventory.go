@@ -3898,7 +3898,12 @@ func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster co
 		apiVip := cluster.APIVip
 		ingressVip := cluster.IngressVip
 		if common.IsSingleNodeCluster(&cluster) {
-			apiVip, _ = network.GetMachineCIDRIP(common.GetBootstrapHost(&cluster), &cluster)
+			apiVip, err = network.GetIpForSingleNodeInstallation(&cluster, log)
+			if err != nil {
+				log.WithError(err).Errorf("failed to find ip for single node installation")
+				return err
+			}
+
 			ingressVip = apiVip
 			// Create/Delete A record for API-INT virtual IP
 			_, err := dnsRecordSetFunc(domain.APIINTDomainName, apiVip)
