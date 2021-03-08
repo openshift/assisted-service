@@ -1312,6 +1312,40 @@ func ocsInventoryWithDisks(cpus int64, ram int64) string {
 	return string(b)
 }
 
+func ocsInventoryWithInsufficientDiskSize(cpus int64, ram int64) string {
+	inventory := models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		CPU: &models.CPU{
+			Count: cpus,
+		},
+		Memory: &models.Memory{
+			UsableBytes: ram,
+		},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 20000000000,
+				DriveType: "HDD",
+			}, {
+				SizeBytes: 1000000000,
+				DriveType: "SSD",
+			},
+		},
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func ocsInventoryWithoutDisks(cpus int64, ram int64) string {
 	inventory := models.Inventory{
 		Interfaces: []*models.Interface{
