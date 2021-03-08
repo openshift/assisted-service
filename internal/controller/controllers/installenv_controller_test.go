@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
@@ -281,5 +282,58 @@ var _ = Describe("installEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+	})
+
+	It("create image with proxy configuration and ntp sources", func() {
+		imageInfo := models.ImageInfo{DownloadURL: "downloadurl"}
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
+			adiiov1alpha1.InstallEnvSpec{
+				Proxy:                &adiiov1alpha1.Proxy{HTTPProxy: "http://192.168.1.2"},
+				AdditionalNTPSources: []string{"foo.com", "bar.com"},
+				ClusterRef:           &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			})
+		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, param installer.UpdateClusterParams) {
+				Expect(swag.StringValue(param.ClusterUpdateParams.HTTPProxy)).To(Equal("http://192.168.1.2"))
+				Expect(swag.StringValue(param.ClusterUpdateParams.AdditionalNtpSource)).To(Equal("foo.com,bar.com"))
+			}).Return(nil, nil).Times(1)
+		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
+			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+
+		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
+	})
+
+	It("failed to update cluster with proxy", func() {
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
+			adiiov1alpha1.InstallEnvSpec{
+				Proxy:      &adiiov1alpha1.Proxy{HTTPProxy: "http://192.168.1.2"},
+				ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			})
+		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
+			Return(nil, errors.Errorf("failure")).Times(1)
+
+		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "installEnvImage",
+		}
+		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 })
