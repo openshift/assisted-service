@@ -72,6 +72,21 @@ func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, sp
 	Expect(err).To(BeNil())
 }
 
+func deployInstallEnvCRD(ctx context.Context, client k8sclient.Client, name string, spec *v1alpha1.InstallEnvSpec) {
+	err := client.Create(ctx, &v1alpha1.InstallEnv{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "InstallEnv",
+			APIVersion: getAPIVersion(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      name,
+		},
+		Spec: *spec,
+	})
+	Expect(err).To(BeNil())
+}
+
 func getAPIVersion() string {
 	return fmt.Sprintf("%s/%s", v1alpha1.GroupVersion.Group, v1alpha1.GroupVersion.Version)
 }
@@ -104,6 +119,13 @@ func getClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, key t
 	return cluster
 }
 
+func getInstallEnvCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1alpha1.InstallEnv {
+	installEnv := &v1alpha1.InstallEnv{}
+	err := client.Get(ctx, key, installEnv)
+	Expect(err).To(BeNil())
+	return installEnv
+}
+
 func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1alpha1.Agent {
 	agent := &v1alpha1.Agent{}
 	err := client.Get(ctx, key, agent)
@@ -111,27 +133,15 @@ func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.Namespa
 	return agent
 }
 
-func waitForClusterDeploymentCRDState(
-	ctx context.Context, client k8sclient.Client, key types.NamespacedName, state string, timeout int) {
-
-	clusterDeployment := &hivev1.ClusterDeployment{}
-	successInARaw := 0
-	start := time.Now()
-	for time.Duration(timeout)*time.Second > time.Since(start) {
-		clusterDeployment = getClusterDeploymentCRD(ctx, client, key)
-		if clusterDeployment.Status.Conditions[0].Message == state {
-			successInARaw++
-		} else {
-			successInARaw = 0
+// FindStatusClusterDeploymentCondition is a port of conditionsv1.FindStatusCondition
+func FindStatusClusterDeploymentCondition(conditions []hivev1.ClusterDeploymentCondition,
+	conditionType hivev1.ClusterDeploymentConditionType) *hivev1.ClusterDeploymentCondition {
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			return &conditions[i]
 		}
-		if successInARaw == minSuccessesInRow {
-			return
-		}
-		time.Sleep(time.Second)
 	}
-	Expect(clusterDeployment.Status.Conditions[0].Message).Should(Equal(state))
-	successInARaw++
-	Expect(successInARaw).Should(Equal(minSuccessesInRow))
+	return nil
 }
 
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
@@ -166,6 +176,56 @@ func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hi
 			},
 		},
 		PullSecretRef: secretRef,
+	}
+}
+
+func getDefaultClusterDeploymentSNOSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
+	return &hivev1.ClusterDeploymentSpec{
+		ClusterName: "test-cluster-sno",
+		BaseDomain:  "hive.example.com",
+		Provisioning: &hivev1.Provisioning{
+			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
+			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
+			InstallStrategy: &hivev1.InstallStrategy{
+				Agent: &agentv1.InstallStrategy{
+					Networking: agentv1.Networking{
+						MachineNetwork: []agentv1.MachineNetworkEntry{},
+						ClusterNetwork: []agentv1.ClusterNetworkEntry{{
+							CIDR:       "10.128.0.0/14",
+							HostPrefix: 23,
+						}},
+						ServiceNetwork: []string{"172.30.0.0/16"},
+					},
+					SSHPublicKey: sshPublicKey,
+					ProvisionRequirements: agentv1.ProvisionRequirements{
+						ControlPlaneAgents: 1,
+						WorkerAgents:       0,
+					},
+				},
+			},
+		},
+		Platform: hivev1.Platform{
+			AgentBareMetal: &agentv1.BareMetalPlatform{},
+		},
+		PullSecretRef: secretRef,
+	}
+}
+
+func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
+	clusterDeployment *hivev1.ClusterDeploymentSpec) *v1alpha1.InstallEnvSpec {
+	return &v1alpha1.InstallEnvSpec{
+		ClusterRef: &v1alpha1.ClusterReference{
+			Name:      clusterDeployment.ClusterName,
+			Namespace: Options.Namespace,
+		},
+		Proxy: &v1alpha1.Proxy{
+			NoProxy:    "192.168.1.1",
+			HTTPProxy:  "http://192.168.1.2",
+			HTTPSProxy: "http://192.168.1.3",
+		},
+		AdditionalNTPSources: []string{"192.168.1.4"},
+		PullSecretRef:        secretRef,
+		SSHAuthorizedKeys:    []string{sshPublicKey},
 	}
 }
 
@@ -204,7 +264,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	ctx := context.Background()
 
-	waitForClusterReconcileTimeout := 30
+	waitForReconcileTimeout := 30
 
 	AfterEach(func() {
 		cleanUP(ctx, kubeClient)
@@ -219,7 +279,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      spec.ClusterName,
 		}
-		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForClusterReconcileTimeout)
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
@@ -227,7 +287,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
-		waitForClusterDeploymentCRDState(ctx, kubeClient, key, models.ClusterStatusPreparingForInstallation, waitForClusterReconcileTimeout)
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, key).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusPreparingForInstallation))
 		for _, host := range hosts {
 			key = types.NamespacedName{
 				Namespace: Options.Namespace,
@@ -245,7 +311,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      spec.ClusterName,
 		}
-		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForClusterReconcileTimeout)
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		host := setupNewHost(ctx, "hostname1", *cluster.ID)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -263,5 +329,49 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
+	})
+
+	It("deploy clusterDeployment and installEnv and verify updates", func() {
+		installEnvName := "installenv"
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.NoProxy).Should(Equal(""))
+		Expect(cluster.HTTPProxy).Should(Equal(""))
+		Expect(cluster.HTTPSProxy).Should(Equal(""))
+		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
+
+		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
+
+		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
+		installEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      installEnvName,
+		}
+		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		Eventually(func() string {
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.NoProxy).Should(Equal("192.168.1.1"))
+		Expect(cluster.HTTPProxy).Should(Equal("http://192.168.1.2"))
+		Expect(cluster.HTTPSProxy).Should(Equal("http://192.168.1.3"))
+		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("192.168.1.4"))
 	})
 })

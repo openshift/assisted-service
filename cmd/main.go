@@ -71,7 +71,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -412,24 +411,23 @@ func main() {
 	}()
 
 	go func() {
-		pullSecretUpdatesChannel := make(chan event.GenericEvent)
-
 		if Options.EnableKubeAPI {
+			crdEventsHandler := controllers.NewCRDEventsHandler()
 			failOnError((&controllers.InstallEnvReconciler{
-				Client:                   ctrlMgr.GetClient(),
-				Log:                      log,
-				Installer:                bm,
-				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				Installer:        bm,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InstallEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
-				Client:                   ctrlMgr.GetClient(),
-				Log:                      log,
-				Scheme:                   ctrlMgr.GetScheme(),
-				Installer:                bm,
-				ClusterApi:               clusterApi,
-				HostApi:                  hostApi,
-				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				Scheme:           ctrlMgr.GetScheme(),
+				Installer:        bm,
+				ClusterApi:       clusterApi,
+				HostApi:          hostApi,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{

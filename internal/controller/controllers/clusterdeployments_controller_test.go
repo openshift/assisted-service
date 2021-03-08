@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -133,11 +134,13 @@ var _ = Describe("cluster reconcile", func() {
 	var (
 		c                     client.Client
 		cr                    *ClusterDeploymentsReconciler
+		ir                    *InstallEnvReconciler
 		ctx                   = context.Background()
 		mockCtrl              *gomock.Controller
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		mockClusterApi        *cluster.MockAPI
 		mockHostApi           *host.MockAPI
+		mockCRDEventsHandler  *MockCRDEventsHandler
 		clusterName           = "test-cluster"
 		pullSecretName        = "pull-secret"
 		defaultClusterSpec    hivev1.ClusterDeploymentSpec
@@ -160,13 +163,21 @@ var _ = Describe("cluster reconcile", func() {
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi = cluster.NewMockAPI(mockCtrl)
 		mockHostApi = host.NewMockAPI(mockCtrl)
+		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
-			Client:     c,
-			Scheme:     scheme.Scheme,
-			Log:        common.GetTestLog(),
-			Installer:  mockInstallerInternal,
-			ClusterApi: mockClusterApi,
-			HostApi:    mockHostApi,
+			Client:           c,
+			Scheme:           scheme.Scheme,
+			Log:              common.GetTestLog(),
+			Installer:        mockInstallerInternal,
+			ClusterApi:       mockClusterApi,
+			HostApi:          mockHostApi,
+			CRDEventsHandler: mockCRDEventsHandler,
+		}
+		ir = &InstallEnvReconciler{
+			Client:           c,
+			Log:              common.GetTestLog(),
+			Installer:        mockInstallerInternal,
+			CRDEventsHandler: mockCRDEventsHandler,
 		}
 	})
 
@@ -214,6 +225,44 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
 				validateCreation(cluster)
+			})
+
+			It("create cluster and validate installEnv updates", func() {
+				updateReply := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:         clusterReply.ID,
+						Status:     swag.String(models.ClusterStatusInsufficient),
+						StatusInfo: swag.String(models.ClusterStatusInsufficient),
+					},
+					PullSecret: testPullSecretVal,
+				}
+
+				// Create Cluster
+				mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(clusterReply, nil)
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(clusterReply, nil).AnyTimes()
+				clusterDeployment := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, clusterDeployment)).ShouldNot(HaveOccurred())
+				validateCreation(clusterDeployment)
+				//Create InstallEnv
+				mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(gomock.Any(), gomock.Any()).Times(1)
+				installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
+					ClusterRef: &adiiov1alpha1.ClusterReference{Name: clusterDeployment.Name, Namespace: clusterDeployment.Namespace},
+					Proxy: &adiiov1alpha1.Proxy{ // These changes are expected to trigger a notification to clusterDeployments controller to Reconcile.
+						NoProxy:    "http://192.168.1.1",
+						HTTPProxy:  "http://192.168.1.2",
+						HTTPSProxy: "http://192.168.1.3",
+					},
+				})
+				Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+				res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+				mockCRDEventsHandler.EXPECT().NotifyInstallEnvUpdates(gomock.Any(), gomock.Any()).Times(1)
+				Expect(err).To(BeNil())
+				Expect(res).To(Equal(ctrl.Result{}))
+				// Reconcile clusterDeployment to get the updates
+				mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(updateReply, nil)
+				res, err = cr.Reconcile(newClusterDeploymentRequest(clusterDeployment))
+				Expect(err).To(BeNil())
+				Expect(res).To(Equal(ctrl.Result{}))
 			})
 
 			It("create sno cluster", func() {
