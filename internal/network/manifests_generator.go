@@ -223,20 +223,9 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 }
 
 func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
-	bootstrap := common.GetBootstrapHost(cluster)
-	if bootstrap == nil {
-		return nil, errors.Errorf("no bootstap host were found in cluter")
-	}
-
-	cidr := GetMachineCidrForUserManagedNetwork(cluster, log)
-	cluster.MachineNetworkCidr = cidr
-	hostIp, err := getMachineCIDRObj(bootstrap, cluster, "ip")
-	if hostIp == "" || err != nil {
-		msg := "failed to get ip for bootstrap in place dnsmasq manifest"
-		if err != nil {
-			msg = errors.Wrapf(err, msg).Error()
-		}
-		return nil, errors.Errorf(msg)
+	hostIp, err := GetIpForSingleNodeInstallation(cluster, log)
+	if err != nil {
+		return nil, err
 	}
 
 	var manifestParams = map[string]string{
