@@ -3900,8 +3900,7 @@ func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster co
 		if common.IsSingleNodeCluster(&cluster) {
 			apiVip, err = network.GetIpForSingleNodeInstallation(&cluster, log)
 			if err != nil {
-				log.WithError(err).Errorf("failed to find ip for DNS record: (%s, %s)",
-					domain.APIINTDomainName, apiVip)
+				log.WithError(err).Errorf("failed to find ip for single node installation")
 				return err
 			}
 
