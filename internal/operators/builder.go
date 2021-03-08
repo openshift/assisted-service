@@ -31,6 +31,7 @@ var monitoredOperators = map[string]*models.MonitoredOperator{
 	// OLMs
 	lso.Operator.Name: &lso.Operator,
 	ocs.Operator.Name: &ocs.Operator,
+	cnv.Operator.Name: &cnv.Operator,
 }
 
 // NewManager creates new instance of an Operator Manager
