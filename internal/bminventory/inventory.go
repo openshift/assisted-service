@@ -755,7 +755,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Creating AMS subscription for cluster %s", *cluster.ID)
-	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID)
+	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID, cluster.Name)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create AMS subscription for cluster %s, rolling back cluster registration", *cluster.ID)
 		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
@@ -1754,7 +1754,8 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		}
 		params.ClusterUpdateParams.PullSecret = &ps
 	}
-	if newClusterName := swag.StringValue(params.ClusterUpdateParams.Name); newClusterName != "" {
+	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
+	if newClusterName != "" {
 		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -1841,6 +1842,13 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
+	if b.ocmClient != nil && b.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
+		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, newClusterName); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
+			return nil, err
+		}
+	}
+
 	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
@@ -1866,6 +1874,16 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	}
 
 	return cluster, nil
+}
+
+func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Context, cluster *common.Cluster, newClusterName string) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating AMS subscription for cluster %s with new name %s", *cluster.ID, newClusterName)
+	if err := b.ocmClient.AccountsMgmt.UpdateSubscriptionDisplayName(ctx, cluster.AmsSubscriptionID, newClusterName); err != nil {
+		log.WithError(err).Errorf("Failed to update AMS subscription with the new cluster name %s for cluster %s", newClusterName, *cluster.ID)
+		return err
+	}
+	return nil
 }
 
 func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetworkCIDR string) {
@@ -3849,15 +3867,24 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 		return common.GenerateErrorResponder(err)
 	}
 
-	if b.ocmClient != nil {
-		_, err := b.ocmClient.AccountsMgmt.UpdateSubscription(ctx, cluster.AmsSubscriptionID, cluster.OpenshiftClusterID)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to update AMS subscription for cluster %v", cluster.ID)
+	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+		if err = b.integrateWithAMSClusterUpdatePostInstallation(ctx, cluster); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update post installation", *cluster.ID)
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 
 	return installer.NewCompleteInstallationAccepted().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) integrateWithAMSClusterUpdatePostInstallation(ctx context.Context, cluster *common.Cluster) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating AMS subscription for cluster %s post installation", *cluster.ID)
+	if err := b.ocmClient.AccountsMgmt.UpdateSubscriptionPostInstallation(ctx, cluster.AmsSubscriptionID, cluster.OpenshiftClusterID); err != nil {
+		log.WithError(err).Errorf("Failed to update AMS subscription for cluster %s post installation", *cluster.ID)
+		return err
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {

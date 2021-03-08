@@ -36,18 +36,18 @@ func (m *MockOCMAccountsMgmt) EXPECT() *MockOCMAccountsMgmtMockRecorder {
 }
 
 // CreateSubscription mocks base method
-func (m *MockOCMAccountsMgmt) CreateSubscription(arg0 context.Context, arg1 strfmt.UUID) (*v1.Subscription, error) {
+func (m *MockOCMAccountsMgmt) CreateSubscription(arg0 context.Context, arg1 strfmt.UUID, arg2 string) (*v1.Subscription, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSubscription", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateSubscription", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*v1.Subscription)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateSubscription indicates an expected call of CreateSubscription
-func (mr *MockOCMAccountsMgmtMockRecorder) CreateSubscription(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockOCMAccountsMgmtMockRecorder) CreateSubscription(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubscription", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).CreateSubscription), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSubscription", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).CreateSubscription), arg0, arg1, arg2)
 }
 
 // DeleteSubscription mocks base method
@@ -79,17 +79,30 @@ func (mr *MockOCMAccountsMgmtMockRecorder) GetSubscription(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSubscription", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).GetSubscription), arg0, arg1)
 }
 
-// UpdateSubscription mocks base method
-func (m *MockOCMAccountsMgmt) UpdateSubscription(arg0 context.Context, arg1, arg2 strfmt.UUID) (*v1.Subscription, error) {
+// UpdateSubscriptionDisplayName mocks base method
+func (m *MockOCMAccountsMgmt) UpdateSubscriptionDisplayName(arg0 context.Context, arg1 strfmt.UUID, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSubscription", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.Subscription)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "UpdateSubscriptionDisplayName", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
-// UpdateSubscription indicates an expected call of UpdateSubscription
-func (mr *MockOCMAccountsMgmtMockRecorder) UpdateSubscription(arg0, arg1, arg2 interface{}) *gomock.Call {
+// UpdateSubscriptionDisplayName indicates an expected call of UpdateSubscriptionDisplayName
+func (mr *MockOCMAccountsMgmtMockRecorder) UpdateSubscriptionDisplayName(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscription", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).UpdateSubscription), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscriptionDisplayName", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).UpdateSubscriptionDisplayName), arg0, arg1, arg2)
+}
+
+// UpdateSubscriptionPostInstallation mocks base method
+func (m *MockOCMAccountsMgmt) UpdateSubscriptionPostInstallation(arg0 context.Context, arg1, arg2 strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSubscriptionPostInstallation", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSubscriptionPostInstallation indicates an expected call of UpdateSubscriptionPostInstallation
+func (mr *MockOCMAccountsMgmtMockRecorder) UpdateSubscriptionPostInstallation(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscriptionPostInstallation", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).UpdateSubscriptionPostInstallation), arg0, arg1, arg2)
 }
