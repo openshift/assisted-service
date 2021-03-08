@@ -133,7 +133,7 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticNetworkConf
 	}
 
 	if staticNetworkConfig != "" || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
-		if err := e.addCustomRAMDisk(clusterISOPath, staticNetworkConfig, clusterProxyInfo, ramDiskOffsetInfo.Offset); err != nil {
+		if err := e.addCustomRAMDisk(clusterISOPath, staticNetworkConfig, clusterProxyInfo, ramDiskOffsetInfo); err != nil {
 			return "", errors.Wrap(err, "failed to add additional ramdisk")
 		}
 	}
@@ -212,7 +212,7 @@ func (e *rhcosEditor) addIgnitionArchive(clusterISOPath, ignition string, igniti
 	return writeAt(archiveBytes, int64(ignitionOffset), clusterISOPath)
 }
 
-func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo, ramdiskOffset uint64) error {
+func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
 	buffer := new(bytes.Buffer)
 	w := cpio.NewWriter(buffer)
 	if staticNetworkConfig != "" {
@@ -247,7 +247,13 @@ func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig strin
 		return err
 	}
 
-	return writeAt(buffer.Bytes(), int64(ramdiskOffset), clusterISOPath)
+	// Ensures RAM placeholder is large enough to accommodate the custom disk
+	if uint64(buffer.Len()) > ramdiskOffsetInfo.Length {
+		return errors.Errorf("Custom RAM disk is larger than the placeholder in ISO (%d bytes > %d bytes)",
+			buffer.Len(), RamDiskPaddingLength)
+	}
+
+	return writeAt(buffer.Bytes(), int64(ramdiskOffsetInfo.Offset), clusterISOPath)
 }
 
 func (e *rhcosEditor) formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {

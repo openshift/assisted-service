@@ -1184,6 +1184,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
 		if err := b.generateClusterMinimalISO(ctx, log, cluster, ignitionConfig, objectPrefix); err != nil {
+			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", cluster.ID)
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {

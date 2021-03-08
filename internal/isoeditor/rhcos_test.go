@@ -185,7 +185,14 @@ var _ = Context("with test files", func() {
 			ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoFile)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = editor.(*rhcosEditor).addCustomRAMDisk(isoFile, "staticnetworkconfig", &clusterProxyInfo, ramDiskOffset)
+			ramDiskSize, err := isoutil.GetFileSize(ramDiskImagePath, isoFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			err = editor.(*rhcosEditor).addCustomRAMDisk(isoFile, "staticnetworkconfig", &clusterProxyInfo,
+				&OffsetInfo{
+					Offset: ramDiskOffset,
+					Length: ramDiskSize,
+				})
 			Expect(err).ToNot(HaveOccurred())
 
 			err = isoHandler.Extract()
@@ -232,6 +239,30 @@ var _ = Context("with test files", func() {
 				clusterProxyInfo.HTTPProxy, clusterProxyInfo.HTTPSProxy, clusterProxyInfo.NoProxy)
 			Expect(rootfsServiceConfigContent).To(Equal(rootfsServiceConfig))
 		})
+	})
+	It("custom RAM disk is larger than placeholder", func() {
+		editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
+		staticNetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
+			{
+				FilePath:     strings.Repeat("n", int(RamDiskPaddingLength)),
+				FileContents: "c",
+			},
+		}
+		mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData("staticnetworkconfig").Return(staticNetworkConfigOutput, nil).Times(1)
+
+		ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoFile)
+		Expect(err).ToNot(HaveOccurred())
+
+		ramDiskSize, err := isoutil.GetFileSize(ramDiskImagePath, isoFile)
+		Expect(err).ToNot(HaveOccurred())
+
+		err = editor.(*rhcosEditor).addCustomRAMDisk(isoFile, "staticnetworkconfig", &ClusterProxyInfo{},
+			&OffsetInfo{
+				Offset: ramDiskOffset,
+				Length: ramDiskSize,
+			})
+		Expect(err).To(HaveOccurred())
+		Expect(err.Error()).Should(ContainSubstring("Custom RAM disk is larger than the placeholder in ISO"))
 	})
 })
 
