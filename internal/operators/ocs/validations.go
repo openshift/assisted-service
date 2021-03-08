@@ -233,7 +233,7 @@ func (o *ocsValidator) setStatusInsufficientResources(cpu int64, ram int64, disk
 		status = status + fmt.Sprint(TotalCPUs, " CPUs, excluding disk CPU resources ")
 	}
 	if ram < gbToBytes(TotalRAMGB) {
-		status = status + fmt.Sprint(TotalRAMGB, " RAM, excluding disk RAM resources ")
+		status = status + fmt.Sprint(TotalRAMGB, " RAM GB, excluding disk RAM resources ")
 	}
 	if disk < o.OCSRequiredDisk {
 		status = status + fmt.Sprint(o.OCSRequiredDisk, " Disks, ")
