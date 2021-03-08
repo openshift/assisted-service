@@ -533,6 +533,20 @@ func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, c, progress interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, c, progress)
 }
 
+// UpdateLogsProgress mocks base method
+func (m *MockAPI) UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateLogsProgress", ctx, c, progress)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateLogsProgress indicates an expected call of UpdateLogsProgress
+func (mr *MockAPIMockRecorder) UpdateLogsProgress(ctx, c, progress interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateLogsProgress", reflect.TypeOf((*MockAPI)(nil).UpdateLogsProgress), ctx, c, progress)
+}
+
 // GetClusterByKubeKey mocks base method
 func (m *MockAPI) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

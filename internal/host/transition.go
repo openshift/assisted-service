@@ -26,10 +26,12 @@ import (
 type transitionHandler struct {
 	db            *gorm.DB
 	log           logrus.FieldLogger
+	config        *Config
 	eventsHandler events.Handler
 }
 
 var resetFields = [...]interface{}{"inventory", "", "bootstrap", false, "ntp_sources", ""}
+var resetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
 
 ////////////////////////////////////////////////////////////////////////////
 // RegisterHost
@@ -240,8 +242,9 @@ func (th *transitionHandler) PostResetHost(sw stateswitch.StateSwitch, args stat
 		return errors.New("PostResetHost invalid argument")
 	}
 
+	extra := append(append(make([]interface{}, 0), "StatusUpdatedAt", strfmt.DateTime(time.Now())), resetLogsField...)
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		params.reason, "StatusUpdatedAt", strfmt.DateTime(time.Now()), "LogsCollectedAt", strfmt.DateTime(time.Time{}))
+		params.reason, extra...)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -361,8 +364,10 @@ type TransitionArgsPrepareForInstallation struct {
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sHost, _ := sw.(*stateHost)
 	params, _ := args.(*TransitionArgsPrepareForInstallation)
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoPreparingForInstallation, "logs_collected_at", strfmt.DateTime(time.Time{}))
+
+	err := th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
+		statusInfoPreparingForInstallation, hostutil.ResetLogsField...)
+	return err
 }
 
 func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateHost,
@@ -436,6 +441,57 @@ func (th *transitionHandler) HasClusterError(sw stateswitch.StateSwitch, args st
 		return false, err
 	}
 	return swag.StringValue(cluster.Status) == models.ClusterStatusError, nil
+}
+
+func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitch.PostTransition {
+	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		sHost, ok := sw.(*stateHost)
+		if !ok {
+			return errors.New("Host PostRefreshLogsProgress incompatible type of StateSwitch")
+		}
+		params, ok := args.(*TransitionArgsRefreshHost)
+		if !ok {
+			return errors.New("Host PostRefreshLogsProgress invalid argument")
+		}
+		_, err := hostutil.UpdateLogsProgress(params.ctx, logutil.FromContext(params.ctx, th.log),
+			params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState, progress)
+		return err
+	}
+	return ret
+}
+
+//check if log collection on cluster level reached timeout
+func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sHost, ok := sw.(*stateHost)
+	if !ok {
+		return false, errors.New("IsLogCollectionTimedOut incompatible type of StateSwitch")
+	}
+
+	// if we transitioned to the state before the logs were collected, check the timeout
+	// from the time the state machine entered the state
+	if sHost.host.LogsInfo == models.LogsStateEmpty && time.Time(sHost.host.LogsStartedAt).IsZero() {
+		return time.Since(time.Time(sHost.host.StatusUpdatedAt)) > th.config.LogPendingTimeout, nil
+	}
+
+	// if logs were requested but not collected (e.g log-sender pod did not start), check the timeout
+	// from the the time the logs were expected
+	if sHost.host.LogsInfo == models.LogsStateRequested && time.Time(sHost.host.LogsCollectedAt).IsZero() {
+		return time.Since(time.Time(sHost.host.LogsStartedAt)) > th.config.LogCollectionTimeout, nil
+	}
+
+	// if logs are requested, and some logs were collected (e.g. install-gather takes too long to collect)
+	// check the timeout from the time logs were last collected
+	if sHost.host.LogsInfo == models.LogsStateRequested && !time.Time(sHost.host.LogsCollectedAt).IsZero() {
+		return time.Since(time.Time(sHost.host.LogsCollectedAt)) > th.config.LogCollectionTimeout, nil
+	}
+
+	// if logs are uploaded but not completed or re-requested (e.g. log_sender was crashed mid action or complete was lost)
+	// check the timeout from the last time the log were collected
+	if sHost.host.LogsInfo == models.LogsStateCollecting {
+		return time.Since(time.Time(sHost.host.LogsCollectedAt)) > th.config.LogPendingTimeout, nil
+	}
+
+	return false, nil
 }
 
 func (th *transitionHandler) HasInstallationTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {

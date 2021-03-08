@@ -22,6 +22,8 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
+
 type transitionHandler struct {
 	log           logrus.FieldLogger
 	db            *gorm.DB
@@ -72,10 +74,9 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 		return errors.New("PostResetCluster invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason,
-		"ControllerLogsCollectedAt", strfmt.DateTime(time.Time{}),
-		"OpenshiftClusterID", "", // reset Openshift cluster ID when resetting
-	)
+	//reset log fields and Openshift ClusterID when resetting the cluster
+	extra := append(append(make([]interface{}, 0), "OpenshiftClusterID", ""), resetLogsField...)
+	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason, extra...)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -91,6 +92,7 @@ type TransitionArgsPrepareForInstallation struct {
 
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, ok := sw.(*stateCluster)
+	var err error
 	if !ok {
 		return errors.New("PostPrepareForInstallation incompatible type of StateSwitch")
 	}
@@ -99,9 +101,13 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		return errors.New("PostPrepareForInstallation invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
-		statusInfoPreparingForInstallation, "install_started_at", strfmt.DateTime(time.Now()),
-		"controller_logs_collected_at", strfmt.DateTime(time.Time{}))
+	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now())), resetLogsField...)
+	err = th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
+		statusInfoPreparingForInstallation, extra...)
+	if err != nil {
+		th.log.WithError(err).Errorf("failed to reset fields in PostPrepareForInstallation on cluster %s", *sCluster.cluster.ID)
+	}
+	return err
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -183,7 +189,6 @@ func (th *transitionHandler) PostHandlePreInstallationError(sw stateswitch.State
 
 func (th *transitionHandler) updateTransitionCluster(log logrus.FieldLogger, db *gorm.DB, state *stateCluster,
 	statusInfo string, extra ...interface{}) error {
-
 	if cluster, err := updateClusterStatus(log, db, *state.cluster.ID, state.srcState,
 		swag.StringValue(state.cluster.Status), statusInfo, extra...); err != nil {
 		return err
@@ -307,6 +312,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		if !ok {
 			return errors.New("PostRefreshCluster invalid argument")
 		}
+
 		var (
 			b              []byte
 			err            error
@@ -345,6 +351,48 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		return nil
 	}
 	return ret
+}
+
+func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitch.PostTransition {
+	return func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		sCluster, _ := sw.(*stateCluster)
+		return updateLogsProgress(th.log, th.db, sCluster.cluster, swag.StringValue(sCluster.cluster.Status), progress)
+	}
+}
+
+//check if log collection on cluster level reached timeout
+func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		th.log.Error("IsLogCollectionTimedOut incompatible type of StateSwitch")
+		return false, errors.New("Cluster IsLogCollectionTimedOut incompatible type of StateSwitch")
+	}
+
+	// if we transitioned to the state before the logs were collected, check the timeout
+	// from the time the state machine entered the state
+	if sCluster.cluster.LogsInfo == models.LogsStateEmpty && time.Time(sCluster.cluster.ControllerLogsStartedAt).IsZero() {
+		return time.Since(time.Time(sCluster.cluster.StatusUpdatedAt)) > th.prepareConfig.LogPendingTimeout, nil
+	}
+
+	// if logs are requested, but not collected at all (e.g. controller failed to start or could not send back the
+	// logs due to networking error) then check the timeout from the time logs were expected
+	if sCluster.cluster.LogsInfo == models.LogsStateRequested && time.Time(sCluster.cluster.ControllerLogsCollectedAt).IsZero() {
+		return time.Since(time.Time(sCluster.cluster.ControllerLogsStartedAt)) > th.prepareConfig.LogPendingTimeout, nil
+	}
+
+	// if logs are requested, and some logs were collected (e.g. must-gather takes too long to collect)
+	// check the timeout from the time logs were last collected
+	if sCluster.cluster.LogsInfo == models.LogsStateRequested && !time.Time(sCluster.cluster.ControllerLogsCollectedAt).IsZero() {
+		return time.Since(time.Time(sCluster.cluster.ControllerLogsCollectedAt)) > th.prepareConfig.LogCollectionTimeout, nil
+	}
+
+	// if logs are uploaded but not completed (e.g. controller was crashed mid action or request was lost)
+	// check the timeout from the last time the log were collected
+	if sCluster.cluster.LogsInfo == models.LogsStateCollecting {
+		return time.Since(time.Time(sCluster.cluster.ControllerLogsCollectedAt)) > th.prepareConfig.LogCollectionTimeout, nil
+	}
+
+	return false, nil
 }
 
 func setPendingUserResetIfNeeded(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, hostApi host.API, c *common.Cluster) {

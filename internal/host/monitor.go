@@ -3,9 +3,18 @@ package host
 import (
 	"context"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/requestid"
+	"github.com/thoas/go-funk"
 )
+
+func (m *Manager) SkipMonitoring(h *models.Host) bool {
+	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout), ""}
+	result := ((swag.StringValue(h.Status) == models.HostStatusError || swag.StringValue(h.Status) == models.HostStatusCancelled) &&
+		funk.Contains(skipMonitoringStates, h.LogsInfo))
+	return result
+}
 
 func (m *Manager) HostMonitoring() {
 	if !m.leaderElector.IsLeader() {
@@ -33,9 +42,10 @@ func (m *Manager) HostMonitoring() {
 		models.HostStatusInstalled,
 		models.HostStatusInstallingPendingUserAction,
 		models.HostStatusResettingPendingUserAction,
+		models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
+		models.HostStatusError,     // for limited time, until log collection finished or timed-out
 	}
 	for {
-		//for offset = 0; offset < count; offset += limit {
 		hosts := make([]*models.Host, 0, limit)
 		if err := m.db.Where("status IN (?)", monitorStates).Offset(offset).Limit(limit).
 			Order("cluster_id, id").Find(&hosts).Error; err != nil {
@@ -50,8 +60,10 @@ func (m *Manager) HostMonitoring() {
 				m.log.Debugf("Not a leader, exiting HostMonitoring")
 				return
 			}
-			if err := m.RefreshStatus(ctx, host, m.db); err != nil {
-				log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+			if !m.SkipMonitoring(host) {
+				if err := m.RefreshStatus(ctx, host, m.db); err != nil {
+					log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+				}
 			}
 		}
 		offset += limit

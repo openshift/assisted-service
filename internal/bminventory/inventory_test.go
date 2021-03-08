@@ -4309,9 +4309,9 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 
 	AfterEach(func() {
-		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
 		kubeconfigFile.Close()
+		ctrl.Finish()
 	})
 
 	It("Upload logs cluster not exits", func() {
@@ -4361,9 +4361,41 @@ var _ = Describe("Upload and Download logs test", func() {
 		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockHostApi.EXPECT().SetUploadLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)
 		reply := bm.UploadHostLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadHostLogsNoContent()))
 	})
+	It("start collecting hosts logs indication", func() {
+		newHostID := strfmt.UUID(uuid.New().String())
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		params := installer.UpdateHostLogsProgressParams{
+			ClusterID:   clusterID,
+			HostID:      *host.ID,
+			HTTPRequest: request,
+			LogsProgressParams: &models.LogsProgressParams{
+				LogsState: models.LogsStateRequested,
+			},
+		}
+		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateRequested)).Return(nil).Times(1)
+		reply := bm.UpdateHostLogsProgress(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostLogsProgressNoContent()))
+	})
+	It("complete collecting hosts logs indication", func() {
+		newHostID := strfmt.UUID(uuid.New().String())
+		host := addHost(newHostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
+		params := installer.UpdateHostLogsProgressParams{
+			ClusterID:   clusterID,
+			HostID:      *host.ID,
+			HTTPRequest: request,
+			LogsProgressParams: &models.LogsProgressParams{
+				LogsState: models.LogsStateCompleted,
+			},
+		}
+		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCompleted)).Return(nil).Times(1)
+		reply := bm.UpdateHostLogsProgress(ctx, params)
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostLogsProgressNoContent()))
+	})
+
 	It("Upload Controller logs Happy flow", func() {
 		params := installer.UploadLogsParams{
 			ClusterID:   clusterID,
@@ -4374,6 +4406,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		fileName := bm.getLogsFullName(clusterID.String(), string(models.LogsTypeController))
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockClusterApi.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockClusterApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)
 		reply := bm.UploadLogs(ctx, params)
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewUploadLogsNoContent()))
 	})

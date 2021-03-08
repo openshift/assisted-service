@@ -40,7 +40,6 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	newStatus string, statusInfo string, extra ...interface{}) (*common.Cluster, error) {
 	var cluster *common.Cluster
 	var err error
-
 	extra = append(append(make([]interface{}, 0), "status", newStatus, "status_info", statusInfo), extra...)
 
 	if newStatus != srcStatus {
@@ -82,6 +81,32 @@ func updateClusterProgress(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt
 
 	log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
 	return cluster, nil
+}
+
+func updateLogsProgress(log logrus.FieldLogger, db *gorm.DB, c *common.Cluster, srcStatus string,
+	progress string) error {
+	var updates map[string]interface{}
+
+	switch progress {
+	case string(models.LogsStateRequested):
+		updates = map[string]interface{}{
+			"logs_info":                  progress,
+			"controller_logs_started_at": strfmt.DateTime(time.Now()),
+		}
+	default:
+		updates = map[string]interface{}{
+			"logs_info": progress,
+		}
+	}
+
+	err := db.Model(c).Update(updates).Error
+	if err != nil {
+		log.WithError(err).Errorf("could not update log progress %v on cluster %s", updates, *c.ID)
+		return err
+	}
+
+	log.Infof("cluster %s has been updated with the following log progress %+v", *c.ID, updates)
+	return nil
 }
 
 func ClusterExists(db *gorm.DB, clusterId strfmt.UUID) bool {

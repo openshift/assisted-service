@@ -476,10 +476,24 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
 	})
 
+	// check timeout of log collection
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.HostStatusError),
+		stateswitch.State(models.HostStatusCancelled)} {
+		sm.AddTransition(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeRefresh,
+			SourceStates:     []stateswitch.State{state},
+			DestinationState: state,
+			Condition:        th.IsLogCollectionTimedOut,
+			PostTransition:   th.PostRefreshLogsProgress(string(models.LogsStateTimeout)),
+		})
+	}
+
 	// Noop transitions
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.HostStatusDisabled),
 		stateswitch.State(models.HostStatusError),
+		stateswitch.State(models.HostStatusCancelled),
 		stateswitch.State(models.HostStatusResetting),
 	} {
 		sm.AddTransition(stateswitch.TransitionRule{

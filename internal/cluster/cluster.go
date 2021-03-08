@@ -91,12 +91,18 @@ type API interface {
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	PermanentClustersDeletion(ctx context.Context, olderThen strfmt.DateTime, objectHandler s3wrapper.API) error
 	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
+	UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
 }
 
+type LogTimeoutConfig struct {
+	LogCollectionTimeout time.Duration `envconfig:"LOG_COLLECTION_TIMEOUT" default:"60m"`
+	LogPendingTimeout    time.Duration `envconfig:"LOG_PENDING_TIMEOUT" default:"10m"`
+}
 type PrepareConfig struct {
+	LogTimeoutConfig
 	InstallationTimeout time.Duration `envconfig:"PREPARE_FOR_INSTALLATION_TIMEOUT" default:"10m"`
 }
 
@@ -286,6 +292,10 @@ func (m *Manager) autoAssignMachineNetworkCidrs() error {
 }
 
 func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
+	notAllowedStates := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
+	if funk.Contains(notAllowedStates, *c.Status) {
+		return false
+	}
 	timeToCompare := c.MachineNetworkCidrUpdatedAt.Add(DhcpLeaseTimeoutMinutes * time.Minute)
 	return swag.BoolValue(c.VipDhcpAllocation) && (c.APIVip == "" || c.IngressVip == "") && c.MachineNetworkCidr != "" &&
 		(m.prevMonitorInvokedAt.Before(timeToCompare) || m.prevMonitorInvokedAt.Equal(timeToCompare)) &&
@@ -294,6 +304,16 @@ func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorIn
 
 func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *common.Cluster) {
 	m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "API and Ingress VIPs lease allocation has been timed out", time.Now())
+}
+
+func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
+	// logs required monitoring on error state until IsLogCollectionTimedOut move the logs state to timeout,
+	// or remote controllers reports that their log colection has been completed. Then, monitoring should be
+	// stopped to avoid excessive computation
+	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout)}
+	result := ((swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
+		funk.Contains(skipMonitoringStates, c.LogsInfo))
+	return result
 }
 
 func (m *Manager) ClusterMonitoring() {
@@ -320,9 +340,10 @@ func (m *Manager) ClusterMonitoring() {
 	}()
 
 	//no need to refresh cluster status if the cluster is in the following statuses
+	//when cluster is in error. it should be still monitored until all the logs are collected.
+	//Then, SkipMonitoring() stops the logic from running forever
 	noNeedToMonitorInStates := []string{
 		models.ClusterStatusInstalled,
-		models.ClusterStatusError,
 	}
 
 	for {
@@ -340,21 +361,23 @@ func (m *Manager) ClusterMonitoring() {
 				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 				return
 			}
-			if err = m.SetConnectivityMajorityGroupsForCluster(*cluster.ID, m.db); err != nil {
-				log.WithError(err).Errorf("failed to set majority group for cluster %s", cluster.ID.String())
-			}
-			if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
-				log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
-				continue
-			}
+			if !m.SkipMonitoring(cluster) {
+				if err = m.SetConnectivityMajorityGroupsForCluster(*cluster.ID, m.db); err != nil {
+					log.WithError(err).Errorf("failed to set majority group for cluster %s", cluster.ID.String())
+				}
+				if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
+					log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
+					continue
+				}
 
-			if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
-				log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
-					swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
-			}
+				if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
+					log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
+						swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
+				}
 
-			if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
-				m.triggerLeaseTimeoutEvent(ctx, cluster)
+				if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
+					m.triggerLeaseTimeoutEvent(ctx, cluster)
+				}
 			}
 		}
 		offset += limit
@@ -445,6 +468,11 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 	//report installation finished metric
 	m.metricAPI.ClusterInstallationFinished(log, "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 	return nil
+}
+
+func (m *Manager) UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error {
+	err := updateLogsProgress(logutil.FromContext(ctx, m.log), m.db, c, swag.StringValue(c.Status), progress)
+	return err
 }
 
 func (m *Manager) UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse {

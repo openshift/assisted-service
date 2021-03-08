@@ -282,12 +282,26 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		})
 	}
 
+	// check timeout of log collection
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.ClusterStatusError),
+		stateswitch.State(models.ClusterStatusCancelled)} {
+		sm.AddTransition(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeRefreshStatus,
+			SourceStates:     []stateswitch.State{state},
+			DestinationState: state,
+			Condition:        th.IsLogCollectionTimedOut,
+			PostTransition:   th.PostRefreshLogsProgress(string(models.LogsStateTimeout)),
+		})
+	}
+
 	// Noop transitions
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.ClusterStatusPreparingForInstallation),
 		stateswitch.State(models.ClusterStatusFinalizing),
 		stateswitch.State(models.ClusterStatusInstalled),
 		stateswitch.State(models.ClusterStatusError),
+		stateswitch.State(models.ClusterStatusCancelled),
 		stateswitch.State(models.ClusterStatusAddingHosts)} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefreshStatus,
