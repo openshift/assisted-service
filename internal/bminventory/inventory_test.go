@@ -251,7 +251,9 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo,
+			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`, cluster.ImageInfo.Type),
+			gomock.Any())
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -423,7 +425,9 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", gomock.Any())
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo,
+				`Re-used existing image rather than generating a new one (image type is "full-iso")`,
+				gomock.Any())
 			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: newStaticNetworkConfig},

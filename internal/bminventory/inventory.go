@@ -970,7 +970,8 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Started image download", time.Now())
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+		fmt.Sprintf(`Started image download (image type is "%s")`, cluster.ImageInfo.Type), time.Now())
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
@@ -1163,7 +1164,10 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		}
 
 		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`,
+				cluster.ImageInfo.Type),
+			time.Now())
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 	}
 
