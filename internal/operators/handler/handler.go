@@ -69,15 +69,16 @@ func (h *Handler) ReportMonitoredOperatorStatus(ctx context.Context, params rest
 // GetMonitoredOperators retrieves list of monitored operators for a cluster
 func (h *Handler) GetMonitoredOperators(ctx context.Context, clusterID strfmt.UUID, operatorName *string, db *gorm.DB) (models.MonitoredOperatorsList, error) {
 	log := logutil.FromContext(ctx, h.log)
-	var where *gorm.DB
-	if operatorName == nil || *operatorName == "" {
-		where = db.Where("cluster_id = ?", clusterID)
-	} else {
-		where = db.Where("name = ? and cluster_id = ?", *operatorName, clusterID)
+	if operatorName != nil && *operatorName != "" {
+		operator, err := h.FindMonitoredOperator(ctx, clusterID, *operatorName, db)
+		if err != nil {
+			return nil, err
+		}
+		return models.MonitoredOperatorsList{operator}, nil
 	}
 
 	var operatorsList = models.MonitoredOperatorsList{}
-	if err := where.Find(&operatorsList).Error; err != nil {
+	if err := db.Find(&operatorsList, "cluster_id = ?", clusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find monitored operators")
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
@@ -87,12 +88,26 @@ func (h *Handler) GetMonitoredOperators(ctx context.Context, clusterID strfmt.UU
 	return operatorsList, nil
 }
 
+// FindMonitoredOperator retrieves monitored operator identified by given cluster ID and non-empty name
+func (h *Handler) FindMonitoredOperator(ctx context.Context, clusterID strfmt.UUID, operatorName string, db *gorm.DB) (*models.MonitoredOperator, error) {
+	log := logutil.FromContext(ctx, h.log)
+	if operatorName == "" {
+		return nil, common.NewApiError(http.StatusBadRequest, errors.New("empty operator name is not allowed"))
+	}
+	var operator models.MonitoredOperator
+	if err := db.First(&operator, "cluster_id = ? and name = ?", clusterID, operatorName).Error; err != nil {
+		log.WithError(err).Errorf("failed to find monitored operator")
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		}
+	}
+	return &operator, nil
+}
+
 // UpdateMonitoredOperatorStatus updates status and status info of a monitored operator for a cluster
 func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID strfmt.UUID, monitoredOperatorName string, status models.OperatorStatus, statusInfo string) error {
 	log := logutil.FromContext(ctx, h.log)
-	if monitoredOperatorName == "" {
-		return common.NewApiError(http.StatusBadRequest, errors.New("empty operator name is not allowed"))
-	}
+
 	txSuccess := false
 	tx := h.db.Begin()
 	defer func() {
@@ -106,16 +121,11 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 		}
 	}()
 
-	monitoredOperators, err := h.GetMonitoredOperators(ctx, clusterID, &monitoredOperatorName, tx)
+	operator, err := h.FindMonitoredOperator(ctx, clusterID, monitoredOperatorName, tx)
 	if err != nil {
 		return err
 	}
-	if len(monitoredOperators) == 0 {
-		log.WithField("clusterID", clusterID).WithField("operator", monitoredOperatorName).Infof("Monitored operator not found")
-		return common.NewApiError(http.StatusNotFound, errors.New("monitored operator not found"))
-	}
 
-	operator := monitoredOperators[0]
 	operator.Status = status
 	operator.StatusInfo = statusInfo
 

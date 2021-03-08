@@ -22,12 +22,12 @@ const dbName = "operators_handler"
 
 var _ = Describe("Operators manager", func() {
 	var (
-		db      *gorm.DB
-		cluster *common.Cluster
-		log     = logrus.New()
-		ctrl    *gomock.Controller
-		mockApi *operators.MockAPI
-		handler *hndlr.Handler
+		db                *gorm.DB
+		cluster, cluster2 *common.Cluster
+		log               = logrus.New()
+		ctrl              *gomock.Controller
+		mockApi           *operators.MockAPI
+		handler           *hndlr.Handler
 	)
 
 	BeforeEach(func() {
@@ -36,19 +36,32 @@ var _ = Describe("Operators manager", func() {
 		mockApi = operators.NewMockAPI(ctrl)
 		handler = hndlr.NewHandler(mockApi, log, db)
 
-		// create simple cluster
+		// create simple cluster #1
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID,
 				MonitoredOperators: []*models.MonitoredOperator{
-					&common.TestDefaultConfig.MonitoredOperator,
-					&lso.Operator,
+					from(common.TestDefaultConfig.MonitoredOperator),
+					from(lso.Operator),
 				},
 			},
 		}
 		cluster.ImageInfo = &models.ImageInfo{}
 		Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
+
+		// create simple cluster #2
+		clusterID2 := strfmt.UUID(uuid.New().String())
+		cluster2 = &common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterID2,
+				MonitoredOperators: []*models.MonitoredOperator{
+					from(lso.Operator),
+				},
+			},
+		}
+		cluster2.ImageInfo = &models.ImageInfo{}
+		Expect(db.Save(&cluster2).Error).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -56,7 +69,32 @@ var _ = Describe("Operators manager", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	Context("ListOfClusterOperators", func() {
+	Context("FindMonitoredOperator", func() {
+		It("should return an operator", func() {
+			operatorName := "lso"
+			operator, err := handler.FindMonitoredOperator(context.TODO(), *cluster.ID, operatorName, db)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(operator.Name).To(BeEquivalentTo(operatorName))
+			Expect(operator.ClusterID).To(BeEquivalentTo(*cluster.ID))
+		})
+
+		It("should fail for empty name", func() {
+			operatorName := ""
+			_, err := handler.FindMonitoredOperator(context.TODO(), *cluster.ID, operatorName, db)
+
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should not find a non-existing operator", func() {
+			operatorName := "no-such-operator"
+			_, err := handler.FindMonitoredOperator(context.TODO(), *cluster.ID, operatorName, db)
+
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Context("GetMonitoredOperators", func() {
 		It("should return all monitored operators", func() {
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, nil, db)
 			Expect(err).ToNot(HaveOccurred())
@@ -64,21 +102,33 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("should return monitored operators with a name", func() {
+			// Cluster #1
 			operatorName := "lso"
 			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, &operatorName, db)
+
 			Expect(err).ToNot(HaveOccurred())
-			Expect(operators).To(ConsistOf(&lso.Operator))
+			Expect(operators).To(HaveLen(1))
+			Expect(operators[0].ClusterID).To(BeEquivalentTo(*cluster.ID))
+			Expect(operators[0].Name).To(BeEquivalentTo(operatorName))
+
+			// Cluster #2
+			operatorName2 := "lso"
+			operators2, err := handler.GetMonitoredOperators(context.TODO(), *cluster2.ID, &operatorName2, db)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(operators2).To(HaveLen(1))
+			Expect(operators2[0].ClusterID).To(BeEquivalentTo(*cluster2.ID))
+			Expect(operators2[0].Name).To(BeEquivalentTo(operatorName2))
 		})
 
 		It("should return no monitored operators when no match", func() {
 			notExistingOperatorName := "nothing-here"
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, &notExistingOperatorName, db)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(operators).To(BeEmpty())
+			_, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, &notExistingOperatorName, db)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
-	Context("ReportMonitoredOperatorStatus", func() {
+	Context("UpdateMonitoredOperatorStatus", func() {
 		It("should update operator status", func() {
 
 			statusInfo := "sorry, failed"
@@ -124,3 +174,11 @@ var _ = Describe("Operators manager", func() {
 
 	})
 })
+
+func from(prototype models.MonitoredOperator) *models.MonitoredOperator {
+	return &models.MonitoredOperator{
+		Name:           prototype.Name,
+		OperatorType:   prototype.OperatorType,
+		TimeoutSeconds: prototype.TimeoutSeconds,
+	}
+}
