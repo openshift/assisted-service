@@ -772,7 +772,7 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 	for _, vRes := range validationRes {
 		for _, v := range vRes {
 			if v.Status == ValidationFailure {
-				m.metricApi.HostValidationFailed(ocpVersion, h.ClusterID, emailDomain, models.HostValidationID(v.ID))
+				m.metricApi.HostValidationFailed(ocpVersion, emailDomain, models.HostValidationID(v.ID))
 			}
 		}
 	}
@@ -793,7 +793,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 					continue
 				}
 				if newValidationRes[vCategory][i].Status == ValidationFailure && v.Status == ValidationSuccess {
-					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, h.ClusterID, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
+					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
 					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
 					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
 				}
