@@ -16,6 +16,8 @@ type validationResult struct {
 	Message string           `json:"message"`
 }
 
+type validationsStatus map[string][]validationResult
+
 type refreshPreprocessor struct {
 	log          logrus.FieldLogger
 	validations  []validation
@@ -30,9 +32,9 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.Val
 	}
 }
 
-func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID]bool, map[string][]validationResult, error) {
+func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID]bool, validationsStatus, error) {
 	stateMachineInput := make(map[validationID]bool)
-	validationsOutput := make(map[string][]validationResult)
+	validationsOutput := make(validationsStatus)
 	for _, v := range r.validations {
 		st := v.condition(c)
 		stateMachineInput[v.id] = st == ValidationSuccess

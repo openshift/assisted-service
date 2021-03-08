@@ -2133,3 +2133,109 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		}
 	})
 })
+
+var _ = Describe("Validation metrics and events", func() {
+
+	const (
+		openshiftVersion = "dummyVersion"
+		emailDomain      = "dummy.com"
+	)
+
+	var (
+		ctrl            *gomock.Controller
+		ctx             = context.Background()
+		db              *gorm.DB
+		dbName          = "validation_metrics_and_events"
+		mockEvents      *events.MockHandler
+		mockHwValidator *hardware.MockValidator
+		mockMetric      *metrics.MockAPI
+		validatorCfg    *hardware.ValidatorCfg
+		m               *Manager
+		h               *models.Host
+	)
+
+	generateTestValidationResult := func(status ValidationStatus) validationsStatus {
+		validationRes := validationsStatus{
+			"hw": {
+				{
+					ID:     HasMinCPUCores,
+					Status: status,
+				},
+			},
+		}
+		return validationRes
+	}
+
+	registerTestHostWithValidations := func(clusterID strfmt.UUID) *models.Host {
+
+		hostID := strfmt.UUID(uuid.New().String())
+		h := hostutil.GenerateTestHost(hostID, clusterID, models.HostStatusInsufficient)
+
+		validationRes := generateTestValidationResult(ValidationFailure)
+		bytes, err := json.Marshal(validationRes)
+		Expect(err).ToNot(HaveOccurred())
+		h.ValidationsInfo = string(bytes)
+
+		h.Inventory = hostutil.GenerateMasterInventory()
+
+		err = m.RegisterHost(ctx, &h, db)
+		Expect(err).ToNot(HaveOccurred())
+
+		return &h
+	}
+
+	generateValidationCtx := func() *validationContext {
+		vc := validationContext{
+			cluster: &common.Cluster{
+				Cluster: models.Cluster{
+					OpenshiftVersion: openshiftVersion,
+					EmailDomain:      emailDomain,
+				},
+			},
+		}
+		return &vc
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		validatorCfg = createValidatorCfg()
+		m = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil)
+		h = registerTestHostWithValidations(strfmt.UUID(uuid.New().String()))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("Test ReportValidationFailedMetrics", func() {
+
+		mockMetric.EXPECT().HostValidationFailed(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
+
+		err := m.ReportValidationFailedMetrics(ctx, h, openshiftVersion, emailDomain)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	It("Test reportValidationStatusChanged", func() {
+
+		mockEvents.EXPECT().AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+
+		vc := generateValidationCtx()
+		newValidationRes := generateTestValidationResult(ValidationSuccess)
+		var currentValidationRes validationsStatus
+		err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes)
+		Expect(err).ToNot(HaveOccurred())
+		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+
+		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
+		mockEvents.EXPECT().AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, gomock.Any(), gomock.Any())
+
+		currentValidationRes = newValidationRes
+		newValidationRes = generateTestValidationResult(ValidationFailure)
+		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+	})
+})
