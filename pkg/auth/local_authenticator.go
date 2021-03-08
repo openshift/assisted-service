@@ -7,6 +7,9 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
+	"github.com/go-openapi/strfmt"
+	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -17,9 +20,10 @@ import (
 type LocalAuthenticator struct {
 	log       logrus.FieldLogger
 	publicKey crypto.PublicKey
+	db        *gorm.DB
 }
 
-func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger) (*LocalAuthenticator, error) {
+func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*LocalAuthenticator, error) {
 	if cfg.ECPublicKeyPEM == "" {
 		return nil, errors.Errorf("local authentication requires an ecdsa Public Key")
 	}
@@ -32,6 +36,7 @@ func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger) (*LocalAuthentic
 	a := &LocalAuthenticator{
 		log:       log,
 		publicKey: key,
+		db:        db,
 	}
 
 	return a, nil
@@ -42,11 +47,32 @@ func (a *LocalAuthenticator) AuthType() AuthType {
 }
 
 func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
-	_, err := validateToken(token, a.publicKey)
+	t, err := validateToken(token, a.publicKey)
 	if err != nil {
 		a.log.WithError(err).Error("failed to validate token")
 		return nil, err
 	}
+	claims, ok := t.Claims.(jwt.MapClaims)
+	if !ok {
+		err := errors.Errorf("failed to parse JWT token claims")
+		a.log.Error(err)
+		return nil, err
+	}
+
+	clusterID, ok := claims["cluster_id"].(string)
+	if !ok {
+		err := errors.Errorf("claims are incorrectly formatted")
+		a.log.Error(err)
+		return nil, err
+	}
+
+	if !cluster.ClusterExists(a.db, strfmt.UUID(clusterID)) {
+		err := errors.Errorf("cluster %s does not exist", clusterID)
+		a.log.Error(err)
+		return nil, err
+	}
+
+	a.log.Debugf("Authenticating cluster %s JWT", clusterID)
 	return ocm.AdminPayload(), nil
 }
 

@@ -57,7 +57,7 @@ func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger
 	case TypeNone:
 		a = NewNoneAuthenticator(log)
 	case TypeLocal:
-		a, err = NewLocalAuthenticator(cfg, log)
+		a, err = NewLocalAuthenticator(cfg, log, db)
 	default:
 		err = fmt.Errorf("invalid authenticator type %v", t)
 	}

@@ -63,7 +63,7 @@ var _ = Describe("NewAuthenticator", func() {
 		Expect(ok).To(BeTrue())
 
 		// LocalAuthenticator
-		_, ecdsaPubKey, err := ECDSATokenAndKey()
+		_, ecdsaPubKey, err := ECDSATokenAndKey("")
 		Expect(err).ToNot(HaveOccurred())
 		config = &Config{
 			AuthType:       TypeLocal,

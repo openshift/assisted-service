@@ -5,27 +5,44 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/go-openapi/strfmt"
+	"github.com/google/uuid"
+	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("AuthAgentAuth", func() {
 	var (
-		token string
-		key   string
-		a     *LocalAuthenticator
+		a       *LocalAuthenticator
+		cluster *common.Cluster
+		db      *gorm.DB
+		dbName  = "local_auth_test"
+		key     string
+		token   string
 	)
 
 	BeforeEach(func() {
+		db = common.PrepareTestDB(dbName)
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster = &common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
 		var err error
-		token, key, err = ECDSATokenAndKey()
+		token, key, err = ECDSATokenAndKey(clusterID.String())
 		Expect(err).ToNot(HaveOccurred())
 
 		cfg := &Config{ECPublicKeyPEM: key}
 
-		a, err = NewLocalAuthenticator(cfg, logrus.New())
+		a, err = NewLocalAuthenticator(cfg, logrus.New(), db)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	fakeTokenAlg := func(t string) string {
@@ -73,6 +90,14 @@ var _ = Describe("AuthAgentAuth", func() {
 	It("Fails with an RSA token", func() {
 		rsaToken, _ := GetTokenAndCert()
 		_, err := a.AuthAgentAuth(rsaToken)
+		Expect(err).To(HaveOccurred())
+	})
+
+	It("Fails for a deleted cluster", func() {
+		resp := db.Delete(cluster)
+		Expect(resp.Error).ToNot(HaveOccurred())
+
+		_, err := a.AuthAgentAuth(token)
 		Expect(err).To(HaveOccurred())
 	})
 })

@@ -87,14 +87,14 @@ func GenJSJWKS(privKey crypto.PublicKey, pubKey crypto.PublicKey) ([]byte, []byt
 	return pubJSJWKS, privJSJWKS, kid, nil
 }
 
-func ECDSATokenAndKey() (string, string, error) {
+func ECDSATokenAndKey(clusterID string) (string, string, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return "", "", err
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
-		"cluster_id": "6c7aec2b-c7c9-415b-b153-6dbb1f290f40",
+		"cluster_id": clusterID,
 	})
 	tokenString, err := token.SignedString(priv)
 	if err != nil {
