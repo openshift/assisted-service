@@ -42,6 +42,8 @@ func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*L
 	return a, nil
 }
 
+var _ Authenticator = &LocalAuthenticator{}
+
 func (a *LocalAuthenticator) AuthType() AuthType {
 	return TypeLocal
 }

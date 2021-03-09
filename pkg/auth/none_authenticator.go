@@ -17,6 +17,8 @@ func NewNoneAuthenticator(log logrus.FieldLogger) *NoneAuthenticator {
 	return &NoneAuthenticator{log: log}
 }
 
+var _ Authenticator = &NoneAuthenticator{}
+
 func (a *NoneAuthenticator) AuthType() AuthType {
 	return TypeNone
 }

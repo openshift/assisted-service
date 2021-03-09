@@ -46,6 +46,8 @@ func NewRHSSOAuthenticator(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldL
 	return a
 }
 
+var _ Authenticator = &RHSSOAuthenticator{}
+
 func (a *RHSSOAuthenticator) AuthType() AuthType {
 	return TypeRHSSO
 }
