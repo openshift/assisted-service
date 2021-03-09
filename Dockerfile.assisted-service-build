@@ -23,7 +23,7 @@ RUN pip3 install boto3==1.13.14 waiting==1.4.1 requests==2.22.0 mkdocs==1.1.2 \
 RUN curl -Lo minikube https://storage.googleapis.com/minikube/releases/v1.10.1/minikube-linux-amd64 \
   && chmod +x minikube && mkdir -p /usr/local/bin/ && install minikube /usr/local/bin/
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/`curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt`/bin/linux/amd64/kubectl && chmod +x ./kubectl && mv ./kubectl /usr/local/bin/kubectl
-COPY --from=quay.io/openshift/origin-cli /usr/bin/oc /usr/bin
+COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 RUN export ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac) \
   && export OS=$(uname | awk '{print tolower($0)}') && export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/latest/download \
   && curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH} \

@@ -35,6 +35,7 @@ ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
@@ -146,6 +147,7 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
+	$(call publish_image,podman,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
 	skipper make publish-client
 
 publish-client: generate-python-client
@@ -395,7 +397,7 @@ delete-all-minikube-profiles:
 
 # Current Operator version
 OPERATOR_VERSION ?= 0.0.1
-BUNDLE_OUTPUT_DIR := $(or ${BUNDLE_OUTPUT_DIR},./bundle)
+BUNDLE_OUTPUT_DIR := $(or ${BUNDLE_OUTPUT_DIR},$(BUILD_FOLDER)/bundle)
 
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: operator-bundle
@@ -424,10 +426,9 @@ operator-bundle: create-ocp-manifests
 	operator-sdk bundle validate $(BUNDLE_OUTPUT_DIR)
 
 # Build the bundle image.
-BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 .PHONY: operator-bundle-build operator-bundle-update
 operator-bundle-build:
-	podman build -f Dockerfile.bundle -t $(BUNDLE_IMAGE) .
+	podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.bundle -t $(BUNDLE_IMAGE) .
 
 operator-bundle-update:
 	podman push $(BUNDLE_IMAGE)
