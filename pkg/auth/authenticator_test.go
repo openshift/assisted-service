@@ -6,33 +6,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var _ = Describe("ResolvedAuth", func() {
-	It("works for all combinations", func() {
-		cases := []struct {
-			authType AuthType
-			enabled  bool
-			res      AuthType
-		}{
-			{authType: TypeEmpty, enabled: false, res: TypeNone},
-			{authType: TypeEmpty, enabled: true, res: TypeRHSSO},
-			{authType: TypeNone, enabled: false, res: TypeNone},
-			{authType: TypeNone, enabled: true, res: TypeNone},
-			{authType: TypeRHSSO, enabled: false, res: TypeRHSSO},
-			{authType: TypeRHSSO, enabled: true, res: TypeRHSSO},
-			{authType: TypeLocal, enabled: false, res: TypeLocal},
-			{authType: TypeLocal, enabled: true, res: TypeLocal},
-		}
-
-		for _, c := range cases {
-			config := Config{
-				EnableAuth: c.enabled,
-				AuthType:   c.authType,
-			}
-			Expect(config.ResolvedAuthType()).To(Equal(c.res), "expected type %s, and enabled %t to resolve to %s", c.authType, c.enabled, c.res)
-		}
-	})
-})
-
 var _ = Describe("NewAuthenticator", func() {
 	It("returns an error if passed an invalid type", func() {
 		config := &Config{AuthType: "blah"}

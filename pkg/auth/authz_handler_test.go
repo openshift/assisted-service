@@ -37,12 +37,8 @@ import (
 
 var _ = Describe("NewAuthzHandler", func() {
 	It("Is disabled unless auth type is rhsso", func() {
-		cfg := &Config{EnableAuth: true}
+		cfg := &Config{AuthType: TypeRHSSO}
 		handler := NewAuthzHandler(cfg, nil, logrus.New())
-		Expect(handler.Enabled).To(BeTrue())
-
-		cfg = &Config{AuthType: TypeRHSSO}
-		handler = NewAuthzHandler(cfg, nil, logrus.New())
 		Expect(handler.Enabled).To(BeTrue())
 
 		cfg = &Config{}

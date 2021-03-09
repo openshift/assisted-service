@@ -21,7 +21,7 @@ type AuthzHandler struct {
 
 func NewAuthzHandler(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger) *AuthzHandler {
 	a := &AuthzHandler{
-		Enabled: cfg.ResolvedAuthType() == TypeRHSSO,
+		Enabled: cfg.AuthType == TypeRHSSO,
 		client:  ocmCLient,
 		log:     log,
 	}

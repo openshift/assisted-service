@@ -19,12 +19,9 @@ parameters:
 - name: ALLOWED_DOMAINS
   value: ''
   required: true
-- name: ENABLE_AUTH
-  value: ''
-  required: false
 - name: AUTH_TYPE
   value: ''
-  required: false
+  required: true
 - name: WITH_AMS_SUBSCRIPTIONS
   value: ''
   required: true
@@ -235,8 +232,6 @@ objects:
                 value: ${OPENSHIFT_VERSIONS}
               - name: AUTH_TYPE
                 value: ${AUTH_TYPE}
-              - name: ENABLE_AUTH
-                value: ${ENABLE_AUTH}
               - name: WITH_AMS_SUBSCRIPTIONS
                 value: ${WITH_AMS_SUBSCRIPTIONS}
               - name: JWKS_URL

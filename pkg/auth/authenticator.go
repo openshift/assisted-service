@@ -27,7 +27,6 @@ type Authenticator interface {
 }
 
 type Config struct {
-	EnableAuth     bool     `envconfig:"ENABLE_AUTH" default:"false"`
 	AuthType       AuthType `envconfig:"AUTH_TYPE" default:""`
 	JwkCert        string   `envconfig:"JWKS_CERT"`
 	JwkCertURL     string   `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
@@ -37,21 +36,8 @@ type Config struct {
 	AdminUsers     []string `envconfig:"ADMIN_USERS" default:""`
 }
 
-// TODO: remove this once EnableAuth is removed
-func (cfg *Config) ResolvedAuthType() AuthType {
-	if cfg.AuthType != TypeEmpty {
-		return cfg.AuthType
-	}
-
-	if cfg.EnableAuth {
-		return TypeRHSSO
-	}
-
-	return TypeNone
-}
-
 func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) (a Authenticator, err error) {
-	switch t := cfg.ResolvedAuthType(); t {
+	switch cfg.AuthType {
 	case TypeRHSSO:
 		a = NewRHSSOAuthenticator(cfg, ocmClient, log, db)
 	case TypeNone:
@@ -59,7 +45,7 @@ func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger
 	case TypeLocal:
 		a, err = NewLocalAuthenticator(cfg, log, db)
 	default:
-		err = fmt.Errorf("invalid authenticator type %v", t)
+		err = fmt.Errorf("invalid authenticator type %v", cfg.AuthType)
 	}
 	return
 }

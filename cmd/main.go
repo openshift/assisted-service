@@ -474,7 +474,7 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 func getOCMClient(log logrus.FieldLogger, metrics metrics.API) *ocm.Client {
 	var ocmClient *ocm.Client
 	var err error
-	if Options.Auth.ResolvedAuthType() == auth.TypeRHSSO {
+	if Options.Auth.AuthType == auth.TypeRHSSO {
 		ocmClient, err = ocm.NewClient(Options.OCMConfig, log.WithField("pkg", "ocm"), metrics)
 		if err != nil {
 			log.WithError(err).Fatal("Failed to Create OCM Client")
