@@ -4,17 +4,20 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
 )
 
-const staticNetworkConfigHostDelimeter = "ZZZZZ"
+const staticNetworkConfigHostsDelimeter = "ZZZZZ"
+const hostStaticNetworkDelimeter = "HHHHH"
 
 type StaticNetworkConfigData struct {
 	FilePath     string
@@ -35,61 +38,85 @@ func New(log logrus.FieldLogger) StaticNetworkConfig {
 }
 
 func (s *StaticNetworkConfigGenerator) GenerateStaticNetworkConfigData(hostsYAMLS string) ([]StaticNetworkConfigData, error) {
-	hostsConfig := strings.Split(hostsYAMLS, staticNetworkConfigHostDelimeter)
+	hostsConfig := strings.Split(hostsYAMLS, staticNetworkConfigHostsDelimeter)
 	s.log.Infof("Start configuring static network for %d hosts", len(hostsConfig))
-	executer := &executer.CommonExecuter{}
 	filesList := []StaticNetworkConfigData{}
-	for _, hostConfig := range hostsConfig {
-		f, err := executer.TempFile("", "host-config")
+	for i, hostConfig := range hostsConfig {
+		hostFileList, err := s.generateHostStaticNetworkConfigData(hostConfig, fmt.Sprintf("host%d", i))
 		if err != nil {
-			s.log.WithError(err).Errorf("Failed to create temp file")
+			s.log.WithError(err).Errorf("Failed to create static config for host")
 			return nil, err
 		}
-		_, err = f.WriteString(hostConfig)
-		if err != nil {
-			s.log.WithError(err).Errorf("Failed to write host config to temp file")
-			return nil, err
-		}
-		f.Close()
-		stdout, stderr, retCode := executer.Execute("nmstatectl", "gc", f.Name())
-		if retCode != 0 {
-			msg := fmt.Sprintf("<nmstatectl gc> failed, errorCode %d, stderr %s, input yaml <%s>", retCode, stderr, hostConfig)
-			s.log.Errorf("%s", msg)
-			return nil, fmt.Errorf("%s", msg)
-		}
-		err = s.createNMConnectionFiles(stdout, &filesList)
-		if err != nil {
-			s.log.WithError(err).Errorf("failed to create NM connection files")
-			return nil, err
-		}
-		os.Remove(f.Name())
+		filesList = append(filesList, hostFileList...)
 	}
 	return filesList, nil
 }
 
-func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput string, filesList *[]StaticNetworkConfigData) error {
+func (s *StaticNetworkConfigGenerator) generateHostStaticNetworkConfigData(hostConfigString, hostDir string) ([]StaticNetworkConfigData, error) {
+	hostConfig := strings.Split(hostConfigString, hostStaticNetworkDelimeter)
+	if len(hostConfig) != 2 {
+		msg := fmt.Sprintf("Invalid format of the host config string %s", hostConfig)
+		s.log.Errorf("%s", msg)
+		return nil, fmt.Errorf("%s", msg)
+	}
+	hostYAML := hostConfig[0]
+	macInterfaceMapping := hostConfig[1]
+	executer := &executer.CommonExecuter{}
+	f, err := executer.TempFile("", "host-config")
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to create temp file")
+		return nil, err
+	}
+	_, err = f.WriteString(hostYAML)
+	if err != nil {
+		s.log.WithError(err).Errorf("Failed to write host config to temp file")
+		return nil, err
+	}
+	f.Close()
+	stdout, stderr, retCode := executer.Execute("nmstatectl", "gc", f.Name())
+	if retCode != 0 {
+		msg := fmt.Sprintf("<nmstatectl gc> failed, errorCode %d, stderr %s, input yaml <%s>", retCode, stderr, hostYAML)
+		s.log.Errorf("%s", msg)
+		return nil, fmt.Errorf("%s", msg)
+	}
+	filesList, err := s.createNMConnectionFiles(stdout, hostDir)
+	if err != nil {
+		s.log.WithError(err).Errorf("failed to create NM connection files")
+		return nil, err
+	}
+	os.Remove(f.Name())
+	mapConfigData := StaticNetworkConfigData{
+		FilePath:     filepath.Join(hostDir, "mac_interface.ini"),
+		FileContents: macInterfaceMapping,
+	}
+	filesList = append(filesList, mapConfigData)
+	return filesList, nil
+}
+
+func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput, hostDir string) ([]StaticNetworkConfigData, error) {
 	var hostNMConnections map[string]interface{}
 	err := yaml.Unmarshal([]byte(nmstateOutput), &hostNMConnections)
 	if err != nil {
 		s.log.WithError(err).Errorf("Failed to unmarshal nmstate output")
-		return err
+		return nil, err
 	}
+	filesList := []StaticNetworkConfigData{}
 	connectionsList := hostNMConnections["NetworkManager"].([]interface{})
 	for _, connection := range connectionsList {
 		connectionElems := connection.([]interface{})
 		fileName := connectionElems[0].(string)
 		fileContents, err := s.formatNMConnection(connectionElems[1].(string))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		s.log.Infof("Adding NMConnection file <%s>", fileName)
 		newFile := StaticNetworkConfigData{
-			FilePath:     fileName,
+			FilePath:     filepath.Join(hostDir, fileName),
 			FileContents: fileContents,
 		}
-		*filesList = append(*filesList, newFile)
+		filesList = append(filesList, newFile)
 	}
-	return nil
+	return filesList, nil
 }
 
 func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (string, error) {
@@ -100,19 +127,6 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 		return "", err
 	}
 	connectionSection := cfg.Section("connection")
-	ifaceName := connectionSection.Key("interface-name")
-	if ifaceName == nil {
-		msg := "interface-name key is not present in section connection"
-		s.log.Errorf("%s", msg)
-		return "", fmt.Errorf("%s", msg)
-	}
-
-	mac, err := s.validateAndCalculateMAC(ifaceName.String())
-	if err != nil {
-		return "", err
-	}
-
-	connectionSection.DeleteKey("interface-name")
 	_, err = connectionSection.NewKey("autoconnect", "true")
 	if err != nil {
 		s.log.WithError(err).Errorf("Failed to add autoconnect key to section connection")
@@ -121,18 +135,6 @@ func (s *StaticNetworkConfigGenerator) formatNMConnection(nmConnection string) (
 	_, err = connectionSection.NewKey("autoconnect-priority", "1")
 	if err != nil {
 		s.log.WithError(err).Errorf("Failed to add autoconnect-priority key to section connection")
-		return "", err
-	}
-
-	ethernetSection, err := cfg.NewSection("802-3-ethernet")
-	if err != nil {
-		s.log.WithError(err).Errorf("Failed to add 802-3-ethernet section to nm connection")
-		return "", err
-	}
-
-	_, err = ethernetSection.NewKey("mac-address", mac)
-	if err != nil {
-		s.log.WithError(err).Errorf("Failed to add key mac-address, value %s to 802-3-ethernet connection", mac)
 		return "", err
 	}
 
@@ -167,10 +169,22 @@ func (s *StaticNetworkConfigGenerator) validateAndCalculateMAC(ifaceName string)
 	return strings.Join(splitMac, ":"), nil
 }
 
-func FormatStaticNetworkConfigForDB(staticNetworkConfig []string) string {
+func FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) string {
 	lines := make([]string, len(staticNetworkConfig))
-	copy(lines, staticNetworkConfig)
+	for i, hostConfig := range staticNetworkConfig {
+		hostLine := hostConfig.NetworkYaml + hostStaticNetworkDelimeter + formatMacInterfaceMap(hostConfig.MacInterfaceMap)
+		lines[i] = hostLine
+	}
 	sort.Strings(lines)
 	// delimeter between hosts config - will be used during nmconnections files generations for ISO ignition
-	return strings.Join(lines, staticNetworkConfigHostDelimeter)
+	return strings.Join(lines, staticNetworkConfigHostsDelimeter)
+}
+
+func formatMacInterfaceMap(macInterfaceMap models.MacInterfaceMap) string {
+	lines := make([]string, len(macInterfaceMap))
+	for i, entry := range macInterfaceMap {
+		lines[i] = fmt.Sprintf("%s=%s", entry.MacAddress, entry.LogicalNicName)
+	}
+	sort.Strings(lines)
+	return strings.Join(lines, "\n")
 }

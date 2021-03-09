@@ -3205,8 +3205,7 @@ definitions:
       static_network_config:
         type: array
         items:
-          type: string
-          description: array of string in nmstate yaml format, each string is one host configuration
+          $ref: '#/definitions/host_static_network_config'
       image_type:
         description: Type of image that should be generated.
         $ref: '#/definitions/image_type'
@@ -4020,6 +4019,28 @@ definitions:
         description: static network configuration string in the format expected by discovery ignition generation
       type:
         $ref: '#/definitions/image_type'
+
+  host_static_network_config:
+    type: object
+    properties:
+      network_yaml:
+        type: string
+        description: yaml string that can be processed by nmstate
+      mac_interface_map:
+        $ref: '#/definitions/mac_interface_map'
+        description: mapping of host macs to logical interfaces used in the network yaml
+
+  mac_interface_map:
+    type: array
+    items:
+      type: object
+      properties:
+        mac_address:
+          type: string
+          description: mac address present on the host
+        logical_nic_name:
+          type: string
+          description: nic name used in the yaml, which relates 1:1 to the mac address
 
   image_type:
     type: string
