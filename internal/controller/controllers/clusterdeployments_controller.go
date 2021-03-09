@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -168,26 +169,24 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 
 	update := false
 	notifyInstallEnv := false
+	var installEnv *v1alpha1.InstallEnv
 
 	params := &models.ClusterUpdateParams{}
 
 	spec := clusterDeployment.Spec
 
-	updateString := func(new, old string, target **string, isInstallEnvUpdate bool) {
+	updateString := func(new, old string, target **string) {
 		if new != old {
 			*target = swag.String(new)
 			update = true
-			if isInstallEnvUpdate {
-				notifyInstallEnv = true
-			}
 		}
 	}
 
-	updateString(spec.ClusterName, cluster.Name, &params.Name, false)
-	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain, false)
+	updateString(spec.ClusterName, cluster.Name, &params.Name)
+	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
 
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, cluster.ClusterNetworkCidr, &params.ClusterNetworkCidr, false)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, cluster.ClusterNetworkCidr, &params.ClusterNetworkCidr)
 		hostPrefix := int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
 		if hostPrefix > 0 && hostPrefix != cluster.ClusterNetworkHostPrefix {
 			params.ClusterNetworkHostPrefix = swag.Int64(hostPrefix)
@@ -195,31 +194,16 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		}
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], cluster.ServiceNetworkCidr, &params.ServiceNetworkCidr, false)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], cluster.ServiceNetworkCidr, &params.ServiceNetworkCidr)
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, cluster.MachineNetworkCidr, &params.MachineNetworkCidr, false)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, cluster.MachineNetworkCidr, &params.MachineNetworkCidr)
 	}
 
-	updateString(spec.Platform.AgentBareMetal.APIVIP, cluster.APIVip, &params.APIVip, false)
-	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(cluster.APIVipDNSName), &params.APIVipDNSName, false)
-	updateString(spec.Platform.AgentBareMetal.IngressVIP, cluster.IngressVip, &params.IngressVip, false)
-	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey, false)
-
-	installEnv, err := getInstallEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
-
-	// It is possible that the clusterDeployment doesn't have an installEnv. ClusterDeploymentsReconciler should not fail for that reason.
-	if err != nil {
-		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for installEnv for clusterDeployment %s", clusterDeployment.Name))
-	}
-	if installEnv != nil {
-		if len(installEnv.Spec.AdditionalNTPSources) > 0 {
-			updateString(installEnv.Spec.AdditionalNTPSources[0], cluster.AdditionalNtpSource, &params.AdditionalNtpSource, true)
-		}
-		updateString(installEnv.Spec.Proxy.NoProxy, cluster.NoProxy, &params.NoProxy, true)
-		updateString(installEnv.Spec.Proxy.HTTPProxy, cluster.HTTPProxy, &params.HTTPProxy, true)
-		updateString(installEnv.Spec.Proxy.HTTPSProxy, cluster.HTTPSProxy, &params.HTTPSProxy, true)
-	}
+	updateString(spec.Platform.AgentBareMetal.APIVIP, cluster.APIVip, &params.APIVip)
+	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(cluster.APIVipDNSName), &params.APIVipDNSName)
+	updateString(spec.Platform.AgentBareMetal.IngressVIP, cluster.IngressVip, &params.IngressVip)
+	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
 	if userManagedNetwork := isUserManagedNetwork(clusterDeployment); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
@@ -232,8 +216,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
 	}
 	// TODO: change isInstallEnvUpdate to false, once clusterDeployment pull-secret can differ from installEnv
-	updateString(pullSecretData, cluster.PullSecret, &params.PullSecret, true)
-
+	if pullSecretData != cluster.PullSecret {
+		params.PullSecret = swag.String(pullSecretData)
+		update = true
+		notifyInstallEnv = true
+	}
 	if !update {
 		return update, ctrl.Result{}, nil
 	}
@@ -248,6 +235,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	if err != nil {
 		return update, ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError},
 			errors.Wrap(err, "failed to update clusterDeployment")
+	}
+
+	installEnv, err = getInstallEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
+	if err != nil {
+		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for installEnv for clusterDeployment %s", clusterDeployment.Name))
 	}
 
 	r.Log.Infof("Updated clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
@@ -273,8 +265,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	key types.NamespacedName,
 	clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
 
-	notifyInstallEnv := false
-
 	r.Log.Infof("Creating a new clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
@@ -296,17 +286,6 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterDeployment)),
 	}
 
-	installEnv, err := getInstallEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
-	if err == nil && installEnv != nil {
-		notifyInstallEnv = true
-		if len(installEnv.Spec.AdditionalNTPSources) > 0 {
-			clusterParams.AdditionalNtpSource = &installEnv.Spec.AdditionalNTPSources[0]
-		}
-		clusterParams.NoProxy = &installEnv.Spec.Proxy.NoProxy
-		clusterParams.HTTPProxy = &installEnv.Spec.Proxy.HTTPProxy
-		clusterParams.HTTPSProxy = &installEnv.Spec.Proxy.HTTPSProxy
-	}
-
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
 		clusterParams.ClusterNetworkCidr = swag.String(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR)
 		clusterParams.ClusterNetworkHostPrefix = int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
@@ -326,12 +305,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	})
 
 	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
-	reply, updateErr := r.updateState(ctx, clusterDeployment, c, err)
-	if updateErr != nil && notifyInstallEnv && installEnv != nil {
-		r.Log.Infof("Notify that installEnv %s should re-generate the image for clusterDeployment %s", installEnv.Name, clusterDeployment.ClusterName)
-		r.CRDEventsHandler.NotifyInstallEnvUpdates(installEnv.Name, installEnv.Namespace)
-	}
-	return reply, updateErr
+	return r.updateState(ctx, clusterDeployment, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster,

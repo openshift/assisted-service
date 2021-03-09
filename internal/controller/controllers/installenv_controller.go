@@ -18,14 +18,18 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -62,24 +66,47 @@ func (r *InstallEnvReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) 
 	return r.ensureISO(ctx, installEnv)
 }
 
-func (r *InstallEnvReconciler) shouldNotifyClusterDeployment(installEnv *adiiov1alpha1.InstallEnv, cluster *common.Cluster) bool {
-	notifyClusterDeployment := false
+func (r *InstallEnvReconciler) updateClusterIfNeeded(ctx context.Context, installEnv *adiiov1alpha1.InstallEnv, cluster *common.Cluster) error {
+	var (
+		params = &models.ClusterUpdateParams{}
+		update bool
+		log    = logutil.FromContext(ctx, r.Log)
+	)
 
 	if installEnv.Spec.Proxy != nil {
 		if installEnv.Spec.Proxy.NoProxy != "" && installEnv.Spec.Proxy.NoProxy != cluster.NoProxy {
-			notifyClusterDeployment = true
+			params.NoProxy = swag.String(installEnv.Spec.Proxy.NoProxy)
+			update = true
 		}
 		if installEnv.Spec.Proxy.HTTPProxy != "" && installEnv.Spec.Proxy.HTTPProxy != cluster.HTTPProxy {
-			notifyClusterDeployment = true
+			params.HTTPProxy = swag.String(installEnv.Spec.Proxy.HTTPProxy)
+			update = true
 		}
 		if installEnv.Spec.Proxy.HTTPSProxy != "" && installEnv.Spec.Proxy.HTTPSProxy != cluster.HTTPSProxy {
-			notifyClusterDeployment = true
+			params.HTTPSProxy = swag.String(installEnv.Spec.Proxy.HTTPSProxy)
+			update = true
 		}
 	}
 	if len(installEnv.Spec.AdditionalNTPSources) > 0 && cluster.AdditionalNtpSource != installEnv.Spec.AdditionalNTPSources[0] {
-		notifyClusterDeployment = true
+		params.AdditionalNtpSource = swag.String(strings.Join(installEnv.Spec.AdditionalNTPSources[:], ","))
+		update = true
 	}
-	return notifyClusterDeployment
+
+	if update {
+		updateString, err := json.Marshal(params)
+		if err != nil {
+			return err
+		}
+		log.Infof("updating cluster %s %s with %s",
+			installEnv.Spec.ClusterRef.Name, installEnv.Spec.ClusterRef.Namespace, string(updateString))
+		_, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+			ClusterUpdateParams: params,
+			ClusterID:           *cluster.ID,
+		})
+		return err
+	}
+
+	return nil
 }
 
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
@@ -146,11 +173,22 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
 
-	// Check for updates from user, compare spec and trigger ClusterDeploymentsReconciler if found relevant.
-	// This will end the reconcile loop to allow the cluster object to get updates before we attempt to generate the image.
-	if r.shouldNotifyClusterDeployment(installEnv, cluster) {
-		r.CRDEventsHandler.NotifyClusterDeploymentUpdates(installEnv.Spec.ClusterRef.Name, installEnv.Spec.ClusterRef.Namespace)
-		return ctrl.Result{Requeue: false}, nil
+	// Check for updates from user, compare spec and update the cluster
+	if err := r.updateClusterIfNeeded(ctx, installEnv, cluster); err != nil {
+		Requeue = true
+		if isClientError(err) {
+			Requeue = false
+		}
+		conditionsv1.SetStatusCondition(&installEnv.Status.Conditions, conditionsv1.Condition{
+			Type:    adiiov1alpha1.ImageCreatedCondition,
+			Status:  corev1.ConditionFalse,
+			Reason:  adiiov1alpha1.ImageCreationErrorReason,
+			Message: adiiov1alpha1.ImageStateFailedToCreate + ": " + err.Error(),
+		})
+		if updateErr := r.Status().Update(ctx, installEnv); updateErr != nil {
+			r.Log.WithError(updateErr).Error("failed to update installEnv status")
+		}
+		return ctrl.Result{Requeue: Requeue}, nil
 	}
 
 	// Generate ISO
