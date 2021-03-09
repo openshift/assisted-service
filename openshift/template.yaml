@@ -21,6 +21,7 @@ parameters:
   required: true
 - name: ENABLE_AUTH
   value: ''
+  required: false
 - name: AUTH_TYPE
   value: ''
   required: false
