@@ -42,7 +42,7 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, nil, operatorsManager)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -166,7 +166,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil, operatorsManager)
 	})
 
@@ -236,7 +236,7 @@ var _ = Describe("Reset cluster", func() {
 		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil, operatorsManager)
 	})
 
@@ -371,7 +371,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 
@@ -1008,7 +1008,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 
@@ -1844,7 +1844,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 
@@ -2361,7 +2361,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 
@@ -2651,7 +2651,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(logTimeoutConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -2793,7 +2793,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 		hid1 = strfmt.UUID(uuid.New().String())
@@ -3147,7 +3147,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 
@@ -3505,7 +3505,7 @@ var _ = Describe("Single node", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 		hid1 = strfmt.UUID(uuid.New().String())
@@ -3814,7 +3814,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager)
 

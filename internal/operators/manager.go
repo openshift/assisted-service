@@ -3,11 +3,15 @@ package operators
 import (
 	"container/list"
 	"context"
+	"encoding/base64"
 	"fmt"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi"
+	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -18,6 +22,7 @@ type Manager struct {
 	log                logrus.FieldLogger
 	olmOperators       map[string]api.Operator
 	monitoredOperators map[string]*models.MonitoredOperator
+	manifestsAPI       restapi.ManifestsAPI
 }
 
 // API defines Operator management operation
@@ -29,7 +34,7 @@ type API interface {
 	ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error)
 	// GenerateManifests generates manifests for all enabled operators.
 	// Returns map assigning manifest content to its desired file name
-	GenerateManifests(cluster *common.Cluster) (map[string]string, error)
+	GenerateManifests(ctx context.Context, cluster *common.Cluster) error
 	// AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
 	AnyOLMOperatorEnabled(cluster *common.Cluster) bool
 	// UpdateDependencies amends the list of requested additional operators with any missing dependencies
@@ -48,15 +53,13 @@ type API interface {
 
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
-func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]string, error) {
+func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
 	// TODO: cluster should already contain up-to-date list of operators - implemented here for now to replicate
 	// the original behaviour
 	err := mgr.UpdateDependencies(cluster)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	operatorManifests := make(map[string]string)
 
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
@@ -69,17 +72,38 @@ func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]strin
 			manifests, err := operator.GenerateManifests(cluster)
 			if err != nil {
 				mgr.log.Error(fmt.Sprintf("Cannot generate %s manifests due to ", clusterOperator.Name), err)
-				return nil, err
+				return err
 			}
-			if manifests != nil {
-				for k, v := range manifests.Files {
-					operatorManifests[k] = v
+			for k, v := range manifests {
+				err = mgr.createManifests(ctx, cluster, k, v)
+				if err != nil {
+					return err
 				}
 			}
 		}
 	}
 
-	return operatorManifests, nil
+	return nil
+}
+
+func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
+	// all relevant logs of creating manifest will be inside CreateClusterManifest
+	response := mgr.manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+		ClusterID: *cluster.ID,
+		CreateManifestParams: &models.CreateManifestParams{
+			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),
+			FileName: &filename,
+			Folder:   swag.String(models.ManifestFolderOpenshift),
+		},
+	})
+
+	if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
+		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
+			return errors.Wrapf(apiErr, "Failed to create manifest %s for cluster %s", filename, cluster.ID)
+		}
+		return errors.Errorf("Failed to create manifest %s for cluster %s", filename, cluster.ID)
+	}
+	return nil
 }
 
 // AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster

@@ -5,7 +5,7 @@ import (
 	"text/template"
 )
 
-func lsoSubscription(OpenShiftVersion string) (string, error) {
+func lsoSubscription(OpenShiftVersion string) ([]byte, error) {
 	data := map[string]string{
 		"OPENSHIFT_VERSION": OpenShiftVersion,
 	}
@@ -24,27 +24,27 @@ spec:
 
 	tmpl, err := template.New("lsoSubscription").Parse(lsoSubscription)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	buf := &bytes.Buffer{}
 	err = tmpl.Execute(buf, data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }
 
-func Manifests(OpenshiftVersion string) (map[string]string, error) {
-	manifests := make(map[string]string)
-	manifests["99_openshift-lso_ns.yaml"] = localStorageNamespace
-	manifests["99_openshift-lso_operator_group.yaml"] = lsoOperatorGroup
+func Manifests(OpenshiftVersion string) (map[string][]byte, error) {
 	lsoSubs, err := lsoSubscription(OpenshiftVersion)
 	if err != nil {
-		return map[string]string{}, err
+		return nil, err
 	}
+	manifests := make(map[string][]byte)
+	manifests["99_openshift-lso_ns.yaml"] = []byte(localStorageNamespace)
+	manifests["99_openshift-lso_operator_group.yaml"] = []byte(lsoOperatorGroup)
 	manifests["99_openshift-lso_subscription.yaml"] = lsoSubs
-	manifests["99_openshift-lso_lvset_cr.yaml"] = localVolumeSet
-	manifests["99_openshift-lso_lvset_crd.yaml"] = localVolumeSetCrd
+	manifests["99_openshift-lso_lvset_cr.yaml"] = []byte(localVolumeSet)
+	manifests["99_openshift-lso_lvset_crd.yaml"] = []byte(localVolumeSetCrd)
 	return manifests, nil
 }
 

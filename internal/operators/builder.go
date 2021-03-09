@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi"
 	"github.com/sirupsen/logrus"
 )
 
@@ -22,12 +23,12 @@ var OperatorConsole = models.MonitoredOperator{
 }
 
 // NewManager creates new instance of an Operator Manager
-func NewManager(log logrus.FieldLogger) *Manager {
-	return NewManagerWithOperators(log, lso.NewLSOperator(), ocs.NewOcsOperator(log), cnv.NewCNVOperator(log))
+func NewManager(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI) *Manager {
+	return NewManagerWithOperators(log, manifestAPI, lso.NewLSOperator(), ocs.NewOcsOperator(log), cnv.NewCNVOperator(log))
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators
-func NewManagerWithOperators(log logrus.FieldLogger, olmOperators ...api.Operator) *Manager {
+func NewManagerWithOperators(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, olmOperators ...api.Operator) *Manager {
 	nameToOperator := make(map[string]api.Operator)
 
 	// monitoredOperators includes all the supported operators to be monitored.
@@ -47,5 +48,6 @@ func NewManagerWithOperators(log logrus.FieldLogger, olmOperators ...api.Operato
 		log:                log,
 		olmOperators:       nameToOperator,
 		monitoredOperators: monitoredOperators,
+		manifestsAPI:       manifestAPI,
 	}
 }

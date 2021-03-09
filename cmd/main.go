@@ -272,10 +272,10 @@ func main() {
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
-	operatorsManager := operators.NewManager(log)
+	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
+	operatorsManager := operators.NewManager(log, manifestsApi)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
-	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager)

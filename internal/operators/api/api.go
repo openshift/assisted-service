@@ -25,12 +25,6 @@ type ValidationResult struct {
 	Reasons []string
 }
 
-// Manifests hold generated manifests
-type Manifests struct {
-	// Files maps file name to file's content
-	Files map[string]string
-}
-
 // Operator provides generic API of an OLM operator installation plugin
 //go:generate mockgen -package=api -self_package=github.com/openshift/assisted-service/internal/operators/api -destination=mock_operator_api.go . Operator
 type Operator interface {
@@ -43,7 +37,7 @@ type Operator interface {
 	// ValidateHost verifies whether this operator is valid for given host
 	ValidateHost(context.Context, *common.Cluster, *models.Host) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
-	GenerateManifests(*common.Cluster) (*Manifests, error)
+	GenerateManifests(*common.Cluster) (map[string][]byte, error)
 	// GetCPURequirementForWorker provides worker CPU requirements for the operator
 	GetCPURequirementForWorker(context.Context, *common.Cluster) (int64, error)
 	// GetCPURequirementForMaster provides master CPU requirements for the operator

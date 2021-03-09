@@ -77,10 +77,9 @@ func (o *ocsOperator) ValidateHost(context.Context, *common.Cluster, *models.Hos
 }
 
 // GenerateManifests generates manifests for the operator
-func (o *ocsOperator) GenerateManifests(cluster *common.Cluster) (*api.Manifests, error) {
+func (o *ocsOperator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, error) {
 	o.log.Info("No. of OCS eligible disks are ", o.ocsValidatorConfig.OCSDisksAvailable)
-	manifests, err := Manifests(o.ocsValidatorConfig.OCSMinimalDeployment, o.ocsValidatorConfig.OCSDisksAvailable, len(cluster.Cluster.Hosts))
-	return &api.Manifests{Files: manifests}, err
+	return Manifests(o.ocsValidatorConfig.OCSMinimalDeployment, o.ocsValidatorConfig.OCSDisksAvailable, len(cluster.Cluster.Hosts))
 }
 
 // GetCPURequirementForWorker provides worker CPU requirements for the operator

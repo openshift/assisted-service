@@ -658,7 +658,7 @@ var _ = Describe("Monitored Operators", func() {
 			cluster := reply.GetPayload()
 			c := &common.Cluster{Cluster: *cluster}
 
-			for _, builtinOperator := range operators.NewManager(log).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			for _, builtinOperator := range operators.NewManager(log, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operators.IsEnabled(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
 			}
 		})

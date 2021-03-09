@@ -51,18 +51,17 @@ func (mr *MockAPIMockRecorder) AnyOLMOperatorEnabled(arg0 interface{}) *gomock.C
 }
 
 // GenerateManifests mocks base method
-func (m *MockAPI) GenerateManifests(arg0 *common.Cluster) (map[string]string, error) {
+func (m *MockAPI) GenerateManifests(arg0 context.Context, arg1 *common.Cluster) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GenerateManifests", arg0)
-	ret0, _ := ret[0].(map[string]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret := m.ctrl.Call(m, "GenerateManifests", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // GenerateManifests indicates an expected call of GenerateManifests
-func (mr *MockAPIMockRecorder) GenerateManifests(arg0 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) GenerateManifests(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockAPI)(nil).GenerateManifests), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockAPI)(nil).GenerateManifests), arg0, arg1)
 }
 
 // GetMonitoredOperatorsList mocks base method

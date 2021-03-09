@@ -74,10 +74,8 @@ func (l *lsOperator) GetMemoryRequirementForMaster(context.Context, *common.Clus
 }
 
 // GenerateManifests generates manifests for the operator
-func (l *lsOperator) GenerateManifests(c *common.Cluster) (*api.Manifests, error) {
-	manifestFiles, err := Manifests(c.Cluster.OpenshiftVersion)
-	return &api.Manifests{Files: manifestFiles}, err
-
+func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, error) {
+	return Manifests(c.Cluster.OpenshiftVersion)
 }
 
 // GetDisksRequirementForMaster provides a number of disks required in a master

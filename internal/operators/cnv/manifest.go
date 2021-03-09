@@ -2,38 +2,38 @@ package cnv
 
 import (
 	"bytes"
-	"html/template"
+	"text/template"
 )
 
 // Manifests returns manifests needed to deploy CNV
-func Manifests(OpenShiftVersion string) (map[string]string, error) {
-	manifests := make(map[string]string)
-	manifests["99_openshift-cnv_crd.yaml"] = cnvCRD
-	manifests["99_openshift-cnv_ns.yaml"] = cnvNamespace
+func Manifests(OpenShiftVersion string) (map[string][]byte, error) {
 	cnvSubs, err := subscription(OpenShiftVersion)
 	if err != nil {
-		return map[string]string{}, err
+		return nil, err
 	}
+	manifests := make(map[string][]byte)
 	manifests["99_openshift-cnv_subscription.yaml"] = cnvSubs
-	manifests["99_openshift-cnv_operator_group.yaml"] = cnvGroup
-	manifests["99_openshift-cnv_hco.yaml"] = cnvHCO
+	manifests["99_openshift-cnv_crd.yaml"] = []byte(cnvCRD)
+	manifests["99_openshift-cnv_ns.yaml"] = []byte(cnvNamespace)
+	manifests["99_openshift-cnv_operator_group.yaml"] = []byte(cnvGroup)
+	manifests["99_openshift-cnv_hco.yaml"] = []byte(cnvHCO)
 	return manifests, nil
 }
 
-func subscription(OpenShiftVersion string) (string, error) {
+func subscription(OpenShiftVersion string) ([]byte, error) {
 	data := map[string]string{
 		"OPENSHIFT_VERSION": OpenShiftVersion,
 	}
 	tmpl, err := template.New("cnvSubscription").Parse(cnvSubscription)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	buf := &bytes.Buffer{}
 	err = tmpl.Execute(buf, data)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }
 
 const cnvSubscription = `apiVersion: operators.coreos.com/v1alpha1

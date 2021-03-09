@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
@@ -14,15 +15,20 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
+	"github.com/openshift/assisted-service/mocks"
 	"github.com/openshift/assisted-service/models"
+	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	cluster     *common.Cluster
-	clusterHost *models.Host
-	log         = logrus.New()
-	manager     *operators.Manager
+	ctx          = context.Background()
+	cluster      *common.Cluster
+	clusterHost  *models.Host
+	log          = logrus.New()
+	manager      *operators.Manager
+	ctrl         *gomock.Controller
+	manifestsAPI *mocks.MockManifestsAPI
 )
 
 var _ = BeforeEach(func() {
@@ -34,53 +40,53 @@ var _ = BeforeEach(func() {
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
-
 	clusterHost = &models.Host{}
-	manager = operators.NewManager(log)
+
+	ctrl = gomock.NewController(GinkgoT())
+	manifestsAPI = mocks.NewMockManifestsAPI(ctrl)
+	manager = operators.NewManager(log, manifestsAPI)
 })
 
+var _ = AfterEach(func() {
+	ctrl.Finish()
+})
 var _ = Describe("Operators manager", func() {
+
 	Context("GenerateManifests", func() {
-		It("should generate OCS and LSO manifests when OCS operator is enabled", func() {
+
+		It("should create 10 manifests (OCS + LSO) using the manifest API when OCS operator is enabled", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
 			}
 
-			manifests, err := manager.GenerateManifests(cluster)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
+			err := manager.GenerateManifests(ctx, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(manifests).NotTo(BeNil())
-			Expect(len(manifests)).To(Equal(10))
-			Expect(manifests).To(HaveKey(ContainSubstring("openshift-ocs")))
-			Expect(manifests).To(HaveKey(ContainSubstring("openshift-lso")))
 		})
 
-		It("should generate LSO manifests when LSO operator is enabled", func() {
+		It("should create 5 manifests (LSO) using the manifest API when only LSO is enabled", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&lso.Operator,
 			}
 
-			manifests, err := manager.GenerateManifests(cluster)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(5)
+			err := manager.GenerateManifests(ctx, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(manifests).NotTo(BeNil())
-			Expect(len(manifests)).To(Equal(5))
-			Expect(manifests).To(HaveKey(ContainSubstring("openshift-lso")))
 		})
 
-		It("should generate CNV and LSO manifests when CNV operator is enabled", func() {
+		It("should create 10 manifests (CNV + LSO) using the manifest API when OCS operator is enabled", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
 			}
 
-			manifests, err := manager.GenerateManifests(cluster)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
+			err := manager.GenerateManifests(ctx, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
-			Expect(manifests).NotTo(BeNil())
-			Expect(len(manifests)).To(Equal(10))
-			Expect(manifests).To(HaveKey(ContainSubstring("openshift-cnv")))
-			Expect(manifests).To(HaveKey(ContainSubstring("openshift-lso")))
+
 		})
 	})
 
