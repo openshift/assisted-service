@@ -247,13 +247,19 @@ func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig strin
 		return err
 	}
 
-	// Ensures RAM placeholder is large enough to accommodate the custom disk
-	if uint64(buffer.Len()) > ramdiskOffsetInfo.Length {
-		return errors.Errorf("Custom RAM disk is larger than the placeholder in ISO (%d bytes > %d bytes)",
-			buffer.Len(), RamDiskPaddingLength)
+	// Compress custom RAM disk
+	compressedArchive, err := getCompressedArchive(buffer)
+	if err != nil {
+		return err
 	}
 
-	return writeAt(buffer.Bytes(), int64(ramdiskOffsetInfo.Offset), clusterISOPath)
+	// Ensures RAM placeholder is large enough to accommodate the compressed archive
+	if uint64(len(compressedArchive)) > ramdiskOffsetInfo.Length {
+		return errors.Errorf("Custom RAM disk is larger than the placeholder in ISO (%d bytes > %d bytes)",
+			len(compressedArchive), RamDiskPaddingLength)
+	}
+
+	return writeAt(compressedArchive, int64(ramdiskOffsetInfo.Offset), clusterISOPath)
 }
 
 func (e *rhcosEditor) formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
@@ -414,14 +420,18 @@ func IgnitionImageArchive(ignitionConfig string) ([]byte, error) {
 		return nil, errors.Wrap(err, "Failed to close CPIO archive")
 	}
 
+	return getCompressedArchive(archiveBuffer)
+}
+
+func getCompressedArchive(archiveBuffer *bytes.Buffer) ([]byte, error) {
 	// Run gzip compression
 	compressedBuffer := new(bytes.Buffer)
 	gzipWriter := gzip.NewWriter(compressedBuffer)
 	if _, err := gzipWriter.Write(archiveBuffer.Bytes()); err != nil {
-		return nil, errors.Wrap(err, "Failed to gzip ignition config")
+		return nil, errors.Wrap(err, "Failed to gzip archive")
 	}
 	if err := gzipWriter.Close(); err != nil {
-		return nil, errors.Wrap(err, "Failed to gzip ignition config")
+		return nil, errors.Wrap(err, "Failed to gzip archive")
 	}
 
 	return compressedBuffer.Bytes(), nil

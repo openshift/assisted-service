@@ -1,6 +1,7 @@
 package isoeditor
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -202,8 +203,11 @@ var _ = Context("with test files", func() {
 			f, err := os.Open(isoHandler.ExtractedPath("images/assisted_installer_custom.img"))
 			Expect(err).ToNot(HaveOccurred())
 
+			gzipReader, err := gzip.NewReader(f)
+			Expect(err).ToNot(HaveOccurred())
+
 			var scriptContent, rootfsServiceConfigContent string
-			r := cpio.NewReader(f)
+			r := cpio.NewReader(gzipReader)
 			for {
 				hdr, err := r.Next()
 				if err == io.EOF {
@@ -244,8 +248,8 @@ var _ = Context("with test files", func() {
 		editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 		staticNetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
 			{
-				FilePath:     strings.Repeat("n", int(RamDiskPaddingLength)),
-				FileContents: "c",
+				FilePath:     "1.nmconnection",
+				FileContents: "1.nmconnection contents",
 			},
 		}
 		mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData("staticnetworkconfig").Return(staticNetworkConfigOutput, nil).Times(1)
@@ -253,13 +257,10 @@ var _ = Context("with test files", func() {
 		ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoFile)
 		Expect(err).ToNot(HaveOccurred())
 
-		ramDiskSize, err := isoutil.GetFileSize(ramDiskImagePath, isoFile)
-		Expect(err).ToNot(HaveOccurred())
-
 		err = editor.(*rhcosEditor).addCustomRAMDisk(isoFile, "staticnetworkconfig", &ClusterProxyInfo{},
 			&OffsetInfo{
 				Offset: ramDiskOffset,
-				Length: ramDiskSize,
+				Length: 10, // Set a tiny value as the archive is compressed
 			})
 		Expect(err).To(HaveOccurred())
 		Expect(err.Error()).Should(ContainSubstring("Custom RAM disk is larger than the placeholder in ISO"))
