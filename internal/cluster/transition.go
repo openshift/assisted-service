@@ -280,7 +280,7 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 		minRequiredMasterNodes = 1
 	}
 
-	// to be installed cluster need 3 master and at least 1 worker(if workers were given)
+	// to be installed cluster need 3 master and at least 2 worker (if workers were given)
 	if mastersInSomeInstallingStatus >= minRequiredMasterNodes &&
 		(numberOfExpectedWorkers == 0 || workersInSomeInstallingStatus >= MinWorkersNeededForInstallation) {
 		return true
