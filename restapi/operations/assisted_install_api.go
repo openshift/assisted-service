@@ -140,6 +140,12 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
 		}),
+		OperatorsGetOperatorsHostRequirementsHandler: operators.GetOperatorsHostRequirementsHandlerFunc(func(params operators.GetOperatorsHostRequirementsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.GetOperatorsHostRequirements has not yet been implemented")
+		}),
+		OperatorsGetOperatorsHostRequirementsByNameHandler: operators.GetOperatorsHostRequirementsByNameHandlerFunc(func(params operators.GetOperatorsHostRequirementsByNameParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.GetOperatorsHostRequirementsByName has not yet been implemented")
+		}),
 		AssistedServiceIsoGetPresignedForAssistedServiceISOHandler: assisted_service_iso.GetPresignedForAssistedServiceISOHandlerFunc(func(params assisted_service_iso.GetPresignedForAssistedServiceISOParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation assisted_service_iso.GetPresignedForAssistedServiceISO has not yet been implemented")
 		}),
@@ -362,6 +368,10 @@ type AssistedInstallAPI struct {
 	InstallerGetHostRequirementsHandler installer.GetHostRequirementsHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
+	// OperatorsGetOperatorsHostRequirementsHandler sets the operation handler for the get operators host requirements operation
+	OperatorsGetOperatorsHostRequirementsHandler operators.GetOperatorsHostRequirementsHandler
+	// OperatorsGetOperatorsHostRequirementsByNameHandler sets the operation handler for the get operators host requirements by name operation
+	OperatorsGetOperatorsHostRequirementsByNameHandler operators.GetOperatorsHostRequirementsByNameHandler
 	// AssistedServiceIsoGetPresignedForAssistedServiceISOHandler sets the operation handler for the get presigned for assisted service i s o operation
 	AssistedServiceIsoGetPresignedForAssistedServiceISOHandler assisted_service_iso.GetPresignedForAssistedServiceISOHandler
 	// InstallerGetPresignedForClusterFilesHandler sets the operation handler for the get presigned for cluster files operation
@@ -605,6 +615,12 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
+	}
+	if o.OperatorsGetOperatorsHostRequirementsHandler == nil {
+		unregistered = append(unregistered, "operators.GetOperatorsHostRequirementsHandler")
+	}
+	if o.OperatorsGetOperatorsHostRequirementsByNameHandler == nil {
+		unregistered = append(unregistered, "operators.GetOperatorsHostRequirementsByNameHandler")
 	}
 	if o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler == nil {
 		unregistered = append(unregistered, "assisted_service_iso.GetPresignedForAssistedServiceISOHandler")
@@ -929,6 +945,14 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/host_requirements/operators"] = operators.NewGetOperatorsHostRequirements(o.context, o.OperatorsGetOperatorsHostRequirementsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/host_requirements/operators/{operator_name}"] = operators.NewGetOperatorsHostRequirementsByName(o.context, o.OperatorsGetOperatorsHostRequirementsByNameHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

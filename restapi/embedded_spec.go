@@ -4439,6 +4439,147 @@ func init() {
         }
       }
     },
+    "/host_requirements/operators": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get minimum operators host requirements.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "GetOperatorsHostRequirements",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster for which the requirements will be computed.",
+            "name": "cluster_id",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-host-requirements-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/host_requirements/operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get minimum operator host requirements.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "GetOperatorsHostRequirementsByName",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster for which the requirements will be computed.",
+            "name": "cluster_id",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-host-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/openshift_versions": {
       "get": {
         "security": [
@@ -6801,6 +6942,23 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         }
+      }
+    },
+    "operator-host-requirements": {
+      "type": "object",
+      "properties": {
+        "operator_name": {
+          "type": "string"
+        },
+        "requirements": {
+          "$ref": "#/definitions/host-requirements"
+        }
+      }
+    },
+    "operator-host-requirements-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-host-requirements"
       }
     },
     "operator-monitor-report": {
@@ -11495,6 +11653,147 @@ func init() {
         }
       }
     },
+    "/host_requirements/operators": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get minimum operators host requirements.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "GetOperatorsHostRequirements",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster for which the requirements will be computed.",
+            "name": "cluster_id",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-host-requirements-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/host_requirements/operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get minimum operator host requirements.",
+        "tags": [
+          "operators",
+          "installer"
+        ],
+        "operationId": "GetOperatorsHostRequirementsByName",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster for which the requirements will be computed.",
+            "name": "cluster_id",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-host-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Not found.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/openshift_versions": {
       "get": {
         "security": [
@@ -13912,6 +14211,23 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         }
+      }
+    },
+    "operator-host-requirements": {
+      "type": "object",
+      "properties": {
+        "operator_name": {
+          "type": "string"
+        },
+        "requirements": {
+          "$ref": "#/definitions/host-requirements"
+        }
+      }
+    },
+    "operator-host-requirements-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-host-requirements"
       }
     },
     "operator-monitor-report": {

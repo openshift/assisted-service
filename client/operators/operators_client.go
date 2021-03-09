@@ -18,6 +18,12 @@ import (
 // API is the interface of the operators client
 type API interface {
 	/*
+	   GetOperatorsHostRequirements Get minimum operators host requirements.*/
+	GetOperatorsHostRequirements(ctx context.Context, params *GetOperatorsHostRequirementsParams) (*GetOperatorsHostRequirementsOK, error)
+	/*
+	   GetOperatorsHostRequirementsByName Get minimum operator host requirements.*/
+	GetOperatorsHostRequirementsByName(ctx context.Context, params *GetOperatorsHostRequirementsByNameParams) (*GetOperatorsHostRequirementsByNameOK, error)
+	/*
 	   ListOfClusterOperators Lists operators to be monitored for a cluster.*/
 	ListOfClusterOperators(ctx context.Context, params *ListOfClusterOperatorsParams) (*ListOfClusterOperatorsOK, error)
 	/*
@@ -47,6 +53,56 @@ type Client struct {
 	transport runtime.ClientTransport
 	formats   strfmt.Registry
 	authInfo  runtime.ClientAuthInfoWriter
+}
+
+/*
+GetOperatorsHostRequirements Get minimum operators host requirements.
+*/
+func (a *Client) GetOperatorsHostRequirements(ctx context.Context, params *GetOperatorsHostRequirementsParams) (*GetOperatorsHostRequirementsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetOperatorsHostRequirements",
+		Method:             "GET",
+		PathPattern:        "/host_requirements/operators",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetOperatorsHostRequirementsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetOperatorsHostRequirementsOK), nil
+
+}
+
+/*
+GetOperatorsHostRequirementsByName Get minimum operator host requirements.
+*/
+func (a *Client) GetOperatorsHostRequirementsByName(ctx context.Context, params *GetOperatorsHostRequirementsByNameParams) (*GetOperatorsHostRequirementsByNameOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetOperatorsHostRequirementsByName",
+		Method:             "GET",
+		PathPattern:        "/host_requirements/operators/{operator_name}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetOperatorsHostRequirementsByNameReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetOperatorsHostRequirementsByNameOK), nil
+
 }
 
 /*

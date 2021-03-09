@@ -234,6 +234,12 @@ type ManifestsAPI interface {
 
 /* OperatorsAPI  */
 type OperatorsAPI interface {
+	/* GetOperatorsHostRequirements Get minimum operators host requirements. */
+	GetOperatorsHostRequirements(ctx context.Context, params operators.GetOperatorsHostRequirementsParams) middleware.Responder
+
+	/* GetOperatorsHostRequirementsByName Get minimum operator host requirements. */
+	GetOperatorsHostRequirementsByName(ctx context.Context, params operators.GetOperatorsHostRequirementsByNameParams) middleware.Responder
+
 	/* ListOfClusterOperators Lists operators to be monitored for a cluster. */
 	ListOfClusterOperators(ctx context.Context, params operators.ListOfClusterOperatorsParams) middleware.Responder
 
@@ -482,6 +488,16 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetNextSteps(ctx, params)
+	})
+	api.OperatorsGetOperatorsHostRequirementsHandler = operators.GetOperatorsHostRequirementsHandlerFunc(func(params operators.GetOperatorsHostRequirementsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.GetOperatorsHostRequirements(ctx, params)
+	})
+	api.OperatorsGetOperatorsHostRequirementsByNameHandler = operators.GetOperatorsHostRequirementsByNameHandlerFunc(func(params operators.GetOperatorsHostRequirementsByNameParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.OperatorsAPI.GetOperatorsHostRequirementsByName(ctx, params)
 	})
 	api.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler = assisted_service_iso.GetPresignedForAssistedServiceISOHandlerFunc(func(params assisted_service_iso.GetPresignedForAssistedServiceISOParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

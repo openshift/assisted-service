@@ -2855,6 +2855,95 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /host_requirements/operators:
+    get:
+      tags:
+        - operators
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Get minimum operators host requirements.
+      operationId: GetOperatorsHostRequirements
+      parameters:
+        - in: query
+          name: cluster_id
+          description: The cluster for which the requirements will be computed.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/operator-host-requirements-list'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Not found.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+            
+  /host_requirements/operators/{operator_name}:
+    get:
+      tags:
+        - operators
+        - installer
+      security:
+        - userAuth: [ admin, read-only-admin, user ]
+      description: Get minimum operator host requirements.
+      operationId: GetOperatorsHostRequirementsByName
+      parameters:
+        - in: path
+          name: operator_name
+          description: The operator name.
+          type: string
+          required: true
+        - in: query
+          name: cluster_id
+          description: The cluster for which the requirements will be computed.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/operator-host-requirements'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Not found.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /add_hosts_clusters:
     post:
       tags:
@@ -3138,6 +3227,19 @@ definitions:
     type: object
     additionalProperties:
       $ref: '#/definitions/openshift-version'
+
+  operator-host-requirements-list:
+    type: array
+    items:
+      $ref: '#/definitions/operator-host-requirements'
+
+  operator-host-requirements:
+    type: object
+    properties:
+      operator_name:
+        type: string
+      requirements:
+        $ref: '#/definitions/host-requirements'
 
   host-requirements:
     type: object

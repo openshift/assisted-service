@@ -11,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/restapi"
 	restoperators "github.com/openshift/assisted-service/restapi/operations/operators"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -18,6 +19,8 @@ import (
 
 // Handler implements REST API interface and deals with HTTP objects and transport data model.
 type Handler struct {
+	// TODO: remove when the back-end for GetOperatorsHostRequirements and GetOperatorsHostRequirementsByName is implemented
+	restapi.OperatorsAPI
 	// operatorsAPI is responsible for executing the actual logic related to the operators
 	operatorsAPI operators.API
 	db           *gorm.DB
