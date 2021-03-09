@@ -341,6 +341,7 @@ test-onprem:
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
 	DEPLOY_TARGET=onprem \
+	STORAGE=filesystem \
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 test-on-openshift-ci:

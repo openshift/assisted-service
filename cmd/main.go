@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -100,6 +99,7 @@ var Options struct {
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ClusterConfig               cluster.Config
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	Storage                     string `envconfig:"STORAGE" default:""`
 	OCMConfig                   ocm.Config
 	HostConfig                  host.Config
 	LogConfig                   logconfig.Config
@@ -224,7 +224,9 @@ func main() {
 
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
-	var objectHandler s3wrapper.API
+	var objectHandler s3wrapper.API = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
+		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
+	createS3Bucket(objectHandler, log)
 
 	failOnError(bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme),
 		"Failed to add BareMetalHost to scheme")
@@ -232,12 +234,6 @@ func main() {
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
 	case deployment_type_k8s:
-
-		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log, versionHandler, isoEditorFactory)
-		if objectHandler == nil {
-			log.Fatal("failed to create S3 client")
-		}
-		createS3Bucket(objectHandler)
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
 		failOnError(cerr, "Failed to create kubernetes cluster config")
@@ -257,15 +253,15 @@ func main() {
 		failOnError(err, "Failed to create client for OCP")
 
 	case deployment_type_onprem, deployment_type_ocp:
+
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
-		// in on-prem mode, setup file system s3 driver and use localjob implementation
-		objectHandler = s3wrapper.NewFSClient(Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
-		createS3Bucket(objectHandler)
+
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
 			failOnError(err, "Failed to create client for OCP")
 		}
+
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
@@ -487,7 +483,7 @@ func getOCMClient(log logrus.FieldLogger, metrics metrics.API) *ocm.Client {
 	return ocmClient
 }
 
-func createS3Bucket(objectHandler s3wrapper.API) {
+func createS3Bucket(objectHandler s3wrapper.API, log logrus.FieldLogger) {
 	if Options.CreateS3Bucket {
 		if err := objectHandler.CreateBucket(); err != nil {
 			log.Fatal(err)
@@ -496,6 +492,44 @@ func createS3Bucket(objectHandler s3wrapper.API) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.Config, fsWorkDir string,
+	log logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) s3wrapper.API {
+	var storageClient s3wrapper.API
+	if storage != "" {
+		switch storage {
+		case "s3":
+			storageClient = s3wrapper.NewS3Client(s3cfg, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create S3 client")
+			}
+		case "filesystem":
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create filesystem client")
+			}
+		default:
+			log.Fatalf("unsupported storage client: %s", storage)
+		}
+	} else {
+		// Retain original logic for backwards capability
+		switch deployTarget {
+		case deployment_type_k8s:
+			storageClient = s3wrapper.NewS3Client(s3cfg, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create S3 client")
+			}
+		case deployment_type_onprem, deployment_type_ocp:
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create S3 filesystem client")
+			}
+		default:
+			log.Fatalf("unsupported deploy target %s", deployTarget)
+		}
+	}
+	return storageClient
 }
 
 func NewApiEnabler(h http.Handler, log logrus.FieldLogger) *ApiEnabler {

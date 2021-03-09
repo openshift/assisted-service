@@ -37,6 +37,7 @@ var Options struct {
 	TestTokenUnallowed   string        `envconfig:"TEST_TOKEN_UNALLOWED"`
 	OCMHost              string        `envconfig:"OCM_HOST"`
 	DeployTarget         string        `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	Storage              string        `envconfig:"STORAGE" default:""`
 	Namespace            string        `envconfig:"NAMESPACE" default:"assisted-installer"`
 	EnableKubeAPI        bool          `envconfig:"ENABLE_KUBE_API" default:"false"`
 	WithAMSSubscriptions bool          `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`

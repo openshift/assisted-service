@@ -8,6 +8,7 @@ DB_PASS=admin
 DB_NAME=installer
 SERVICE_BASE_URL=http://127.0.0.1:8090
 DEPLOY_TARGET=onprem
+STORAGE=filesystem
 DUMMY_IGNITION=false
 OPENSHIFT_VERSIONS={"4.6":{"display_name":"4.6.18","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.18-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.0","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.0-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.7.0-rc.2/rhcos-4.7.0-rc.2-x86_64-live.x86_64.iso","rhcos_version":"47.83.202102090044-0","support_level":"production"}}
 PUBLIC_CONTAINER_REGISTRIES=quay.io
