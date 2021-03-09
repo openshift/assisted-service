@@ -19,6 +19,10 @@ import (
 
 var _ = Describe("Operators endpoint tests", func() {
 
+	AfterEach(func() {
+		clearDB()
+	})
+
 	Context("supported-operators", func() {
 		It("should return all supported operators", func() {
 			reply, err := userBMClient.Operators.ListSupportedOperators(context.TODO(), opclient.NewListSupportedOperatorsParams())
