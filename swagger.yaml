@@ -3047,9 +3047,9 @@ definitions:
       namespace:
         type: string
         description: Namespace where to deploy an operator. Only some operators require a namespace.
-      prefix_name:
+      subscription_name:
         type: string
-        description: Prefix of the operator to be searched by.
+        description: The name of the subscription of the operator.
       operator_type:
         $ref: '#/definitions/operator-type'
       properties:
