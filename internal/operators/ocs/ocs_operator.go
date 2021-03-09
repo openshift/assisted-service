@@ -12,7 +12,7 @@ import (
 
 type ocsOperator struct {
 	log                logrus.FieldLogger
-	ocsValidatorConfig Config
+	ocsValidatorConfig *Config
 	ocsValidator       OCSValidator
 }
 
@@ -24,11 +24,11 @@ func NewOcsOperator(log logrus.FieldLogger) *ocsOperator {
 		log.Fatal(err.Error())
 	}
 	validator := NewOCSValidator(log.WithField("pkg", "ocs-operator-state"), &cfg)
-	return NewOcsOperatorWithConfig(log, cfg, validator)
+	return NewOcsOperatorWithConfig(log, &cfg, validator)
 }
 
 // NewOcsOperatorWithConfig creates new OCSOperator with given configuration and validator
-func NewOcsOperatorWithConfig(log logrus.FieldLogger, config Config, validator OCSValidator) *ocsOperator {
+func NewOcsOperatorWithConfig(log logrus.FieldLogger, config *Config, validator OCSValidator) *ocsOperator {
 	return &ocsOperator{
 		log:                log,
 		ocsValidatorConfig: config,
@@ -70,6 +70,7 @@ func (o *ocsOperator) ValidateHost(context.Context, *common.Cluster, *models.Hos
 
 // GenerateManifests generates manifests for the operator
 func (o *ocsOperator) GenerateManifests(cluster *common.Cluster) (*api.Manifests, error) {
+	o.log.Info("No. of OCS eligible disks are ", o.ocsValidatorConfig.OCSDisksAvailable)
 	manifests, err := Manifests(o.ocsValidatorConfig.OCSMinimalDeployment, o.ocsValidatorConfig.OCSDisksAvailable, len(cluster.Cluster.Hosts))
 	return &api.Manifests{Files: manifests}, err
 }
