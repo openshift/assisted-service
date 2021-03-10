@@ -37,7 +37,7 @@ var _ = Describe("Operators manager builder", func() {
 		operator2.EXPECT().GetName().AnyTimes().Return(operator2Name)
 		operator2.EXPECT().GetMonitoredOperator().Return(monitoredOperator2)
 
-		manager := NewManagerWithOperators(log, operator1, operator2)
+		manager := NewManagerWithOperators(log, nil, operator1, operator2)
 
 		Expect(manager).ToNot(BeNil())
 

@@ -2245,6 +2245,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		mockMetric         *metrics.MockAPI
 		dbName             = "generate_additional_manifests"
 		manifestsGenerator *network.MockManifestsGeneratorAPI
+		mockOperatorMgr    *operators.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -2254,8 +2255,8 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		db = common.PrepareTestDB(dbName)
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
-		mockOperators := operators.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, dummy, mockOperators)
+		mockOperatorMgr = operators.NewMockAPI(ctrl)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, dummy, mockOperatorMgr)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -2273,6 +2274,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 	It("Single node manifests success", func() {
 		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		manifestsGenerator.EXPECT().AddDnsmasqForSingleNode(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		err := capi.GenerateAdditionalManifests(ctx, &c)
 		Expect(err).To(Not(HaveOccurred()))

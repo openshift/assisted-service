@@ -837,5 +837,9 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 			return errors.Wrap(err, "failed to add dnsmasq manifest")
 		}
 	}
+
+	if err := m.rp.operatorsApi.GenerateManifests(ctx, cluster); err != nil {
+		return errors.Wrap(err, "failed to add operator manifests")
+	}
 	return nil
 }

@@ -191,7 +191,7 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 }
 
 func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
-	// all relevant logs of creating manifest weill be inside CreateClusterManifest
+	// all relevant logs of creating manifest will be inside CreateClusterManifest
 	response := m.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
 		CreateManifestParams: &models.CreateManifestParams{

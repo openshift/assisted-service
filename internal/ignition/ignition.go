@@ -143,51 +143,6 @@ func (g *installerGenerator) UploadToS3(ctx context.Context) error {
 	return uploadToS3(ctx, g.workDir, g.cluster, g.s3Client, g.log)
 }
 
-func (g *installerGenerator) createManifestDirectory(installerPath string, envVars []string) error {
-	g.log.Info("Creating Manifest directory")
-	err := g.runCreateCommand(installerPath, "manifests", envVars)
-	if err != nil {
-		g.log.Error("Error occurred while creating manifest directory ", err)
-		return err
-	}
-	return nil
-}
-
-func (g *installerGenerator) writeManifests(manifests map[string]string) error {
-	manifestDirPath := filepath.Join(g.workDir, "manifests")
-	for name, manifest := range manifests {
-		manifestPath := filepath.Join(manifestDirPath, name)
-		err := ioutil.WriteFile(manifestPath, []byte(manifest), 0600)
-		if err != nil {
-			g.log.Errorf("Failed to write file %s %s", manifestPath, name)
-			return err
-		}
-	}
-	return nil
-}
-
-func (g *installerGenerator) writeOperatorManifests(installerPath string, envVars []string) error {
-	if !g.operatorsApi.AnyOLMOperatorEnabled(g.cluster) {
-		return nil
-	}
-	err := g.createManifestDirectory(installerPath, envVars)
-	if err != nil {
-		g.log.Error("Failed to create Manifest directory ", err)
-		return err
-	}
-	operatorManifests, err := g.operatorsApi.GenerateManifests(g.cluster)
-	if err != nil {
-		return err
-	}
-
-	err = g.writeManifests(operatorManifests)
-	if err != nil {
-		g.log.Error(err)
-		return err
-	}
-	return nil
-}
-
 // Generate generates ignition files and applies modifications.
 func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte) error {
 	installerPath, err := installercache.Get(g.releaseImage, g.releaseImageMirror, g.installerDir, g.cluster.PullSecret, g.log)
@@ -244,12 +199,6 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 		}
 
 	}
-
-	err = g.writeOperatorManifests(installerPath, envVars)
-	if err != nil {
-		return err
-	}
-
 	if swag.StringValue(g.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		err = g.bootstrapInPlaceIgnitionsCreate(installerPath, envVars)
 	} else {
