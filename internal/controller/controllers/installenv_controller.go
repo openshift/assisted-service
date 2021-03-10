@@ -109,6 +109,32 @@ func (r *InstallEnvReconciler) updateClusterIfNeeded(ctx context.Context, instal
 	return nil
 }
 
+func (r *InstallEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.Context, installEnv *adiiov1alpha1.InstallEnv, cluster *common.Cluster) error {
+	var (
+		discoveryIgnitionParams = &models.DiscoveryIgnitionParams{}
+		updateClusterIgnition   bool
+		log                     = logutil.FromContext(ctx, r.Log)
+	)
+	if installEnv.Spec.IgnitionConfigOverride != "" && cluster.IgnitionConfigOverrides != installEnv.Spec.IgnitionConfigOverride {
+		discoveryIgnitionParams.Config = *swag.String(installEnv.Spec.IgnitionConfigOverride)
+		updateClusterIgnition = true
+	}
+	if updateClusterIgnition {
+		updateString, err := json.Marshal(discoveryIgnitionParams)
+		if err != nil {
+			return err
+		}
+		log.Infof("updating cluster %s %s with %s",
+			installEnv.Spec.ClusterRef.Name, installEnv.Spec.ClusterRef.Namespace, string(updateString))
+		err = r.Installer.UpdateDiscoveryIgnitionInternal(ctx, installer.UpdateDiscoveryIgnitionParams{
+			DiscoveryIgnitionParams: discoveryIgnitionParams,
+			ClusterID:               *cluster.ID,
+		})
+		return err
+	}
+	return nil
+}
+
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
 // It returns a result that includes ISODownloadURL.
 func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov1alpha1.InstallEnv) (ctrl.Result, error) {
@@ -175,20 +201,12 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 
 	// Check for updates from user, compare spec and update the cluster
 	if err := r.updateClusterIfNeeded(ctx, installEnv, cluster); err != nil {
-		Requeue = true
-		if isClientError(err) {
-			Requeue = false
-		}
-		conditionsv1.SetStatusCondition(&installEnv.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ImageCreatedCondition,
-			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ImageCreationErrorReason,
-			Message: adiiov1alpha1.ImageStateFailedToCreate + ": " + err.Error(),
-		})
-		if updateErr := r.Status().Update(ctx, installEnv); updateErr != nil {
-			r.Log.WithError(updateErr).Error("failed to update installEnv status")
-		}
-		return ctrl.Result{Requeue: Requeue}, nil
+		return r.handleEnsureISOErrors(ctx, installEnv, err)
+	}
+
+	// Check for discovery ignition specific updates from user, compare spec and update the ignition config
+	if err := r.updateClusterDiscoveryIgnitionIfNeeded(ctx, installEnv, cluster); err != nil {
+		return r.handleEnsureISOErrors(ctx, installEnv, err)
 	}
 
 	// Generate ISO
@@ -261,7 +279,7 @@ func (r *InstallEnvReconciler) handleEnsureISOErrors(
 	if updateErr := r.Status().Update(ctx, installEnv); updateErr != nil {
 		r.Log.WithError(updateErr).Error("failed to update installEnv status")
 	}
-	return ctrl.Result{Requeue: Requeue}, nil
+	return ctrl.Result{Requeue: Requeue}, err
 }
 
 func imageBeingCreated(err error) bool {

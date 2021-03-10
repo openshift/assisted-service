@@ -24,6 +24,11 @@ import (
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	fakeIgnitionConfigOverride = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+	badIgnitionConfigOverride  = `bad ignition config`
+)
+
 func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Client) *corev1.LocalObjectReference {
 	err := client.Get(
 		ctx,
@@ -218,14 +223,8 @@ func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
 			Name:      clusterDeployment.ClusterName,
 			Namespace: Options.Namespace,
 		},
-		Proxy: &v1alpha1.Proxy{
-			NoProxy:    "192.168.1.1",
-			HTTPProxy:  "http://192.168.1.2",
-			HTTPSProxy: "http://192.168.1.3",
-		},
-		AdditionalNTPSources: []string{"192.168.1.4"},
-		PullSecretRef:        secretRef,
-		SSHAuthorizedKeys:    []string{sshPublicKey},
+		PullSecretRef:     secretRef,
+		SSHAuthorizedKeys: []string{sshPublicKey},
 	}
 }
 
@@ -343,7 +342,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "10s").Should(Equal(validHwInfo.SystemVendor.Manufacturer))
 	})
 
-	It("deploy clusterDeployment and installEnv and verify updates", func() {
+	It("deploy clusterDeployment and installEnv and verify cluster updates", func() {
 		installEnvName := "installenv"
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
@@ -366,7 +365,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-
+		installEnvSpec.Proxy = &v1alpha1.Proxy{
+			NoProxy:    "192.168.1.1",
+			HTTPProxy:  "http://192.168.1.2",
+			HTTPSProxy: "http://192.168.1.3",
+		}
+		installEnvSpec.AdditionalNTPSources = []string{"192.168.1.4"}
 		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
 		installEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -385,5 +389,85 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.HTTPProxy).Should(Equal("http://192.168.1.2"))
 		Expect(cluster.HTTPSProxy).Should(Equal("http://192.168.1.3"))
 		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("192.168.1.4"))
+	})
+
+	It("deploy clusterDeployment and installEnv with ignition override", func() {
+		installEnvName := "installenv"
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
+
+		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
+		installEnvSpec.IgnitionConfigOverride = fakeIgnitionConfigOverride
+
+		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
+		installEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      installEnvName,
+		}
+		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		Eventually(func() string {
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.IgnitionConfigOverrides).Should(Equal(fakeIgnitionConfigOverride))
+		Expect(cluster.ImageGenerated).Should(Equal(true))
+	})
+
+	It("deploy clusterDeployment and installEnv and with an invalid ignition override", func() {
+		installEnvName := "installenv"
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
+
+		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
+		installEnvSpec.IgnitionConfigOverride = badIgnitionConfigOverride
+
+		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
+		installEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      installEnvName,
+		}
+
+		Eventually(func() string {
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "15s", "2s").Should(Equal(v1alpha1.ImageStateFailedToCreate + ": error parsing ignition: config is not valid"))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.IgnitionConfigOverrides).ShouldNot(Equal(fakeIgnitionConfigOverride))
+		Expect(cluster.ImageGenerated).Should(Equal(false))
 	})
 })
