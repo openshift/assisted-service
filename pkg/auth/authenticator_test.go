@@ -19,6 +19,8 @@ var _ = Describe("ResolvedAuth", func() {
 			{authType: TypeNone, enabled: true, res: TypeNone},
 			{authType: TypeRHSSO, enabled: false, res: TypeRHSSO},
 			{authType: TypeRHSSO, enabled: true, res: TypeRHSSO},
+			{authType: TypeLocal, enabled: false, res: TypeLocal},
+			{authType: TypeLocal, enabled: true, res: TypeLocal},
 		}
 
 		for _, c := range cases {
@@ -39,21 +41,38 @@ var _ = Describe("NewAuthenticator", func() {
 	})
 
 	It("returns the correct type based on the config", func() {
+		// NoneAuthenticator
 		config := &Config{AuthType: TypeNone}
+
 		a, err := NewAuthenticator(config, nil, logrus.New(), nil)
 		Expect(err).ToNot(HaveOccurred())
 		_, ok := a.(*NoneAuthenticator)
 		Expect(ok).To(BeTrue())
 
+		// RHSSOAuthenticator
 		_, cert := GetTokenAndCert()
 		config = &Config{
 			AuthType:   TypeRHSSO,
 			JwkCertURL: "",
 			JwkCert:    string(cert),
 		}
+
 		a, err = NewAuthenticator(config, nil, logrus.New(), nil)
 		Expect(err).ToNot(HaveOccurred())
 		_, ok = a.(*RHSSOAuthenticator)
+		Expect(ok).To(BeTrue())
+
+		// LocalAuthenticator
+		_, ecdsaPubKey, err := ECDSATokenAndKey("")
+		Expect(err).ToNot(HaveOccurred())
+		config = &Config{
+			AuthType:       TypeLocal,
+			ECPublicKeyPEM: ecdsaPubKey,
+		}
+
+		a, err = NewAuthenticator(config, nil, logrus.New(), nil)
+		Expect(err).ToNot(HaveOccurred())
+		_, ok = a.(*LocalAuthenticator)
 		Expect(ok).To(BeTrue())
 	})
 })
