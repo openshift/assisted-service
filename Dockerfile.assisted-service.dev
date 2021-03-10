@@ -15,11 +15,8 @@ RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 
 FROM registry.ci.openshift.org/openshift/release:golang-1.15 as builder
 
-# Build binaries
-# Bring in the go dependencies before anything else so we can take
-# advantage of caching these layers in future builds.
-COPY . .
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
+# Copy locally built binaries
+COPY build/assisted-installer/assisted-service /build/assisted-service
 
 
 # Create final image

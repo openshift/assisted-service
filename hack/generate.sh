@@ -18,6 +18,10 @@ function generate_go_server() {
         --template-dir=/templates/contrib
 }
 
+function generate_dockerfiles() {
+    ${__dir}/generate_dockerfiles.py
+}
+
 function generate_go_client() {
     rm -rf client models
     docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
@@ -92,6 +96,7 @@ function generate_all() {
     generate_from_swagger
     generate_mocks
     generate_ocp_version
+    generate_dockerfiles
     ENABLE_KUBE_API=true generate_manifests
 }
 

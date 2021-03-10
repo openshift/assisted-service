@@ -123,8 +123,8 @@ build-in-docker:
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
-build-image: build
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+build-image: build generate-dockerfiles
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service.dev . -t $(SERVICE)
 
 update-service: build-in-docker
 	docker push $(SERVICE)
@@ -133,11 +133,11 @@ update: build-all
 	docker push $(SERVICE)
 
 update-minimal: build-minimal
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service.dev . -t $(SERVICE)
 
 _update-minikube: build-minimal
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service.dev . -t $(SERVICE)
 
 define publish_image
 	${1} tag ${2} ${3}
