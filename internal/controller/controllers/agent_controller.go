@@ -306,6 +306,18 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alph
 		}
 	}
 
+	if spec.InstallationDiskPath != host.InstallationDiskPath {
+		clusterUpdate = true
+		params.DisksSelectedConfig = []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
+			{
+				DisksConfig: []*models.DiskConfigParams{
+					{ID: &spec.InstallationDiskPath, Role: models.DiskRoleInstall},
+				},
+				ID: strfmt.UUID(agent.Name),
+			},
+		}
+	}
+
 	if !clusterUpdate {
 		return ctrl.Result{}, nil
 	}

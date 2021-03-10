@@ -131,6 +131,8 @@ type AgentSpec struct {
 	Hostname              string            `json:"hostname,omitempty"`
 	MachineConfigPool     string            `json:"machineConfigPool,omitempty"`
 	Approved              bool              `json:"approved"`
+	// InstallationDiskPath defines the installation destination disk. e.g.: /dev/sda
+	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
 }
 
 type HardwareValidationInfo struct {

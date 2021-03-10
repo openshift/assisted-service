@@ -53,6 +53,10 @@ spec:
                 type: object
               hostname:
                 type: string
+              installation_disk_path:
+                description: 'InstallationDiskPath defines the installation destination
+                  disk. e.g.: /dev/sda'
+                type: string
               machineConfigPool:
                 type: string
               role:
