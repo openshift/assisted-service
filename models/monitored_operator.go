@@ -30,9 +30,6 @@ type MonitoredOperator struct {
 	// operator type
 	OperatorType OperatorType `json:"operator_type,omitempty"`
 
-	// Prefix of the operator to be searched by.
-	PrefixName string `json:"prefix_name,omitempty"`
-
 	// Blob of operator-dependent parameters that are required for installation.
 	Properties string `json:"properties,omitempty" gorm:"type:text"`
 
@@ -45,6 +42,9 @@ type MonitoredOperator struct {
 	// Time at which the operator was last updated.
 	// Format: date-time
 	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
+
+	// The name of the subscription of the operator.
+	SubscriptionName string `json:"subscription_name,omitempty"`
 
 	// Positive number represents a timeout in seconds for the operator to be available.
 	TimeoutSeconds int64 `json:"timeout_seconds,omitempty"`

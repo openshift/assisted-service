@@ -6679,10 +6679,6 @@ func init() {
         "operator_type": {
           "$ref": "#/definitions/operator-type"
         },
-        "prefix_name": {
-          "description": "Prefix of the operator to be searched by.",
-          "type": "string"
-        },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
           "type": "string",
@@ -6700,6 +6696,10 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "subscription_name": {
+          "description": "The name of the subscription of the operator.",
+          "type": "string"
         },
         "timeout_seconds": {
           "description": "Positive number represents a timeout in seconds for the operator to be available.",
@@ -13790,10 +13790,6 @@ func init() {
         "operator_type": {
           "$ref": "#/definitions/operator-type"
         },
-        "prefix_name": {
-          "description": "Prefix of the operator to be searched by.",
-          "type": "string"
-        },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
           "type": "string",
@@ -13811,6 +13807,10 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "subscription_name": {
+          "description": "The name of the subscription of the operator.",
+          "type": "string"
         },
         "timeout_seconds": {
           "description": "Positive number represents a timeout in seconds for the operator to be available.",
