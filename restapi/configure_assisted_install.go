@@ -108,6 +108,9 @@ type InstallerAPI interface {
 	/* GetClusterDefaultConfig Get the default values for various cluster properties. */
 	GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder
 
+	/* GetClusterHostRequirements Get host requirements of a cluster. */
+	GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder
+
 	/* GetClusterInstallConfig Get the cluster's install config YAML. */
 	GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder
 
@@ -442,6 +445,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetClusterDefaultConfig(ctx, params)
+	})
+	api.InstallerGetClusterHostRequirementsHandler = installer.GetClusterHostRequirementsHandlerFunc(func(params installer.GetClusterHostRequirementsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetClusterHostRequirements(ctx, params)
 	})
 	api.InstallerGetClusterInstallConfigHandler = installer.GetClusterInstallConfigHandlerFunc(func(params installer.GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

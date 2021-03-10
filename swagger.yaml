@@ -2714,6 +2714,47 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/host-requirements:
+    get:
+      tags:
+        - installer
+      security:
+        - agentAuth: [admin, read-only-admin, user]
+      description: Get host requirements of a cluster.
+      operationId: GetClusterHostRequirements
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to return operators for.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster-host-requirements-list'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /domains:
     get:
       tags:
@@ -3146,6 +3187,56 @@ definitions:
         $ref: '#/definitions/host-requirements-role'
       worker:
         $ref: '#/definitions/host-requirements-role'
+
+  cluster-host-requirements-list:
+    type: array
+    items:
+      $ref: '#/definitions/cluster-host-requirements'
+
+  cluster-host-requirements:
+    type: object
+    properties:
+      host_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the host the requirements relate to.
+      total:
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Total host requirements for the cluster configuration
+      ocp:
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Host requirements for the OCP installation
+      operators:
+        type: array
+        items:
+          $ref: '#/definitions/operator-host-requirements'
+        description: Host requirements related to requested operators
+
+  operator-host-requirements:
+    type: object
+    properties:
+      operator_name:
+        type: string
+        description: Name of the operator
+      requirements:
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Host requirements for the operator
+
+  cluster-host-requirements-details:
+    type: object
+    properties:
+      cpu_cores:
+        type: integer
+        description: Required number of CPU cores
+      ram_gib:
+        type: integer
+        description: Required number of RAM in GiB
+      disk_size_gb:
+        type: integer
+        description: Required disk size in GB
+      installation_disk_speed_threshold_ms:
+        type: integer
+        description: Required installation disk speed in ms
 
   host-requirements-role:
     type: object
