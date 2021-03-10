@@ -212,8 +212,8 @@ func (v *validator) printHasMinMemory(c *validationContext, status ValidationSta
 	case ValidationSuccess:
 		return "Sufficient minimum RAM"
 	case ValidationFailure:
-		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %d GiB, found only %d GiB", v.hwValidatorCfg.MinRamGib,
-			conversions.BytesToGiB(c.inventory.Memory.PhysicalBytes))
+		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %s, found only %s", conversions.BytesToString(conversions.GibToBytes(v.hwValidatorCfg.MinRamGib)),
+			conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -321,9 +321,8 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status Validatio
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
 	case ValidationFailure:
-
-		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d GiB",
-			conversions.MibToGiB(c.clusterHostRequirements.Total.RAMMib), c.host.Role, conversions.BytesToGiB(c.inventory.Memory.PhysicalBytes))
+		return fmt.Sprintf("Require at least %s RAM for role %s, found only %s",
+			conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), c.host.Role, conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
