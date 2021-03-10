@@ -7,14 +7,16 @@ import (
 
 func lsoSubscription(OpenShiftVersion string) ([]byte, error) {
 	data := map[string]string{
-		"OPENSHIFT_VERSION": OpenShiftVersion,
+		"OPENSHIFT_VERSION":          OpenShiftVersion,
+		"OPERATOR_NAMESPACE":         Operator.Namespace,
+		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
 	}
 
 	const lsoSubscription = `apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: local-storage-operator
-  namespace: openshift-local-storage
+  name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
+  namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   channel: "{{.OPENSHIFT_VERSION}}"
   installPlanApproval: Automatic

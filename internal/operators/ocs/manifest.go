@@ -50,12 +50,44 @@ func Manifests(ocsMinDeploy bool, ocsDiskCounts int64, totalHosts int) (map[stri
 		}
 		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	}
-
 	manifests["99_openshift-ocssc_crd.yaml"] = []byte(ocsCRD)
 	manifests["99_openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
+	ocsSubscription, err := ocsSubscription()
+	if err != nil {
+		return map[string][]byte{}, err
+	}
 	manifests["99_openshift-ocs_subscription.yaml"] = []byte(ocsSubscription)
 	manifests["99_openshift-ocs_operator_group.yaml"] = []byte(ocsOperatorGroup)
 	return manifests, nil
+}
+
+func ocsSubscription() (string, error) {
+	data := map[string]string{
+		"OPERATOR_NAMESPACE":         Operator.Namespace,
+		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
+	}
+
+	const ocsSubscription = `apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
+    namespace: "{{.OPERATOR_NAMESPACE}}"
+  spec:
+    installPlanApproval: Automatic
+    name: ocs-operator
+    source: redhat-operators
+    sourceNamespace: openshift-marketplace`
+
+	tmpl, err := template.New("ocsSubscription").Parse(ocsSubscription)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, data)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 const ocsNamespace = `apiVersion: v1
@@ -74,18 +106,6 @@ metadata:
 spec:
   targetNamespaces:
   - openshift-storage`
-
-const ocsSubscription = `
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: ocs-operator
-  namespace: openshift-storage
-spec:
-  installPlanApproval: Automatic
-  name: ocs-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace`
 
 const ocsCRD = `apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

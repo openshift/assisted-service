@@ -22,7 +22,9 @@ func Manifests(OpenShiftVersion string) (map[string][]byte, error) {
 
 func subscription(OpenShiftVersion string) ([]byte, error) {
 	data := map[string]string{
-		"OPENSHIFT_VERSION": OpenShiftVersion,
+		"OPENSHIFT_VERSION":          OpenShiftVersion,
+		"OPERATOR_NAMESPACE":         Operator.Namespace,
+		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
 	}
 	tmpl, err := template.New("cnvSubscription").Parse(cnvSubscription)
 	if err != nil {
@@ -39,8 +41,8 @@ func subscription(OpenShiftVersion string) ([]byte, error) {
 const cnvSubscription = `apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
-  name: hco-operatorhub
-  namespace: openshift-cnv
+  name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
+  namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
