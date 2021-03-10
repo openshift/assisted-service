@@ -1728,6 +1728,51 @@ func (b *bareMetalInventory) noneHaModeClusterUpdateValidations(cluster *common.
 	return nil
 }
 
+func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, params *installer.UpdateClusterParams) (installer.UpdateClusterParams, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
+		if err := b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
+			return installer.UpdateClusterParams{}, err
+		}
+		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
+		if errUpdate != nil {
+			return installer.UpdateClusterParams{}, errors.New("Failed to update Pull-secret with additional credentials")
+		}
+		params.ClusterUpdateParams.PullSecret = &ps
+	}
+
+	if swag.StringValue(params.ClusterUpdateParams.Name) != "" {
+		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name); err != nil {
+			return installer.UpdateClusterParams{}, err
+		}
+	}
+
+	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
+		sshPublicKey = strings.TrimSpace(sshPublicKey)
+		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return installer.UpdateClusterParams{}, err
+		}
+		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
+	}
+
+	if params.ClusterUpdateParams.HTTPProxy != nil &&
+		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
+		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
+	}
+
+	if err := validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
+		params.ClusterUpdateParams.HTTPSProxy,
+		params.ClusterUpdateParams.NoProxy); err != nil {
+		log.WithError(err).Errorf("Failed to validate Proxy settings")
+		return installer.UpdateClusterParams{}, err
+	}
+
+	return *params, nil
+}
+
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	c, err := b.UpdateClusterInternal(ctx, params)
 	if err != nil {
@@ -1741,42 +1786,8 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	var cluster *common.Cluster
 	var err error
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
-	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
-		if err != nil {
-			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
-			return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
-		}
-		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
-		if errUpdate != nil {
-			return nil, common.NewApiError(http.StatusBadRequest,
-				errors.New("Failed to update Pull-secret with additional credentials"))
-		}
-		params.ClusterUpdateParams.PullSecret = &ps
-	}
-	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
-	if newClusterName != "" {
-		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
 
-	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
-		sshPublicKey = strings.TrimSpace(sshPublicKey)
-		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
-	}
-
-	if params.ClusterUpdateParams.HTTPProxy != nil &&
-		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
-		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
-	}
-	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
-		params.ClusterUpdateParams.HTTPSProxy,
-		params.ClusterUpdateParams.NoProxy); err != nil {
-		log.WithError(err).Errorf("Failed to validate Proxy settings")
+	if params, err = b.validateAndUpdateClusterParams(ctx, &params); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1842,8 +1853,9 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
+	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
 	if b.ocmClient != nil && b.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
-		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, newClusterName); err != nil {
+		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *params.ClusterUpdateParams.Name); err != nil {
 			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
 			return nil, err
 		}
