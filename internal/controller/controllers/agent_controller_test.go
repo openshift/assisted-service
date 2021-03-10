@@ -189,6 +189,7 @@ var _ = Describe("agent reconcile", func() {
 	It("Agent update", func() {
 		newHostName := "hostname123"
 		newRole := "worker"
+		newInstallDiskPath := "/dev/sdb"
 		hostId := strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &sId,
@@ -209,12 +210,16 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		host.Spec.Hostname = newHostName
 		host.Spec.Role = models.HostRole(newRole)
+		host.Spec.InstallationDiskPath = newInstallDiskPath
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, param installer.UpdateClusterParams) {
+				Expect(param.ClusterUpdateParams.DisksSelectedConfig[0].DisksConfig[0].ID).To(Equal(&newInstallDiskPath))
+				Expect(param.ClusterUpdateParams.DisksSelectedConfig[0].DisksConfig[0].Role).To(Equal(models.DiskRoleInstall))
+				Expect(param.ClusterUpdateParams.DisksSelectedConfig[0].ID).To(Equal(hostId))
 				Expect(param.ClusterUpdateParams.HostsNames[0].Hostname).To(Equal(newHostName))
 				Expect(param.ClusterUpdateParams.HostsNames[0].ID).To(Equal(hostId))
 				Expect(param.ClusterUpdateParams.HostsRoles[0].Role).To(Equal(models.HostRoleUpdateParams(models.HostRole(newRole))))

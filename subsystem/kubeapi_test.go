@@ -310,6 +310,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	It("deploy clusterDeployment with agent and update agent", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
+		installDisk := "/dev/sdb"
 		deployClusterDeploymentCRD(ctx, kubeClient, spec)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -324,11 +325,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		agent := getAgentCRD(ctx, kubeClient, key)
 		agent.Spec.Hostname = "newhostname"
 		agent.Spec.Approved = true
+		agent.Spec.InstallationDiskPath = installDisk
 		err := kubeClient.Update(ctx, agent)
 		Expect(err).To(BeNil())
 		Eventually(func() string {
 			return getHost(*cluster.ID, *host.ID).RequestedHostname
 		}, "2m", "10s").Should(Equal("newhostname"))
+		Eventually(func() string {
+			return getHost(*cluster.ID, *host.ID).InstallationDiskPath
+		}, "2m", "10s").Should(Equal(installDisk))
 
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
