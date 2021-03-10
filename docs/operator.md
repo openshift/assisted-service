@@ -8,16 +8,11 @@
 
 ## Building the operator
 
-### Create the bundle manifests
-
-```bash
-make operator-bundle
-```
+### Background
 
 To generate the manifests and CSV in ./bundle, "make operator-bundle" first calls the "ocp-create-manifests" target. This target in turn calls "deploy-service-on-ocp-cluster and deploy-ui-on-ocp-cluster" while setting APPLY_MANIFESTS=False and APPLY_NAMESPACE=False. This causes the resource yamls to be created in ./build/assisted-installer/ but does not apply them.
 
-The relevant resource yamls are then copied to ./config/assisted-service where additional customizations are applied using Kustomize. The resulting yaml is then piped to operator-sdk
-creating the manifests and CSVs in ./bundle/manifests. 
+The relevant resource yamls are then copied to ./config/assisted-service where additional customizations are applied using Kustomize. The resulting yaml is then piped to operator-sdk, creating the manifests and CSVs in ./bundle/manifests.
 
 More information about bundles: <https://sdk.operatorframework.io/docs/olm-integration/generation/>
 
@@ -25,10 +20,15 @@ More information about bundles: <https://sdk.operatorframework.io/docs/olm-integ
 
 ```bash
 export ORG=quay.io/ocpmetal
-make operator-bundle-build BUNDLE_IMG=$ORG/assisted-service-operator-bundle:0.0.1
-podman push $ORG/assisted-service-operator-bundle:0.0.1
+export BUNDLE_IMAGE $ORG/assisted-service-operator-bundle:latest
+# Build bundle image
+make operator-bundle-build
+# Push bundle image
+make operator-bundle-update
 
-opm index add --bundles $ORG/assisted-service-operator-bundle:0.0.1 --tag $ORG/assisted-service-index:0.0.1
+# Create index image
+opm index add --bundles $BUNDLE_IMAGE --tag $ORG/assisted-service-index:0.0.1  --container-tool podman
+# Push index image used in catalog source
 podman push $ORG/assisted-service-index:0.0.1
 ```
 

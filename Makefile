@@ -35,6 +35,7 @@ ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
@@ -146,6 +147,7 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
+	$(call publish_image,podman,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
 	skipper make publish-client
 
 publish-client: generate-python-client
@@ -396,6 +398,7 @@ delete-all-minikube-profiles:
 
 # Current Operator version
 OPERATOR_VERSION ?= 0.0.1
+BUNDLE_OUTPUT_DIR := $(or ${BUNDLE_OUTPUT_DIR},$(BUILD_FOLDER)/bundle)
 
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: operator-bundle
@@ -412,12 +415,21 @@ operator-bundle: create-ocp-manifests
 	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
 	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
-	#operator-sdk generate kustomize manifests -q
-	#cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
-	operator-sdk bundle validate ./bundle
+	# To use --output-dir, needed to break manifests and metadata generation into two steps
+	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp1
+	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp2
+	kustomize build config/manifests | operator-sdk generate bundle --version $(OPERATOR_VERSION) --manifests --output-dir $(BUNDLE_OUTPUT_DIR)/temp1
+	operator-sdk generate bundle --version $(OPERATOR_VERSION) --metadata --input-dir $(BUNDLE_OUTPUT_DIR)/temp1 --output-dir $(BUNDLE_OUTPUT_DIR)/temp2
+	mv $(BUNDLE_OUTPUT_DIR)/temp1/* $(BUNDLE_OUTPUT_DIR)
+	mv $(BUNDLE_OUTPUT_DIR)/temp2/metadata $(BUNDLE_OUTPUT_DIR)
+	rm -rf $(BUNDLE_OUTPUT_DIR)/temp1
+	rm -rf $(BUNDLE_OUTPUT_DIR)/temp2
+	operator-sdk bundle validate $(BUNDLE_OUTPUT_DIR)
 
 # Build the bundle image.
-.PHONY: operator-bundle-build
+.PHONY: operator-bundle-build operator-bundle-update
 operator-bundle-build:
-	podman build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.bundle -t $(BUNDLE_IMAGE) .
+
+operator-bundle-update:
+	podman push $(BUNDLE_IMAGE)
