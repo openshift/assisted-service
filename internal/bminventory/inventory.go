@@ -764,7 +764,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Creating AMS subscription for cluster %s", *cluster.ID)
-	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID)
+	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID, cluster.Name)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create AMS subscription for cluster %s, rolling back cluster registration", *cluster.ID)
 		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
@@ -1743,6 +1743,51 @@ func (b *bareMetalInventory) noneHaModeClusterUpdateValidations(cluster *common.
 	return nil
 }
 
+func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, params *installer.UpdateClusterParams) (installer.UpdateClusterParams, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
+		if err := b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
+			return installer.UpdateClusterParams{}, err
+		}
+		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
+		if errUpdate != nil {
+			return installer.UpdateClusterParams{}, errors.New("Failed to update Pull-secret with additional credentials")
+		}
+		params.ClusterUpdateParams.PullSecret = &ps
+	}
+
+	if swag.StringValue(params.ClusterUpdateParams.Name) != "" {
+		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name); err != nil {
+			return installer.UpdateClusterParams{}, err
+		}
+	}
+
+	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
+		sshPublicKey = strings.TrimSpace(sshPublicKey)
+		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return installer.UpdateClusterParams{}, err
+		}
+		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
+	}
+
+	if params.ClusterUpdateParams.HTTPProxy != nil &&
+		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
+		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
+	}
+
+	if err := validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
+		params.ClusterUpdateParams.HTTPSProxy,
+		params.ClusterUpdateParams.NoProxy); err != nil {
+		log.WithError(err).Errorf("Failed to validate Proxy settings")
+		return installer.UpdateClusterParams{}, err
+	}
+
+	return *params, nil
+}
+
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	c, err := b.UpdateClusterInternal(ctx, params)
 	if err != nil {
@@ -1756,41 +1801,8 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	var cluster *common.Cluster
 	var err error
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
-	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
-		if err != nil {
-			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
-			return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
-		}
-		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
-		if errUpdate != nil {
-			return nil, common.NewApiError(http.StatusBadRequest,
-				errors.New("Failed to update Pull-secret with additional credentials"))
-		}
-		params.ClusterUpdateParams.PullSecret = &ps
-	}
-	if newClusterName := swag.StringValue(params.ClusterUpdateParams.Name); newClusterName != "" {
-		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
 
-	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
-		sshPublicKey = strings.TrimSpace(sshPublicKey)
-		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
-	}
-
-	if params.ClusterUpdateParams.HTTPProxy != nil &&
-		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
-		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
-	}
-	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
-		params.ClusterUpdateParams.HTTPSProxy,
-		params.ClusterUpdateParams.NoProxy); err != nil {
-		log.WithError(err).Errorf("Failed to validate Proxy settings")
+	if params, err = b.validateAndUpdateClusterParams(ctx, &params); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1856,6 +1868,14 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
+	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
+	if b.ocmClient != nil && b.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
+		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *params.ClusterUpdateParams.Name); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
+			return nil, err
+		}
+	}
+
 	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
@@ -1881,6 +1901,16 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	}
 
 	return cluster, nil
+}
+
+func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Context, cluster *common.Cluster, newClusterName string) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating AMS subscription for cluster %s with new name %s", *cluster.ID, newClusterName)
+	if err := b.ocmClient.AccountsMgmt.UpdateSubscriptionDisplayName(ctx, cluster.AmsSubscriptionID, newClusterName); err != nil {
+		log.WithError(err).Errorf("Failed to update AMS subscription with the new cluster name %s for cluster %s", newClusterName, *cluster.ID)
+		return err
+	}
+	return nil
 }
 
 func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetworkCIDR string) {
@@ -3864,15 +3894,24 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 		return common.GenerateErrorResponder(err)
 	}
 
-	if b.ocmClient != nil {
-		_, err := b.ocmClient.AccountsMgmt.UpdateSubscription(ctx, cluster.AmsSubscriptionID, cluster.OpenshiftClusterID)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to update AMS subscription for cluster %v", cluster.ID)
+	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+		if err = b.integrateWithAMSClusterUpdatePostInstallation(ctx, cluster); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update post installation", *cluster.ID)
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 
 	return installer.NewCompleteInstallationAccepted().WithPayload(&cluster.Cluster)
+}
+
+func (b *bareMetalInventory) integrateWithAMSClusterUpdatePostInstallation(ctx context.Context, cluster *common.Cluster) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating AMS subscription for cluster %s post installation", *cluster.ID)
+	if err := b.ocmClient.AccountsMgmt.UpdateSubscriptionPostInstallation(ctx, cluster.AmsSubscriptionID, cluster.OpenshiftClusterID); err != nil {
+		log.WithError(err).Errorf("Failed to update AMS subscription for cluster %s post installation", *cluster.ID)
+		return err
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {

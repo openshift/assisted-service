@@ -45,20 +45,22 @@ type subscription struct {
 }
 
 const (
-	wiremockMappingsPath     string      = "/__admin/mappings"
-	capabilityReviewPath     string      = "/api/authorizations/v1/capability_review"
-	accessReviewPath         string      = "/api/authorizations/v1/access_review"
-	pullAuthPath             string      = "/api/accounts_mgmt/v1/token_authorization"
-	clusterAuthzPath         string      = "/api/accounts_mgmt/v1/cluster_authorizations"
-	subscriptionPrefix       string      = "/api/accounts_mgmt/v1/subscriptions/"
-	tokenPath                string      = "/token"
-	fakePayloadUsername      string      = "jdoe123@example.com"
-	fakePayloadAdmin         string      = "admin@example.com"
-	fakePayloadUnallowedUser string      = "unallowed@example.com"
-	FakePS                   string      = "dXNlcjpwYXNzd29yZAo="
-	FakeAdminPS              string      = "dXNlcjpwYXNzd29yZAy="
-	WrongPullSecret          string      = "wrong_secret"
-	FakeSubscriptionID       strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
+	wiremockMappingsPath               string      = "/__admin/mappings"
+	capabilityReviewPath               string      = "/api/authorizations/v1/capability_review"
+	accessReviewPath                   string      = "/api/authorizations/v1/access_review"
+	pullAuthPath                       string      = "/api/accounts_mgmt/v1/token_authorization"
+	clusterAuthzPath                   string      = "/api/accounts_mgmt/v1/cluster_authorizations"
+	subscriptionPrefix                 string      = "/api/accounts_mgmt/v1/subscriptions/"
+	subscriptionUpdatePostInstallation string      = "subscription_update_post_installation"
+	subscriptionUpdateDisplayName      string      = "subscription_update_display_name"
+	tokenPath                          string      = "/token"
+	fakePayloadUsername                string      = "jdoe123@example.com"
+	fakePayloadAdmin                   string      = "admin@example.com"
+	fakePayloadUnallowedUser           string      = "unallowed@example.com"
+	FakePS                             string      = "dXNlcjpwYXNzd29yZAo="
+	FakeAdminPS                        string      = "dXNlcjpwYXNzd29yZAy="
+	WrongPullSecret                    string      = "wrong_secret"
+	FakeSubscriptionID                 strfmt.UUID = "1h89fvtqeelulpo0fl5oddngj2ao7tt8"
 )
 
 var (
@@ -94,7 +96,7 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 		return err
 	}
 
-	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK); err != nil {
+	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdatePostInstallation); err != nil {
 		return err
 	}
 
@@ -131,6 +133,7 @@ func (w *WireMock) createStubsForCreatingAMSSubscription(resStatus int) error {
 		Managed         bool                `json:"managed"`
 		Resources       []*reservedResource `json:"resources"`
 		Reserve         bool                `json:"reserve"`
+		DisplayName     string              `json:"display_name"`
 	}
 
 	type clusterAuthorizationResponse struct {
@@ -145,6 +148,7 @@ func (w *WireMock) createStubsForCreatingAMSSubscription(resStatus int) error {
 		Managed:         false,
 		Resources:       []*reservedResource{},
 		Reserve:         true,
+		DisplayName:     "${json-unit.any-string}",
 	}
 
 	caResponse := clusterAuthorizationResponse{
@@ -186,7 +190,38 @@ func (w *WireMock) createStubsForGettingAMSSubscription(resStatus int) error {
 	return err
 }
 
-func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int) error {
+func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateType string) error {
+
+	if updateType == subscriptionUpdateDisplayName {
+
+		type subscriptionUpdateRequest struct {
+			DisplayName string `json:"display_name"`
+		}
+
+		suRequest := subscriptionUpdateRequest{
+			DisplayName: "${json-unit.any-string}",
+		}
+
+		subResponse := subscription{
+			ID: FakeSubscriptionID,
+		}
+
+		var reqBody []byte
+		reqBody, err := json.Marshal(suRequest)
+		if err != nil {
+			return err
+		}
+
+		var resBody []byte
+		resBody, err = json.Marshal(subResponse)
+		if err != nil {
+			return err
+		}
+
+		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		_, err = w.addStub(amsSubscriptionStub)
+		return err
+	}
 
 	type subscriptionUpdateRequest struct {
 		ExternalClusterID strfmt.UUID `json:"external_cluster_id"`

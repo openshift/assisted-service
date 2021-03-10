@@ -71,7 +71,7 @@ var _ = Describe("test AMS subscriptions", func() {
 		})
 
 		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
-		It("UpdateSubscription failed", func() {
+		It("UpdateSubscriptionPostInstallation failed", func() {
 
 			// create subscription
 			clusterID, err := registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
@@ -86,20 +86,20 @@ var _ = Describe("test AMS subscriptions", func() {
 			}
 			waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 
-			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusUnauthorized)
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusUnauthorized, subscriptionUpdatePostInstallation)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = completeInstallation(agentBMClient, clusterID)
 			Expect(err).To(HaveOccurred())
 
-			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusServiceUnavailable)
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusServiceUnavailable, subscriptionUpdatePostInstallation)
 			Expect(err).ToNot(HaveOccurred())
 
 			err = completeInstallation(agentBMClient, clusterID)
 			Expect(err).To(HaveOccurred())
 
 			// override back to keep other tests consistent tests
-			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK)
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdatePostInstallation)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
@@ -190,6 +190,61 @@ var _ = Describe("test AMS subscriptions", func() {
 
 			// override back to keep other tests consistent tests
 			err = wiremock.createStubsForDeletingAMSSubscription(http.StatusOK)
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	Context("AMS subscription on cluster update with new cluster name", func() {
+
+		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
+		It("happy flow", func() {
+
+			// create subscription
+			clusterID, err := registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			log.Infof("Register cluster %s", clusterID)
+
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateDisplayName)
+			Expect(err).ToNot(HaveOccurred())
+
+			// update subscription's display name
+			newClusterName := "ams-cluster-new-name"
+			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					Name: &newClusterName,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			// override back to keep other tests consistent tests
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdatePostInstallation)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
+		It("UpdateSubscription failed", func() {
+
+			// create subscription
+			clusterID, err := registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			log.Infof("Register cluster %s", clusterID)
+
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusUnauthorized, subscriptionUpdateDisplayName)
+			Expect(err).ToNot(HaveOccurred())
+
+			// update subscription's display name
+			newClusterName := "ams-cluster-new-name"
+			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					Name: &newClusterName,
+				},
+			})
+			Expect(err).To(HaveOccurred())
+
+			// override back to keep other tests consistent tests
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdatePostInstallation)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
