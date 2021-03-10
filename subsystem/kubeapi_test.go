@@ -253,6 +253,7 @@ func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses 
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
 	host := registerNode(ctx, clusterID, hostname)
+	generateHWPostStepReply(ctx, host, validHwInfo, hostname)
 	generateFAPostStepReply(ctx, host, validFreeAddresses)
 	return host
 }
@@ -332,6 +333,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
+		Eventually(func() string {
+			return getAgentCRD(ctx, kubeClient, key).Status.Inventory.SystemVendor.Manufacturer
+		}, "2m", "10s").Should(Equal(validHwInfo.SystemVendor.Manufacturer))
 	})
 
 	It("deploy clusterDeployment and installEnv and verify updates", func() {
