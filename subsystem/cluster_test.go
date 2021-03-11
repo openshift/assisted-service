@@ -349,6 +349,30 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 		hostID, clusterID, state, minSuccessesInRow))
 }
 
+func waitForMachineNetworkCIDR(
+	ctx context.Context, clusterID strfmt.UUID, machineNetworkCIDR string, timeout time.Duration) error {
+
+	log.Infof("Waiting for cluster=%s to have machineNetworkCIDR=%s", clusterID, machineNetworkCIDR)
+
+	currentMachineNetworkCIDR := ""
+	for start, _ := time.Now(), 0; time.Since(start) < timeout; {
+		rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		c := rep.GetPayload()
+		currentMachineNetworkCIDR = c.MachineNetworkCidr
+
+		if currentMachineNetworkCIDR == machineNetworkCIDR {
+			log.Infof("cluster=%s has machineNetworkCIDR=%s", clusterID, machineNetworkCIDR)
+			return nil
+		}
+
+		time.Sleep(time.Second)
+	}
+
+	return fmt.Errorf("cluster=%s has machineNetworkCIDR=%s but expected=%s",
+		clusterID, currentMachineNetworkCIDR, machineNetworkCIDR)
+}
+
 func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	ctx := context.Background()
 	reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
@@ -523,7 +547,7 @@ var _ = Describe("cluster install - DHCP", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusPendingForInput))
 		generateDhcpStepReply(reply.Payload.Hosts[0], "1.2.3.102", "1.2.3.103", true)
-		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				APIVip:     swag.String("1.2.3.100"),
 				IngressVip: swag.String("1.2.3.101"),
@@ -531,7 +555,8 @@ var _ = Describe("cluster install - DHCP", func() {
 			ClusterID: clusterID,
 		})
 		Expect(err).ToNot(HaveOccurred())
-		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusReady))
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
 		reply, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				VipDhcpAllocation: swag.Bool(false),
@@ -548,7 +573,8 @@ var _ = Describe("cluster install - DHCP", func() {
 			ClusterID: clusterID,
 		})
 		Expect(err).ToNot(HaveOccurred())
-		Expect(swag.StringValue(reply.Payload.Status)).To(Equal(models.ClusterStatusInsufficient))
+		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				APIVip:     swag.String("1.2.3.100"),
@@ -891,6 +917,94 @@ var _ = Describe("cluster install", func() {
 		}
 		Expect(mastersCount).Should(Equal(3))
 		Expect(workersCount).Should(Equal(3))
+	})
+
+	Context("MachineNetworkCIDR auto assign", func() {
+
+		It("MachineNetworkCIDR successful allocating", func() {
+			clusterID := *cluster.ID
+			apiVip := "1.2.3.8"
+			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip:            &apiVip,
+					VipDhcpAllocation: swag.Bool(false),
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(c.GetPayload().Hosts)).Should(Equal(0))
+			Expect(c.Payload.APIVip).Should(Equal(apiVip))
+			Expect(c.Payload.MachineNetworkCidr).Should(Equal(""))
+			_ = registerNode(ctx, clusterID, "test-host")
+			Expect(waitForMachineNetworkCIDR(
+				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).ShouldNot(HaveOccurred())
+		})
+
+		It("MachineNetworkCIDR successful deallocating ", func() {
+			clusterID := *cluster.ID
+			apiVip := "1.2.3.8"
+			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip:            &apiVip,
+					VipDhcpAllocation: swag.Bool(false),
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(c.Payload.APIVip).Should(Equal(apiVip))
+			host := registerNode(ctx, clusterID, "test-host")
+			Expect(waitForMachineNetworkCIDR(
+				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).ShouldNot(HaveOccurred())
+			_, err1 := userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
+				ClusterID: clusterID,
+				HostID:    *host.ID,
+			})
+			Expect(err1).ShouldNot(HaveOccurred())
+			Expect(waitForMachineNetworkCIDR(
+				ctx, clusterID, "", defaultWaitForMachineNetworkCIDRTimeout)).ShouldNot(HaveOccurred())
+		})
+
+		It("MachineNetworkCIDR no vips - no allocation", func() {
+			clusterID := *cluster.ID
+			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(false),
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(c.GetPayload().Hosts)).Should(Equal(0))
+			Expect(c.Payload.APIVip).Should(Equal(""))
+			Expect(c.Payload.IngressVip).Should(Equal(""))
+			Expect(c.Payload.MachineNetworkCidr).Should(Equal(""))
+			_ = registerNode(ctx, clusterID, "test-host")
+			Expect(waitForMachineNetworkCIDR(
+				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).Should(HaveOccurred())
+			c1, err1 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err1).NotTo(HaveOccurred())
+			Expect(c1.Payload.MachineNetworkCidr).Should(Equal(""))
+		})
+
+		It("MachineNetworkCIDR no hosts - no allocation", func() {
+			clusterID := *cluster.ID
+			apiVip := "1.2.3.8"
+			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					APIVip:            &apiVip,
+					VipDhcpAllocation: swag.Bool(false),
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(c.GetPayload().Hosts)).Should(Equal(0))
+			Expect(c.Payload.APIVip).Should(Equal(apiVip))
+			Expect(c.Payload.MachineNetworkCidr).Should(Equal(""))
+			Expect(waitForMachineNetworkCIDR(
+				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).Should(HaveOccurred())
+			c1, err1 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err1).NotTo(HaveOccurred())
+			Expect(c1.Payload.MachineNetworkCidr).Should(Equal(""))
+		})
 	})
 
 	Context("install cluster cases", func() {

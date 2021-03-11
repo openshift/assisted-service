@@ -33,7 +33,7 @@ func getVIPInterfaceNetwork(vip net.IP, addresses []string) *net.IPNet {
  * The goal of this function is to find the first network that one of the vips belongs to it.
  * This network is returned as a result.
  */
-func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host) (string, error) {
+func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host, isMatchRequired bool) (string, error) {
 	var ip string
 	if apiVip != "" {
 		ip = apiVip
@@ -68,6 +68,9 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 			}
 		}
 	}
+	if !isMatchRequired {
+		return "", nil
+	}
 	return "", errors.Errorf("No suitable matching CIDR found for VIP %s", ip)
 }
 
@@ -96,7 +99,7 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	return nil
 }
 
-func verifyDifferentVipAddresses(apiVip string, ingressVip string) error {
+func VerifyDifferentVipAddresses(apiVip string, ingressVip string) error {
 	if apiVip == ingressVip && apiVip != "" {
 		return errors.Errorf("api-vip and ingress-vip cannot have the same value: %s", apiVip)
 	}
@@ -109,25 +112,21 @@ func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, 
 		err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", mustExist, log)
 	}
 	if err == nil {
-		err = verifyDifferentVipAddresses(apiVip, ingressVip)
+		err = VerifyDifferentVipAddresses(apiVip, ingressVip)
 	}
 	return err
 }
 
-func VerifyMachineCIDR(machineCidr string, hosts []*models.Host, log logrus.FieldLogger) error {
+func VerifyMachineCIDR(machineCidr string) error {
 	ip, ipNet, err := net.ParseCIDR(machineCidr)
 	if err != nil {
 		return err
 	}
-	if ipNet.IP.To4().String() != ip.To4().String() {
+
+	if !ip.Equal(ipNet.IP) {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s is not a valid machine CIDR", machineCidr))
 	}
-	for _, h := range hosts {
-		if belongsToNetwork(log, h, ipNet) {
-			return nil
-		}
-	}
-	return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s does not belong to any of the host networks", machineCidr))
+	return nil
 }
 
 func findMatchingIPForFamily(ipnet *net.IPNet, addresses []string) (bool, string) {
