@@ -6639,7 +6639,8 @@ func init() {
           },
           "mac_address": {
             "description": "mac address present on the host",
-            "type": "string"
+            "type": "string",
+            "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
           }
         }
       }
@@ -11793,7 +11794,8 @@ func init() {
         },
         "mac_address": {
           "description": "mac address present on the host",
-          "type": "string"
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
         }
       }
     },

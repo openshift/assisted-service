@@ -4037,6 +4037,7 @@ definitions:
       properties:
         mac_address:
           type: string
+          pattern: '^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$'
           description: mac address present on the host
         logical_nic_name:
           type: string
