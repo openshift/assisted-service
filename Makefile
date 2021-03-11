@@ -1,7 +1,9 @@
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
 
 PWD = $(shell pwd)
-BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
+BUILD_FOLDER_RELATIVE = build/$(NAMESPACE)
+BUILD_FOLDER = $(PWD)/$(BUILD_FOLDER_RELATIVE)
+BUILT_SERVICE_BINARY = $(BUILD_FOLDER_RELATIVE)/assisted-service
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
@@ -121,7 +123,7 @@ build-in-docker:
 	skipper make build-image
 
 build-minimal: $(BUILD_FOLDER)
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
+	CGO_ENABLED=0 go build -o $(BUILT_SERVICE_BINARY) cmd/main.go
 
 build-image: build
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
@@ -133,11 +135,17 @@ update: build-all
 	docker push $(SERVICE)
 
 update-minimal: build-minimal
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	# Perform a quick service image build that only replaces the service binary in the
+	# service image, using the Dockerfile.assisted-service.dev dockerfile
+	docker build \
+		--build-arg BASE_IMAGE=$(SERVICE) --build-arg LOCAL_SERVICE_BINARY=$(BUILT_SERVICE_BINARY) \
+		$(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service.dev . -t $(SERVICE)
 
 _update-minikube: build-minimal
 	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+		docker build \
+			--build-arg BASE_IMAGE=$(SERVICE) --build-arg LOCAL_SERVICE_BINARY=$(BUILT_SERVICE_BINARY) \
+			$(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service.dev . -t $(SERVICE)
 
 define publish_image
 	${1} tag ${2} ${3}

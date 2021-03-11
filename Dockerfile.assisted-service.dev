@@ -1,0 +1,8 @@
+# Let the `docker build` command caller decide the base image
+ARG BASE_IMAGE
+FROM $BASE_IMAGE
+
+# Simply replace the existing service binary in the base image with a new locally built one
+ARG LOCAL_SERVICE_BINARY
+COPY $LOCAL_SERVICE_BINARY /assisted-service
+
