@@ -11,6 +11,7 @@ import (
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/go-openapi/validate"
 )
 
 // MacInterfaceMap mac interface map
@@ -53,11 +54,34 @@ type MacInterfaceMapItems0 struct {
 	LogicalNicName string `json:"logical_nic_name,omitempty"`
 
 	// mac address present on the host
+	// Pattern: ^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$
 	MacAddress string `json:"mac_address,omitempty"`
 }
 
 // Validate validates this mac interface map items0
 func (m *MacInterfaceMapItems0) Validate(formats strfmt.Registry) error {
+	var res []error
+
+	if err := m.validateMacAddress(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if len(res) > 0 {
+		return errors.CompositeValidationError(res...)
+	}
+	return nil
+}
+
+func (m *MacInterfaceMapItems0) validateMacAddress(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.MacAddress) { // not required
+		return nil
+	}
+
+	if err := validate.Pattern("mac_address", "body", string(m.MacAddress), `^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$`); err != nil {
+		return err
+	}
+
 	return nil
 }
 
