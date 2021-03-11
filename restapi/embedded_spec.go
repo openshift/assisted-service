@@ -6323,6 +6323,19 @@ func init() {
         }
       ]
     },
+    "host_static_network_config": {
+      "type": "object",
+      "properties": {
+        "mac_interface_map": {
+          "description": "mapping of host macs to logical interfaces used in the network yaml",
+          "$ref": "#/definitions/mac_interface_map"
+        },
+        "network_yaml": {
+          "description": "yaml string that can be processed by nmstate",
+          "type": "string"
+        }
+      }
+    },
     "image-create-params": {
       "type": "object",
       "properties": {
@@ -6337,8 +6350,7 @@ func init() {
         "static_network_config": {
           "type": "array",
           "items": {
-            "description": "array of string in nmstate yaml format, each string is one host configuration",
-            "type": "string"
+            "$ref": "#/definitions/host_static_network_config"
           }
         }
       }
@@ -6615,6 +6627,22 @@ func init() {
         "all",
         ""
       ]
+    },
+    "mac_interface_map": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "logical_nic_name": {
+            "description": "nic name used in the yaml, which relates 1:1 to the mac address",
+            "type": "string"
+          },
+          "mac_address": {
+            "description": "mac address present on the host",
+            "type": "string"
+          }
+        }
+      }
     },
     "managed-domain": {
       "type": "object",
@@ -11756,6 +11784,19 @@ func init() {
         }
       }
     },
+    "MacInterfaceMapItems0": {
+      "type": "object",
+      "properties": {
+        "logical_nic_name": {
+          "description": "nic name used in the yaml, which relates 1:1 to the mac address",
+          "type": "string"
+        },
+        "mac_address": {
+          "description": "mac address present on the host",
+          "type": "string"
+        }
+      }
+    },
     "add-hosts-cluster-create-params": {
       "type": "object",
       "required": [
@@ -13433,6 +13474,19 @@ func init() {
         }
       ]
     },
+    "host_static_network_config": {
+      "type": "object",
+      "properties": {
+        "mac_interface_map": {
+          "description": "mapping of host macs to logical interfaces used in the network yaml",
+          "$ref": "#/definitions/mac_interface_map"
+        },
+        "network_yaml": {
+          "description": "yaml string that can be processed by nmstate",
+          "type": "string"
+        }
+      }
+    },
     "image-create-params": {
       "type": "object",
       "properties": {
@@ -13447,8 +13501,7 @@ func init() {
         "static_network_config": {
           "type": "array",
           "items": {
-            "description": "array of string in nmstate yaml format, each string is one host configuration",
-            "type": "string"
+            "$ref": "#/definitions/host_static_network_config"
           }
         }
       }
@@ -13726,6 +13779,12 @@ func init() {
         "all",
         ""
       ]
+    },
+    "mac_interface_map": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/MacInterfaceMapItems0"
+      }
     },
     "managed-domain": {
       "type": "object",

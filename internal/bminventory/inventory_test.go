@@ -379,9 +379,22 @@ var _ = Describe("GenerateClusterISO", func() {
 	})
 
 	Context("static network config", func() {
-		staticNetworkConfig := []string{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1"),
-			formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1"),
-			formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1")}
+		map1 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+			&models.MacInterfaceMapItems0{MacAddress: "mac11", LogicalNicName: "nic11"},
+		}
+		map2 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+			&models.MacInterfaceMapItems0{MacAddress: "mac21", LogicalNicName: "nic21"},
+		}
+		map3 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac30", LogicalNicName: "nic30"},
+			&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
+		}
+
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
+			formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
+			formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1", map3)}
 
 		It("static network config - success", func() {
 			cluster := registerCluster(true)
@@ -418,9 +431,9 @@ var _ = Describe("GenerateClusterISO", func() {
 
 			rollbackClusterImageCreationDate(clusterId)
 
-			newStaticNetworkConfig := []string{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1"),
-				formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1"),
-				formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1")}
+			newStaticNetworkConfig := []*models.HostStaticNetworkConfig{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
+				formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
+				formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1", map3)}
 
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
@@ -457,9 +470,9 @@ var _ = Describe("GenerateClusterISO", func() {
 			updates["image_created_at"] = updatedTime
 			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
 
-			newStaticNetworkConfig := []string{formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1"),
-				formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1"),
-				formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1")}
+			newStaticNetworkConfig := []*models.HostStaticNetworkConfig{formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
+				formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
+				formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3)}
 
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
@@ -6540,7 +6553,7 @@ type Routes struct {
 	Config []RouteConfig `yaml:"config"`
 }
 
-func formatStaticConfigHostYAML(macPrimary, macSecondary, ip4Master, ip4Secondary, dnsGW string) string {
+func formatStaticConfigHostYAML(macPrimary, macSecondary, ip4Master, ip4Secondary, dnsGW string, macInterfaceMap models.MacInterfaceMap) *models.HostStaticNetworkConfig {
 	staticNetworkConfig := StaticNetworkConfig{
 		DNSResolver: DNSResolver{
 			Config: DNSResolverConfig{
@@ -6592,5 +6605,5 @@ func formatStaticConfigHostYAML(macPrimary, macSecondary, ip4Master, ip4Secondar
 	}
 
 	output, _ := yaml.Marshal(staticNetworkConfig)
-	return string(output)
+	return &models.HostStaticNetworkConfig{MacInterfaceMap: macInterfaceMap, NetworkYaml: string(output)}
 }
