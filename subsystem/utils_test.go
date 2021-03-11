@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	defaultWaitForHostStateTimeout    = 20 * time.Second
-	defaultWaitForClusterStateTimeout = 40 * time.Second
+	defaultWaitForHostStateTimeout          = 20 * time.Second
+	defaultWaitForClusterStateTimeout       = 40 * time.Second
+	defaultWaitForMachineNetworkCIDRTimeout = 40 * time.Second
 )
 
 func clearDB() {

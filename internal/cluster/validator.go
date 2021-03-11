@@ -148,7 +148,7 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 	if c.cluster.APIVip == "" && c.cluster.IngressVip == "" {
 		return ValidationPending
 	}
-	cidr, err := network.CalculateMachineNetworkCIDR(c.cluster.APIVip, c.cluster.IngressVip, c.cluster.Hosts)
+	cidr, err := network.CalculateMachineNetworkCIDR(c.cluster.APIVip, c.cluster.IngressVip, c.cluster.Hosts, true)
 	c.calculateCidr = cidr
 	return boolValue(err == nil && cidr == c.cluster.MachineNetworkCidr)
 }

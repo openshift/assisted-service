@@ -717,14 +717,17 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		srcState                string
 		machineNetworkCIDR      string
 		expectedMachineCIDR     string
+		apiVip                  string
 		hosts                   []*models.Host
 		eventCallExpected       bool
 		userActionResetExpected bool
 		dhcpEnabled             bool
+		userManagedNetworking   bool
 	}{
 		{
-			name:     "No hosts",
-			srcState: models.ClusterStatusPendingForInput,
+			name:        "No hosts",
+			srcState:    models.ClusterStatusPendingForInput,
+			dhcpEnabled: true,
 		},
 		{
 			name:     "One discovering host",
@@ -811,7 +814,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			dhcpEnabled:             true,
 		},
 		{
-			name:     "Two hosts, one networks, dhcp disabled",
+			name:     "Two hosts, one networks, dhcp disabled, no vips",
 			srcState: models.ClusterStatusPendingForInput,
 			hosts: []*models.Host{
 				{
@@ -825,6 +828,179 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			},
 			userActionResetExpected: true,
 			eventCallExpected:       true,
+			dhcpEnabled:             false,
+		},
+		{
+			name:        "No hosts - dhcp disabled",
+			srcState:    models.ClusterStatusPendingForInput,
+			dhcpEnabled: false,
+			apiVip:      "1.2.3.8",
+		},
+		{
+			name:     "One discovering host - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusDiscovering),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			dhcpEnabled: false,
+			apiVip:      "1.2.3.8",
+		},
+		{
+			name:     "One insufficient host, one network - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			expectedMachineCIDR:     "1.2.3.0/24",
+			dhcpEnabled:             false,
+			apiVip:                  "1.2.3.8",
+		},
+		{
+			name:     "Host with two networks - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: twoNetworksInventory(),
+				},
+			},
+			dhcpEnabled:         false,
+			apiVip:              "1.2.3.8",
+			expectedMachineCIDR: "1.2.3.0/24",
+		},
+		{
+			name:     "Two hosts, one networks - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			dhcpEnabled:             false,
+			expectedMachineCIDR:     "1.2.3.0/24",
+			apiVip:                  "1.2.3.8",
+		},
+		{
+			name:     "Two hosts, one networks - dhcp disabled, user managed networking",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			dhcpEnabled:             false,
+			apiVip:                  "1.2.3.8",
+			userManagedNetworking:   true,
+		},
+		{
+			name:     "Two hosts, one networks - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			expectedMachineCIDR:     "1.2.3.0/24",
+			dhcpEnabled:             false,
+			apiVip:                  "1.2.3.8",
+		},
+		{
+			name:     "Two hosts, two networks - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+				{
+					Status:    swag.String(models.HostStatusPendingForInput),
+					Inventory: nonDefaultInventory(),
+				},
+			},
+			dhcpEnabled:         false,
+			expectedMachineCIDR: "1.2.3.0/24",
+			apiVip:              "1.2.3.8",
+		},
+		{
+			name:     "One insufficient host, one network, machine cidr already set - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			machineNetworkCIDR:      "192.168.0.0/16",
+			expectedMachineCIDR:     "1.2.3.0/24",
+			dhcpEnabled:             false,
+			apiVip:                  "1.2.3.8",
+		},
+		{
+			name:                    "No hosts, machine cidr already set - dhcp disabled",
+			srcState:                models.ClusterStatusPendingForInput,
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			machineNetworkCIDR:      "192.168.0.0/16",
+			dhcpEnabled:             false,
+			apiVip:                  "1.2.3.8",
+		},
+		{
+			name:     "One insufficient host, no networks, machine cidr already set - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status: swag.String(models.HostStatusInsufficient),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			machineNetworkCIDR:      "192.168.0.0/16",
+			dhcpEnabled:             false,
+			apiVip:                  "1.2.3.8",
+		},
+		{
+			name:     "One insufficient host, one network, machine cidr already set, no vips - dhcp disabled",
+			srcState: models.ClusterStatusPendingForInput,
+			hosts: []*models.Host{
+				{
+					Status:    swag.String(models.HostStatusInsufficient),
+					Inventory: common.GenerateTestDefaultInventory(),
+				},
+			},
+			userActionResetExpected: true,
+			eventCallExpected:       true,
+			machineNetworkCIDR:      "192.168.0.0/16",
 			dhcpEnabled:             false,
 		},
 	}
@@ -841,6 +1017,8 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				ClusterNetworkHostPrefix: 24,
 				MachineNetworkCidr:       t.machineNetworkCIDR,
 				VipDhcpAllocation:        swag.Bool(t.dhcpEnabled),
+				APIVip:                   t.apiVip,
+				UserManagedNetworking:    swag.Bool(t.userManagedNetworking),
 			}}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 			for _, h := range t.hosts {

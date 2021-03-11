@@ -1936,14 +1936,13 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	}
 
 	var err error
-	*machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
+	err = verifyParsableVIPs(apiVip, ingressVip)
 	if err != nil {
-		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
-		return common.NewApiError(http.StatusBadRequest, err)
+		log.WithError(err).Errorf("Failed validating VIPs of cluster id=%s", params.ClusterID)
+		return err
 	}
-	setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 
-	err = network.VerifyVips(cluster.Hosts, *machineCidr, apiVip, ingressVip, false, log)
+	err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -1951,7 +1950,17 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
+func verifyParsableVIPs(apiVip string, ingressVip string) error {
+	if apiVip != "" && net.ParseIP(apiVip) == nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Could not parse VIP ip %s", apiVip))
+	}
+	if ingressVip != "" && net.ParseIP(ingressVip) == nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Could not parse VIP ip %s", ingressVip))
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	if params.ClusterUpdateParams.APIVip != nil {
 		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set API VIP")
@@ -1968,7 +1977,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
-		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
+		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr))
 	}
 	return nil
 }
@@ -2073,7 +2082,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 	}
 	if !userManagedNetworking {
 		if vipDhcpAllocation {
-			err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
+			err = b.updateDhcpNetworkParams(updates, params, log, &machineCidr)
 		} else {
 			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
 		}

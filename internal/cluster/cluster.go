@@ -251,7 +251,7 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
 }
 
-func (m *Manager) tryAssignMachineCidr(cluster *common.Cluster) error {
+func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 	networks := network.GetClusterNetworks(cluster.Hosts, m.log)
 	if len(networks) == 1 {
 		/*
@@ -268,6 +268,22 @@ func (m *Manager) tryAssignMachineCidr(cluster *common.Cluster) error {
 	return nil
 }
 
+func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
+	machineCidr, err := network.CalculateMachineNetworkCIDR(
+		cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
+
+	if err != nil {
+		return err
+	} else if machineCidr == cluster.MachineNetworkCidr {
+		return nil
+	}
+
+	return m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
+		"machine_network_cidr", machineCidr,
+		"machine_network_cidr_updated_at", time.Now(),
+	).Error
+}
+
 func (m *Manager) autoAssignMachineNetworkCidrs() error {
 	var clusters []*common.Cluster
 	/*
@@ -276,14 +292,19 @@ func (m *Manager) autoAssignMachineNetworkCidrs() error {
 	 * For these clusters the hosts query is all hosts that are not in status (disabled, disconnected, discovering),
 	 * since we want to calculate the host networks only from hosts wkith relevant inventory
 	 */
-	err := common.LoadTableFromDB(m.db, common.HostsTable, "status not in (?)", []string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
-		Find(&clusters, "vip_dhcp_allocation = ? and machine_network_cidr = '' and status in (?)", true, []string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}).Error
+	err := common.LoadTableFromDB(m.db, common.HostsTable, "status not in (?)",
+		[]string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
+		Find(&clusters, "status in (?)", []string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}).Error
 	if err != nil {
 		m.log.WithError(err).Warn("Query for clusters for machine network cidr allocation")
 		return err
 	}
 	for _, cluster := range clusters {
-		err = m.tryAssignMachineCidr(cluster)
+		if swag.BoolValue(cluster.VipDhcpAllocation) {
+			err = m.tryAssignMachineCidrDHCPMode(cluster)
+		} else if !swag.BoolValue(cluster.UserManagedNetworking) {
+			err = m.tryAssignMachineCidrNonDHCPMode(cluster)
+		}
 		if err != nil {
 			m.log.WithError(err).Warnf("Set machine cidr for cluster %s", cluster.ID.String())
 		}
