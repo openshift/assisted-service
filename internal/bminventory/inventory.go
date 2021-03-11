@@ -396,19 +396,10 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 }
 
 func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams, logger logrus.FieldLogger, safeForLogs bool) (string, error) {
-	creds, err := validations.ParsePullSecret(cluster.PullSecret)
+	pullSecretToken, err := clusterPkg.AgentToken(cluster, b.authHandler.AuthType())
 	if err != nil {
 		return "", err
 	}
-	pullSecretToken := ""
-	if b.authHandler.AuthType() == auth.TypeRHSSO {
-		r, ok := creds["cloud.openshift.com"]
-		if !ok {
-			return "", errors.Errorf("Pull secret does not contain auth for cloud.openshift.com")
-		}
-		pullSecretToken = r.AuthRaw
-	}
-
 	proxySettings, err := proxySettingsForIgnition(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 	if err != nil {
 		return "", err

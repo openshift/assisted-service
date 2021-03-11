@@ -7,9 +7,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
-	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -68,7 +66,7 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		return nil, err
 	}
 
-	if !cluster.ClusterExists(a.db, strfmt.UUID(clusterID)) {
+	if !clusterExists(a.db, clusterID) {
 		err := errors.Errorf("cluster %s does not exist", clusterID)
 		a.log.Error(err)
 		return nil, err
@@ -112,4 +110,9 @@ func validateToken(token string, pub crypto.PublicKey) (*jwt.Token, error) {
 	}
 
 	return parsed, nil
+}
+
+func clusterExists(db *gorm.DB, clusterID string) bool {
+	var c common.Cluster
+	return db.Select("id").Take(&c, map[string]interface{}{"id": clusterID}).Error == nil
 }
