@@ -188,7 +188,7 @@ func generateValidInventoryWithInterface(networkInterface string) string {
 
 	inventory := models.Inventory{
 		CPU:          &models.CPU{Count: 4},
-		Memory:       &models.Memory{PhysicalBytes: int64(16 * units.GiB)},
+		Memory:       &models.Memory{PhysicalBytes: int64(16 * units.GiB), UsableBytes: int64(16 * units.GiB)},
 		Disks:        []*models.Disk{{Name: "sda1", DriveType: "HDD", SizeBytes: validDiskSize}},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Interfaces:   []*models.Interface{{IPV4Addresses: []string{networkInterface}}},
@@ -331,7 +331,7 @@ var _ = Describe("Metrics tests", func() {
 			// create a validation failure
 			nonValidInventory := &models.Inventory{
 				CPU:          &models.CPU{Count: 1},
-				Memory:       &models.Memory{PhysicalBytes: int64(4 * units.GiB)},
+				Memory:       &models.Memory{PhysicalBytes: int64(4 * units.GiB), UsableBytes: int64(4 * units.GiB)},
 				Disks:        []*models.Disk{{Name: "sda1", DriveType: "HDD", SizeBytes: validDiskSize}},
 				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 				Interfaces:   []*models.Interface{{IPV4Addresses: []string{"1.2.3.4/24"}}},
@@ -373,7 +373,7 @@ var _ = Describe("Metrics tests", func() {
 			h := &registerHost(clusterID).Host
 			nonValidInventory := &models.Inventory{
 				CPU:          &models.CPU{Count: 1},
-				Memory:       &models.Memory{PhysicalBytes: int64(4 * units.GiB)},
+				Memory:       &models.Memory{PhysicalBytes: int64(4 * units.GiB), UsableBytes: int64(4 * units.GiB)},
 				Disks:        []*models.Disk{{Name: "sda1", DriveType: "HDD", SizeBytes: validDiskSize}},
 				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 				Interfaces:   []*models.Interface{{IPV4Addresses: []string{"1.2.3.4/24"}}},

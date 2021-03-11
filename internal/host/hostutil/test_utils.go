@@ -95,7 +95,7 @@ func GenerateMasterInventoryWithHostname(hostname string) string {
 				},
 			},
 		},
-		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(16)},
+		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(16), UsableBytes: hardware.GibToBytes(16)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,
@@ -122,7 +122,34 @@ func GenerateMasterInventoryWithHostnameV6(hostname string) string {
 				},
 			},
 		},
-		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(16)},
+		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(16), UsableBytes: hardware.GibToBytes(16)},
+		Hostname:     hostname,
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func GenerateInventoryWithResources(cpu, memory int64, hostname string) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: cpu},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(memory), UsableBytes: hardware.GibToBytes(memory)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,

@@ -838,7 +838,7 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		}
 	}
 
-	if err := m.rp.operatorsApi.GenerateManifests(ctx, cluster); err != nil {
+	if err := m.rp.operatorsAPI.GenerateManifests(ctx, cluster); err != nil {
 		return errors.Wrap(err, "failed to add operator manifests")
 	}
 	return nil

@@ -35,19 +35,19 @@ type Operator interface {
 	// ValidateCluster verifies whether this operator is valid for given cluster
 	ValidateCluster(ctx context.Context, cluster *common.Cluster) (ValidationResult, error)
 	// ValidateHost verifies whether this operator is valid for given host
-	ValidateHost(context.Context, *common.Cluster, *models.Host) (ValidationResult, error)
+	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
 	GenerateManifests(*common.Cluster) (map[string][]byte, error)
 	// GetCPURequirementForWorker provides worker CPU requirements for the operator
-	GetCPURequirementForWorker(context.Context, *common.Cluster) (int64, error)
+	GetCPURequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
 	// GetCPURequirementForMaster provides master CPU requirements for the operator
-	GetCPURequirementForMaster(context.Context, *common.Cluster) (int64, error)
+	GetCPURequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error)
 	// GetMemoryRequirementForWorker provides worker memory requirements for the operator in MB
 	GetMemoryRequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
 	// GetMemoryRequirementForMaster provides master memory requirements for the operator in MB
 	GetMemoryRequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error)
 	// GetDisksRequirementForMaster provides a number of disks required in a master
-	GetDisksRequirementForMaster(context.Context, *common.Cluster) (int64, error)
+	GetDisksRequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error)
 	// GetDisksRequirementForWorker provides a number of disks required in a worker
 	GetDisksRequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
 	// GetClusterValidationID returns cluster validation ID for the Operator

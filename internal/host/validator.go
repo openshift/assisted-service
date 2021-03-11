@@ -1,6 +1,7 @@
 package host
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -14,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -134,6 +136,7 @@ type validator struct {
 	log            logrus.FieldLogger
 	hwValidatorCfg *hardware.ValidatorCfg
 	hwValidator    hardware.Validator
+	operatorsAPI   operators.API
 }
 
 func (v *validator) isConnected(c *validationContext) ValidationStatus {
@@ -251,39 +254,46 @@ func (v *validator) printIsMachineCidrDefined(context *validationContext, status
 	}
 }
 
-func (v *validator) hasCpuCoresForRole(c *validationContext) ValidationStatus {
+func (v *validator) hasCPUCoresForRole(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	switch c.host.Role {
-	case models.HostRoleMaster:
-		return boolValue(c.inventory.CPU.Count >= v.hwValidatorCfg.MinCPUCoresMaster)
-	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return boolValue(c.inventory.CPU.Count >= v.hwValidatorCfg.MinCPUCoresWorker)
-	default:
-		v.log.Errorf("Unexpected role %s", c.host.Role)
-		return ValidationError
+	if c.host.Role == models.HostRoleMaster || c.host.Role == models.HostRoleWorker || c.host.Role == models.HostRoleAutoAssign {
+		count, err := v.getCPUCountForRole(c.cluster, c.host.Role)
+		if err != nil {
+			return ValidationFailure
+		}
+		return boolValue(c.inventory.CPU.Count >= count)
 	}
+	v.log.Errorf("Unexpected role %s", c.host.Role)
+	return ValidationError
 }
 
-func (v *validator) getCpuCountForRole(role models.HostRole) int64 {
+func (v *validator) getCPUCountForRole(cluster *common.Cluster, role models.HostRole) (int64, error) {
+	opReqs, err := v.operatorsAPI.GetCPURequirementForRole(context.TODO(), cluster, role)
+	if err != nil {
+		return 0, err
+	}
 	switch role {
 	case models.HostRoleMaster:
-		return v.hwValidatorCfg.MinCPUCoresMaster
+		return v.hwValidatorCfg.MinCPUCoresMaster + opReqs, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return v.hwValidatorCfg.MinCPUCoresWorker
+		return v.hwValidatorCfg.MinCPUCoresWorker + opReqs, nil
 	default:
-		return v.hwValidatorCfg.MinCPUCores
+		return v.hwValidatorCfg.MinCPUCores + opReqs, nil
 	}
 }
 
-func (v *validator) printHasCpuCoresForRole(c *validationContext, status ValidationStatus) string {
+func (v *validator) printHasCPUCoresForRole(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient CPU cores for role %s", c.host.Role)
 	case ValidationFailure:
-		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d",
-			v.getCpuCountForRole(c.host.Role), c.host.Role, c.inventory.CPU.Count)
+		count, err := v.getCPUCountForRole(c.cluster, c.host.Role)
+		if err != nil {
+			return err.Error()
+		}
+		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d", count, c.host.Role, c.inventory.CPU.Count)
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
@@ -295,11 +305,16 @@ func (v *validator) hasMemoryForRole(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
+
+	mem, err := v.getMemoryForRole(c.cluster, c.host.Role)
+	if err != nil {
+		return ValidationFailure
+	}
 	switch c.host.Role {
 	case models.HostRoleMaster:
-		return boolValue(c.inventory.Memory.PhysicalBytes >= hardware.GibToBytes(v.hwValidatorCfg.MinRamGibMaster))
+		return boolValue(c.inventory.Memory.UsableBytes >= mem)
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return boolValue(c.inventory.Memory.PhysicalBytes >= hardware.GibToBytes(v.hwValidatorCfg.MinRamGibWorker))
+		return boolValue(c.inventory.Memory.UsableBytes >= mem)
 	default:
 		v.log.Errorf("Unexpected role %s", c.host.Role)
 		return ValidationError
@@ -329,24 +344,34 @@ func (v *validator) printValidPlatform(c *validationContext, status ValidationSt
 	}
 }
 
-func (v *validator) getMemoryForRole(role models.HostRole) int64 {
+func (v *validator) getMemoryForRole(cluster *common.Cluster, role models.HostRole) (int64, error) {
+	opReqs, err := v.operatorsAPI.GetMemoryRequirementForRole(context.TODO(), cluster, role)
+	if err != nil {
+		v.log.Errorf("Unexpected error %s", err)
+		return 0, err
+	}
 	switch role {
 	case models.HostRoleMaster:
-		return v.hwValidatorCfg.MinRamGibMaster
+		return hardware.GibToBytes(v.hwValidatorCfg.MinRamGibMaster) + opReqs, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return v.hwValidatorCfg.MinRamGibWorker
+		return hardware.GibToBytes(v.hwValidatorCfg.MinRamGibWorker) + opReqs, nil
 	default:
-		return v.hwValidatorCfg.MinRamGib
+		return hardware.GibToBytes(v.hwValidatorCfg.MinRamGib) + opReqs, nil
 	}
 }
 
 func (v *validator) printHasMemoryForRole(c *validationContext, status ValidationStatus) string {
+
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
 	case ValidationFailure:
-		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d",
-			v.getMemoryForRole(c.host.Role), c.host.Role, hardware.BytesToGiB(c.inventory.Memory.PhysicalBytes))
+		mem, err := v.getMemoryForRole(c.cluster, c.host.Role)
+		if err != nil {
+			return fmt.Sprintf("Unable to determine host memory requirements: %s", err)
+		}
+		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d GiB",
+			hardware.BytesToGiB(mem), c.host.Role, hardware.BytesToGiB(c.inventory.Memory.UsableBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
