@@ -153,7 +153,7 @@ publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
 build-openshift-ci-test-bin:
-	pip3 install pyyaml waiting
+	pip3 install pyyaml waiting strato-skipper
 
 ##########
 # Deploy #
@@ -280,8 +280,8 @@ deploy-onprem-for-subsystem:
 
 deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
-	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
-	$(MAKE) ci-deploy-for-subsystem
+	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && export ENABLE_KUBE_API=true && \
+    $(MAKE) ci-deploy-for-subsystem
 	oc get pods
 
 docs:
@@ -432,3 +432,35 @@ operator-bundle-build:
 
 operator-bundle-update:
 	podman push $(BUNDLE_IMAGE)
+
+GOPATH := ${HOME}/.go
+PATH := ${PATH}:${GOROOT}/bin:${GOPATH}/bin
+GOBIN := /bin
+
+kubeapi-dependencies: controller-gen kustomize goimports
+
+CONTROLLER_GEN = $(GOBIN)/controller-gen
+controller-gen:
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.1)
+
+KUSTOMIZE = $(GOBIN)/kustomize
+kustomize:
+	$(call go-get-tool,$(KUSTOMIZE),sigs.k8s.io/kustomize/kustomize/v3@v3.8.7)
+
+GOIMPORTS = $(GOBIN)/goimports
+goimports:
+	$(call go-get-tool,$(GOIMPORTS),golang.org/x/tools/cmd/goimports)
+
+
+# go-get-tool will 'go get' any package $2 and install it to $1.
+define go-get-tool
+@[ -f $(1) ] || { \
+set -e ;\
+TMP_DIR=$$(mktemp -d) ;\
+cd $$TMP_DIR ;\
+go mod init tmp ;\
+echo "Downloading $(2)" ;\
+go get $(2) ;\
+rm -rf $$TMP_DIR ;\
+}
+endef
