@@ -55,39 +55,9 @@ func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *model
 	return api.ValidationResult{Status: api.Success, ValidationId: l.GetHostValidationID(), Reasons: []string{}}, nil
 }
 
-// GetCPURequirementForWorker provides worker CPU requirements for the operator
-func (l *lsOperator) GetCPURequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetCPURequirementForMaster provides master CPU requirements for the operator
-func (l *lsOperator) GetCPURequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetMemoryRequirementForWorker provides worker memory requirements for the operator
-func (l *lsOperator) GetMemoryRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetMemoryRequirementForMaster provides master memory requirements for the operator
-func (l *lsOperator) GetMemoryRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
 // GenerateManifests generates manifests for the operator
 func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, error) {
 	return Manifests(c.Cluster.OpenshiftVersion)
-}
-
-// GetDisksRequirementForMaster provides a number of disks required in a master
-func (l *lsOperator) GetDisksRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetDisksRequirementForWorker provides a number of disks required in a worker
-func (l *lsOperator) GetDisksRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 1, nil
 }
 
 // GetProperties provides description of operator properties: none required
@@ -98,4 +68,9 @@ func (l *lsOperator) GetProperties() models.OperatorProperties {
 // GetMonitoredOperator returns MonitoredOperator corresponding to the LSO
 func (l *lsOperator) GetMonitoredOperator() *models.MonitoredOperator {
 	return &Operator
+}
+
+// GetHostRequirementsForRole provides operator's requirements towards host in a given role
+func (l *lsOperator) GetHostRequirementsForRole(context.Context, *common.Cluster, models.HostRole) (*models.ClusterHostRequirementsDetails, error) {
+	return &models.ClusterHostRequirementsDetails{}, nil
 }

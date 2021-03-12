@@ -1893,16 +1893,17 @@ var _ = Describe("PrepareForInstallation", func() {
 
 var _ = Describe("AutoAssignRole", func() {
 	var (
-		ctx       = context.Background()
-		clusterId strfmt.UUID
-		hapi      API
-		db        *gorm.DB
-		ctrl      *gomock.Controller
-		dbName    = "host_auto_assign_role"
+		ctx             = context.Background()
+		clusterId       strfmt.UUID
+		hapi            API
+		db              *gorm.DB
+		ctrl            *gomock.Controller
+		mockHwValidator *hardware.MockValidator
+		dbName          = "host_auto_assign_role"
 	)
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		mockHwValidator := hardware.NewMockValidator(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		db = common.PrepareTestDB(dbName)
@@ -1926,8 +1927,25 @@ var _ = Describe("AutoAssignRole", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+			var details models.ClusterHostRequirementsDetails
+			if host.Role == models.HostRoleMaster {
+				details = models.ClusterHostRequirementsDetails{
+					CPUCores:   4,
+					DiskSizeGb: 120,
+					RAMMib:     16384,
+				}
+			} else {
+				details = models.ClusterHostRequirementsDetails{
+					CPUCores:   2,
+					DiskSizeGb: 120,
+					RAMMib:     8192,
+				}
+			}
+			return &models.ClusterHostRequirements{Total: &details}, nil
+		})
+
 	})
 
 	AfterEach(func() {
@@ -2030,7 +2048,8 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		hwValidatorCfg := createValidatorCfg()
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
-		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg)
+		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators)
+		mockOperators.EXPECT().GetRequirementsBreakdownForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
 		hapi = NewManager(
 			common.GetTestLog(),
 			db,
@@ -2049,8 +2068,6 @@ var _ = Describe("IsValidMasterCandidate", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
 
 	AfterEach(func() {

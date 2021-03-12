@@ -26,6 +26,9 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -2777,6 +2780,175 @@ var _ = Describe("cluster install, with default network params", func() {
 		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalled))
 		Expect(c.InstallCompletedAt).ShouldNot(Equal(startTimeInstalled))
 		Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
+	})
+})
+
+var _ = Describe("Cluster Host Requirements", func() {
+	var (
+		ctx                   context.Context
+		cluster               *models.Cluster
+		clusterID             strfmt.UUID
+		clusterCIDR           = "10.128.0.0/14"
+		serviceCIDR           = "172.30.0.0/16"
+		masterOCPRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:   4,
+			DiskSizeGb: 120,
+			RAMMib:     16384,
+		}
+		workerOCPRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:   2,
+			DiskSizeGb: 120,
+			RAMMib:     8192,
+		}
+		workerCNVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 2,
+			RAMMib:   360,
+		}
+		masterCNVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 4,
+			RAMMib:   150,
+		}
+		workerTotalRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:   workerOCPRequirements.CPUCores + workerCNVRequirements.CPUCores,
+			RAMMib:     workerOCPRequirements.RAMMib + workerCNVRequirements.RAMMib,
+			DiskSizeGb: workerOCPRequirements.DiskSizeGb,
+		}
+		masterTotalRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:   masterOCPRequirements.CPUCores + masterCNVRequirements.CPUCores,
+			RAMMib:     masterOCPRequirements.RAMMib + masterCNVRequirements.RAMMib,
+			DiskSizeGb: masterOCPRequirements.DiskSizeGb,
+		}
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				BaseDNSDomain:            "example.com",
+				ClusterNetworkCidr:       &clusterCIDR,
+				ClusterNetworkHostPrefix: 23,
+				Name:                     swag.String("test-cluster"),
+				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:               swag.String(pullSecret),
+				ServiceNetworkCidr:       &serviceCIDR,
+				SSHPublicKey:             sshPublicKey,
+			},
+		})
+		Expect(err).ToNot(HaveOccurred())
+		cluster = registerClusterReply.GetPayload()
+		clusterID = *cluster.ID
+
+		registerHostsAndSetRoles(clusterID, 5)
+
+		clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		cluster = clusterResp.GetPayload()
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("should be reported for cluster without operators", func() {
+		params := installer.GetClusterHostRequirementsParams{
+			ClusterID: clusterID,
+		}
+
+		response, err := userBMClient.Installer.GetClusterHostRequirements(ctx, &params)
+
+		Expect(err).ToNot(HaveOccurred())
+		requirements := response.GetPayload()
+		hosts := cluster.Hosts
+		Expect(requirements).To(HaveLen(len(hosts)))
+
+		hostIDToRequirements := make(map[strfmt.UUID]*models.ClusterHostRequirements)
+		for _, rq := range requirements {
+			hostIDToRequirements[rq.HostID] = rq
+		}
+
+		for _, host := range hosts {
+			hostRequirements := hostIDToRequirements[*host.ID]
+			expectedRequirements := workerOCPRequirements
+			if host.Role == models.HostRoleMaster {
+				expectedRequirements = masterOCPRequirements
+			}
+			Expect(hostRequirements.HostID).To(Equal(*host.ID))
+			Expect(hostRequirements.Operators).To(BeEmpty())
+
+			Expect(*hostRequirements.Ocp).To(BeEquivalentTo(expectedRequirements))
+			Expect(hostRequirements.Total).To(BeEquivalentTo(hostRequirements.Ocp))
+		}
+	})
+
+	It("should be reported for cluster with operators", func() {
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				OlmOperators: []*models.OperatorCreateParams{
+					{Name: lso.Operator.Name},
+					{Name: ocs.Operator.Name},
+					{Name: cnv.Operator.Name},
+				},
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+		cluster = clusterResp.GetPayload()
+		hosts := cluster.Hosts
+
+		params := installer.GetClusterHostRequirementsParams{
+			ClusterID: clusterID,
+		}
+		response, err := userBMClient.Installer.GetClusterHostRequirements(ctx, &params)
+
+		Expect(err).ToNot(HaveOccurred())
+		requirements := response.GetPayload()
+		Expect(requirements).To(HaveLen(len(hosts)))
+
+		hostIDToRequirements := make(map[strfmt.UUID]*models.ClusterHostRequirements)
+		for _, rq := range requirements {
+			hostIDToRequirements[rq.HostID] = rq
+		}
+
+		for _, host := range hosts {
+			hostRequirements := hostIDToRequirements[*host.ID]
+
+			Expect(hostRequirements.HostID).To(Equal(*host.ID))
+
+			expectedOCPRequirements := workerOCPRequirements
+			cnvRequirements := workerCNVRequirements
+			totalRequirements := workerTotalRequirements
+			if host.Role == models.HostRoleMaster {
+				expectedOCPRequirements = masterOCPRequirements
+				cnvRequirements = masterCNVRequirements
+				totalRequirements = masterTotalRequirements
+			}
+			Expect(*hostRequirements.Ocp).To(BeEquivalentTo(expectedOCPRequirements))
+
+			Expect(hostRequirements.Operators).To(HaveLen(3))
+			Expect(hostRequirements.Operators).To(ConsistOf(
+				&models.OperatorHostRequirements{
+					OperatorName: lso.Operator.Name,
+					Requirements: &models.ClusterHostRequirementsDetails{},
+				},
+				&models.OperatorHostRequirements{
+					OperatorName: ocs.Operator.Name,
+					Requirements: &models.ClusterHostRequirementsDetails{},
+				},
+				&models.OperatorHostRequirements{
+					OperatorName: cnv.Operator.Name,
+					Requirements: &cnvRequirements,
+				},
+			))
+
+			Expect(*hostRequirements.Total).To(BeEquivalentTo(totalRequirements))
+		}
 	})
 })
 

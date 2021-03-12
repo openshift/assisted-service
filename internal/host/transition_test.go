@@ -1177,13 +1177,14 @@ var _ = Describe("Refresh Host", func() {
 		mockEvents        *events.MockHandler
 		ctrl              *gomock.Controller
 		dbName            string = "host_transition_test_refresh_host"
+		mockHwValidator   *hardware.MockValidator
 	)
 
 	BeforeEach(func() {
 		db = common.PrepareTestDB(dbName)
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
-		mockHwValidator := hardware.NewMockValidator(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg := createValidatorCfg()
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).DoAndReturn(func(inventory *models.Inventory) []*models.Disk {
 			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
@@ -1192,6 +1193,7 @@ var _ = Describe("Refresh Host", func() {
 				return disk.SizeBytes >= conversions.GibToBytes(validatorCfg.MinDiskSizeGb)
 			}).([]*models.Disk)
 		}).AnyTimes()
+
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -1199,6 +1201,11 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	Context("host installation timeout - cluster is pending user action", func() {
+
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
+
 		tests := []struct {
 			stage         models.HostStage
 			expectTimeout bool
@@ -1266,6 +1273,11 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	Context("host disconnected & installation timeout", func() {
+
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
+
 		var srcState string
 
 		installationStages := []models.HostStage{
@@ -1313,6 +1325,10 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	Context("host disconnected & preparing for installation", func() {
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
+
 		var srcState string
 
 		passedTime := 90 * time.Minute
@@ -1349,6 +1365,11 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	Context("host installation timeout", func() {
+
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
+
 		var srcState = models.HostStatusInstalling
 		timePassedTypes := map[string]time.Duration{
 			"under_timeout": 5 * time.Minute,
@@ -1393,6 +1414,10 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	Context("host installationInProgress timeout", func() {
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
+
 		var srcState string
 		var invalidStage models.HostStage = "not_mentioned_stage"
 
@@ -1519,11 +1544,12 @@ var _ = Describe("Refresh Host", func() {
 			validationsChecker *validationsChecker
 
 			// Host fields
-			hostID    strfmt.UUID
-			inventory string
-			role      models.HostRole
-			dstState  string
-			srcState  string
+			hostID           strfmt.UUID
+			inventory        string
+			role             models.HostRole
+			dstState         string
+			srcState         string
+			hostRequirements *models.ClusterHostRequirementsDetails
 		}{
 			{
 				name:          "insufficient worker memory",
@@ -1614,6 +1640,7 @@ var _ = Describe("Refresh Host", func() {
 					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
 					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy CNV. Required CPU count is 2 but found 1"},
 				}),
+				hostRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4},
 			},
 			{
 				name:          "insufficient master cpu",
@@ -1644,6 +1671,7 @@ var _ = Describe("Refresh Host", func() {
 					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
 					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy CNV. Required CPU count is 4 but found 1"},
 				}),
+				hostRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 8},
 			},
 			{
 				name:          "insufficient virtualization cpu",
@@ -1663,7 +1691,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
 					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
-					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 16 GiB"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname master is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
 					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
@@ -1689,7 +1717,11 @@ var _ = Describe("Refresh Host", func() {
 				host.Inventory = t.inventory
 				host.Role = t.role
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-
+				if t.hostRequirements != nil {
+					mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{Total: t.hostRequirements}, nil)
+				} else {
+					mockDefaultClusterHostRequirements(mockHwValidator)
+				}
 				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					AnyTimes()
@@ -1737,6 +1769,7 @@ var _ = Describe("Refresh Host", func() {
 
 			numAdditionalHosts int
 			operators          []*models.MonitoredOperator
+			hostRequirements   *models.ClusterHostRequirementsDetails
 		}{
 			{
 				name:              "discovering to disconnected",
@@ -2564,8 +2597,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleWorker,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Require at least 4 CPU cores for worker role, found only 2",
-					"Require at least 8 GiB RAM role worker, found only 8 GiB")),
+					"Require at least 4 CPU cores for worker role, found only 2")),
 				inventory: hostutil.GenerateInventoryWithResources(2, 8, "worker-1"),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -2575,7 +2607,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for worker role, found only 2"},
-					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role worker, found only 8 GiB"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
@@ -2584,6 +2616,7 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 0,
+				hostRequirements:   &models.ClusterHostRequirementsDetails{CPUCores: 4, RAMMib: 8192},
 			},
 			{
 				name:               "CNV + LSO enabled: insufficient to insufficient with 1 master",
@@ -2618,6 +2651,7 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
 				numAdditionalHosts: 0,
+				hostRequirements:   &models.ClusterHostRequirementsDetails{CPUCores: 8, RAMMib: 16384},
 			},
 			{
 				name:               "CNV + LSO enabled: known to known with sufficient CPU and memory with 3 master",
@@ -2706,6 +2740,7 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:      false,
 				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator, &ocs.Operator},
 				numAdditionalHosts: 2,
+				hostRequirements:   &models.ClusterHostRequirementsDetails{CPUCores: 4, RAMMib: 8193},
 			},
 		}
 
@@ -2718,6 +2753,11 @@ var _ = Describe("Refresh Host", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
+				if t.hostRequirements != nil {
+					mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{Total: t.hostRequirements}, nil)
+				} else {
+					mockDefaultClusterHostRequirements(mockHwValidator)
+				}
 				// Test setup - Host creation
 				hostCheckInAt := strfmt.DateTime(time.Now())
 				if !t.validCheckInTime {
@@ -2789,6 +2829,9 @@ var _ = Describe("Refresh Host", func() {
 		}
 	})
 	Context("Pending timed out", func() {
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
 		tests := []struct {
 			name          string
 			clusterStatus string
@@ -2848,6 +2891,7 @@ var _ = Describe("Refresh Host", func() {
 			otherHostID = strfmt.UUID(uuid.New().String())
 			ntpSources = defaultNTPSources
 			imageStatuses = map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess}
+			mockDefaultClusterHostRequirements(mockHwValidator)
 		})
 
 		tests := []struct {
@@ -3276,6 +3320,10 @@ var _ = Describe("Refresh Host", func() {
 		}
 	})
 	Context("Cluster Errors", func() {
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+		})
+
 		for _, srcState := range []string{
 			models.HostStatusInstalling,
 			models.HostStatusInstallingInProgress,
@@ -3343,6 +3391,26 @@ var _ = Describe("Refresh Host", func() {
 		ctrl.Finish()
 	})
 })
+
+func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator) *gomock.Call {
+	return mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+		var details models.ClusterHostRequirementsDetails
+		if host.Role == models.HostRoleMaster {
+			details = models.ClusterHostRequirementsDetails{
+				CPUCores:   4,
+				DiskSizeGb: 120,
+				RAMMib:     16384,
+			}
+		} else {
+			details = models.ClusterHostRequirementsDetails{
+				CPUCores:   2,
+				DiskSizeGb: 120,
+				RAMMib:     8192,
+			}
+		}
+		return &models.ClusterHostRequirements{Total: &details}, nil
+	})
+}
 
 func formatProgressTimedOutInfo(stage models.HostStage) string {
 	timeFormat := InstallationProgressTimeout[stage].String()

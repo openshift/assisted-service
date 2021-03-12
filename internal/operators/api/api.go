@@ -38,18 +38,8 @@ type Operator interface {
 	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
 	GenerateManifests(*common.Cluster) (map[string][]byte, error)
-	// GetCPURequirementForWorker provides worker CPU requirements for the operator
-	GetCPURequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
-	// GetCPURequirementForMaster provides master CPU requirements for the operator
-	GetCPURequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error)
-	// GetMemoryRequirementForWorker provides worker memory requirements for the operator in MB
-	GetMemoryRequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
-	// GetMemoryRequirementForMaster provides master memory requirements for the operator in MB
-	GetMemoryRequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error)
-	// GetDisksRequirementForMaster provides a number of disks required in a master
-	GetDisksRequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error)
-	// GetDisksRequirementForWorker provides a number of disks required in a worker
-	GetDisksRequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error)
+	// GetHostRequirementsForRole provides operator's requirements towards host in a given role
+	GetHostRequirementsForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) (*models.ClusterHostRequirementsDetails, error)
 	// GetClusterValidationID returns cluster validation ID for the Operator
 	GetClusterValidationID() string
 	// GetHostValidationID returns host validation ID for the Operator

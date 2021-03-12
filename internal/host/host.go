@@ -328,7 +328,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	if db == nil {
 		db = m.db
 	}
-	vc, err := newValidationContext(h, db)
+	vc, err := newValidationContext(h, db, m.hwValidator)
 	if err != nil {
 		return err
 	}
@@ -917,7 +917,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 
 	if mastersCount < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
-		vc, err := newValidationContext(h, db)
+		vc, err := newValidationContext(h, db, m.hwValidator)
 		if err != nil {
 			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 			return autoSelectedRole, err
@@ -941,7 +941,7 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus
 	}
 
 	h.Role = models.HostRoleMaster
-	vc, err := newValidationContext(h, db)
+	vc, err := newValidationContext(h, db, m.hwValidator)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 		return false, err

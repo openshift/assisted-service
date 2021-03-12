@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -142,6 +143,7 @@ type bareMetalInventory struct {
 	isoEditorFactory   isoeditor.Factory
 	crdUtils           CRDUtils
 	IgnitionBuilder    ignition.IgnitionBuilder
+	hwValidator        hardware.Validator
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -176,6 +178,7 @@ func NewBareMetalInventory(
 	isoEditorFactory isoeditor.Factory,
 	crdUtils CRDUtils,
 	IgnitionBuilder ignition.IgnitionBuilder,
+	hwValidator hardware.Validator,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                 db,
@@ -197,6 +200,7 @@ func NewBareMetalInventory(
 		isoEditorFactory:   isoEditorFactory,
 		crdUtils:           crdUtils,
 		IgnitionBuilder:    IgnitionBuilder,
+		hwValidator:        hwValidator,
 	}
 }
 
@@ -4408,6 +4412,19 @@ func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*com
 }
 
 func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
-	// TODO: implement
-	return installer.NewGetClusterHostRequirementsOK().WithPayload(models.ClusterHostRequirementsList{})
+
+	cluster, err := b.getCluster(ctx, params.ClusterID.String(), common.UseEagerLoading)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	requirementsList := models.ClusterHostRequirementsList{}
+	for _, clusterHost := range cluster.Hosts {
+		hostRequirements, err := b.hwValidator.GetClusterHostRequirements(ctx, cluster, clusterHost)
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+		requirementsList = append(requirementsList, hostRequirements)
+	}
+
+	return installer.NewGetClusterHostRequirementsOK().WithPayload(requirementsList)
 }

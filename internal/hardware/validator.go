@@ -1,35 +1,35 @@
 package hardware
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
-const (
-	intelVirtCpuFlag = "vmx"
-	amdVirtCpuFlag   = "svm"
-)
-
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
+	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(disk *models.Disk) []string
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 }
 
-func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
+func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
 	return &validator{
 		ValidatorCfg: cfg,
 		log:          log,
+		operatorsAPI: operatorsAPI,
 	}
 }
 
@@ -46,7 +46,8 @@ type ValidatorCfg struct {
 
 type validator struct {
 	ValidatorCfg
-	log logrus.FieldLogger
+	log          logrus.FieldLogger
+	operatorsAPI operators.API
 }
 
 // DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
@@ -130,6 +131,42 @@ func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequire
 	}
 }
 
-func IsVirtSupported(inventory *models.Inventory) bool {
-	return funk.Contains(inventory.CPU.Flags, intelVirtCpuFlag) || funk.Contains(inventory.CPU.Flags, amdVirtCpuFlag)
+func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+	operatorsRequirements, err := v.operatorsAPI.GetRequirementsBreakdownForRole(ctx, cluster, host.Role)
+	if err != nil {
+		return nil, err
+	}
+
+	hostRequirements := v.GetHostRequirements(host.Role)
+	ocpRequirements := models.ClusterHostRequirementsDetails{
+		CPUCores:                         hostRequirements.CPUCores,
+		RAMMib:                           conversions.GibToMib(hostRequirements.RAMGib),
+		DiskSizeGb:                       hostRequirements.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: hostRequirements.InstallationDiskSpeedThresholdMs,
+	}
+	total := totalizeRequirements(ocpRequirements, operatorsRequirements)
+	return &models.ClusterHostRequirements{
+		HostID:    *host.ID,
+		Ocp:       &ocpRequirements,
+		Operators: operatorsRequirements,
+		Total:     &total,
+	}, nil
+}
+
+func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails, operatorRequirements []*models.OperatorHostRequirements) models.ClusterHostRequirementsDetails {
+	total := ocpRequirements
+
+	for _, req := range operatorRequirements {
+		details := req.Requirements
+		total.RAMMib = total.RAMMib + details.RAMMib
+		total.CPUCores = total.CPUCores + details.CPUCores
+		total.DiskSizeGb = total.DiskSizeGb + details.DiskSizeGb
+
+		if details.InstallationDiskSpeedThresholdMs > 0 {
+			if total.InstallationDiskSpeedThresholdMs == 0 || details.InstallationDiskSpeedThresholdMs < total.InstallationDiskSpeedThresholdMs {
+				total.InstallationDiskSpeedThresholdMs = details.InstallationDiskSpeedThresholdMs
+			}
+		}
+	}
+	return total
 }
