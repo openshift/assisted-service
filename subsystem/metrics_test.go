@@ -94,20 +94,16 @@ func getValidationMetricCounter(validationID models.HostValidationID, expectedMe
 	Expect(err).NotTo(HaveOccurred())
 
 	metrics := strings.Split(string(output), "\n")
-	filteredMetrics := filterMetrics(metrics, expectedMetric, string(validationID))
+	filteredMetrics := filterMetrics(metrics, expectedMetric, fmt.Sprintf("hostValidationType=\"%s\"", validationID))
+	if len(filteredMetrics) == 0 {
+		return 0
+	}
 	Expect(len(filteredMetrics)).To(Equal(1))
 
 	counter, err := strconv.Atoi(strings.ReplaceAll((strings.Split(filteredMetrics[0], "}")[1]), " ", ""))
 	Expect(err).NotTo(HaveOccurred())
 	return counter
 }
-
-//TODO Yoni will fix it
-//func assertValidationMetricCounter(validationID models.HostValidationID, expectedMetric string, expectedCounter int) {
-//
-//	counter := getValidationMetricCounter(validationID, expectedMetric)
-//	Expect(counter).To(Equal(expectedCounter))
-//}
 
 func assertValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostName string, validationID models.HostValidationID, isFailure bool) {
 
@@ -230,6 +226,9 @@ var _ = Describe("Metrics tests", func() {
 			h := &registerHost(clusterID).Host
 			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDConnected)
 
+			oldChangedMetricCounter := getValidationMetricCounter(models.HostValidationIDConnected, hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDConnected, hostValidationFailedMetric)
+
 			// create a validation failure
 			checkedInAt := time.Now().Add(-host.MaxHostDisconnectionTime)
 			err := db.Model(h).UpdateColumns(&models.Host{CheckedInAt: strfmt.DateTime(checkedInAt)}).Error
@@ -240,10 +239,9 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDConnected, true)
 
 			// check generated metrics
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDConnected, hostValidationChangedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDConnected, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
 			metricsDeregisterCluster(ctx, clusterID)
-			//assertValidationMetricCounter(models.HostValidationIDConnected, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDConnected, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
 		It("'connected' failed after reboot", func() {
@@ -291,14 +289,15 @@ var _ = Describe("Metrics tests", func() {
 			// for the host and at a later time loose it, therefore this case isn't tested and we directly
 			// test the validation failure
 
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDHasInventory, hostValidationFailedMetric)
+
 			// create a validation failure
 			h := &registerHost(clusterID).Host
 			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDHasInventory)
 
 			// check generated metrics
 			metricsDeregisterCluster(ctx, clusterID)
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDHasInventory, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDHasInventory, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
 		It("'has-inventory' got fixed", func() {
@@ -328,6 +327,18 @@ var _ = Describe("Metrics tests", func() {
 				models.HostValidationIDHasCPUCoresForRole,
 				models.HostValidationIDHasMemoryForRole)
 
+			oldChangedMetricCounterHasMinCPUCores := getValidationMetricCounter(models.HostValidationIDHasMinCPUCores, hostValidationChangedMetric)
+			oldChangedMetricCounterHasMinMemory := getValidationMetricCounter(models.HostValidationIDHasMinMemory, hostValidationChangedMetric)
+			oldChangedMetricCounterValidPlatform := getValidationMetricCounter(models.HostValidationIDValidPlatform, hostValidationChangedMetric)
+			oldChangedMetricCounterHasCPUCoresForRole := getValidationMetricCounter(models.HostValidationIDHasCPUCoresForRole, hostValidationChangedMetric)
+			oldChangedMetricCounterHasMemoryForRole := getValidationMetricCounter(models.HostValidationIDHasMemoryForRole, hostValidationChangedMetric)
+
+			oldFailedMetricCounterHasMinCPUCores := getValidationMetricCounter(models.HostValidationIDHasMinCPUCores, hostValidationFailedMetric)
+			oldFailedMetricCounterHasMinMemroy := getValidationMetricCounter(models.HostValidationIDHasMinMemory, hostValidationFailedMetric)
+			oldFailedMetricCounterValidPlatform := getValidationMetricCounter(models.HostValidationIDValidPlatform, hostValidationFailedMetric)
+			oldFailedMetricCounterHasCPUCoresForRole := getValidationMetricCounter(models.HostValidationIDHasCPUCoresForRole, hostValidationFailedMetric)
+			oldFailedMetricCounterHasMemoryForRole := getValidationMetricCounter(models.HostValidationIDHasMemoryForRole, hostValidationFailedMetric)
+
 			// create a validation failure
 			nonValidInventory := &models.Inventory{
 				CPU:          &models.CPU{Count: 1},
@@ -352,18 +363,17 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, clusterID, "master-0", models.HostValidationIDHasMemoryForRole, true)
 
 			// check generated metrics
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDHasMinCPUCores, hostValidationChangedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDHasMinMemory, hostValidationChangedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDValidPlatform, hostValidationChangedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDHasCPUCoresForRole, hostValidationChangedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDHasMemoryForRole, hostValidationChangedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDHasMinCPUCores, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasMinCPUCores + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDHasMinMemory, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasMinMemory + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDValidPlatform, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterValidPlatform + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDHasCPUCoresForRole, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasCPUCoresForRole + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDHasMemoryForRole, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounterHasMemoryForRole + 1))
 			metricsDeregisterCluster(ctx, clusterID)
-			//assertValidationMetricCounter(models.HostValidationIDHasMinCPUCores, hostValidationFailedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDHasMinMemory, hostValidationFailedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDValidPlatform, hostValidationFailedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDHasCPUCoresForRole, hostValidationFailedMetric, 1)
-			//assertValidationMetricCounter(models.HostValidationIDHasMemoryForRole, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDHasMinCPUCores, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasMinCPUCores + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDHasMinMemory, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasMinMemroy + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDValidPlatform, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterValidPlatform + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDHasCPUCoresForRole, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasCPUCoresForRole + 1))
+			Expect(getValidationMetricCounter(models.HostValidationIDHasMemoryForRole, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounterHasMemoryForRole + 1))
 
 		})
 
@@ -409,14 +419,15 @@ var _ = Describe("Metrics tests", func() {
 			// for the host and at a later time loose it, therefore this case isn't tested and we directly
 			// test the validation failure
 
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDMachineCidrDefined, hostValidationFailedMetric)
+
 			// create a validation failure
 			h := &registerHost(clusterID).Host
 			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDMachineCidrDefined)
 
 			// check generated metrics
 			metricsDeregisterCluster(ctx, clusterID)
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDMachineCidrDefined, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDMachineCidrDefined, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
 		It("'machine-cidr-defined' got fixed", func() {
@@ -443,6 +454,9 @@ var _ = Describe("Metrics tests", func() {
 			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDHostnameUnique)
 			waitForHostValidationStatus(clusterID, *h2.ID, "success", models.HostValidationIDHostnameUnique)
 
+			oldChangedMetricCounter := getValidationMetricCounter(models.HostValidationIDHostnameUnique, hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDHostnameUnique, hostValidationFailedMetric)
+
 			// create a validation failure
 			generateHWPostStepReply(ctx, h1, validHwInfo, "nonUniqName")
 			generateHWPostStepReply(ctx, h2, validHwInfo, "nonUniqName")
@@ -454,10 +468,9 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, clusterID, "nonUniqName", models.HostValidationIDHostnameUnique, true)
 
 			// check generated metrics
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDHostnameUnique, hostValidationChangedMetric, 2)
+			Expect(getValidationMetricCounter(models.HostValidationIDHostnameUnique, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 2))
 			metricsDeregisterCluster(ctx, clusterID)
-			//assertValidationMetricCounter(models.HostValidationIDHostnameUnique, hostValidationFailedMetric, 2)
+			Expect(getValidationMetricCounter(models.HostValidationIDHostnameUnique, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 2))
 		})
 
 		It("'hostname-unique' got fixed", func() {
@@ -487,6 +500,9 @@ var _ = Describe("Metrics tests", func() {
 			generateHWPostStepReply(ctx, h, validHwInfo, "master-0")
 			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDHostnameValid)
 
+			oldChangedMetricCounter := getValidationMetricCounter(models.HostValidationIDHostnameValid, hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDHostnameValid, hostValidationFailedMetric)
+
 			// create a validation failure
 			// 'localhost' is a forbidden host name
 			generateHWPostStepReply(ctx, h, validHwInfo, "localhost")
@@ -496,10 +512,9 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, clusterID, "localhost", models.HostValidationIDHostnameValid, true)
 
 			// check generated metrics
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDHostnameValid, hostValidationChangedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDHostnameValid, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
 			metricsDeregisterCluster(ctx, clusterID)
-			//assertValidationMetricCounter(models.HostValidationIDHostnameValid, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDHostnameValid, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
 		It("'hostname-valid' got fixed", func() {
@@ -526,6 +541,9 @@ var _ = Describe("Metrics tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDBelongsToMachineCidr)
 
+			oldChangedMetricCounter := getValidationMetricCounter(models.HostValidationIDBelongsToMachineCidr, hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDBelongsToMachineCidr, hostValidationFailedMetric)
+
 			// create a validation failure
 			err = db.Model(h).UpdateColumns(&models.Host{Inventory: generateValidInventoryWithInterface("")}).Error
 			Expect(err).NotTo(HaveOccurred())
@@ -536,10 +554,9 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDBelongsToMachineCidr, true)
 
 			// check generated metrics
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDBelongsToMachineCidr, hostValidationChangedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDBelongsToMachineCidr, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
 			metricsDeregisterCluster(ctx, clusterID)
-			//assertValidationMetricCounter(models.HostValidationIDBelongsToMachineCidr, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDBelongsToMachineCidr, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
 		It("'belongs-to-machine-cidr' got fixed", func() {
@@ -572,6 +589,9 @@ var _ = Describe("Metrics tests", func() {
 			generateApiVipPostStepReply(ctx, h, true)
 			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
 
+			oldChangedMetricCounter := getValidationMetricCounter(models.HostValidationIDAPIVipConnected, hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDAPIVipConnected, hostValidationFailedMetric)
+
 			// create a validation failure
 			generateApiVipPostStepReply(ctx, h, false)
 			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
@@ -580,10 +600,9 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, day2ClusterID, "master-0", models.HostValidationIDAPIVipConnected, true)
 
 			// check generated metrics
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDAPIVipConnected, hostValidationChangedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDAPIVipConnected, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
 			metricsDeregisterCluster(ctx, day2ClusterID)
-			//assertValidationMetricCounter(models.HostValidationIDAPIVipConnected, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDAPIVipConnected, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
 		It("'api-vip-connected' got fixed", func() {
@@ -658,6 +677,9 @@ var _ = Describe("Metrics tests", func() {
 			generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
 			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDNtpSynced)
 
+			oldChangedMetricCounter := getValidationMetricCounter(models.HostValidationIDNtpSynced, hostValidationChangedMetric)
+			oldFailedMetricCounter := getValidationMetricCounter(models.HostValidationIDNtpSynced, hostValidationFailedMetric)
+
 			// create a validation failure
 			generateNTPPostStepReply(ctx, h, nil)
 			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDNtpSynced)
@@ -666,10 +688,9 @@ var _ = Describe("Metrics tests", func() {
 			assertValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDNtpSynced, true)
 
 			// check generated metrics
-			//TODO Yoni will fix it
-			//assertValidationMetricCounter(models.HostValidationIDNtpSynced, hostValidationChangedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDNtpSynced, hostValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
 			metricsDeregisterCluster(ctx, clusterID)
-			//assertValidationMetricCounter(models.HostValidationIDNtpSynced, hostValidationFailedMetric, 1)
+			Expect(getValidationMetricCounter(models.HostValidationIDNtpSynced, hostValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
 		})
 
 		It("'ntp-synced' got fixed", func() {
