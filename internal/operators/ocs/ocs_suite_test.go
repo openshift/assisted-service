@@ -1,4 +1,4 @@
-package ocs
+package ocs_test
 
 import (
 	"testing"

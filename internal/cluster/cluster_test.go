@@ -323,7 +323,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 						IngressVip:               "1.2.3.6",
 						BaseDNSDomain:            "test.com",
 						PullSecretSet:            true,
-						StatusInfo:               swag.String(statusInfoInsufficient),
+						StatusInfo:               swag.String(StatusInfoInsufficient),
 						ClusterNetworkCidr:       "1.3.0.0/16",
 						ServiceNetworkCidr:       "1.2.5.0/24",
 						ClusterNetworkHostPrefix: 24,
@@ -392,7 +392,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 					c = common.Cluster{Cluster: models.Cluster{
 						ID:                       &id,
 						Status:                   swag.String(models.ClusterStatusReady),
-						StatusInfo:               swag.String(statusInfoReady),
+						StatusInfo:               swag.String(StatusInfoReady),
 						MachineNetworkCidr:       "1.2.3.0/24",
 						APIVip:                   "1.2.3.5",
 						IngressVip:               "1.2.3.6",
@@ -491,7 +491,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				c = common.Cluster{Cluster: models.Cluster{
 					ID:                       &id,
 					Status:                   swag.String(models.ClusterStatusReady),
-					StatusInfo:               swag.String(statusInfoReady),
+					StatusInfo:               swag.String(StatusInfoReady),
 					MachineNetworkCidr:       "1.2.3.0/24",
 					APIVip:                   "1.2.3.5",
 					IngressVip:               "1.2.3.6",
@@ -1177,7 +1177,7 @@ var _ = Describe("CancelInstallation", func() {
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:         &id,
 			Status:     swag.String(models.ClusterStatusInsufficient),
-			StatusInfo: swag.String(statusInfoInsufficient)}}
+			StatusInfo: swag.String(StatusInfoInsufficient)}}
 	})
 
 	Context("cancel_installation", func() {
@@ -1384,169 +1384,6 @@ func addInstallationRequirementsWithConnectivity(clusterId strfmt.UUID, db *gorm
 
 	}
 	Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Updates(map[string]interface{}{"api_vip": "1.2.3.5", "ingress_vip": "1.2.3.6"}).Error).To(Not(HaveOccurred()))
-}
-
-func defaultInventory() string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: 16,
-		},
-		Memory: &models.Memory{
-			UsableBytes: 64000000000,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-			}, {
-				SizeBytes: 40000000000,
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithTwoDisks(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-				DriveType: "HDD",
-			}, {
-				SizeBytes: 40000000000,
-				DriveType: "SSD",
-			},
-			{
-				SizeBytes: 40000000000,
-				DriveType: "HDD",
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithDisks(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-				DriveType: "HDD",
-			}, {
-				SizeBytes: 40000000000,
-				DriveType: "SSD",
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithInsufficientDiskSize(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-				DriveType: "HDD",
-			}, {
-				SizeBytes: 1000000000,
-				DriveType: "SSD",
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithoutDisks(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
 }
 
 func defaultInventoryWithTimestamp(timestamp int64) string {
