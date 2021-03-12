@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	models "github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 )
 
@@ -82,8 +82,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		}
 		mem, _ := o.GetMemoryRequirementForWorker(ctx, cluster)
 		if inventory.Memory.UsableBytes < mem {
-			usableMemory := hardware.BytesToMib(inventory.Memory.UsableBytes)
-			memBytes := hardware.BytesToMib(mem)
+			usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
+			memBytes := conversions.BytesToMib(mem)
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", memBytes, usableMemory)}}, nil
 		}
 	} else if host.Role == models.HostRoleMaster {
@@ -93,8 +93,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		}
 		mem, _ := o.GetMemoryRequirementForMaster(ctx, cluster)
 		if inventory.Memory.UsableBytes < mem {
-			usableMemory := hardware.BytesToMib(inventory.Memory.UsableBytes)
-			memBytes := hardware.BytesToMib(mem)
+			usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
+			memBytes := conversions.BytesToMib(mem)
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", memBytes, usableMemory)}}, nil
 		}
 	}
@@ -113,12 +113,12 @@ func (o *operator) GetCPURequirementForMaster(_ context.Context, _ *common.Clust
 
 // GetMemoryRequirementForWorker provides worker memory requirements for the operator
 func (o *operator) GetMemoryRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return hardware.MibToBytes(workerMemory), nil
+	return conversions.MibToBytes(workerMemory), nil
 }
 
 // GetMemoryRequirementForMaster provides master memory requirements for the operator
 func (o *operator) GetMemoryRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return hardware.MibToBytes(masterMemory), nil
+	return conversions.MibToBytes(masterMemory), nil
 }
 
 // GenerateManifests generates manifests for the operator

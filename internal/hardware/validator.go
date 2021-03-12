@@ -6,9 +6,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/alecthomas/units"
 	"github.com/dustin/go-humanize"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -57,26 +57,6 @@ func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	return v.ListEligibleDisks(&inventory), nil
 }
 
-func GbToBytes(gb int64) int64 {
-	return gb * int64(units.GB)
-}
-
-func GibToBytes(gib int64) int64 {
-	return gib * int64(units.GiB)
-}
-
-func BytesToGiB(bytes int64) int64 {
-	return bytes / int64(units.GiB)
-}
-
-func MibToBytes(mib int64) int64 {
-	return mib * int64(units.MiB)
-}
-
-func BytesToMib(bytes int64) int64 {
-	return bytes / int64(units.MiB)
-}
-
 func isNvme(name string) bool {
 	return strings.HasPrefix(name, "nvme")
 }
@@ -88,7 +68,7 @@ func isNvme(name string) bool {
 func (v *validator) DiskIsEligible(disk *models.Disk) []string {
 	var notEligibleReasons []string
 
-	if minSizeBytes := GbToBytes(v.MinDiskSizeGb); disk.SizeBytes < minSizeBytes {
+	if minSizeBytes := conversions.GbToBytes(v.MinDiskSizeGb); disk.SizeBytes < minSizeBytes {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				"Disk is too small (disk only has %s, but %s are required)",
