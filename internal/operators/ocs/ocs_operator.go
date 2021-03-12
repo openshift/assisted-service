@@ -19,9 +19,11 @@ type ocsOperator struct {
 }
 
 var Operator = models.MonitoredOperator{
-	Name:           "ocs",
-	OperatorType:   models.OperatorTypeOlm,
-	TimeoutSeconds: 30 * 60,
+	Name:             "ocs",
+	OperatorType:     models.OperatorTypeOlm,
+	Namespace:        "openshift-storage",
+	SubscriptionName: "ocs-operator",
+	TimeoutSeconds:   30 * 60,
 }
 
 // NewOcsOperator creates new OCSOperator

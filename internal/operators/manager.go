@@ -320,9 +320,11 @@ func (mgr *Manager) GetOperatorByName(operatorName string) (*models.MonitoredOpe
 	}
 
 	return &models.MonitoredOperator{
-		Name:           operator.Name,
-		OperatorType:   operator.OperatorType,
-		TimeoutSeconds: operator.TimeoutSeconds,
+		Name:             operator.Name,
+		OperatorType:     operator.OperatorType,
+		TimeoutSeconds:   operator.TimeoutSeconds,
+		Namespace:        operator.Namespace,
+		SubscriptionName: operator.SubscriptionName,
 	}, nil
 }
 

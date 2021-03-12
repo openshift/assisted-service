@@ -27,9 +27,11 @@ type operator struct {
 }
 
 var Operator = models.MonitoredOperator{
-	Name:           "cnv",
-	OperatorType:   models.OperatorTypeOlm,
-	TimeoutSeconds: 60 * 60,
+	Name:             "cnv",
+	OperatorType:     models.OperatorTypeOlm,
+	Namespace:        "openshift-cnv",
+	SubscriptionName: "hco-operatorhub",
+	TimeoutSeconds:   60 * 60,
 }
 
 // NewCNVOperator creates new instance of a Container Native Virtualization installation plugin

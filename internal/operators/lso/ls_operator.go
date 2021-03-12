@@ -13,9 +13,11 @@ type lsOperator struct {
 }
 
 var Operator = models.MonitoredOperator{
-	Name:           "lso",
-	OperatorType:   models.OperatorTypeOlm,
-	TimeoutSeconds: 60 * 60,
+	Name:             "lso",
+	OperatorType:     models.OperatorTypeOlm,
+	Namespace:        "openshift-local-storage",
+	SubscriptionName: "local-storage-operator",
+	TimeoutSeconds:   70 * 60,
 }
 
 // New LSOperator creates new instance of a Local Storage Operator installation plugin

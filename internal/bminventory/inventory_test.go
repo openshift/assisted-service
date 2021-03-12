@@ -2250,11 +2250,13 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.RegisterClusterCreated)
 
 					expectedMonitoredOperator := models.MonitoredOperator{
-						Name:           newOperatorName,
-						Properties:     newProperties,
-						OperatorType:   lso.Operator.OperatorType,
-						TimeoutSeconds: lso.Operator.TimeoutSeconds,
-						ClusterID:      *actual.Payload.ID,
+						Name:             newOperatorName,
+						Properties:       newProperties,
+						OperatorType:     lso.Operator.OperatorType,
+						TimeoutSeconds:   lso.Operator.TimeoutSeconds,
+						Namespace:        lso.Operator.Namespace,
+						SubscriptionName: lso.Operator.SubscriptionName,
+						ClusterID:        *actual.Payload.ID,
 					}
 
 					Expect(actual.Payload.MonitoredOperators).To(ContainElement(&common.TestDefaultConfig.MonitoredOperator))
