@@ -1679,14 +1679,27 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		})
 
 		It("success", func() {
-			mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-			mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
-			reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
-				ClusterID:    clusterID,
-				HostProgress: progressParams,
-				HostID:       hostID,
+
+			By("update with new data", func() {
+				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+				mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
+					ClusterID:    clusterID,
+					HostProgress: progressParams,
+					HostID:       hostID,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
 			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+
+			By("update with no changes", func() {
+				// We used an hostmock so DB wasn't updated after first step.
+				reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
+					ClusterID:    clusterID,
+					HostProgress: &models.HostProgress{},
+					HostID:       hostID,
+				})
+				Expect(reply).Should(BeAssignableToTypeOf(installer.NewUpdateHostInstallProgressOK()))
+			})
 		})
 
 		It("update_failed", func() {
