@@ -116,7 +116,7 @@ generate-%: ${BUILD_FOLDER}
 .PHONY: build docs
 build: lint $(UNIT_TEST_TARGET) build-minimal
 
-build-all: build-in-docker operator-bundle-build
+build-all: build-in-docker
 
 build-in-docker:
 	skipper make build-image
@@ -147,7 +147,6 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
-	$(call publish_image,podman,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
 	skipper make publish-client
 
 publish-client: generate-python-client
