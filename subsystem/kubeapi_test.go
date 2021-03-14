@@ -385,10 +385,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		Expect(cluster.NoProxy).Should(Equal("192.168.1.1"))
-		Expect(cluster.HTTPProxy).Should(Equal("http://192.168.1.2"))
-		Expect(cluster.HTTPSProxy).Should(Equal("http://192.168.1.3"))
+		Expect(cluster.ImageGenerated).Should(Equal(true))
+		By("Validate proxy settings.", func() {
+			Expect(cluster.NoProxy).Should(Equal("192.168.1.1"))
+			Expect(cluster.HTTPProxy).Should(Equal("http://192.168.1.2"))
+			Expect(cluster.HTTPSProxy).Should(Equal("http://192.168.1.3"))
+		})
+		By("Validate additional NTP settings.")
 		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("192.168.1.4"))
+		By("InstallEnv image type defaults to minimal-iso.")
+		Expect(cluster.ImageInfo.Type).Should(Equal(models.ImageTypeMinimalIso))
 	})
 
 	It("deploy clusterDeployment and installEnv with ignition override", func() {

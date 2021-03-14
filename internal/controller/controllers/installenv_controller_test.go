@@ -66,6 +66,7 @@ var _ = Describe("installEnv reconcile", func() {
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		ir = &InstallEnvReconciler{
 			Client:    c,
+			Config:    InstallEnvConfig{ImageType: models.ImageTypeMinimalIso},
 			Log:       common.GetTestLog(),
 			Installer: mockInstallerInternal,
 		}
@@ -86,7 +87,7 @@ var _ = Describe("installEnv reconcile", func() {
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
 
-	It("create new installEnv image - success", func() {
+	It("create new installEnv minimal-iso image - success", func() {
 		imageInfo := models.ImageInfo{
 			DownloadURL: "downloadurl",
 		}
@@ -96,12 +97,45 @@ var _ = Describe("installEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
+				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
 			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
+		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{}))
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "installEnvImage",
+		}
+		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
+		Expect(installEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(adiiov1alpha1.ImageStateCreated))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreatedReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+	})
+
+	It("create new installEnv full-iso image - success", func() {
+		imageInfo := models.ImageInfo{
+			DownloadURL: "downloadurl",
+		}
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
+				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
+				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeFullIso))
+			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
+			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		})
+		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+		ir.Config.ImageType = models.ImageTypeFullIso
 		res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))

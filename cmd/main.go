@@ -108,6 +108,7 @@ var Options struct {
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
+	InstallEnvConfig            controllers.InstallEnvConfig
 	ISOEditorConfig             isoeditor.Config
 }
 
@@ -412,6 +413,7 @@ func main() {
 			crdEventsHandler := controllers.NewCRDEventsHandler()
 			failOnError((&controllers.InstallEnvReconciler{
 				Client:           ctrlMgr.GetClient(),
+				Config:           Options.InstallEnvConfig,
 				Log:              log,
 				Installer:        bm,
 				CRDEventsHandler: crdEventsHandler,

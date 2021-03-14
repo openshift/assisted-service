@@ -44,9 +44,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
+type InstallEnvConfig struct {
+	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`
+}
+
 // InstallEnvReconciler reconciles a InstallEnv object
 type InstallEnvReconciler struct {
 	client.Client
+	Config           InstallEnvConfig
 	Log              logrus.FieldLogger
 	Installer        bminventory.InstallerInternals
 	CRDEventsHandler CRDEventsHandler
@@ -209,10 +214,11 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 		return r.handleEnsureISOErrors(ctx, installEnv, err)
 	}
 
-	// Generate ISO
 	isoParams := installer.GenerateClusterISOParams{
-		ClusterID:         *cluster.ID,
-		ImageCreateParams: &models.ImageCreateParams{},
+		ClusterID: *cluster.ID,
+		ImageCreateParams: &models.ImageCreateParams{
+			ImageType: r.Config.ImageType,
+		},
 	}
 	if len(installEnv.Spec.SSHAuthorizedKeys) > 0 {
 		isoParams.ImageCreateParams.SSHPublicKey = installEnv.Spec.SSHAuthorizedKeys[0]
