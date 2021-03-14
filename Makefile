@@ -278,7 +278,7 @@ deploy-onprem:
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
-deploy-on-openshift-ci:
+deploy-on-openshift-ci: build-openshift-ci-test-bin
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
 	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && export ENABLE_KUBE_API=true && \
     $(MAKE) ci-deploy-for-subsystem
