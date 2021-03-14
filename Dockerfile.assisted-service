@@ -1,35 +1,25 @@
 # Generate python client
 FROM quay.io/ocpmetal/swagger-codegen-cli:2.4.15 as swagger_py
-
 COPY swagger.yaml .
 COPY tools/generate_python_client.sh .
 RUN chmod +x ./generate_python_client.sh && SWAGGER_FILE=swagger.yaml OUTPUT=/build ./generate_python_client.sh
 
-# Generate go client
-FROM quay.io/goswagger/swagger:v0.25.0 as swagger_go
-COPY swagger.yaml go.* ./
-RUN mkdir /build
-RUN swagger generate server --template=stratoscale -f swagger.yaml --template-dir=/templates/contrib \
-    && mv restapi models /build
-RUN swagger generate client --template=stratoscale -f swagger.yaml --template-dir=/templates/contrib \
-    && mv client /build
+# TODO: Find a pure Python3 base image, rather than relying on the golang one
+FROM registry.ci.openshift.org/openshift/release:golang-1.15 as pybuilder
+COPY --from=swagger_py /build build
+RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
+
+# TODO: Currently, the Python package is included in the service image for testing purposes. It conveniently allows matching a service version to a specific Python client version. In the future, once the Python package is published on pip, it should (probably) be removed from the Assisted Service image (this dockerfile).
 
 # Build binaries
 FROM registry.ci.openshift.org/openshift/release:golang-1.15 as builder
-
 # Bring in the go dependencies before anything else so we can take
 # advantage of caching these layers in future builds.
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
-
 COPY . .
-COPY --from=swagger_py /build build
-COPY --from=swagger_go /build/client client
-COPY --from=swagger_go /build/models models
-COPY --from=swagger_go /build/restapi restapi
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
-RUN cd build && python3 setup.py sdist --dist-dir /assisted-service-client
 
 # Create final image
 FROM quay.io/centos/centos:centos8
@@ -72,6 +62,6 @@ ARG OC_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/open
 RUN curl -s $OC_URL | tar -xzC /usr/local/bin/ oc
 
 COPY --from=builder /build/assisted-service /assisted-service
-COPY --from=builder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
+COPY --from=pybuilder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
 COPY /config/onprem-iso-config.ign /data/onprem-iso-config.ign
 CMD ["/assisted-service"]
