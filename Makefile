@@ -153,7 +153,7 @@ publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
 build-openshift-ci-test-bin:
-	pip3 install pyyaml waiting strato-skipper
+	pip3 install pyyaml waiting strato-skipper==1.28.0
 
 ##########
 # Deploy #
