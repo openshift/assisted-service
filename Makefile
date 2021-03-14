@@ -153,6 +153,7 @@ publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
 build-openshift-ci-test-bin:
+	yum -y install podman
 	pip3 install pyyaml waiting strato-skipper==1.28.0
 
 ##########
@@ -280,8 +281,10 @@ deploy-onprem-for-subsystem:
 
 deploy-on-openshift-ci: build-openshift-ci-test-bin
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
-	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && export ENABLE_KUBE_API=true && \
-	export LC_ALL="en_US.UTF-8" && export LANG="en_US.UTF-8" && skipper make ci-deploy-for-subsystem
+	export TARGET='oc' && export PROFILE='openshift-ci' && export ENABLE_KUBE_API='true' && \
+	export LC_ALL='en_US.UTF-8' && export LANG='en_US.UTF-8' && \
+	unset GOFLAGS && \
+	skipper make ci-deploy-for-subsystem
 	oc get pods
 
 docs:
