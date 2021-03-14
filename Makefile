@@ -52,6 +52,7 @@ OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 AUTH_TYPE := $(or ${AUTH_TYPE},none)
 WITH_AMS_SUBSCRIPTIONS := $(or ${WITH_AMS_SUBSCRIPTIONS},False)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
+ENABLE_SINGLE_NODE_DNSMASQ := $(or ${ENABLE_SINGLE_NODE_DNSMASQ},True)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 TESTING_PUBLIC_CONTAINER_REGISTRIES := quay.io,registry.svc.ci.openshift.org
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUBLIC_CONTAINER_REGISTRIES))
@@ -211,12 +212,12 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
-		--ipv6-support $(IPV6_SUPPORT)
+		--ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
 
 deploy-resources: generate-manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"
 
-deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-resources
+deploy-service: deploy-service-requirements deploy-role deploy-resources
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
 		--apply-manifest $(APPLY_MANIFEST) \

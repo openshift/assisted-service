@@ -92,6 +92,9 @@ parameters:
 - name: IPV6_SUPPORT
   value: "false"
   required: false
+- name: ENABLE_SINGLE_NODE_DNSMASQ
+  value: "true"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -291,6 +294,8 @@ objects:
                 value: ${CHECK_CLUSTER_VERSION}
               - name: IPV6_SUPPORT
                 value: ${IPV6_SUPPORT}
+              - name: ENABLE_SINGLE_NODE_DNSMASQ
+                value: ${ENABLE_SINGLE_NODE_DNSMASQ}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

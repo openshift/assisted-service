@@ -2252,7 +2252,9 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		mockOperatorMgr = operators.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, dummy, mockOperatorMgr, nil, nil)
+		cfg := getDefaultConfig()
+		cfg.EnableSingleNodeDnsmasq = true
+		capi = NewManager(cfg, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, dummy, mockOperatorMgr, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -2282,6 +2284,17 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		err := capi.GenerateAdditionalManifests(ctx, &c)
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("Single node manifests success with disabled dnsmasq", func() {
+		cfg2 := getDefaultConfig()
+		cfg2.EnableSingleNodeDnsmasq = false
+		capi = NewManager(cfg2, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil)
+		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		err := capi.GenerateAdditionalManifests(ctx, &c)
+		Expect(err).To(Not(HaveOccurred()))
 	})
 
 	AfterEach(func() {
