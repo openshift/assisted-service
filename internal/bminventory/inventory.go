@@ -713,8 +713,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
 	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
 	if err != nil {
-		err = errors.Wrap(err, "pull secret for new cluster is invalid")
-		return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
+		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new cluster is invalid")
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 	ps, err := b.updatePullSecret(pullSecret, log)
 	if err != nil {
