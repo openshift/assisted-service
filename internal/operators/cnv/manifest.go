@@ -62,7 +62,7 @@ metadata:
   namespace: openshift-cnv
 spec:
   targetNamespaces:
-	- openshift-cnv`
+  - openshift-cnv`
 
 const cnvHCO = `apiVersion: hco.kubevirt.io/v1beta1
 kind: HyperConverged
