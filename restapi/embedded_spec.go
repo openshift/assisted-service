@@ -1892,7 +1892,7 @@ func init() {
       "get": {
         "security": [
           {
-            "agentAuth": [
+            "userAuth": [
               "admin",
               "read-only-admin",
               "user"
@@ -9108,7 +9108,7 @@ func init() {
       "get": {
         "security": [
           {
-            "agentAuth": [
+            "userAuth": [
               "admin",
               "read-only-admin",
               "user"

@@ -2719,7 +2719,7 @@ paths:
       tags:
         - installer
       security:
-        - agentAuth: [admin, read-only-admin, user]
+        - userAuth: [admin, read-only-admin, user]
       description: Get host requirements of a cluster.
       operationId: GetClusterHostRequirements
       parameters:
