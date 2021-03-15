@@ -154,8 +154,8 @@ publish-client: generate-python-client
 
 build-openshift-ci-test-bin:
 	export LC_ALL='en_US.UTF-8' && export LANG='en_US.UTF-8' && \
-	pip3 install --upgrade setuptools && \
 	pip3 install pyyaml waiting strato-skipper==1.29.1
+
 
 ##########
 # Deploy #
