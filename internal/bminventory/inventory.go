@@ -4717,6 +4717,11 @@ func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*com
 	return b.clusterApi.GetClusterByKubeKey(key)
 }
 
+func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
+	// TODO: implement
+	return installer.NewGetClusterHostRequirementsOK().WithPayload(models.ClusterHostRequirementsList{})
+}
+
 func (b *bareMetalInventory) prepareStaticNetworkConfigForIgnition(cluster *common.Cluster, log logrus.FieldLogger) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
 	filesList, err := b.staticNetworkConfig.GenerateStaticNetworkConfigData(cluster.ImageInfo.StaticNetworkConfig)
 	if err != nil {
