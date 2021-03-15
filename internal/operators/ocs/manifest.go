@@ -68,15 +68,15 @@ func ocsSubscription() (string, error) {
 	}
 
 	const ocsSubscription = `apiVersion: operators.coreos.com/v1alpha1
-  kind: Subscription
-  metadata:
-    name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
-    namespace: "{{.OPERATOR_NAMESPACE}}"
-  spec:
-    installPlanApproval: Automatic
-    name: ocs-operator
-    source: redhat-operators
-    sourceNamespace: openshift-marketplace`
+kind: Subscription
+metadata:
+  name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
+  namespace: "{{.OPERATOR_NAMESPACE}}"
+spec:
+  installPlanApproval: Automatic
+  name: ocs-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace`
 
 	tmpl, err := template.New("ocsSubscription").Parse(ocsSubscription)
 	if err != nil {

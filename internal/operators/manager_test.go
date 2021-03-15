@@ -2,7 +2,9 @@ package operators_test
 
 import (
 	"context"
+	"encoding/base64"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
@@ -19,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/sirupsen/logrus"
+	"sigs.k8s.io/yaml"
 )
 
 var (
@@ -53,6 +56,23 @@ var _ = AfterEach(func() {
 var _ = Describe("Operators manager", func() {
 
 	Context("GenerateManifests", func() {
+		It("Check YAMLs of all supported OLM operators", func() {
+			cluster.MonitoredOperators = manager.GetSupportedOperatorsByType(models.OperatorTypeOlm)
+
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
+					manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
+					if err != nil {
+						return common.GenerateErrorResponder(err)
+					}
+					if _, err := yaml.YAMLToJSON(manifestContent); err != nil {
+						return common.GenerateErrorResponder(err)
+					}
+					return operations.NewCreateClusterManifestCreated()
+				}).AnyTimes()
+			err := manager.GenerateManifests(ctx, cluster)
+			Expect(err).NotTo(HaveOccurred())
+		})
 
 		It("should create 10 manifests (OCS + LSO) using the manifest API when OCS operator is enabled", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
@@ -63,7 +83,6 @@ var _ = Describe("Operators manager", func() {
 			err := manager.GenerateManifests(ctx, cluster)
 
 			Expect(err).NotTo(HaveOccurred())
-
 		})
 
 		It("should create 5 manifests (LSO) using the manifest API when only LSO is enabled", func() {

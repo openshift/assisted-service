@@ -69,6 +69,7 @@ require (
 	k8s.io/apimachinery v0.20.0
 	k8s.io/client-go v12.0.0+incompatible
 	sigs.k8s.io/controller-runtime v0.6.2
+	sigs.k8s.io/yaml v1.2.0
 )
 
 replace (
