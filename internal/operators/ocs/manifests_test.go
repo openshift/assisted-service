@@ -6,6 +6,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
+	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("OCS manifest generation", func() {
@@ -24,5 +25,10 @@ var _ = Describe("OCS manifest generation", func() {
 		Expect(manifests["99_openshift-ocs_ns.yaml"]).NotTo(HaveLen(0))
 		Expect(manifests["99_openshift-ocs_subscription.yaml"]).NotTo(HaveLen(0))
 		Expect(manifests["99_openshift-ocs_operator_group.yaml"]).NotTo(HaveLen(0))
+
+		for _, manifest := range manifests {
+			_, err := yaml.YAMLToJSON(manifest)
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 	})
 })

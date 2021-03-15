@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"sigs.k8s.io/yaml"
 )
 
 var _ = Describe("CNV manifest generation", func() {
@@ -23,6 +24,11 @@ var _ = Describe("CNV manifest generation", func() {
 		Expect(manifests["99_openshift-cnv_subscription.yaml"]).NotTo(HaveLen(0))
 		Expect(manifests["99_openshift-cnv_crd.yaml"]).NotTo(HaveLen(0))
 		Expect(manifests["99_openshift-cnv_hco.yaml"]).NotTo(HaveLen(0))
+
+		for _, manifest := range manifests {
+			_, err := yaml.YAMLToJSON(manifest)
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 	})
 
 })
