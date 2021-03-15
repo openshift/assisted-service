@@ -70,12 +70,21 @@ func (o *operator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.Va
 // ValidateHost returns validationResult based on node type requirements such as memory and cpu
 func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
 	var inventory models.Inventory
+	if host.Inventory == "" {
+		o.log.Info("Empty Inventory of host with hostID ", host.ID)
+		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetClusterValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
+	}
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID()}, err
 	}
-	// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them
-	if host.Role == models.HostRoleWorker {
+
+	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
+	if host.Role == models.HostRoleAutoAssign {
+		status := "All host roles must be assigned to enable OCS."
+		o.log.Info("Validate Requirements status ", status)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{status}}, nil
+	} else if host.Role == models.HostRoleWorker {
 		cpu, _ := o.GetCPURequirementForWorker(ctx, cluster)
 		if inventory.CPU.Count < cpu {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
@@ -87,6 +96,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", memBytes, usableMemory)}}, nil
 		}
 	} else if host.Role == models.HostRoleMaster {
+		// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them
 		cpu, _ := o.GetCPURequirementForMaster(ctx, cluster)
 		if inventory.CPU.Count < cpu {
 			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
