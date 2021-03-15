@@ -21,6 +21,7 @@ ENVS = [
     ("AGENT_DOCKER_IMAGE", ""),
     ("BASE_DNS_DOMAINS", ""),
     ("PUBLIC_CONTAINER_REGISTRIES", "")
+    ("IPV6_SUPPORT", "")
 ]
 
 

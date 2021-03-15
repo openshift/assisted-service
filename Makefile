@@ -58,7 +58,7 @@ PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUB
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
-
+IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, False)
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 endif
@@ -209,7 +209,8 @@ deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
-		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
+		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
+		--ipv6-support $(IPV6_SUPPORT)
 
 deploy-resources: generate-manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"
@@ -245,13 +246,15 @@ create-ocp-manifests:
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 
 ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
-	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && WITH_AMS_SUBSCRIPTIONS="True" && \
+	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export IPV6_SUPPORT="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
 deploy-test: $(VERIFY_CLUSTER) generate-keys
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export IPV6_SUPPORT="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE

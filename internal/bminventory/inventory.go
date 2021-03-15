@@ -104,6 +104,7 @@ type Config struct {
 	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
 	WithAMSSubscriptions            bool              `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
 	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
+	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"false"`
 }
 
 const agentMessageOfTheDay = `
@@ -1882,7 +1883,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	cluster.HostNetworks = calculateHostNetworks(log, cluster)
+	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -2358,7 +2359,7 @@ func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cl
 	return nil
 }
 
-func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {
+func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {
 	cidrHostsMap := make(map[string]map[strfmt.UUID]bool)
 	for _, h := range cluster.Hosts {
 		if h.Inventory == "" {
@@ -2371,7 +2372,13 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 			continue
 		}
 		for _, intf := range inventory.Interfaces {
-			for _, address := range intf.IPV4Addresses {
+			var addrRange []string
+			if b.Config.IPv6Support {
+				addrRange = append(intf.IPV4Addresses, intf.IPV6Addresses...)
+			} else {
+				addrRange = intf.IPV4Addresses
+			}
+			for _, address := range addrRange {
 				_, ipnet, err := net.ParseCIDR(address)
 				if err != nil {
 					log.WithError(err).Warnf("Could not parse CIDR %s", address)
@@ -2461,7 +2468,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	cluster.HostNetworks = calculateHostNetworks(log, cluster)
+	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)

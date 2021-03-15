@@ -89,6 +89,9 @@ parameters:
   value: ""
 - name: CHECK_CLUSTER_VERSION
   value: "false"
+- name: IPV6_SUPPORT
+  value: "false"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -286,6 +289,8 @@ objects:
                 value: ${PUBLIC_CONTAINER_REGISTRIES}
               - name: CHECK_CLUSTER_VERSION
                 value: ${CHECK_CLUSTER_VERSION}
+              - name: IPV6_SUPPORT
+                value: ${IPV6_SUPPORT}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

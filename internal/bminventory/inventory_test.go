@@ -6437,12 +6437,15 @@ var _ = Describe("UpdateHostApproved", func() {
 
 var _ = Describe("Calculate host networks", func() {
 	var (
+		cfg       *Config
+		inventory *bareMetalInventory
 		db        *gorm.DB
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
 		dbName    = "calculate_host_networks"
 	)
 	BeforeEach(func() {
+		cfg = &Config{}
 		db = common.PrepareTestDB(dbName)
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
@@ -6463,14 +6466,34 @@ var _ = Describe("Calculate host networks", func() {
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 	})
-	It("Duplicates and IPv6", func() {
+	It("Duplicates and disabled IPv6", func() {
+		cfg.IPv6Support = false
+		inventory = createInventory(db, *cfg)
 		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
 		Expect(err).ToNot(HaveOccurred())
-		networks := calculateHostNetworks(logrus.New(), cluster)
+		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
 		Expect(len(networks)).To(Equal(1))
 		Expect(networks[0].Cidr).To(Equal("1.1.1.0/24"))
 		Expect(len(networks[0].HostIds)).To(Equal(1))
 		Expect(networks[0].HostIds[0]).To(Equal(hostID))
+	})
+	It("Duplicates and enabled IPv6", func() {
+		cfg.IPv6Support = true
+		inventory = createInventory(db, *cfg)
+		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		Expect(err).ToNot(HaveOccurred())
+		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
+		Expect(len(networks)).To(Equal(2))
+		sort.Slice(networks, func(i, j int) bool {
+			return networks[i].Cidr < networks[j].Cidr
+		})
+		Expect(networks[0].Cidr).To(Equal("1.1.1.0/24"))
+		Expect(len(networks[0].HostIds)).To(Equal(1))
+		Expect(networks[0].HostIds[0]).To(Equal(hostID))
+		Expect(networks[1].Cidr).To(Equal("fe80::/64"))
+		Expect(len(networks[1].HostIds)).To(Equal(1))
+		Expect(networks[1].HostIds[0]).To(Equal(hostID))
+
 	})
 })
 
