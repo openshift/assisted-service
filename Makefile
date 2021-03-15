@@ -31,6 +31,10 @@ endef # get_service
 VERIFY_CLUSTER = _verify_cluster
 endif # TARGET
 
+define add_user_subuid
+if [ -z "$(shell grep $(shell whoami) /etc/subuid)" ]; then echo "$(shell whoami):100000:65536" >> /etc/subuid; fi
+endef
+
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
@@ -282,7 +286,7 @@ deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 deploy-on-openshift-ci:
-	echo "test (user $(shell whoami)) $(shell grep $(shell whoami) /etc/subuid)"
+	$(call add_user_subuid)
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
 	export TARGET='oc' && export PROFILE='openshift-ci' && export ENABLE_KUBE_API='true' && \
 	export LC_ALL='en_US.UTF-8' && export LANG='en_US.UTF-8' && \
