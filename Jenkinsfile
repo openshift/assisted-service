@@ -28,11 +28,17 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'make clear-all || true'
-                sh 'make ci-lint'
+
+                // Logout from problematic registries
+                sh 'docker logout registry.svc.ci.openshift.org || true'
+                sh 'podman logout --all || true'
+                sh 'oc logout || true'
 
                 // Login to quay.io
                 sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+
+                sh 'make ci-lint'
             }
         }
 
