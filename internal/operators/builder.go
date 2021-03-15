@@ -22,20 +22,27 @@ var OperatorConsole = models.MonitoredOperator{
 	TimeoutSeconds: 60 * 60,
 }
 
+type Options struct {
+	CheckClusterVersion bool
+}
+
 // NewManager creates new instance of an Operator Manager
-func NewManager(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI) *Manager {
-	return NewManagerWithOperators(log, manifestAPI, lso.NewLSOperator(), ocs.NewOcsOperator(log), cnv.NewCNVOperator(log))
+func NewManager(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, options Options) *Manager {
+	return NewManagerWithOperators(log, manifestAPI, options, lso.NewLSOperator(), ocs.NewOcsOperator(log), cnv.NewCNVOperator(log))
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators
-func NewManagerWithOperators(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, olmOperators ...api.Operator) *Manager {
+func NewManagerWithOperators(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, options Options, olmOperators ...api.Operator) *Manager {
 	nameToOperator := make(map[string]api.Operator)
 
 	// monitoredOperators includes all the supported operators to be monitored.
 	monitoredOperators := map[string]*models.MonitoredOperator{
 		// Builtins
-		OperatorCVO.Name:     &OperatorCVO,
 		OperatorConsole.Name: &OperatorConsole,
+	}
+
+	if options.CheckClusterVersion {
+		monitoredOperators[OperatorCVO.Name] = &OperatorCVO
 	}
 
 	for _, olmOperator := range olmOperators {

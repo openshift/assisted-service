@@ -16,6 +16,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -25,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
@@ -36,7 +38,7 @@ import (
 const DhcpLeaseTimeoutMinutes = 2
 
 var S3FileNames = []string{
-	"kubeconfig",
+	constants.Kubeconfig,
 	"bootstrap.ign",
 	"master.ign",
 	"worker.ign",
@@ -81,7 +83,6 @@ type API interface {
 	ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
-	CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse
 	SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
 	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
@@ -95,6 +96,7 @@ type API interface {
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
 	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
+	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error)
 }
 
 type LogTimeoutConfig struct {
@@ -125,11 +127,13 @@ type Manager struct {
 	rp                    *refreshPreprocessor
 	leaderElector         leader.Leader
 	prevMonitorInvokedAt  time.Time
+	ocmClient             *ocm.Client
+	objectHandler         s3wrapper.API
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
-	leaderElector leader.Leader, operatorsApi operators.API) *Manager {
+	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API) *Manager {
 	th := &transitionHandler{
 		log:           log,
 		db:            db,
@@ -149,6 +153,8 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		hostAPI:               hostAPI,
 		leaderElector:         leaderElector,
 		prevMonitorInvokedAt:  time.Now(),
+		ocmClient:             ocmClient,
+		objectHandler:         objectHandler,
 	}
 }
 
@@ -205,7 +211,6 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -226,6 +231,8 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 		hostApi:           m.hostAPI,
 		conditions:        conditions,
 		validationResults: validationsResults,
+		clusterAPI:        m,
+		objectHandler:     m.objectHandler,
 	})
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
@@ -415,7 +422,7 @@ func CanDownloadFiles(c *common.Cluster) (err error) {
 		models.ClusterStatusAddingHosts,
 		models.ClusterStatusCancelled,
 	}
-	if !funk.ContainsString(allowedStatuses, clusterStatus) {
+	if !funk.Contains(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",
 			c.ID, clusterStatus, allowedStatuses)
 	}
@@ -424,12 +431,18 @@ func CanDownloadFiles(c *common.Cluster) (err error) {
 
 func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
-	if clusterStatus != models.ClusterStatusInstalled {
-		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only in installed state", c.ID, clusterStatus, "kubeconfig")
+	allowedStatuses := []string{
+		models.ClusterStatusFinalizing,
+		models.ClusterStatusInstalled,
+	}
+	if !funk.Contains(allowedStatuses, clusterStatus) {
+		err = errors.Errorf("cluster %s is in %s state, %s can be downloaded only when status is one of: %s",
+			c.ID, clusterStatus, constants.Kubeconfig, allowedStatuses)
 	}
 
 	return err
 }
+
 func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
@@ -542,30 +555,6 @@ func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason st
 		eventInfo = fmt.Sprintf("Failed to reset installation. Error: %s", err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
-	return nil
-}
-
-func (m *Manager) CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse {
-	log := logutil.FromContext(ctx, m.log)
-
-	err := m.sm.Run(TransitionTypeCompleteInstallation, newStateCluster(c), &TransitionArgsCompleteInstallation{
-		ctx:       ctx,
-		isSuccess: successfullyFinished,
-		reason:    reason,
-	})
-	if err != nil {
-		return common.NewApiError(http.StatusConflict, err)
-	}
-	result := models.ClusterStatusInstalled
-	severity := models.EventSeverityInfo
-	eventMsg := fmt.Sprintf("Successfully finished installing cluster %s", c.Name)
-	if !successfullyFinished {
-		result = models.ClusterStatusError
-		severity = models.EventSeverityCritical
-		eventMsg = fmt.Sprintf("Failed installing cluster %s. Reason: %s", c.Name, reason)
-	}
-	m.metricAPI.ClusterInstallationFinished(log, result, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
-	m.eventsHandler.AddEvent(ctx, *c.ID, nil, severity, eventMsg, time.Now())
 	return nil
 }
 
@@ -863,4 +852,47 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		return errors.Wrap(err, "failed to add operator manifests")
 	}
 	return nil
+}
+
+func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
+	cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, m.log)
+	destStatus := models.ClusterStatusError
+
+	if successfullyFinished {
+		destStatus = models.ClusterStatusInstalled
+
+		// Update AMS subscription only if configured and installation succeeded
+		if m.ocmClient != nil && m.ocmClient.Config.WithAMSSubscriptions {
+			if err := m.ocmClient.AccountsMgmt.UpdateSubscriptionPostInstallation(ctx, cluster.AmsSubscriptionID, cluster.OpenshiftClusterID); err != nil {
+				err = errors.Wrapf(err, "Failed to update AMS subscription for cluster %s post installation", *cluster.ID)
+				log.Error(err)
+				return nil, err
+			}
+		}
+	}
+
+	clusterAfterUpdate, err := updateClusterStatus(log, db, *cluster.ID, models.ClusterStatusFinalizing,
+		destStatus, reason)
+	if err != nil {
+		err = errors.Wrapf(err, "Failed to update cluster %s completion in db", *cluster.ID)
+		log.Error(err)
+		return nil, err
+	}
+
+	result := models.ClusterStatusInstalled
+
+	severity := models.EventSeverityInfo
+	eventMsg := fmt.Sprintf("Successfully finished installing cluster %s", cluster.Name)
+	if !successfullyFinished {
+		result = models.ClusterStatusError
+		severity = models.EventSeverityCritical
+		eventMsg = fmt.Sprintf("Failed installing cluster %s. Reason: %s", cluster.Name, reason)
+	}
+
+	m.metricAPI.ClusterInstallationFinished(log, result, cluster.OpenshiftVersion,
+		*cluster.ID, cluster.EmailDomain, cluster.InstallStartedAt)
+	m.eventsHandler.AddEvent(ctx, *cluster.ID, nil, severity, eventMsg, time.Now())
+
+	return clusterAfterUpdate, nil
 }

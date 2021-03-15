@@ -44,7 +44,7 @@ var _ = BeforeEach(func() {
 
 	ctrl = gomock.NewController(GinkgoT())
 	manifestsAPI = mocks.NewMockManifestsAPI(ctrl)
-	manager = operators.NewManager(log, manifestsAPI)
+	manager = operators.NewManager(log, manifestsAPI, operators.Options{})
 })
 
 var _ = AfterEach(func() {

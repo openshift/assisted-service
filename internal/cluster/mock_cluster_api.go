@@ -391,20 +391,6 @@ func (mr *MockAPIMockRecorder) HandlePreInstallError(ctx, c, err interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePreInstallError", reflect.TypeOf((*MockAPI)(nil).HandlePreInstallError), ctx, c, err)
 }
 
-// CompleteInstallation mocks base method
-func (m *MockAPI) CompleteInstallation(ctx context.Context, c *common.Cluster, successfullyFinished bool, reason string) *common.ApiErrorResponse {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CompleteInstallation", ctx, c, successfullyFinished, reason)
-	ret0, _ := ret[0].(*common.ApiErrorResponse)
-	return ret0
-}
-
-// CompleteInstallation indicates an expected call of CompleteInstallation
-func (mr *MockAPIMockRecorder) CompleteInstallation(ctx, c, successfullyFinished, reason interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteInstallation", reflect.TypeOf((*MockAPI)(nil).CompleteInstallation), ctx, c, successfullyFinished, reason)
-}
-
 // SetVipsData mocks base method
 func (m *MockAPI) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
 	m.ctrl.T.Helper()
@@ -588,4 +574,19 @@ func (m *MockAPI) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 func (mr *MockAPIMockRecorder) GenerateAdditionalManifests(ctx, cluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateAdditionalManifests", reflect.TypeOf((*MockAPI)(nil).GenerateAdditionalManifests), ctx, cluster)
+}
+
+// CompleteInstallation mocks base method
+func (m *MockAPI) CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CompleteInstallation", ctx, db, cluster, successfullyFinished, reason)
+	ret0, _ := ret[0].(*common.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CompleteInstallation indicates an expected call of CompleteInstallation
+func (mr *MockAPIMockRecorder) CompleteInstallation(ctx, db, cluster, successfullyFinished, reason interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompleteInstallation", reflect.TypeOf((*MockAPI)(nil).CompleteInstallation), ctx, db, cluster, successfullyFinished, reason)
 }

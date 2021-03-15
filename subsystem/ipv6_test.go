@@ -88,13 +88,7 @@ var _ = Describe("IPv6 installation", func() {
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 		By("Completing installation installation")
-		success := true
-		_, err := agentBMClient.Installer.CompleteInstallation(ctx,
-			&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
-		Expect(err).NotTo(HaveOccurred())
-
-		By("Verifying installation successfully completed")
-		waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, "installed")
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 	})
 })
 

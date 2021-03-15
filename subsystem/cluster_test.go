@@ -22,6 +22,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
+	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
@@ -45,6 +46,18 @@ const (
 	clusterFinalizingStateInfo                  = "Finalizing cluster installation"
 	clusterInstallingPendingUserActionStateInfo = "Cluster has hosts with wrong boot order"
 	clusterInstallingStateInfo                  = "Installation in progress"
+
+	ingressCa = "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+		"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+		"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
+		"wNTIzMTYwNTAwWjBhMQswCQYDVQQGEwJpczELMAkGA1UECAwCZGQxCzAJBgNVBAcMAmRkMQswCQYDVQQKDAJkZDELMAkGA1UECwwCZGQxCzAJBgNVBAMMAmRkMREwDwYJKoZIh" +
+		"vcNAQkBFgJkZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAML63CXkBb+lvrJKfdfYBHLDYfuaC6exCSqASUAosJWWrfyDiDMUbmfs06PLKyv7N8efDhza74ov0EQJ" +
+		"NRhMNaCE+A0ceq6ZXmmMswUYFdLAy8K2VMz5mroBFX8sj5PWVr6rDJ2ckBaFKWBB8NFmiK7MTWSIF9n8M107/9a0QURCvThUYu+sguzbsLODFtXUxG5rtTVKBVcPZvEfRky2Tkt4AySFS" +
+		"mkO6Kf4sBd7MC4mKWZm7K8k7HrZYz2usSpbrEtYGtr6MmN9hci+/ITDPE291DFkzIcDCF493v/3T+7XsnmQajh6kuI+bjIaACfo8N+twEoJf/N1PmphAQdEiC0CAwEAAaNTMFEwHQYDVR0O" +
+		"BBYEFNvmSprQQ2HUUtPxs6UOuxq9lKKpMB8GA1UdIwQYMBaAFNvmSprQQ2HUUtPxs6UOuxq9lKKpMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJEWxnxtQV5IqPVRr2SM" +
+		"WNNxcJ7A/wyet39l5VhHjbrQGynk5WS80psn/riLUfIvtzYMWC0IR0pIMQuMDF5sNcKp4D8Xnrd+Bl/4/Iy/iTOoHlw+sPkKv+NL2XR3iO8bSDwjtjvd6L5NkUuzsRoSkQCG2fHASqqgFoyV9Ld" +
+		"RsQa1w9ZGebtEWLuGsrJtR7gaFECqJnDbb0aPUMixmpMHID8kt154TrLhVFmMEqGGC1GvZVlQ9Of3GP9y7X4vDpHshdlWotOnYKHaeu2d5cRVFHhEbrslkISgh/TRuyl7VIpnjOYUwMBpCiVH6M" +
+		"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
 )
 
 const (
@@ -391,21 +404,58 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	return c
 }
 
-func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) error {
+func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) {
 	ctx := context.Background()
-	isSuccess := true
+	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+
+	status := models.OperatorStatusAvailable
+
+	_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+	Expect(err).NotTo(HaveOccurred())
+
+	for _, operator := range rep.Payload.MonitoredOperators {
+		_, err := client.Operators.ReportMonitoredOperatorStatus(context.Background(), &operatorsClient.ReportMonitoredOperatorStatusParams{
+			ClusterID: clusterID,
+			ReportParams: &models.OperatorMonitorReport{
+				Name:       operator.Name,
+				Status:     status,
+				StatusInfo: string(status),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+	}
+}
+
+func failInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) {
+	ctx := context.Background()
+	isSuccess := false
 	_, err := client.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
 		ClusterID: clusterID,
 		CompletionParams: &models.CompletionParams{
 			IsSuccess: &isSuccess,
 		},
 	})
-	return err
+	Expect(err).NotTo(HaveOccurred())
 }
 
-func installClusterAndComplete(clusterID strfmt.UUID) {
+func completeInstallationAndVerify(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, completeSuccess bool) {
+	expectedStatus := models.ClusterStatusError
+
+	if completeSuccess {
+		completeInstallation(client, clusterID)
+		expectedStatus = models.ClusterStatusInstalled
+	} else {
+		failInstallation(client, clusterID)
+	}
+
+	waitForClusterState(ctx, clusterID, expectedStatus, defaultWaitForClusterStateTimeout, IgnoreStateInfo)
+}
+
+func setClusterAsFinalizing(ctx context.Context, clusterID strfmt.UUID) {
 	c := installCluster(clusterID)
-	Expect(len(c.Hosts)).Should(Equal(5))
+	Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
+	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
 	for _, host := range c.Hosts {
 		Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
 	}
@@ -414,11 +464,7 @@ func installClusterAndComplete(clusterID strfmt.UUID) {
 		updateProgress(*host.ID, clusterID, models.HostStageDone)
 	}
 
-	waitForClusterState(context.Background(), clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
-
-	err := completeInstallation(agentBMClient, clusterID)
-	Expect(err).NotTo(HaveOccurred())
-
+	waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 }
 
 var _ = Describe("cluster install - DHCP", func() {
@@ -684,7 +730,7 @@ var _ = Describe("Monitored Operators", func() {
 			cluster := reply.GetPayload()
 			c := &common.Cluster{Cluster: *cluster}
 
-			for _, builtinOperator := range operators.NewManager(log, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operators.IsEnabled(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
 			}
 		})
@@ -1210,52 +1256,16 @@ var _ = Describe("cluster install", func() {
 
 		It("[minimal-set]install_cluster", func() {
 			By("Installing cluster till finalize")
-			c := installCluster(clusterID)
-			Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
-			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
-			Expect(len(c.Hosts)).Should(Equal(5))
-			for _, host := range c.Hosts {
-				Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
-			}
-
-			for _, host := range c.Hosts {
-				updateProgress(*host.ID, clusterID, models.HostStageDone)
-			}
-
-			waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+			setClusterAsFinalizing(ctx, clusterID)
 			By("Completing installation installation")
-			success := true
-			_, err := agentBMClient.Installer.CompleteInstallation(ctx,
-				&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Verifying installation successfully completed")
-			waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, "installed")
+			completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 		})
 
 		It("install_cluster fail", func() {
 			By("Installing cluster till finalize")
-			c := installCluster(clusterID)
-			Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
-			Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
-			Expect(len(c.Hosts)).Should(Equal(5))
-			for _, host := range c.Hosts {
-				Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
-			}
-
-			for _, host := range c.Hosts {
-				updateProgress(*host.ID, clusterID, models.HostStageDone)
-			}
-
-			waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+			setClusterAsFinalizing(ctx, clusterID)
 			By("Failing installation")
-			success := false
-			_, err := agentBMClient.Installer.CompleteInstallation(ctx,
-				&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: "failed"}})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Verifying installation failed")
-			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
+			completeInstallationAndVerify(context.Background(), agentBMClient, clusterID, false)
 
 			By("Verifying completion date field")
 			resp, _ := agentBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -1291,7 +1301,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			By("Verifying installation failed")
-			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, "cluster has hosts in error")
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
 		})
 
 		It("install_cluster assisted-installer already running", func() {
@@ -1372,11 +1382,7 @@ var _ = Describe("cluster install", func() {
 				verifyLogProgress(c, completed, requested)
 
 				By("report log progress by cluster after installation")
-				success := true
-				_, err := agentBMClient.Installer.CompleteInstallation(ctx,
-					&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
-				Expect(err).NotTo(HaveOccurred())
-				waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, "installed")
+				completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 				updateClusterLogProgress(clusterID, completed)
 				c = getCluster(clusterID)
 				verifyLogProgress(c, completed, completed)
@@ -1439,16 +1445,7 @@ var _ = Describe("cluster install", func() {
 			Expect(c.Progress.ProgressInfo).Should(Equal(installProgress))
 
 			By("report_cluster_install_progress_while_in_error")
-
-			success := false
-			_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
-				ClusterID:        clusterID,
-				CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: "failed"},
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			// Make sure installation failed
-			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
+			completeInstallationAndVerify(context.Background(), agentBMClient, clusterID, false)
 
 			updateReply, err = agentBMClient.Installer.UpdateClusterInstallProgress(ctx, &installer.UpdateClusterInstallProgressParams{
 				ClusterID:       *registerClusterReply.GetPayload().ID,
@@ -1456,7 +1453,6 @@ var _ = Describe("cluster install", func() {
 			})
 			Expect(err).Should(HaveOccurred())
 			Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterInstallProgressNoContent()))
-
 		})
 
 		It("report_host_progress", func() {
@@ -1796,17 +1792,7 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("Upload ingress ca and kubeconfig download", func() {
-			ingressCa := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
-				"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
-				"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
-				"wNTIzMTYwNTAwWjBhMQswCQYDVQQGEwJpczELMAkGA1UECAwCZGQxCzAJBgNVBAcMAmRkMQswCQYDVQQKDAJkZDELMAkGA1UECwwCZGQxCzAJBgNVBAMMAmRkMREwDwYJKoZIh" +
-				"vcNAQkBFgJkZDCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBAML63CXkBb+lvrJKfdfYBHLDYfuaC6exCSqASUAosJWWrfyDiDMUbmfs06PLKyv7N8efDhza74ov0EQJ" +
-				"NRhMNaCE+A0ceq6ZXmmMswUYFdLAy8K2VMz5mroBFX8sj5PWVr6rDJ2ckBaFKWBB8NFmiK7MTWSIF9n8M107/9a0QURCvThUYu+sguzbsLODFtXUxG5rtTVKBVcPZvEfRky2Tkt4AySFS" +
-				"mkO6Kf4sBd7MC4mKWZm7K8k7HrZYz2usSpbrEtYGtr6MmN9hci+/ITDPE291DFkzIcDCF493v/3T+7XsnmQajh6kuI+bjIaACfo8N+twEoJf/N1PmphAQdEiC0CAwEAAaNTMFEwHQYDVR0O" +
-				"BBYEFNvmSprQQ2HUUtPxs6UOuxq9lKKpMB8GA1UdIwQYMBaAFNvmSprQQ2HUUtPxs6UOuxq9lKKpMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAJEWxnxtQV5IqPVRr2SM" +
-				"WNNxcJ7A/wyet39l5VhHjbrQGynk5WS80psn/riLUfIvtzYMWC0IR0pIMQuMDF5sNcKp4D8Xnrd+Bl/4/Iy/iTOoHlw+sPkKv+NL2XR3iO8bSDwjtjvd6L5NkUuzsRoSkQCG2fHASqqgFoyV9Ld" +
-				"RsQa1w9ZGebtEWLuGsrJtR7gaFECqJnDbb0aPUMixmpMHID8kt154TrLhVFmMEqGGC1GvZVlQ9Of3GP9y7X4vDpHshdlWotOnYKHaeu2d5cRVFHhEbrslkISgh/TRuyl7VIpnjOYUwMBpCiVH6M" +
-				"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+
 			By("Upload ingress ca for not existent clusterid")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
@@ -1820,7 +1806,7 @@ var _ = Describe("cluster install", func() {
 			}
 			By("Test happy flow")
 			{
-				installClusterAndComplete(clusterID)
+				setClusterAsFinalizing(ctx, clusterID)
 				// Download kubeconfig before uploading
 				kubeconfigNoIngress, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
@@ -2027,19 +2013,15 @@ var _ = Describe("cluster install", func() {
 				}
 			})
 			It("cancel installation - cluster in finalizing status", func() {
-				c := installCluster(clusterID)
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
-				Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
-				Expect(len(c.Hosts)).Should(Equal(5))
-				for _, host := range c.Hosts {
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
-				}
-				for _, host := range c.Hosts {
-					updateProgress(*host.ID, clusterID, models.HostStageDone)
-				}
-				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+				setClusterAsFinalizing(ctx, clusterID)
 				_, err := userBMClient.Installer.CancelInstallation(ctx, &installer.CancelInstallationParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
+
+				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(c).NotTo(BeNil())
+
 				for _, host := range c.Hosts {
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusCancelled,
 						defaultWaitForHostStateTimeout)
@@ -2359,19 +2341,15 @@ var _ = Describe("cluster install", func() {
 			})
 
 			It("reset installation - cluster in finalizing status", func() {
-				c := installCluster(clusterID)
-				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
-				Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
-				Expect(len(c.Hosts)).Should(Equal(5))
-				for _, host := range c.Hosts {
-					Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusInstalling))
-				}
-				for _, host := range c.Hosts {
-					updateProgress(*host.ID, clusterID, models.HostStageDone)
-				}
-				waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+				setClusterAsFinalizing(ctx, clusterID)
 				_, err := userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
 				Expect(err).ShouldNot(HaveOccurred())
+
+				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				c := rep.GetPayload()
+				Expect(c).NotTo(BeNil())
+
 				for _, host := range c.Hosts {
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
 						defaultWaitForHostStateTimeout)
@@ -2932,12 +2910,7 @@ var _ = Describe("cluster install, with default network params", func() {
 		}
 
 		waitForClusterState(ctx, clusterID, "finalizing", defaultWaitForClusterStateTimeout, "Finalizing cluster installation")
-		success := true
-		_, err = agentBMClient.Installer.CompleteInstallation(ctx,
-			&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
-		Expect(err).NotTo(HaveOccurred())
-
-		waitForClusterState(ctx, clusterID, "installed", defaultWaitForClusterStateTimeout, "installed")
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 
 		rep, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 
