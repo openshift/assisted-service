@@ -41,6 +41,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
@@ -57,10 +58,13 @@ type InstallEnvReconciler struct {
 	CRDEventsHandler CRDEventsHandler
 }
 
+// +kubebuilder:rbac:groups=adi.io.my.domain,resources=nmstateconfigs,verbs=get;list;watch
 // +kubebuilder:rbac:groups=adi.io.my.domain,resources=installenvs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=adi.io.my.domain,resources=installenvs/status,verbs=get;update;patch
 
 func (r *InstallEnvReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+	r.Log.Debugf("InstallEnv Reconcile start for InstallEnv: %s, Namespace %s",
+		req.NamespacedName.Name, req.NamespacedName.Name)
 	ctx := context.Background()
 
 	installEnv := &adiiov1alpha1.InstallEnv{}
@@ -140,6 +144,42 @@ func (r *InstallEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx contex
 	return nil
 }
 
+func (r *InstallEnvReconciler) buildMacInterfaceMap(nmStateConfig adiiov1alpha1.NMStateConfig) models.MacInterfaceMap {
+	macInterfaceMap := make(models.MacInterfaceMap, 0, len(nmStateConfig.Spec.Interfaces))
+	for _, cfg := range nmStateConfig.Spec.Interfaces {
+		r.Log.Debugf("adding MAC interface map to host static network config - Name: %s, MacAddress: %s ,",
+			cfg.Name, cfg.MacAddress)
+		macInterfaceMap = append(macInterfaceMap, &models.MacInterfaceMapItems0{
+			MacAddress:     cfg.MacAddress,
+			LogicalNicName: cfg.Name,
+		})
+	}
+	return macInterfaceMap
+}
+
+func (r *InstallEnvReconciler) processNMStateConfig(ctx context.Context, installEnv *adiiov1alpha1.InstallEnv) ([]*models.HostStaticNetworkConfig, error) {
+	var staticNetworkConfig []*models.HostStaticNetworkConfig
+
+	if installEnv.Spec.NMStateConfigLabelSelector.MatchLabels == nil {
+		return staticNetworkConfig, nil
+	}
+	for labelName, labelValue := range installEnv.Spec.NMStateConfigLabelSelector.MatchLabels {
+		nmStateConfigs := &adiiov1alpha1.NMStateConfigList{}
+		if err := r.List(ctx, nmStateConfigs, client.InNamespace(installEnv.Namespace),
+			client.MatchingLabels(map[string]string{labelName: labelValue})); err != nil {
+			return staticNetworkConfig, err
+		}
+		for _, nmStateConfig := range nmStateConfigs.Items {
+			r.Log.Debugf("found nmStateConfig: %s for installEnv: %s", nmStateConfig.Name, installEnv.Name)
+			staticNetworkConfig = append(staticNetworkConfig, &models.HostStaticNetworkConfig{
+				MacInterfaceMap: r.buildMacInterfaceMap(nmStateConfig),
+				NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
+			})
+		}
+	}
+	return staticNetworkConfig, nil
+}
+
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
 // It returns a result that includes ISODownloadURL.
 func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov1alpha1.InstallEnv) (ctrl.Result, error) {
@@ -205,12 +245,12 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 	}
 
 	// Check for updates from user, compare spec and update the cluster
-	if err := r.updateClusterIfNeeded(ctx, installEnv, cluster); err != nil {
+	if err = r.updateClusterIfNeeded(ctx, installEnv, cluster); err != nil {
 		return r.handleEnsureISOErrors(ctx, installEnv, err)
 	}
 
 	// Check for discovery ignition specific updates from user, compare spec and update the ignition config
-	if err := r.updateClusterDiscoveryIgnitionIfNeeded(ctx, installEnv, cluster); err != nil {
+	if err = r.updateClusterDiscoveryIgnitionIfNeeded(ctx, installEnv, cluster); err != nil {
 		return r.handleEnsureISOErrors(ctx, installEnv, err)
 	}
 
@@ -221,6 +261,15 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 			SSHPublicKey: installEnv.Spec.SSHAuthorizedKey,
 		},
 	}
+
+	staticNetworkConfig, err := r.processNMStateConfig(ctx, installEnv)
+	if err != nil {
+		return r.handleEnsureISOErrors(ctx, installEnv, err)
+	}
+	if len(staticNetworkConfig) > 0 {
+		isoParams.ImageCreateParams.StaticNetworkConfig = staticNetworkConfig
+	}
+
 	// GenerateClusterISOInternal will generate an ISO only if there it was not generated before,
 	// or something has changed in isoParams.
 	updatedCluster, inventoryErr = r.Installer.GenerateClusterISOInternal(ctx, isoParams)
@@ -249,10 +298,17 @@ func (r *InstallEnvReconciler) updateEnsureISOSuccess(
 
 func (r *InstallEnvReconciler) handleEnsureISOErrors(
 	ctx context.Context, installEnv *adiiov1alpha1.InstallEnv, err error) (ctrl.Result, error) {
-	var errMsg string
-	var Requeue bool
-
-	if imageBeingCreated(err) { // Not an actual error, just an image generation in progress.
+	var (
+		currentReason = ""
+		errMsg        string
+		Requeue       bool
+	)
+	// TODO: Checking currentCondition as a workaround until MGMT-4695 and MGMT-4696 get resolved.
+	// If the current condition is in an error state, avoid clearing it up.
+	if currentCondition := conditionsv1.FindStatusCondition(installEnv.Status.Conditions, adiiov1alpha1.ImageCreatedCondition); currentCondition != nil {
+		currentReason = currentCondition.Reason
+	}
+	if imageBeingCreated(err) && currentReason != adiiov1alpha1.ImageCreationErrorReason { // Not an actual error, just an image generation in progress.
 		err = nil
 		Requeue = false
 		r.Log.Infof("Image %s being prepared for cluster %s", installEnv.Name, installEnv.ClusterName)
@@ -291,10 +347,39 @@ func imageBeingCreated(err error) bool {
 }
 
 func (r *InstallEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	mapNMStateConfigToInstallEnv := handler.ToRequestsFunc(
+		func(a handler.MapObject) []reconcile.Request {
+			installEnvs := &adiiov1alpha1.InstallEnvList{}
+			if len(a.Meta.GetLabels()) == 0 {
+				r.Log.Debugf("NMState config: %s has no labels", a.Meta.GetName())
+				return []reconcile.Request{}
+			}
+			if err := r.List(context.Background(), installEnvs, client.InNamespace(a.Meta.GetNamespace())); err != nil {
+				r.Log.Debugf("failed to list InstallEnvs")
+				return []reconcile.Request{}
+			}
+
+			reply := make([]reconcile.Request, 0, len(installEnvs.Items))
+			for labelName, labelValue := range a.Meta.GetLabels() {
+				r.Log.Debugf("Detected NMState config with label name: %s with value %s, about to search for a matching InstallEnv",
+					labelName, labelValue)
+				for _, installEnv := range installEnvs.Items {
+					if installEnv.Spec.NMStateConfigLabelSelector.MatchLabels[labelName] == labelValue {
+						r.Log.Debugf("Detected NMState config for InstallEnv: %s in namespace: %s", installEnv.Name, installEnv.Namespace)
+						reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+							Namespace: installEnv.Namespace,
+							Name:      installEnv.Name,
+						}})
+					}
+				}
+			}
+			return reply
+		})
+
 	installEnvUpdates := r.CRDEventsHandler.GetInstallEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adiiov1alpha1.InstallEnv{}).
-		Watches(&source.Channel{Source: installEnvUpdates},
-			&handler.EnqueueRequestForObject{}).
+		Watches(&source.Kind{Type: &adiiov1alpha1.NMStateConfig{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapNMStateConfigToInstallEnv}).
+		Watches(&source.Channel{Source: installEnvUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

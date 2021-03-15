@@ -39,11 +39,26 @@ func newInstallEnvImage(name, namespace string, spec adiiov1alpha1.InstallEnvSpe
 	return &adiiov1alpha1.InstallEnv{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "InstallEnv",
-			APIVersion: "adi.io.my.domain/adiiov1alpha1",
+			APIVersion: fmt.Sprintf("%s/%s", adiiov1alpha1.GroupVersion.Group, adiiov1alpha1.GroupVersion.Version),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+		},
+		Spec: spec,
+	}
+}
+
+func newNMStateConfig(name, namespace, NMStateLabelName, NMStateLabelValue string, spec adiiov1alpha1.NMStateConfigSpec) *adiiov1alpha1.NMStateConfig {
+	return &adiiov1alpha1.NMStateConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NMStateConfig",
+			APIVersion: fmt.Sprintf("%s/%s", adiiov1alpha1.GroupVersion.Group, adiiov1alpha1.GroupVersion.Version),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+			Labels:    map[string]string{NMStateLabelName: NMStateLabelValue},
 		},
 		Spec: spec,
 	}
@@ -413,5 +428,104 @@ var _ = Describe("installEnv reconcile", func() {
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
 		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+	})
+
+	Context("nmstate config", func() {
+
+		var (
+			NMStateLabelName  = "someName"
+			NMStateLabelValue = "someValue"
+			nicPrimary        = "eth0"
+			nicSecondary      = "eth1"
+			macPrimary        = "09:23:0f:d8:92:AA"
+			macSecondary      = "09:23:0f:d8:92:AB"
+			ip4Primary        = "192.168.126.30"
+			ip4Secondary      = "192.168.140.30"
+			dnsGW             = "192.168.126.1"
+		)
+		hostStaticNetworkConfig := common.FormatStaticConfigHostYAML(
+			nicPrimary, nicSecondary, ip4Primary, ip4Secondary, dnsGW,
+			models.MacInterfaceMap{
+				&models.MacInterfaceMapItems0{MacAddress: macPrimary, LogicalNicName: nicPrimary},
+				&models.MacInterfaceMapItems0{MacAddress: macSecondary, LogicalNicName: nicSecondary},
+			})
+
+		It("create new installEnv image with nmstate config - success", func() {
+			nmstateConfig := newNMStateConfig("NMStateConfig", testNamespace, NMStateLabelName, NMStateLabelValue,
+				adiiov1alpha1.NMStateConfigSpec{
+					Interfaces: []*adiiov1alpha1.Interface{
+						{Name: nicPrimary, MacAddress: macPrimary},
+						{Name: nicSecondary, MacAddress: macSecondary},
+					},
+					NetConfig: adiiov1alpha1.NetConfig{Raw: []byte(hostStaticNetworkConfig.NetworkYaml)},
+				})
+			Expect(c.Create(ctx, nmstateConfig)).To(BeNil())
+			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
+					Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
+					Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
+					Expect(params.ImageCreateParams.StaticNetworkConfig).To(Equal([]*models.HostStaticNetworkConfig{hostStaticNetworkConfig}))
+
+				}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &models.ImageInfo{DownloadURL: "downloadurl"}}}, nil).Times(1)
+			installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
+				NMStateConfigLabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}},
+				ClusterRef:                 &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			})
+			Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+			res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{}))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "installEnvImage",
+			}
+			Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(adiiov1alpha1.ImageStateCreated))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreatedReason))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+		})
+
+		It("create new installEnv image with an invalid nmstate config - fail", func() {
+			hostStaticNetworkConfig.NetworkYaml = "interfaces:\n    - foo: badConfig"
+			nmstateConfig := newNMStateConfig("NMStateConfig", testNamespace, NMStateLabelName, NMStateLabelValue,
+				adiiov1alpha1.NMStateConfigSpec{
+					Interfaces: []*adiiov1alpha1.Interface{
+						{Name: nicPrimary, MacAddress: macPrimary},
+						{Name: nicSecondary, MacAddress: macSecondary},
+					},
+					NetConfig: adiiov1alpha1.NetConfig{Raw: []byte(hostStaticNetworkConfig.NetworkYaml)},
+				})
+			Expect(c.Create(ctx, nmstateConfig)).To(BeNil())
+			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			expectedError := common.NewApiError(http.StatusInternalServerError, errors.New("error")) // TODO: change to http.StatusBadRequest when MGMT-4695 and MGMT-4696 get resolved.
+			mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
+					Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
+				}).Return(nil, expectedError).Times(1)
+			installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
+				NMStateConfigLabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}},
+				ClusterRef:                 &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			})
+			Expect(c.Create(ctx, installEnvImage)).To(BeNil())
+			res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
+			Expect(err).To(Equal(expectedError))
+			Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+
+			key := types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "installEnvImage",
+			}
+			Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
+			expectedState := fmt.Sprintf("%s: internal error", adiiov1alpha1.ImageStateFailedToCreate)
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
 	})
 })

@@ -97,6 +97,23 @@ func deployInstallEnvCRD(ctx context.Context, client k8sclient.Client, name stri
 		},
 		Spec: *spec,
 	})
+
+	Expect(err).To(BeNil())
+}
+
+func deployNMStateConfigCRD(ctx context.Context, client k8sclient.Client, name string, NMStateLabelName string, NMStateLabelValue string, spec *v1alpha1.NMStateConfigSpec) {
+	err := client.Create(ctx, &v1alpha1.NMStateConfig{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "NMStateConfig",
+			APIVersion: getAPIVersion(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      name,
+			Labels:    map[string]string{NMStateLabelName: NMStateLabelValue},
+		},
+		Spec: *spec,
+	})
 	Expect(err).To(BeNil())
 }
 
@@ -261,9 +278,20 @@ func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
 	}
 }
 
+func getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, networkYaml string) *v1alpha1.NMStateConfigSpec {
+	return &v1alpha1.NMStateConfigSpec{
+		Interfaces: []*v1alpha1.Interface{
+			{MacAddress: macPrimary, Name: nicPrimary},
+			{MacAddress: macSecondary, Name: nicSecondary},
+		},
+		NetConfig: v1alpha1.NetConfig{Raw: []byte(networkYaml)},
+	}
+}
+
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &v1alpha1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 }
 
@@ -571,6 +599,106 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "2s").Should(ContainSubstring("failed to update clusterDeployment"))
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
+	})
+
+	It("deploy clusterDeployment and installEnv and with NMState config", func() {
+		var (
+			NMStateLabelName  = "someName"
+			NMStateLabelValue = "someValue"
+			nicPrimary        = "eth0"
+			nicSecondary      = "eth1"
+			macPrimary        = "09:23:0f:d8:92:AA"
+			macSecondary      = "09:23:0f:d8:92:AB"
+			ip4Primary        = "192.168.126.30"
+			ip4Secondary      = "192.168.140.30"
+			dnsGW             = "192.168.126.1"
+		)
+		hostStaticNetworkConfig := common.FormatStaticConfigHostYAML(
+			nicPrimary, nicSecondary, ip4Primary, ip4Secondary, dnsGW,
+			models.MacInterfaceMap{
+				{MacAddress: macPrimary, LogicalNicName: nicPrimary},
+				{MacAddress: macSecondary, LogicalNicName: nicSecondary},
+			})
+		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, hostStaticNetworkConfig.NetworkYaml)
+		deployNMStateConfigCRD(ctx, kubeClient, "nmstate1", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
+		installEnvName := "installenv"
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
+		installEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
+		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
+		installEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      installEnvName,
+		}
+		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		Eventually(func() string {
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.ImageInfo.StaticNetworkConfig).Should(ContainSubstring(hostStaticNetworkConfig.NetworkYaml))
+		Expect(cluster.ImageGenerated).Should(Equal(true))
+	})
+
+	It("deploy clusterDeployment and installEnv and with an invalid NMState config YAML", func() {
+		var (
+			NMStateLabelName  = "someName"
+			NMStateLabelValue = "someValue"
+			nicPrimary        = "eth0"
+			nicSecondary      = "eth1"
+			macPrimary        = "09:23:0f:d8:92:AA"
+			macSecondary      = "09:23:0f:d8:92:AB"
+		)
+		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, "foo: bar")
+		deployNMStateConfigCRD(ctx, kubeClient, "nmstate2", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
+		installEnvName := "installenv"
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
+		installEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
+		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
+		installEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      installEnvName,
+		}
+		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		Eventually(func() string {
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(fmt.Sprintf("%s: internal error", v1alpha1.ImageStateFailedToCreate)))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.ImageGenerated).Should(Equal(false))
 	})
 
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
