@@ -5129,8 +5129,8 @@ func init() {
           "description": "Required installation disk speed in ms",
           "type": "integer"
         },
-        "ram_gib": {
-          "description": "Required number of RAM in GiB",
+        "ram_mib": {
+          "description": "Required number of RAM in MiB",
           "type": "integer"
         }
       }
@@ -12489,8 +12489,8 @@ func init() {
           "description": "Required installation disk speed in ms",
           "type": "integer"
         },
-        "ram_gib": {
-          "description": "Required number of RAM in GiB",
+        "ram_mib": {
+          "description": "Required number of RAM in MiB",
           "type": "integer"
         }
       }
