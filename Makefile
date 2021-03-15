@@ -282,6 +282,7 @@ deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
 deploy-on-openshift-ci:
+	echo test $(shell grep $(shell whoami) /etc/subuid)
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
 	export TARGET='oc' && export PROFILE='openshift-ci' && export ENABLE_KUBE_API='true' && \
 	export LC_ALL='en_US.UTF-8' && export LANG='en_US.UTF-8' && \
