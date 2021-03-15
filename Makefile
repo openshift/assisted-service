@@ -153,8 +153,9 @@ publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
 build-openshift-ci-test-bin:
-	sudo yum -y install podman
-	pip3 install pyyaml waiting strato-skipper==1.28.0
+	export LC_ALL='en_US.UTF-8' && export LANG='en_US.UTF-8' && \
+	pip3 install --upgrade setuptools && \
+	pip3 install pyyaml waiting strato-skipper==1.29.1
 
 ##########
 # Deploy #
