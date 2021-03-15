@@ -12,9 +12,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const (
+	mcoImageName        = "machine-config-operator"
+	mustGatherImageName = "must-gather"
+)
+
 //go:generate mockgen -source=release.go -package=oc -destination=mock_release.go
 type Release interface {
 	GetMCOImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
+	GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	GetMajorMinorVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error)
 	Extract(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, cacheDir string, pullSecret string) (string, error)
@@ -29,34 +35,43 @@ func NewRelease(executer executer.Executer) Release {
 }
 
 const (
-	templateGetMCOImage = "oc adm release info --image-for=machine-config-operator --insecure=%t %s"
-	templateGetVersion  = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
-	templateExtract     = "oc adm release extract --command=openshift-baremetal-install --to=%s --insecure=%t %s"
+	templateGetImage   = "oc adm release info --image-for=%s --insecure=%t %s"
+	templateGetVersion = "oc adm release info -o template --template '{{.metadata.version}}' --insecure=%t %s"
+	templateExtract    = "oc adm release extract --command=openshift-baremetal-install --to=%s --insecure=%t %s"
 )
 
 // GetMCOImage gets mcoImage url from the releaseImageMirror if provided.
 // Else gets it from the source releaseImage
 func (r *release) GetMCOImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
-	var mcoImage string
+	return r.getImageByName(log, mcoImageName, releaseImage, releaseImageMirror, pullSecret)
+}
+
+// GetMustGatherImage gets must-gather image URL from the release image or releaseImageMirror, if provided.
+func (r *release) GetMustGatherImage(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
+	return r.getImageByName(log, mustGatherImageName, releaseImage, releaseImageMirror, pullSecret)
+}
+
+func (r *release) getImageByName(log logrus.FieldLogger, imageName, releaseImage, releaseImageMirror, pullSecret string) (string, error) {
+	var image string
 	var err error
 	if releaseImage == "" && releaseImageMirror == "" {
-		return "", errors.New("no releaseImage nor releaseImageMirror provided")
+		return "", errors.New("neither releaseImage, nor releaseImageMirror are provided")
 	}
 	if releaseImageMirror != "" {
 		//TODO: Get mirror registry certificate from install-config
-		mcoImage, err = r.getMCOImageFromRelease(log, releaseImageMirror, pullSecret, true)
+		image, err = r.getImageFromRelease(log, imageName, releaseImageMirror, pullSecret, true)
 		if err != nil {
-			log.WithError(err).Errorf("failed to get mco image from mirror release image %s", releaseImageMirror)
+			log.WithError(err).Errorf("failed to get %s image from mirror release image %s", imageName, releaseImageMirror)
 			return "", err
 		}
 	} else {
-		mcoImage, err = r.getMCOImageFromRelease(log, releaseImage, pullSecret, false)
+		image, err = r.getImageFromRelease(log, imageName, releaseImage, pullSecret, false)
 		if err != nil {
-			log.WithError(err).Errorf("failed to get mco image from release image %s", releaseImage)
+			log.WithError(err).Errorf("failed to get %s image from release image %s", imageName, releaseImage)
 			return "", err
 		}
 	}
-	return mcoImage, err
+	return image, err
 }
 
 func (r *release) GetOpenshiftVersion(log logrus.FieldLogger, releaseImage string, releaseImageMirror string, pullSecret string) (string, error) {
@@ -97,15 +112,15 @@ func (r *release) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage stri
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-func (r *release) getMCOImageFromRelease(log logrus.FieldLogger, releaseImage string, pullSecret string, insecure bool) (string, error) {
-	cmd := fmt.Sprintf(templateGetMCOImage, insecure, releaseImage)
+func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string, insecure bool) (string, error) {
+	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
 	args := strings.Split(cmd, " ")
-	mcoImage, err := r.execute(log, pullSecret, args[0], args[1:]...)
+	image, err := r.execute(log, pullSecret, args[0], args[1:]...)
 	if err != nil {
 		log.WithError(err).Errorf("error running \"oc adm release info\" for release %s", releaseImage)
 		return "", err
 	}
-	return mcoImage, nil
+	return image, nil
 }
 
 func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage string, pullSecret string, insecure bool) (string, error) {
