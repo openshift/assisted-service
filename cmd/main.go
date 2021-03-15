@@ -215,6 +215,8 @@ func main() {
 	failOnError(err, "failed to create pull secret validator")
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
+	log.Printf("KubeAPIEnabled: %t", Options.EnableKubeAPI)
+	log.Printf("AuthType: %s", Options.Auth.AuthType)
 
 	var newUrl string
 	newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL)
