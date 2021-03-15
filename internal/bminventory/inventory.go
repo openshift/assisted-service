@@ -3515,22 +3515,23 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		return installer.NewUpdateHostInstallProgressNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
-	if err := b.hostApi.UpdateInstallProgress(ctx, &host, params.HostProgress); err != nil {
-		log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
-		return installer.NewUpdateHostInstallProgressInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+
+	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
+		if err := b.hostApi.UpdateInstallProgress(ctx, &host, params.HostProgress); err != nil {
+			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
+			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+
+		event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
+		if params.HostProgress.ProgressInfo != "" {
+			event += fmt.Sprintf(": %s", params.HostProgress.ProgressInfo)
+		}
+
+		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
+		msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host), event)
+		b.eventsHandler.AddEvent(ctx, host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
 	}
 
-	event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
-
-	if params.HostProgress.ProgressInfo != "" {
-		event += fmt.Sprintf(": %s", params.HostProgress.ProgressInfo)
-	}
-
-	log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-	msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host), event)
-
-	b.eventsHandler.AddEvent(ctx, host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
 	return installer.NewUpdateHostInstallProgressOK()
 }
 
