@@ -32,7 +32,7 @@ VERIFY_CLUSTER = _verify_cluster
 endif # TARGET
 
 define add_user_subuid
-if [ -z "$(shell grep $(shell whoami) /etc/subuid)" ]; then echo "$(shell whoami):100000:65536" >> /etc/subuid; fi
+if [ -z "$(shell grep $(shell whoami) /etc/subuid)" ]; then sudo echo "$(shell whoami):100000:65536" >> /etc/subuid; fi
 endef
 
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
