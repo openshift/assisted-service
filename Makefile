@@ -155,6 +155,7 @@ publish-client: generate-python-client
 build-openshift-ci-test-bin:
 	export LC_ALL='en_US.UTF-8' && export LANG='en_US.UTF-8' && \
 	pip3 install pyyaml waiting strato-skipper==1.29.1
+	yum install -y podman
 
 
 ##########
@@ -280,7 +281,7 @@ deploy-onprem:
 deploy-onprem-for-subsystem:
 	export DUMMY_IGNITION="true" && $(MAKE) deploy-onprem
 
-deploy-on-openshift-ci: build-openshift-ci-test-bin
+deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
 	export TARGET='oc' && export PROFILE='openshift-ci' && export ENABLE_KUBE_API='true' && \
 	export LC_ALL='en_US.UTF-8' && export LANG='en_US.UTF-8' && \
