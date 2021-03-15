@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -193,7 +194,7 @@ func (v *validator) hasMinMemory(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	return boolValue(c.inventory.Memory.PhysicalBytes >= hardware.GibToBytes(v.hwValidatorCfg.MinRamGib))
+	return boolValue(c.inventory.Memory.PhysicalBytes >= conversions.GibToBytes(v.hwValidatorCfg.MinRamGib))
 }
 
 func (v *validator) printHasMinMemory(c *validationContext, status ValidationStatus) string {
@@ -202,7 +203,7 @@ func (v *validator) printHasMinMemory(c *validationContext, status ValidationSta
 		return "Sufficient minimum RAM"
 	case ValidationFailure:
 		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %d GiB, found only %d GiB", v.hwValidatorCfg.MinRamGib,
-			hardware.BytesToGiB(c.inventory.Memory.PhysicalBytes))
+			conversions.BytesToGiB(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -352,11 +353,11 @@ func (v *validator) getMemoryForRole(cluster *common.Cluster, role models.HostRo
 	}
 	switch role {
 	case models.HostRoleMaster:
-		return hardware.GibToBytes(v.hwValidatorCfg.MinRamGibMaster) + opReqs, nil
+		return conversions.GibToBytes(v.hwValidatorCfg.MinRamGibMaster) + opReqs, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return hardware.GibToBytes(v.hwValidatorCfg.MinRamGibWorker) + opReqs, nil
+		return conversions.GibToBytes(v.hwValidatorCfg.MinRamGibWorker) + opReqs, nil
 	default:
-		return hardware.GibToBytes(v.hwValidatorCfg.MinRamGib) + opReqs, nil
+		return conversions.GibToBytes(v.hwValidatorCfg.MinRamGib) + opReqs, nil
 	}
 }
 
@@ -371,7 +372,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status Validatio
 			return fmt.Sprintf("Unable to determine host memory requirements: %s", err)
 		}
 		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d GiB",
-			hardware.BytesToGiB(mem), c.host.Role, hardware.BytesToGiB(c.inventory.Memory.UsableBytes))
+			conversions.BytesToGiB(mem), c.host.Role, conversions.BytesToGiB(c.inventory.Memory.UsableBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:

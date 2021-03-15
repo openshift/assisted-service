@@ -26,6 +26,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/thoas/go-funk"
 )
 
@@ -1188,7 +1189,7 @@ var _ = Describe("Refresh Host", func() {
 			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
 			// rely on small disks to get filtered out.
 			return funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-				return disk.SizeBytes >= hardware.GibToBytes(validatorCfg.MinDiskSizeGb)
+				return disk.SizeBytes >= conversions.GibToBytes(validatorCfg.MinDiskSizeGb)
 			}).([]*models.Disk)
 		}).AnyTimes()
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
@@ -1587,7 +1588,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient worker cpu",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, hardware.GibToBytes(16), "worker"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(16), "worker"),
 				role:          models.HostRoleWorker,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,
@@ -1617,7 +1618,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient master cpu",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, hardware.GibToBytes(17), "master"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(17), "master"),
 				role:          models.HostRoleMaster,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,

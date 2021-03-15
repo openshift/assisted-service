@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 )
 
@@ -33,8 +34,8 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		hwvalidator = NewValidator(logrus.New(), cfg)
 
-		bigEnoughSize = GbToBytes(cfg.MinDiskSizeGb) + 1
-		tooSmallSize = GbToBytes(cfg.MinDiskSizeGb) - 1
+		bigEnoughSize = conversions.GbToBytes(cfg.MinDiskSizeGb) + 1
+		tooSmallSize = conversions.GbToBytes(cfg.MinDiskSizeGb) - 1
 
 		// Start off with an eligible default
 		testDisk = models.Disk{

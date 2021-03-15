@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/sirupsen/logrus"
 )
@@ -802,7 +803,7 @@ func inventoryWithUnauthorizedVendor() string {
 				},
 			},
 		},
-		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(16), UsableBytes: hardware.GibToBytes(16)},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     "master-hostname",
 		SystemVendor: &models.SystemVendor{Manufacturer: "RDO", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 		Timestamp:    1601835002,
@@ -829,7 +830,7 @@ func workerInventory() string {
 				},
 			},
 		},
-		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(8), UsableBytes: hardware.GibToBytes(8)},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(8), UsableBytes: conversions.GibToBytes(8)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 	}
 	b, err := json.Marshal(&inventory)
