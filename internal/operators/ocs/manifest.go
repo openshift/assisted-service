@@ -9,7 +9,7 @@ type storageInfo struct {
 	OCSDisks int64
 }
 
-func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
+func generateStorageClusterManifest(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
 
 	// Disk counts are a multiple of 3
 	ocsDiskCounts /= 3
@@ -29,27 +29,28 @@ func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) ([]by
 
 }
 
-func Manifests(ocsMinDeploy bool, ocsDiskCounts int64, totalHosts int) (map[string][]byte, error) {
+func Manifests(ocsConfig *Config) (map[string][]byte, error) {
 	manifests := make(map[string][]byte)
-	if totalHosts == 3 { // for 3 hosts use the same CR as for Min Deployment
-		ocsSC, err := OCSStorageCluster(ocsMinDeploySC, ocsDiskCounts)
+	var ocsSC []byte
+	var err error
+
+	if ocsConfig.OCSDeploymentType == compactMode {
+		ocsSC, err = generateStorageClusterManifest(ocsMinDeploySC, ocsConfig.OCSDisksAvailable)
 		if err != nil {
 			return nil, err
 		}
-		manifests["99_openshift-ocssc.yaml"] = ocsSC
-	} else if ocsMinDeploy { // use separate manifest for minimum deployment of OCS
-		ocsSC, err := OCSStorageCluster(ocsMinDeploySC, ocsDiskCounts)
+	} else if ocsConfig.OCSDeploymentType == minimalMode { // use separate manifest for minimum deployment of OCS
+		ocsSC, err = generateStorageClusterManifest(ocsMinDeploySC, ocsConfig.OCSDisksAvailable)
 		if err != nil {
 			return nil, err
 		}
-		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	} else { // use the OCS CR with labelsector to deploy OCS on only worker nodes
-		ocsSC, err := OCSStorageCluster(ocsSc, ocsDiskCounts)
+		ocsSC, err = generateStorageClusterManifest(ocsSc, ocsConfig.OCSDisksAvailable)
 		if err != nil {
 			return nil, err
 		}
-		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	}
+	manifests["99_openshift-ocssc.yaml"] = ocsSC
 	manifests["99_openshift-ocssc_crd.yaml"] = []byte(ocsCRD)
 	manifests["99_openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
 	ocsSubscription, err := ocsSubscription()
