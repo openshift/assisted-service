@@ -208,7 +208,7 @@ type TransitionArgsRefreshCluster struct {
 	metricApi         metrics.API
 	hostApi           host.API
 	conditions        map[string]bool
-	validationResults map[string][]validationResult
+	validationResults map[string][]ValidationResult
 	db                *gorm.DB
 }
 

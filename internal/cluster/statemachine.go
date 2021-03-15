@@ -90,8 +90,8 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	})
 
 	var pendingConditions = stateswitch.And(If(IsMachineCidrDefined), If(isClusterCidrDefined), If(isServiceCidrDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
-	var vipsDefinedConditions = stateswitch.And(If(isApiVipDefined), If(isIngressVipDefined))
-	var requiredForInstall = stateswitch.And(If(isMachineCidrEqualsToCalculatedCidr), If(isApiVipValid), If(isIngressVipValid), If(AllHostsAreReadyToInstall),
+	var vipsDefinedConditions = stateswitch.And(If(IsApiVipDefined), If(IsIngressVipDefined))
+	var requiredForInstall = stateswitch.And(If(IsMachineCidrEqualsToCalculatedCidr), If(IsApiVipValid), If(IsIngressVipValid), If(AllHostsAreReadyToInstall),
 		If(SufficientMastersCount), If(networkPrefixValid), If(noCidrOverlapping), If(IsNtpServerConfigured), If(IsOcsRequirementsSatisfied), If(IsLsoRequirementsSatisfied), If(IsCnvRequirementsSatisfied))
 
 	// Refresh cluster status conditions - Non DHCP
@@ -130,7 +130,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		Condition:        stateswitch.And(stateswitch.Not(If(VipDhcpAllocationSet)), requiredInputFieldsExistNonDhcp, stateswitch.Not(requiredForInstall)),
 		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
-		PostTransition:   th.PostRefreshCluster(statusInfoInsufficient),
+		PostTransition:   th.PostRefreshCluster(StatusInfoInsufficient),
 	})
 
 	// DHCP transitions
@@ -161,7 +161,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		Condition:        stateswitch.And(If(VipDhcpAllocationSet), pendingConditions, stateswitch.Not(isSufficientForInstallDhcp)),
 		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
-		PostTransition:   th.PostRefreshCluster(statusInfoInsufficient),
+		PostTransition:   th.PostRefreshCluster(StatusInfoInsufficient),
 	})
 
 	// This transition is fired when all validations pass
@@ -174,7 +174,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		Condition:        allRefreshStatusConditions,
 		DestinationState: stateswitch.State(models.ClusterStatusReady),
-		PostTransition:   th.PostRefreshCluster(statusInfoReady),
+		PostTransition:   th.PostRefreshCluster(StatusInfoReady),
 	})
 
 	// This transition is fired when the preparing installation reach the timeout

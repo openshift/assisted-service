@@ -23,8 +23,8 @@ const (
 )
 
 const (
-	statusInfoReady                           = "Cluster ready to be installed"
-	statusInfoInsufficient                    = "Cluster is not ready for install"
+	StatusInfoReady                           = "Cluster ready to be installed"
+	StatusInfoInsufficient                    = "Cluster is not ready for install"
 	statusInfoInstalling                      = "Installation in progress"
 	statusInfoFinalizing                      = "Finalizing cluster installation"
 	statusInfoInstalled                       = "installed"

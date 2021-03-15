@@ -1,14 +1,15 @@
-package ocs
+package ocs_test
 
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 )
 
 var _ = Describe("OCS manifest generation", func() {
-	operator := NewOcsOperator(common.GetTestLog())
+	operator := ocs.NewOcsOperator(common.GetTestLog())
 	cluster := common.Cluster{Cluster: models.Cluster{
 		OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 	}}

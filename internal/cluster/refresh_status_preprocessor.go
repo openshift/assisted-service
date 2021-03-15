@@ -13,9 +13,9 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-type validationResult struct {
-	ID      validationID     `json:"id"`
-	Status  validationStatus `json:"status"`
+type ValidationResult struct {
+	ID      ValidationID     `json:"id"`
+	Status  ValidationStatus `json:"status"`
 	Message string           `json:"message"`
 }
 
@@ -39,9 +39,9 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsA
 	}
 }
 
-func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreprocessContext) (map[string]bool, map[string][]validationResult, error) {
+func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreprocessContext) (map[string]bool, map[string][]ValidationResult, error) {
 	stateMachineInput := make(map[string]bool)
-	validationsOutput := make(map[string][]validationResult)
+	validationsOutput := make(map[string][]ValidationResult)
 	checkValidationsInStatuses := []string{
 		models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput,
 	}
@@ -53,12 +53,12 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 		st := v.condition(c)
 		stateMachineInput[v.id.String()] = st == ValidationSuccess
 		message := v.formatter(c, st)
-		category, err := v.id.category()
+		category, err := v.id.Category()
 		if err != nil {
 			logrus.WithError(err).Warn("id.category()")
 			return nil, nil, err
 		}
-		validationsOutput[category] = append(validationsOutput[category], validationResult{
+		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
 			ID:      v.id,
 			Status:  st,
 			Message: message,
@@ -71,15 +71,15 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	}
 	for _, result := range results {
 		stateMachineInput[result.ValidationId] = result.Status == api.Success
-		id := validationID(result.ValidationId)
-		category, err := id.category()
+		id := ValidationID(result.ValidationId)
+		category, err := id.Category()
 		if err != nil {
 			logrus.WithError(err).Warn("id.category()")
 			return nil, nil, err
 		}
 
-		status := validationStatus(result.Status)
-		validationsOutput[category] = append(validationsOutput[category], validationResult{
+		status := ValidationStatus(result.Status)
+		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
 			ID:      id,
 			Status:  status,
 			Message: strings.Join(result.Reasons, "\n"),
@@ -104,27 +104,27 @@ func newValidations(log logrus.FieldLogger, api host.API) []validation {
 			formatter: v.printIsMachineCidrDefined,
 		},
 		{
-			id:        isMachineCidrEqualsToCalculatedCidr,
+			id:        IsMachineCidrEqualsToCalculatedCidr,
 			condition: v.isMachineCidrEqualsToCalculatedCidr,
 			formatter: v.printIsMachineCidrEqualsToCalculatedCidr,
 		},
 		{
-			id:        isApiVipDefined,
+			id:        IsApiVipDefined,
 			condition: v.isApiVipDefined,
 			formatter: v.printIsApiVipDefined,
 		},
 		{
-			id:        isApiVipValid,
+			id:        IsApiVipValid,
 			condition: v.isApiVipValid,
 			formatter: v.printIsApiVipValid,
 		},
 		{
-			id:        isIngressVipDefined,
+			id:        IsIngressVipDefined,
 			condition: v.isIngressVipDefined,
 			formatter: v.printIsIngressVipDefined,
 		},
 		{
-			id:        isIngressVipValid,
+			id:        IsIngressVipValid,
 			condition: v.isIngressVipValid,
 			formatter: v.printIsIngressVipValid,
 		},
