@@ -377,7 +377,7 @@ func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch,
 	// if logs are requested, but not collected at all (e.g. controller failed to start or could not send back the
 	// logs due to networking error) then check the timeout from the time logs were expected
 	if sCluster.cluster.LogsInfo == models.LogsStateRequested && time.Time(sCluster.cluster.ControllerLogsCollectedAt).IsZero() {
-		return time.Since(time.Time(sCluster.cluster.ControllerLogsStartedAt)) > th.prepareConfig.LogPendingTimeout, nil
+		return time.Since(time.Time(sCluster.cluster.ControllerLogsStartedAt)) > th.prepareConfig.LogCollectionTimeout, nil
 	}
 
 	// if logs are requested, and some logs were collected (e.g. must-gather takes too long to collect)
