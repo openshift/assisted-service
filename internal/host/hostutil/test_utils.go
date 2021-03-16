@@ -79,8 +79,16 @@ func GenerateMasterInventoryV6() string {
 }
 
 func GenerateMasterInventoryWithHostname(hostname string) string {
+	return GenerateMasterInventoryWithHostnameAndCpuFlags(hostname, []string{"vmx"})
+}
+
+func GenerateMasterInventoryWithHostnameV6(hostname string) string {
+	return GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname, []string{"vmx"})
+}
+
+func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []string) string {
 	inventory := models.Inventory{
-		CPU: &models.CPU{Count: 8},
+		CPU: &models.CPU{Count: 8, Flags: cpuflags},
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
@@ -105,9 +113,9 @@ func GenerateMasterInventoryWithHostname(hostname string) string {
 	return string(b)
 }
 
-func GenerateMasterInventoryWithHostnameV6(hostname string) string {
+func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags []string) string {
 	inventory := models.Inventory{
-		CPU: &models.CPU{Count: 8},
+		CPU: &models.CPU{Count: 8, Flags: cpuflags},
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
@@ -134,7 +142,7 @@ func GenerateMasterInventoryWithHostnameV6(hostname string) string {
 
 func GenerateInventoryWithResources(cpu, memory int64, hostname string) string {
 	inventory := models.Inventory{
-		CPU: &models.CPU{Count: cpu},
+		CPU: &models.CPU{Count: cpu, Flags: []string{"vmx"}},
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,
@@ -161,7 +169,7 @@ func GenerateInventoryWithResources(cpu, memory int64, hostname string) string {
 
 func GenerateInventoryWithResourcesWithBytes(cpu, memory int64, hostname string) string {
 	inventory := models.Inventory{
-		CPU: &models.CPU{Count: cpu},
+		CPU: &models.CPU{Count: cpu, Flags: []string{"vmx"}},
 		Disks: []*models.Disk{
 			{
 				SizeBytes: 128849018880,

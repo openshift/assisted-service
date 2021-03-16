@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	models "github.com/openshift/assisted-service/models"
@@ -77,6 +78,10 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID()}, err
+	}
+
+	if !hardware.IsVirtSupported(&inventory) {
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
 	}
 
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
