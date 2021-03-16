@@ -2,14 +2,12 @@ package auth
 
 import (
 	"crypto"
-	"net/http"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -84,22 +82,8 @@ func (a *LocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
 	return a.AuthAgentAuth(token)
 }
 
-func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
-	return func(name string, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
-		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
-			log := logutil.FromContext(r.Context(), a.log)
-
-			p, err := authenticate(r.Header.Get(name))
-			if err != nil {
-				log.WithError(err).Error("failed to authenticate")
-				if common.IsKnownError(err) {
-					return true, nil, err
-				}
-				return true, nil, common.NewInfraError(http.StatusUnauthorized, err)
-			}
-			return true, p, nil
-		})
-	}
+func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, _ security.TokenAuthentication) runtime.Authenticator {
+	return security.APIKeyAuth
 }
 
 func validateToken(token string, pub crypto.PublicKey) (*jwt.Token, error) {
