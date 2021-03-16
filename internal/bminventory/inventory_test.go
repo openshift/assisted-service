@@ -51,7 +51,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
@@ -78,7 +77,6 @@ var (
 	mockK8sClient           *k8sclient.MockK8SClient
 	mockCRDUtils            *MockCRDUtils
 	mockAccountsMgmt        *ocm.MockOCMAccountsMgmt
-	mockStaticNetworkConfig *staticnetworkconfig.MockStaticNetworkConfig
 	mockOperatorManager     *operators.MockAPI
 	mockIgnitionBuilder     *ignition.MockIgnitionBuilder
 	secondDayWorkerIgnition = []byte(`{
@@ -6414,12 +6412,11 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockVersions = versions.NewMockHandler(ctrl)
 	mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
 	mockCRDUtils = NewMockCRDUtils(ctrl)
-	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
 
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
-		mockIsoEditorFactory, mockCRDUtils, mockStaticNetworkConfig, mockIgnitionBuilder)
+		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder)
 }

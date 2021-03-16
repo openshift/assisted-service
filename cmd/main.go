@@ -304,7 +304,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
-		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig, ignitionBuilder)
+		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),

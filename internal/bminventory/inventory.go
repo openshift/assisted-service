@@ -123,25 +123,24 @@ type CRDUtils interface {
 }
 type bareMetalInventory struct {
 	Config
-	db                  *gorm.DB
-	log                 logrus.FieldLogger
-	hostApi             host.API
-	clusterApi          clusterPkg.API
-	eventsHandler       events.Handler
-	objectHandler       s3wrapper.API
-	metricApi           metrics.API
-	operatorManagerApi  operators.API
-	generator           generator.ISOInstallConfigGenerator
-	authHandler         auth.Authenticator
-	k8sClient           k8sclient.K8SClient
-	ocmClient           *ocm.Client
-	leaderElector       leader.Leader
-	secretValidator     validations.PullSecretValidator
-	versionsHandler     versions.Handler
-	isoEditorFactory    isoeditor.Factory
-	crdUtils            CRDUtils
-	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
-	IgnitionBuilder     ignition.IgnitionBuilder
+	db                 *gorm.DB
+	log                logrus.FieldLogger
+	hostApi            host.API
+	clusterApi         clusterPkg.API
+	eventsHandler      events.Handler
+	objectHandler      s3wrapper.API
+	metricApi          metrics.API
+	operatorManagerApi operators.API
+	generator          generator.ISOInstallConfigGenerator
+	authHandler        auth.Authenticator
+	k8sClient          k8sclient.K8SClient
+	ocmClient          *ocm.Client
+	leaderElector      leader.Leader
+	secretValidator    validations.PullSecretValidator
+	versionsHandler    versions.Handler
+	isoEditorFactory   isoeditor.Factory
+	crdUtils           CRDUtils
+	IgnitionBuilder    ignition.IgnitionBuilder
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -175,30 +174,28 @@ func NewBareMetalInventory(
 	versionsHandler versions.Handler,
 	isoEditorFactory isoeditor.Factory,
 	crdUtils CRDUtils,
-	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
 	IgnitionBuilder ignition.IgnitionBuilder,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:                  db,
-		log:                 log,
-		Config:              cfg,
-		hostApi:             hostApi,
-		clusterApi:          clusterApi,
-		generator:           generator,
-		eventsHandler:       eventsHandler,
-		objectHandler:       objectHandler,
-		metricApi:           metricApi,
-		operatorManagerApi:  operatorManagerApi,
-		authHandler:         authHandler,
-		k8sClient:           k8sClient,
-		ocmClient:           ocmClient,
-		leaderElector:       leaderElector,
-		secretValidator:     pullSecretValidator,
-		versionsHandler:     versionsHandler,
-		isoEditorFactory:    isoEditorFactory,
-		crdUtils:            crdUtils,
-		staticNetworkConfig: staticNetworkConfig,
-		IgnitionBuilder:     IgnitionBuilder,
+		db:                 db,
+		log:                log,
+		Config:             cfg,
+		hostApi:            hostApi,
+		clusterApi:         clusterApi,
+		generator:          generator,
+		eventsHandler:      eventsHandler,
+		objectHandler:      objectHandler,
+		metricApi:          metricApi,
+		operatorManagerApi: operatorManagerApi,
+		authHandler:        authHandler,
+		k8sClient:          k8sClient,
+		ocmClient:          ocmClient,
+		leaderElector:      leaderElector,
+		secretValidator:    pullSecretValidator,
+		versionsHandler:    versionsHandler,
+		isoEditorFactory:   isoEditorFactory,
+		crdUtils:           crdUtils,
+		IgnitionBuilder:    IgnitionBuilder,
 	}
 }
 
