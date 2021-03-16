@@ -16,10 +16,18 @@ import (
 
 var _ = Describe("manifests tests", func() {
 	var (
-		ctx           = context.Background()
-		cluster       *models.Cluster
-		content       = "hello world!"
-		base64Content = base64.RawStdEncoding.EncodeToString([]byte(content))
+		ctx     = context.Background()
+		cluster *models.Cluster
+		content = `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+    - 'loglevel=7'`
+		base64Content = base64.StdEncoding.EncodeToString([]byte(content))
 		manifestFile  models.Manifest
 	)
 
@@ -29,7 +37,7 @@ var _ = Describe("manifests tests", func() {
 
 	BeforeEach(func() {
 		manifestFile = models.Manifest{
-			FileName: "99-test.yaml",
+			FileName: "99-openshift-machineconfig-master-kargs.yaml",
 			Folder:   "openshift",
 		}
 
