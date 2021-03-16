@@ -360,6 +360,7 @@ func main() {
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:         authHandler.AuthAgentAuth,
 		AuthUserAuth:          authHandler.AuthUserAuth,
+		AuthURLAuth:           authHandler.AuthURLAuth,
 		APIKeyAuthenticator:   authHandler.CreateAuthenticator(),
 		Authorizer:            authzHandler.CreateAuthorizer(),
 		InstallerAPI:          bm,

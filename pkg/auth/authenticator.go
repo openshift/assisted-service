@@ -23,6 +23,7 @@ type Authenticator interface {
 	CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator
 	AuthUserAuth(token string) (interface{}, error)
 	AuthAgentAuth(token string) (interface{}, error)
+	AuthURLAuth(token string) (interface{}, error)
 	AuthType() AuthType
 }
 
@@ -47,5 +48,7 @@ func NewAuthenticator(cfg *Config, ocmClient *ocm.Client, log logrus.FieldLogger
 	default:
 		err = fmt.Errorf("invalid authenticator type %v", cfg.AuthType)
 	}
+
+	log.Infof("Created %s authenticator", cfg.AuthType)
 	return
 }

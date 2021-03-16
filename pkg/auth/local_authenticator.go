@@ -80,6 +80,10 @@ func (a *LocalAuthenticator) AuthUserAuth(_ string) (interface{}, error) {
 	return nil, errors.Errorf("User Authentication not allowed for local auth")
 }
 
+func (a *LocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
+	return a.AuthAgentAuth(token)
+}
+
 func (a *LocalAuthenticator) CreateAuthenticator() func(_, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 	return func(name string, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
