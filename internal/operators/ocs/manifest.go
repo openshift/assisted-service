@@ -3474,7 +3474,7 @@ spec:
           volumeMode: Block
       name: ocs-deviceset
       placement: {}
-      portable: true
+      portable: false
       replica: 3
       resources:
         limits:
@@ -3532,7 +3532,7 @@ spec:
 
     placement: {}
 
-    portable: true
+    portable: false
 
     replica: 3
 `
