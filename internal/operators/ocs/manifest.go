@@ -9,7 +9,7 @@ type storageInfo struct {
 	OCSDisks int64
 }
 
-func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) (string, error) {
+func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
 
 	// Disk counts are a multiple of 3
 	ocsDiskCounts /= 3
@@ -17,45 +17,77 @@ func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) (stri
 	info := &storageInfo{OCSDisks: ocsDiskCounts}
 	tmpl, err := template.New("OcsStorageCluster").Parse(StorageClusterManifest)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	buf := &bytes.Buffer{}
 	err = tmpl.Execute(buf, info)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 
 }
 
-func Manifests(ocsMinDeploy bool, ocsDiskCounts int64, totalHosts int) (map[string]string, error) {
-	manifests := make(map[string]string)
+func Manifests(ocsMinDeploy bool, ocsDiskCounts int64, totalHosts int) (map[string][]byte, error) {
+	manifests := make(map[string][]byte)
 	if totalHosts == 3 { // for 3 hosts use the same CR as for Min Deployment
 		ocsSC, err := OCSStorageCluster(ocsMinDeploySC, ocsDiskCounts)
 		if err != nil {
-			return map[string]string{}, err
+			return nil, err
 		}
 		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	} else if ocsMinDeploy { // use separate manifest for minimum deployment of OCS
 		ocsSC, err := OCSStorageCluster(ocsMinDeploySC, ocsDiskCounts)
 		if err != nil {
-			return map[string]string{}, err
+			return nil, err
 		}
 		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	} else { // use the OCS CR with labelsector to deploy OCS on only worker nodes
 		ocsSC, err := OCSStorageCluster(ocsSc, ocsDiskCounts)
 		if err != nil {
-			return map[string]string{}, err
+			return nil, err
 		}
 		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	}
-
-	manifests["99_openshift-ocssc_crd.yaml"] = ocsCRD
-	manifests["99_openshift-ocs_ns.yaml"] = ocsNamespace
-	manifests["99_openshift-ocs_subscription.yaml"] = ocsSubscription
-	manifests["99_openshift-ocs_operator_group.yaml"] = ocsOperatorGroup
+	manifests["99_openshift-ocssc_crd.yaml"] = []byte(ocsCRD)
+	manifests["99_openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
+	ocsSubscription, err := ocsSubscription()
+	if err != nil {
+		return map[string][]byte{}, err
+	}
+	manifests["99_openshift-ocs_subscription.yaml"] = []byte(ocsSubscription)
+	manifests["99_openshift-ocs_operator_group.yaml"] = []byte(ocsOperatorGroup)
 	return manifests, nil
+}
+
+func ocsSubscription() (string, error) {
+	data := map[string]string{
+		"OPERATOR_NAMESPACE":         Operator.Namespace,
+		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
+	}
+
+	const ocsSubscription = `apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
+  namespace: "{{.OPERATOR_NAMESPACE}}"
+spec:
+  installPlanApproval: Automatic
+  name: ocs-operator
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace`
+
+	tmpl, err := template.New("ocsSubscription").Parse(ocsSubscription)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	err = tmpl.Execute(buf, data)
+	if err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 const ocsNamespace = `apiVersion: v1
@@ -74,18 +106,6 @@ metadata:
 spec:
   targetNamespaces:
   - openshift-storage`
-
-const ocsSubscription = `
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: ocs-operator
-  namespace: openshift-storage
-spec:
-  installPlanApproval: Automatic
-  name: ocs-operator
-  source: redhat-operators
-  sourceNamespace: openshift-marketplace`
 
 const ocsCRD = `apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition

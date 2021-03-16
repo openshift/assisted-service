@@ -18,7 +18,7 @@ import (
 var (
 	validHwInfoV6 = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
-		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB)},
+		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
 		Disks: []*models.Disk{
 			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
 			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
@@ -67,6 +67,12 @@ var _ = Describe("IPv6 installation", func() {
 	})
 	It("install_cluster IPv6 happy flow", func() {
 		_ = registerHostsAndSetRolesV6(clusterID, 5)
+		clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+			ClusterID: clusterID,
+		})
+		Expect(getErr).ToNot(HaveOccurred())
+		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
+		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1001:db8::/120"))
 		By("Installing cluster till finalize")
 		c := installCluster(clusterID)
 		Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
@@ -82,13 +88,7 @@ var _ = Describe("IPv6 installation", func() {
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 		By("Completing installation installation")
-		success := true
-		_, err := agentBMClient.Installer.CompleteInstallation(ctx,
-			&installer.CompleteInstallationParams{ClusterID: clusterID, CompletionParams: &models.CompletionParams{IsSuccess: &success, ErrorInfo: ""}})
-		Expect(err).NotTo(HaveOccurred())
-
-		By("Verifying installation successfully completed")
-		waitForClusterState(ctx, clusterID, models.ClusterStatusInstalled, defaultWaitForClusterStateTimeout, "installed")
+		completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 	})
 })
 

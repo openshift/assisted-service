@@ -35,6 +35,12 @@ type Cluster struct {
 
 	// The ID of the subscription created in AMS
 	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
+
+	// ImageGenerated indicates if the discovery image was generated successfully. It will be used internally
+	// when an image needs to be generated. In case the user request to generate an image with custom parameters,
+	// and the generation failed, the value of ImageGenerated will be set to 'false'. In that case, providing the
+	// same request with the same custom parameters will re-attempt to generate the image.
+	ImageGenerated bool `json:"image_generated"`
 }
 
 type Event struct {

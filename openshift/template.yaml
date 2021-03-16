@@ -11,7 +11,7 @@ parameters:
 - name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
   value: ''
 - name: OPENSHIFT_VERSIONS
-  value: '{"4.6":{"display_name":"4.6.18","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.18-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.0","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.0-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.7.0-rc.2/rhcos-4.7.0-rc.2-x86_64-live.x86_64.iso","rhcos_version":"47.83.202102090044-0","support_level":"production"}}' # openshift version
+  value: '{"4.6":{"display_name":"4.6.16","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.2","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.0/rhcos-4.7.0-x86_64-live.x86_64.iso","rhcos_version":"47.83.202102090044-0","support_level":"production"}}' # openshift version
   required: false
 - name: JWKS_URL # example https://example.com/.well-known/jwks.json
   value: ''
@@ -19,7 +19,7 @@ parameters:
 - name: ALLOWED_DOMAINS
   value: ''
   required: true
-- name: ENABLE_AUTH
+- name: AUTH_TYPE
   value: ''
   required: true
 - name: WITH_AMS_SUBSCRIPTIONS
@@ -89,6 +89,9 @@ parameters:
   value: ""
 - name: CHECK_CLUSTER_VERSION
   value: "false"
+- name: IPV6_SUPPORT
+  value: "false"
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -230,8 +233,8 @@ objects:
                 value: ${BASE_DNS_DOMAINS}
               - name: OPENSHIFT_VERSIONS
                 value: ${OPENSHIFT_VERSIONS}
-              - name: ENABLE_AUTH
-                value: ${ENABLE_AUTH}
+              - name: AUTH_TYPE
+                value: ${AUTH_TYPE}
               - name: WITH_AMS_SUBSCRIPTIONS
                 value: ${WITH_AMS_SUBSCRIPTIONS}
               - name: JWKS_URL
@@ -286,6 +289,8 @@ objects:
                 value: ${PUBLIC_CONTAINER_REGISTRIES}
               - name: CHECK_CLUSTER_VERSION
                 value: ${CHECK_CLUSTER_VERSION}
+              - name: IPV6_SUPPORT
+                value: ${IPV6_SUPPORT}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"

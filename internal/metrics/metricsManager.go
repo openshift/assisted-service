@@ -78,8 +78,8 @@ const (
 
 type API interface {
 	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string)
-	HostValidationFailed(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID)
-	HostValidationChanged(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID)
+	HostValidationFailed(clusterVersion string, emailDomain string, hostValidationType models.HostValidationID)
+	HostValidationChanged(clusterVersion string, emailDomain string, hostValidationType models.HostValidationID)
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string)
 	ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int)
@@ -225,7 +225,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Subsystem: subsystem,
 				Name:      counterHostValidationFailed,
 				Help:      counterDescriptionHostValidationFailed,
-			}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel, hostValidationTypeLabel}),
+			}, []string{openshiftVersionLabel, emailDomainLabel, hostValidationTypeLabel}),
 
 		serviceLogicHostValidationChanged: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -233,7 +233,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Subsystem: subsystem,
 				Name:      counterHostValidationChanged,
 				Help:      counterDescriptionHostValidationChanged,
-			}, []string{openshiftVersionLabel, clusterIdLabel, emailDomainLabel, hostValidationTypeLabel}),
+			}, []string{openshiftVersionLabel, emailDomainLabel, hostValidationTypeLabel}),
 
 		serviceLogicClusterHostImagePullStatus: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
@@ -267,12 +267,12 @@ func (m *MetricsManager) ClusterRegistered(clusterVersion string, clusterID strf
 	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Inc()
 }
 
-func (m *MetricsManager) HostValidationFailed(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID) {
-	m.serviceLogicHostValidationFailed.WithLabelValues(clusterVersion, clusterID.String(), emailDomain, string(hostValidationType)).Inc()
+func (m *MetricsManager) HostValidationFailed(clusterVersion string, emailDomain string, hostValidationType models.HostValidationID) {
+	m.serviceLogicHostValidationFailed.WithLabelValues(clusterVersion, emailDomain, string(hostValidationType)).Inc()
 }
 
-func (m *MetricsManager) HostValidationChanged(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID) {
-	m.serviceLogicHostValidationChanged.WithLabelValues(clusterVersion, clusterID.String(), emailDomain, string(hostValidationType)).Inc()
+func (m *MetricsManager) HostValidationChanged(clusterVersion string, emailDomain string, hostValidationType models.HostValidationID) {
+	m.serviceLogicHostValidationChanged.WithLabelValues(clusterVersion, emailDomain, string(hostValidationType)).Inc()
 }
 
 func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string) {

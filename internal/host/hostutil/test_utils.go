@@ -9,8 +9,8 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
 func GetHostFromDB(hostId, clusterId strfmt.UUID, db *gorm.DB) *models.Host {
@@ -95,7 +95,7 @@ func GenerateMasterInventoryWithHostname(hostname string) string {
 				},
 			},
 		},
-		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(16)},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,
@@ -122,7 +122,61 @@ func GenerateMasterInventoryWithHostnameV6(hostname string) string {
 				},
 			},
 		},
-		Memory:       &models.Memory{PhysicalBytes: hardware.GibToBytes(16)},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+		Hostname:     hostname,
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func GenerateInventoryWithResources(cpu, memory int64, hostname string) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: cpu},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(memory), UsableBytes: conversions.GibToBytes(memory)},
+		Hostname:     hostname,
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func GenerateInventoryWithResourcesWithBytes(cpu, memory int64, hostname string) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: cpu},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+		},
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:       &models.Memory{PhysicalBytes: memory, UsableBytes: memory},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,

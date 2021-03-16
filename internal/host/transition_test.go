@@ -22,7 +22,11 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/thoas/go-funk"
 )
 
@@ -55,7 +59,7 @@ var _ = Describe("RegisterHost", func() {
 		db = common.PrepareTestDB(dbName)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -438,7 +442,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -482,7 +486,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -517,7 +521,7 @@ var _ = Describe("Cancel host installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 	})
 
@@ -604,7 +608,7 @@ var _ = Describe("Reset host", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 	})
 
@@ -692,7 +696,7 @@ var _ = Describe("Install", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -847,7 +851,7 @@ var _ = Describe("Disable", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -980,7 +984,7 @@ var _ = Describe("Enable", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1133,13 +1137,13 @@ type validationsChecker struct {
 }
 
 func (j *validationsChecker) check(validationsStr string) {
-	validationMap := make(map[string][]validationResult)
-	Expect(json.Unmarshal([]byte(validationsStr), &validationMap)).ToNot(HaveOccurred())
+	validationRes := make(validationsStatus)
+	Expect(json.Unmarshal([]byte(validationsStr), &validationRes)).ToNot(HaveOccurred())
 next:
 	for id, checkedResult := range j.expected {
 		category, err := id.category()
 		Expect(err).ToNot(HaveOccurred())
-		results, ok := validationMap[category]
+		results, ok := validationRes[category]
 		Expect(ok).To(BeTrue())
 		for _, r := range results {
 			if r.ID == id {
@@ -1185,10 +1189,10 @@ var _ = Describe("Refresh Host", func() {
 			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
 			// rely on small disks to get filtered out.
 			return funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-				return disk.SizeBytes >= hardware.GibToBytes(validatorCfg.MinDiskSizeGb)
+				return disk.SizeBytes >= conversions.GibToBytes(validatorCfg.MinDiskSizeGb)
 			}).([]*models.Disk)
 		}).AnyTimes()
-		operatorsManager := operators.NewManager(common.GetTestLog())
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1507,8 +1511,179 @@ var _ = Describe("Refresh Host", func() {
 
 	})
 
+	Context("Validate host", func() {
+		tests := []struct {
+			// Test parameters
+			name               string
+			statusInfoMsg      string
+			validationsChecker *validationsChecker
+
+			// Host fields
+			hostID    strfmt.UUID
+			inventory string
+			role      models.HostRole
+			dstState  string
+			srcState  string
+		}{
+			{
+				name:          "insufficient worker memory",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(4, 104857600, "worker"),
+				role:          models.HostRoleWorker,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient memory to deploy CNV. Required memory is 360 MiB but found 100 MiB",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster bec"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role worker, found only 0"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname worker is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient memory to deploy CNV. Required memory is 360 MiB but found 100 MiB"},
+				}),
+			},
+			{
+				name:          "insufficient master memory",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(8, 104857600, "master"),
+				role:          models.HostRoleMaster,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient memory to deploy CNV. Required memory is 150 MiB but found 100 MiB",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster bec"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 0"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname master is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient memory to deploy CNV. Required memory is 150 MiB but found 100 MiB"},
+				}),
+			},
+			{
+				name:          "insufficient worker cpu",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(16), "worker"),
+				role:          models.HostRoleWorker,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient CPU to deploy CNV. Required CPU count is 2 but found 1",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is 2, found only 1"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for worker role, found only 1"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role worker"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname worker is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy CNV. Required CPU count is 2 but found 1"},
+				}),
+			},
+			{
+				name:          "insufficient master cpu",
+				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(17), "master"),
+				role:          models.HostRoleMaster,
+				srcState:      models.HostStatusDiscovering,
+				dstState:      models.HostStatusInsufficient,
+				statusInfoMsg: "Insufficient CPU to deploy CNV. Required CPU count is 4 but found 1",
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					IsHostnameValid:             {status: ValidationSuccess, messagePattern: ""},
+					IsAPIVipConnected:           {status: ValidationSuccess, messagePattern: "API VIP connectivity success"},
+					BelongsToMajorityGroup:      {status: ValidationPending, messagePattern: "Machine Network CIDR or Connectivity Majority Groups missing"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is 2, found only 1"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 8 CPU cores for master role, found only 1"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname master is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR 1.2.3.0/24"},
+					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
+					IsNTPSynced:                 {status: ValidationFailure, messagePattern: "Host couldn't synchronize with any NTP server"},
+					AreContainerImagesAvailable: {status: ValidationPending, messagePattern: "Missing container images statuses"},
+					AreLsoRequirementsSatisfied: {status: ValidationSuccess, messagePattern: ""},
+					AreOcsRequirementsSatisfied: {status: ValidationSuccess, messagePattern: "ocs is disabled"},
+					AreCnvRequirementsSatisfied: {status: ValidationFailure, messagePattern: "Insufficient CPU to deploy CNV. Required CPU count is 4 but found 1"},
+				}),
+			},
+		}
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				cluster.MonitoredOperators = []*models.MonitoredOperator{
+					&lso.Operator,
+					&cnv.Operator,
+				}
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				host = hostutil.GenerateTestHost(t.hostID, clusterId, t.srcState)
+				host.Inventory = t.inventory
+				host.Role = t.role
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					AnyTimes()
+
+				err := hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ToNot(HaveOccurred())
+
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", t.hostID, clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Role).To(Equal(t.role))
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+
+				Expect(strings.Contains(*resultHost.StatusInfo, t.statusInfoMsg))
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(resultHost.ValidationsInfo)
+				}
+			})
+		}
+	})
+
 	Context("All transitions", func() {
 		var srcState string
+
 		tests := []struct {
 			// Test parameters
 			name               string
@@ -1532,6 +1707,7 @@ var _ = Describe("Refresh Host", func() {
 			userManagedNetworking bool
 
 			numAdditionalHosts int
+			operators          []*models.MonitoredOperator
 		}{
 			{
 				name:              "discovering to disconnected",
@@ -1695,7 +1871,7 @@ var _ = Describe("Refresh Host", func() {
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8 GiB, found only 0 GiB",
 					"Require a disk of at least 120 GB",
-					"Require at least 8 GiB RAM role auto-assign, found only 0",
+					"Require at least 8 GiB RAM role auto-assign, found only 0 GiB",
 					"Host couldn't synchronize with any NTP server")),
 				inventory: insufficientHWInventory(),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1706,7 +1882,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinValidDisks:            {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined:        {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
 					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role auto-assign"},
-					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role auto-assign, found only 0"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role auto-assign, found only 0 GiB"},
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
@@ -1725,7 +1901,7 @@ var _ = Describe("Refresh Host", func() {
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8 GiB, found only 0 GiB",
 					"Require a disk of at least 120 GB",
-					"Require at least 8 GiB RAM role auto-assign, found only 0",
+					"Require at least 8 GiB RAM role auto-assign, found only 0 GiB",
 					"Host couldn't synchronize with any NTP server")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1735,7 +1911,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinValidDisks:            {status: ValidationFailure, messagePattern: "Require a disk of at least 120 GB"},
 					IsMachineCidrDefined:        {status: ValidationFailure, messagePattern: "Machine Network CIDR is undefined"},
 					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role auto-assign"},
-					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role auto-assign, found only 0"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role auto-assign, found only 0 GiB"},
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationPending, messagePattern: "Missing inventory or machine network CIDR"},
 					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
@@ -1755,7 +1931,7 @@ var _ = Describe("Refresh Host", func() {
 					"Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs",
 					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8 GiB, found only 0 GiB",
 					"Require a disk of at least 120 GB",
-					"Require at least 8 GiB RAM role auto-assign, found only 0",
+					"Require at least 8 GiB RAM role auto-assign, found only 0 GiB",
 					"Host couldn't synchronize with any NTP server")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1892,7 +2068,7 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
 					"Host does not belong to machine network CIDR 5.6.7.0/24",
 					"Require at least 4 CPU cores for master role, found only 2",
-					"Require at least 16 GiB RAM role master, found only 8",
+					"Require at least 16 GiB RAM role master, found only 8 GiB",
 					"Host couldn't synchronize with any NTP server",
 					"Failed to fetch container images needed for installation from image")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
@@ -1903,7 +2079,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 2"},
-					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8 GiB"},
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationFailure, messagePattern: "Host does not belong to machine network CIDR "},
 					IsPlatformValid:             {status: ValidationSuccess, messagePattern: "Platform RHEL is allowed"},
@@ -1954,7 +2130,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
+					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8 GiB")),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
 					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
@@ -1963,7 +2139,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 2"},
-					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8 GiB"},
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
@@ -1982,7 +2158,7 @@ var _ = Describe("Refresh Host", func() {
 				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 				role:               models.HostRoleMaster,
 				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
-					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8")),
+					"Require at least 4 CPU cores for master role, found only 2", "Require at least 16 GiB RAM role master, found only 8 GiB")),
 				inventory: workerInventory(),
 				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
 					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
@@ -1992,7 +2168,7 @@ var _ = Describe("Refresh Host", func() {
 					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
 					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
 					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for master role, found only 2"},
-					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 8 GiB"},
 					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname  is unique in cluster"},
 					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
 					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
@@ -2349,6 +2525,165 @@ var _ = Describe("Refresh Host", func() {
 				statusInfoChecker: makeValueChecker(""),
 				errorExpected:     false,
 			},
+			{
+				name:               "CNV + LSO enabled: known to insufficient with 1 worker",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
+				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:               models.HostRoleWorker,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Require at least 4 CPU cores for worker role, found only 2",
+					"Require at least 8 GiB RAM role worker, found only 8 GiB")),
+				inventory: hostutil.GenerateInventoryWithResources(2, 8, "worker-1"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 4 CPU cores for worker role, found only 2"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role worker, found only 8 GiB"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					AreContainerImagesAvailable: {status: ValidationSuccess, messagePattern: "All required container images were pulled and are available"},
+				}),
+				errorExpected:      false,
+				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
+				numAdditionalHosts: 0,
+			},
+			{
+				name:               "CNV + LSO enabled: insufficient to insufficient with 1 master",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusInsufficient,
+				dstState:           models.HostStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
+				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:               models.HostRoleMaster,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoInsufficientHardware,
+					"Insufficient CPU to deploy CNV. Required CPU count is 4 but found 1 ",
+					"Require at least 16 GiB RAM role master, found only 2 GiB",
+					"Require at least 8 CPU cores for master role, found only 1",
+					"The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is 2, found only 1",
+					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is 8 GiB, found only 2 GiB")),
+				inventory: hostutil.GenerateInventoryWithResources(1, 2, "master-1"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster "},
+					HasMinMemory:                {status: ValidationFailure, messagePattern: "The host is not eligible to participate in Openshift Cluster"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationFailure, messagePattern: "Require at least 8 CPU cores for master role, found only 1"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 16 GiB RAM role master, found only 2 GiB"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					AreContainerImagesAvailable: {status: ValidationSuccess, messagePattern: "All required container images were pulled and are available"},
+				}),
+				errorExpected:      false,
+				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
+				numAdditionalHosts: 0,
+			},
+			{
+				name:               "CNV + LSO enabled: known to known with sufficient CPU and memory with 3 master",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
+				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
+				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:               models.HostRoleMaster,
+				statusInfoChecker:  makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				inventory:          hostutil.GenerateInventoryWithResources(8, 17, "master-1"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname master-1 is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					AreContainerImagesAvailable: {status: ValidationSuccess, messagePattern: "All required container images were pulled and are available"},
+				}),
+				errorExpected:      false,
+				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
+				numAdditionalHosts: 2,
+			},
+			{
+				name:               "CNV + OCS enabled: known to known with sufficient CPU and memory with 3 master",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusKnown,
+				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
+				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:               models.HostRoleMaster,
+				statusInfoChecker:  makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				inventory:          hostutil.GenerateInventoryWithResources(18, 64, "master-1"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:            {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname master-1 is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					AreContainerImagesAvailable: {status: ValidationSuccess, messagePattern: "All required container images were pulled and are available"},
+				}),
+				errorExpected:      false,
+				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator},
+				numAdditionalHosts: 2,
+			},
+			{
+				name:               "CNV + OCS enabled: known to insufficient with lack of memory with 3 workers",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusKnown,
+				dstState:           models.HostStatusInsufficient,
+				machineNetworkCidr: "1.2.3.0/24",
+				ntpSources:         defaultNTPSources,
+				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				role:               models.HostRoleWorker,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Require at least 8 GiB RAM role worker, found only 8 GiB")),
+				inventory: hostutil.GenerateInventoryWithResources(11, 8, "worker-1"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:                 {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:                {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:              {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:                {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:            {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:        {status: ValidationSuccess, messagePattern: "Machine Network CIDR is defined"},
+					HasCPUCoresForRole:          {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role worker"},
+					HasMemoryForRole:            {status: ValidationFailure, messagePattern: "Require at least 8 GiB RAM role worker, found only 8 GiB"},
+					IsHostnameUnique:            {status: ValidationSuccess, messagePattern: "Hostname worker-1 is unique in cluster"},
+					BelongsToMachineCidr:        {status: ValidationSuccess, messagePattern: "Host belongs to machine network CIDR"},
+					IsNTPSynced:                 {status: ValidationSuccess, messagePattern: "Host NTP is synced"},
+					AreContainerImagesAvailable: {status: ValidationSuccess, messagePattern: "All required container images were pulled and are available"},
+				}),
+				errorExpected:      false,
+				operators:          []*models.MonitoredOperator{&cnv.Operator, &lso.Operator, &ocs.Operator},
+				numAdditionalHosts: 2,
+			},
+		}
+
+		getHost := func(clusterID, hostID strfmt.UUID) *models.Host {
+			var h models.Host
+			Expect(db.First(&h, "id = ? and cluster_id = ?", hostID, clusterID).Error).ToNot(HaveOccurred())
+			return &h
 		}
 
 		for i := range tests {
@@ -2396,6 +2731,8 @@ var _ = Describe("Refresh Host", func() {
 				} else {
 					cluster.ConnectivityMajorityGroups = t.connectivity
 				}
+
+				cluster.MonitoredOperators = t.operators
 				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 				// Test definition
@@ -2403,11 +2740,13 @@ var _ = Describe("Refresh Host", func() {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
+				Expect(getHost(clusterId, hostId).ValidationsInfo).To(Equal(""))
 				err = hapi.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
+					Expect(getHost(clusterId, hostId).ValidationsInfo).ToNot(Equal(""))
 				}
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())

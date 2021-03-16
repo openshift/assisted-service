@@ -64,6 +64,9 @@ type API interface {
 	   GetClusterDefaultConfig Get the default values for various cluster properties.*/
 	GetClusterDefaultConfig(ctx context.Context, params *GetClusterDefaultConfigParams) (*GetClusterDefaultConfigOK, error)
 	/*
+	   GetClusterHostRequirements Get host requirements of a cluster.*/
+	GetClusterHostRequirements(ctx context.Context, params *GetClusterHostRequirementsParams) (*GetClusterHostRequirementsOK, error)
+	/*
 	   GetClusterInstallConfig Get the cluster's install config YAML.*/
 	GetClusterInstallConfig(ctx context.Context, params *GetClusterInstallConfigParams) (*GetClusterInstallConfigOK, error)
 	/*
@@ -551,6 +554,31 @@ func (a *Client) GetClusterDefaultConfig(ctx context.Context, params *GetCluster
 		return nil, err
 	}
 	return result.(*GetClusterDefaultConfigOK), nil
+
+}
+
+/*
+GetClusterHostRequirements Get host requirements of a cluster.
+*/
+func (a *Client) GetClusterHostRequirements(ctx context.Context, params *GetClusterHostRequirementsParams) (*GetClusterHostRequirementsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetClusterHostRequirements",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/host-requirements",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetClusterHostRequirementsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetClusterHostRequirementsOK), nil
 
 }
 

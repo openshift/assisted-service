@@ -126,14 +126,13 @@ type HostInventory struct {
 
 // AgentSpec defines the desired state of Agent
 type AgentSpec struct {
-	ClusterDeploymentName   *ClusterReference `json:"clusterDeploymentName"`
-	Role                    models.HostRole   `json:"role" protobuf:"bytes,1,opt,name=role,casttype=HostRole"`
-	Hostname                string            `json:"hostname,omitempty"`
-	MachineConfigPool       string            `json:"machineConfigPool,omitempty"`
-	Enabled                 *bool             `json:"enabled,omitempty"`
-	IgnitionConfigOverrides string            `json:"ignitionConfigOverrides,omitempty"`
-	InstallerArgs           string            `json:"installerArgs,omitempty"`
-	Approved                bool              `json:"approved"`
+	ClusterDeploymentName *ClusterReference `json:"clusterDeploymentName"`
+	Role                  models.HostRole   `json:"role" protobuf:"bytes,1,opt,name=role,casttype=HostRole"`
+	Hostname              string            `json:"hostname,omitempty"`
+	MachineConfigPool     string            `json:"machineConfigPool,omitempty"`
+	Approved              bool              `json:"approved"`
+	// InstallationDiskPath defines the installation destination disk. e.g.: /dev/sda
+	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
 }
 
 type HardwareValidationInfo struct {

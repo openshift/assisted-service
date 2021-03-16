@@ -230,6 +230,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
 		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -245,6 +246,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
+		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
 		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
 		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
@@ -278,6 +280,7 @@ var _ = Describe("installcfg", func() {
 		cluster.HighAvailabilityMode = &mode
 		cluster.Hosts[0].Bootstrap = true
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
+		cluster.MachineNetworkCidr = "10.35.20.0/24"
 
 		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
@@ -286,6 +289,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		Expect(*result.Platform.None).Should(Equal(platformNone{}))
 		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
+		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(cluster.MachineNetworkCidr))
 	})
 
 	It("Single node IPV6 only", func() {

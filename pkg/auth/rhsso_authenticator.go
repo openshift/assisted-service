@@ -22,17 +22,7 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-type Config struct {
-	EnableAuth bool   `envconfig:"ENABLE_AUTH" default:"false"`
-	JwkCert    string `envconfig:"JWKS_CERT"`
-	JwkCertURL string `envconfig:"JWKS_URL" default:"https://api.openshift.com/.well-known/jwks.json"`
-	// Will be split with "," as separator
-	AllowedDomains string   `envconfig:"ALLOWED_DOMAINS" default:""`
-	AdminUsers     []string `envconfig:"ADMIN_USERS" default:""`
-}
-
-type AuthHandler struct {
-	EnableAuth bool
+type RHSSOAuthenticator struct {
 	KeyMap     map[string]*rsa.PublicKey
 	AdminUsers []string
 	utils      AUtilsInteface
@@ -41,25 +31,28 @@ type AuthHandler struct {
 	db         *gorm.DB
 }
 
-func NewAuthHandler(cfg Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) *AuthHandler {
-	a := &AuthHandler{
-		EnableAuth: cfg.EnableAuth,
+func NewRHSSOAuthenticator(cfg *Config, ocmCLient *ocm.Client, log logrus.FieldLogger, db *gorm.DB) *RHSSOAuthenticator {
+	a := &RHSSOAuthenticator{
 		AdminUsers: cfg.AdminUsers,
 		utils:      NewAuthUtils(cfg.JwkCert, cfg.JwkCertURL),
 		client:     ocmCLient,
 		log:        log,
 		db:         db,
 	}
-	if a.EnableAuth {
-		err := a.populateKeyMap()
-		if err != nil {
-			log.Fatalln("Failed to init auth handler,", err)
-		}
+	err := a.populateKeyMap()
+	if err != nil {
+		log.Fatalln("Failed to init auth handler,", err)
 	}
 	return a
 }
 
-func (a *AuthHandler) populateKeyMap() error {
+var _ Authenticator = &RHSSOAuthenticator{}
+
+func (a *RHSSOAuthenticator) AuthType() AuthType {
+	return TypeRHSSO
+}
+
+func (a *RHSSOAuthenticator) populateKeyMap() error {
 	// Load the trusted CA certificates:
 	trustedCAs, err := x509.SystemCertPool()
 	if err != nil {
@@ -71,7 +64,7 @@ func (a *AuthHandler) populateKeyMap() error {
 	return err
 }
 
-func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) {
+func (a *RHSSOAuthenticator) getValidationToken(token *jwt.Token) (interface{}, error) {
 	// Try to get the token kid.
 	kid, ok := token.Header["kid"]
 	if !ok {
@@ -87,7 +80,7 @@ func (a *AuthHandler) getValidationToken(token *jwt.Token) (interface{}, error) 
 	return key, nil
 }
 
-func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
+func (a *RHSSOAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 	if a.client == nil {
 		a.log.Error("OCM client unavailable")
 		return nil, errors.Errorf("OCM client unavailable")
@@ -114,7 +107,7 @@ func (a *AuthHandler) AuthAgentAuth(token string) (interface{}, error) {
 	return user, nil
 }
 
-func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
+func parseOCMPayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 	claims, ok := userToken.Claims.(jwt.MapClaims)
 	if !ok {
 		err := errors.Errorf("Unable to parse JWT token claims")
@@ -157,7 +150,7 @@ func parsePayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 	return payload, nil
 }
 
-func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
+func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 	// Handle Bearer
 	authHeaderParts := strings.Fields(token)
 	if len(authHeaderParts) != 2 || strings.ToLower(authHeaderParts[0]) != "bearer" {
@@ -186,7 +179,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 		return nil, errors.Errorf("Token is invalid: %s", parsedToken.Raw)
 	}
 
-	payload, err := parsePayload(parsedToken)
+	payload, err := parseOCMPayload(parsedToken)
 	if err != nil {
 		a.log.Error("Failed parse payload,", err)
 		return nil, err
@@ -215,7 +208,7 @@ func (a *AuthHandler) AuthUserAuth(token string) (interface{}, error) {
 	return payload, nil
 }
 
-func (a AuthHandler) storeRoleInPayload(payload *ocm.AuthPayload) error {
+func (a RHSSOAuthenticator) storeRoleInPayload(payload *ocm.AuthPayload) error {
 	role, err := a.getRole(payload)
 	if err != nil {
 		return err
@@ -224,7 +217,7 @@ func (a AuthHandler) storeRoleInPayload(payload *ocm.AuthPayload) error {
 	return nil
 }
 
-func (a AuthHandler) getRole(payload *ocm.AuthPayload) (ocm.RoleType, error) {
+func (a RHSSOAuthenticator) getRole(payload *ocm.AuthPayload) (ocm.RoleType, error) {
 	if funk.Contains(a.AdminUsers, payload.Username) {
 		return ocm.AdminRole, nil
 	}
@@ -238,12 +231,12 @@ func (a AuthHandler) getRole(payload *ocm.AuthPayload) (ocm.RoleType, error) {
 	return ocm.UserRole, nil
 }
 
-func (a *AuthHandler) isReadOnlyAdmin(username string) (bool, error) {
+func (a *RHSSOAuthenticator) isReadOnlyAdmin(username string) (bool, error) {
 	return a.client.Authorization.CapabilityReview(
 		context.Background(), fmt.Sprint(username), ocm.CapabilityName, ocm.CapabilityType)
 }
 
-func (a *AuthHandler) isClusterOwnedByUser(clusterID string, payload *ocm.AuthPayload) (bool, error) {
+func (a *RHSSOAuthenticator) isClusterOwnedByUser(clusterID string, payload *ocm.AuthPayload) (bool, error) {
 	roll, _ := a.getRole(payload)
 	if roll != ocm.UserRole {
 		return true, nil //admins has always access to the cluster
@@ -268,19 +261,12 @@ func (a *AuthHandler) isClusterOwnedByUser(clusterID string, payload *ocm.AuthPa
 	return true, nil
 }
 
-func (a *AuthHandler) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {
+func (a *RHSSOAuthenticator) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {
 	return func(name string, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }
 
 		return security.HttpAuthenticator(func(r *http.Request) (bool, interface{}, error) {
 			log := logutil.FromContext(r.Context(), a.log)
-			if !a.EnableAuth {
-				a.log.Debug("API Key Authentication Disabled")
-				return true, &ocm.AuthPayload{
-					Role:     ocm.AdminRole, // auth disabled - behave as system-admin
-					Username: ocm.AdminUsername,
-				}, nil
-			}
 			token := getToken(r)
 			if token == "" {
 				return false, nil, nil

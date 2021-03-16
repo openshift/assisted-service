@@ -51,13 +51,11 @@ spec:
                       name must be unique.
                     type: string
                 type: object
-              enabled:
-                type: boolean
               hostname:
                 type: string
-              ignitionConfigOverrides:
-                type: string
-              installerArgs:
+              installation_disk_path:
+                description: 'InstallationDiskPath defines the installation destination
+                  disk. e.g.: /dev/sda'
                 type: string
               machineConfigPool:
                 type: string

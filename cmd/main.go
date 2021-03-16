@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -39,6 +38,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/spec"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -58,7 +58,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
@@ -71,7 +71,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/config"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -100,6 +99,7 @@ var Options struct {
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ClusterConfig               cluster.Config
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	Storage                     string `envconfig:"STORAGE" default:""`
 	OCMConfig                   ocm.Config
 	HostConfig                  host.Config
 	LogConfig                   logconfig.Config
@@ -108,7 +108,9 @@ var Options struct {
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
+	InstallEnvConfig            controllers.InstallEnvConfig
 	ISOEditorConfig             isoeditor.Config
+	CheckClusterVersion         bool `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -185,8 +187,9 @@ func main() {
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface
-	authHandler := auth.NewAuthHandler(Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
-	authzHandler := auth.NewAuthzHandler(Options.Auth, ocmClient, log.WithField("pkg", "authz"))
+	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
+	failOnError(err, "failed to create authenticator")
+	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{})
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
@@ -223,7 +226,9 @@ func main() {
 
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
-	var objectHandler s3wrapper.API
+	var objectHandler s3wrapper.API = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
+		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
+	createS3Bucket(objectHandler, log)
 
 	failOnError(bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme),
 		"Failed to add BareMetalHost to scheme")
@@ -231,12 +236,6 @@ func main() {
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
 	case deployment_type_k8s:
-
-		objectHandler = s3wrapper.NewS3Client(&Options.S3Config, log, versionHandler, isoEditorFactory)
-		if objectHandler == nil {
-			log.Fatal("failed to create S3 client")
-		}
-		createS3Bucket(objectHandler)
 
 		cfg, cerr := clientcmd.BuildConfigFromFlags("", "")
 		failOnError(cerr, "Failed to create kubernetes cluster config")
@@ -256,28 +255,28 @@ func main() {
 		failOnError(err, "Failed to create client for OCP")
 
 	case deployment_type_onprem, deployment_type_ocp:
+
 		lead = &leader.DummyElector{}
 		autoMigrationLeader = lead
-		// in on-prem mode, setup file system s3 driver and use localjob implementation
-		objectHandler = s3wrapper.NewFSClient(Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
-		createS3Bucket(objectHandler)
+
 		if Options.DeployTarget == deployment_type_ocp {
 			ocpClient, err = k8sclient.NewK8SClient("", log)
 			failOnError(err, "Failed to create client for OCP")
 		}
+
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
-	operatorsManager := operators.NewManager(log)
+	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
+	operatorsManager := operators.NewManager(log, manifestsApi, operators.Options{})
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
-	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
-		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager)
+		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
@@ -303,8 +302,8 @@ func main() {
 	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
-		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, *authHandler, ocpClient, ocmClient, lead, pullSecretValidator,
-		versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
+		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
+		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),
@@ -320,7 +319,7 @@ func main() {
 		log.WithField("pkg", "image-expiration-monitor"), "Image Expiration Monitor", Options.ImageExpirationInterval, expirer.ExpirationTask)
 	imageExpirationMonitor.Start()
 	defer imageExpirationMonitor.Stop()
-	assistedServiceISO := assistedserviceiso.NewAssistedServiceISOApi(objectHandler, *authHandler, logrus.WithField("pkg", "assistedserviceiso"), pullSecretValidator, Options.AssistedServiceISOConfig)
+	assistedServiceISO := assistedserviceiso.NewAssistedServiceISOApi(objectHandler, authHandler, logrus.WithField("pkg", "assistedserviceiso"), pullSecretValidator, Options.AssistedServiceISOConfig)
 
 	//Set inner handler chain. Inner handlers requires access to the Route
 	innerHandler := func() func(http.Handler) http.Handler {
@@ -331,6 +330,7 @@ func main() {
 		}
 	}
 
+	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db)
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:         authHandler.AuthAgentAuth,
 		AuthUserAuth:          authHandler.AuthUserAuth,
@@ -345,6 +345,7 @@ func main() {
 		InnerMiddleware:       innerHandler(),
 		ManifestsAPI:          manifestsApi,
 		BootfilesAPI:          bootFilesApi,
+		OperatorsAPI:          operatorsHandler,
 	})
 	failOnError(err, "Failed to init rest handler")
 
@@ -367,6 +368,9 @@ func main() {
 		//cancel the context in case this method ends
 		defer cancel()
 
+		// Checks whether latest version of minimal ISO templates already exists
+		haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(context.Background(), log, objectHandler)
+
 		switch Options.DeployTarget {
 		case deployment_type_k8s:
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
@@ -378,7 +382,7 @@ func main() {
 				currVresion := version
 				errs.Go(func() error {
 					return errors.Wrapf(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
-						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL)
+						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
 					}), "Failed uploading boot files for OCP version %s", currVresion)
 				})
 			}
@@ -386,7 +390,7 @@ func main() {
 			for version := range openshiftVersionsMap {
 				currVresion := version
 				errs.Go(func() error {
-					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL),
+					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate),
 						"Failed uploading boot files for OCP version %s", currVresion)
 				})
 			}
@@ -406,24 +410,24 @@ func main() {
 	}()
 
 	go func() {
-		pullSecretUpdatesChannel := make(chan event.GenericEvent)
-
 		if Options.EnableKubeAPI {
+			crdEventsHandler := controllers.NewCRDEventsHandler()
 			failOnError((&controllers.InstallEnvReconciler{
-				Client:                   ctrlMgr.GetClient(),
-				Log:                      log,
-				Installer:                bm,
-				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+				Client:           ctrlMgr.GetClient(),
+				Config:           Options.InstallEnvConfig,
+				Log:              log,
+				Installer:        bm,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller InstallEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
-				Client:                   ctrlMgr.GetClient(),
-				Log:                      log,
-				Scheme:                   ctrlMgr.GetScheme(),
-				Installer:                bm,
-				ClusterApi:               clusterApi,
-				HostApi:                  hostApi,
-				PullSecretUpdatesChannel: pullSecretUpdatesChannel,
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				Scheme:           ctrlMgr.GetScheme(),
+				Installer:        bm,
+				ClusterApi:       clusterApi,
+				HostApi:          hostApi,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
@@ -473,7 +477,7 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 func getOCMClient(log logrus.FieldLogger, metrics metrics.API) *ocm.Client {
 	var ocmClient *ocm.Client
 	var err error
-	if Options.Auth.EnableAuth {
+	if Options.Auth.AuthType == auth.TypeRHSSO {
 		ocmClient, err = ocm.NewClient(Options.OCMConfig, log.WithField("pkg", "ocm"), metrics)
 		if err != nil {
 			log.WithError(err).Fatal("Failed to Create OCM Client")
@@ -482,7 +486,7 @@ func getOCMClient(log logrus.FieldLogger, metrics metrics.API) *ocm.Client {
 	return ocmClient
 }
 
-func createS3Bucket(objectHandler s3wrapper.API) {
+func createS3Bucket(objectHandler s3wrapper.API, log logrus.FieldLogger) {
 	if Options.CreateS3Bucket {
 		if err := objectHandler.CreateBucket(); err != nil {
 			log.Fatal(err)
@@ -491,6 +495,44 @@ func createS3Bucket(objectHandler s3wrapper.API) {
 			log.Fatal(err)
 		}
 	}
+}
+
+func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.Config, fsWorkDir string,
+	log logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) s3wrapper.API {
+	var storageClient s3wrapper.API
+	if storage != "" {
+		switch storage {
+		case "s3":
+			storageClient = s3wrapper.NewS3Client(s3cfg, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create S3 client")
+			}
+		case "filesystem":
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create filesystem client")
+			}
+		default:
+			log.Fatalf("unsupported storage client: %s", storage)
+		}
+	} else {
+		// Retain original logic for backwards capability
+		switch deployTarget {
+		case deployment_type_k8s:
+			storageClient = s3wrapper.NewS3Client(s3cfg, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create S3 client")
+			}
+		case deployment_type_onprem, deployment_type_ocp:
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory)
+			if storageClient == nil {
+				log.Fatal("failed to create S3 filesystem client")
+			}
+		default:
+			log.Fatalf("unsupported deploy target %s", deployTarget)
+		}
+	}
+	return storageClient
 }
 
 func NewApiEnabler(h http.Handler, log logrus.FieldLogger) *ApiEnabler {

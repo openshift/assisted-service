@@ -2681,6 +2681,10 @@ paths:
       responses:
         "200":
           description: Success.
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/error'
         "401":
           description: Unauthorized.
           schema:
@@ -2707,6 +2711,47 @@ paths:
             $ref: '#/definitions/error'
         "503":
           description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /clusters/{cluster_id}/host-requirements:
+    get:
+      tags:
+        - installer
+      security:
+        - agentAuth: [admin, read-only-admin, user]
+      description: Get host requirements of a cluster.
+      operationId: GetClusterHostRequirements
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to return operators for.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/cluster-host-requirements-list'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
           schema:
             $ref: '#/definitions/error'
 
@@ -2770,7 +2815,9 @@ paths:
         "200":
           description: Success.
           schema:
-            $ref: '#/definitions/monitored-operators-list'
+            type: array
+            items:
+              type: string
         "401":
           description: Unauthorized.
           schema:
@@ -2784,6 +2831,41 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /supported-operators/{operator_name}:
+    get:
+      tags:
+        - operators
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Lists properties for an operator.
+      operationId: ListOperatorProperties
+      parameters:
+        - in: path
+          name: operator_name
+          description: The operator name.
+          type: string
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/operator-properties'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
   /host_requirements:
     get:
       tags:
@@ -3006,9 +3088,9 @@ definitions:
       namespace:
         type: string
         description: Namespace where to deploy an operator. Only some operators require a namespace.
-      prefix_name:
+      subscription_name:
         type: string
-        description: Prefix of the operator to be searched by.
+        description: The name of the subscription of the operator.
       operator_type:
         $ref: '#/definitions/operator-type'
       properties:
@@ -3106,6 +3188,56 @@ definitions:
       worker:
         $ref: '#/definitions/host-requirements-role'
 
+  cluster-host-requirements-list:
+    type: array
+    items:
+      $ref: '#/definitions/cluster-host-requirements'
+
+  cluster-host-requirements:
+    type: object
+    properties:
+      host_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the host the requirements relate to.
+      total:
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Total host requirements for the cluster configuration
+      ocp:
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Host requirements for the OCP installation
+      operators:
+        type: array
+        items:
+          $ref: '#/definitions/operator-host-requirements'
+        description: Host requirements related to requested operators
+
+  operator-host-requirements:
+    type: object
+    properties:
+      operator_name:
+        type: string
+        description: Name of the operator
+      requirements:
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Host requirements for the operator
+
+  cluster-host-requirements-details:
+    type: object
+    properties:
+      cpu_cores:
+        type: integer
+        description: Required number of CPU cores
+      ram_gib:
+        type: integer
+        description: Required number of RAM in GiB
+      disk_size_gb:
+        type: integer
+        description: Required disk size in GB
+      installation_disk_speed_threshold_ms:
+        type: integer
+        description: Required installation disk speed in ms
+
   host-requirements-role:
     type: object
     properties:
@@ -3164,10 +3296,8 @@ definitions:
       static_network_config:
         type: array
         items:
-          type: string
-          description: array of string in nmstate yaml format, each string is one host configuration
+          $ref: '#/definitions/host_static_network_config'
       image_type:
-        type: string
         description: Type of image that should be generated.
         $ref: '#/definitions/image_type'
 
@@ -3979,8 +4109,30 @@ definitions:
         type: string
         description: static network configuration string in the format expected by discovery ignition generation
       type:
-        type: string
         $ref: '#/definitions/image_type'
+
+  host_static_network_config:
+    type: object
+    properties:
+      network_yaml:
+        type: string
+        description: yaml string that can be processed by nmstate
+      mac_interface_map:
+        $ref: '#/definitions/mac_interface_map'
+        description: mapping of host macs to logical interfaces used in the network yaml
+
+  mac_interface_map:
+    type: array
+    items:
+      type: object
+      properties:
+        mac_address:
+          type: string
+          pattern: '^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$'
+          description: mac address present on the host
+        logical_nic_name:
+          type: string
+          description: nic name used in the yaml, which relates 1:1 to the mac address
 
   image_type:
     type: string
@@ -4234,6 +4386,9 @@ definitions:
   disk:
     type: object
     properties:
+      id:
+        type: string
+        description: Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise
       drive_type:
         type: string
       vendor:
@@ -4246,8 +4401,10 @@ definitions:
         type: string
       by_path:
         type: string
+        description: by-path is the shortest physical path to the device
       by_id:
         type: string
+        description: by-id is the wwn/enve-ei which guaranteed to be unique for every storage device
       model:
         type: string
       wwn:
@@ -4576,6 +4733,7 @@ definitions:
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'
       - 'sufficient-installation-disk-speed'
+      - 'cnv-requirements-satisfied'
 
   dhcp_allocation_request:
     type: object
@@ -4736,6 +4894,7 @@ definitions:
       - 'ntp-server-configured'
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'
+      - 'cnv-requirements-satisfied'
 
   logs_type:
     type: string
@@ -4762,7 +4921,6 @@ definitions:
       logs_state:
         description: The state of collecting logs.
         $ref: '#/definitions/logs_state'
-
   list-manifests:
     type: array
     items:
@@ -4827,3 +4985,33 @@ definitions:
         type: string
         enum: [beta, production]
         description: Level of support of the version.
+
+  operator-property:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the property
+      data_type:
+        type: string
+        enum: ['boolean', 'string', 'integer', 'float']
+        description: Type of the property
+      mandatory:
+        type: boolean
+        description: Indicates whether the property is reqired
+      options:
+        type: array
+        items:
+          type: string
+        description: Values to select from
+      description:
+        type: string
+        description: Description of a property
+      default_value:
+        type: string
+        description: Default value for the property
+
+  operator-properties:
+    type: array
+    items:
+      $ref: '#/definitions/operator-property'

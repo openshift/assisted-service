@@ -49,27 +49,27 @@ func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion, clusterID, emai
 }
 
 // HostValidationFailed mocks base method
-func (m *MockAPI) HostValidationFailed(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID) {
+func (m *MockAPI) HostValidationFailed(clusterVersion, emailDomain string, hostValidationType models.HostValidationID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "HostValidationFailed", clusterVersion, clusterID, emailDomain, hostValidationType)
+	m.ctrl.Call(m, "HostValidationFailed", clusterVersion, emailDomain, hostValidationType)
 }
 
 // HostValidationFailed indicates an expected call of HostValidationFailed
-func (mr *MockAPIMockRecorder) HostValidationFailed(clusterVersion, clusterID, emailDomain, hostValidationType interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) HostValidationFailed(clusterVersion, emailDomain, hostValidationType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostValidationFailed", reflect.TypeOf((*MockAPI)(nil).HostValidationFailed), clusterVersion, clusterID, emailDomain, hostValidationType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostValidationFailed", reflect.TypeOf((*MockAPI)(nil).HostValidationFailed), clusterVersion, emailDomain, hostValidationType)
 }
 
 // HostValidationChanged mocks base method
-func (m *MockAPI) HostValidationChanged(clusterVersion string, clusterID strfmt.UUID, emailDomain string, hostValidationType models.HostValidationID) {
+func (m *MockAPI) HostValidationChanged(clusterVersion, emailDomain string, hostValidationType models.HostValidationID) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "HostValidationChanged", clusterVersion, clusterID, emailDomain, hostValidationType)
+	m.ctrl.Call(m, "HostValidationChanged", clusterVersion, emailDomain, hostValidationType)
 }
 
 // HostValidationChanged indicates an expected call of HostValidationChanged
-func (mr *MockAPIMockRecorder) HostValidationChanged(clusterVersion, clusterID, emailDomain, hostValidationType interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) HostValidationChanged(clusterVersion, emailDomain, hostValidationType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostValidationChanged", reflect.TypeOf((*MockAPI)(nil).HostValidationChanged), clusterVersion, clusterID, emailDomain, hostValidationType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostValidationChanged", reflect.TypeOf((*MockAPI)(nil).HostValidationChanged), clusterVersion, emailDomain, hostValidationType)
 }
 
 // InstallationStarted mocks base method

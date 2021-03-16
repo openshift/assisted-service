@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-openapi/swag"
@@ -25,12 +26,12 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	"github.com/openshift/hive/pkg/apis/hive/v1/agent"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -40,7 +41,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -59,12 +59,12 @@ const defaultRequeueAfterOnError = 10 * time.Second
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
-	Log                      logrus.FieldLogger
-	Scheme                   *runtime.Scheme
-	Installer                bminventory.InstallerInternals
-	ClusterApi               cluster.API
-	HostApi                  host.API
-	PullSecretUpdatesChannel chan event.GenericEvent
+	Log              logrus.FieldLogger
+	Scheme           *runtime.Scheme
+	Installer        bminventory.InstallerInternals
+	ClusterApi       cluster.API
+	HostApi          host.API
+	CRDEventsHandler CRDEventsHandler
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
@@ -73,8 +73,8 @@ type ClusterDeploymentsReconciler struct {
 
 func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	cluster := &hivev1.ClusterDeployment{}
-	err := r.Get(ctx, req.NamespacedName, cluster)
+	clusterDeployment := &hivev1.ClusterDeployment{}
+	err := r.Get(ctx, req.NamespacedName, clusterDeployment)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
 			return r.deregisterClusterIfNeeded(ctx, req.NamespacedName)
@@ -84,59 +84,67 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	}
 
 	// ignore unsupported platforms
-	if !isSupportedPlatform(cluster) {
+	if !isSupportedPlatform(clusterDeployment) {
 		return ctrl.Result{}, nil
 	}
 
-	c, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
+	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
 	if gorm.IsRecordNotFoundError(err) {
-		return r.createNewCluster(ctx, req.NamespacedName, cluster)
+		return r.createNewCluster(ctx, req.NamespacedName, clusterDeployment)
 	}
 	if err != nil {
-		return r.updateState(ctx, cluster, nil, err)
+		return r.updateState(ctx, clusterDeployment, nil, err)
 	}
 
 	var updated bool
 	var result ctrl.Result
 	// check for updates from user, compare spec and update if needed
-	updated, result, err = r.updateIfNeeded(ctx, cluster, c)
+	updated, result, err = r.updateIfNeeded(ctx, clusterDeployment, cluster)
 	if err != nil {
-		return r.updateState(ctx, cluster, c, err)
+		return r.updateState(ctx, clusterDeployment, cluster, err)
 	}
 
 	if updated {
 		return result, err
 	}
 
-	if r.isReadyForInstallation(cluster, c) {
+	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, cluster)
+	if err != nil {
+		return r.updateState(ctx, clusterDeployment, cluster, err)
+	}
+	if ready {
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
-			ClusterID: *c.ID,
+			ClusterID: *cluster.ID,
 		})
 		if err != nil {
-			return r.updateState(ctx, cluster, c, err)
+			return r.updateState(ctx, clusterDeployment, cluster, err)
 		}
-		return r.updateState(ctx, cluster, ic, nil)
+		return r.updateState(ctx, clusterDeployment, ic, nil)
 	}
 
-	return r.updateState(ctx, cluster, c, nil)
+	return r.updateState(ctx, clusterDeployment, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) isReadyForInstallation(cluster *hivev1.ClusterDeployment, c *common.Cluster) bool {
+func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (bool, error) {
 	if ready, _ := r.ClusterApi.IsReadyForInstallation(c); !ready {
-		return false
+		return false, nil
 	}
 
 	readyHosts := 0
 	for _, h := range c.Hosts {
-		if r.HostApi.IsInstallable(h) {
+		commonh, err := r.Installer.GetCommonHostInternal(ctx, c.ID.String(), h.ID.String())
+		if err != nil {
+			return false, err
+		}
+		if r.HostApi.IsInstallable(h) && commonh.Approved {
 			readyHosts += 1
 		}
 	}
 
 	expectedHosts := cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents +
 		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents
-	return readyHosts == expectedHosts
+	return readyHosts == expectedHosts, nil
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
@@ -156,15 +164,16 @@ func isUserManagedNetwork(cluster *hivev1.ClusterDeployment) bool {
 	return false
 }
 
-func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, cluster *hivev1.ClusterDeployment,
-	c *common.Cluster) (bool, ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
+	cluster *common.Cluster) (bool, ctrl.Result, error) {
 
 	update := false
-	isPullSecretUpdate := false
+	notifyInstallEnv := false
+	var installEnv *v1alpha1.InstallEnv
 
 	params := &models.ClusterUpdateParams{}
 
-	spec := cluster.Spec
+	spec := clusterDeployment.Spec
 
 	updateString := func(new, old string, target **string) {
 		if new != old {
@@ -173,107 +182,73 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		}
 	}
 
-	updateString(spec.ClusterName, c.Name, &params.Name)
-	updateString(spec.BaseDomain, c.BaseDNSDomain, &params.BaseDNSDomain)
+	updateString(spec.ClusterName, cluster.Name, &params.Name)
+	updateString(spec.BaseDomain, cluster.BaseDNSDomain, &params.BaseDNSDomain)
 
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, c.ClusterNetworkCidr, &params.ClusterNetworkCidr)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR, cluster.ClusterNetworkCidr, &params.ClusterNetworkCidr)
 		hostPrefix := int64(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix)
-		if hostPrefix > 0 && hostPrefix != c.ClusterNetworkHostPrefix {
+		if hostPrefix > 0 && hostPrefix != cluster.ClusterNetworkHostPrefix {
 			params.ClusterNetworkHostPrefix = swag.Int64(hostPrefix)
 			update = true
 		}
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], c.ServiceNetworkCidr, &params.ServiceNetworkCidr)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0], cluster.ServiceNetworkCidr, &params.ServiceNetworkCidr)
 	}
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork) > 0 {
-		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, c.MachineNetworkCidr, &params.MachineNetworkCidr)
+		updateString(spec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork[0].CIDR, cluster.MachineNetworkCidr, &params.MachineNetworkCidr)
 	}
 
-	updateString(spec.Platform.AgentBareMetal.APIVIP, c.APIVip, &params.APIVip)
-	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(c.APIVipDNSName), &params.APIVipDNSName)
-	updateString(spec.Platform.AgentBareMetal.IngressVIP, c.IngressVip, &params.IngressVip)
-	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, c.SSHPublicKey, &params.SSHPublicKey)
+	updateString(spec.Platform.AgentBareMetal.APIVIP, cluster.APIVip, &params.APIVip)
+	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(cluster.APIVipDNSName), &params.APIVipDNSName)
+	updateString(spec.Platform.AgentBareMetal.IngressVIP, cluster.IngressVip, &params.IngressVip)
+	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
-	vipDHCPAllocationEnabled := isVipDHCPAllocationEnabled(cluster)
-	if vipDHCPAllocationEnabled != swag.BoolValue(c.VipDhcpAllocation) {
-		params.VipDhcpAllocation = swag.Bool(vipDHCPAllocationEnabled)
-		update = true
-	}
-
-	// TODO: get from AgentEnvSpec
-	//updateString(spec.HTTPProxy, c.HTTPProxy, &params.HTTPProxy)
-	//updateString(spec.HTTPSProxy, c.HTTPSProxy, &params.HTTPSProxy)
-	//updateString(spec.NoProxy, c.NoProxy, &params.NoProxy)
-	//updateString(spec.AdditionalNtpSource, c.AdditionalNtpSource, &params.AdditionalNtpSource)
-
-	if userManagedNetwork := isUserManagedNetwork(cluster); userManagedNetwork != swag.BoolValue(c.UserManagedNetworking) {
+	if userManagedNetwork := isUserManagedNetwork(clusterDeployment); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
 
 	// TODO: handle InstallConfigOverrides
 
-	data, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, cluster.Namespace)
+	pullSecretData, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, clusterDeployment.Namespace)
 	if err != nil {
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
 	}
-	if data != c.PullSecret {
-		params.PullSecret = swag.String(data)
+	// TODO: change isInstallEnvUpdate to false, once clusterDeployment pull-secret can differ from installEnv
+	if pullSecretData != cluster.PullSecret {
+		params.PullSecret = swag.String(pullSecretData)
 		update = true
-		isPullSecretUpdate = true
+		notifyInstallEnv = true
 	}
-
 	if !update {
 		return update, ctrl.Result{}, nil
 	}
 
 	updatedCluster, err := r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
 		ClusterUpdateParams: params,
-		ClusterID:           *c.ID,
+		ClusterID:           *cluster.ID,
 	})
 	if err != nil && IsHTTP4XXError(err) {
-		return update, ctrl.Result{}, errors.Wrap(err, "failed to update cluster")
+		return update, ctrl.Result{}, errors.Wrap(err, "failed to update clusterDeployment")
 	}
 	if err != nil {
 		return update, ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError},
-			errors.Wrap(err, "failed to update cluster")
+			errors.Wrap(err, "failed to update clusterDeployment")
 	}
 
-	if err = r.notifyPullSecretUpdate(ctx, isPullSecretUpdate, c); err != nil {
-		return false, ctrl.Result{}, errors.Wrap(err, "failed to get a list of images to update")
+	installEnv, err = getInstallEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
+	if err != nil {
+		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for installEnv for clusterDeployment %s", clusterDeployment.Name))
 	}
 
-	r.Log.Infof("Updated cluster %s %s", cluster.Name, cluster.Namespace)
-	reply, err := r.updateState(ctx, cluster, updatedCluster, nil)
+	r.Log.Infof("Updated clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	reply, err := r.updateState(ctx, clusterDeployment, updatedCluster, nil)
+	if err == nil && notifyInstallEnv && installEnv != nil {
+		r.Log.Infof("Notify that installEnv %s should re-generate the image for clusterDeployment %s", installEnv.Name, clusterDeployment.ClusterName)
+		r.CRDEventsHandler.NotifyInstallEnvUpdates(installEnv.Name, installEnv.Namespace)
+	}
 	return update, reply, err
-}
-
-func (r *ClusterDeploymentsReconciler) notifyPullSecretUpdate(ctx context.Context, isPullSecretUpdate bool,
-	c *common.Cluster) error {
-	if isPullSecretUpdate {
-		installEnv := &adiiov1alpha1.InstallEnvList{}
-		if err := r.List(ctx, installEnv); err != nil {
-			return err
-		}
-		for _, image := range installEnv.Items {
-			r.Log.Infof("Notify that installEnv %s should be re-created for cluster %s",
-				image.Name, image.UID)
-			if image.Spec.ClusterRef.Name == c.KubeKeyName {
-				r.PullSecretUpdatesChannel <- event.GenericEvent{
-					Meta: &metav1.ObjectMeta{
-						Namespace: image.Namespace,
-						Name:      image.Name,
-					},
-				}
-			}
-		}
-	}
-	return nil
-}
-
-func isVipDHCPAllocationEnabled(cluster *hivev1.ClusterDeployment) bool {
-	return cluster.Spec.Platform.AgentBareMetal.VIPDHCPAllocation == agent.Enabled
 }
 
 func (r *ClusterDeploymentsReconciler) getOCPVersion(cluster *hivev1.ClusterDeployment) string {
@@ -288,10 +263,10 @@ func (r *ClusterDeploymentsReconciler) getOCPVersion(cluster *hivev1.ClusterDepl
 func (r *ClusterDeploymentsReconciler) createNewCluster(
 	ctx context.Context,
 	key types.NamespacedName,
-	cluster *hivev1.ClusterDeployment) (ctrl.Result, error) {
+	clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
 
-	r.Log.Infof("Creating a new cluster %s %s", cluster.Name, cluster.Namespace)
-	spec := cluster.Spec
+	r.Log.Infof("Creating a new clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	spec := clusterDeployment.Spec
 
 	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, key.Namespace)
 	if err != nil {
@@ -300,20 +275,15 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	}
 
 	clusterParams := &models.ClusterCreateParams{
-		//AdditionalNtpSource:      swag.String(spec.AdditionalNtpSource), // TODO: get from AgentEnvSpec
-		//HTTPProxy:                swag.String(spec.HTTPProxy), // TODO: get from AgentEnvSpec
-		//HTTPSProxy:               swag.String(spec.HTTPSProxy), // TODO: get from AgentEnvSpec
-		//NoProxy:                  swag.String(spec.NoProxy), // TODO: get from AgentEnvSpec
-		//SSHPublicKey:          spec.SSHPublicKey, // TODO: get from AgentEnvSpec
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
-		OpenshiftVersion:      swag.String(r.getOCPVersion(cluster)),
+		OpenshiftVersion:      swag.String(r.getOCPVersion(clusterDeployment)),
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
-		VipDhcpAllocation:     swag.Bool(isVipDHCPAllocationEnabled(cluster)),
+		VipDhcpAllocation:     swag.Bool(false),
 		IngressVip:            spec.Platform.AgentBareMetal.IngressVIP,
 		SSHPublicKey:          spec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
-		UserManagedNetworking: swag.Bool(isUserManagedNetwork(cluster)),
+		UserManagedNetworking: swag.Bool(isUserManagedNetwork(clusterDeployment)),
 	}
 
 	if len(spec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork) > 0 {
@@ -335,27 +305,26 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	})
 
 	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
-	return r.updateState(ctx, cluster, c, err)
+	return r.updateState(ctx, clusterDeployment, c, err)
 }
 
-func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster,
+func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster,
 	err error) (ctrl.Result, error) {
 
 	reply := ctrl.Result{}
-	if c != nil {
-		r.syncClusterState(cluster, c)
+	if cluster != nil {
+		r.syncClusterState(clusterDeployment, cluster)
 	}
 
 	if err != nil {
-		setClusterApiError(err, cluster)
+		setClusterApiError(err, clusterDeployment)
 		reply.RequeueAfter = defaultRequeueAfterOnError
 	}
 
-	if err := r.Status().Update(ctx, cluster); err != nil {
-		r.Log.WithError(err).Errorf("failed set state for %s %s", cluster.Name, cluster.Namespace)
-		return ctrl.Result{Requeue: true}, nil
+	if err = r.Status().Update(ctx, clusterDeployment); err != nil {
+		r.Log.WithError(err).Errorf("failed set state for %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+		return ctrl.Result{Requeue: true}, err
 	}
-
 	return reply, nil
 }
 
@@ -504,9 +473,10 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			return reply
 		})
 
+	clusterDeploymentUpdates := r.CRDEventsHandler.GetClusterDeploymentUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
-		Watches(&source.Kind{Type: &corev1.Secret{}},
-			&handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
+		Watches(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
+		Watches(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

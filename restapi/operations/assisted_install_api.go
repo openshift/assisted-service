@@ -116,6 +116,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetClusterDefaultConfigHandler: installer.GetClusterDefaultConfigHandlerFunc(func(params installer.GetClusterDefaultConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetClusterDefaultConfig has not yet been implemented")
 		}),
+		InstallerGetClusterHostRequirementsHandler: installer.GetClusterHostRequirementsHandlerFunc(func(params installer.GetClusterHostRequirementsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetClusterHostRequirements has not yet been implemented")
+		}),
 		InstallerGetClusterInstallConfigHandler: installer.GetClusterInstallConfigHandlerFunc(func(params installer.GetClusterInstallConfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetClusterInstallConfig has not yet been implemented")
 		}),
@@ -175,6 +178,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		OperatorsListOfClusterOperatorsHandler: operators.ListOfClusterOperatorsHandlerFunc(func(params operators.ListOfClusterOperatorsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation operators.ListOfClusterOperators has not yet been implemented")
+		}),
+		OperatorsListOperatorPropertiesHandler: operators.ListOperatorPropertiesHandlerFunc(func(params operators.ListOperatorPropertiesParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation operators.ListOperatorProperties has not yet been implemented")
 		}),
 		VersionsListSupportedOpenshiftVersionsHandler: versions.ListSupportedOpenshiftVersionsHandlerFunc(func(params versions.ListSupportedOpenshiftVersionsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation versions.ListSupportedOpenshiftVersions has not yet been implemented")
@@ -343,6 +349,8 @@ type AssistedInstallAPI struct {
 	InstallerGetClusterHandler installer.GetClusterHandler
 	// InstallerGetClusterDefaultConfigHandler sets the operation handler for the get cluster default config operation
 	InstallerGetClusterDefaultConfigHandler installer.GetClusterDefaultConfigHandler
+	// InstallerGetClusterHostRequirementsHandler sets the operation handler for the get cluster host requirements operation
+	InstallerGetClusterHostRequirementsHandler installer.GetClusterHostRequirementsHandler
 	// InstallerGetClusterInstallConfigHandler sets the operation handler for the get cluster install config operation
 	InstallerGetClusterInstallConfigHandler installer.GetClusterInstallConfigHandler
 	// InstallerGetCredentialsHandler sets the operation handler for the get credentials operation
@@ -383,6 +391,8 @@ type AssistedInstallAPI struct {
 	ManagedDomainsListManagedDomainsHandler managed_domains.ListManagedDomainsHandler
 	// OperatorsListOfClusterOperatorsHandler sets the operation handler for the list of cluster operators operation
 	OperatorsListOfClusterOperatorsHandler operators.ListOfClusterOperatorsHandler
+	// OperatorsListOperatorPropertiesHandler sets the operation handler for the list operator properties operation
+	OperatorsListOperatorPropertiesHandler operators.ListOperatorPropertiesHandler
 	// VersionsListSupportedOpenshiftVersionsHandler sets the operation handler for the list supported openshift versions operation
 	VersionsListSupportedOpenshiftVersionsHandler versions.ListSupportedOpenshiftVersionsHandler
 	// OperatorsListSupportedOperatorsHandler sets the operation handler for the list supported operators operation
@@ -577,6 +587,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerGetClusterDefaultConfigHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterDefaultConfigHandler")
 	}
+	if o.InstallerGetClusterHostRequirementsHandler == nil {
+		unregistered = append(unregistered, "installer.GetClusterHostRequirementsHandler")
+	}
 	if o.InstallerGetClusterInstallConfigHandler == nil {
 		unregistered = append(unregistered, "installer.GetClusterInstallConfigHandler")
 	}
@@ -636,6 +649,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.OperatorsListOfClusterOperatorsHandler == nil {
 		unregistered = append(unregistered, "operators.ListOfClusterOperatorsHandler")
+	}
+	if o.OperatorsListOperatorPropertiesHandler == nil {
+		unregistered = append(unregistered, "operators.ListOperatorPropertiesHandler")
 	}
 	if o.VersionsListSupportedOpenshiftVersionsHandler == nil {
 		unregistered = append(unregistered, "versions.ListSupportedOpenshiftVersionsHandler")
@@ -892,6 +908,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/clusters/{cluster_id}/host-requirements"] = installer.NewGetClusterHostRequirements(o.context, o.InstallerGetClusterHostRequirementsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/clusters/{cluster_id}/install-config"] = installer.NewGetClusterInstallConfig(o.context, o.InstallerGetClusterInstallConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -969,6 +989,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/monitored_operators"] = operators.NewListOfClusterOperators(o.context, o.OperatorsListOfClusterOperatorsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/supported-operators/{operator_name}"] = operators.NewListOperatorProperties(o.context, o.OperatorsListOperatorPropertiesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

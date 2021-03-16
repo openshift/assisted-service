@@ -245,6 +245,20 @@ func (mr *MockInstallerAPIMockRecorder) GetClusterDefaultConfig(arg0, arg1 inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterDefaultConfig", reflect.TypeOf((*MockInstallerAPI)(nil).GetClusterDefaultConfig), arg0, arg1)
 }
 
+// GetClusterHostRequirements mocks base method
+func (m *MockInstallerAPI) GetClusterHostRequirements(arg0 context.Context, arg1 installer.GetClusterHostRequirementsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterHostRequirements", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetClusterHostRequirements indicates an expected call of GetClusterHostRequirements
+func (mr *MockInstallerAPIMockRecorder) GetClusterHostRequirements(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterHostRequirements", reflect.TypeOf((*MockInstallerAPI)(nil).GetClusterHostRequirements), arg0, arg1)
+}
+
 // GetClusterInstallConfig mocks base method
 func (m *MockInstallerAPI) GetClusterInstallConfig(arg0 context.Context, arg1 installer.GetClusterInstallConfigParams) middleware.Responder {
 	m.ctrl.T.Helper()

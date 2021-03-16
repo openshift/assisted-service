@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	reflect "reflect"
 	"strconv"
 	"time"
 
@@ -80,7 +81,13 @@ var InstallationTimeout = 20 * time.Minute
 
 var MaxHostDisconnectionTime = 3 * time.Minute
 
+type LogTimeoutConfig struct {
+	LogCollectionTimeout time.Duration `envconfig:"HOST_LOG_COLLECTION_TIMEOUT" default:"10m"`
+	LogPendingTimeout    time.Duration `envconfig:"HOST_LOG_PENDING_TIMEOUT" default:"2m"`
+}
+
 type Config struct {
+	LogTimeoutConfig
 	EnableAutoReset  bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	ResetTimeout     time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize int           `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
@@ -117,6 +124,7 @@ type API interface {
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
+	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
 	PermanentHostsDeletion(olderThen strfmt.DateTime) error
 	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
@@ -149,6 +157,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
+		config:        config,
 		eventsHandler: eventsHandler,
 	}
 	return &Manager{
@@ -312,6 +321,24 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	}).Error
 }
 
+func (m *Manager) checkValidationChanged(ctx context.Context, h *models.Host, newValidationRes validationsStatus) (validationsStatus, bool, error) {
+	var currentValidationRes validationsStatus
+	if h.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
+			return validationsStatus{}, false, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+		}
+	}
+	return currentValidationRes, !reflect.DeepEqual(newValidationRes, currentValidationRes), nil
+}
+
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*models.Host, error) {
+	b, err := json.Marshal(newValidationRes)
+	if err != nil {
+		return nil, err
+	}
+	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
+}
+
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
@@ -320,19 +347,30 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	if err != nil {
 		return err
 	}
-	conditions, validationsResults, err := m.rp.preprocess(vc)
+	conditions, newValidationRes, err := m.rp.preprocess(vc)
 	if err != nil {
 		return err
 	}
-	if err = m.reportValidationStatusChanged(ctx, vc, h, validationsResults); err != nil {
+	currentValidationRes, validationsChanged, err := m.checkValidationChanged(ctx, h, newValidationRes)
+	if err != nil {
 		return err
+	}
+	if validationsChanged {
+		// Validation status changes are detected when new validations are different from the
+		// current validations in the DB.
+		// For changes to be detected and reported correctly, the comparison needs to be
+		// performed before the new validations are updated to the DB.
+		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+		if _, err = m.updateValidationsInDB(ctx, db, h, newValidationRes); err != nil {
+			return err
+		}
 	}
 	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
 		ctx:               ctx,
 		db:                db,
 		eventHandler:      m.eventsHandler,
 		conditions:        conditions,
-		validationResults: validationsResults,
+		validationResults: newValidationRes,
 	})
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
@@ -444,6 +482,11 @@ func (m *Manager) SetBootstrap(ctx context.Context, h *models.Host, isbootstrap 
 			fmt.Sprintf("Host %s: set as bootstrap", hostutil.GetHostnameForMsg(h)), time.Now())
 	}
 	return nil
+}
+func (m *Manager) UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error {
+	_, err := hostutil.UpdateLogsProgress(ctx, logutil.FromContext(ctx, m.log), m.db, m.eventsHandler, h.ClusterID, *h.ID,
+		swag.StringValue(h.Status), progress)
+	return err
 }
 
 func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error {
@@ -762,7 +805,7 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 
 func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {
 	log := logutil.FromContext(ctx, m.log)
-	var validationRes map[string][]validationResult
+	var validationRes validationsStatus
 	if h.ValidationsInfo != "" {
 		if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
 			log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
@@ -772,39 +815,33 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 	for _, vRes := range validationRes {
 		for _, v := range vRes {
 			if v.Status == ValidationFailure {
-				m.metricApi.HostValidationFailed(ocpVersion, h.ClusterID, emailDomain, models.HostValidationID(v.ID))
+				m.metricApi.HostValidationFailed(ocpVersion, emailDomain, models.HostValidationID(v.ID))
 			}
 		}
 	}
 	return nil
 }
 
-func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host, newValidationRes map[string][]validationResult) error {
-	var currentValidationRes map[string][]validationResult
-	if h.ValidationsInfo != "" {
-		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
-			return errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
-		}
-		for vCategory, vRes := range currentValidationRes {
-			for i, v := range vRes {
-				// after reboot there is no agent, therefore, the host validation for 'connected' will constantly fail.
-				// this is the expected behaviour and we don't need to generate event/metric for it.
-				if v.ID == IsConnected && funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
-					continue
-				}
-				if newValidationRes[vCategory][i].Status == ValidationFailure && v.Status == ValidationSuccess {
-					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, h.ClusterID, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
-					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
-				}
-				if newValidationRes[vCategory][i].Status == ValidationSuccess && v.Status == ValidationFailure {
-					eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
-					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
-				}
+func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
+	newValidationRes, currentValidationRes validationsStatus) {
+	for vCategory, vRes := range currentValidationRes {
+		for i, v := range vRes {
+			// after reboot there is no agent, therefore, the host validation for 'connected' will constantly fail.
+			// this is the expected behaviour and we don't need to generate event/metric for it.
+			if v.ID == IsConnected && funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
+				continue
+			}
+			if newValidationRes[vCategory][i].Status == ValidationFailure && v.Status == ValidationSuccess {
+				m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
+				eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
+				m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
+			}
+			if newValidationRes[vCategory][i].Status == ValidationSuccess && v.Status == ValidationFailure {
+				eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
+				m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
 			}
 		}
 	}
-	return nil
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {

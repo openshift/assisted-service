@@ -109,6 +109,10 @@ spec:
                       name must be unique.
                     type: string
                 type: object
+              ignitionConfigOverride:
+                description: Json formatted string containing the user overrides for
+                  the initial ignition config
+                type: string
               nmStateConfigLabelSelector:
                 description: NmstateConfigLabelSelector associates NMStateConfigs
                   for hosts that are considered part of this installation environment.
@@ -188,6 +192,7 @@ spec:
             required:
             - agentLabelSelector
             - clusterRef
+            - ignitionConfigOverride
             - pullSecretRef
             type: object
           status:

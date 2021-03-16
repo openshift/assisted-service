@@ -26,7 +26,7 @@ type registrar struct {
 }
 
 func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster) error {
-	return r.registerCluster(ctx, cluster, models.ClusterStatusInsufficient, statusInfoInsufficient, time.Now())
+	return r.registerCluster(ctx, cluster, models.ClusterStatusInsufficient, StatusInfoInsufficient, time.Now())
 }
 
 func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster) error {
@@ -84,7 +84,7 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 
 func (r *registrar) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
 	c.Status = swag.String(models.ClusterStatusAddingHosts)
-	c.StatusInfo = swag.String(statusInfoReady)
+	c.StatusInfo = swag.String(StatusInfoReady)
 	err := db.Create(c).Error
 	if err != nil {
 		r.log.WithError(err).Errorf("Failed to create OCP cluster in DB")

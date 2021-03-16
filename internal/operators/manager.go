@@ -3,11 +3,16 @@ package operators
 import (
 	"container/list"
 	"context"
+	"encoding/base64"
 	"fmt"
 
+	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/restapi"
+	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -17,8 +22,10 @@ type Manager struct {
 	log                logrus.FieldLogger
 	olmOperators       map[string]api.Operator
 	monitoredOperators map[string]*models.MonitoredOperator
+	manifestsAPI       restapi.ManifestsAPI
 }
 
+// API defines Operator management operation
 //go:generate mockgen -package=operators -destination=mock_operators_api.go . API
 type API interface {
 	// ValidateCluster validates cluster requirements
@@ -27,7 +34,7 @@ type API interface {
 	ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error)
 	// GenerateManifests generates manifests for all enabled operators.
 	// Returns map assigning manifest content to its desired file name
-	GenerateManifests(cluster *common.Cluster) (map[string]string, error)
+	GenerateManifests(ctx context.Context, cluster *common.Cluster) error
 	// AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
 	AnyOLMOperatorEnabled(cluster *common.Cluster) bool
 	// UpdateDependencies amends the list of requested additional operators with any missing dependencies
@@ -38,19 +45,25 @@ type API interface {
 	GetOperatorByName(operatorName string) (*models.MonitoredOperator, error)
 	// GetSupportedOperatorsByType returns the manager's supported operator objects by type.
 	GetSupportedOperatorsByType(operatorType models.OperatorType) []*models.MonitoredOperator
+	// GetSupportedOperators returns a list of OLM operators that are supported
+	GetSupportedOperators() []string
+	// GetOperatorProperties provides description of properties of an operator
+	GetOperatorProperties(operatorName string) (models.OperatorProperties, error)
+	// GetCPURequirementForWorker provides worker CPU requirements for the operator
+	GetCPURequirementForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) (int64, error)
+	// GetMemoryRequirementForWorker provides worker memory requirements for the operator in Bytes
+	GetMemoryRequirementForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) (int64, error)
 }
 
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
-func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]string, error) {
+func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
 	// TODO: cluster should already contain up-to-date list of operators - implemented here for now to replicate
 	// the original behaviour
 	err := mgr.UpdateDependencies(cluster)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
-	operatorManifests := make(map[string]string)
 
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
@@ -63,17 +76,38 @@ func (mgr *Manager) GenerateManifests(cluster *common.Cluster) (map[string]strin
 			manifests, err := operator.GenerateManifests(cluster)
 			if err != nil {
 				mgr.log.Error(fmt.Sprintf("Cannot generate %s manifests due to ", clusterOperator.Name), err)
-				return nil, err
+				return err
 			}
-			if manifests != nil {
-				for k, v := range manifests.Files {
-					operatorManifests[k] = v
+			for k, v := range manifests {
+				err = mgr.createManifests(ctx, cluster, k, v)
+				if err != nil {
+					return err
 				}
 			}
 		}
 	}
 
-	return operatorManifests, nil
+	return nil
+}
+
+func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
+	// all relevant logs of creating manifest will be inside CreateClusterManifest
+	response := mgr.manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+		ClusterID: *cluster.ID,
+		CreateManifestParams: &models.CreateManifestParams{
+			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),
+			FileName: &filename,
+			Folder:   swag.String(models.ManifestFolderOpenshift),
+		},
+	})
+
+	if _, ok := response.(*operations.CreateClusterManifestCreated); !ok {
+		if apiErr, ok := response.(*common.ApiErrorResponse); ok {
+			return errors.Wrapf(apiErr, "Failed to create manifest %s for cluster %s", filename, cluster.ID)
+		}
+		return errors.Errorf("Failed to create manifest %s for cluster %s", filename, cluster.ID)
+	}
+	return nil
 }
 
 // AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
@@ -99,9 +133,9 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 
 	// To track operators that are disabled or not present in the cluster configuration, but have to be present
 	// in the validation results and marked as valid.
-	pendingOperators := make(map[string]bool)
+	pendingOperators := make(map[string]struct{})
 	for k := range mgr.olmOperators {
-		pendingOperators[k] = true
+		pendingOperators[k] = struct{}{}
 	}
 
 	for _, clusterOperator := range cluster.MonitoredOperators {
@@ -146,9 +180,9 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
 
-	pendingOperators := make(map[string]bool)
+	pendingOperators := make(map[string]struct{})
 	for k := range mgr.olmOperators {
-		pendingOperators[k] = true
+		pendingOperators[k] = struct{}{}
 	}
 
 	for _, clusterOperator := range cluster.MonitoredOperators {
@@ -191,6 +225,23 @@ func (mgr *Manager) UpdateDependencies(cluster *common.Cluster) error {
 
 	cluster.MonitoredOperators = operators
 	return nil
+}
+
+// GetSupportedOperators returns a list of OLM operators that are supported
+func (mgr *Manager) GetSupportedOperators() []string {
+	keys := make([]string, 0, len(mgr.olmOperators))
+	for k := range mgr.olmOperators {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+// GetOperatorProperties provides description of properties of an operator
+func (mgr *Manager) GetOperatorProperties(operatorName string) (models.OperatorProperties, error) {
+	if operator, ok := mgr.olmOperators[operatorName]; ok {
+		return operator.GetProperties(), nil
+	}
+	return nil, errors.Errorf("Operator %s not found", operatorName)
 }
 
 func (mgr *Manager) resolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
@@ -269,9 +320,11 @@ func (mgr *Manager) GetOperatorByName(operatorName string) (*models.MonitoredOpe
 	}
 
 	return &models.MonitoredOperator{
-		Name:           operator.Name,
-		OperatorType:   operator.OperatorType,
-		TimeoutSeconds: operator.TimeoutSeconds,
+		Name:             operator.Name,
+		OperatorType:     operator.OperatorType,
+		TimeoutSeconds:   operator.TimeoutSeconds,
+		Namespace:        operator.Namespace,
+		SubscriptionName: operator.SubscriptionName,
 	}, nil
 }
 
@@ -286,4 +339,112 @@ func (mgr *Manager) GetSupportedOperatorsByType(operatorType models.OperatorType
 	}
 
 	return operators
+}
+
+// GetMemoryRequirementForRole returns the amount of usable memory required in Bytes in the host to be able to install all the enabled operators and their dependencies.
+// The value is determined by the sum of each of the enabled operators.
+func (mgr *Manager) GetMemoryRequirementForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) (int64, error) {
+	switch role {
+	case models.HostRoleMaster:
+		m, err := mgr.getMemoryRequirementForMaster(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		return m, nil
+	case models.HostRoleWorker:
+		m, err := mgr.getMemoryRequirementForWorker(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		return m, nil
+	default:
+		return 0, nil
+
+	}
+}
+
+func (mgr *Manager) getMemoryRequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error) {
+
+	var t int64
+	for _, o := range cluster.MonitoredOperators {
+		if o.OperatorType != models.OperatorTypeOlm {
+			continue
+		}
+		m, err := mgr.olmOperators[o.Name].GetMemoryRequirementForMaster(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		t += m
+	}
+	return t, nil
+}
+
+func (mgr *Manager) getMemoryRequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error) {
+
+	var t int64
+	for _, o := range cluster.MonitoredOperators {
+		if o.OperatorType != models.OperatorTypeOlm {
+			continue
+		}
+		m, err := mgr.olmOperators[o.Name].GetMemoryRequirementForWorker(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		t += m
+	}
+	return t, nil
+}
+
+// GetCPURequirementForRole returns the CPU core count available the host must have to install all the enabled operators and their dependencies.
+// The value is determined by the sum of each of the enabled operators.
+func (mgr *Manager) GetCPURequirementForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) (int64, error) {
+
+	switch role {
+	case models.HostRoleMaster:
+		m, err := mgr.getCPURequirementForMaster(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		return m, nil
+	case models.HostRoleWorker:
+		m, err := mgr.getCPURequirementForWorker(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		return m, nil
+	default:
+		return 0, nil
+	}
+}
+
+func (mgr *Manager) getCPURequirementForMaster(ctx context.Context, cluster *common.Cluster) (int64, error) {
+
+	var t int64
+	for _, o := range cluster.MonitoredOperators {
+		if o.OperatorType != models.OperatorTypeOlm {
+			continue
+		}
+		m, err := mgr.olmOperators[o.Name].GetCPURequirementForMaster(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		t += m
+	}
+	return t, nil
+}
+
+func (mgr *Manager) getCPURequirementForWorker(ctx context.Context, cluster *common.Cluster) (int64, error) {
+
+	var t int64
+	for _, o := range cluster.MonitoredOperators {
+		if o.OperatorType != models.OperatorTypeOlm {
+			continue
+		}
+		m, err := mgr.olmOperators[o.Name].GetCPURequirementForWorker(ctx, cluster)
+		if err != nil {
+			return 0, err
+		}
+		t += m
+	}
+	return t, nil
 }

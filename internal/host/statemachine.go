@@ -384,7 +384,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr),
 		If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup),
-		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied))
+		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
@@ -476,10 +476,24 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
 	})
 
+	// check timeout of log collection
+	for _, state := range []stateswitch.State{
+		stateswitch.State(models.HostStatusError),
+		stateswitch.State(models.HostStatusCancelled)} {
+		sm.AddTransition(stateswitch.TransitionRule{
+			TransitionType:   TransitionTypeRefresh,
+			SourceStates:     []stateswitch.State{state},
+			DestinationState: state,
+			Condition:        th.IsLogCollectionTimedOut,
+			PostTransition:   th.PostRefreshLogsProgress(string(models.LogsStateTimeout)),
+		})
+	}
+
 	// Noop transitions
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.HostStatusDisabled),
 		stateswitch.State(models.HostStatusError),
+		stateswitch.State(models.HostStatusCancelled),
 		stateswitch.State(models.HostStatusResetting),
 	} {
 		sm.AddTransition(stateswitch.TransitionRule{

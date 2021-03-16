@@ -15,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	serviceHost "github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 )
 
 var _ = Describe("Host tests", func() {
@@ -102,6 +103,7 @@ var _ = Describe("Host tests", func() {
 			},
 			Memory: &models.Memory{
 				PhysicalBytes: int64(16) * (int64(1) << 30),
+				UsableBytes:   int64(16) * (int64(1) << 30),
 			},
 			SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 			Timestamp:    1601845851,
@@ -610,7 +612,7 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("register_wrong_pull_secret", func() {
-		if !Options.EnableAuth {
+		if Options.AuthType == auth.TypeNone {
 			Skip("auth is disabled")
 		}
 

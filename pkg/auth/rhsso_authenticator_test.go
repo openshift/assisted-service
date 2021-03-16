@@ -49,7 +49,6 @@ var _ = Describe("auth handler test", func() {
 		name            string
 		authInfo        runtime.ClientAuthInfoWriter
 		isListOperation bool
-		enableAuth      bool
 		addHeaders      bool
 		mockOcmAuth     func(a *ocm.MockOCMAuthentication)
 		expectedError   interface{}
@@ -58,14 +57,12 @@ var _ = Describe("auth handler test", func() {
 			name:            "User Successful Authentication",
 			authInfo:        UserAuthHeaderWriter(userKeyValue),
 			isListOperation: true,
-			enableAuth:      true,
 			addHeaders:      true,
 		},
 		{
 			name:            "User Unsuccessful Authentication",
 			authInfo:        UserAuthHeaderWriter("bearer bad_token"),
 			isListOperation: true,
-			enableAuth:      true,
 			addHeaders:      true,
 			expectedError:   installer.NewListClustersUnauthorized(),
 		},
@@ -73,7 +70,6 @@ var _ = Describe("auth handler test", func() {
 			name:            "Fail User Auth Without Headers",
 			authInfo:        UserAuthHeaderWriter(userKeyValue),
 			isListOperation: true,
-			enableAuth:      true,
 			addHeaders:      false,
 			expectedError:   installer.NewListClustersUnauthorized(),
 		},
@@ -81,7 +77,6 @@ var _ = Describe("auth handler test", func() {
 			name:            "Agent Successful Authentication",
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
-			enableAuth:      true,
 			addHeaders:      true,
 			mockOcmAuth:     mockOcmAuthSuccess,
 		},
@@ -89,7 +84,6 @@ var _ = Describe("auth handler test", func() {
 			name:            "Agent ocm authentication failure",
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
-			enableAuth:      true,
 			addHeaders:      true,
 			expectedError:   installer.NewGetClusterUnauthorized(),
 			mockOcmAuth:     mockOcmAuthFailure,
@@ -98,7 +92,6 @@ var _ = Describe("auth handler test", func() {
 			name:            "Agent ocm authentication failure can not send request",
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
-			enableAuth:      true,
 			addHeaders:      true,
 			expectedError:   installer.NewGetClusterServiceUnavailable(),
 			mockOcmAuth:     mockOcmAuthSendRequestFailure,
@@ -107,7 +100,6 @@ var _ = Describe("auth handler test", func() {
 			name:            "Agent ocm authentication failure return internal error",
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
-			enableAuth:      true,
 			addHeaders:      true,
 			expectedError:   installer.NewGetClusterInternalServerError(),
 			mockOcmAuth:     mockOcmAuthInternalError,
@@ -116,23 +108,8 @@ var _ = Describe("auth handler test", func() {
 			name:            "Fail Agent Auth Without Headers",
 			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
 			isListOperation: false,
-			enableAuth:      true,
 			addHeaders:      false,
 			expectedError:   installer.NewGetClusterUnauthorized(),
-		},
-		{
-			name:            "Ignore User Auth If Auth Disabled",
-			authInfo:        UserAuthHeaderWriter(userKeyValue),
-			isListOperation: true,
-			enableAuth:      false,
-			addHeaders:      false,
-		},
-		{
-			name:            "Ignore Agent Auth If Auth Disabled",
-			authInfo:        AgentAuthHeaderWriter(agentKeyValue),
-			isListOperation: false,
-			enableAuth:      false,
-			addHeaders:      false,
 		},
 	}
 
@@ -144,12 +121,11 @@ var _ = Describe("auth handler test", func() {
 				tt.mockOcmAuth(ocmAuth)
 			}
 
-			fakeConfig := Config{
-				EnableAuth: tt.enableAuth,
+			fakeConfig := &Config{
 				JwkCertURL: "",
 				JwkCert:    string(JwkCert),
 			}
-			AuthHandler := NewAuthHandler(fakeConfig, nil, log.WithField("pkg", "auth"), nil)
+			authHandler := NewRHSSOAuthenticator(fakeConfig, nil, log.WithField("pkg", "auth"), nil)
 
 			ocmAuthz := ocm.NewMockOCMAuthorization(ctrl)
 			ocmAuthz.EXPECT().CapabilityReview(
@@ -158,16 +134,16 @@ var _ = Describe("auth handler test", func() {
 				gomock.Any(),
 				gomock.Any()).Return(true, nil).AnyTimes()
 
-			AuthHandler.client = &ocm.Client{
+			authHandler.client = &ocm.Client{
 				Authentication: ocmAuth,
 				Authorization:  ocmAuthz,
 				Cache:          cache.New(1*time.Hour, 30*time.Minute),
 			}
 
 			h, _ := restapi.Handler(restapi.Config{
-				AuthAgentAuth:         AuthHandler.AuthAgentAuth,
-				AuthUserAuth:          AuthHandler.AuthUserAuth,
-				APIKeyAuthenticator:   AuthHandler.CreateAuthenticator(),
+				AuthAgentAuth:         authHandler.AuthAgentAuth,
+				AuthUserAuth:          authHandler.AuthUserAuth,
+				APIKeyAuthenticator:   authHandler.CreateAuthenticator(),
 				InstallerAPI:          fakeInventory{},
 				AssistedServiceIsoAPI: fakeAssistedServiceIsoAPI{},
 				EventsAPI:             nil,

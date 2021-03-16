@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
@@ -257,6 +258,10 @@ func (f fakeInventory) DownloadHostIgnition(ctx context.Context, params installe
 
 func (f fakeInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
 	return installer.NewUpdateHostInstallerArgsCreated()
+}
+
+func (f fakeInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
+	return installer.NewGetClusterHostRequirementsOK().WithPayload(models.ClusterHostRequirementsList{})
 }
 
 var _ restapi.InstallerAPI = fakeInventory{}

@@ -3,9 +3,7 @@ package common
 import (
 	"archive/tar"
 	"context"
-	"encoding/json"
 	"io"
-	"net"
 	"sync"
 	"time"
 
@@ -134,39 +132,6 @@ func AllStrings(vs []string, f func(string) bool) bool {
 		}
 	}
 	return true
-}
-
-// GetBootstrapMachineNetworkAndIp used to get machine cidr and ip in case of none platform and sno
-// it will return first found ip and machine cidr
-func GetBootstrapMachineNetworkAndIp(cluster *Cluster) (string, string) {
-	bootstrap := GetBootstrapHost(cluster)
-	if bootstrap == nil {
-		return "", ""
-	}
-
-	var inventory models.Inventory
-	err := json.Unmarshal([]byte(bootstrap.Inventory), &inventory)
-	if err != nil {
-		return "", ""
-	}
-	for _, intf := range inventory.Interfaces {
-		for _, addr := range intf.IPV4Addresses {
-			ip, ipnet, err := net.ParseCIDR(addr)
-			if err != nil {
-				continue
-			}
-			return ip.String(), ipnet.String()
-		}
-		for _, addr := range intf.IPV6Addresses {
-			ip, ipnet, err := net.ParseCIDR(addr)
-			if err != nil {
-				continue
-			}
-			return ip.String(), ipnet.String()
-		}
-	}
-
-	return "", ""
 }
 
 // GetBootstrapHost return host that was set as bootstrap

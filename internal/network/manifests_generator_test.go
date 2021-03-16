@@ -39,7 +39,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
@@ -58,7 +58,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
@@ -77,7 +77,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
@@ -96,7 +96,7 @@ var _ = Describe("chrony manifest", func() {
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
-			}}, models.HostRoleMaster)
+			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
 
 			expectedContent := defaultChronyConf
@@ -158,4 +158,150 @@ var _ = Describe("chrony manifest", func() {
 			Expect(ntpUtils.AddChronyManifest(ctx, log, &cluster)).Should(HaveOccurred())
 		})
 	})
+})
+
+var _ = Describe("dnsmasq manifest", func() {
+
+	Context("Create dnsmasq Manifest", func() {
+		It("Happy flow", func() {
+			cluster := createCluster("", "3.3.3.0/24",
+				createInventory(createInterface("3.3.3.3/24")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+
+			var manifestParams = map[string]string{
+				"CLUSTER_NAME": cluster.Cluster.Name,
+				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
+				"HOST_IP":      "3.3.3.3",
+			}
+
+			log := logrus.New()
+
+			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			created, err := createDnsmasqForSingleNode(log, cluster)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
+		})
+
+		It("Happy flow ipv6", func() {
+			cluster := createCluster("", "1001:db8::/120",
+				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+
+			var manifestParams = map[string]string{
+				"CLUSTER_NAME": cluster.Cluster.Name,
+				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
+				"HOST_IP":      "1001:db8::1",
+			}
+
+			log := logrus.New()
+
+			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			created, err := createDnsmasqForSingleNode(log, cluster)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
+		})
+
+		It("Happy flow dual stack - ipv6", func() {
+			cluster := createCluster("", "1001:db8::/120",
+				createInventory(addIPv6Addresses(createInterface("3.3.3.3/24"), "1001:db8::1/120", "2001:db8::1/120")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			var manifestParams = map[string]string{
+				"CLUSTER_NAME": cluster.Cluster.Name,
+				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
+				"HOST_IP":      "1001:db8::1",
+			}
+
+			log := logrus.New()
+
+			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			created, err := createDnsmasqForSingleNode(log, cluster)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
+		})
+
+		It("Happy flow dual stack - ipv4", func() {
+			cluster := createCluster("", "3.3.3.0/24",
+				createInventory(addIPv6Addresses(createInterface("3.3.3.3/24", "1.2.3.4/24"), "1001:db8::1/120", "2001:db8::1/120")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			var manifestParams = map[string]string{
+				"CLUSTER_NAME": cluster.Cluster.Name,
+				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
+				"HOST_IP":      "3.3.3.3",
+			}
+
+			log := logrus.New()
+
+			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			created, err := createDnsmasqForSingleNode(log, cluster)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
+		})
+
+		It("Happy flow dual stack - no machine cidr", func() {
+			cluster := createCluster("", "",
+				createInventory(addIPv6Addresses(createInterface("3.3.3.3/24"), "1001:db8::1/120")))
+			cluster.Hosts[0].Bootstrap = true
+			cluster.Cluster.BaseDNSDomain = "test.com"
+			cluster.Cluster.Name = "test"
+			var manifestParams = map[string]string{
+				"CLUSTER_NAME": cluster.Cluster.Name,
+				"DNS_DOMAIN":   cluster.Cluster.BaseDNSDomain,
+				"HOST_IP":      "3.3.3.3",
+			}
+
+			log := logrus.New()
+
+			content, err := fillTemplate(manifestParams, snoDnsmasqConf, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			forcedns, err := fillTemplate(manifestParams, forceDnsDispatcherScript, log)
+			Expect(err).To(Not(HaveOccurred()))
+
+			created, err := createDnsmasqForSingleNode(log, cluster)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(content)))
+			Expect(created).To(ContainSubstring(base64.StdEncoding.EncodeToString(forcedns)))
+		})
+
+		It("no bootstrap", func() {
+			cluster := createCluster("", "3.3.3.0/24",
+				createInventory(createInterface("3.3.3.3/24")))
+
+			_, err := createDnsmasqForSingleNode(logrus.New(), cluster)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
 })

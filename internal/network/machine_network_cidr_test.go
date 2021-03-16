@@ -12,32 +12,40 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+func createInventory(interfaces ...*models.Interface) string {
+	inventory := models.Inventory{Interfaces: interfaces}
+	ret, _ := json.Marshal(&inventory)
+	return string(ret)
+}
+
+func createInterface(ipv4Addresses ...string) *models.Interface {
+	return &models.Interface{
+		IPV4Addresses: append([]string{}, ipv4Addresses...),
+	}
+}
+
+func addIPv6Addresses(nic *models.Interface, ipv6Addresses ...string) *models.Interface {
+	nic.IPV6Addresses = append([]string{}, ipv6Addresses...)
+	return nic
+}
+
+func createHosts(inventories ...string) []*models.Host {
+	ret := make([]*models.Host, 0)
+	for _, i := range inventories {
+		ret = append(ret, &models.Host{Inventory: i})
+	}
+	return ret
+}
+
+func createCluster(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
+	return &common.Cluster{Cluster: models.Cluster{
+		APIVip:             apiVip,
+		MachineNetworkCidr: machineCidr,
+		Hosts:              createHosts(inventories...),
+	}}
+}
+
 var _ = Describe("inventory", func() {
-
-	createInterface := func(ipv4Addresses ...string) *models.Interface {
-		return &models.Interface{
-			IPV4Addresses: append([]string{}, ipv4Addresses...),
-		}
-	}
-
-	addIPv6Addresses := func(nic *models.Interface, ipv6Addresses ...string) *models.Interface {
-		nic.IPV6Addresses = append([]string{}, ipv6Addresses...)
-		return nic
-	}
-
-	createInventory := func(interfaces ...*models.Interface) string {
-		inventory := models.Inventory{Interfaces: interfaces}
-		ret, _ := json.Marshal(&inventory)
-		return string(ret)
-	}
-
-	createHosts := func(inventories ...string) []*models.Host {
-		ret := make([]*models.Host, 0)
-		for _, i := range inventories {
-			ret = append(ret, &models.Host{Inventory: i})
-		}
-		return ret
-	}
 
 	createDisabledHosts := func(inventories ...string) []*models.Host {
 		ret := make([]*models.Host, 0)
@@ -48,13 +56,6 @@ var _ = Describe("inventory", func() {
 		return ret
 	}
 
-	createCluster := func(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
-		return &common.Cluster{Cluster: models.Cluster{
-			APIVip:             apiVip,
-			MachineNetworkCidr: machineCidr,
-			Hosts:              createHosts(inventories...),
-		}}
-	}
 	createDisabledCluster := func(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
 		return &common.Cluster{Cluster: models.Cluster{
 			APIVip:             apiVip,
@@ -67,17 +68,17 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("1.2.5.6", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cidr).To(Equal("1.2.4.0/23"))
 		})
 
-		It("happpy flow IPv6", func() {
+		It("happy flow IPv6", func() {
 			cluster := createCluster("1001:db8::64", "",
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::1/120")),
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::2/120")),
 				createInventory(addIPv6Addresses(createInterface(), "1001:db8::3/120")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cidr).To(Equal("1001:db8::/120"))
 		})
@@ -86,7 +87,7 @@ var _ = Describe("inventory", func() {
 			cluster := createDisabledCluster("1.2.5.6", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			_, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			_, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -94,7 +95,7 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("1.2.5.257", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(HaveOccurred())
 			Expect(cidr).To(Equal(""))
 		})
@@ -103,7 +104,7 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("1.2.5.200", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.6.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(HaveOccurred())
 			Expect(cidr).To(Equal(""))
 		})
@@ -112,9 +113,17 @@ var _ = Describe("inventory", func() {
 				"Bad inventory",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts)
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, true)
 			Expect(err).To(Not(HaveOccurred()))
 			Expect(cidr).To(Equal("1.2.4.0/23"))
+		})
+		It("No Match - no match required", func() {
+			cluster := createCluster("1.2.5.200", "",
+				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.6.7/23")),
+				createInventory(createInterface("127.0.0.1/17")))
+			cidr, err := CalculateMachineNetworkCIDR(cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(cidr).To(Equal(""))
 		})
 	})
 	Context("GetMachineCIDRHosts", func() {
@@ -316,6 +325,43 @@ var _ = Describe("inventory", func() {
 			Expect(nets).To(HaveLen(2))
 			Expect(nets).To(ContainElements("2001:db8::/120", "1.2.3.0/28"))
 		})
+	})
+
+	Context("GetMachineCidrForUserManagedNetwork", func() {
+
+		var log logrus.FieldLogger
+
+		BeforeEach(func() {
+			log = logrus.New()
+		})
+
+		It("No bootstrap host", func() {
+			cluster := createCluster("", "",
+				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
+				createInventory(createInterface("127.0.0.1/17")))
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			Expect(machineCidr).To(BeEmpty())
+		})
+
+		It("No machine cidr was set - cidr from bootstrap must be set", func() {
+			cluster := createCluster("", "",
+				createInventory(addIPv6Addresses(createInterface("1.2.3.4/28"), "2001:db8::a1/120")),
+				createInventory(addIPv6Addresses(createInterface("10.2.3.20/24"), "fe80:5054::4/120")))
+			cluster.Hosts[0].Bootstrap = true
+
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			Expect(true).To(Equal(machineCidr == "1.2.3.0/28" || machineCidr == "2001:db8::/120"))
+		})
+
+		It("Machine cidr exists", func() {
+			cluster := createCluster("", "",
+				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
+				createInventory(createInterface("127.0.0.1/17")))
+			cluster.MachineNetworkCidr = "1.2.5.0/23"
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			Expect(machineCidr).To(Equal(cluster.MachineNetworkCidr))
+		})
+
 	})
 })
 

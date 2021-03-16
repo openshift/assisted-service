@@ -1888,6 +1888,72 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/host-requirements": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get host requirements of a cluster.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetClusterHostRequirements",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return operators for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster-host-requirements-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts": {
       "get": {
         "security": [
@@ -4114,6 +4180,12 @@ func init() {
           "200": {
             "description": "Success."
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "401": {
             "description": "Unauthorized.",
             "schema": {
@@ -4476,7 +4548,10 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/monitored-operators-list"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "401": {
@@ -4489,6 +4564,65 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-properties"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -4955,6 +5089,58 @@ func init() {
         }
       }
     },
+    "cluster-host-requirements": {
+      "type": "object",
+      "properties": {
+        "host_id": {
+          "description": "Unique identifier of the host the requirements relate to.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "ocp": {
+          "description": "Host requirements for the OCP installation",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
+        "operators": {
+          "description": "Host requirements related to requested operators",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-host-requirements"
+          }
+        },
+        "total": {
+          "description": "Total host requirements for the cluster configuration",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
+    "cluster-host-requirements-details": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "description": "Required number of CPU cores",
+          "type": "integer"
+        },
+        "disk_size_gb": {
+          "description": "Required disk size in GB",
+          "type": "integer"
+        },
+        "installation_disk_speed_threshold_ms": {
+          "description": "Required installation disk speed in ms",
+          "type": "integer"
+        },
+        "ram_gib": {
+          "description": "Required number of RAM in GiB",
+          "type": "integer"
+        }
+      }
+    },
+    "cluster-host-requirements-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cluster-host-requirements"
+      }
+    },
     "cluster-list": {
       "type": "array",
       "items": {
@@ -5172,7 +5358,8 @@ func init() {
         "pull-secret-set",
         "ntp-server-configured",
         "lso-requirements-satisfied",
-        "ocs-requirements-satisfied"
+        "ocs-requirements-satisfied",
+        "cnv-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -5484,15 +5671,21 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
+          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
+          "description": "by-path is the shortest physical path to the device",
           "type": "string"
         },
         "drive_type": {
           "type": "string"
         },
         "hctl": {
+          "type": "string"
+        },
+        "id": {
+          "description": "Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise",
           "type": "string"
         },
         "installation_eligibility": {
@@ -6199,7 +6392,8 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed"
+        "sufficient-installation-disk-speed",
+        "cnv-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -6247,12 +6441,24 @@ func init() {
         }
       ]
     },
+    "host_static_network_config": {
+      "type": "object",
+      "properties": {
+        "mac_interface_map": {
+          "description": "mapping of host macs to logical interfaces used in the network yaml",
+          "$ref": "#/definitions/mac_interface_map"
+        },
+        "network_yaml": {
+          "description": "yaml string that can be processed by nmstate",
+          "type": "string"
+        }
+      }
+    },
     "image-create-params": {
       "type": "object",
       "properties": {
         "image_type": {
           "description": "Type of image that should be generated.",
-          "type": "string",
           "$ref": "#/definitions/image_type"
         },
         "ssh_public_key": {
@@ -6262,8 +6468,7 @@ func init() {
         "static_network_config": {
           "type": "array",
           "items": {
-            "description": "array of string in nmstate yaml format, each string is one host configuration",
-            "type": "string"
+            "$ref": "#/definitions/host_static_network_config"
           }
         }
       }
@@ -6300,7 +6505,6 @@ func init() {
           "type": "string"
         },
         "type": {
-          "type": "string",
           "$ref": "#/definitions/image_type"
         }
       }
@@ -6542,6 +6746,23 @@ func init() {
         ""
       ]
     },
+    "mac_interface_map": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "logical_nic_name": {
+            "description": "nic name used in the yaml, which relates 1:1 to the mac address",
+            "type": "string"
+          },
+          "mac_address": {
+            "description": "mac address present on the host",
+            "type": "string",
+            "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
+          }
+        }
+      }
+    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -6605,10 +6826,6 @@ func init() {
         "operator_type": {
           "$ref": "#/definitions/operator-type"
         },
-        "prefix_name": {
-          "description": "Prefix of the operator to be searched by.",
-          "type": "string"
-        },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
           "type": "string",
@@ -6626,6 +6843,10 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "subscription_name": {
+          "description": "The name of the subscription of the operator.",
+          "type": "string"
         },
         "timeout_seconds": {
           "description": "Positive number represents a timeout in seconds for the operator to be available.",
@@ -6729,6 +6950,19 @@ func init() {
         }
       }
     },
+    "operator-host-requirements": {
+      "type": "object",
+      "properties": {
+        "operator_name": {
+          "description": "Name of the operator",
+          "type": "string"
+        },
+        "requirements": {
+          "description": "Host requirements for the operator",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
     "operator-monitor-report": {
       "type": "object",
       "properties": {
@@ -6742,6 +6976,50 @@ func init() {
         "status_info": {
           "description": "Detailed information about the operator state.",
           "type": "string"
+        }
+      }
+    },
+    "operator-properties": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-property"
+      }
+    },
+    "operator-property": {
+      "type": "object",
+      "properties": {
+        "data_type": {
+          "description": "Type of the property",
+          "type": "string",
+          "enum": [
+            "boolean",
+            "string",
+            "integer",
+            "float"
+          ]
+        },
+        "default_value": {
+          "description": "Default value for the property",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description of a property",
+          "type": "string"
+        },
+        "mandatory": {
+          "description": "Indicates whether the property is reqired",
+          "type": "boolean"
+        },
+        "name": {
+          "description": "Name of the property",
+          "type": "string"
+        },
+        "options": {
+          "description": "Values to select from",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
@@ -8826,6 +9104,72 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/host-requirements": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get host requirements of a cluster.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetClusterHostRequirements",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return operators for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/cluster-host-requirements-list"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/hosts": {
       "get": {
         "security": [
@@ -11052,6 +11396,12 @@ func init() {
           "200": {
             "description": "Success."
           },
+          "400": {
+            "description": "Bad Request",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
           "401": {
             "description": "Unauthorized.",
             "schema": {
@@ -11414,7 +11764,10 @@ func init() {
           "200": {
             "description": "Success.",
             "schema": {
-              "$ref": "#/definitions/monitored-operators-list"
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "401": {
@@ -11427,6 +11780,65 @@ func init() {
             "description": "Forbidden.",
             "schema": {
               "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/supported-operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-properties"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           },
           "500": {
@@ -11567,6 +11979,20 @@ func init() {
         "retry_seconds": {
           "description": "How long in seconds to wait before retrying registration if the command fails",
           "type": "integer"
+        }
+      }
+    },
+    "MacInterfaceMapItems0": {
+      "type": "object",
+      "properties": {
+        "logical_nic_name": {
+          "description": "nic name used in the yaml, which relates 1:1 to the mac address",
+          "type": "string"
+        },
+        "mac_address": {
+          "description": "mac address present on the host",
+          "type": "string",
+          "pattern": "^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$"
         }
       }
     },
@@ -12023,6 +12449,58 @@ func init() {
         }
       }
     },
+    "cluster-host-requirements": {
+      "type": "object",
+      "properties": {
+        "host_id": {
+          "description": "Unique identifier of the host the requirements relate to.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "ocp": {
+          "description": "Host requirements for the OCP installation",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
+        "operators": {
+          "description": "Host requirements related to requested operators",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-host-requirements"
+          }
+        },
+        "total": {
+          "description": "Total host requirements for the cluster configuration",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
+    "cluster-host-requirements-details": {
+      "type": "object",
+      "properties": {
+        "cpu_cores": {
+          "description": "Required number of CPU cores",
+          "type": "integer"
+        },
+        "disk_size_gb": {
+          "description": "Required disk size in GB",
+          "type": "integer"
+        },
+        "installation_disk_speed_threshold_ms": {
+          "description": "Required installation disk speed in ms",
+          "type": "integer"
+        },
+        "ram_gib": {
+          "description": "Required number of RAM in GiB",
+          "type": "integer"
+        }
+      }
+    },
+    "cluster-host-requirements-list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/cluster-host-requirements"
+      }
+    },
     "cluster-list": {
       "type": "array",
       "items": {
@@ -12200,7 +12678,8 @@ func init() {
         "pull-secret-set",
         "ntp-server-configured",
         "lso-requirements-satisfied",
-        "ocs-requirements-satisfied"
+        "ocs-requirements-satisfied",
+        "cnv-requirements-satisfied"
       ]
     },
     "cluster_default_config": {
@@ -12512,15 +12991,21 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
+          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
+          "description": "by-path is the shortest physical path to the device",
           "type": "string"
         },
         "drive_type": {
           "type": "string"
         },
         "hctl": {
+          "type": "string"
+        },
+        "id": {
+          "description": "Determine the disk's unique identifier which is the by-id field if it exists and fallback to the by-path field otherwise",
           "type": "string"
         },
         "installation_eligibility": {
@@ -13191,7 +13676,8 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed"
+        "sufficient-installation-disk-speed",
+        "cnv-requirements-satisfied"
       ]
     },
     "host_network": {
@@ -13239,12 +13725,24 @@ func init() {
         }
       ]
     },
+    "host_static_network_config": {
+      "type": "object",
+      "properties": {
+        "mac_interface_map": {
+          "description": "mapping of host macs to logical interfaces used in the network yaml",
+          "$ref": "#/definitions/mac_interface_map"
+        },
+        "network_yaml": {
+          "description": "yaml string that can be processed by nmstate",
+          "type": "string"
+        }
+      }
+    },
     "image-create-params": {
       "type": "object",
       "properties": {
         "image_type": {
           "description": "Type of image that should be generated.",
-          "type": "string",
           "$ref": "#/definitions/image_type"
         },
         "ssh_public_key": {
@@ -13254,8 +13752,7 @@ func init() {
         "static_network_config": {
           "type": "array",
           "items": {
-            "description": "array of string in nmstate yaml format, each string is one host configuration",
-            "type": "string"
+            "$ref": "#/definitions/host_static_network_config"
           }
         }
       }
@@ -13293,7 +13790,6 @@ func init() {
           "type": "string"
         },
         "type": {
-          "type": "string",
           "$ref": "#/definitions/image_type"
         }
       }
@@ -13535,6 +14031,12 @@ func init() {
         ""
       ]
     },
+    "mac_interface_map": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/MacInterfaceMapItems0"
+      }
+    },
     "managed-domain": {
       "type": "object",
       "properties": {
@@ -13598,10 +14100,6 @@ func init() {
         "operator_type": {
           "$ref": "#/definitions/operator-type"
         },
-        "prefix_name": {
-          "description": "Prefix of the operator to be searched by.",
-          "type": "string"
-        },
         "properties": {
           "description": "Blob of operator-dependent parameters that are required for installation.",
           "type": "string",
@@ -13619,6 +14117,10 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "subscription_name": {
+          "description": "The name of the subscription of the operator.",
+          "type": "string"
         },
         "timeout_seconds": {
           "description": "Positive number represents a timeout in seconds for the operator to be available.",
@@ -13722,6 +14224,19 @@ func init() {
         }
       }
     },
+    "operator-host-requirements": {
+      "type": "object",
+      "properties": {
+        "operator_name": {
+          "description": "Name of the operator",
+          "type": "string"
+        },
+        "requirements": {
+          "description": "Host requirements for the operator",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
     "operator-monitor-report": {
       "type": "object",
       "properties": {
@@ -13735,6 +14250,50 @@ func init() {
         "status_info": {
           "description": "Detailed information about the operator state.",
           "type": "string"
+        }
+      }
+    },
+    "operator-properties": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/operator-property"
+      }
+    },
+    "operator-property": {
+      "type": "object",
+      "properties": {
+        "data_type": {
+          "description": "Type of the property",
+          "type": "string",
+          "enum": [
+            "boolean",
+            "string",
+            "integer",
+            "float"
+          ]
+        },
+        "default_value": {
+          "description": "Default value for the property",
+          "type": "string"
+        },
+        "description": {
+          "description": "Description of a property",
+          "type": "string"
+        },
+        "mandatory": {
+          "description": "Indicates whether the property is reqired",
+          "type": "boolean"
+        },
+        "name": {
+          "description": "Name of the property",
+          "type": "string"
+        },
+        "options": {
+          "description": "Values to select from",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },

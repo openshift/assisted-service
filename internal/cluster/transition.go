@@ -11,16 +11,19 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"github.com/thoas/go-funk"
 )
+
+var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
 
 type transitionHandler struct {
 	log           logrus.FieldLogger
@@ -72,10 +75,9 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 		return errors.New("PostResetCluster invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason,
-		"ControllerLogsCollectedAt", strfmt.DateTime(time.Time{}),
-		"OpenshiftClusterID", "", // reset Openshift cluster ID when resetting
-	)
+	//reset log fields and Openshift ClusterID when resetting the cluster
+	extra := append(append(make([]interface{}, 0), "OpenshiftClusterID", ""), resetLogsField...)
+	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason, extra...)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -91,6 +93,7 @@ type TransitionArgsPrepareForInstallation struct {
 
 func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, ok := sw.(*stateCluster)
+	var err error
 	if !ok {
 		return errors.New("PostPrepareForInstallation incompatible type of StateSwitch")
 	}
@@ -99,46 +102,13 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		return errors.New("PostPrepareForInstallation invalid argument")
 	}
 
-	if err := params.manifestsGenerator.AddChronyManifest(params.ctx, logutil.FromContext(params.ctx, th.log), sCluster.cluster); err != nil {
-		return errors.Wrap(err, "PostPrepareForInstallation failed to add chrony manifest")
+	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now())), resetLogsField...)
+	err = th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
+		statusInfoPreparingForInstallation, extra...)
+	if err != nil {
+		th.log.WithError(err).Errorf("failed to reset fields in PostPrepareForInstallation on cluster %s", *sCluster.cluster.ID)
 	}
-
-	sendNTPMetric(logutil.FromContext(params.ctx, th.log), params.metricApi, sCluster.cluster)
-
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
-		statusInfoPreparingForInstallation, "install_started_at", strfmt.DateTime(time.Now()),
-		"controller_logs_collected_at", strfmt.DateTime(time.Time{}))
-}
-
-func sendNTPMetric(log logrus.FieldLogger, metricApi metrics.API, cluster *common.Cluster) {
-	ntpFailures := 0
-
-	for _, host := range cluster.Hosts {
-		if swag.StringValue(host.Status) == models.HostStatusDisabled || host.NtpSources == "" {
-			continue
-		}
-
-		var ntpSources []*models.NtpSource
-		if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
-			log.Error(errors.Wrapf(err, "Failed to unmarshal %s", host.NtpSources))
-			continue
-		}
-
-		isHostSynced := false
-
-		for _, source := range ntpSources {
-			if source.SourceState == models.SourceStateSynced {
-				isHostSynced = true
-				break
-			}
-		}
-
-		if !isHostSynced {
-			ntpFailures += 1
-		}
-	}
-
-	metricApi.ClusterHostsNTPFailures(*cluster.ID, cluster.EmailDomain, ntpFailures)
+	return err
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -173,33 +143,80 @@ func (th *transitionHandler) PostUpdateInstallationProgress(sw stateswitch.State
 // Complete installation
 ////////////////////////////////////////////////////////////////////////////
 
-type TransitionArgsCompleteInstallation struct {
-	ctx       context.Context
-	isSuccess bool
-	reason    string
-}
-
 func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
 		return errors.New("PostCompleteInstallation incompatible type of StateSwitch")
 	}
-	params, ok := args.(*TransitionArgsCompleteInstallation)
+	params, ok := args.(*TransitionArgsRefreshCluster)
 	if !ok {
 		return errors.New("PostCompleteInstallation invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster, params.reason)
+	if cluster, err := params.clusterAPI.CompleteInstallation(params.ctx, params.db, sCluster.cluster, true, statusInfoInstalled); err != nil {
+		return err
+	} else {
+		sCluster.cluster = cluster
+		return nil
+	}
 }
 
-func (th *transitionHandler) isSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
-	params, _ := args.(*TransitionArgsCompleteInstallation)
-	return params.isSuccess, nil
+func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("hasClusterCompleteInstallation incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return false, errors.New("hasClusterCompleteInstallation invalid argument")
+	}
+
+	objectName := fmt.Sprintf("%s/%s", sCluster.cluster.ID, constants.Kubeconfig)
+	exists, err := params.objectHandler.DoesObjectExist(params.ctx, objectName)
+	if err != nil {
+		return false, err
+	}
+	if !exists {
+		return false, nil
+	}
+
+	// TODO: MGMT-4458
+	// Backward-compatible solution for clusters that don't have monitored operators data
+	// Those clusters shouldn't finish until the controller would tell them.
+	if len(sCluster.cluster.MonitoredOperators) == 0 {
+		return true, nil
+	}
+
+	isComplete, statuses := getClusterMonitoringOperatorsStatus(sCluster.cluster)
+
+	log := logutil.FromContext(params.ctx, th.log)
+	log.Infof("Cluster %s Monitoring status: %s", *sCluster.cluster.ID, statuses)
+
+	return isComplete, nil
 }
 
-func (th *transitionHandler) notSuccess(stateSwitch stateswitch.StateSwitch, args stateswitch.TransitionArgs) (b bool, err error) {
-	params, _ := args.(*TransitionArgsCompleteInstallation)
-	return !params.isSuccess, nil
+func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, map[models.OperatorStatus][]string) {
+	numberOfBuiltInOperators := 0
+
+	operatorsStatuses := map[models.OperatorStatus][]string{
+		models.OperatorStatusAvailable:   {},
+		models.OperatorStatusProgressing: {},
+		models.OperatorStatusFailed:      {},
+	}
+
+	for _, operator := range cluster.MonitoredOperators {
+		if operator.OperatorType == models.OperatorTypeOlm {
+			// TODO: MGMT-3368
+			// Should change cluster state to be degraded
+			continue
+		}
+
+		numberOfBuiltInOperators++
+
+		operatorsStatuses[operator.Status] = append(operatorsStatuses[operator.Status], operator.Name)
+	}
+
+	return len(operatorsStatuses[models.OperatorStatusAvailable]) == numberOfBuiltInOperators, operatorsStatuses
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -220,7 +237,6 @@ func (th *transitionHandler) PostHandlePreInstallationError(sw stateswitch.State
 
 func (th *transitionHandler) updateTransitionCluster(log logrus.FieldLogger, db *gorm.DB, state *stateCluster,
 	statusInfo string, extra ...interface{}) error {
-
 	if cluster, err := updateClusterStatus(log, db, *state.cluster.ID, state.srcState,
 		swag.StringValue(state.cluster.Status), statusInfo, extra...); err != nil {
 		return err
@@ -240,8 +256,10 @@ type TransitionArgsRefreshCluster struct {
 	metricApi         metrics.API
 	hostApi           host.API
 	conditions        map[string]bool
-	validationResults map[string][]validationResult
+	validationResults map[string][]ValidationResult
 	db                *gorm.DB
+	objectHandler     s3wrapper.API
+	clusterAPI        API
 }
 
 func If(id stringer) stateswitch.Condition {
@@ -312,7 +330,7 @@ func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, sta
 		minRequiredMasterNodes = 1
 	}
 
-	// to be installed cluster need 3 master and at least 1 worker(if workers were given)
+	// to be installed cluster need 3 master and at least 2 worker (if workers were given)
 	if mastersInSomeInstallingStatus >= minRequiredMasterNodes &&
 		(numberOfExpectedWorkers == 0 || workersInSomeInstallingStatus >= MinWorkersNeededForInstallation) {
 		return true
@@ -344,6 +362,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		if !ok {
 			return errors.New("PostRefreshCluster invalid argument")
 		}
+
 		var (
 			b              []byte
 			err            error
@@ -370,18 +389,53 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		if updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
 			msg := fmt.Sprintf("Updated status of cluster %s to %s", updatedCluster.Name, *updatedCluster.Status)
 			params.eventHandler.AddEvent(params.ctx, *updatedCluster.ID, nil, models.EventSeverityInfo, msg, time.Now())
-			//report installation finished metric if needed
-			reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
-			if sCluster.srcState == models.ClusterStatusInstalling &&
-				funk.ContainsString(reportInstallationCompleteStatuses, swag.StringValue(updatedCluster.Status)) {
-				params.metricApi.ClusterInstallationFinished(logutil.FromContext(params.ctx, th.log), swag.StringValue(updatedCluster.Status),
-					updatedCluster.OpenshiftVersion, *updatedCluster.ID, updatedCluster.EmailDomain, updatedCluster.InstallStartedAt)
-			}
 		}
 
 		return nil
 	}
 	return ret
+}
+
+func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitch.PostTransition {
+	return func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+		sCluster, _ := sw.(*stateCluster)
+		return updateLogsProgress(th.log, th.db, sCluster.cluster, swag.StringValue(sCluster.cluster.Status), progress)
+	}
+}
+
+//check if log collection on cluster level reached timeout
+func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		th.log.Error("IsLogCollectionTimedOut incompatible type of StateSwitch")
+		return false, errors.New("Cluster IsLogCollectionTimedOut incompatible type of StateSwitch")
+	}
+
+	// if we transitioned to the state before the logs were collected, check the timeout
+	// from the time the state machine entered the state
+	if sCluster.cluster.LogsInfo == models.LogsStateEmpty && time.Time(sCluster.cluster.ControllerLogsStartedAt).IsZero() {
+		return time.Since(time.Time(sCluster.cluster.StatusUpdatedAt)) > th.prepareConfig.LogPendingTimeout, nil
+	}
+
+	// if logs are requested, but not collected at all (e.g. controller failed to start or could not send back the
+	// logs due to networking error) then check the timeout from the time logs were expected
+	if sCluster.cluster.LogsInfo == models.LogsStateRequested && time.Time(sCluster.cluster.ControllerLogsCollectedAt).IsZero() {
+		return time.Since(time.Time(sCluster.cluster.ControllerLogsStartedAt)) > th.prepareConfig.LogCollectionTimeout, nil
+	}
+
+	// if logs are requested, and some logs were collected (e.g. must-gather takes too long to collect)
+	// check the timeout from the time logs were last collected
+	if sCluster.cluster.LogsInfo == models.LogsStateRequested && !time.Time(sCluster.cluster.ControllerLogsCollectedAt).IsZero() {
+		return time.Since(time.Time(sCluster.cluster.ControllerLogsCollectedAt)) > th.prepareConfig.LogCollectionTimeout, nil
+	}
+
+	// if logs are uploaded but not completed (e.g. controller was crashed mid action or request was lost)
+	// check the timeout from the last time the log were collected
+	if sCluster.cluster.LogsInfo == models.LogsStateCollecting {
+		return time.Since(time.Time(sCluster.cluster.ControllerLogsCollectedAt)) > th.prepareConfig.LogCollectionTimeout, nil
+	}
+
+	return false, nil
 }
 
 func setPendingUserResetIfNeeded(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, hostApi host.API, c *common.Cluster) {

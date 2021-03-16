@@ -18,9 +18,9 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
-	"github.com/openshift/hive/pkg/apis/hive/v1/agent"
-	"github.com/openshift/hive/pkg/apis/hive/v1/aws"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	"github.com/openshift/hive/apis/hive/v1/agent"
+	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,9 +113,8 @@ func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.
 		},
 		Platform: hivev1.Platform{
 			AgentBareMetal: &agent.BareMetalPlatform{
-				APIVIP:            "1.2.3.8",
-				IngressVIP:        "1.2.3.9",
-				VIPDHCPAllocation: agent.Disabled,
+				APIVIP:     "1.2.3.8",
+				IngressVIP: "1.2.3.9",
 			},
 		},
 		PullSecretRef: &corev1.LocalObjectReference{
@@ -139,6 +138,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		mockClusterApi        *cluster.MockAPI
 		mockHostApi           *host.MockAPI
+		mockCRDEventsHandler  *MockCRDEventsHandler
 		clusterName           = "test-cluster"
 		pullSecretName        = "pull-secret"
 		defaultClusterSpec    hivev1.ClusterDeploymentSpec
@@ -161,13 +161,15 @@ var _ = Describe("cluster reconcile", func() {
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi = cluster.NewMockAPI(mockCtrl)
 		mockHostApi = host.NewMockAPI(mockCtrl)
+		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		cr = &ClusterDeploymentsReconciler{
-			Client:     c,
-			Scheme:     scheme.Scheme,
-			Log:        common.GetTestLog(),
-			Installer:  mockInstallerInternal,
-			ClusterApi: mockClusterApi,
-			HostApi:    mockHostApi,
+			Client:           c,
+			Scheme:           scheme.Scheme,
+			Log:              common.GetTestLog(),
+			Installer:        mockInstallerInternal,
+			ClusterApi:       mockClusterApi,
+			HostApi:          mockHostApi,
+			CRDEventsHandler: mockCRDEventsHandler,
 		}
 	})
 
@@ -430,6 +432,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
 
 			installClusterReply := &common.Cluster{
 				Cluster: models.Cluster{
@@ -457,6 +460,7 @@ var _ = Describe("cluster reconcile", func() {
 				Return(nil, errors.Errorf("error"))
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
 
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(request)
@@ -471,6 +475,24 @@ var _ = Describe("cluster reconcile", func() {
 		It("not ready for installation", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusPendingForInput)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).
+				To(Equal(models.ClusterStatusPendingForInput))
+		})
+
+		It("not ready for installation - hosts not approved", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusPendingForInput)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(5)
+
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			request := newClusterDeploymentRequest(cluster)

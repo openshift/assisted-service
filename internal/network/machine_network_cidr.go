@@ -33,7 +33,7 @@ func getVIPInterfaceNetwork(vip net.IP, addresses []string) *net.IPNet {
  * The goal of this function is to find the first network that one of the vips belongs to it.
  * This network is returned as a result.
  */
-func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host) (string, error) {
+func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*models.Host, isMatchRequired bool) (string, error) {
 	var ip string
 	if apiVip != "" {
 		ip = apiVip
@@ -68,6 +68,9 @@ func CalculateMachineNetworkCIDR(apiVip string, ingressVip string, hosts []*mode
 			}
 		}
 	}
+	if !isMatchRequired {
+		return "", nil
+	}
 	return "", errors.Errorf("No suitable matching CIDR found for VIP %s", ip)
 }
 
@@ -96,7 +99,7 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	return nil
 }
 
-func verifyDifferentVipAddresses(apiVip string, ingressVip string) error {
+func VerifyDifferentVipAddresses(apiVip string, ingressVip string) error {
 	if apiVip == ingressVip && apiVip != "" {
 		return errors.Errorf("api-vip and ingress-vip cannot have the same value: %s", apiVip)
 	}
@@ -109,25 +112,21 @@ func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, 
 		err = VerifyVip(hosts, machineNetworkCidr, ingressVip, "ingress-vip", mustExist, log)
 	}
 	if err == nil {
-		err = verifyDifferentVipAddresses(apiVip, ingressVip)
+		err = VerifyDifferentVipAddresses(apiVip, ingressVip)
 	}
 	return err
 }
 
-func VerifyMachineCIDR(machineCidr string, hosts []*models.Host, log logrus.FieldLogger) error {
+func VerifyMachineCIDR(machineCidr string) error {
 	ip, ipNet, err := net.ParseCIDR(machineCidr)
 	if err != nil {
 		return err
 	}
-	if ipNet.IP.To4().String() != ip.To4().String() {
+
+	if !ip.Equal(ipNet.IP) {
 		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s is not a valid machine CIDR", machineCidr))
 	}
-	for _, h := range hosts {
-		if belongsToNetwork(log, h, ipNet) {
-			return nil
-		}
-	}
-	return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s does not belong to any of the host networks", machineCidr))
+	return nil
 }
 
 func findMatchingIPForFamily(ipnet *net.IPNet, addresses []string) (bool, string) {
@@ -151,14 +150,14 @@ func findMatchingIP(ipnet *net.IPNet, intf *models.Interface, isIPv4 bool) (bool
 	}
 }
 
-func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (string, error) {
+func getMachineCIDRObj(host *models.Host, machineNetworkCidr string, obj string) (string, error) {
 	var inventory models.Inventory
 	var err error
-	isIPv4 := IsIPV4CIDR(cluster.MachineNetworkCidr)
+	isIPv4 := IsIPV4CIDR(machineNetworkCidr)
 	if err = json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
 		return "", err
 	}
-	_, ipNet, err := net.ParseCIDR(cluster.MachineNetworkCidr)
+	_, ipNet, err := net.ParseCIDR(machineNetworkCidr)
 	if err != nil {
 		return "", err
 	}
@@ -179,11 +178,11 @@ func getMachineCIDRObj(host *models.Host, cluster *common.Cluster, obj string) (
 }
 
 func GetMachineCIDRInterface(host *models.Host, cluster *common.Cluster) (string, error) {
-	return getMachineCIDRObj(host, cluster, "interface")
+	return getMachineCIDRObj(host, cluster.MachineNetworkCidr, "interface")
 }
 
 func GetMachineCIDRIP(host *models.Host, cluster *common.Cluster) (string, error) {
-	return getMachineCIDRObj(host, cluster, "ip")
+	return getMachineCIDRObj(host, cluster.MachineNetworkCidr, "ip")
 }
 
 func IpInCidr(ipAddr, cidr string) (bool, error) {
@@ -229,6 +228,48 @@ func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*mo
 		}
 	}
 	return ret, nil
+}
+
+// GetMachineCidrForUserManagedNetwork used to get machine cidr in case of none platform and sno
+func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
+	if cluster.MachineNetworkCidr != "" {
+		return cluster.MachineNetworkCidr
+	}
+
+	bootstrap := common.GetBootstrapHost(cluster)
+	if bootstrap == nil {
+		return ""
+	}
+
+	networks := GetClusterNetworks([]*models.Host{bootstrap}, log)
+	if len(networks) > 0 {
+		// if there is ipv4 network, return it or return the first one
+		for _, network := range networks {
+			if IsIPV4CIDR(network) {
+				return network
+			}
+		}
+		return networks[0]
+	}
+	return ""
+}
+
+func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLogger) (string, error) {
+	bootstrap := common.GetBootstrapHost(cluster)
+	if bootstrap == nil {
+		return "", errors.Errorf("no bootstrap host were found in cluster")
+	}
+	cidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+	hostIp, err := getMachineCIDRObj(bootstrap, cidr, "ip")
+	if hostIp == "" || err != nil {
+		msg := "failed to get ip for bootstrap in place dnsmasq manifest"
+		if err != nil {
+			msg = errors.Wrapf(err, msg).Error()
+		}
+		return "", errors.Errorf(msg)
+	}
+
+	return hostIp, nil
 }
 
 func GetClusterNetworks(hosts []*models.Host, log logrus.FieldLogger) []string {

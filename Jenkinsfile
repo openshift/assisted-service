@@ -14,6 +14,11 @@ pipeline {
         // Credentials
         SLACK_TOKEN = credentials('slack-token')
         QUAY_IO_CREDS = credentials('ocpmetal_cred')
+        TWINE_CREDS = credentials('assisted-pypi')
+
+        TWINE_USERNAME="${TWINE_CREDS_USR}"
+        TWINE_PASSWORD="${TWINE_CREDS_PSW}"
+        TWINE_REPOSITORY="pypi"
     }
     options {
       timeout(time: 2, unit: 'HOURS')
@@ -23,11 +28,17 @@ pipeline {
         stage('Init') {
             steps {
                 sh 'make clear-all || true'
-                sh 'make ci-lint'
+
+                // Logout from problematic registries
+                sh 'docker logout registry.svc.ci.openshift.org || true'
+                sh 'podman logout --all || true'
+                sh 'oc logout || true'
 
                 // Login to quay.io
                 sh "docker login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
                 sh "podman login quay.io -u ${QUAY_IO_CREDS_USR} -p ${QUAY_IO_CREDS_PSW}"
+
+                sh 'make ci-lint'
             }
         }
 

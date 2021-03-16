@@ -8,33 +8,34 @@
 
 ## Building the operator
 
-### Create the bundle manifests
-
-```bash
-make operator-bundle
-```
+### Background
 
 To generate the manifests and CSV in ./bundle, "make operator-bundle" first calls the "ocp-create-manifests" target. This target in turn calls "deploy-service-on-ocp-cluster and deploy-ui-on-ocp-cluster" while setting APPLY_MANIFESTS=False and APPLY_NAMESPACE=False. This causes the resource yamls to be created in ./build/assisted-installer/ but does not apply them.
 
-The relevant resource yamls are then copied to ./config/assisted-service where additional customizations are applied using Kustomize. The resulting yaml is then piped to operator-sdk
-creating the manifests and CSVs in ./bundle/manifests. 
+The relevant resource yamls are then copied to ./config/assisted-service where additional customizations are applied using Kustomize. The resulting yaml is then piped to operator-sdk, creating the manifests and CSVs in ./bundle/manifests.
 
 More information about bundles: <https://sdk.operatorframework.io/docs/olm-integration/generation/>
 
 ### Create the bundle and index images
 
 ```bash
-export ORG=quay.io/ocpmetal
-make operator-bundle-build BUNDLE_IMG=$ORG/assisted-service-operator-bundle:0.0.1
-podman push $ORG/assisted-service-operator-bundle:0.0.1
+export ORG=quay.io/change-me
+export BUNDLE_IMAGE=$ORG/assisted-service-operator-bundle:0.0.1
+export INDEX_IMAGE=$ORG/assisted-service-index:0.0.1
+# Build bundle image
+make operator-bundle-build
+# Push bundle image
+make operator-bundle-update
 
-opm index add --bundles $ORG/assisted-service-operator-bundle:0.0.1 --tag $ORG/assisted-service-index:0.0.1
-podman push $ORG/assisted-service-index:0.0.1
+# Create index image
+opm index add --bundles $BUNLE_IMAGE --tag $INDEX_IMAGE
+# Push index image used in catalog source
+podman push $INDEX_IMAGE
 ```
 
-## Deploying the operator through OperatorHub
+## Deploying the operator
 
-The operator must be deployed to assisted-installer namespace. Create the namespace. 
+The operator must be deployed to the assisted-installer namespace. Create the namespace.
 
 ```bash
 cat <<EOF | kubectl create -f -
@@ -83,22 +84,108 @@ spec:
 EOF
 ```
 
-Create a catalog source for the operator to appear in OperatorHub.
+Having the ClusterDeployment CRD installed is a prerequisite.
+Install Hive, if it has not already been installed. Note the
+startingCSV version, it may need to be updated to a more
+recent version. See [version list](https://github.com/operator-framework/community-operators/tree/master/community-operators/hive-operator).
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: hive-operator
+  namespace: openshift-operators
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  name: hive-operator
+  source: community-operators
+  sourceNamespace: openshift-marketplace
+  startingCSV: hive-operator.v1.0.19
+```
+
+Create a CatalogSource for the operator to appear in OperatorHub.
+The CatalogSource references the index image built earlier.
 
 ``` bash
 cat <<EOF | kubectl create -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: assisted-service
+  name: assisted-service-catalog
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  image: quay.io/ocpmetal/assisted-service-index:0.0.1
+  image: $INDEX_IMAGE
 EOF
 ```
 
-It may take a few minutes for the operator to appear in Operatorhub.
+It may take a few minutes for the operator to appear in OperatorHub.
+Once it is in OperatorHub, the operator can be installed through the
+console.
+
+The operator can also be installed through the command line by creating
+an OperatorGroup and Subscription.
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+    name: assisted-installer-group
+    namespace: assisted-installer
+spec:
+  targetNamespaces:
+    - assisted-installer
+EOF
+
+cat <<EOF | kubectl create -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: assisted-service-operator
+  namespace: assisted-installer 
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  name: assisted-service-operator
+  source: assisted-service-catalog
+  sourceNamespace: openshift-marketplace
+  startingCSV: assisted-service-operator.v0.0.1
+EOF
+```
+
+## Subscription config
+
+Subscription configs override any environment variables set in
+the deployment specs and any values from ConfigMaps. They can be
+used to configure the operator deployment.
+
+Here is an example. By default, the operator bundle is configured
+to use minimal-iso for ISO_IMAGE_TYPE. It can be reconfigured to 
+full-iso through the Subscription config.
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: assisted-service-operator
+  namespace: assisted-installer 
+spec:
+  channel: alpha
+  installPlanApproval: Automatic
+  name: assisted-service-operator
+  source: assisted-service-manifests
+  sourceNamespace: openshift-marketplace
+  startingCSV: assisted-service-operator.v0.0.1
+  config:
+    env:
+    - name: ISO_IMAGE_TYPE
+      value: "full-iso"
+EOF
+```
 
 ## Useful Kustomize options
 

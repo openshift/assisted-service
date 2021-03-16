@@ -8,43 +8,44 @@ import (
 	"github.com/pkg/errors"
 )
 
-type validationID models.ClusterValidationID
+type ValidationID models.ClusterValidationID
 
 const (
-	isClusterCidrDefined                = validationID(models.ClusterValidationIDClusterCidrDefined)
-	isServiceCidrDefined                = validationID(models.ClusterValidationIDServiceCidrDefined)
-	noCidrOverlapping                   = validationID(models.ClusterValidationIDNoCidrsOverlapping)
-	networkPrefixValid                  = validationID(models.ClusterValidationIDNetworkPrefixValid)
-	IsMachineCidrDefined                = validationID(models.ClusterValidationIDMachineCidrDefined)
-	isMachineCidrEqualsToCalculatedCidr = validationID(models.ClusterValidationIDMachineCidrEqualsToCalculatedCidr)
-	isApiVipDefined                     = validationID(models.ClusterValidationIDAPIVipDefined)
-	isApiVipValid                       = validationID(models.ClusterValidationIDAPIVipValid)
-	isIngressVipDefined                 = validationID(models.ClusterValidationIDIngressVipDefined)
-	isIngressVipValid                   = validationID(models.ClusterValidationIDIngressVipValid)
-	AllHostsAreReadyToInstall           = validationID(models.ClusterValidationIDAllHostsAreReadyToInstall)
-	SufficientMastersCount              = validationID(models.ClusterValidationIDSufficientMastersCount)
-	IsDNSDomainDefined                  = validationID(models.ClusterValidationIDDNSDomainDefined)
-	IsPullSecretSet                     = validationID(models.ClusterValidationIDPullSecretSet)
-	IsNtpServerConfigured               = validationID(models.ClusterValidationIDNtpServerConfigured)
-	IsOcsRequirementsSatisfied          = validationID(models.ClusterValidationIDOcsRequirementsSatisfied)
-	IsLsoRequirementsSatisfied          = validationID(models.ClusterValidationIDLsoRequirementsSatisfied)
+	isClusterCidrDefined                = ValidationID(models.ClusterValidationIDClusterCidrDefined)
+	isServiceCidrDefined                = ValidationID(models.ClusterValidationIDServiceCidrDefined)
+	noCidrOverlapping                   = ValidationID(models.ClusterValidationIDNoCidrsOverlapping)
+	networkPrefixValid                  = ValidationID(models.ClusterValidationIDNetworkPrefixValid)
+	IsMachineCidrDefined                = ValidationID(models.ClusterValidationIDMachineCidrDefined)
+	IsMachineCidrEqualsToCalculatedCidr = ValidationID(models.ClusterValidationIDMachineCidrEqualsToCalculatedCidr)
+	IsApiVipDefined                     = ValidationID(models.ClusterValidationIDAPIVipDefined)
+	IsApiVipValid                       = ValidationID(models.ClusterValidationIDAPIVipValid)
+	IsIngressVipDefined                 = ValidationID(models.ClusterValidationIDIngressVipDefined)
+	IsIngressVipValid                   = ValidationID(models.ClusterValidationIDIngressVipValid)
+	AllHostsAreReadyToInstall           = ValidationID(models.ClusterValidationIDAllHostsAreReadyToInstall)
+	SufficientMastersCount              = ValidationID(models.ClusterValidationIDSufficientMastersCount)
+	IsDNSDomainDefined                  = ValidationID(models.ClusterValidationIDDNSDomainDefined)
+	IsPullSecretSet                     = ValidationID(models.ClusterValidationIDPullSecretSet)
+	IsNtpServerConfigured               = ValidationID(models.ClusterValidationIDNtpServerConfigured)
+	IsOcsRequirementsSatisfied          = ValidationID(models.ClusterValidationIDOcsRequirementsSatisfied)
+	IsLsoRequirementsSatisfied          = ValidationID(models.ClusterValidationIDLsoRequirementsSatisfied)
+	IsCnvRequirementsSatisfied          = ValidationID(models.ClusterValidationIDCnvRequirementsSatisfied)
 )
 
-func (v validationID) category() (string, error) {
+func (v ValidationID) Category() (string, error) {
 	switch v {
-	case IsMachineCidrDefined, isMachineCidrEqualsToCalculatedCidr, isApiVipDefined, isApiVipValid, isIngressVipDefined, isIngressVipValid,
+	case IsMachineCidrDefined, IsMachineCidrEqualsToCalculatedCidr, IsApiVipDefined, IsApiVipValid, IsIngressVipDefined, IsIngressVipValid,
 		isClusterCidrDefined, isServiceCidrDefined, noCidrOverlapping, networkPrefixValid, IsDNSDomainDefined, IsNtpServerConfigured:
 		return "network", nil
 	case AllHostsAreReadyToInstall, SufficientMastersCount:
 		return "hosts-data", nil
 	case IsPullSecretSet:
 		return "configuration", nil
-	case IsOcsRequirementsSatisfied, IsLsoRequirementsSatisfied:
+	case IsOcsRequirementsSatisfied, IsLsoRequirementsSatisfied, IsCnvRequirementsSatisfied:
 		return "operators", nil
 	}
 	return "", common.NewApiError(http.StatusInternalServerError, errors.Errorf("Unexpected cluster validation id %s", string(v)))
 }
 
-func (v validationID) String() string {
+func (v ValidationID) String() string {
 	return string(v)
 }

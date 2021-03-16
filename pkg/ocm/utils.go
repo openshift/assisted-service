@@ -28,12 +28,16 @@ type response interface {
 	Status() int
 }
 
+func AdminPayload() *AuthPayload {
+	return &AuthPayload{Role: AdminRole, Username: AdminUsername}
+}
+
 // PayloadFromContext returns auth payload from the specified context
 func PayloadFromContext(ctx context.Context) *AuthPayload {
 	payload := ctx.Value(restapi.AuthKey)
 	if payload == nil {
 		// fallback to system-admin
-		return &AuthPayload{Role: AdminRole, Username: AdminUsername}
+		return AdminPayload()
 	}
 	return payload.(*AuthPayload)
 }

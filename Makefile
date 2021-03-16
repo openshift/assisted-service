@@ -36,6 +36,7 @@ ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
+BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
@@ -49,7 +50,7 @@ APPLY_NAMESPACE := $(or ${APPLY_NAMESPACE},True)
 ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
-ENABLE_AUTH := $(or ${ENABLE_AUTH},False)
+AUTH_TYPE := $(or ${AUTH_TYPE},none)
 WITH_AMS_SUBSCRIPTIONS := $(or ${WITH_AMS_SUBSCRIPTIONS},False)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 DELETE_PVC := $(or ${DELETE_PVC},False)
@@ -58,7 +59,7 @@ PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUB
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
-
+IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, False)
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 endif
@@ -147,6 +148,10 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
+	skipper make publish-client
+
+publish-client: generate-python-client
+	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
 build-openshift-ci-test-bin:
 	pip3 install pyyaml waiting
@@ -203,12 +208,13 @@ deploy-inventory-service-file: deploy-namespace
 deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
-		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --enable-auth "$(ENABLE_AUTH)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
+		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
-		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG)
+		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
+    --ipv6-support $(IPV6_SUPPORT)
 	@if [ $(INSTALL_TYPE) = "IPV6" ]; then\
 		python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py --target "$(TARGET)" --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD);\
-    fi
+  fi
 
 deploy-resources: generate-manifests
 	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"
@@ -238,18 +244,21 @@ deploy-ui-on-ocp-cluster:
 create-ocp-manifests:
 	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
 	export ENABLE_KUBE_API=true && export TARGET=ocp && \
+	export OPENSHIFT_VERSIONS="$(subst ",\", $(shell cat default_ocp_versions.json | tr -d "\n\t "))" && \
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
 jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
 
 ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
-	export TEST_FLAGS=--subsystem-test && export ENABLE_AUTH="True" && export DUMMY_IGNITION=${DUMMY_IGNITION} && WITH_AMS_SUBSCRIPTIONS="True" && \
+	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export IPV6_SUPPORT="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
 deploy-test: $(VERIFY_CLUSTER) generate-keys
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
 	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
-	export ENABLE_AUTH="True" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export IPV6_SUPPORT="True" && \
 	$(MAKE) _update-minikube deploy-wiremock deploy-all
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
@@ -303,7 +312,7 @@ test:
 		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
 		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
 		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
-		ENABLE_AUTH="true" \
+		AUTH_TYPE="rhsso" \
 		WITH_AMS_SUBSCRIPTIONS="true" \
 		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
 
@@ -323,7 +332,7 @@ deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
 unit-test: $(REPORTS)
 	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
-	docker run -d  --rm --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
+	docker run -d  --rm --tmpfs /var/lib/postgresql/data --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
 		quay.io/ocpmetal/postgres:12.3-alpine -c 'max_connections=10000'
 	timeout 5m ./hack/wait_for_postgres.sh
 	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
@@ -341,6 +350,7 @@ test-onprem:
 	DB_HOST=127.0.0.1 \
 	DB_PORT=5432 \
 	DEPLOY_TARGET=onprem \
+	STORAGE=filesystem \
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 test-on-openshift-ci:
@@ -395,6 +405,7 @@ delete-all-minikube-profiles:
 
 # Current Operator version
 OPERATOR_VERSION ?= 0.0.1
+BUNDLE_OUTPUT_DIR := $(or ${BUNDLE_OUTPUT_DIR},$(BUILD_FOLDER)/bundle)
 
 # Generate bundle manifests and metadata, then validate generated files.
 .PHONY: operator-bundle
@@ -411,12 +422,21 @@ operator-bundle: create-ocp-manifests
 	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
 	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
-	#operator-sdk generate kustomize manifests -q
-	#cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
-	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) $(BUNDLE_METADATA_OPTS)
-	operator-sdk bundle validate ./bundle
+	# To use --output-dir, needed to break manifests and metadata generation into two steps
+	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp1
+	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp2
+	kustomize build config/manifests | operator-sdk generate bundle --version $(OPERATOR_VERSION) --manifests --output-dir $(BUNDLE_OUTPUT_DIR)/temp1
+	operator-sdk generate bundle --version $(OPERATOR_VERSION) --metadata --input-dir $(BUNDLE_OUTPUT_DIR)/temp1 --output-dir $(BUNDLE_OUTPUT_DIR)/temp2
+	mv $(BUNDLE_OUTPUT_DIR)/temp1/* $(BUNDLE_OUTPUT_DIR)
+	mv $(BUNDLE_OUTPUT_DIR)/temp2/metadata $(BUNDLE_OUTPUT_DIR)
+	rm -rf $(BUNDLE_OUTPUT_DIR)/temp1
+	rm -rf $(BUNDLE_OUTPUT_DIR)/temp2
+	operator-sdk bundle validate $(BUNDLE_OUTPUT_DIR)
 
 # Build the bundle image.
-.PHONY: operator-bundle-build
+.PHONY: operator-bundle-build operator-bundle-update
 operator-bundle-build:
-	podman build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+	podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.bundle -t $(BUNDLE_IMAGE) .
+
+operator-bundle-update:
+	podman push $(BUNDLE_IMAGE)

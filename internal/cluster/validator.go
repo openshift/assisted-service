@@ -15,12 +15,12 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type validationStatus string
+type ValidationStatus string
 
 const (
-	ValidationSuccess             validationStatus = "success"
-	ValidationFailure             validationStatus = "failure"
-	ValidationPending             validationStatus = "pending"
+	ValidationSuccess             ValidationStatus = "success"
+	ValidationFailure             ValidationStatus = "failure"
+	ValidationPending             ValidationStatus = "pending"
 	MaximumAllowedTimeDiffMinutes                  = 4
 )
 
@@ -29,7 +29,7 @@ const (
 	IngressVipName = "ingress vip"
 )
 
-func (v validationStatus) String() string {
+func (v ValidationStatus) String() string {
 	return string(v)
 }
 
@@ -40,11 +40,11 @@ type clusterPreprocessContext struct {
 	calculateCidr string
 }
 
-type validationConditon func(context *clusterPreprocessContext) validationStatus
-type validationStringFormatter func(context *clusterPreprocessContext, status validationStatus) string
+type validationConditon func(context *clusterPreprocessContext) ValidationStatus
+type validationStringFormatter func(context *clusterPreprocessContext, status ValidationStatus) string
 
 type validation struct {
-	id        validationID
+	id        ValidationID
 	condition validationConditon
 	formatter validationStringFormatter
 }
@@ -73,7 +73,7 @@ func isDhcpLeaseAllocationTimedOut(c *clusterPreprocessContext) bool {
 	return c.cluster.MachineNetworkCidrUpdatedAt.String() != "" && time.Since(c.cluster.MachineNetworkCidrUpdatedAt) > DhcpLeaseTimeoutMinutes*time.Minute
 }
 
-func boolValue(b bool) validationStatus {
+func boolValue(b bool) ValidationStatus {
 	if b {
 		return ValidationSuccess
 	} else {
@@ -86,14 +86,14 @@ type clusterValidator struct {
 	hostAPI host.API
 }
 
-func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) ValidationStatus {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	return boolValue(c.cluster.MachineNetworkCidr != "")
 }
 
-func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
@@ -111,11 +111,11 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 	}
 }
 
-func (v *clusterValidator) isClusterCidrDefined(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isClusterCidrDefined(c *clusterPreprocessContext) ValidationStatus {
 	return boolValue(c.cluster.ClusterNetworkCidr != "")
 }
 
-func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationFailure:
 		return "The Cluster Network CIDR is undefined."
@@ -126,11 +126,11 @@ func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessC
 	}
 }
 
-func (v *clusterValidator) isServiceCidr(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isServiceCidr(c *clusterPreprocessContext) ValidationStatus {
 	return boolValue(c.cluster.ServiceNetworkCidr != "")
 }
 
-func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationFailure:
 		return "The Service Network CIDR is undefined."
@@ -141,19 +141,19 @@ func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessC
 	}
 }
 
-func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreprocessContext) ValidationStatus {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
 	if c.cluster.APIVip == "" && c.cluster.IngressVip == "" {
 		return ValidationPending
 	}
-	cidr, err := network.CalculateMachineNetworkCIDR(c.cluster.APIVip, c.cluster.IngressVip, c.cluster.Hosts)
+	cidr, err := network.CalculateMachineNetworkCIDR(c.cluster.APIVip, c.cluster.IngressVip, c.cluster.Hosts, true)
 	c.calculateCidr = cidr
 	return boolValue(err == nil && cidr == c.cluster.MachineNetworkCidr)
 }
 
-func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
 		return "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
@@ -169,7 +169,7 @@ func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clu
 	}
 }
 
-func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) ValidationStatus {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
@@ -179,7 +179,7 @@ func (v *clusterValidator) isApiVipDefined(c *clusterPreprocessContext) validati
 	return boolValue(c.cluster.APIVip != "")
 }
 
-func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
 		return "The Machine Network CIDR is undefined"
@@ -203,7 +203,7 @@ func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContex
 	}
 }
 
-func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) ValidationStatus {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
@@ -215,7 +215,7 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) validation
 	return boolValue(err == nil)
 }
 
-func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
 		return "The API virtual IP is undefined."
@@ -231,7 +231,7 @@ func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext,
 	}
 }
 
-func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) ValidationStatus {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
@@ -241,7 +241,7 @@ func (v *clusterValidator) isIngressVipDefined(c *clusterPreprocessContext) vali
 	return boolValue(c.cluster.IngressVip != "")
 }
 
-func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
 		return "The Machine Network CIDR is undefined"
@@ -264,7 +264,7 @@ func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessCo
 		return fmt.Sprintf("Unexpected status %s.", status)
 	}
 }
-func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) ValidationStatus {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
@@ -276,7 +276,7 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) valida
 	return boolValue(err == nil)
 }
 
-func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
 		return "The Ingress virtual IP is undefined."
@@ -297,7 +297,7 @@ func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessCont
 // 2. have less then 3 masters but enough to auto-assign hosts that can become masters
 // 3. have at least 2 workers or auto-assign hosts that can become workers, if workers configured
 // 4. having more then 3 known masters is illegal
-func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) ValidationStatus {
 	minMastersNeededForInstallation := common.MinMasterHostsNeededForInstallation
 	nonHAMode := swag.StringValue(c.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	if nonHAMode {
@@ -305,9 +305,9 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 	}
 
 	hosts := make([]*models.Host, 0)
-	for k, v := range MapHostsByStatus(c.cluster) {
+	for k, h := range MapHostsByStatus(c.cluster) {
 		if k != models.HostStatusDisabled {
-			hosts = append(hosts, v...)
+			hosts = append(hosts, h...)
 		}
 	}
 	masters := make([]*models.Host, 0)
@@ -359,7 +359,7 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) v
 	return boolValue(true)
 }
 
-func (v *clusterValidator) printSufficientMastersCount(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printSufficientMastersCount(context *clusterPreprocessContext, status ValidationStatus) string {
 	noneHAMode := swag.StringValue(context.cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 	switch status {
 	case ValidationSuccess:
@@ -375,7 +375,7 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 	}
 }
 
-func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) ValidationStatus {
 	foundNotKnownHost := false
 	for _, host := range c.cluster.Hosts {
 		if swag.StringValue(host.Status) != models.HostStatusDisabled && swag.StringValue(host.Status) != models.HostStatusKnown {
@@ -386,7 +386,7 @@ func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext
 	return boolValue(!foundNotKnownHost)
 }
 
-func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "All hosts in the cluster are ready to install."
@@ -397,11 +397,11 @@ func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPrepro
 	}
 }
 
-func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isDNSDomainDefined(c *clusterPreprocessContext) ValidationStatus {
 	return boolValue(c.cluster.BaseDNSDomain != "")
 }
 
-func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationFailure:
 		return "The base domain is undefined and must be provided."
@@ -412,7 +412,7 @@ func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessCon
 	}
 }
 
-func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) ValidationStatus {
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		if c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
 			return ValidationPending
@@ -425,7 +425,7 @@ func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) valid
 	return boolValue(network.VerifyClusterCIDRsNotOverlap(c.cluster.MachineNetworkCidr, c.cluster.ClusterNetworkCidr, c.cluster.ServiceNetworkCidr, swag.BoolValue(c.cluster.UserManagedNetworking)) == nil)
 }
 
-func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "No CIDRS are overlapping."
@@ -444,11 +444,11 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 	}
 }
 
-func (v *clusterValidator) isPullSecretSet(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isPullSecretSet(c *clusterPreprocessContext) ValidationStatus {
 	return boolValue(c.cluster.PullSecretSet)
 }
 
-func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationFailure:
 		return "The pull secret is not set."
@@ -459,7 +459,7 @@ func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContex
 	}
 }
 
-func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) ValidationStatus {
 	if c.cluster.ClusterNetworkCidr == "" {
 		return ValidationPending
 	}
@@ -467,7 +467,7 @@ func (v *clusterValidator) networkPrefixValid(c *clusterPreprocessContext) valid
 		network.VerifyClusterCidrSize(int(c.cluster.ClusterNetworkHostPrefix), c.cluster.ClusterNetworkCidr, len(c.cluster.Hosts)) == nil)
 }
 
-func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "The Cluster Network prefix is valid."
@@ -486,7 +486,7 @@ func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, 
 	}
 }
 
-func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) validationStatus {
+func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) ValidationStatus {
 	var min int64
 	var max int64
 	for _, h := range c.cluster.Hosts {
@@ -514,7 +514,7 @@ func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) va
 	return ValidationSuccess
 }
 
-func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext, status validationStatus) string {
+func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
 		return "No ntp problems found"

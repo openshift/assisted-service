@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -29,7 +30,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
-	hivev1 "github.com/openshift/hive/pkg/apis/hive/v1"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
@@ -111,6 +112,12 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return result, nil
 	}
 
+	err = r.updateInventory(cluster, agent)
+	if err != nil {
+		r.updateFailure(ctx, agent, err)
+		return ctrl.Result{Requeue: true}, nil
+	}
+
 	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    adiiov1alpha1.AgentSyncedCondition,
 		Status:  corev1.ConditionTrue,
@@ -122,6 +129,113 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{Requeue: true}, nil
 	}
 	return result, nil
+}
+
+func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha1.Agent) error {
+
+	host := getHostFromCluster(c, agent.Name)
+	if host == nil {
+		r.Log.Errorf("Fail to update inventory: Host %s not found in cluster %s", agent.Name, c.Name)
+		return errors.New("Fail to update inventory: Host not found in cluster")
+	}
+	if host.Inventory == "" {
+		r.Log.Debugf("Skip update inventory: Host %s cluster %s inventory not set", agent.Name, c.Name)
+		return nil
+	}
+	var inventory models.Inventory
+	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		return err
+	}
+	agent.Status.Inventory.Hostname = inventory.Hostname
+	agent.Status.Inventory.BmcAddress = inventory.BmcAddress
+	agent.Status.Inventory.BmcV6address = inventory.BmcV6address
+	if inventory.Memory != nil {
+		agent.Status.Inventory.Memory = adiiov1alpha1.HostMemory{
+			PhysicalBytes: inventory.Memory.PhysicalBytes,
+			UsableBytes:   inventory.Memory.UsableBytes,
+		}
+	}
+	if inventory.CPU != nil {
+		agent.Status.Inventory.Cpu = adiiov1alpha1.HostCPU{
+			Count:          inventory.CPU.Count,
+			ClockMegahertz: int64(inventory.CPU.Frequency),
+			Flags:          inventory.CPU.Flags,
+			ModelName:      inventory.CPU.ModelName,
+			Architecture:   inventory.CPU.Architecture,
+		}
+	}
+	if inventory.Boot != nil {
+		agent.Status.Inventory.Boot = adiiov1alpha1.HostBoot{
+			CurrentBootMode: inventory.Boot.CurrentBootMode,
+			PxeInterface:    inventory.Boot.PxeInterface,
+		}
+	}
+	if inventory.SystemVendor != nil {
+		agent.Status.Inventory.SystemVendor = adiiov1alpha1.HostSystemVendor{
+			SerialNumber: inventory.SystemVendor.SerialNumber,
+			ProductName:  inventory.SystemVendor.ProductName,
+			Manufacturer: inventory.SystemVendor.Manufacturer,
+			Virtual:      inventory.SystemVendor.Virtual,
+		}
+	}
+	if inventory.Interfaces != nil {
+		ifcs := make([]adiiov1alpha1.HostInterface, len(inventory.Interfaces))
+		agent.Status.Inventory.Interfaces = ifcs
+		for i, inf := range inventory.Interfaces {
+			if inf.IPV6Addresses != nil {
+				ifcs[i].IPV6Addresses = inf.IPV6Addresses
+			} else {
+				ifcs[i].IPV6Addresses = make([]string, 0)
+			}
+			if inf.IPV4Addresses != nil {
+				ifcs[i].IPV4Addresses = inf.IPV4Addresses
+			} else {
+				ifcs[i].IPV4Addresses = make([]string, 0)
+			}
+			if inf.Flags != nil {
+				ifcs[i].Flags = inf.Flags
+			} else {
+				ifcs[i].Flags = make([]string, 0)
+			}
+			ifcs[i].Vendor = inf.Vendor
+			ifcs[i].Name = inf.Name
+			ifcs[i].HasCarrier = inf.HasCarrier
+			ifcs[i].Product = inf.Product
+			ifcs[i].Mtu = inf.Mtu
+			ifcs[i].Biosdevname = inf.Biosdevname
+			ifcs[i].ClientId = inf.ClientID
+			ifcs[i].MacAddress = inf.MacAddress
+			ifcs[i].SpeedMbps = inf.SpeedMbps
+		}
+	}
+	if inventory.Disks != nil {
+		disks := make([]adiiov1alpha1.HostDisk, len(inventory.Disks))
+		agent.Status.Inventory.Disks = disks
+		for i, d := range inventory.Disks {
+			disks[i].DriveType = d.DriveType
+			disks[i].Vendor = d.Vendor
+			disks[i].Name = d.Name
+			disks[i].Path = d.Path
+			disks[i].Hctl = d.Hctl
+			disks[i].ByPath = d.ByPath
+			disks[i].Model = d.Model
+			disks[i].Wwn = d.Wwn
+			disks[i].Serial = d.Serial
+			disks[i].SizeBytes = d.SizeBytes
+			disks[i].Bootable = d.Bootable
+			disks[i].Smart = d.Smart
+			disks[i].InstallationEligibility = adiiov1alpha1.HostInstallationEligibility{
+				Eligible:           d.InstallationEligibility.Eligible,
+				NotEligibleReasons: d.InstallationEligibility.NotEligibleReasons,
+			}
+			if d.IoPerf != nil {
+				disks[i].IoPerf = adiiov1alpha1.HostIOPerf{
+					SyncDurationMilliseconds: d.IoPerf.SyncDuration,
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alpha1.Agent, c *common.Cluster) (ctrl.Result, error) {
@@ -188,6 +302,18 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alph
 			{
 				Role: models.HostRoleUpdateParams(spec.Role),
 				ID:   strfmt.UUID(agent.Name),
+			},
+		}
+	}
+
+	if spec.InstallationDiskPath != host.InstallationDiskPath {
+		clusterUpdate = true
+		params.DisksSelectedConfig = []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
+			{
+				DisksConfig: []*models.DiskConfigParams{
+					{ID: &spec.InstallationDiskPath, Role: models.DiskRoleInstall},
+				},
+				ID: strfmt.UUID(agent.Name),
 			},
 		}
 	}

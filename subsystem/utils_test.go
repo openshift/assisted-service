@@ -16,8 +16,9 @@ import (
 )
 
 const (
-	defaultWaitForHostStateTimeout    = 20 * time.Second
-	defaultWaitForClusterStateTimeout = 40 * time.Second
+	defaultWaitForHostStateTimeout          = 20 * time.Second
+	defaultWaitForClusterStateTimeout       = 40 * time.Second
+	defaultWaitForMachineNetworkCIDRTimeout = 40 * time.Second
 )
 
 func clearDB() {
@@ -109,6 +110,33 @@ func getNextSteps(clusterID, hostID strfmt.UUID) models.Steps {
 	})
 	Expect(err).NotTo(HaveOccurred())
 	return *steps.GetPayload()
+}
+
+func updateHostLogProgress(clusterID strfmt.UUID, hostID strfmt.UUID, progress models.LogsState) {
+	ctx := context.Background()
+
+	updateReply, err := agentBMClient.Installer.UpdateHostLogsProgress(ctx, &installer.UpdateHostLogsProgressParams{
+		ClusterID: clusterID,
+		HostID:    hostID,
+		LogsProgressParams: &models.LogsProgressParams{
+			LogsState: progress,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateHostLogsProgressNoContent()))
+}
+
+func updateClusterLogProgress(clusterID strfmt.UUID, progress models.LogsState) {
+	ctx := context.Background()
+
+	updateReply, err := agentBMClient.Installer.UpdateClusterLogsProgress(ctx, &installer.UpdateClusterLogsProgressParams{
+		ClusterID: clusterID,
+		LogsProgressParams: &models.LogsProgressParams{
+			LogsState: progress,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+	Expect(updateReply).Should(BeAssignableToTypeOf(installer.NewUpdateClusterLogsProgressNoContent()))
 }
 
 func updateProgress(hostID strfmt.UUID, clusterID strfmt.UUID, current_step models.HostStage) {

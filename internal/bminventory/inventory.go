@@ -71,8 +71,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const kubeconfig = "kubeconfig"
-
 const DefaultUser = "kubeadmin"
 const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
@@ -102,7 +100,8 @@ type Config struct {
 	DefaultClusterNetworkCidr       string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
 	DefaultClusterNetworkHostPrefix int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
 	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
-	WithAMSSubscriptions            bool              `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
+	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
+	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"false"`
 }
 
 const agentMessageOfTheDay = `
@@ -292,6 +291,7 @@ type InstallerInternals interface {
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
 	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
+	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
@@ -314,7 +314,7 @@ type bareMetalInventory struct {
 	metricApi           metrics.API
 	operatorManagerApi  operators.API
 	generator           generator.ISOInstallConfigGenerator
-	authHandler         auth.AuthHandler
+	authHandler         auth.Authenticator
 	k8sClient           k8sclient.K8SClient
 	ocmClient           *ocm.Client
 	leaderElector       leader.Leader
@@ -348,7 +348,7 @@ func NewBareMetalInventory(
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
 	operatorManagerApi operators.API,
-	authHandler auth.AuthHandler,
+	authHandler auth.Authenticator,
 	k8sClient k8sclient.K8SClient,
 	ocmClient *ocm.Client,
 	leaderElector leader.Leader,
@@ -394,19 +394,10 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 }
 
 func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams, logger logrus.FieldLogger, safeForLogs bool) (string, error) {
-	creds, err := validations.ParsePullSecret(cluster.PullSecret)
+	pullSecretToken, err := clusterPkg.AgentToken(cluster, b.authHandler.AuthType())
 	if err != nil {
 		return "", err
 	}
-	pullSecretToken := ""
-	if b.authHandler.EnableAuth {
-		r, ok := creds["cloud.openshift.com"]
-		if !ok {
-			return "", errors.Errorf("Pull secret does not contain auth for cloud.openshift.com")
-		}
-		pullSecretToken = r.AuthRaw
-	}
-
 	proxySettings, err := proxySettingsForIgnition(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
 	if err != nil {
 		return "", err
@@ -515,22 +506,30 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder {
+	err := b.UpdateDiscoveryIgnitionInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewUpdateDiscoveryIgnitionCreated()
+}
+
+func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error {
 	log := logutil.FromContext(ctx, b.log)
 
 	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return err
 	}
 
 	_, err = ignition.ParseToLatest([]byte(params.DiscoveryIgnitionParams.Config))
 	if err != nil {
 		log.WithError(err).Errorf("Failed to parse ignition config patch %s", params.DiscoveryIgnitionParams)
-		return installer.NewUpdateDiscoveryIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	err = b.db.Model(&common.Cluster{}).Where(identity.AddUserFilter(ctx, "id = ?"), params.ClusterID).Update("ignition_config_overrides", params.DiscoveryIgnitionParams.Config).Error
 	if err != nil {
-		return installer.NewUpdateDiscoveryIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID))
@@ -541,7 +540,7 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 		b.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", time.Now())
 	}
 
-	return installer.NewUpdateDiscoveryIgnitionCreated()
+	return nil
 }
 
 func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params installer.RegisterClusterParams) middleware.Responder {
@@ -712,8 +711,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
 	err = b.secretValidator.ValidatePullSecret(pullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
 	if err != nil {
-		err = errors.Wrap(err, "pull secret for new cluster is invalid")
-		return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
+		err = errors.Wrap(secretValidationToUserError(err), "pull secret for new cluster is invalid")
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 	ps, err := b.updatePullSecret(pullSecret, log)
 	if err != nil {
@@ -739,7 +738,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
 		if err = b.integrateWithAMSClusterRegistration(ctx, &cluster); err != nil {
 			err = errors.Wrapf(err, "cluster %s failed to integrate with AMS on cluster registration", id)
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -754,7 +753,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Creating AMS subscription for cluster %s", *cluster.ID)
-	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID)
+	sub, err := b.ocmClient.AccountsMgmt.CreateSubscription(ctx, *cluster.ID, cluster.Name)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to create AMS subscription for cluster %s, rolling back cluster registration", *cluster.ID)
 		if deregisterErr := b.clusterApi.DeregisterCluster(ctx, cluster); deregisterErr != nil {
@@ -917,7 +916,7 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if b.ocmClient != nil && b.Config.WithAMSSubscriptions {
+	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
 		if err = b.integrateWithAMSClusterDeregistration(ctx, cluster); err != nil {
 			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster deregistration", params.ClusterID)
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -969,14 +968,15 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Started image download", time.Now())
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+		fmt.Sprintf(`Started image download (image type is "%s")`, cluster.ImageInfo.Type), time.Now())
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
 		contentLength)
 }
 
-func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType) error {
+func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType, generated bool) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(*cluster.ID)
 	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
@@ -1012,6 +1012,10 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 	updates["image_type"] = imageType
 	cluster.ImageInfo.Type = imageType
 
+	if generated {
+		updates["image_generated"] = true
+		cluster.ImageGenerated = true
+	}
 	dbReply := b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.New("Failed to generate image: error updating image record")
@@ -1037,6 +1041,11 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 			log.Error(err)
 			return nil, common.NewApiError(http.StatusBadRequest, err)
 		}
+	}
+
+	// set the default value for REST API case, in case it was not provided in the request
+	if params.ImageCreateParams.ImageType == "" {
+		params.ImageCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
 	}
 
 	txSuccess := false
@@ -1102,6 +1111,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
 		cluster.ImageInfo.StaticNetworkConfig == staticNetworkConfig &&
+		cluster.ImageGenerated &&
 		cluster.ImageInfo.Type == params.ImageCreateParams.ImageType {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
@@ -1119,6 +1129,11 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_download_url"] = ""
 	updates["image_static_network_config"] = staticNetworkConfig
+	if !imageExists {
+		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
+		// state of the image creation based on the cluster parameters which will be committed to the DB
+		updates["image_generated"] = false
+	}
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
@@ -1142,14 +1157,18 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType, false); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 
 		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Re-used existing image rather than generating a new one", time.Now())
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`,
+				cluster.ImageInfo.Type),
+			time.Now())
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 	}
+
 	ignitionConfig, formatErr := b.formatIgnitionFile(cluster, params, log, false)
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
@@ -1167,6 +1186,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
 		if err := b.generateClusterMinimalISO(ctx, log, cluster, ignitionConfig, objectPrefix); err != nil {
+			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", cluster.ID)
+			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
@@ -1183,24 +1204,26 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		}
 	}
 
-	if err := b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType); err != nil {
+	if err := b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType, true); err != nil {
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	msg := b.getIgnitionConfigForLogging(cluster, params, log)
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
+	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+}
+
+func (b *bareMetalInventory) getIgnitionConfigForLogging(cluster *common.Cluster, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {
 	ignitionConfigForLogging, _ := b.formatIgnitionFile(cluster, params, log, true)
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
-
 	msg := "Generated image"
-
 	var msgExtras []string
 
 	if cluster.HTTPProxy != "" {
 		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, cluster.HTTPProxy))
 	}
 
-	if params.ImageCreateParams.ImageType != "" {
-		msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
-	}
+	msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
 
 	sshExtra := "SSH public key is not set"
 	if params.ImageCreateParams.SSHPublicKey != "" {
@@ -1210,9 +1233,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	msgExtras = append(msgExtras, sshExtra)
 
 	msg = fmt.Sprintf("%s (%s)", msg, strings.Join(msgExtras, ", "))
-
-	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
-	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+	return msg
 }
 
 func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
@@ -1424,13 +1445,17 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		}
 		return nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
 		return nil, err
+	}
+
+	if err = b.clusterApi.GenerateAdditionalManifests(ctx, cluster); err != nil {
+		b.log.WithError(err).Errorf("Failed to generated additional cluster manifest")
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("Failed to generated additional cluster manifest"))
 	}
 
 	// Delete previews installation log files from object storage (if exist).
@@ -1707,6 +1732,51 @@ func (b *bareMetalInventory) noneHaModeClusterUpdateValidations(cluster *common.
 	return nil
 }
 
+func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context, params *installer.UpdateClusterParams) (installer.UpdateClusterParams, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
+		if err := b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler); err != nil {
+			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
+			return installer.UpdateClusterParams{}, err
+		}
+		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
+		if errUpdate != nil {
+			return installer.UpdateClusterParams{}, errors.New("Failed to update Pull-secret with additional credentials")
+		}
+		params.ClusterUpdateParams.PullSecret = &ps
+	}
+
+	if swag.StringValue(params.ClusterUpdateParams.Name) != "" {
+		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name); err != nil {
+			return installer.UpdateClusterParams{}, err
+		}
+	}
+
+	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
+		sshPublicKey = strings.TrimSpace(sshPublicKey)
+		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+			return installer.UpdateClusterParams{}, err
+		}
+		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
+	}
+
+	if params.ClusterUpdateParams.HTTPProxy != nil &&
+		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
+		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
+	}
+
+	if err := validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
+		params.ClusterUpdateParams.HTTPSProxy,
+		params.ClusterUpdateParams.NoProxy); err != nil {
+		log.WithError(err).Errorf("Failed to validate Proxy settings")
+		return installer.UpdateClusterParams{}, err
+	}
+
+	return *params, nil
+}
+
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
 	c, err := b.UpdateClusterInternal(ctx, params)
 	if err != nil {
@@ -1720,41 +1790,8 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	var cluster *common.Cluster
 	var err error
 	log.Infof("update cluster %s with params: %+v", params.ClusterID, params.ClusterUpdateParams)
-	if swag.StringValue(params.ClusterUpdateParams.PullSecret) != "" {
-		err = b.secretValidator.ValidatePullSecret(*params.ClusterUpdateParams.PullSecret, ocm.UserNameFromContext(ctx), b.authHandler)
-		if err != nil {
-			log.WithError(err).Errorf("Pull secret for cluster %s is invalid", params.ClusterID)
-			return nil, common.NewApiError(http.StatusBadRequest, secretValidationToUserError(err))
-		}
-		ps, errUpdate := b.updatePullSecret(*params.ClusterUpdateParams.PullSecret, log)
-		if errUpdate != nil {
-			return nil, common.NewApiError(http.StatusBadRequest,
-				errors.New("Failed to update Pull-secret with additional credentials"))
-		}
-		params.ClusterUpdateParams.PullSecret = &ps
-	}
-	if newClusterName := swag.StringValue(params.ClusterUpdateParams.Name); newClusterName != "" {
-		if err = validations.ValidateClusterNameFormat(newClusterName); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-	}
 
-	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {
-		sshPublicKey = strings.TrimSpace(sshPublicKey)
-		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
-	}
-
-	if params.ClusterUpdateParams.HTTPProxy != nil &&
-		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
-		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
-	}
-	if err = validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
-		params.ClusterUpdateParams.HTTPSProxy,
-		params.ClusterUpdateParams.NoProxy); err != nil {
-		log.WithError(err).Errorf("Failed to validate Proxy settings")
+	if params, err = b.validateAndUpdateClusterParams(ctx, &params); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1820,6 +1857,14 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
+	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
+	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
+		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *params.ClusterUpdateParams.Name); err != nil {
+			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
+			return nil, err
+		}
+	}
+
 	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("DB error, failed to commit"))
@@ -1835,7 +1880,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	cluster.HostNetworks = calculateHostNetworks(log, cluster)
+	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -1845,6 +1890,16 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	}
 
 	return cluster, nil
+}
+
+func (b *bareMetalInventory) integrateWithAMSClusterUpdateName(ctx context.Context, cluster *common.Cluster, newClusterName string) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating AMS subscription for cluster %s with new name %s", *cluster.ID, newClusterName)
+	if err := b.ocmClient.AccountsMgmt.UpdateSubscriptionDisplayName(ctx, cluster.AmsSubscriptionID, newClusterName); err != nil {
+		log.WithError(err).Errorf("Failed to update AMS subscription with the new cluster name %s for cluster %s", newClusterName, *cluster.ID)
+		return err
+	}
+	return nil
 }
 
 func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetworkCIDR string) {
@@ -1870,14 +1925,13 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	}
 
 	var err error
-	*machineCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts)
+	err = verifyParsableVIPs(apiVip, ingressVip)
 	if err != nil {
-		log.WithError(err).Errorf("failed to calculate machine network cidr for cluster: %s", params.ClusterID)
-		return common.NewApiError(http.StatusBadRequest, err)
+		log.WithError(err).Errorf("Failed validating VIPs of cluster id=%s", params.ClusterID)
+		return err
 	}
-	setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 
-	err = network.VerifyVips(cluster.Hosts, *machineCidr, apiVip, ingressVip, false, log)
+	err = network.VerifyDifferentVipAddresses(apiVip, ingressVip)
 	if err != nil {
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -1885,7 +1939,17 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 	return nil
 }
 
-func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
+func verifyParsableVIPs(apiVip string, ingressVip string) error {
+	if apiVip != "" && net.ParseIP(apiVip) == nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Could not parse VIP ip %s", apiVip))
+	}
+	if ingressVip != "" && net.ParseIP(ingressVip) == nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Could not parse VIP ip %s", ingressVip))
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interface{}, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
 	if params.ClusterUpdateParams.APIVip != nil {
 		err := errors.New("Setting API VIP is forbidden when cluster is in vip-dhcp-allocation mode")
 		log.WithError(err).Warnf("Set API VIP")
@@ -1902,7 +1966,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 		setMachineNetworkCIDRForUpdate(updates, *machineCidr)
 		updates["api_vip"] = ""
 		updates["ingress_vip"] = ""
-		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr), cluster.Hosts, log)
+		return network.VerifyMachineCIDR(swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr))
 	}
 	return nil
 }
@@ -1910,18 +1974,52 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	var err error
 	updates := map[string]interface{}{}
-	machineCidr := cluster.MachineNetworkCidr
-	serviceCidr := cluster.ServiceNetworkCidr
-	clusterCidr := cluster.ClusterNetworkCidr
-	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
-	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
-	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
 	optionalParam(params.ClusterUpdateParams.BaseDNSDomain, "base_dns_domain", updates)
 	optionalParam(params.ClusterUpdateParams.HTTPProxy, "http_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.HTTPSProxy, "https_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.NoProxy, "no_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
+
+	if err = b.updateNetworkParams(params, cluster, updates, log); err != nil {
+		return err
+	}
+
+	if err = updateNtpSources(params, updates, log); err != nil {
+		return err
+	}
+
+	if params.ClusterUpdateParams.PullSecret != nil {
+		cluster.PullSecret = *params.ClusterUpdateParams.PullSecret
+		updates["pull_secret"] = *params.ClusterUpdateParams.PullSecret
+		if cluster.PullSecret != "" {
+			updates["pull_secret_set"] = true
+		} else {
+			updates["pull_secret_set"] = false
+		}
+	}
+	if params.ClusterUpdateParams.APIVipDNSName != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
+		updates["api_vip_dns_name"] = *params.ClusterUpdateParams.APIVipDNSName
+	}
+
+	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	if dbReply.Error != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
+	}
+
+	return nil
+}
+
+func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}, log logrus.FieldLogger) error {
+	var err error
+	machineCidr := cluster.MachineNetworkCidr
+	serviceCidr := cluster.ServiceNetworkCidr
+	clusterCidr := cluster.ClusterNetworkCidr
+	hostNetworkPrefix := cluster.ClusterNetworkHostPrefix
+	vipDhcpAllocation := swag.BoolValue(cluster.VipDhcpAllocation)
+	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
+
 	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
 		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ClusterNetworkCidr); err != nil {
 			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Cluster network CIDR"))
@@ -1949,31 +2047,17 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		serviceCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
 		updates["service_network_cidr"] = serviceCidr
 	}
-	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
-		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
-
-		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
-			err = errors.Errorf("Invalid NTP source: %s", ntpSource)
-			log.WithError(err)
-			return common.NewApiError(http.StatusBadRequest, err)
-		}
-
-		updates["additional_ntp_source"] = ntpSource
-	}
 
 	if params.ClusterUpdateParams.UserManagedNetworking != nil && swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking) != userManagedNetworking {
 		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
 		updates["user_managed_networking"] = userManagedNetworking
+		machineCidr = ""
 		if userManagedNetworking {
-			err = validateUserManagedNetworkConflicts(params.ClusterUpdateParams, log)
+			err = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
 			if err != nil {
 				return err
 			}
-			updates["vip_dhcp_allocation"] = false
 			vipDhcpAllocation = false
-			updates["api_vip"] = ""
-			updates["ingress_vip"] = ""
-			setMachineNetworkCIDRForUpdate(updates, "")
 		}
 	}
 
@@ -1987,10 +2071,22 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 	}
 	if !userManagedNetworking {
 		if vipDhcpAllocation {
-			err = b.updateDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
+			err = b.updateDhcpNetworkParams(updates, params, log, &machineCidr)
 		} else {
 			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
 		}
+		if err != nil {
+			return err
+		}
+	}
+
+	if params.ClusterUpdateParams.MachineNetworkCidr != nil && common.IsSingleNodeCluster(cluster) {
+		machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
+		if err = network.VerifySubnetCIDR(machineCidr); err != nil {
+			log.WithError(err).Warningf("Given machine cidr %q is not valid", machineCidr)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		err = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
 		if err != nil {
 			return err
 		}
@@ -2000,33 +2096,40 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if params.ClusterUpdateParams.PullSecret != nil {
-		cluster.PullSecret = *params.ClusterUpdateParams.PullSecret
-		updates["pull_secret"] = *params.ClusterUpdateParams.PullSecret
-		if cluster.PullSecret != "" {
-			updates["pull_secret_set"] = true
-		} else {
-			updates["pull_secret_set"] = false
-		}
-	}
-	if params.ClusterUpdateParams.APIVipDNSName != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
-		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
-		updates["api_vip_dns_name"] = *params.ClusterUpdateParams.APIVipDNSName
-	}
-
 	if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, machineCidr); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-
-	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
-	if dbReply.Error != nil {
-		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
-	}
-
 	return nil
 }
 
-func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, log logrus.FieldLogger) error {
+func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singleNodeCluster bool, machineCidr string, updates map[string]interface{}, log logrus.FieldLogger) error {
+	err := validateUserManagedNetworkConflicts(params, singleNodeCluster, log)
+	if err != nil {
+		return err
+	}
+	updates["vip_dhcp_allocation"] = false
+	updates["api_vip"] = ""
+	updates["ingress_vip"] = ""
+
+	setMachineNetworkCIDRForUpdate(updates, machineCidr)
+	return nil
+}
+
+func updateNtpSources(params installer.UpdateClusterParams, updates map[string]interface{}, log logrus.FieldLogger) error {
+	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
+		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
+
+		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
+			log.WithError(err)
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+		updates["additional_ntp_source"] = ntpSource
+	}
+	return nil
+}
+
+func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, singleNodeCluster bool, log logrus.FieldLogger) error {
 	if params.VipDhcpAllocation != nil && swag.BoolValue(params.VipDhcpAllocation) {
 		err := errors.Errorf("VIP DHCP Allocation cannot be enabled with User Managed Networking")
 		log.WithError(err)
@@ -2042,7 +2145,7 @@ func validateUserManagedNetworkConflicts(params *models.ClusterUpdateParams, log
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-	if params.MachineNetworkCidr != nil {
+	if params.MachineNetworkCidr != nil && !singleNodeCluster {
 		err := errors.Errorf("Machine Network CIDR cannot be set with User Managed Networking")
 		log.WithError(err)
 		return common.NewApiError(http.StatusBadRequest, err)
@@ -2253,7 +2356,7 @@ func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cl
 	return nil
 }
 
-func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {
+func (b *bareMetalInventory) calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*models.HostNetwork {
 	cidrHostsMap := make(map[string]map[strfmt.UUID]bool)
 	for _, h := range cluster.Hosts {
 		if h.Inventory == "" {
@@ -2266,7 +2369,13 @@ func calculateHostNetworks(log logrus.FieldLogger, cluster *common.Cluster) []*m
 			continue
 		}
 		for _, intf := range inventory.Interfaces {
-			for _, address := range intf.IPV4Addresses {
+			var addrRange []string
+			if b.Config.IPv6Support {
+				addrRange = append(intf.IPV4Addresses, intf.IPV6Addresses...)
+			} else {
+				addrRange = intf.IPV4Addresses
+			}
+			for _, address := range addrRange {
 				_, ipnet, err := net.ParseCIDR(address)
 				if err != nil {
 					log.WithError(err).Warnf("Could not parse CIDR %s", address)
@@ -2356,7 +2465,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 		return nil, common.NewApiError(http.StatusNotFound, err)
 	}
 
-	cluster.HostNetworks = calculateHostNetworks(log, cluster)
+	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -3191,15 +3300,15 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), kubeconfig); err != nil {
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, kubeconfig))
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), kubeconfig, contentLength)
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
@@ -3261,7 +3370,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	}
 
 	switch fileName {
-	case kubeconfig:
+	case constants.Kubeconfig:
 		err = clusterPkg.CanDownloadKubeconfig(cluster)
 	case manifests.ManifestFolder, "discovery.ign":
 		// do nothing. manifests can be downloaded at any given cluster state
@@ -3406,22 +3515,23 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		return installer.NewUpdateHostInstallProgressNotFound().
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
-	if err := b.hostApi.UpdateInstallProgress(ctx, &host, params.HostProgress); err != nil {
-		log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
-		return installer.NewUpdateHostInstallProgressInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+
+	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
+		if err := b.hostApi.UpdateInstallProgress(ctx, &host, params.HostProgress); err != nil {
+			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
+			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
+
+		event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
+		if params.HostProgress.ProgressInfo != "" {
+			event += fmt.Sprintf(": %s", params.HostProgress.ProgressInfo)
+		}
+
+		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
+		msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host), event)
+		b.eventsHandler.AddEvent(ctx, host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
 	}
 
-	event := fmt.Sprintf("reached installation stage %s", params.HostProgress.CurrentStage)
-
-	if params.HostProgress.ProgressInfo != "" {
-		event += fmt.Sprintf(": %s", params.HostProgress.ProgressInfo)
-	}
-
-	log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
-	msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host), event)
-
-	b.eventsHandler.AddEvent(ctx, host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
 	return installer.NewUpdateHostInstallProgressOK()
 }
 
@@ -3445,7 +3555,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 			WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
-	objectName := fmt.Sprintf("%s/%s", cluster.ID, kubeconfig)
+	objectName := fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)
 	exists, err := b.objectHandler.DoesObjectExist(ctx, objectName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to upload ingress ca")
@@ -3458,7 +3568,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 		return installer.NewUploadClusterIngressCertCreated()
 	}
 
-	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, kubeconfig)
+	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, constants.Kubeconfig)
 	resp, _, err := b.objectHandler.Download(ctx, noingress)
 	if err != nil {
 		return installer.NewUploadClusterIngressCertInternalServerError().
@@ -3771,6 +3881,10 @@ func (b *bareMetalInventory) ResetHost(ctx context.Context, params installer.Res
 }
 
 func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params installer.CompleteInstallationParams) middleware.Responder {
+	// TODO: MGMT-4458
+	// This function can be removed once the controller will stop sending this request
+	// The service is already capable of completing the installation on its own
+
 	log := logutil.FromContext(ctx, b.log)
 
 	log.Infof("complete cluster %s installation", params.ClusterID)
@@ -3784,17 +3898,13 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 		return common.GenerateErrorResponder(err)
 	}
 
-	if err := b.clusterApi.CompleteInstallation(ctx, cluster, *params.CompletionParams.IsSuccess, params.CompletionParams.ErrorInfo); err != nil {
-		log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
-		return common.GenerateErrorResponder(err)
-	}
-
-	if b.ocmClient != nil {
-		_, err := b.ocmClient.AccountsMgmt.UpdateSubscription(ctx, cluster.AmsSubscriptionID, cluster.OpenshiftClusterID)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to update AMS subscription for cluster %v", cluster.ID)
-			return common.NewApiError(http.StatusInternalServerError, err)
+	if !*params.CompletionParams.IsSuccess {
+		if _, err := b.clusterApi.CompleteInstallation(ctx, b.db, cluster, false, params.CompletionParams.ErrorInfo); err != nil {
+			log.WithError(err).Errorf("Failed to set complete cluster state on %s ", params.ClusterID.String())
+			return common.GenerateErrorResponder(err)
 		}
+	} else {
+		log.Warnf("Cluster %s tried to complete its installation using deprecated CompleteInstallation API. The service decides whether the cluster completed", params.ClusterID)
 	}
 
 	return installer.NewCompleteInstallationAccepted().WithPayload(&cluster.Cluster)
@@ -3837,8 +3947,13 @@ func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster co
 
 		apiVip := cluster.APIVip
 		ingressVip := cluster.IngressVip
-		if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-			apiVip, _ = common.GetBootstrapMachineNetworkAndIp(&cluster)
+		if common.IsSingleNodeCluster(&cluster) {
+			apiVip, err = network.GetIpForSingleNodeInstallation(&cluster, log)
+			if err != nil {
+				log.WithError(err).Errorf("failed to find ip for single node installation")
+				return err
+			}
+
 			ingressVip = apiVip
 			// Create/Delete A record for API-INT virtual IP
 			_, err := dnsRecordSetFunc(domain.APIINTDomainName, apiVip)
@@ -4010,16 +4125,37 @@ func (b *bareMetalInventory) GetFreeAddresses(ctx context.Context, params instal
 }
 
 func (b *bareMetalInventory) UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder {
-	//TODO: Add Implementation
+	var err error
+	var currentCluster *common.Cluster
+
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("update log progress on %s cluster to %s", params.ClusterID, params.LogsProgressParams.LogsState)
+	currentCluster, err = b.getCluster(ctx, params.ClusterID.String())
+	if err == nil {
+		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(params.LogsProgressParams.LogsState))
+	}
+	if err != nil {
+		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s", params.LogsProgressParams.LogsState, params.ClusterID.String())
+		return common.GenerateErrorResponder(err)
+	}
+
 	return installer.NewUpdateClusterLogsProgressNoContent()
 }
 
 func (b *bareMetalInventory) UpdateHostLogsProgress(ctx context.Context, params installer.UpdateHostLogsProgressParams) middleware.Responder {
-	//TODO: Add Implementation
+	var err error
+	var currentHost *models.Host
+
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("update log progress on host %s on %s cluster to %s", params.HostID, params.ClusterID, params.LogsProgressParams.LogsState)
+	currentHost, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err == nil {
+		err = b.hostApi.UpdateLogsProgress(ctx, currentHost, string(params.LogsProgressParams.LogsState))
+	}
+	if err != nil {
+		b.log.WithError(err).Errorf("failed to update log progress %s on cluster %s host %s", params.LogsProgressParams.LogsState, params.ClusterID.String(), params.HostID.String())
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewUpdateHostLogsProgressNoContent()
 }
 
@@ -4070,6 +4206,11 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 			log.WithError(err).Errorf("Failed update cluster %s controller_logs_collected_at flag", params.ClusterID)
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
+		err = b.clusterApi.UpdateLogsProgress(ctx, currentCluster, string(models.LogsStateCollecting))
+		if err != nil {
+			log.WithError(err).Errorf("Failed update cluster %s log progress %s", params.ClusterID, string(models.LogsStateCollecting))
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 
 	log.Infof("Done uploading file %s", fileName)
@@ -4095,6 +4236,11 @@ func (b *bareMetalInventory) uploadHostLogs(ctx context.Context, clusterId strin
 	err = b.hostApi.SetUploadLogsAt(ctx, currentHost, b.db)
 	if err != nil {
 		log.WithError(err).Errorf("Failed update host %s logs_collected_at flag", hostId)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	err = b.hostApi.UpdateLogsProgress(ctx, currentHost, string(models.LogsStateCollecting))
+	if err != nil {
+		log.WithError(err).Errorf("Failed update host %s log progress %s", hostId, string(models.LogsStateCollecting))
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil
@@ -4558,6 +4704,11 @@ func (b *bareMetalInventory) setPullSecretFromOCP(cluster *common.Cluster, log l
 
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
 	return b.clusterApi.GetClusterByKubeKey(key)
+}
+
+func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
+	// TODO: implement
+	return installer.NewGetClusterHostRequirementsOK().WithPayload(models.ClusterHostRequirementsList{})
 }
 
 func (b *bareMetalInventory) prepareStaticNetworkConfigForIgnition(cluster *common.Cluster, log logrus.FieldLogger) ([]staticnetworkconfig.StaticNetworkConfigData, error) {

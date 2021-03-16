@@ -12,7 +12,7 @@ from handle_ocp_versions import verify_ocp_versions
 def handle_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-dns-domains")
-    parser.add_argument("--enable-auth", default="False")
+    parser.add_argument("--auth-type", default="none")
     parser.add_argument("--with-ams-subscriptions", default="False")
     parser.add_argument("--subsystem-test", action='store_true')
     parser.add_argument("--jwks-url", default="https://api.openshift.com/.well-known/jwks.json")
@@ -23,6 +23,7 @@ def handle_arguments():
     parser.add_argument("--img-expr-time", default="")
     parser.add_argument("--img-expr-interval", default="")
     parser.add_argument("--check-cvo", default="False")
+    parser.add_argument("--ipv6-support", default="False")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -60,19 +61,21 @@ def main():
                                                                             disable_tls=deploy_options.disable_tls))
 
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-            data = data.replace('REPLACE_AUTH_ENABLED_FLAG', '"{}"'.format(deploy_options.enable_auth))
+            data = data.replace('REPLACE_AUTH_TYPE_FLAG', '"{}"'.format(deploy_options.auth_type))
             data = data.replace('REPLACE_WITH_AMS_SUBSCRIPTIONS', '"{}"'.format(deploy_options.with_ams_subscriptions))
             data = data.replace('REPLACE_CHECK_CLUSTER_VERSION_FLAG', '"{}"'.format(deploy_options.check_cvo))
             data = data.replace('REPLACE_JWKS_URL', '"{}"'.format(deploy_options.jwks_url))
             data = data.replace('REPLACE_OCM_BASE_URL', '"{}"'.format(deploy_options.ocm_url))
             data = data.replace('REPLACE_OPENSHIFT_VERSIONS', '"{}"'.format(deploy_options.ocp_versions))
             data = data.replace('REPLACE_PUBLIC_CONTAINER_REGISTRIES', '"{}"'.format(deploy_options.public_registries))
+            data = data.replace('REPLACE_IPV6_SUPPORT', '"{}"'.format(deploy_options.ipv6_support))
 
             versions = {"INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",
                         "AGENT_DOCKER_IMAGE": "assisted-installer-agent"}
             for env_var_name, image_short_name in versions.items():
                 versions[env_var_name] = deployment_options.get_image_override(deploy_options, image_short_name, env_var_name)
+                log.info(f"Logging {image_short_name} information")
                 log_image_revision(versions[env_var_name])
 
             # Edge case for controller image override
@@ -81,6 +84,7 @@ def main():
                     deployment_options.get_tag(versions["INSTALLER_IMAGE"]))
 
             versions["SELF_VERSION"] = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
+            log.info(f"Logging assisted-service information")
             log_image_revision(versions["SELF_VERSION"])
             deploy_tag = get_deployment_tag(deploy_options)
             if deploy_tag:
@@ -118,30 +122,31 @@ def main():
         )
 
 def log_image_revision(image: str):
-
-    cmd = f"docker run --rm quay.io/skopeo/stable inspect docker://{image}"
-    try:
-        image_inspect_str = subprocess.check_output(cmd, shell=True)
-    except subprocess.CalledProcessError as e:
-        log.warn(f"failed to pull image {image} inspect data, error: {e.output}")
+    image_inspect = get_remote_image_inspect_json(image)
+    if not image_inspect:
+        log.warn(f"failed to pull image {image} inspect data")
         return
-
-    try:
-        image_inspect = json.loads(image_inspect_str)
-    except ValueError as e:
-        log.warn(f"image inspect did not return an expected value while running {cmd}")
-        return
-
-    created = image_inspect.get("Created", None)
-
-    image_labels = image_inspect.get("Labels", None)
+    created = image_inspect.get("created", None)
+    image_labels = image_inspect['config'].get("Labels", None)
     if not image_labels:
        log.info(f"Using image: {image}, created: {created} (image has no labels)")
        return
 
     git_revision = image_labels.get("git_revision", None)
-
     log.info(f"Using image: {image}, git_revision: {git_revision}, created: {created}")
+
+def get_remote_image_inspect_json(image: str):
+    image_inspect_str = docker_cmd(f"docker run --rm quay.io/skopeo/stable inspect docker://{image} --config")
+    if not image_inspect_str:
+        return None
+    return convert_image_inspect_to_json(image_inspect_str)
+
+def convert_image_inspect_to_json(image_inspect_str):
+    try:
+        image_inspect = json.loads(image_inspect_str)
+    except ValueError as e:
+        return None
+    return image_inspect
 
 def get_admin_users():
     admins_file = os.path.join(os.getcwd(), 'ADMINS')
@@ -150,6 +155,13 @@ def get_admin_users():
 
     with open(admins_file) as fp:
         return ','.join([x.strip() for x in fp.readlines()])
+
+def docker_cmd(cmd):
+    try:
+        out = subprocess.check_output(cmd, shell=True)
+    except subprocess.CalledProcessError as e:
+         return None
+    return out
 
 
 if __name__ == "__main__":

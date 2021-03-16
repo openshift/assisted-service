@@ -30,6 +30,43 @@ bases:
 #- ../prometheus
 
 patchesStrategicMerge:
+###################
+# Required patches
+###################
+
+# Enables assisted-service startup to create a route for the service
+# through an init container. This used by in-cluster deployments so that 
+# a route to the service is created and the SERVICE_BASE_URL is updated 
+# to match the route's URL.
+- assisted-service-patch-init-containers.yaml
+
+# An init container that creates a random password and secret for postgres
+# if a secret does not already exist.
+- postgres-patch-init-container.yaml
+
+# Sets ISO_IMAGE_TYPE to minimal-iso 
+- assisted-service-patch-iso-image-type.yaml
+
+# TODO: Remove when filesystem is ready
+# Uncomment to set the DEPLOY_TARGET to "k8s". By default the DEPLOY_TARGET
+# for OCP clusters should be "ocp". For the "ocp" target we are aiming to use
+# s3 filesystem implementation. At the moment the switch to the s3 filesystem
+# implementation is not complete. In the interim, scality is deployed by the
+# operator and for assisted-service to be functional you will need to use "k8s"
+# as the DEPLOY_TARGET.
+- assisted-service-patch-deploy-target.yaml
+
+###################
+# Optional patches
+###################
+# Uncomment to set a mininum disk size allowed by the hardware validator.
+# By default the minimum disk size allowed is 120GB. The patch sets the
+# minimum disk size to 20GB.
+#- assisted-service-configmap-patch-hw-validator-min-disk-size.yaml
+
+# Uncomment to use a custom assisted-service image in the deployment
+#- assisted-service-patch-image.yaml
+
 # Protect the /metrics endpoint by putting it behind auth.
 # If you want your controller-manager to expose the /metrics
 # endpoint w/o any authn/z, please comment the following line.
@@ -47,31 +84,6 @@ patchesStrategicMerge:
 # Uncomment 'CERTMANAGER' sections in crd/kustomization.yaml to enable the CA injection in the admission webhooks.
 # 'CERTMANAGER' needs to be enabled to use ca injection
 #- webhookcainjection_patch.yaml
-
-# Enables assisted-service startup to create a route for the service
-# through an init container. This used by in-cluster deployments so that 
-# a route to the service is created and the SERVICE_BASE_URL is updated 
-# to match the route's URL.
-- assisted-service-patch-init-containers.yaml
-# An init container that creates a random password and secret for postgres
-# if a secret does not already exist.
-- postgres-patch-init-container.yaml
-
-# Uncomment to set a mininum disk size allowed by the hardware validator.
-# By default the minimum disk size allowed is 120GB. The patch sets the
-# minimum disk size to 20GB.
-#- assisted-service-configmap-patch-hw-validator-min-disk-size.yaml
-
-# Uncomment to set the DEPLOY_TARGET to "k8s". By default the DEPLOY_TARGET
-# for OCP clusters should be "ocp". For the "ocp" target we are aiming to use
-# s3 filesystem implementation. At the moment the switch to the s3 filesystem
-# implementation is not complete. In the interim, scality is deployed by the
-# operator and for assisted-service to be functional you will need to use "k8s"
-# as the DEPLOY_TARGET.
-- assisted-service-patch-deploy-target.yaml
-
-# Uncomment to use a custom assisted-service image in the deployment
-#- assisted-service-patch-image.yaml
 
 # the following config is for teaching kustomize how to do var substitution
 vars:

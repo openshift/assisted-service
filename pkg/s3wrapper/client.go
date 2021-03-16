@@ -55,7 +55,7 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
-	UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error
+	UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error
 	DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error)
 	DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error)
 	GetS3BootFileURL(isoObjectName, fileType string) string
@@ -481,7 +481,7 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return objects, nil
 }
 
-func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string) error {
+func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
 	rhcosImage, err := c.versionsHandler.GetRHCOSImage(openshiftVersion)
 	if err != nil {
 		return err
@@ -497,20 +497,28 @@ func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 		return err
 	}
 
-	return c.uploadBootFiles(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, serviceBaseURL)
+	return c.uploadBootFiles(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, serviceBaseURL, haveLatestMinimalTemplate)
 }
 
-func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion, serviceBaseURL string) error {
+func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, c.log)
 
 	baseExists, err := c.DoAllBootFilesExist(ctx, isoObjectName)
 	if err != nil {
 		return err
 	}
-	minimalExists, err := c.DoesPublicObjectExist(ctx, minimalIsoObject)
-	if err != nil {
-		return err
+
+	var minimalExists bool
+	if !haveLatestMinimalTemplate {
+		// Should update minimal ISO template
+		minimalExists = false
+	} else {
+		minimalExists, err = c.DoesPublicObjectExist(ctx, minimalIsoObject)
+		if err != nil {
+			return err
+		}
 	}
+
 	if baseExists && minimalExists {
 		return nil
 	}
