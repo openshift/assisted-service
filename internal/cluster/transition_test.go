@@ -108,11 +108,12 @@ var _ = Describe("Transition tests", func() {
 			updateAMSSubscriptionSuccess bool
 			errorExpected                bool
 			updateSuccessfullyFinished   bool
-			dstState                     string
+			destState                    string
+			destStatusInfo               string
 		}{
 			{
-				name:     "no change",
-				dstState: models.ClusterStatusFinalizing,
+				name:      "no change",
+				destState: models.ClusterStatusFinalizing,
 			},
 			// TODO: MGMT-4458
 			// Backward-compatible solution for clusters that don't have monitored operators data
@@ -121,7 +122,8 @@ var _ = Describe("Transition tests", func() {
 				name:                       "success - no operators (backward-compatability)",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: true,
-				dstState:                   models.ClusterStatusInstalled,
+				destState:                  models.ClusterStatusInstalled,
+				destStatusInfo:             statusInfoInstalled,
 			},
 			{
 				name:                       "success - available operators",
@@ -133,7 +135,8 @@ var _ = Describe("Transition tests", func() {
 						Status: models.OperatorStatusAvailable,
 					},
 				},
-				dstState: models.ClusterStatusInstalled,
+				destState:      models.ClusterStatusInstalled,
+				destStatusInfo: statusInfoInstalled,
 			},
 			{
 				name:                       "no change - failed operator",
@@ -146,10 +149,10 @@ var _ = Describe("Transition tests", func() {
 					},
 				},
 
-				dstState: models.ClusterStatusFinalizing,
+				destState: models.ClusterStatusFinalizing,
 			},
 			{
-				name:                       "success - failed OLM operator",
+				name:                       "success - failed OLM operators",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: true,
 				operators: []*models.MonitoredOperator{
@@ -157,8 +160,30 @@ var _ = Describe("Transition tests", func() {
 						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeOlm,
 						Status: models.OperatorStatusFailed,
 					},
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name + "2", OperatorType: models.OperatorTypeOlm,
+						Status: models.OperatorStatusAvailable,
+					},
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name + "3", OperatorType: models.OperatorTypeOlm,
+						Status: models.OperatorStatusFailed,
+					},
 				},
-				dstState: models.ClusterStatusInstalled,
+				destState:      models.ClusterStatusInstalled,
+				destStatusInfo: StatusInfoDegraded + ". Failed OLM operators: dummy, dummy3",
+			},
+			{
+				name:                       "success - avilable OLM operators",
+				uploadKubeConfig:           true,
+				updateSuccessfullyFinished: true,
+				operators: []*models.MonitoredOperator{
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeOlm,
+						Status: models.OperatorStatusAvailable,
+					},
+				},
+				destState:      models.ClusterStatusInstalled,
+				destStatusInfo: statusInfoInstalled,
 			},
 			{
 				name:                         "success - with AMS",
@@ -166,7 +191,8 @@ var _ = Describe("Transition tests", func() {
 				updateSuccessfullyFinished:   true,
 				updateAMSSubscription:        true,
 				updateAMSSubscriptionSuccess: true,
-				dstState:                     models.ClusterStatusInstalled,
+				destState:                    models.ClusterStatusInstalled,
+				destStatusInfo:               statusInfoInstalled,
 			},
 			{
 				name:                         "success - with AMS (update failed) -> finalizing",
@@ -175,7 +201,7 @@ var _ = Describe("Transition tests", func() {
 				updateAMSSubscription:        true,
 				updateAMSSubscriptionSuccess: false,
 				errorExpected:                true,
-				dstState:                     models.ClusterStatusFinalizing,
+				destState:                    models.ClusterStatusFinalizing,
 			},
 		}
 
@@ -225,9 +251,9 @@ var _ = Describe("Transition tests", func() {
 
 				mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(t.uploadKubeConfig, nil).AnyTimes() // Might be affected by the amount of states
 
-				if t.dstState != *c.Status {
+				if t.destState != *c.Status {
 					if !t.errorExpected {
-						mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), t.dstState, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt).Times(1)
+						mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), t.destState, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt).Times(1)
 					}
 				}
 
@@ -239,9 +265,10 @@ var _ = Describe("Transition tests", func() {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
-					Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
+					Expect(swag.StringValue(clusterAfterRefresh.Status)).To(Equal(t.destState))
+					Expect(swag.StringValue(clusterAfterRefresh.StatusInfo)).To(Equal(t.destStatusInfo))
 
-					if t.dstState != *c.Status {
+					if t.destState != *c.Status {
 						if t.updateSuccessfullyFinished {
 							checkCompleteInstallationUpdate(models.EventSeverityInfo, "Successfully finished installing cluster")
 						} else {
@@ -250,8 +277,10 @@ var _ = Describe("Transition tests", func() {
 					}
 				}
 
+				// Check also the DB
 				clusterFromDB := getClusterFromDB(clusterId, db)
-				Expect(clusterFromDB.Status).To(Equal(&t.dstState))
+				Expect(swag.StringValue(clusterFromDB.Status)).To(Equal(t.destState))
+				Expect(swag.StringValue(clusterFromDB.StatusInfo)).To(Equal(t.destStatusInfo))
 			})
 		}
 	})

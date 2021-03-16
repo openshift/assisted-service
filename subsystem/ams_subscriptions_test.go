@@ -39,7 +39,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			Expect(cc.AmsSubscriptionID).To(Equal(FakeSubscriptionID))
 
 			// update subscription with openshfit (external) cluster ID
-			registerHostsAndSetRoles(clusterID, 3)
+			registerHostsAndSetRoles(clusterID, minHosts)
 			c := installCluster(clusterID)
 			for _, h := range c.Hosts {
 				updateProgress(*h.ID, clusterID, models.HostStageDone)
@@ -92,7 +92,7 @@ var _ = Describe("test AMS subscriptions", func() {
 			log.Infof("Register cluster %s", clusterID)
 
 			// update subscription with 'active' status
-			registerHostsAndSetRoles(clusterID, 3)
+			registerHostsAndSetRoles(clusterID, minHosts)
 			c := installCluster(clusterID)
 			for _, h := range c.Hosts {
 				updateProgress(*h.ID, clusterID, models.HostStageDone)

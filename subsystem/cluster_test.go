@@ -26,9 +26,6 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -63,6 +60,7 @@ const (
 const (
 	validDiskSize     = int64(128849018880)
 	minSuccessesInRow = 2
+	minHosts          = 3
 )
 
 var (
@@ -415,6 +413,10 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, operator := range rep.Payload.MonitoredOperators {
+		if operator.OperatorType != models.OperatorTypeBuiltin {
+			continue
+		}
+
 		_, err := client.Operators.ReportMonitoredOperatorStatus(context.Background(), &operatorsClient.ReportMonitoredOperatorStatusParams{
 			ClusterID: clusterID,
 			ReportParams: &models.OperatorMonitorReport{
@@ -701,125 +703,6 @@ var _ = Describe("cluster update - BaseDNS", func() {
 			ClusterID: clusterID,
 		})
 		Expect(err).To(HaveOccurred())
-	})
-})
-
-var _ = Describe("Monitored Operators", func() {
-	var (
-		ctx         = context.Background()
-		clusterID   strfmt.UUID
-		clusterCIDR = "10.128.0.0/14"
-		serviceCIDR = "172.30.0.0/16"
-	)
-
-	AfterEach(func() {
-		clearDB()
-	})
-
-	Context("Create cluster", func() {
-		It("Have builtins", func() {
-			reply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(pullSecret),
-				},
-			})
-			Expect(err).NotTo(HaveOccurred())
-
-			cluster := reply.GetPayload()
-			c := &common.Cluster{Cluster: *cluster}
-
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
-				Expect(operators.IsEnabled(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
-			}
-		})
-
-		It("New OLM", func() {
-			newOperator := "ocs"
-
-			reply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String("test-cluster"),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(pullSecret),
-					OlmOperators: []*models.OperatorCreateParams{
-						{
-							Name: newOperator,
-						},
-					},
-				},
-			})
-			Expect(err).NotTo(HaveOccurred())
-			cluster := reply.GetPayload()
-
-			getClusterReply, err := userBMClient.Installer.GetCluster(ctx, installer.NewGetClusterParams().WithClusterID(*cluster.ID))
-			Expect(err).NotTo(HaveOccurred())
-
-			cluster = getClusterReply.GetPayload()
-			c := &common.Cluster{Cluster: *cluster}
-			Expect(operators.IsEnabled(c.MonitoredOperators, newOperator)).Should(BeTrue())
-		})
-	})
-
-	Context("Update cluster", func() {
-		BeforeEach(func() {
-			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					BaseDNSDomain:            "example.com",
-					ClusterNetworkCidr:       &clusterCIDR,
-					ClusterNetworkHostPrefix: 23,
-					Name:                     swag.String("test-cluster"),
-					OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:               swag.String(pullSecret),
-					ServiceNetworkCidr:       &serviceCIDR,
-					SSHPublicKey:             sshPublicKey,
-				},
-			})
-			Expect(err).NotTo(HaveOccurred())
-			cluster := registerClusterReply.GetPayload()
-			clusterID = *cluster.ID
-			log.Infof("Register cluster %s", cluster.ID.String())
-		})
-
-		It("Update OLMs", func() {
-			By("First time - operators is empty", func() {
-				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						OlmOperators: []*models.OperatorCreateParams{
-							{Name: lso.Operator.Name},
-							{Name: ocs.Operator.Name},
-						},
-					},
-					ClusterID: clusterID,
-				})
-				Expect(err).ToNot(HaveOccurred())
-				getReply, err2 := userBMClient.Installer.GetCluster(ctx, installer.NewGetClusterParams().WithClusterID(clusterID))
-				Expect(err2).ToNot(HaveOccurred())
-				c := &common.Cluster{Cluster: *getReply.Payload}
-
-				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeTrue())
-			})
-
-			By("Second time - operators is not empty", func() {
-				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-					ClusterUpdateParams: &models.ClusterUpdateParams{
-						OlmOperators: []*models.OperatorCreateParams{
-							{Name: lso.Operator.Name},
-						},
-					},
-					ClusterID: clusterID,
-				})
-				Expect(err).ToNot(HaveOccurred())
-				getReply, err := userBMClient.Installer.GetCluster(ctx, installer.NewGetClusterParams().WithClusterID(clusterID))
-				Expect(err).ToNot(HaveOccurred())
-				c := &common.Cluster{Cluster: *getReply.Payload}
-
-				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
-				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeFalse())
-			})
-		})
 	})
 })
 
@@ -2916,7 +2799,7 @@ var _ = Describe("cluster install, with default network params", func() {
 
 		Expect(err).NotTo(HaveOccurred())
 		c = rep.GetPayload()
-		Expect(swag.StringValue(c.Status)).Should(Equal("installed"))
+		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalled))
 		Expect(c.InstallCompletedAt).ShouldNot(Equal(startTimeInstalled))
 		Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 	})

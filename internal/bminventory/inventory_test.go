@@ -60,7 +60,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 )
 
-const ClusterStatusInstalled = "installed"
 const FakeServiceBaseURL = "http://192.168.11.22:12345"
 
 var (
@@ -3953,7 +3952,7 @@ var _ = Describe("KubeConfig download", func() {
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 	It("kubeconfig presigned happy flow", func() {
-		status := ClusterStatusInstalled
+		status := models.ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
 		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
@@ -3984,7 +3983,7 @@ var _ = Describe("KubeConfig download", func() {
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 	It("kubeconfig download s3download failure", func() {
-		status := ClusterStatusInstalled
+		status := models.ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
 		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
@@ -3995,7 +3994,7 @@ var _ = Describe("KubeConfig download", func() {
 		Expect(generateReply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusConflict)))
 	})
 	It("kubeconfig download happy flow", func() {
-		status := ClusterStatusInstalled
+		status := models.ClusterStatusInstalled
 		c.Status = &status
 		db.Save(&c)
 		fileName := fmt.Sprintf("%s/%s", clusterID, constants.Kubeconfig)
