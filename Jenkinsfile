@@ -56,9 +56,22 @@ pipeline {
             }
         }
 
-        stage('Subsystem Test') {
+        stage('Subsystem Test - REST-API') {
             steps {
-                sh "make subsystem-run"
+                sh "make subsystem-run-tmp"
+            }
+        }
+
+        stage('Configure Assisted-Service with Kube-API') {
+            steps {
+                sh "make subsystem-clean"
+                sh "make enable-kube-api-for-subsystem ENABLE_KUBE_API=true"
+            }
+        }
+
+        stage('Subsystem Test - Kube-API') {
+            steps {
+                sh "make test-kube-api"
             }
         }
 

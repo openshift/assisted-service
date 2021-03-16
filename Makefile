@@ -209,7 +209,7 @@ deploy-inventory-service-file: deploy-namespace
 		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST)
 	sleep 5;  # wait for service to get an address
 
-deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
+deploy-service-requirements: deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
@@ -307,13 +307,28 @@ docs_serve:
 # Test #
 ########
 
-subsystem-run: | test enable-kube-api-for-subsystem subsystem-clean test-kube-api subsystem-clean
+subsystem-run-tmp: test-tmp
+
+test-tmp:
+	$(MAKE) _run_test_tmp AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
+
+_run_test_tmp:
+	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
+		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
+		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
+		OCM_HOST=$(shell $(call get_service,wiremock) | sed 's/http:\/\///g') \
+		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
+		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
+		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
+		go test -v ./subsystem/... -count=1 -ginkgo.focus="$foobar" -ginkgo.v -timeout 120m
+
+subsystem-run: test
 
 test:
 	$(MAKE) _run_test AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
 
 test-kube-api:
-	$(MAKE) _run_test AUTH_TYPE=none ENABLE_KUBE_API=true FOCUS=kube-api || sleep 2h
+	$(MAKE) _run_test AUTH_TYPE=none ENABLE_KUBE_API=true FOCUS=kube-api
 
 _run_test:
 	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
@@ -326,7 +341,8 @@ _run_test:
 		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
-	$(MAKE) deploy-service-requirements AUTH_TYPE=none ENABLE_KUBE_API=true
+	export AUTH_TYPE="none" && export ENABLE_KUBE_API="True" && \
+	$(MAKE) deploy-service-requirements
 	$(call restart_service_pods)
 	$(MAKE) wait-for-service
 
