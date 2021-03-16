@@ -19,7 +19,7 @@ type Disk struct {
 	// bootable
 	Bootable bool `json:"bootable,omitempty"`
 
-	// by-id is the wwn/enve-ei which guaranteed to be unique for every storage device
+	// by-id is the World Wide Number of the device which guaranteed to be unique for every storage device
 	ByID string `json:"by_id,omitempty"`
 
 	// by-path is the shortest physical path to the device

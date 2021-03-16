@@ -82,12 +82,14 @@ type HostIOPerf struct {
 }
 
 type HostDisk struct {
+	ID                      string                      `json:"id"`
 	DriveType               string                      `json:"driveType,omitempty"`
 	Vendor                  string                      `json:"vendor,omitempty"`
 	Name                    string                      `json:"name,omitempty"`
 	Path                    string                      `json:"path,omitempty"`
 	Hctl                    string                      `json:"hctl,omitempty"`
 	ByPath                  string                      `json:"byPath,omitempty"`
+	ByID                    string                      `json:"byID,omitempty"`
 	Model                   string                      `json:"model,omitempty"`
 	Wwn                     string                      `json:"wwn,omitempty"`
 	Serial                  string                      `json:"serial,omitempty"`
@@ -131,8 +133,8 @@ type AgentSpec struct {
 	Hostname              string            `json:"hostname,omitempty"`
 	MachineConfigPool     string            `json:"machineConfigPool,omitempty"`
 	Approved              bool              `json:"approved"`
-	// InstallationDiskPath defines the installation destination disk. e.g.: /dev/sda
-	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
+	// InstallationDiskID defines the installation destination disk (must be equal to the inventory disk id).
+	InstallationDiskID string `json:"installation_disk_id,omitempty"`
 }
 
 type HardwareValidationInfo struct {

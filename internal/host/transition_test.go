@@ -324,9 +324,9 @@ var _ = Describe("RegisterHost", func() {
 				eventSeverity: models.EventSeverityWarning,
 				eventMessage: "Host %s: updated status from \"installing-in-progress\" to \"installing-pending-user-action\" " +
 					"(Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot " +
-					"order to boot from disk /dev/test-disk (test-serial))",
+					"order to boot from disk test-serial (/dev/disk/by-id/test-disk-id))",
 				expectedStatusInfo: "Expected the host to boot from disk, but it booted the installation image - " +
-					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
+					"please reboot and fix boot order to boot from disk test-serial (/dev/disk/by-id/test-disk-id)",
 				expectedRole:      models.HostRoleMaster,
 				expectedInventory: common.GenerateTestDefaultInventory(),
 				hostKind:          models.HostKindHost,
@@ -366,9 +366,9 @@ var _ = Describe("RegisterHost", func() {
 				eventSeverity: models.EventSeverityWarning,
 				eventMessage: "Host %s: updated status from \"added-to-existing-cluster\" to \"installing-pending-user-action\" " +
 					"(Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot " +
-					"order to boot from disk /dev/test-disk (test-serial))",
+					"order to boot from disk test-serial (/dev/disk/by-id/test-disk-id))",
 				expectedStatusInfo: "Expected the host to boot from disk, but it booted the installation image - " +
-					"please reboot and fix boot order to boot from disk /dev/test-disk (test-serial)",
+					"please reboot and fix boot order to boot from disk test-serial (/dev/disk/by-id/test-disk-id)",
 				expectedRole:      models.HostRoleWorker,
 				expectedInventory: common.GenerateTestDefaultInventory(),
 				hostKind:          models.HostKindAddToExistingClusterHost,
@@ -387,7 +387,7 @@ var _ = Describe("RegisterHost", func() {
 					Inventory:            common.GenerateTestDefaultInventory(),
 					Status:               swag.String(t.srcState),
 					Progress:             &t.progress,
-					InstallationDiskPath: hostutil.GetDeviceFullName(common.TestDefaultConfig.Disks.Name),
+					InstallationDiskPath: common.TestDiskId,
 					Kind:                 &t.hostKind,
 				}).Error).ShouldNot(HaveOccurred())
 

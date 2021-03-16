@@ -212,6 +212,8 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 		disks := make([]adiiov1alpha1.HostDisk, len(inventory.Disks))
 		agent.Status.Inventory.Disks = disks
 		for i, d := range inventory.Disks {
+			disks[i].ID = d.ID
+			disks[i].ByID = d.ByID
 			disks[i].DriveType = d.DriveType
 			disks[i].Vendor = d.Vendor
 			disks[i].Name = d.Name
@@ -309,12 +311,12 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alph
 		}
 	}
 
-	if spec.InstallationDiskPath != "" && spec.InstallationDiskPath != host.InstallationDiskPath {
+	if spec.InstallationDiskID != "" && spec.InstallationDiskID != host.InstallationDiskID {
 		clusterUpdate = true
 		params.DisksSelectedConfig = []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
 			{
 				DisksConfig: []*models.DiskConfigParams{
-					{ID: &spec.InstallationDiskPath, Role: models.DiskRoleInstall},
+					{ID: &spec.InstallationDiskID, Role: models.DiskRoleInstall},
 				},
 				ID: strfmt.UUID(agent.Name),
 			},

@@ -136,7 +136,7 @@ type API interface {
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
-	UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error
+	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
@@ -230,12 +230,7 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 // addition to agent-side checks that have already been performed. The reason that some
 // checks are performed by the agent (and not the service) is because the agent has data
 // that is not available in the service.
-func (m *Manager) populateDisksEligibility(inventoryString string) (string, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(inventoryString), &inventory); err != nil {
-		return "", err
-	}
-
+func (m *Manager) populateDisksEligibility(inventory *models.Inventory) {
 	for _, disk := range inventory.Disks {
 		if !hardware.DiskEligibilityInitialized(disk) {
 			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
@@ -249,37 +244,17 @@ func (m *Manager) populateDisksEligibility(inventoryString string) (string, erro
 
 		disk.InstallationEligibility.Eligible = len(disk.InstallationEligibility.NotEligibleReasons) == 0
 	}
-
-	result, err := json.Marshal(inventory)
-	if err != nil {
-		return "", err
-	}
-
-	return string(result), nil
 }
 
-// determineDefaultInstallationDisk considers both the previously set installation disk and the current list of valid
-// disks to determine the current required installation disk.
-//
-// Once the installation disk has been set, we usually no longer change it, even when an inventory update occurs
-// that contains new disks that might be better "fit" for installation. This is because this field can also be set by
-// the user via the API, and we don't want inventory updates to override the user's choice. However, if the disk that
-// was set is no longer part of the inventory, the new installation disk is re-evaluated because it is not longer
-// a valid choice.
-func determineDefaultInstallationDisk(previousInstallationDisk string, validDisks []*models.Disk) string {
-	if previousInstallationDisk != "" {
-		if funk.Find(validDisks, func(disk *models.Disk) bool {
-			return hostutil.GetDeviceFullName(disk.Name) == previousInstallationDisk
-		}) != nil {
-			return previousInstallationDisk
+// populateDisksId ensures that every disk has an id.
+// The id used to identify the disk and mark a disk as selected
+// This value should be equal to the host.installationDiskId
+func (m *Manager) populateDisksId(inventory *models.Inventory) {
+	for _, disk := range inventory.Disks {
+		if disk.ID == "" {
+			disk.ID = hostutil.GetDeviceIdentifier(disk)
 		}
 	}
-
-	if len(validDisks) == 0 {
-		return ""
-	}
-
-	return hostutil.GetDeviceFullName(validDisks[0].Name)
 }
 
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
@@ -296,7 +271,7 @@ func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *model
 	return err
 }
 
-func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
+func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
 
@@ -306,21 +281,34 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 				hostStatus, allowedStatuses))
 	}
 
-	var err error
-	if h.Inventory, err = m.populateDisksEligibility(inventory); err != nil {
-		return err
-	}
-
-	validDisks, err := m.hwValidator.GetHostValidDisks(h)
+	inventory, err := hostutil.UnmarshalInventory(inventoryStr)
 	if err != nil {
 		return err
 	}
 
-	h.InstallationDiskPath = determineDefaultInstallationDisk(h.InstallationDiskPath, validDisks)
+	m.populateDisksEligibility(inventory)
+	m.populateDisksId(inventory)
+
+	h.Inventory, err = hostutil.MarshalInventory(inventory)
+	if err != nil {
+		return err
+	}
+
+	validDisks := m.hwValidator.ListEligibleDisks(inventory)
+	installationDisk := hostutil.DetermineInstallationDisk(validDisks, hostutil.GetHostInstallationPath(h))
+
+	if installationDisk == nil {
+		h.InstallationDiskPath = ""
+		h.InstallationDiskID = ""
+	} else {
+		h.InstallationDiskPath = hostutil.GetDeviceFullName(installationDisk)
+		h.InstallationDiskID = hostutil.GetDeviceIdentifier(installationDisk)
+	}
 
 	return m.db.Model(h).Update(map[string]interface{}{
 		"inventory":              h.Inventory,
 		"installation_disk_path": h.InstallationDiskPath,
+		"installation_disk_id":   h.InstallationDiskID,
 	}).Error
 }
 
@@ -605,7 +593,7 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 	return cdb.Model(h).Update("requested_hostname", hostname).Error
 }
 
-func (m *Manager) UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
+func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
 	hostStatus := swag.StringValue(h.Status)
 	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
@@ -618,20 +606,23 @@ func (m *Manager) UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h
 		return err
 	}
 
-	matchedInstallationDisk := funk.Find(validDisks, func(disk *models.Disk) bool {
-		return hostutil.GetDeviceFullName(disk.Name) == installationDiskPath
-	})
+	matchedInstallationDisk := hostutil.GetDiskByInstallationPath(validDisks, installationDiskPath)
+
 	if matchedInstallationDisk == nil {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Requested installation disk is not part of the host's valid disks"))
 	}
 
-	h.InstallationDiskPath = installationDiskPath
+	h.InstallationDiskPath = hostutil.GetDeviceFullName(matchedInstallationDisk)
+	h.InstallationDiskID = hostutil.GetDeviceIdentifier(matchedInstallationDisk)
 	cdb := m.db
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(h).Update("installation_disk_path", installationDiskPath).Error
+	return cdb.Model(h).Update(map[string]interface{}{
+		"installation_disk_path": h.InstallationDiskPath,
+		"installation_disk_id":   h.InstallationDiskID,
+	}).Error
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
@@ -773,16 +764,13 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
 		return
 	}
-	//get the boot disk
-	var boot *models.Disk
-	disks, err := m.hwValidator.GetHostValidDisks(h)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get host valid disks %s", h.ClusterID)
-		return
-	}
 
-	if len(disks) > 0 {
-		boot = disks[0]
+	boot, err := hostutil.GetHostInstallationDisk(h)
+
+	if err != nil {
+		log.WithError(err).Errorf("host %s in cluster %s: error fetching installation disk", h.ID.String(), h.ClusterID.String())
+	} else if boot == nil {
+		log.Errorf("host %s in cluster %s has empty installation path", h.ID.String(), h.ClusterID.String())
 	}
 
 	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)

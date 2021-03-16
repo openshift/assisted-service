@@ -300,7 +300,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	It("deploy clusterDeployment with agent and update agent", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
-		installDisk := "/dev/sdb"
 		deployClusterDeploymentCRD(ctx, kubeClient, spec)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -316,7 +315,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent := getAgentCRD(ctx, kubeClient, key)
 			agent.Spec.Hostname = "newhostname"
 			agent.Spec.Approved = true
-			agent.Spec.InstallationDiskPath = installDisk
+			agent.Spec.InstallationDiskID = sdb.ID
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
@@ -324,8 +323,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return getHost(*cluster.ID, *host.ID).RequestedHostname
 		}, "2m", "10s").Should(Equal("newhostname"))
 		Eventually(func() string {
-			return getHost(*cluster.ID, *host.ID).InstallationDiskPath
-		}, "2m", "10s").Should(Equal(installDisk))
+			return getHost(*cluster.ID, *host.ID).InstallationDiskID
+		}, "2m", "10s").Should(Equal(sdb.ID))
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
@@ -640,5 +639,4 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 	})
-
 })

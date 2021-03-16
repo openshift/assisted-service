@@ -5687,7 +5687,7 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
-          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
+          "description": "by-id is the World Wide Number of the device which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
@@ -6152,9 +6152,14 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
-        "installation_disk_path": {
-          "description": "Host installation path.",
+        "installation_disk_id": {
+          "description": "Contains the inventory disk id to install on.",
           "type": "string"
+        },
+        "installation_disk_path": {
+          "description": "Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.",
+          "type": "string",
+          "example": "/dev/sda"
         },
         "installer_args": {
           "type": "string"
@@ -13106,7 +13111,7 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
-          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
+          "description": "by-id is the World Wide Number of the device which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
@@ -13535,9 +13540,14 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
-        "installation_disk_path": {
-          "description": "Host installation path.",
+        "installation_disk_id": {
+          "description": "Contains the inventory disk id to install on.",
           "type": "string"
+        },
+        "installation_disk_path": {
+          "description": "Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.",
+          "type": "string",
+          "example": "/dev/sda"
         },
         "installer_args": {
           "type": "string"

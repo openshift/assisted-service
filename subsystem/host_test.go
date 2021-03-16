@@ -96,8 +96,10 @@ var _ = Describe("Host tests", func() {
 			},
 			Disks: []*models.Disk{
 				{
-					Name:      "sda1",
+					ID:        "wwn-0x1111111111111111111111",
+					ByID:      "wwn-0x1111111111111111111111",
 					DriveType: "HDD",
+					Name:      "sda1",
 					SizeBytes: int64(120) * (int64(1) << 30),
 				},
 			},

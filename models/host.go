@@ -69,7 +69,10 @@ type Host struct {
 	// Array of image statuses.
 	ImagesStatus string `json:"images_status,omitempty" gorm:"type:text"`
 
-	// Host installation path.
+	// Contains the inventory disk id to install on.
+	InstallationDiskID string `json:"installation_disk_id,omitempty"`
+
+	// Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.
 	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
 
 	// installer args

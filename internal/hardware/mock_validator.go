@@ -64,6 +64,20 @@ func (mr *MockValidatorMockRecorder) GetHostRequirements(role interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements), role)
 }
 
+// GetHostInstallationPath mocks base method
+func (m *MockValidator) GetHostInstallationPath(host *models.Host) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostInstallationPath", host)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetHostInstallationPath indicates an expected call of GetHostInstallationPath
+func (mr *MockValidatorMockRecorder) GetHostInstallationPath(host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostInstallationPath", reflect.TypeOf((*MockValidator)(nil).GetHostInstallationPath), host)
+}
+
 // GetClusterHostRequirements mocks base method
 func (m *MockValidator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 	m.ctrl.T.Helper()
