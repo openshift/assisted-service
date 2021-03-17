@@ -1,27 +1,22 @@
 package bminventory
 
 import (
-	"bytes"
 	"context"
 
 	// #nosec
 	"crypto/md5"
 	"crypto/x509"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
-	"text/template"
 	"time"
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
@@ -65,7 +60,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	"github.com/vincent-petithory/dataurl"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
@@ -77,9 +71,8 @@ const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 // 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
 const ContainerAlreadyRunningExitCode = 125
 
-const tempNMConnectionsDir = "/etc/assisted/network"
-
 type Config struct {
+	ignition.IgnitionConfig
 	AgentDockerImg                  string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
 	ServiceBaseURL                  string            `envconfig:"SERVICE_BASE_URL"`
 	ServiceCACertPath               string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
@@ -103,181 +96,6 @@ type Config struct {
 	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
 	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"false"`
 }
-
-const agentMessageOfTheDay = `
-**  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
-This is a host being installed by the OpenShift Assisted Installer.
-It will be installed from scratch during the installation.
-The primary service is agent.service.  To watch its status run e.g
-sudo journalctl -u agent.service
-**  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
-`
-
-const redhatRootCA = `
------BEGIN CERTIFICATE-----
-MIIENDCCAxygAwIBAgIJANunI0D662cnMA0GCSqGSIb3DQEBCwUAMIGlMQswCQYD
-VQQGEwJVUzEXMBUGA1UECAwOTm9ydGggQ2Fyb2xpbmExEDAOBgNVBAcMB1JhbGVp
-Z2gxFjAUBgNVBAoMDVJlZCBIYXQsIEluYy4xEzARBgNVBAsMClJlZCBIYXQgSVQx
-GzAZBgNVBAMMElJlZCBIYXQgSVQgUm9vdCBDQTEhMB8GCSqGSIb3DQEJARYSaW5m
-b3NlY0ByZWRoYXQuY29tMCAXDTE1MDcwNjE3MzgxMVoYDzIwNTUwNjI2MTczODEx
-WjCBpTELMAkGA1UEBhMCVVMxFzAVBgNVBAgMDk5vcnRoIENhcm9saW5hMRAwDgYD
-VQQHDAdSYWxlaWdoMRYwFAYDVQQKDA1SZWQgSGF0LCBJbmMuMRMwEQYDVQQLDApS
-ZWQgSGF0IElUMRswGQYDVQQDDBJSZWQgSGF0IElUIFJvb3QgQ0ExITAfBgkqhkiG
-9w0BCQEWEmluZm9zZWNAcmVkaGF0LmNvbTCCASIwDQYJKoZIhvcNAQEBBQADggEP
-ADCCAQoCggEBALQt9OJQh6GC5LT1g80qNh0u50BQ4sZ/yZ8aETxt+5lnPVX6MHKz
-bfwI6nO1aMG6j9bSw+6UUyPBHP796+FT/pTS+K0wsDV7c9XvHoxJBJJU38cdLkI2
-c/i7lDqTfTcfLL2nyUBd2fQDk1B0fxrskhGIIZ3ifP1Ps4ltTkv8hRSob3VtNqSo
-GxkKfvD2PKjTPxDPWYyruy9irLZioMffi3i/gCut0ZWtAyO3MVH5qWF/enKwgPES
-X9po+TdCvRB/RUObBaM761EcrLSM1GqHNueSfqnho3AjLQ6dBnPWlo638Zm1VebK
-BELyhkLWMSFkKwDmne0jQ02Y4g075vCKvCsCAwEAAaNjMGEwHQYDVR0OBBYEFH7R
-4yC+UehIIPeuL8Zqw3PzbgcZMB8GA1UdIwQYMBaAFH7R4yC+UehIIPeuL8Zqw3Pz
-bgcZMA8GA1UdEwEB/wQFMAMBAf8wDgYDVR0PAQH/BAQDAgGGMA0GCSqGSIb3DQEB
-CwUAA4IBAQBDNvD2Vm9sA5A9AlOJR8+en5Xz9hXcxJB5phxcZQ8jFoG04Vshvd0e
-LEnUrMcfFgIZ4njMKTQCM4ZFUPAieyLx4f52HuDopp3e5JyIMfW+KFcNIpKwCsak
-oSoKtIUOsUJK7qBVZxcrIyeQV2qcYOeZhtS5wBqIwOAhFwlCET7Ze58QHmS48slj
-S9K0JAcps2xdnGu0fkzhSQxY8GPQNFTlr6rYld5+ID/hHeS76gq0YG3q6RLWRkHf
-4eTkRjivAlExrFzKcljC4axKQlnOvVAzz+Gm32U0xPBF4ByePVxCJUHw1TsyTmel
-RxNEp7yHoXcwn+fXna+t5JWh1gxUZty3
------END CERTIFICATE-----`
-
-const selinuxPolicy = `
-module assisted 1.0;
-require {
-        type chronyd_t;
-        type container_file_t;
-        type spc_t;
-        class unix_dgram_socket sendto;
-        class dir search;
-        class sock_file write;
-}
-#============= chronyd_t ==============
-allow chronyd_t container_file_t:dir search;
-allow chronyd_t container_file_t:sock_file write;
-allow chronyd_t spc_t:unix_dgram_socket sendto;
-`
-
-const ignitionConfigFormat = `{
-  "ignition": {
-    "version": "3.1.0"{{if .PROXY_SETTINGS}},
-    {{.PROXY_SETTINGS}}{{end}}
-  },
-  "passwd": {
-    "users": [
-      {{.userSshKey}}
-    ]
-  },
-  "systemd": {
-    "units": [{
-      "name": "agent.service",
-      "enabled": true,
-      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Install]\nWantedBy=multi-user.target"
-	},
-	{
-		"name": "selinux.service",
-		"enabled": true,
-		"contents": "[Service]\nType=oneshot\nExecStartPre=checkmodule -M -m -o /root/assisted.mod /root/assisted.te\nExecStartPre=semodule_package -o /root/assisted.pp -m /root/assisted.mod\nExecStart=semodule -i /root/assisted.pp\n\n[Install]\nWantedBy=multi-user.target"
-	}{{if .StaticNetworkConfig}},
-	{
-		"name": "pre-network-manager-config.service",
-		"enabled": true,
-		"contents": "[Unit]\nDescription=Prepare network manager config content\nBefore=NetworkManager.service\nDefaultDependencies=no\n[Service]\nUser=root\nType=oneshot\nTimeoutSec=10\nExecStart=/bin/bash /usr/local/bin/pre-network-manager-config.sh\nPrivateTmp=true\nRemainAfterExit=no\n[Install]\nWantedBy=multi-user.target"
-    }{{end}}
-    ]
-  },
-  "storage": {
-    "files": [{
-      "overwrite": true,
-      "path": "/etc/motd",
-      "mode": 420,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:,{{.AGENT_MOTD}}" }
-	},
-    {
-      "overwrite": true,
-      "path": "/etc/NetworkManager/conf.d/01-ipv6.conf",
-      "mode": 420,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:,{{.IPv6_CONF}}" }
-    },
-	{
-		"overwrite": true,
-		"path": "/root/.docker/config.json",
-		"mode": 420,
-		"user": {
-			"name": "root"
-		},
-		"contents": { "source": "data:,{{.PULL_SECRET}}" }
-	},
-	{
-		"overwrite": true,
-		"path": "/root/assisted.te",
-		"mode": 420,
-		"user": {
-			"name": "root"
-		},
-		"contents": { "source": "data:text/plain;base64,{{.SELINUX_POLICY}}" }
-	}{{if .RH_ROOT_CA}},
-	{
-	  "overwrite": true,
-	  "path": "/etc/pki/ca-trust/source/anchors/rh-it-root-ca.crt",
-	  "mode": 420,
-	  "user": {
-	      "name": "root"
-	  },
-	  "contents": { "source": "data:,{{.RH_ROOT_CA}}" }
-	}{{end}}{{if .HostCACertPath}},
-	{
-	  "path": "{{.HostCACertPath}}",
-	  "mode": 420,
-	  "overwrite": true,
-	  "user": {
-		"name": "root"
-	  },
-	  "contents": { "source": "{{.ServiceCACertData}}" }
-	}{{end}}{{if .ServiceIPs}},
-	{
-	  "path": "/etc/hosts",
-	  "mode": 420,
-	  "user": {
-	    "name": "root"
-	  },
-	  "append": [{ "source": "{{.ServiceIPs}}" }]
-    }{{end}}{{if .StaticNetworkConfig}},
-	{
-		"path": "/usr/local/bin/pre-network-manager-config.sh",
-		"mode": 493,
-		"overwrite": true,
-		"user": {
-			"name": "root"
-		},
-		"contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
-	}{{end}}{{range .StaticNetworkConfig}},
-	{
-	  "path": "{{.FilePath}}",
-	  "mode": 384,
-	  "overwrite": true,
-	  "user": {
-	    "name": "root"
-	  },
-	  "contents": { "source": "data:text/plain;base64,{{.FileContents}}"}
-    }{{end}}]
-  }
-}`
-
-const nodeIgnitionFormat = `{
-  "ignition": {
-    "version": "3.1.0",
-    "config": {
-      "merge": [{
-        "source": "{{.SOURCE}}"
-      }]
-    }
-  }
-}`
 
 const minimalOpenShiftVersionForSingleNode = "4.8"
 
@@ -305,24 +123,24 @@ type CRDUtils interface {
 }
 type bareMetalInventory struct {
 	Config
-	db                  *gorm.DB
-	log                 logrus.FieldLogger
-	hostApi             host.API
-	clusterApi          clusterPkg.API
-	eventsHandler       events.Handler
-	objectHandler       s3wrapper.API
-	metricApi           metrics.API
-	operatorManagerApi  operators.API
-	generator           generator.ISOInstallConfigGenerator
-	authHandler         auth.Authenticator
-	k8sClient           k8sclient.K8SClient
-	ocmClient           *ocm.Client
-	leaderElector       leader.Leader
-	secretValidator     validations.PullSecretValidator
-	versionsHandler     versions.Handler
-	isoEditorFactory    isoeditor.Factory
-	crdUtils            CRDUtils
-	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
+	db                 *gorm.DB
+	log                logrus.FieldLogger
+	hostApi            host.API
+	clusterApi         clusterPkg.API
+	eventsHandler      events.Handler
+	objectHandler      s3wrapper.API
+	metricApi          metrics.API
+	operatorManagerApi operators.API
+	generator          generator.ISOInstallConfigGenerator
+	authHandler        auth.Authenticator
+	k8sClient          k8sclient.K8SClient
+	ocmClient          *ocm.Client
+	leaderElector      leader.Leader
+	secretValidator    validations.PullSecretValidator
+	versionsHandler    versions.Handler
+	isoEditorFactory   isoeditor.Factory
+	crdUtils           CRDUtils
+	IgnitionBuilder    ignition.IgnitionBuilder
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
@@ -356,28 +174,28 @@ func NewBareMetalInventory(
 	versionsHandler versions.Handler,
 	isoEditorFactory isoeditor.Factory,
 	crdUtils CRDUtils,
-	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
+	IgnitionBuilder ignition.IgnitionBuilder,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:                  db,
-		log:                 log,
-		Config:              cfg,
-		hostApi:             hostApi,
-		clusterApi:          clusterApi,
-		generator:           generator,
-		eventsHandler:       eventsHandler,
-		objectHandler:       objectHandler,
-		metricApi:           metricApi,
-		operatorManagerApi:  operatorManagerApi,
-		authHandler:         authHandler,
-		k8sClient:           k8sClient,
-		ocmClient:           ocmClient,
-		leaderElector:       leaderElector,
-		secretValidator:     pullSecretValidator,
-		versionsHandler:     versionsHandler,
-		isoEditorFactory:    isoEditorFactory,
-		crdUtils:            crdUtils,
-		staticNetworkConfig: staticNetworkConfig,
+		db:                 db,
+		log:                log,
+		Config:             cfg,
+		hostApi:            hostApi,
+		clusterApi:         clusterApi,
+		generator:          generator,
+		eventsHandler:      eventsHandler,
+		objectHandler:      objectHandler,
+		metricApi:          metricApi,
+		operatorManagerApi: operatorManagerApi,
+		authHandler:        authHandler,
+		k8sClient:          k8sClient,
+		ocmClient:          ocmClient,
+		leaderElector:      leaderElector,
+		secretValidator:    pullSecretValidator,
+		versionsHandler:    versionsHandler,
+		isoEditorFactory:   isoEditorFactory,
+		crdUtils:           crdUtils,
+		IgnitionBuilder:    IgnitionBuilder,
 	}
 }
 
@@ -393,99 +211,6 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 	return pullSecret, nil
 }
 
-func (b *bareMetalInventory) formatIgnitionFile(cluster *common.Cluster, params installer.GenerateClusterISOParams, logger logrus.FieldLogger, safeForLogs bool) (string, error) {
-	pullSecretToken, err := clusterPkg.AgentToken(cluster, b.authHandler.AuthType())
-	if err != nil {
-		return "", err
-	}
-	proxySettings, err := proxySettingsForIgnition(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
-	if err != nil {
-		return "", err
-	}
-	rhCa := ""
-	if b.Config.InstallRHCa {
-		rhCa = url.PathEscape(redhatRootCA)
-	}
-	var ignitionParams = map[string]interface{}{
-		"userSshKey":           b.getUserSshKey(params),
-		"AgentDockerImg":       b.AgentDockerImg,
-		"ServiceBaseURL":       strings.TrimSpace(b.ServiceBaseURL),
-		"clusterId":            cluster.ID.String(),
-		"PullSecretToken":      pullSecretToken,
-		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
-		"IPv6_CONF":            url.PathEscape(common.Ipv6DuidDiscoveryConf),
-		"PULL_SECRET":          url.PathEscape(cluster.PullSecret),
-		"RH_ROOT_CA":           rhCa,
-		"PROXY_SETTINGS":       proxySettings,
-		"HTTPProxy":            cluster.HTTPProxy,
-		"HTTPSProxy":           cluster.HTTPSProxy,
-		"NoProxy":              cluster.NoProxy,
-		"SkipCertVerification": strconv.FormatBool(b.SkipCertVerification),
-		"AgentTimeoutStartSec": strconv.FormatInt(int64(b.AgentTimeoutStart.Seconds()), 10),
-		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
-	}
-	if safeForLogs {
-		for _, key := range []string{"userSshKey", "PullSecretToken", "PULL_SECRET", "RH_ROOT_CA"} {
-			ignitionParams[key] = "*****"
-		}
-	}
-	if b.ServiceCACertPath != "" {
-		var caCertData []byte
-		caCertData, err = ioutil.ReadFile(b.ServiceCACertPath)
-		if err != nil {
-			return "", err
-		}
-		ignitionParams["ServiceCACertData"] = dataurl.EncodeBytes(caCertData)
-		ignitionParams["HostCACertPath"] = common.HostCACertPath
-	}
-	if b.Config.ServiceIPs != "" {
-		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(ignition.GetServiceIPHostnames(b.Config.ServiceIPs)))
-	}
-
-	if cluster.ImageInfo.StaticNetworkConfig != "" && params.ImageCreateParams.ImageType == models.ImageTypeFullIso {
-		filesList, newErr := b.prepareStaticNetworkConfigForIgnition(cluster, logger)
-		if newErr != nil {
-			logger.WithError(newErr).Errorf("Failed to add static network config to ignition for cluster %s", cluster.ID)
-			return "", newErr
-		}
-		ignitionParams["StaticNetworkConfig"] = filesList
-		ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
-	}
-
-	tmpl, err := template.New("ignitionConfig").Parse(ignitionConfigFormat)
-	if err != nil {
-		return "", err
-	}
-	buf := &bytes.Buffer{}
-	if err = tmpl.Execute(buf, ignitionParams); err != nil {
-		return "", err
-	}
-
-	res := buf.String()
-	if cluster.IgnitionConfigOverrides != "" {
-		res, err = ignition.MergeIgnitionConfig(buf.Bytes(), []byte(cluster.IgnitionConfigOverrides))
-		if err != nil {
-			return "", err
-		}
-		logger.Infof("Applying ignition overrides %s for cluster %s, resulting ignition: %s", cluster.IgnitionConfigOverrides, cluster.ID, res)
-	}
-
-	return res, nil
-}
-
-func (b *bareMetalInventory) getUserSshKey(params installer.GenerateClusterISOParams) string {
-	sshKey := params.ImageCreateParams.SSHPublicKey
-	if sshKey == "" {
-		return ""
-	}
-	return fmt.Sprintf(`{
-		"name": "core",
-		"passwordHash": "!",
-		"sshAuthorizedKeys": [
-		"%s"],
-		"groups": [ "sudo" ]}`, sshKey)
-}
-
 func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
@@ -495,7 +220,7 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 	}
 	isoParams := installer.GenerateClusterISOParams{ClusterID: params.ClusterID, ImageCreateParams: &models.ImageCreateParams{}}
 
-	cfg, err := b.formatIgnitionFile(c, isoParams, log, false)
+	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(c, b.IgnitionConfig, isoParams.ImageCreateParams, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Error("Failed to format ignition config")
 		return common.GenerateErrorResponder(err)
@@ -839,22 +564,6 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&newCluster.Cluster)
 }
 
-func (b *bareMetalInventory) formatNodeIgnitionFile(address string, machineConfigPoolName string) ([]byte, error) {
-	var ignitionParams = map[string]string{
-		// https://github.com/openshift/machine-config-operator/blob/master/docs/MachineConfigServer.md#endpoint
-		"SOURCE": "http://" + address + fmt.Sprintf(":22624/config/%s", machineConfigPoolName),
-	}
-	tmpl, err := template.New("nodeIgnition").Parse(nodeIgnitionFormat)
-	if err != nil {
-		return nil, err
-	}
-	buf := &bytes.Buffer{}
-	if err = tmpl.Execute(buf, ignitionParams); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
 func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Starting createAndUploadNodeIgnition for cluster %s, host %s", cluster.ID, host.ID)
@@ -862,7 +571,7 @@ func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cl
 	if address == "" {
 		address = swag.StringValue(cluster.APIVipDNSName)
 	}
-	ignitionBytes, err := b.formatNodeIgnitionFile(address, host.MachineConfigPoolName)
+	ignitionBytes, err := b.IgnitionBuilder.FormatSecondDayWorkerIgnitionFile(address, host.MachineConfigPoolName)
 	if err != nil {
 		return errors.Errorf("Failed to create ignition string for cluster %s", cluster.ID)
 	}
@@ -1169,7 +878,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 	}
 
-	ignitionConfig, formatErr := b.formatIgnitionFile(cluster, params, log, false)
+	ignitionConfig, formatErr := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster,
+		b.IgnitionConfig, params.ImageCreateParams, false, b.authHandler.AuthType())
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 		msg := "Failed to generate image: error formatting ignition file"
@@ -1214,7 +924,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 }
 
 func (b *bareMetalInventory) getIgnitionConfigForLogging(cluster *common.Cluster, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {
-	ignitionConfigForLogging, _ := b.formatIgnitionFile(cluster, params, log, true)
+	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster,
+		b.IgnitionConfig, params.ImageCreateParams, true, b.authHandler.AuthType())
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
 	msg := "Generated image"
 	var msgExtras []string
@@ -1672,7 +1383,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, par
 func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 
-	cfg, err := installcfg.GetInstallConfig(log, &cluster, b.Config.InstallRHCa, redhatRootCA)
+	cfg, err := installcfg.GetInstallConfig(log, &cluster, b.Config.InstallRHCa, ignition.RedhatRootCA)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
@@ -4423,46 +4134,6 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
 	return nil
 }
 
-func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, error) {
-	if httpProxy == "" && httpsProxy == "" {
-		return "", nil
-	}
-
-	proxySettings := `"proxy": { {{.httpProxy}}{{.httpsProxy}}{{.noProxy}} }`
-	var httpProxyAttr, httpsProxyAttr, noProxyAttr string
-	if httpProxy != "" {
-		httpProxyAttr = `"httpProxy": "` + httpProxy + `"`
-	}
-	if httpsProxy != "" {
-		if httpProxy != "" {
-			httpsProxyAttr = ", "
-		}
-		httpsProxyAttr += `"httpsProxy": "` + httpsProxy + `"`
-	}
-	if noProxy != "" {
-		noProxyStr, err := json.Marshal(strings.Split(noProxy, ","))
-		if err != nil {
-			return "", err
-		}
-		noProxyAttr = `, "noProxy": ` + string(noProxyStr)
-	}
-	var proxyParams = map[string]string{
-		"httpProxy":  httpProxyAttr,
-		"httpsProxy": httpsProxyAttr,
-		"noProxy":    noProxyAttr,
-	}
-
-	tmpl, err := template.New("proxySettings").Parse(proxySettings)
-	if err != nil {
-		return "", err
-	}
-	buf := &bytes.Buffer{}
-	if err = tmpl.Execute(buf, proxyParams); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
 func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
 	log := logutil.FromContext(ctx, b.log)
 	id := strfmt.UUID(uuid.New().String())
@@ -4709,18 +4380,4 @@ func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*com
 func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
 	// TODO: implement
 	return installer.NewGetClusterHostRequirementsOK().WithPayload(models.ClusterHostRequirementsList{})
-}
-
-func (b *bareMetalInventory) prepareStaticNetworkConfigForIgnition(cluster *common.Cluster, log logrus.FieldLogger) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
-	filesList, err := b.staticNetworkConfig.GenerateStaticNetworkConfigData(cluster.ImageInfo.StaticNetworkConfig)
-	if err != nil {
-		log.WithError(err).Errorf("staticNetworkGenerator failed to produce the static network connection files for cluster %s", cluster.ID)
-		return nil, err
-	}
-	for i := range filesList {
-		filesList[i].FilePath = filepath.Join(tempNMConnectionsDir, filesList[i].FilePath)
-		filesList[i].FileContents = base64.StdEncoding.EncodeToString([]byte(filesList[i].FileContents))
-	}
-
-	return filesList, nil
 }

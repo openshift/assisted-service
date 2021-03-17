@@ -24,7 +24,9 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
+	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/sirupsen/logrus"
 )
 
@@ -771,4 +773,254 @@ var _ = Describe("ParseToLatest", func() {
 
 var _ = AfterEach(func() {
 	os.RemoveAll("manifests")
+})
+
+var _ = Describe("proxySettingsForIgnition", func() {
+
+	Context("test proxy settings in discovery ignition", func() {
+		var parameters = []struct {
+			httpProxy, httpsProxy, noProxy, res string
+		}{
+			{"", "", "", ""},
+			{
+				"http://proxy.proxy", "", "",
+				`"proxy": { "httpProxy": "http://proxy.proxy" }`,
+			},
+			{
+				"http://proxy.proxy", "https://proxy.proxy", "",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy" }`,
+			},
+			{
+				"http://proxy.proxy", "", ".domain",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": [".domain"] }`,
+			},
+			{
+				"http://proxy.proxy", "https://proxy.proxy", ".domain",
+				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": [".domain"] }`,
+			},
+			{
+				"", "https://proxy.proxy", ".domain,123.123.123.123",
+				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": [".domain","123.123.123.123"] }`,
+			},
+			{
+				"", "https://proxy.proxy", "",
+				`"proxy": { "httpsProxy": "https://proxy.proxy" }`,
+			},
+			{
+				"", "", ".domain", "",
+			},
+		}
+
+		It("verify rendered proxy settings", func() {
+			for _, p := range parameters {
+				s, err := proxySettingsForIgnition(p.httpProxy, p.httpsProxy, p.noProxy)
+				Expect(err).To(BeNil())
+				Expect(s).To(Equal(p.res))
+			}
+		})
+	})
+})
+
+var _ = Describe("IgnitionBuilder", func() {
+	var (
+		ctrl                    *gomock.Controller
+		cluster                 common.Cluster
+		log                     logrus.FieldLogger
+		builder                 IgnitionBuilder
+		mockStaticNetworkConfig *staticnetworkconfig.MockStaticNetworkConfig
+		clusterID               strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		log = common.GetTestLog()
+		clusterID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
+		ctrl = gomock.NewController(GinkgoT())
+		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:            &clusterID,
+			PullSecretSet: false,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		cluster.ImageInfo = &models.ImageInfo{}
+		builder = NewBuilder(log, mockStaticNetworkConfig)
+	})
+
+	Context("with auth enabled", func() {
+
+		It("ignition_file_fails_missing_Pull_Secret_token", func() {
+			clusterID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
+			clusterWithoutToken := common.Cluster{Cluster: models.Cluster{
+				ID:            &clusterID,
+				PullSecretSet: false,
+			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+
+			_, err := builder.FormatDiscoveryIgnitionFile(&clusterWithoutToken, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+			Expect(err).ShouldNot(BeNil())
+		})
+
+		It("ignition_file_contains_pull_secret_token", func() {
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+			Expect(err).Should(BeNil())
+			Expect(text).Should(ContainSubstring("PULL_SECRET_TOKEN"))
+		})
+	})
+
+	It("auth_disabled_no_pull_secret_token", func() {
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeNone)
+
+		Expect(err).Should(BeNil())
+		Expect(text).ShouldNot(ContainSubstring("PULL_SECRET_TOKEN"))
+	})
+
+	It("ignition_file_contains_url", func() {
+		serviceBaseURL := "file://10.56.20.70:7878"
+		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", serviceBaseURL)))
+	})
+
+	It("ignition_file_safe_for_logging", func() {
+		serviceBaseURL := "file://10.56.20.70:7878"
+		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, true, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).ShouldNot(ContainSubstring("cloud.openshift.com"))
+		Expect(text).Should(ContainSubstring("data:,*****"))
+	})
+
+	It("enabled_cert_verification", func() {
+		config := IgnitionConfig{SkipCertVerification: false}
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("--insecure=false"))
+	})
+
+	It("disabled_cert_verification", func() {
+		config := IgnitionConfig{SkipCertVerification: true}
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("--insecure=true"))
+	})
+
+	It("cert_verification_enabled_by_default", func() {
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring("--insecure=false"))
+	})
+
+	It("ignition_file_contains_http_proxy", func() {
+		cluster.HTTPProxy = "http://10.10.1.1:3128"
+		cluster.NoProxy = "quay.io"
+		serviceBaseURL := "file://10.56.20.70:7878"
+		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
+	})
+
+	It("produces a valid ignition v3.1 spec by default", func() {
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(config.Ignition.Version).To(Equal("3.1.0"))
+	})
+
+	It("produces a valid ignition v3.1 spec with overrides", func() {
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+
+		config, report, err := config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		numOfFiles := len(config.Storage.Files)
+
+		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		text, err = builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+
+		config, report, err = config_31.Parse([]byte(text))
+		Expect(err).NotTo(HaveOccurred())
+		Expect(report.IsFatal()).To(BeFalse())
+		Expect(len(config.Storage.Files)).To(Equal(numOfFiles + 1))
+	})
+
+	It("fails when given overrides with an incompatible version", func() {
+		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		_, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+
+		Expect(err).To(HaveOccurred())
+	})
+
+	Context("static network config", func() {
+		map1 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+		}
+		map2 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+		}
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
+			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
+			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
+		}
+		staticnetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
+			{
+				FilePath:     "nic10.nmconnection",
+				FileContents: "nic10 nmconnection content",
+			},
+			{
+				FilePath:     "nic20.nmconnection",
+				FileContents: "nic10 nmconnection content",
+			},
+			{
+				FilePath:     "mac_interface.ini",
+				FileContents: "nic10=mac10\nnic20=mac20",
+			},
+		}
+
+		It("produces a valid ignition v3.1 spec with static ips paramters", func() {
+			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
+			cluster.ImageInfo.StaticNetworkConfig = formattedInput
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{ImageType: models.ImageTypeFullIso}, false, auth.TypeRHSSO)
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(3))
+		})
+		It("Doesn't include static network config for minimal isos", func() {
+			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
+			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
+			cluster.ImageInfo.StaticNetworkConfig = formattedInput
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{ImageType: models.ImageTypeMinimalIso}, false, auth.TypeRHSSO)
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(0))
+		})
+	})
 })

@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -50,7 +51,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/restapi"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
@@ -77,8 +77,31 @@ var (
 	mockK8sClient           *k8sclient.MockK8SClient
 	mockCRDUtils            *MockCRDUtils
 	mockAccountsMgmt        *ocm.MockOCMAccountsMgmt
-	mockStaticNetworkConfig *staticnetworkconfig.MockStaticNetworkConfig
 	mockOperatorManager     *operators.MockAPI
+	mockIgnitionBuilder     *ignition.MockIgnitionBuilder
+	secondDayWorkerIgnition = []byte(`{
+		"ignition": {
+		  "version": "3.1.0",
+		  "config": {
+			"merge": [{
+			  "source": "http://1.1.1.1:22624/config/abc}"
+			}]
+		  }
+		}
+	  }`)
+	discovery_ignition_3_1 = `{
+		"ignition": {
+		  "version": "3.1.0"
+		},
+		"storage": {
+		  "files": [{
+			  "path": "/tmp/example",
+			  "contents": {
+				"source": "data:text/plain;base64,aGVsbG8gd29ybGQK"
+			  }
+		  }]
+		}
+	}`
 )
 
 func mockClusterRegisterSteps() {
@@ -162,8 +185,8 @@ var _ = Describe("GenerateClusterISO", func() {
 	})
 
 	AfterEach(func() {
-		ctrl.Finish()
 		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
 	})
 
 	registerClusterWithHTTPProxy := func(pullSecretSet bool, httpProxy string) *common.Cluster {
@@ -202,6 +225,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -221,6 +246,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", Image type "+
 			"is \"full-iso\", SSH public key is not set)", gomock.Any())
@@ -255,6 +282,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo,
 			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`, cluster.ImageInfo.Type),
 			gomock.Any())
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -287,6 +315,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -305,6 +335,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -328,6 +360,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockUploadIso(cluster, errors.New("failed"))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -351,6 +384,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockUploadIso(cluster, errors.New("failed"))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -361,6 +395,7 @@ var _ = Describe("GenerateClusterISO", func() {
 	It("fails when the ignition upload fails", func() {
 		clusterId := registerCluster(true).ID
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -393,20 +428,22 @@ var _ = Describe("GenerateClusterISO", func() {
 			&models.MacInterfaceMapItems0{MacAddress: "mac31", LogicalNicName: "nic31"},
 		}
 
-		staticNetworkConfig := []*models.HostStaticNetworkConfig{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
-			formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
-			formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1", map3)}
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
+			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
+			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
+			common.FormatStaticConfigHostYAML("nic30", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1", map3),
+		}
 
 		It("static network config - success", func() {
 			cluster := registerCluster(true)
 			clusterId := cluster.ID
-			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return([]staticnetworkconfig.StaticNetworkConfigData{}, nil).Times(2)
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
@@ -420,10 +457,10 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return([]staticnetworkconfig.StaticNetworkConfigData{}, nil).Times(2)
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
@@ -432,19 +469,17 @@ var _ = Describe("GenerateClusterISO", func() {
 
 			rollbackClusterImageCreationDate(clusterId)
 
-			newStaticNetworkConfig := []*models.HostStaticNetworkConfig{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
-				formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
-				formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1", map3)}
-
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo,
 				`Re-used existing image rather than generating a new one (image type is "full-iso")`,
 				gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
-				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: newStaticNetworkConfig},
+				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
 			})
 
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
@@ -456,10 +491,10 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return([]staticnetworkconfig.StaticNetworkConfigData{}, nil).Times(2)
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
@@ -471,18 +506,19 @@ var _ = Describe("GenerateClusterISO", func() {
 			updates["image_created_at"] = updatedTime
 			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
 
-			newStaticNetworkConfig := []*models.HostStaticNetworkConfig{formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
-				formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
-				formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3)}
+			newStaticNetworkConfig := []*models.HostStaticNetworkConfig{
+				common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
+				common.FormatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.40", "192.168.141.40", "192.168.126.1", map2),
+				common.FormatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.42", "192.168.141.42", "192.168.126.1", map3),
+			}
 
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-			formattedInput = staticnetworkconfig.FormatStaticNetworkConfigForDB(newStaticNetworkConfig)
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return([]staticnetworkconfig.StaticNetworkConfigData{}, nil).Times(2)
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: newStaticNetworkConfig},
@@ -546,6 +582,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"minimal-iso\", SSH public key is not set)", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
@@ -561,6 +599,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			// Generate full-iso
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := generateClusterISO(models.ImageTypeFullIso)
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 
@@ -576,6 +616,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"minimal-iso\", SSH public key is not set)", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 
 			generateReply = generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
@@ -589,6 +631,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("", errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -602,6 +646,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(nil, int64(0), errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -616,6 +662,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockIsoEditorFactory.EXPECT().WithEditor(ctx, gomock.Any(), cluster.OpenshiftVersion, gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -632,6 +680,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			stubWithEditor(mockIsoEditorFactory, editor, cluster.OpenshiftVersion)
 			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return("", errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -649,221 +699,14 @@ var _ = Describe("GenerateClusterISO", func() {
 			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return(isoFilePath, nil)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID)).Return(errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
 			Expect(generateReply.(*common.ApiErrorResponse).Error()).Should(Equal(expectedErrMsg))
 		})
 	})
-})
-
-var _ = Describe("IgnitionParameters", func() {
-
-	var (
-		bm      *bareMetalInventory
-		cluster common.Cluster
-		log     logrus.FieldLogger
-	)
-
-	BeforeEach(func() {
-		log = common.GetTestLog()
-		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:            strToUUID("a640ef36-dcb1-11ea-87d0-0242ac130003"),
-			PullSecretSet: false,
-		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		cluster.ImageInfo = &models.ImageInfo{}
-		bm = createInventory(nil, Config{})
-	})
-
-	Context("with auth enabled", func() {
-		BeforeEach(func() {
-			bm.authHandler = &auth.RHSSOAuthenticator{}
-		})
-
-		It("ignition_file_fails_missing_Pull_Secret_token", func() {
-			clusterWithoutToken := common.Cluster{Cluster: models.Cluster{
-				ID:            strToUUID("a640ef36-dcb1-11ea-87d0-0242ac130003"),
-				PullSecretSet: false,
-			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-
-			_, err := bm.formatIgnitionFile(&clusterWithoutToken, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
-
-			Expect(err).ShouldNot(BeNil())
-		})
-
-		It("ignition_file_contains_pull_secret_token", func() {
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{},
-			}, log, false)
-
-			Expect(err).Should(BeNil())
-			Expect(text).Should(ContainSubstring("PULL_SECRET_TOKEN"))
-		})
-	})
-
-	It("auth_disabled_no_pull_secret_token", func() {
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-
-		Expect(err).Should(BeNil())
-		Expect(text).ShouldNot(ContainSubstring("PULL_SECRET_TOKEN"))
-	})
-
-	It("ignition_file_contains_url", func() {
-		bm.ServiceBaseURL = "file://10.56.20.70:7878"
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", bm.ServiceBaseURL)))
-	})
-
-	It("ignition_file_safe_for_logging", func() {
-		bm.ServiceBaseURL = "file://10.56.20.70:7878"
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, true)
-
-		Expect(err).Should(BeNil())
-		Expect(text).ShouldNot(ContainSubstring("cloud.openshift.com"))
-		Expect(text).Should(ContainSubstring("data:,*****"))
-	})
-
-	It("enabled_cert_verification", func() {
-		bm.SkipCertVerification = false
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring("--insecure=false"))
-	})
-
-	It("disabled_cert_verification", func() {
-		bm.SkipCertVerification = true
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring("--insecure=true"))
-	})
-
-	It("cert_verification_enabled_by_default", func() {
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring("--insecure=false"))
-	})
-
-	It("ignition_file_contains_http_proxy", func() {
-		bm.ServiceBaseURL = "file://10.56.20.70:7878"
-		cluster.HTTPProxy = "http://10.10.1.1:3128"
-		cluster.NoProxy = "quay.io"
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-
-		Expect(err).Should(BeNil())
-		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
-	})
-
-	It("produces a valid ignition v3.1 spec by default", func() {
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-		Expect(err).NotTo(HaveOccurred())
-		config, report, err := ign_3_1.Parse([]byte(text))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(report.IsFatal()).To(BeFalse())
-		Expect(config.Ignition.Version).To(Equal("3.1.0"))
-	})
-
-	It("produces a valid ignition v3.1 spec with overrides", func() {
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-		Expect(err).NotTo(HaveOccurred())
-
-		config, report, err := ign_3_1.Parse([]byte(text))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(report.IsFatal()).To(BeFalse())
-		orig_files := len(config.Storage.Files)
-
-		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		text, err = bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-		Expect(err).NotTo(HaveOccurred())
-
-		config, report, err = ign_3_1.Parse([]byte(text))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(report.IsFatal()).To(BeFalse())
-		Expect(len(config.Storage.Files)).To(Equal(orig_files + 1))
-	})
-
-	It("fails when given overrides with an incompatible version", func() {
-		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		_, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{},
-		}, log, false)
-		Expect(err).To(HaveOccurred())
-	})
-
-	/* [TODO] enable once nmstate is installed in Docker.assisted-service-build
-	It("produces a valid ignition v3.1 spec with static ips paramters", func() {
-		staticNetworkConfig := []string{formatStaticConfigHostYAML("0200003ef73c", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1"),
-			formatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1"),
-			formatStaticConfigHostYAML("0200003ef75c", "02000048ba58", "192.168.126.32", "192.168.141.32", "192.168.126.1")}
-		cluster.ImageInfo.StaticNetworkConfig = strings.Join(staticNetworkConfig, "ZZZZZ")
-		text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-			ImageCreateParams: &models.ImageCreateParams{
-				ImageType: models.ImageTypeFullIso,
-			},
-		}, log, false)
-		Expect(err).NotTo(HaveOccurred())
-		config, report, err := ign_3_1.Parse([]byte(text))
-		Expect(err).NotTo(HaveOccurred())
-		Expect(report.IsFatal()).To(BeFalse())
-		count := 0
-		for _, f := range config.Storage.Files {
-			if strings.HasSuffix(f.Path, "nmconnection") {
-				count += 1
-			}
-		}
-		Expect(count).Should(Equal(6))
-	})
-	*/
-	// [TODO]  - change the tests once nmstate-based implementation is in - add the check for Motti's service ( not supposed to be in ignition)
-	/*
-		It("Doesn't include the static ip data for minimal isos", func() {
-			cluster.ImageInfo.StaticIpsConfig = "mac1;ip1;mask1;dns1;gw1;ip6;mask6;dns6;gw6\nmac2;ip2;mask2;dns2;gw2;;;;"
-			text, err := bm.formatIgnitionFile(&cluster, installer.GenerateClusterISOParams{
-				ImageCreateParams: &models.ImageCreateParams{
-					ImageType: models.ImageTypeMinimalIso,
-				},
-			}, log, false)
-			Expect(err).NotTo(HaveOccurred())
-			config, report, err := ign_3_1.Parse([]byte(text))
-			Expect(err).NotTo(HaveOccurred())
-			Expect(report.IsFatal()).To(BeFalse())
-
-			for _, f := range config.Systemd.Units {
-				Expect(f.Name).ToNot(Equal("configure-static-ip.service"))
-			}
-
-			for _, f := range config.Storage.Files {
-				Expect(f.Path).ToNot(Equal("/etc/static_ips_config.csv"))
-				Expect(f.Path).ToNot(Equal("/usr/local/bin/configure-static-ip.sh"))
-			}
-		})
-	*/
 })
 
 func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityMode string) *common.Cluster {
@@ -4911,6 +4754,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 	})
 
 	It("returns successfully without overrides", func() {
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
 		response := bm.GetDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.GetDiscoveryIgnitionOK{}))
@@ -4931,6 +4775,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 
 	It("returns successfully with overrides", func() {
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(override, nil).Times(1)
 		db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("ignition_config_overrides", override)
 
 		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
@@ -4952,7 +4797,6 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 		Expect(file).NotTo(BeNil())
 		Expect(*file.Contents.Source).To(Equal("data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"))
 	})
-
 })
 
 var _ = Describe("UpdateDiscoveryIgnition", func() {
@@ -5129,52 +4973,6 @@ func getInventoryStrWithIPv6(hostname, bootMode string, ipv4Addresses []string, 
 	ret, _ := json.Marshal(&inventory)
 	return string(ret)
 }
-
-var _ = Describe("proxySettingsForIgnition", func() {
-
-	Context("test proxy settings in discovery ignition", func() {
-		var parameters = []struct {
-			httpProxy, httpsProxy, noProxy, res string
-		}{
-			{"", "", "", ""},
-			{
-				"http://proxy.proxy", "", "",
-				`"proxy": { "httpProxy": "http://proxy.proxy" }`,
-			},
-			{
-				"http://proxy.proxy", "https://proxy.proxy", "",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy" }`,
-			},
-			{
-				"http://proxy.proxy", "", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "noProxy": [".domain"] }`,
-			},
-			{
-				"http://proxy.proxy", "https://proxy.proxy", ".domain",
-				`"proxy": { "httpProxy": "http://proxy.proxy", "httpsProxy": "https://proxy.proxy", "noProxy": [".domain"] }`,
-			},
-			{
-				"", "https://proxy.proxy", ".domain,123.123.123.123",
-				`"proxy": { "httpsProxy": "https://proxy.proxy", "noProxy": [".domain","123.123.123.123"] }`,
-			},
-			{
-				"", "https://proxy.proxy", "",
-				`"proxy": { "httpsProxy": "https://proxy.proxy" }`,
-			},
-			{
-				"", "", ".domain", "",
-			},
-		}
-
-		It("verify rendered proxy settings", func() {
-			for _, p := range parameters {
-				s, err := proxySettingsForIgnition(p.httpProxy, p.httpsProxy, p.noProxy)
-				Expect(err).To(BeNil())
-				Expect(s).To(Equal(p.res))
-			}
-		})
-	})
-})
 
 var _ = Describe("Register OCPCluster test", func() {
 
@@ -5487,6 +5285,7 @@ var _ = Describe("Install Host test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.InstallHost(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostAccepted()))
 	})
@@ -5533,7 +5332,23 @@ var _ = Describe("Install Host test", func() {
 		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(0)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(nil, fmt.Errorf("ign failure")).Times(1)
+		res := bm.InstallHost(ctx, params)
+		verifyApiError(res, http.StatusInternalServerError)
+	})
+
+	It("Install day2 host - ignition upload failed", func() {
+		params := installer.InstallHostParams{
+			HTTPRequest: request,
+			ClusterID:   clusterID,
+			HostID:      hostID,
+		}
+		addHost(hostID, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.InstallHost(ctx, params)
 		verifyApiError(res, http.StatusInternalServerError)
 	})
@@ -5586,6 +5401,7 @@ var _ = Describe("Install Hosts test", func() {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(3)
 		res := bm.InstallHosts(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
 	})
@@ -5606,6 +5422,7 @@ var _ = Describe("Install Hosts test", func() {
 		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		fileName := fmt.Sprintf("%s/worker-%s.ign", clusterID, knownHostID)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
 		res := bm.InstallHosts(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
 	})
@@ -5620,6 +5437,7 @@ var _ = Describe("Install Hosts test", func() {
 		addHost(strfmt.UUID(uuid.New().String()), models.HostRoleWorker, models.HostStatusDisconnected, models.HostKindAddToExistingClusterHost, clusterID, "", db)
 		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(0)
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(0)
 		res := bm.InstallHosts(ctx, params)
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewInstallHostsAccepted()))
 	})
@@ -6594,101 +6412,11 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockVersions = versions.NewMockHandler(ctrl)
 	mockIsoEditorFactory = isoeditor.NewMockFactory(ctrl)
 	mockCRDUtils = NewMockCRDUtils(ctrl)
-	mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
+	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
 
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockOperatorManager,
-		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions, mockIsoEditorFactory, mockCRDUtils, mockStaticNetworkConfig)
-}
-
-type StaticNetworkConfig struct {
-	DNSResolver DNSResolver  `yaml:"dns-resolver"`
-	Interfaces  []Interfaces `yaml:"interfaces"`
-	Routes      Routes       `yaml:"routes"`
-}
-type DNSResolverConfig struct {
-	Server []string `yaml:"server"`
-}
-type DNSResolver struct {
-	Config DNSResolverConfig `yaml:"config"`
-}
-type Address struct {
-	IP           string `yaml:"ip"`
-	PrefixLength int    `yaml:"prefix-length"`
-}
-type Ipv4 struct {
-	Address []Address `yaml:"address"`
-	Dhcp    bool      `yaml:"dhcp"`
-	Enabled bool      `yaml:"enabled"`
-}
-type Interfaces struct {
-	Ipv4  Ipv4   `yaml:"ipv4"`
-	Name  string `yaml:"name"`
-	State string `yaml:"state"`
-	Type  string `yaml:"type"`
-}
-type RouteConfig struct {
-	Destination      string `yaml:"destination"`
-	NextHopAddress   string `yaml:"next-hop-address"`
-	NextHopInterface string `yaml:"next-hop-interface"`
-	TableID          int    `yaml:"table-id"`
-}
-type Routes struct {
-	Config []RouteConfig `yaml:"config"`
-}
-
-func formatStaticConfigHostYAML(macPrimary, macSecondary, ip4Master, ip4Secondary, dnsGW string, macInterfaceMap models.MacInterfaceMap) *models.HostStaticNetworkConfig {
-	staticNetworkConfig := StaticNetworkConfig{
-		DNSResolver: DNSResolver{
-			Config: DNSResolverConfig{
-				Server: []string{dnsGW},
-			},
-		},
-		Interfaces: []Interfaces{
-			{
-				Ipv4: Ipv4{
-					Address: []Address{
-						{
-							IP:           ip4Master,
-							PrefixLength: 24,
-						},
-					},
-					Dhcp:    false,
-					Enabled: true,
-				},
-				Name:  macPrimary,
-				State: "up",
-				Type:  "ethernet",
-			},
-			{
-				Ipv4: Ipv4{
-					Address: []Address{
-						{
-							IP:           ip4Secondary,
-							PrefixLength: 24,
-						},
-					},
-					Dhcp:    false,
-					Enabled: true,
-				},
-				Name:  macSecondary,
-				State: "up",
-				Type:  "ethernet",
-			},
-		},
-		Routes: Routes{
-			Config: []RouteConfig{
-				{
-					Destination:      "0.0.0.0/0",
-					NextHopAddress:   dnsGW,
-					NextHopInterface: macPrimary,
-					TableID:          254,
-				},
-			},
-		},
-	}
-
-	output, _ := yaml.Marshal(staticNetworkConfig)
-	return &models.HostStaticNetworkConfig{MacInterfaceMap: macInterfaceMap, NetworkYaml: string(output)}
+		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
+		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder)
 }

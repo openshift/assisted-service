@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -223,7 +224,7 @@ func main() {
 	Options.JobConfig.S3EndpointURL = newUrl
 
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
-
+	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig)
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
 	var objectHandler s3wrapper.API = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
@@ -303,7 +304,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
-		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
+		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder)
 
 	deletionWorker := thread.New(
 		log.WithField("inventory", "Deletion Worker"),

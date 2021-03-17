@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 type TestConfiguration struct {
@@ -97,4 +98,95 @@ func GetTestLog() logrus.FieldLogger {
 	l := logrus.New()
 	l.SetOutput(ioutil.Discard)
 	return l
+}
+
+type StaticNetworkConfig struct {
+	DNSResolver DNSResolver  `yaml:"dns-resolver"`
+	Interfaces  []Interfaces `yaml:"interfaces"`
+	Routes      Routes       `yaml:"routes"`
+}
+type DNSResolverConfig struct {
+	Server []string `yaml:"server"`
+}
+type DNSResolver struct {
+	Config DNSResolverConfig `yaml:"config"`
+}
+type Address struct {
+	IP           string `yaml:"ip"`
+	PrefixLength int    `yaml:"prefix-length"`
+}
+type Ipv4 struct {
+	Address []Address `yaml:"address"`
+	Dhcp    bool      `yaml:"dhcp"`
+	Enabled bool      `yaml:"enabled"`
+}
+type Interfaces struct {
+	Ipv4  Ipv4   `yaml:"ipv4"`
+	Name  string `yaml:"name"`
+	State string `yaml:"state"`
+	Type  string `yaml:"type"`
+}
+type RouteConfig struct {
+	Destination      string `yaml:"destination"`
+	NextHopAddress   string `yaml:"next-hop-address"`
+	NextHopInterface string `yaml:"next-hop-interface"`
+	TableID          int    `yaml:"table-id"`
+}
+type Routes struct {
+	Config []RouteConfig `yaml:"config"`
+}
+
+func FormatStaticConfigHostYAML(nicPrimary, nicSecondary, ip4Master, ip4Secondary, dnsGW string, macInterfaceMap models.MacInterfaceMap) *models.HostStaticNetworkConfig {
+	staticNetworkConfig := StaticNetworkConfig{
+		DNSResolver: DNSResolver{
+			Config: DNSResolverConfig{
+				Server: []string{dnsGW},
+			},
+		},
+		Interfaces: []Interfaces{
+			{
+				Ipv4: Ipv4{
+					Address: []Address{
+						{
+							IP:           ip4Master,
+							PrefixLength: 24,
+						},
+					},
+					Dhcp:    false,
+					Enabled: true,
+				},
+				Name:  nicPrimary,
+				State: "up",
+				Type:  "ethernet",
+			},
+			{
+				Ipv4: Ipv4{
+					Address: []Address{
+						{
+							IP:           ip4Secondary,
+							PrefixLength: 24,
+						},
+					},
+					Dhcp:    false,
+					Enabled: true,
+				},
+				Name:  nicSecondary,
+				State: "up",
+				Type:  "ethernet",
+			},
+		},
+		Routes: Routes{
+			Config: []RouteConfig{
+				{
+					Destination:      "0.0.0.0/0",
+					NextHopAddress:   dnsGW,
+					NextHopInterface: nicPrimary,
+					TableID:          254,
+				},
+			},
+		},
+	}
+
+	output, _ := yaml.Marshal(staticNetworkConfig)
+	return &models.HostStaticNetworkConfig{MacInterfaceMap: macInterfaceMap, NetworkYaml: string(output)}
 }
