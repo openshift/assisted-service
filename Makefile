@@ -308,7 +308,7 @@ docs_serve:
 # Test #
 ########
 
-subsystem-run: | test enable-kube-api-for-subsystem test-kube-api subsystem-clean
+subsystem-run: | enable-kube-api-for-subsystem test-kube-api subsystem-clean
 
 test:
 	$(MAKE) _run_test AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
