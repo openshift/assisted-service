@@ -5,6 +5,7 @@
         "release_image": "quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64",
         "rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso",
         "rhcos_rootfs": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img",
+        "rhcos_image_checksum": "38d8e14491758b8b7052cb8e82704fe25b042875a3fbaa5298bd4f1fb1fc416e",
         "rhcos_version": "46.82.202012051820-0",
         "support_level": "production"
     },
@@ -14,6 +15,7 @@
         "release_image": "quay.io/openshift-release-dev/ocp-release:4.7.11-x86_64",
         "rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
         "rhcos_rootfs": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+        "rhcos_image_checksum":"e763b79edc4c7958bffdb222cc4e5e8acbf6b7e447d4342009f908ab071b7c95",
         "rhcos_version": "47.83.202103251640-0",
         "support_level": "production",
         "default": true
@@ -24,6 +26,7 @@
         "release_image": "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.3-x86_64",
         "rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-4.8.0-fc.3-x86_64-live.x86_64.iso",
         "rhcos_rootfs": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-live-rootfs.x86_64.img",
+        "rhcos_image_checksum": "7778a6750583ab023dfcf982114b8260e42ce473b47bfe6f6d55a29c5d137cbc",
         "rhcos_version": "48.84.202105062123-0",
         "support_level": "beta"
     }

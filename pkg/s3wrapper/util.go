@@ -4,6 +4,8 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -11,9 +13,11 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path"
 	"sync"
 	"time"
 
+	"github.com/go-acme/lego/log"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -47,13 +51,41 @@ func FixEndpointURL(endpoint string) (string, error) {
 	return new_url, nil
 }
 
-func DownloadURLToTemporaryFile(url string) (string, error) {
-	tmpfile, err := ioutil.TempFile("", "isodownload")
-	if err != nil {
-		return "", errors.Wrap(err, "Error creating temporary file")
+func DownloadURLToFile(url string, isoObjectName string, checksum string) (string, error) {
+	filename := ""
+	isoDir := getEnv("CACHE_ISODIR", "/tmp")
+	isoObjectPath := path.Join(isoDir, isoObjectName)
+	if stat, sterr := os.Stat(isoObjectPath); sterr == nil {
+		filename = path.Join(isoDir, stat.Name())
+		log.Infof("File already exists %s", filename)
+		valid, err := checkFileChecksum(isoObjectPath, checksum)
+		if err != nil {
+			return "", err
+		}
+		// If checksum don't match, remove the file from filesystem and download the new ISO.
+		if !valid {
+			if err = os.Remove(isoObjectPath); err != nil {
+				return "", err
+			}
+			filename, err = downloadISO(url, isoDir, isoObjectPath)
+			if err != nil {
+				return "", err
+			}
+		}
+	} else if os.IsNotExist(sterr) {
+		var err error
+		filename, err = downloadISO(url, isoDir, isoObjectPath)
+		if err != nil {
+			return "", err
+		}
+	} else {
+		return "", sterr
 	}
-	defer tmpfile.Close()
 
+	return filename, nil
+}
+
+func downloadISO(url string, isoDir string, isoObjectPath string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed fetching from URL %s", url)
@@ -62,12 +94,46 @@ func DownloadURLToTemporaryFile(url string) (string, error) {
 		return "", fmt.Errorf("Failed fetching from URL %s: Received %s", url, resp.Status)
 	}
 
-	_, err = io.Copy(tmpfile, resp.Body)
+	dest, err := os.Create(isoObjectPath)
 	if err != nil {
-		return "", errors.Wrapf(err, "Failed downloading file from %s to %s", url, tmpfile.Name())
+		return "", errors.Wrapf(err, "Failed to create file %s", isoObjectPath)
+	}
+	defer dest.Close()
+	_, err = io.Copy(dest, resp.Body)
+	if err != nil {
+		return "", errors.Wrapf(err, "Failed downloading file from %s to %v", url, dest)
+	}
+	return dest.Name(), nil
+}
+
+func getEnv(key string, fallback string) string {
+	val, exists := os.LookupEnv(key)
+	if !exists {
+		val = fallback
+	}
+	return val
+}
+
+func checkFileChecksum(filename string, checksum string) (bool, error) {
+	input, err := os.Open(filename)
+	if err != nil {
+		return false, err
+	}
+	defer input.Close()
+
+	hash := sha256.New()
+	if _, err := io.Copy(hash, input); err != nil {
+		return false, err
+	}
+	fileChecksum := hex.EncodeToString(hash.Sum(nil)[:])
+	if checksum == fileChecksum {
+		log.Infof("File %s checksum match %s", filename, checksum)
+		return true, nil
 	}
 
-	return tmpfile.Name(), nil
+	log.Warnf("File %s checksum don't match match %s != %s", filename, checksum, fileChecksum)
+
+	return false, nil
 }
 
 func UploadFromURLToPublicBucket(ctx context.Context, objectName, url string, api API) error {

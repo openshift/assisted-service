@@ -5190,6 +5190,7 @@ definitions:
       - release_version
       - rhcos_image
       - rhcos_rootfs
+      - rhcos_image_checksum
       - rhcos_version
       - support_level
     properties:
@@ -5208,6 +5209,9 @@ definitions:
       rhcos_rootfs:
         type: string
         description: The RHCOS rootfs url.
+      rhcos_image_checksum:
+        type: string
+        description: The base RHCOS image checksum.
       rhcos_version:
         type: string
         description: Build ID of the RHCOS image.

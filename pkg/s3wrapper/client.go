@@ -12,6 +12,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -81,6 +82,7 @@ type S3Client struct {
 	isoUploader      ISOUploaderAPI
 	versionsHandler  versions.Handler
 	isoEditorFactory isoeditor.Factory
+	mu               sync.Mutex
 }
 
 type Config struct {
@@ -252,7 +254,7 @@ func (c *S3Client) download(ctx context.Context, objectName, bucket string, clie
 
 	contentLength, err := c.getObjectSizeBytes(ctx, objectName, bucket, client)
 	if err != nil {
-		if transformed, transformedError := c.transformErrorIfNeeded(err, objectName); transformed {
+		if transformed, transformedError := transformErrorIfNeeded(err, objectName); transformed {
 			return nil, 0, transformedError
 		}
 
@@ -391,7 +393,7 @@ func (c *S3Client) GeneratePresignedDownloadURL(ctx context.Context, objectName 
 	return urlStr, nil
 }
 
-func (c S3Client) transformErrorIfNeeded(err error, objectName string) (bool, error) {
+func transformErrorIfNeeded(err error, objectName string) (bool, error) {
 	if aerr, ok := err.(awserr.Error); ok {
 		if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" {
 			return true, common.NotFound(objectName)
@@ -478,6 +480,11 @@ func (c *S3Client) UploadISOs(ctx context.Context, openshiftVersion string, have
 		return err
 	}
 
+	rhcosImageChecksum, err := c.versionsHandler.GetRHCOSImageChecksum(openshiftVersion)
+	if err != nil {
+		return err
+	}
+
 	baseIsoObject, err := c.GetBaseIsoObject(openshiftVersion)
 	if err != nil {
 		return err
@@ -488,10 +495,10 @@ func (c *S3Client) UploadISOs(ctx context.Context, openshiftVersion string, have
 		return err
 	}
 
-	return c.uploadISOs(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, haveLatestMinimalTemplate)
+	return c.uploadISOs(ctx, baseIsoObject, minimalIsoObject, rhcosImage, rhcosImageChecksum, openshiftVersion, haveLatestMinimalTemplate)
 }
 
-func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion string, haveLatestMinimalTemplate bool) error {
+func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, rhcosImageChecksum, openshiftVersion string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, c.log)
 
 	baseExists, err := c.DoesPublicObjectExist(ctx, isoObjectName)
@@ -515,12 +522,16 @@ func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObje
 	}
 
 	log.Infof("Starting Base ISO download for %s", isoObjectName)
-	baseIsoPath, err := DownloadURLToTemporaryFile(isoURL)
+	c.mu.Lock()
+	baseIsoPath, err := DownloadURLToFile(isoURL, isoObjectName, rhcosImageChecksum)
+	c.mu.Unlock()
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-	defer os.Remove(baseIsoPath)
+	if os.Getenv("CACHE_ENABLED") != "true" {
+		defer os.Remove(baseIsoPath)
+	}
 
 	if !baseExists {
 		err = c.UploadFileToPublicBucket(ctx, baseIsoPath, isoObjectName)

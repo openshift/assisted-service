@@ -38,6 +38,10 @@ type OpenshiftVersion struct {
 	// Required: true
 	RhcosImage *string `json:"rhcos_image"`
 
+	// The base RHCOS image checksum.
+	// Required: true
+	RhcosImageChecksum *string `json:"rhcos_image_checksum"`
+
 	// The RHCOS rootfs url.
 	// Required: true
 	RhcosRootfs *string `json:"rhcos_rootfs"`
@@ -69,6 +73,10 @@ func (m *OpenshiftVersion) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateRhcosImage(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateRhcosImageChecksum(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -120,6 +128,15 @@ func (m *OpenshiftVersion) validateReleaseVersion(formats strfmt.Registry) error
 func (m *OpenshiftVersion) validateRhcosImage(formats strfmt.Registry) error {
 
 	if err := validate.Required("rhcos_image", "body", m.RhcosImage); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *OpenshiftVersion) validateRhcosImageChecksum(formats strfmt.Registry) error {
+
+	if err := validate.Required("rhcos_image_checksum", "body", m.RhcosImageChecksum); err != nil {
 		return err
 	}
 

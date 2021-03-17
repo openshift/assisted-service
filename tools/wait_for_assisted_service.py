@@ -42,10 +42,13 @@ def main():
             health_url = urlunsplit(url)
 
     print(f'Wait for {health_url}')
-    waiting.wait(lambda: wait_for_request(health_url),
-                 timeout_seconds=TIMEOUT,
-                 expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
-                 sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
+    try:
+        waiting.wait(lambda: wait_for_request(health_url),
+                     timeout_seconds=TIMEOUT,
+                     expected_exceptions=(requests.exceptions.ConnectionError, requests.exceptions.ReadTimeout),
+                     sleep_seconds=SLEEP, waiting_for="assisted-service to be healthy")
+    except waiting.TimeoutExpired:
+        utils.logs(target=deploy_options.target, namespace=deploy_options.namespace, resource='deploy/assisted-service')
 
 
 if __name__ == '__main__':

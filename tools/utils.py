@@ -146,6 +146,11 @@ def to_url(host, port=None, disable_tls=False):
     return f'{protocol}://{host}:{port}'
 
 
+def logs(target, namespace, resource):
+    kubectl_cmd = get_kubectl_command(target, namespace)
+    print(check_output(f'{kubectl_cmd} logs {resource}'))
+
+
 def apply(target, namespace, file):
     kubectl_cmd = get_kubectl_command(target, namespace)
     print(check_output(f'{kubectl_cmd} apply -f {file}'))

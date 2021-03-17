@@ -19,6 +19,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/frankban/quicktest v1.11.3 // indirect
+	github.com/go-acme/lego v2.7.2+incompatible
 	github.com/go-logr/logr v0.4.0 // indirect
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
@@ -52,7 +53,6 @@ require (
 	github.com/pelletier/go-toml v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
-	github.com/prometheus/common v0.15.0
 	github.com/rs/cors v1.7.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/slok/go-http-metrics v0.8.0

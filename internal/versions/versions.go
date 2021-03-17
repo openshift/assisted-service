@@ -28,6 +28,7 @@ type Handler interface {
 	GetReleaseImage(openshiftVersion string) (string, error)
 	GetRHCOSImage(openshiftVersion string) (string, error)
 	GetRHCOSRootFS(openshiftVersion string) (string, error)
+	GetRHCOSImageChecksum(openshiftVersion string) (string, error)
 	GetRHCOSVersion(openshiftVersion string) (string, error)
 	GetReleaseVersion(openshiftVersion string) (string, error)
 	GetKey(openshiftVersion string) (string, error)
@@ -121,6 +122,18 @@ func (h *handler) GetRHCOSRootFS(openshiftVersion string) (string, error) {
 	}
 
 	return *h.openshiftVersions[versionKey].RhcosRootfs, nil
+}
+
+func (h *handler) GetRHCOSImageChecksum(openshiftVersion string) (string, error) {
+	if !h.IsOpenshiftVersionSupported(openshiftVersion) {
+		return "", errors.Errorf("No rhcos image for unsupported openshift version %s", openshiftVersion)
+	}
+
+	if h.openshiftVersions[openshiftVersion].RhcosImageChecksum == nil {
+		return "", errors.Errorf("RHCOS image checksum was missing for openshift version %s", openshiftVersion)
+	}
+
+	return *h.openshiftVersions[openshiftVersion].RhcosImageChecksum, nil
 }
 
 func (h *handler) GetRHCOSVersion(openshiftVersion string) (string, error) {

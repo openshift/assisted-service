@@ -45,6 +45,13 @@ endif
 
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
+# When enabled assisted-service pod will attach a hostPath volume
+# storing the RHCOS images. The ISO preserve the removal of the
+# assisted-service deployment.
+CACHE_ISO := $(or ${CACHE_ISO},False)
+CACHE_ISO_HOSTPATH := $(or ${CACHE_ISO_HOSTPATH},/data)
+CACHE_ISO_LOCALPATH := $(or ${CACHE_ISO_LOCALPATH},/isos)
+
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
 OPENSHIFT_VERSIONS := $(or ${OPENSHIFT_VERSIONS}, $(shell hack/get_ocp_versions_for_testing.sh))
 RHCOS_BASE_ISO := $(shell (jq -n '$(OPENSHIFT_VERSIONS)' | jq '[.[].rhcos_image]|max'))
@@ -279,7 +286,8 @@ deploy-resources: generate-manifests
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		$(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
-		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_OPTIONS) $(IMAGE_PULL_POLICY)
+		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_OPTIONS) $(IMAGE_PULL_POLICY) --cache-iso "$(CACHE_ISO)" \
+		--cache-iso-hostpath "$(CACHE_ISO_HOSTPATH)" --cache-iso-localpath "$(CACHE_ISO_LOCALPATH)"
 	$(MAKE) wait-for-service
 
 wait-for-service:

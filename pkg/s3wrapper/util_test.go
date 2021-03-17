@@ -164,17 +164,17 @@ var _ = Describe("DownloadURLToTemporaryFile", func() {
 	})
 
 	It("Succeeds when the download succeeds", func() {
-		f, err := DownloadURLToTemporaryFile(ts.URL + "/ok")
+		f, err := DownloadURLToFile(ts.URL+"/ok", gomock.Any().String(), gomock.Any().String())
 		defer os.Remove(f)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(ioutil.ReadFile(f)).To(Equal([]byte("ok")))
 	})
 
 	It("Fails when the download fails", func() {
-		_, err := DownloadURLToTemporaryFile(ts.URL + "/notfound")
+		_, err := DownloadURLToFile(ts.URL+"/notfound", gomock.Any().String(), gomock.Any().String())
 		Expect(err).To(HaveOccurred())
 
-		_, err = DownloadURLToTemporaryFile(ts.URL + "/servererror")
+		_, err = DownloadURLToFile(ts.URL+"/servererror", gomock.Any().String(), gomock.Any().String())
 		Expect(err).To(HaveOccurred())
 	})
 })

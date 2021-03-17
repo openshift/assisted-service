@@ -1,12 +1,19 @@
 import os
 import utils
 import argparse
+import distutils.util
 import yaml
 import deployment_options
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--subsystem-test", help='deploy in subsystem mode',
                     action='store_true')
+parser.add_argument("--cache-iso", help='True if ISOs should be cached',
+                    type=distutils.util.strtobool, default=False)
+parser.add_argument("--cache-iso-hostpath", help='host path where ISOs will be stored',
+                    type=str, default='/data')
+parser.add_argument("--cache-iso-localpath", help='path where ISOs will be stored in pod',
+                    type=str, default='/isos')
 deploy_options = deployment_options.load_deployment_options(parser)
 log = utils.get_logger('deploy-assisted-installer')
 
@@ -22,6 +29,7 @@ TEST_DEREGISTER_WORKER_INTERVAL = "5s"
 TEST_DELETION_WORKER_INTERVAL = "5s"
 
 WIREMOCK_SERVICE = "http://wiremock:8080"
+
 
 def load_key():
     try:
@@ -77,10 +85,26 @@ def main():
             service_container["env"].append({'name': 'ISO_WORKSPACE_BASE_DIR', 'value': '/data'})
             service_container["env"].append({'name': 'ISO_CACHE_DIR', 'value': '/data/cache'})
 
+
         if deploy_options.port:
             for port_option in deploy_options.port:
                 port = {"containerPort": int(port_option[0])}
                 data["spec"]["template"]["spec"]["containers"][0]["ports"].append(port)
+
+        if deploy_options.cache_iso:
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'CACHE_ENABLED', 'value': 'true'})
+            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name': 'CACHE_ISODIR', 'value': deploy_options.cache_iso_localpath})
+            data["spec"]["template"]["spec"]["containers"][0]["volumeMounts"].append({
+                "mountPath": deploy_options.cache_iso_localpath,
+                "name": "cache",
+            })
+            data["spec"]["template"]["spec"]["volumes"].append({
+                "name": "cache",
+                "hostPath": {
+                    "path": deploy_options.cache_iso_hostpath,
+                    "type": "DirectoryOrCreate",
+                }
+            })
 
     with open(DST_FILE, "w+") as dst:
         yaml.dump(data, dst, default_flow_style=False)

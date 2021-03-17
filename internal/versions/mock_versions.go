@@ -81,6 +81,21 @@ func (mr *MockHandlerMockRecorder) GetRHCOSImage(arg0 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSImage", reflect.TypeOf((*MockHandler)(nil).GetRHCOSImage), arg0)
 }
 
+// GetRHCOSImageChecksum mocks base method
+func (m *MockHandler) GetRHCOSImageChecksum(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRHCOSImageChecksum", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRHCOSImageChecksum indicates an expected call of GetRHCOSImageChecksum
+func (mr *MockHandlerMockRecorder) GetRHCOSImageChecksum(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRHCOSImageChecksum", reflect.TypeOf((*MockHandler)(nil).GetRHCOSImageChecksum), arg0)
+}
+
 // GetRHCOSRootFS mocks base method
 func (m *MockHandler) GetRHCOSRootFS(arg0 string) (string, error) {
 	m.ctrl.T.Helper()

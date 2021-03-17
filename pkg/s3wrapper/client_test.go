@@ -309,6 +309,7 @@ var _ = Describe("s3client", func() {
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObject)}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
+			mockVersions.EXPECT().GetRHCOSImageChecksum(defaultTestOpenShiftVersion).Return("", nil).Times(1)
 
 			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
@@ -354,6 +355,7 @@ var _ = Describe("s3client", func() {
 			}))
 			defer ts.Close()
 
+			os.Setenv("CACHE_ISODIR", "/tmp")
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
 				Bucket: &publicBucket,
 				Key:    aws.String(defaultTestRhcosObject)}).
@@ -364,7 +366,7 @@ var _ = Describe("s3client", func() {
 			uploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(1)
 			mockVersions.EXPECT().GetRHCOSRootFS(defaultTestOpenShiftVersion).Return("https://example.com/rootfs/url", nil)
 
-			err := client.uploadISOs(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, false)
+			err := client.uploadISOs(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, gomock.Any().String(), defaultTestOpenShiftVersion, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
