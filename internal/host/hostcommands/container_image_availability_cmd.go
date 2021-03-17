@@ -22,6 +22,12 @@ type imageAvailabilityCmd struct {
 	instructionConfig InstructionConfig
 }
 
+type Images struct {
+	ReleaseImage    string
+	MCOImage        string
+	MustGatherImage string
+}
+
 const (
 	defaultImageAvailabilityTimeoutSeconds = 60 * 30
 )
@@ -37,18 +43,27 @@ func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.R
 	}
 }
 
-func (cmd *imageAvailabilityCmd) getMCOImage(cluster *common.Cluster) (string, error) {
+func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) (Images, error) {
+
+	images := Images{}
 	releaseImage, err := cmd.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
 	if err != nil {
-		return "", err
+		return images, err
 	}
+	images.ReleaseImage = releaseImage
 
 	mcoImage, err := cmd.ocRelease.GetMCOImage(cmd.log, releaseImage, cmd.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 	if err != nil {
-		return "", err
+		return images, err
 	}
+	images.MCOImage = mcoImage
 
-	return mcoImage, nil
+	mustGatherImage, err := cmd.ocRelease.GetMustGatherImage(cmd.log, releaseImage, cmd.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	if err != nil {
+		return images, err
+	}
+	images.MustGatherImage = mustGatherImage
+	return images, nil
 }
 
 func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error) {
@@ -58,13 +73,13 @@ func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error)
 		return "", err
 	}
 
-	mcoImage, err := cmd.getMCOImage(&cluster)
+	images, err := cmd.getImages(&cluster)
 	if err != nil {
 		return "", err
 	}
 
 	request := models.ContainerImageAvailabilityRequest{
-		Images:  []string{cmd.instructionConfig.InstallerImage, mcoImage},
+		Images:  []string{cmd.instructionConfig.InstallerImage, images.MCOImage, images.MustGatherImage},
 		Timeout: defaultImageAvailabilityTimeoutSeconds,
 	}
 

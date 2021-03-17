@@ -23,6 +23,7 @@ var (
 	pullSecret         = "pull secret"
 	fullVersion        = "4.6.0-0.nightly-2020-08-31-220837"
 	mcoImage           = "mco_image"
+	mustGatherImage    = "must_gather_image"
 )
 
 var _ = Describe("oc", func() {
@@ -50,8 +51,8 @@ var _ = Describe("oc", func() {
 
 	Context("GetMCOImage", func() {
 		It("mco image from release image", func() {
-			command := fmt.Sprintf(templateGetMCOImage+" --registry-config=%s",
-				false, releaseImage, tempPullSecretFile.Name())
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mcoImageName, false, releaseImage, tempPullSecretFile.Name())
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
 
@@ -61,8 +62,8 @@ var _ = Describe("oc", func() {
 		})
 
 		It("mco image from release image mirror", func() {
-			command := fmt.Sprintf(templateGetMCOImage+" --registry-config=%s",
-				true, releaseImageMirror, tempPullSecretFile.Name())
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mcoImageName, true, releaseImageMirror, tempPullSecretFile.Name())
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
 
@@ -80,13 +81,56 @@ var _ = Describe("oc", func() {
 		It("stdout with new lines", func() {
 			stdout := fmt.Sprintf("\n%s\n", mcoImage)
 
-			command := fmt.Sprintf(templateGetMCOImage+" --registry-config=%s",
-				false, releaseImage, tempPullSecretFile.Name())
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mcoImageName, false, releaseImage, tempPullSecretFile.Name())
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(stdout, "", 0).Times(1)
 
 			mco, err := oc.GetMCOImage(log, releaseImage, "", pullSecret)
 			Expect(mco).Should(Equal(mcoImage))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+	})
+
+	Context("GetMustGatherImage", func() {
+		It("must-gather image from release image", func() {
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mustGatherImageName, false, releaseImage, tempPullSecretFile.Name())
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
+
+			mustGather, err := oc.GetMustGatherImage(log, releaseImage, "", pullSecret)
+			Expect(mustGather).Should(Equal(mustGatherImage))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("must-gather image from release image mirror", func() {
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mustGatherImageName, true, releaseImageMirror, tempPullSecretFile.Name())
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
+
+			mustGather, err := oc.GetMustGatherImage(log, releaseImage, releaseImageMirror, pullSecret)
+			Expect(mustGather).Should(Equal(mustGatherImage))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("must-gather image with no release image or mirror", func() {
+			mustGather, err := oc.GetMustGatherImage(log, "", "", pullSecret)
+			Expect(mustGather).Should(BeEmpty())
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("stdout with new lines", func() {
+			stdout := fmt.Sprintf("\n%s\n", mustGatherImage)
+
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mustGatherImageName, false, releaseImage, tempPullSecretFile.Name())
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(stdout, "", 0).Times(1)
+
+			mustGather, err := oc.GetMustGatherImage(log, releaseImage, "", pullSecret)
+			Expect(mustGather).Should(Equal(mustGatherImage))
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 	})

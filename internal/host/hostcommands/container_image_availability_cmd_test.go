@@ -47,19 +47,19 @@ var _ = Describe("container_image_availability_cmd", func() {
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-
 	})
 
 	It("get_step", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
 		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).Times(1)
 
 		step, err := cmd.GetSteps(ctx, &host)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(step).NotTo(BeNil())
 
 		request := &models.ContainerImageAvailabilityRequest{
-			Images:  []string{cmd.instructionConfig.InstallerImage, defaultMCOImage},
+			Images:  []string{cmd.instructionConfig.InstallerImage, defaultMCOImage, defaultMustGatherImage},
 			Timeout: defaultImageAvailabilityTimeoutSeconds,
 		}
 
@@ -86,7 +86,54 @@ var _ = Describe("container_image_availability_cmd", func() {
 		Expect(step).To(BeNil())
 	})
 
+	It("get_step_get_must_gather_failure", func() {
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(1)
+		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("err")).Times(1)
+
+		step, err := cmd.GetSteps(ctx, &host)
+		Expect(err).To(HaveOccurred())
+		Expect(step).To(BeNil())
+	})
+
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("get images", func() {
+	var (
+		db           *gorm.DB
+		cmd          *imageAvailabilityCmd
+		cluster      *common.Cluster
+		ctrl         *gomock.Controller
+		mockRelease  *oc.MockRelease
+		mockVersions *versions.MockHandler
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockVersions = versions.NewMockHandler(ctrl)
+		mockRelease = oc.NewMockRelease(ctrl)
+		db = &gorm.DB{}
+		cluster = &common.Cluster{}
+		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig)
+	})
+
+	It("get_step_get_must_gather_failure", func() {
+		release := "image-rel"
+		mco := "image-mco"
+		mg := "image-must-gather"
+		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(release, nil).Times(1)
+		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mco, nil).Times(1)
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(mg, nil).Times(1)
+		expected := Images{
+			ReleaseImage:    release,
+			MCOImage:        mco,
+			MustGatherImage: mg,
+		}
+		images, err := cmd.getImages(cluster)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(images).To(Equal(expected))
 	})
 })
