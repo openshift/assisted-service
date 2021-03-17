@@ -16,7 +16,6 @@ utils.verify_build_directory(deploy_options.namespace)
 if deploy_options.target != "oc-ingress":
     CMD_BIN = utils.get_kubectl_command(
         target=deploy_options.target,
-        profile=deploy_options.profile
     )
 else:
     CMD_BIN = 'oc'
@@ -31,7 +30,6 @@ def deploy_oauth_reqs():
             k8s_object_name=secret_name,
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
             ):
         cmd = "{} -n {} create secret generic {} --from-literal=session_secret={}"\
         .format(CMD_BIN, deploy_options.namespace, secret_name, session_secret)
@@ -44,7 +42,6 @@ def deploy_oauth_reqs():
             k8s_object_name=sa_name,
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
         ):
         cmd = "{} -n {} create serviceaccount {} ".format(CMD_BIN, deploy_options.namespace, sa_name)
         utils.check_output(cmd)
@@ -60,7 +57,6 @@ def deploy_oauth_reqs():
             k8s_object_name='openshift-custom-ca',
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
             ):
         secret_name = 'router-certs-default'
         namespace = 'openshift-ingress'
@@ -84,7 +80,6 @@ def deploy_oauth_reqs():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=dst_file
         )
 
@@ -101,7 +96,6 @@ def deployer(src_file, topic):
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -117,7 +111,6 @@ def deploy_grafana_route():
         ingress_domain = utils.get_domain(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
         )
     except:
         # I have not permissions, yes it's ugly...
@@ -141,7 +134,6 @@ def deploy_grafana_route():
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -160,7 +152,6 @@ def deploy_grafana_ds():
             k8s_object_name=secret_name,
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
             ):
         print("Creating Grafana Datasource")
         cmd = "{} create secret generic {} --namespace={} --from-file=prometheus.yaml={}".format(CMD_BIN, secret_name, deploy_options.namespace, dst_file)
@@ -182,7 +173,6 @@ def deploy_grafana_config(conf_file):
             k8s_object_name=secret_name,
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
             ):
         print("Creating Grafana Configuration")
         cmd = "{} create secret generic {} --namespace={} --from-file=grafana.ini={}".format(CMD_BIN, secret_name, deploy_options.namespace, dst_file)
@@ -218,7 +208,6 @@ def main():
             k8s_object_name='grafana',
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
         )
     else:
         # Deploy Oauth Pre-reqs for OCP integration
@@ -243,7 +232,6 @@ def main():
             k8s_object_name='grafana',
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile
         )
         # Deploy grafana Route
         deploy_grafana_route()

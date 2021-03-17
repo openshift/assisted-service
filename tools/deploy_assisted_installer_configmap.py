@@ -58,7 +58,6 @@ def main():
                                                                             target=deploy_options.target,
                                                                             domain=deploy_options.domain,
                                                                             namespace=deploy_options.namespace,
-                                                                            profile=deploy_options.profile,
                                                                             disable_tls=deploy_options.disable_tls))
 
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
@@ -120,7 +119,6 @@ def main():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=DST_FILE
         )
 

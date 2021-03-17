@@ -9,7 +9,7 @@ def main():
 
     utils.verify_build_directory(deploy_options.namespace)
 
-    if deploy_options.target == 'ocp':
+    if deploy_options.target == deployment_options.OCP_TARGET:
         src_file = os.path.join(os.getcwd(), 'deploy/roles/ocp_role.yaml')
         dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'ocp_role.yaml')
     else:
@@ -27,7 +27,6 @@ def main():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=dst_file
         )
 
@@ -46,7 +45,6 @@ def main():
             utils.apply(
                 target=deploy_options.target,
                 namespace=deploy_options.namespace,
-                profile=deploy_options.profile,
                 file=dst_file
             )
 
@@ -58,7 +56,6 @@ def main():
             utils.apply(
                 target=deploy_options.target,
                 namespace=deploy_options.namespace,
-                profile=deploy_options.profile,
                 file=dst_file,
             )
 

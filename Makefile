@@ -5,8 +5,7 @@ BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
-TARGET := $(or ${TARGET},minikube)
-PROFILE := $(or $(PROFILE),minikube)
+TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
 
 ifeq ($(BUILD_TYPE), standalone)
@@ -15,21 +14,14 @@ else
     UNIT_TEST_TARGET = convert-coverage
 endif
 
-ifeq ($(TARGET), minikube)
-ifdef E2E_TESTS_MODE
-E2E_TESTS_CONFIG = --img-expr-time=5m --img-expr-interval=5m
-endif
-define get_service
-minikube -p $(PROFILE) service --url $(1) -n $(NAMESPACE) | sed 's/http:\/\///g'
-endef # get_service
-VERIFY_CLUSTER = _verify_minikube
-else
 define get_service
 kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}' | \
 	awk '{split($$0,a,":"); print a[1] ":" a[2]}'
 endef # get_service
-VERIFY_CLUSTER = _verify_cluster
-endif # TARGET
+
+ifdef E2E_TESTS_MODE
+E2E_TESTS_CONFIG = --img-expr-time=5m --img-expr-interval=5m
+endif
 
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
@@ -66,14 +58,13 @@ ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 endif
 
-# We decided to have an option to change replicas count only while running in minikube
-# That line is checking if we run on minikube
+# We decided to have an option to change replicas count only while running locally
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
 # Default for 1 replica
-REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "minikube" ] && ! [ "${TARGET}" = "oc" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},1);fi)
+REPLICAS_COUNT = $(shell if ! [ "${TARGET}" = "local" ] && ! [ "${TARGET}" = "oc" ];then echo 3; else echo $(or ${SERVICE_REPLICAS_COUNT},1);fi)
 
 ifdef INSTALLATION_TIMEOUT
-        INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
+	INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
 endif
 
 # define focus flag for test so users can run individual tests or suites
@@ -139,9 +130,8 @@ update: build-all
 update-minimal: build-minimal
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
-_update-minikube: build-minimal
-	eval $$(SHELL=$${SHELL:-/bin/sh} minikube -p $(PROFILE) docker-env) && \
-		docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+_update-local-image: build-minimal
+	./hack/update_local_image.sh
 
 define publish_image
 	${1} tag ${2} ${3}
@@ -182,45 +172,41 @@ endef
 _verify_cluster:
 	$(KUBECTL) cluster-info
 
-_verify_minikube:
-	minikube -p $(PROFILE) update-context
-	minikube -p $(PROFILE) status
-
-deploy-all: $(BUILD_FOLDER) $(VERIFY_CLUSTER) deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
+deploy-all: $(BUILD_FOLDER) _verify_cluster deploy-namespace deploy-postgres deploy-s3 deploy-ocm-secret deploy-route53 deploy-service
 	echo "Deployment done"
 
 deploy-ui: deploy-namespace
 	python3 ./tools/deploy_ui.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST) $(DEPLOY_TAG_OPTION)
+		--apply-manifest $(APPLY_MANIFEST) $(DEPLOY_TAG_OPTION)
 
 deploy-namespace: $(BUILD_FOLDER)
-	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --target "$(TARGET)"
 
 deploy-s3-secret:
-	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --target "$(TARGET)" \
 		--apply-manifest $(APPLY_MANIFEST)
 
 deploy-s3: deploy-namespace
-	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_s3.py --namespace "$(NAMESPACE)" --target "$(TARGET)"
 	sleep 5;  # wait for service to get an address
 	make deploy-s3-secret
 
 deploy-route53: deploy-namespace
-	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_route53.py --secret "$(ROUTE53_SECRET)" --namespace "$(NAMESPACE)" --target "$(TARGET)"
 
 deploy-ocm-secret: deploy-namespace
 	python3 ./tools/deploy_sso_secret.py --secret "$(OCM_CLIENT_SECRET)" --id "$(OCM_CLIENT_ID)" --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" --target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
+		--target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST)
+		--apply-manifest $(APPLY_MANIFEST)
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
-	python3 ./tools/deploy_local_auth_secret.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
+	python3 ./tools/deploy_local_auth_secret.py --namespace "$(NAMESPACE)" --target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
-		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
+		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
@@ -228,25 +214,25 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 	$(MAKE) deploy-role deploy-resources
 
 deploy-resources: generate-manifests
-	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" \
+	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) \
  	--target "$(TARGET)" --namespace "$(NAMESPACE)"
 
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
+		$(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
 		--apply-manifest $(APPLY_MANIFEST)
 	$(MAKE) wait-for-service
 
 wait-for-service:
 	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
-		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)" --apply-manifest $(APPLY_MANIFEST)
+		--domain "$(INGRESS_DOMAIN)" --apply-manifest $(APPLY_MANIFEST)
 
 deploy-role: deploy-namespace generate-manifests
-	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+	python3 ./tools/deploy_role.py --namespace "$(NAMESPACE)" --target "$(TARGET)" \
 		--apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD)
 
 deploy-postgres: deploy-namespace
-	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" \
+	python3 ./tools/deploy_postgres.py --namespace "$(NAMESPACE)" --target "$(TARGET)" \
 		--apply-manifest $(APPLY_MANIFEST) --persistent-storage $(PERSISTENT_STORAGE)
 
 deploy-service-on-ocp-cluster:
@@ -261,17 +247,17 @@ create-ocp-manifests:
 	export OPENSHIFT_VERSIONS="$(subst ",\", $(shell cat default_ocp_versions.json | tr -d "\n\t "))" && \
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
-ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
+ci-deploy-for-subsystem: _verify_cluster generate-keys
 	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && export WITH_AMS_SUBSCRIPTIONS="True" && \
 	export IPV6_SUPPORT="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
-deploy-test: $(VERIFY_CLUSTER) generate-keys
+deploy-test: _verify_cluster generate-keys
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
-	export ASSISTED_ORG=minikube-local-registry && export ASSISTED_TAG=minikube-test && export TEST_FLAGS=--subsystem-test && \
+	export ASSISTED_ORG=assisted-local-registry && export ASSISTED_TAG=assisted-test && export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
 	export IPV6_SUPPORT="True" && \
-	$(MAKE) _update-minikube deploy-wiremock deploy-all
+	$(MAKE) _update-local-image deploy-wiremock deploy-all
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
@@ -292,8 +278,7 @@ deploy-onprem-for-subsystem:
 
 deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
-	export TARGET='oc' && export PROFILE='openshift-ci' && \
-	export ENABLE_KUBE_API='true' && export GENERATE_CRD='false' && unset GOFLAGS && \
+	export TARGET='oc' && export ENABLE_KUBE_API='true' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
 
@@ -333,16 +318,16 @@ enable-kube-api-for-subsystem: $(BUILD_FOLDER)
 	$(MAKE) wait-for-service
 
 deploy-wiremock: deploy-namespace
-	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
+	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
 deploy-olm: deploy-namespace
-	python3 ./tools/deploy_olm.py --target $(TARGET) --profile $(PROFILE)
+	python3 ./tools/deploy_olm.py --target $(TARGET)
 
 deploy-prometheus: $(BUILD_FOLDER) deploy-namespace
-	python3 ./tools/deploy_prometheus.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
+	python3 ./tools/deploy_prometheus.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
 deploy-grafana: $(BUILD_FOLDER)
-	python3 ./tools/deploy_grafana.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"
+	python3 ./tools/deploy_grafana.py --target $(TARGET) --namespace "$(NAMESPACE)"
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
@@ -370,7 +355,7 @@ test-onprem:
 	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
 
 test-on-openshift-ci:
-	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
+	export TARGET='oc' && unset GOFLAGS && \
 	$(MAKE) test FOCUS="[minimal-set]"
 
 #########
@@ -399,7 +384,7 @@ subsystem-clean:
 	-$(KUBECTL) get pod -o name | grep createimage | xargs -r $(KUBECTL) delete --force --grace-period=0 1> /dev/null || true
 
 clear-deployment:
-	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --profile "$(PROFILE)" --target "$(TARGET)" || true
+	-python3 ./tools/clear_deployment.py --delete-namespace $(APPLY_NAMESPACE) --delete-pvc $(DELETE_PVC) --namespace "$(NAMESPACE)" --target "$(TARGET)" || true
 
 clear-images:
 	-docker rmi -f $(SERVICE)
@@ -407,12 +392,6 @@ clear-images:
 
 clean-onprem:
 	podman pod rm -f assisted-installer || true
-
-delete-minikube-profile:
-	minikube delete -p $(PROFILE)
-
-delete-all-minikube-profiles:
-	minikube delete --all
 
 ############
 # Operator #

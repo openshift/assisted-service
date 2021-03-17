@@ -41,7 +41,6 @@ def main():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=dst_file
         )
 
@@ -57,8 +56,7 @@ def main():
                     'assisted-installer-ui',
                     deploy_options.target,
                     deploy_options.domain,
-                    deploy_options.namespace,
-                    deploy_options.profile
+                    deploy_options.namespace
                 ))
                 dst.write(data)
         if deploy_options.apply_manifest:
@@ -66,7 +64,6 @@ def main():
             utils.apply(
                 target=deploy_options.target,
                 namespace=deploy_options.namespace,
-                profile=deploy_options.profile,
                 file=dst_file
             )
 

@@ -5,7 +5,11 @@ import requests
 import yaml
 
 
+LOCAL_TARGET = 'local'
+INGRESS_REMOTE_TARGET = 'oc-ingress'
 IMAGE_FQDN_TEMPLATE = "quay.io/ocpmetal/{}:{}"
+OCP_TARGET = 'ocp'
+OPENSHIFT_TARGET = 'oc'
 
 
 def load_deployment_options(parser=None):
@@ -19,16 +23,10 @@ def load_deployment_options(parser=None):
         default='assisted-installer'
     )
     parser.add_argument(
-        '--profile',
-        help='Profile for all deployment images',
-        type=str,
-        default='minikube'
-    )
-    parser.add_argument(
         '--target',
         help='Target kubernetes distribution',
-        choices=['minikube', 'oc', 'oc-ingress', 'ocp'],
-        default='minikube'
+        choices=[LOCAL_TARGET, OPENSHIFT_TARGET, INGRESS_REMOTE_TARGET, OCP_TARGET],
+        default=LOCAL_TARGET
     )
     parser.add_argument(
         '--domain',
@@ -60,7 +58,7 @@ def load_deployment_options(parser=None):
     deploy_options.add_argument('--disable-tls', action='store_true', help='Disable TLS for assisted service transport', default=False)
 
     parsed_arguments = parser.parse_args()
-    if parsed_arguments.target != 'oc-ingress':
+    if parsed_arguments.target != INGRESS_REMOTE_TARGET:
         parsed_arguments.disable_tls = True
 
     return parsed_arguments

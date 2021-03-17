@@ -24,7 +24,6 @@ def main():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=dst_file
         )
     # in case of OpenShift deploy ingress as well
@@ -33,8 +32,7 @@ def main():
             'assisted-installer',
             deploy_options.target,
             deploy_options.domain,
-            deploy_options.namespace,
-            deploy_options.profile
+            deploy_options.namespace
         )
 
         if deploy_options.disable_tls:
@@ -65,7 +63,6 @@ def deploy_ingress(hostname, namespace, template_file):
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=dst_file
         )
 
