@@ -2520,7 +2520,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	if params.Reply.ExitCode != 0 {
 		err = errors.New(msg)
 		log.WithError(err).Errorf("Exit code is <%d> ", params.Reply.ExitCode)
-		handlingError := b.handleReplyError(params, ctx, log, &host)
+		handlingError := b.handleReplyError(params, ctx, log, &host, params.Reply.ExitCode)
 		if handlingError != nil {
 			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
 		}
@@ -2549,9 +2549,9 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	return installer.NewPostStepReplyNoContent()
 }
 
-func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
-
-	if params.Reply.StepType == models.StepTypeInstall {
+func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host, exitCode int64) error {
+	switch params.Reply.StepType {
+	case models.StepTypeInstall:
 		// Handle case of installation error due to an already running assisted-installer.
 		if params.Reply.ExitCode == ContainerAlreadyRunningExitCode && strings.Contains(params.Reply.Error, "the container name \"assisted-installer\" is already in use") {
 			log.Warnf("Install command failed due to an already running installation: %s", params.Reply.Error)
@@ -2559,6 +2559,12 @@ func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyPara
 		}
 		//if it's install step - need to move host to error
 		return b.hostApi.HandleInstallationFailure(ctx, h)
+	case models.StepTypeInstallationDiskSpeedCheck:
+		stepReply, err := filterReplyByType(params)
+		if err != nil {
+			return err
+		}
+		return b.processDiskSpeedCheckResponse(ctx, h, stepReply, exitCode)
 	}
 	return nil
 }
@@ -2678,6 +2684,23 @@ func (b *bareMetalInventory) processFioPerfCheckResponse(ctx context.Context, h 
 	return nil
 }
 
+func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, h *models.Host, diskPerfCheckResponseStr string, exitCode int64) error {
+	var diskPerfCheckResponse models.DiskSpeedCheckResponse
+
+	log := logutil.FromContext(ctx, b.log)
+
+	if err := json.Unmarshal([]byte(diskPerfCheckResponseStr), &diskPerfCheckResponse); err != nil {
+		log.WithError(err).Warnf("Json unmarshal FIO perf check response from host %s", h.ID.String())
+		return err
+	}
+
+	if exitCode == 0 {
+		b.metricApi.DiskSyncDuration(h.ClusterID, *h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+	}
+
+	return b.hostApi.SetDiskSpeed(ctx, h, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration, exitCode, nil)
+}
+
 func (b *bareMetalInventory) processImageAvailabilityResponse(ctx context.Context, host *models.Host, responseStr string) error {
 	var response models.ContainerImageAvailabilityResponse
 
@@ -2716,6 +2739,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.processFioPerfCheckResponse(ctx, &host, stepReply)
 	case models.StepTypeContainerImageAvailability:
 		err = b.processImageAvailabilityResponse(ctx, &host, stepReply)
+	case models.StepTypeInstallationDiskSpeedCheck:
+		err = b.processDiskSpeedCheckResponse(ctx, &host, stepReply, 0)
 	}
 	return err
 }
@@ -2742,6 +2767,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.FioPerfCheckResponse{}, params.Reply.Output)
 	case models.StepTypeContainerImageAvailability:
 		stepReply, err = filterReply(&models.ContainerImageAvailabilityResponse{}, params.Reply.Output)
+	case models.StepTypeInstallationDiskSpeedCheck:
+		stepReply, err = filterReply(&models.DiskSpeedCheckResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err

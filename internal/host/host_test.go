@@ -2226,3 +2226,93 @@ var _ = Describe("Validation metrics and events", func() {
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 	})
 })
+
+var _ = Describe("SetDiskSpeed", func() {
+	var (
+		ctrl            *gomock.Controller
+		ctx             = context.Background()
+		db              *gorm.DB
+		dbName          = "validation_metrics_and_events"
+		mockEvents      *events.MockHandler
+		mockHwValidator *hardware.MockValidator
+		validatorCfg    *hardware.ValidatorCfg
+		m               *Manager
+		h               *models.Host
+	)
+
+	registerTestHost := func(clusterID strfmt.UUID) *models.Host {
+
+		hostID := strfmt.UUID(uuid.New().String())
+		h := hostutil.GenerateTestHost(hostID, clusterID, models.HostStatusInsufficient)
+
+		h.Inventory = hostutil.GenerateMasterInventory()
+
+		Expect(m.RegisterHost(ctx, &h, db)).ToNot(HaveOccurred())
+
+		return &h
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db = common.PrepareTestDB(dbName)
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		validatorCfg = createValidatorCfg()
+		m = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, nil)
+		h = registerTestHost(strfmt.UUID(uuid.New().String()))
+	})
+
+	verifyValidResult := func(h *models.Host, path string, exitCode int64, speedMs int64) {
+		diskInfo, err := common.GetDiskInfo(h.DisksInfo, path)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(diskInfo).ToNot(BeNil())
+		Expect(diskInfo.DiskSpeed).ToNot(BeNil())
+		Expect(diskInfo.DiskSpeed.Tested).To(BeTrue())
+		Expect(diskInfo.DiskSpeed.ExitCode).To(Equal(exitCode))
+		if exitCode == 0 {
+			Expect(diskInfo.DiskSpeed.SpeedMs).To(Equal(speedMs))
+		}
+	}
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("Happy flow", func() {
+		err := m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 0, nil)
+		Expect(err).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 0, 2)
+	})
+
+	It("Two disks", func() {
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 0, nil)).ToNot(HaveOccurred())
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sdb", 4, 0, nil)).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 0, 2)
+		verifyValidResult(&newHost, "/dev/sdb", 0, 4)
+	})
+
+	It("One in error", func() {
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 5, nil)).ToNot(HaveOccurred())
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sdb", 4, 0, nil)).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 5, 2)
+		verifyValidResult(&newHost, "/dev/sdb", 0, 4)
+	})
+	It("One missing", func() {
+		err := m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 0, nil)
+		Expect(err).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 0, 2)
+		diskInfo, err := common.GetDiskInfo(h.DisksInfo, "/dev/sdb")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(diskInfo).To(BeNil())
+	})
+
+})
