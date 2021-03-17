@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -21,7 +22,6 @@ var _ = Describe("AuthAgentAuth", func() {
 		cluster *common.Cluster
 		db      *gorm.DB
 		dbName  = "local_auth_test"
-		key     string
 		token   string
 	)
 
@@ -31,11 +31,13 @@ var _ = Describe("AuthAgentAuth", func() {
 		cluster = &common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
-		var err error
-		token, key, err = ECDSATokenAndKey(clusterID.String())
+		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()
 		Expect(err).ToNot(HaveOccurred())
 
-		cfg := &Config{ECPublicKeyPEM: key}
+		cfg := &Config{ECPublicKeyPEM: pubKey}
+
+		token, err = gencrypto.LocalJWTForKey(clusterID.String(), privKey)
+		Expect(err).ToNot(HaveOccurred())
 
 		a, err = NewLocalAuthenticator(cfg, logrus.New(), db)
 		Expect(err).ToNot(HaveOccurred())
