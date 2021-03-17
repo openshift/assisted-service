@@ -325,6 +325,11 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}()
 
+	if err = validations.ValidateIPAddressFamily(b.IPv6Support, params.NewClusterParams.ClusterNetworkCidr, params.NewClusterParams.ServiceNetworkCidr,
+		&params.NewClusterParams.IngressVip); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	if params.NewClusterParams.HTTPProxy != nil &&
 		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
 		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
@@ -1464,6 +1469,11 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		if err := validations.ValidateClusterNameFormat(*params.ClusterUpdateParams.Name); err != nil {
 			return installer.UpdateClusterParams{}, err
 		}
+	}
+
+	if err := validations.ValidateIPAddressFamily(b.IPv6Support, params.ClusterUpdateParams.ClusterNetworkCidr, params.ClusterUpdateParams.ServiceNetworkCidr,
+		params.ClusterUpdateParams.MachineNetworkCidr, params.ClusterUpdateParams.APIVip, params.ClusterUpdateParams.IngressVip); err != nil {
+		return installer.UpdateClusterParams{}, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if sshPublicKey := swag.StringValue(params.ClusterUpdateParams.SSHPublicKey); sshPublicKey != "" {

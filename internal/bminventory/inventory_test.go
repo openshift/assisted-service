@@ -1595,6 +1595,7 @@ var _ = Describe("cluster", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		Expect(cfg.IPv6Support).Should(BeTrue())
 		db = common.PrepareTestDB(dbName)
 		bm = createInventory(db, cfg)
 		bm.ocmClient = nil
@@ -6419,3 +6420,96 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder)
 }
+
+var _ = Describe("IPv6 support disabled", func() {
+
+	const errorMsg = "IPv6 is not supported in this setup"
+
+	var (
+		bm  *bareMetalInventory
+		cfg Config
+		db  *gorm.DB
+		ctx = context.Background()
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		Expect(cfg.IPv6Support).Should(BeTrue())
+		cfg.IPv6Support = false
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	Context("Register cluster", func() {
+
+		var params installer.RegisterClusterParams
+
+		BeforeEach(func() {
+			params = installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{},
+			}
+		})
+
+		It("IPv6 cluster network rejected", func() {
+			params.NewClusterParams.ClusterNetworkCidr = swag.String("2001:db8::/64")
+			reply := bm.RegisterCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 service network rejected", func() {
+			params.NewClusterParams.ServiceNetworkCidr = swag.String("2002:db8::/120")
+			reply := bm.RegisterCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 ingress VIP rejected", func() {
+			params.NewClusterParams.IngressVip = "2001:db8::1"
+			reply := bm.RegisterCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+	})
+
+	Context("Update cluster", func() {
+
+		var params installer.UpdateClusterParams
+
+		BeforeEach(func() {
+			params = installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{},
+			}
+		})
+
+		It("IPv6 cluster network rejected", func() {
+			params.ClusterUpdateParams.ClusterNetworkCidr = swag.String("2001:db8::/64")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 service network rejected", func() {
+			params.ClusterUpdateParams.ServiceNetworkCidr = swag.String("2003:db8::/64")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 machine network rejected", func() {
+			params.ClusterUpdateParams.MachineNetworkCidr = swag.String("2001:db8::/120")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 API VIP rejected", func() {
+			params.ClusterUpdateParams.APIVip = swag.String("2003:db8::a")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 ingress VIP rejected", func() {
+			params.ClusterUpdateParams.IngressVip = swag.String("2002:db8::1")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+	})
+})

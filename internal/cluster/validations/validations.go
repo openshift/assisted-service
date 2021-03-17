@@ -425,3 +425,20 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 	}
 	return nil
 }
+
+//ValidateIPAddressFamily returns an error if the argument contains an IP address
+// or CIDR of IPv6 family, and IPv6 support is turned off
+func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
+	if ipV6Supported {
+		return nil
+	}
+	for _, e := range elements {
+		if e == nil {
+			continue
+		}
+		if strings.Contains(*e, ":") {
+			return errors.Errorf("IPv6 is not supported in this setup")
+		}
+	}
+	return nil
+}
