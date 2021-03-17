@@ -84,7 +84,8 @@ type InstallEnvSpec struct {
 	// removed.
 	ClusterRef *ClusterReference `json:"clusterRef"`
 	// Json formatted string containing the user overrides for the initial ignition config
-	IgnitionConfigOverride string `json:"ignitionConfigOverride"`
+	// +optional
+	IgnitionConfigOverride string `json:"ignitionConfigOverride,omitempty"`
 }
 
 // Proxy defines the proxy settings for agents and clusters that use the InstallEnv.
