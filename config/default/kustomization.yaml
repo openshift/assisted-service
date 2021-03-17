@@ -56,6 +56,10 @@ patchesStrategicMerge:
 # as the DEPLOY_TARGET.
 - assisted-service-patch-deploy-target.yaml
 
+# An init container that updates proxy-pass in nginx.conf in the
+# ocp-metal-ui ConfigMap to match the assisted-service's service route URL.
+- ui-patch-init-containers.yaml
+
 ###################
 # Optional patches
 ###################
