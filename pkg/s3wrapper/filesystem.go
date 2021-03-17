@@ -21,13 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	// fsBaseISOName is the filename for the base ISO
-	fsBaseISOName = "livecd.iso"
-	// fsMinimalBaseISOName is the filename for the minimal base ISO
-	fsMinimalBaseISOName = "livecd-minimal.iso"
-)
-
 type FSClient struct {
 	log              logrus.FieldLogger
 	basedir          string
@@ -307,9 +300,21 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return matches, nil
 }
 
+// UploadBootFiles is responsible for downloading to the filesystem the RHCOS
+// live cd (if needed) based on the openshiftVersion and constructing the boot
+// files and minimal iso for later use.
+// The order of operations here is important, we determine if we have all
+// necessary boot files and the minimal template has been created, download the
+// livecd iso if not available, extract the boot files from the iso, and
+// construct the minimal iso on the filesystem.
 func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, f.log)
-	isoObjectName, err := f.GetBaseIsoObject(openshiftVersion)
+	rhcosImage, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
+	if err != nil {
+		return err
+	}
+
+	baseIsoObject, err := f.GetBaseIsoObject(openshiftVersion)
 	if err != nil {
 		return err
 	}
@@ -319,39 +324,42 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 		return err
 	}
 
-	rhcosImageURL, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
+	baseExists, err := f.DoAllBootFilesExist(ctx, baseIsoObject)
 	if err != nil {
 		return err
 	}
 
-	baseExists, err := f.DoAllBootFilesExist(ctx, isoObjectName)
-	if err != nil {
-		return err
+	var minimalExists bool
+	if !haveLatestMinimalTemplate {
+		// Should update minimal ISO template
+		minimalExists = false
+	} else {
+		minimalExists, err = f.DoesPublicObjectExist(ctx, minimalIsoObject)
+		if err != nil {
+			return err
+		}
 	}
-	minimalExists, err := f.DoesPublicObjectExist(ctx, minimalIsoObject)
-	if err != nil {
-		return err
-	}
+
 	if baseExists && minimalExists {
 		return nil
 	}
 
-	existsInBucket, err := f.DoesObjectExist(ctx, isoObjectName)
+	existsInBucket, err := f.DoesObjectExist(ctx, baseIsoObject)
 	if err != nil {
 		return err
 	}
 	if !existsInBucket {
-		err = UploadFromURLToPublicBucket(ctx, isoObjectName, rhcosImageURL, f)
+		err = UploadFromURLToPublicBucket(ctx, baseIsoObject, rhcosImage, f)
 		if err != nil {
 			return err
 		}
-		log.Infof("Successfully uploaded object %s", isoObjectName)
+		log.Infof("Successfully uploaded object %s", baseIsoObject)
 	}
 
-	isoFilePath := filepath.Join(f.basedir, isoObjectName)
+	isoFilePath := filepath.Join(f.basedir, baseIsoObject)
 
 	if !baseExists {
-		if err = ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, isoObjectName, rhcosImageURL, f); err != nil {
+		if err = ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, baseIsoObject, rhcosImage, f); err != nil {
 			return err
 		}
 	}
@@ -380,11 +388,19 @@ func (f *FSClient) GetS3BootFileURL(isoObjectName, fileType string) string {
 }
 
 func (f *FSClient) GetBaseIsoObject(openshiftVersion string) (string, error) {
-	// TODO: MGMT-3621 Need to support different versions
-	return fsBaseISOName, nil
+	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf(rhcosObjectTemplate, rhcosVersion), nil
 }
 
 func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
-	// TODO: MGMT-3621 Need to support different versions
-	return fsMinimalBaseISOName, nil
+	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion)
+	if err != nil {
+		return "", err
+	}
+
+	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion), nil
 }
