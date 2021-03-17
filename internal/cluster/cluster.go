@@ -109,8 +109,9 @@ type PrepareConfig struct {
 }
 
 type Config struct {
-	PrepareConfig    PrepareConfig
-	MonitorBatchSize int `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	PrepareConfig           PrepareConfig
+	MonitorBatchSize        int  `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	EnableSingleNodeDnsmasq bool `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
 }
 
 type Manager struct {
@@ -842,7 +843,7 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 		return errors.Wrap(err, "failed to add chrony manifest")
 	}
 
-	if common.IsSingleNodeCluster(cluster) {
+	if common.IsSingleNodeCluster(cluster) && m.EnableSingleNodeDnsmasq {
 		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, logutil.FromContext(ctx, m.log), cluster); err != nil {
 			return errors.Wrap(err, "failed to add dnsmasq manifest")
 		}
