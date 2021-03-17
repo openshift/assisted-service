@@ -231,7 +231,19 @@ func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, Monitor
 		operatorsStatuses[operator.OperatorType][operator.Status] = append(operatorsStatuses[operator.OperatorType][operator.Status], operator.Name)
 	}
 
-	return len(operatorsStatuses[models.OperatorTypeBuiltin][models.OperatorStatusAvailable]) == countOperatorsInAllStatuses(operatorsStatuses[models.OperatorTypeBuiltin]), operatorsStatuses
+	return haveBuiltinOperatorsComplete(operatorsStatuses[models.OperatorTypeBuiltin]) &&
+		haveOLMOperatorsComplete(operatorsStatuses[models.OperatorTypeOlm]), operatorsStatuses
+}
+
+func haveBuiltinOperatorsComplete(operatorsNamesByStatus OperatorsNamesByStatus) bool {
+	// All the builtin operators are mandatory for a successfull installation
+	return len(operatorsNamesByStatus[models.OperatorStatusAvailable]) == countOperatorsInAllStatuses(operatorsNamesByStatus)
+}
+
+func haveOLMOperatorsComplete(operatorsNamesByStatus OperatorsNamesByStatus) bool {
+	// Need to wait for OLM operators to finish. Either available or failed. Failed operators would cause a degraded state.
+	return len(operatorsNamesByStatus[models.OperatorStatusAvailable])+len(operatorsNamesByStatus[models.OperatorStatusFailed]) ==
+		countOperatorsInAllStatuses(operatorsNamesByStatus)
 }
 
 func countOperatorsInAllStatuses(operatorNamesByStatus OperatorsNamesByStatus) int {
