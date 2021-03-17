@@ -72,7 +72,7 @@ type ClusterDeploymentsReconciler struct {
 	CRDEventsHandler CRDEventsHandler
 }
 
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;update
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/status,verbs=get;update;patch
 
