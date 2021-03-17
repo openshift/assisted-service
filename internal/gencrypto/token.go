@@ -1,6 +1,7 @@
 package gencrypto
 
 import (
+	"net/url"
 	"os"
 
 	"github.com/dgrijalva/jwt-go"
@@ -31,4 +32,22 @@ func LocalJWTForKey(cluster_id string, private_key_pem string) (string, error) {
 	}
 
 	return tokenString, nil
+}
+
+func SignURL(urlString string, cluster_id string) (string, error) {
+	u, err := url.Parse(urlString)
+	if err != nil {
+		return "", err
+	}
+
+	tok, err := LocalJWT(cluster_id)
+	if err != nil {
+		return "", err
+	}
+
+	q := u.Query()
+	q.Set("api_key", tok)
+	u.RawQuery = q.Encode()
+
+	return u.String(), nil
 }

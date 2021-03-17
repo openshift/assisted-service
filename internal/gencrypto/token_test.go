@@ -2,6 +2,8 @@ package gencrypto
 
 import (
 	"crypto"
+	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/dgrijalva/jwt-go"
@@ -39,32 +41,50 @@ var _ = Describe("JWT creation", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		validateToken := func(token string, pub crypto.PublicKey) *jwt.Token {
+		validateToken := func(token string, pub crypto.PublicKey, id string) {
 			parser := &jwt.Parser{ValidMethods: []string{jwt.SigningMethodES256.Alg()}}
 			parsed, err := parser.Parse(token, func(t *jwt.Token) (interface{}, error) { return pub, nil })
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(parsed.Valid).To(BeTrue())
 
-			return parsed
-		}
-
-		It("LocalJWT creates a valid token with EC_PRIVATE_KEY_PEM set", func() {
-			os.Setenv("EC_PRIVATE_KEY_PEM", privateKeyPEM)
-
-			id := uuid.New().String()
-			tokenString, err := LocalJWT(id)
-			Expect(err).ToNot(HaveOccurred())
-
-			tok := validateToken(tokenString, publicKey)
-			claims, ok := tok.Claims.(jwt.MapClaims)
+			claims, ok := parsed.Claims.(jwt.MapClaims)
 			Expect(ok).To(BeTrue())
 
 			clusterID, ok := claims["cluster_id"].(string)
 			Expect(ok).To(BeTrue())
 			Expect(clusterID).To(Equal(id))
+		}
 
-			os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		Context("with EC_PRIVATE_KEY_PEM set", func() {
+			BeforeEach(func() {
+				os.Setenv("EC_PRIVATE_KEY_PEM", privateKeyPEM)
+			})
+
+			AfterEach(func() {
+				os.Unsetenv("EC_PRIVATE_KEY_PEM")
+			})
+
+			It("LocalJWT creates a valid token", func() {
+				id := uuid.New().String()
+				tokenString, err := LocalJWT(id)
+				Expect(err).ToNot(HaveOccurred())
+
+				validateToken(tokenString, publicKey, id)
+			})
+
+			It("SignURL creates a url with a valid token", func() {
+				id := "2dc9400e-1b5e-4e41-bdb5-39b76b006f97"
+				u := fmt.Sprintf("https://ai.example.com/api/assisted-install/v1/clusters/%s/downloads/image", id)
+
+				signed, err := SignURL(u, id)
+				Expect(err).NotTo(HaveOccurred())
+				parsedURL, err := url.Parse(signed)
+				Expect(err).NotTo(HaveOccurred())
+
+				q := parsedURL.Query()
+				validateToken(q.Get("api_key"), publicKey, id)
+			})
 		})
 
 		It("LocalJWTForKey creates a valid token", func() {
@@ -72,13 +92,7 @@ var _ = Describe("JWT creation", func() {
 			tokenString, err := LocalJWTForKey(id, privateKeyPEM)
 			Expect(err).ToNot(HaveOccurred())
 
-			tok := validateToken(tokenString, publicKey)
-			claims, ok := tok.Claims.(jwt.MapClaims)
-			Expect(ok).To(BeTrue())
-
-			clusterID, ok := claims["cluster_id"].(string)
-			Expect(ok).To(BeTrue())
-			Expect(clusterID).To(Equal(id))
+			validateToken(tokenString, publicKey, id)
 		})
 	})
 })
