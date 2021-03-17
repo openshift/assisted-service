@@ -66,6 +66,8 @@ def main():
             service_container = spec["containers"][0]
             service_container["env"].append({'name': 'DEPLOY_TARGET', 'value': "ocp"})
             service_container["env"].append({'name': 'STORAGE', 'value': "filesystem"})
+            service_container["env"].append({'name': 'ISO_WORKSPACE_BASE_DIR', 'value': '/data'})
+            service_container["env"].append({'name': 'ISO_CACHE_DIR', 'value': '/data/cache'})
 
 
     with open(DST_FILE, "w+") as dst:
