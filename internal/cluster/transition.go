@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/filanov/stateswitch"
@@ -143,6 +144,9 @@ func (th *transitionHandler) PostUpdateInstallationProgress(sw stateswitch.State
 // Complete installation
 ////////////////////////////////////////////////////////////////////////////
 
+type OperatorsNamesByStatus map[models.OperatorStatus][]string
+type MonitoredOperatorStatuses map[models.OperatorType]OperatorsNamesByStatus
+
 func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, ok := sw.(*stateCluster)
 	if !ok {
@@ -153,12 +157,30 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 		return errors.New("PostCompleteInstallation invalid argument")
 	}
 
-	if cluster, err := params.clusterAPI.CompleteInstallation(params.ctx, params.db, sCluster.cluster, true, statusInfoInstalled); err != nil {
+	log := logutil.FromContext(params.ctx, th.log)
+	if cluster, err := params.clusterAPI.CompleteInstallation(params.ctx, params.db, sCluster.cluster,
+		true, createClusterCompletionStatusInfo(log, sCluster.cluster)); err != nil {
 		return err
 	} else {
 		sCluster.cluster = cluster
 		return nil
 	}
+}
+
+func createClusterCompletionStatusInfo(log logrus.FieldLogger, cluster *common.Cluster) string {
+	_, statuses := getClusterMonitoringOperatorsStatus(cluster)
+	log.Infof("Cluster %s Monitoring status: %s", *cluster.ID, statuses)
+
+	// Cluster status info is installed if no failed OLM operators
+	if countOperatorsInAllStatuses(statuses[models.OperatorTypeOlm]) == 0 ||
+		len(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed]) == 0 {
+		return statusInfoInstalled
+	}
+
+	statusInfo := StatusInfoDegraded
+	statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
+
+	return statusInfo
 }
 
 func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
@@ -187,36 +209,38 @@ func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.State
 		return true, nil
 	}
 
-	isComplete, statuses := getClusterMonitoringOperatorsStatus(sCluster.cluster)
-
-	log := logutil.FromContext(params.ctx, th.log)
-	log.Infof("Cluster %s Monitoring status: %s", *sCluster.cluster.ID, statuses)
-
+	isComplete, _ := getClusterMonitoringOperatorsStatus(sCluster.cluster)
 	return isComplete, nil
 }
 
-func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, map[models.OperatorStatus][]string) {
-	numberOfBuiltInOperators := 0
-
-	operatorsStatuses := map[models.OperatorStatus][]string{
-		models.OperatorStatusAvailable:   {},
-		models.OperatorStatusProgressing: {},
-		models.OperatorStatusFailed:      {},
+func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, MonitoredOperatorStatuses) {
+	operatorsStatuses := MonitoredOperatorStatuses{
+		models.OperatorTypeOlm: {
+			models.OperatorStatusAvailable:   {},
+			models.OperatorStatusProgressing: {},
+			models.OperatorStatusFailed:      {},
+		},
+		models.OperatorTypeBuiltin: {
+			models.OperatorStatusAvailable:   {},
+			models.OperatorStatusProgressing: {},
+			models.OperatorStatusFailed:      {},
+		},
 	}
 
 	for _, operator := range cluster.MonitoredOperators {
-		if operator.OperatorType == models.OperatorTypeOlm {
-			// TODO: MGMT-3368
-			// Should change cluster state to be degraded
-			continue
-		}
-
-		numberOfBuiltInOperators++
-
-		operatorsStatuses[operator.Status] = append(operatorsStatuses[operator.Status], operator.Name)
+		operatorsStatuses[operator.OperatorType][operator.Status] = append(operatorsStatuses[operator.OperatorType][operator.Status], operator.Name)
 	}
 
-	return len(operatorsStatuses[models.OperatorStatusAvailable]) == numberOfBuiltInOperators, operatorsStatuses
+	return len(operatorsStatuses[models.OperatorTypeBuiltin][models.OperatorStatusAvailable]) == countOperatorsInAllStatuses(operatorsStatuses[models.OperatorTypeBuiltin]), operatorsStatuses
+}
+
+func countOperatorsInAllStatuses(operatorNamesByStatus OperatorsNamesByStatus) int {
+	sum := 0
+	for _, v := range operatorNamesByStatus {
+		sum += len(v)
+	}
+
+	return sum
 }
 
 ////////////////////////////////////////////////////////////////////////////
