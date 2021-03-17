@@ -3,6 +3,7 @@ package versions
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/hashicorp/go-version"
@@ -49,16 +50,22 @@ type handler struct {
 }
 
 func (h *handler) ListComponentVersions(ctx context.Context, params operations.ListComponentVersionsParams) middleware.Responder {
+	versions := models.Versions{}
+	for _, v := range []string{h.versions.SelfVersion, h.versions.AgentDockerImg, h.versions.InstallerImage, h.versions.ControllerImage} {
+		versions[getRepositoryName(v)] = v
+	}
+
 	return operations.NewListComponentVersionsOK().WithPayload(
 		&models.ListVersions{
-			Versions: models.Versions{
-				"assisted-installer-service":    h.versions.SelfVersion,
-				"discovery-agent":               h.versions.AgentDockerImg,
-				"assisted-installer":            h.versions.InstallerImage,
-				"assisted-installer-controller": h.versions.ControllerImage,
-			},
+			Versions:   versions,
 			ReleaseTag: h.versions.ReleaseTag,
 		})
+}
+
+func getRepositoryName(image string) string {
+	image_name := strings.Split(image, ":")[0]
+	parts := strings.Split(image_name, "/")
+	return parts[len(parts)-1]
 }
 
 func (h *handler) ListSupportedOpenshiftVersions(ctx context.Context, params operations.ListSupportedOpenshiftVersionsParams) middleware.Responder {
