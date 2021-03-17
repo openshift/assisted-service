@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/go-openapi/swag"
@@ -39,18 +40,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
-	AgentPlatformError     = "AgentPlatformError"
-	AgentPlatformCondition = "AgentPlatformCondition"
-	AgentPlatformState     = "AgentPlatformState"
-	AgentPlatformStateInfo = "AgentPlatformStateInfo"
+	AgentPlatformError                = "AgentPlatformError"
+	AgentPlatformCondition            = "AgentPlatformCondition"
+	AgentPlatformState                = "AgentPlatformState"
+	AgentPlatformStateInfo            = "AgentPlatformStateInfo"
+	adminPasswordSecretStringTemplate = "%s-admin-password"
+	adminKubeConfigStringTemplate     = "%s-admin-kubeconfig"
 )
 
 const HighAvailabilityModeNone = "None"
@@ -67,7 +72,7 @@ type ClusterDeploymentsReconciler struct {
 	CRDEventsHandler CRDEventsHandler
 }
 
-// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;update
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/status,verbs=get;update;patch
 
@@ -108,6 +113,15 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return result, err
 	}
 
+	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
+	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
+		if !clusterDeployment.Spec.Installed {
+			err = r.updateClusterMetadata(ctx, clusterDeployment, cluster)
+			return r.updateState(ctx, clusterDeployment, cluster, err)
+		}
+		return r.updateState(ctx, clusterDeployment, cluster, nil)
+	}
+
 	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, cluster)
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, cluster, err)
@@ -124,6 +138,102 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	}
 
 	return r.updateState(ctx, clusterDeployment, cluster, nil)
+}
+
+func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) error {
+
+	s, err := r.ensureAdminPasswordSecret(ctx, cluster, c)
+	if err != nil {
+		return err
+	}
+	k, err := r.ensureKubeConfigSecret(ctx, cluster, c)
+	if err != nil {
+		return err
+	}
+	cluster.Spec.Installed = true
+	cluster.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+		ClusterID: c.OpenshiftClusterID.String(),
+		InfraID:   c.ID.String(),
+		AdminPasswordSecretRef: corev1.LocalObjectReference{
+			Name: s.Name,
+		},
+		AdminKubeconfigSecretRef: corev1.LocalObjectReference{
+			Name: k.Name,
+		},
+	}
+	return r.Update(ctx, cluster)
+}
+
+func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+	s := &corev1.Secret{}
+	name := fmt.Sprintf(adminPasswordSecretStringTemplate, cluster.Name)
+	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
+	if getErr == nil || !k8serrors.IsNotFound(getErr) {
+		return s, getErr
+	}
+	cred, err := r.Installer.GetCredentialsInternal(ctx, installer.GetCredentialsParams{
+		ClusterID: *c.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	data := map[string][]byte{
+		"username": []byte(cred.Username),
+		"password": []byte(cred.Password),
+	}
+	return r.createClusterCredentialSecret(ctx, cluster, c, name, data, "kubeadmincreds")
+}
+
+func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+	s := &corev1.Secret{}
+	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
+	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
+	if getErr == nil || !k8serrors.IsNotFound(getErr) {
+		return s, getErr
+	}
+	respBody, _, err := r.Installer.DownloadClusterKubeconfigInternal(ctx, installer.DownloadClusterKubeconfigParams{
+		ClusterID: *c.ID,
+	})
+	if err != nil {
+		return nil, err
+	}
+	respBytes, err := ioutil.ReadAll(respBody)
+	if err != nil {
+		return nil, err
+	}
+	data := map[string][]byte{
+		"kubeconfig": respBytes,
+	}
+
+	return r.createClusterCredentialSecret(ctx, cluster, c, name, data, "kubeconfig")
+}
+
+func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
+	s := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: cluster.Namespace,
+		},
+		Data: data,
+	}
+
+	s.Labels = AddLabel(s.Labels, "hive.openshift.io/cluster-deployment-name", cluster.Name)
+	s.Labels = AddLabel(s.Labels, "hive.openshift.io/secret-type", secretType)
+
+	deploymentGVK, err := apiutil.GVKForObject(cluster, r.Scheme)
+	if err != nil {
+		r.Log.WithError(err).Errorf("error getting GVK for clusterdeployment")
+		return nil, err
+	}
+
+	s.OwnerReferences = []metav1.OwnerReference{{
+		APIVersion:         deploymentGVK.GroupVersion().String(),
+		Kind:               deploymentGVK.Kind,
+		Name:               cluster.Name,
+		UID:                cluster.UID,
+		BlockOwnerDeletion: pointer.BoolPtr(true),
+	}}
+	return s, r.Create(ctx, s)
 }
 
 func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (bool, error) {

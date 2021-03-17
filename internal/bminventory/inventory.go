@@ -115,6 +115,8 @@ type InstallerInternals interface {
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
 	GetCommonHostInternal(ctx context.Context, clusterId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
+	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
+	DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -3011,15 +3013,23 @@ func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
+	respBody, contentLength, err := b.DownloadClusterKubeconfigInternal(ctx, params)
+	if err != nil {
 		return common.GenerateErrorResponder(err)
+	}
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
+}
+
+func (b *bareMetalInventory) DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error) {
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
+		return nil, 0, err
 	}
 
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
 	if err != nil {
-		return common.NewApiError(http.StatusConflict, err)
+		return nil, 0, common.NewApiError(http.StatusConflict, err)
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
+	return respBody, contentLength, nil
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
@@ -3182,39 +3192,47 @@ func (b *bareMetalInventory) downloadHostIgnition(ctx context.Context, clusterID
 }
 
 func (b *bareMetalInventory) GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder {
+	c, err := b.GetCredentialsInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewGetCredentialsOK().WithPayload(c)
+}
+
+func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 
 	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		if gorm.IsRecordNotFoundError(err) {
-			return common.NewApiError(http.StatusNotFound, err)
+			return nil, common.NewApiError(http.StatusNotFound, err)
 		} else {
-			return common.NewApiError(http.StatusInternalServerError, err)
+			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 	if err := b.clusterApi.GetCredentials(&cluster); err != nil {
 		log.WithError(err).Errorf("failed to get credentials of cluster %s", params.ClusterID.String())
-		return common.NewApiError(http.StatusConflict, err)
+		return nil, common.NewApiError(http.StatusConflict, err)
 	}
 	objectName := fmt.Sprintf("%s/%s", params.ClusterID, "kubeadmin-password")
 	r, _, err := b.objectHandler.Download(ctx, objectName)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get clusters %s object", objectName)
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 	defer r.Close()
 	password, err := ioutil.ReadAll(r)
 	if err != nil {
 		log.WithError(errors.Errorf("%s", password)).Errorf("Failed to get clusters %s", objectName)
-		return common.NewApiError(http.StatusConflict, errors.New(string(password)))
+		return nil, common.NewApiError(http.StatusConflict, errors.New(string(password)))
 	}
-	return installer.NewGetCredentialsOK().WithPayload(
-		&models.Credentials{
-			Username:   DefaultUser,
-			Password:   string(password),
-			ConsoleURL: fmt.Sprintf("%s.%s.%s", ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain),
-		})
+	return &models.Credentials{
+		Username:   DefaultUser,
+		Password:   string(password),
+		ConsoleURL: fmt.Sprintf("%s.%s.%s", ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain),
+	}, nil
 }
 
 func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, params installer.UpdateHostInstallProgressParams) middleware.Responder {
