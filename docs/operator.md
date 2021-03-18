@@ -28,7 +28,7 @@ make operator-bundle-build
 make operator-bundle-update
 
 # Create index image
-opm index add --bundles $BUNLE_IMAGE --tag $INDEX_IMAGE
+opm index add --bundles $BUNDLE_IMAGE --tag $INDEX_IMAGE
 # Push index image used in catalog source
 podman push $INDEX_IMAGE
 ```
@@ -145,7 +145,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: assisted-service-operator
-  namespace: assisted-installer 
+  namespace: assisted-installer
 spec:
   channel: alpha
   installPlanApproval: Automatic
@@ -163,7 +163,7 @@ the deployment specs and any values from ConfigMaps. They can be
 used to configure the operator deployment.
 
 Here is an example. By default, the operator bundle is configured
-to use minimal-iso for ISO_IMAGE_TYPE. It can be reconfigured to 
+to use minimal-iso for ISO_IMAGE_TYPE. It can be reconfigured to
 full-iso through the Subscription config.
 
 ``` bash
@@ -172,7 +172,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: assisted-service-operator
-  namespace: assisted-installer 
+  namespace: assisted-installer
 spec:
   channel: alpha
   installPlanApproval: Automatic
