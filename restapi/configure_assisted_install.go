@@ -117,7 +117,10 @@ type InstallerAPI interface {
 	/* GetCredentials Get the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
 
-	/* GetDiscoveryIgnition Get the cluster discovery ignition config */
+	/* GetDiscoveryIgnition Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+	   Used to test the validity of the discovery ignition when it is being overridden.
+	   For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
+	*/
 	GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder
 
 	/* GetFreeAddresses Retrieves the free address list for a network. */
@@ -183,7 +186,7 @@ type InstallerAPI interface {
 	/* UpdateClusterLogsProgress Update log collection state and progress. */
 	UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder
 
-	/* UpdateDiscoveryIgnition Override values in the discovery ignition config */
+	/* UpdateDiscoveryIgnition Override values in the discovery ignition config. */
 	UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder
 
 	/* UpdateHostIgnition Patch the ignition file for this host */

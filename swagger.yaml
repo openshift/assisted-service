@@ -792,7 +792,10 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      description: Get the cluster discovery ignition config
+      description: |
+        Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+        Used to test the validity of the discovery ignition when it is being overridden.
+        For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
       operationId: GetDiscoveryIgnition
       parameters:
         - in: path
@@ -829,7 +832,7 @@ paths:
     patch:
       tags:
         - installer
-      description: Override values in the discovery ignition config
+      description: Override values in the discovery ignition config.
       operationId: UpdateDiscoveryIgnition
       parameters:
         - in: path
