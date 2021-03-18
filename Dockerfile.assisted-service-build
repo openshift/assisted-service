@@ -29,5 +29,6 @@ RUN export ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm6
   && curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH} \
   && chmod +x operator-sdk_${OS}_${ARCH} \
   && install operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
+COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
 
 
