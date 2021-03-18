@@ -485,6 +485,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment full install and validate MetaData", func() {
+		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSNOSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, spec)
@@ -499,10 +500,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 		By("Approve Agent")
-		agent := getAgentCRD(ctx, kubeClient, key)
-		agent.Spec.Approved = true
-		err := kubeClient.Update(ctx, agent)
-		Expect(err).To(BeNil())
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
 
 		By("Wait for installing")
 		Eventually(func() string {
@@ -526,7 +528,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Wait for installed")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
