@@ -228,6 +228,9 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 				Eligible:           d.InstallationEligibility.Eligible,
 				NotEligibleReasons: d.InstallationEligibility.NotEligibleReasons,
 			}
+			if d.InstallationEligibility.NotEligibleReasons == nil {
+				disks[i].InstallationEligibility.NotEligibleReasons = make([]string, 0)
+			}
 			if d.IoPerf != nil {
 				disks[i].IoPerf = adiiov1alpha1.HostIOPerf{
 					SyncDurationMilliseconds: d.IoPerf.SyncDuration,
