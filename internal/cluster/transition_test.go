@@ -112,21 +112,21 @@ var _ = Describe("Transition tests", func() {
 			destStatusInfo               string
 		}{
 			{
-				name:      "no change",
+				name:      "no change -> finalizing",
 				destState: models.ClusterStatusFinalizing,
 			},
 			// TODO: MGMT-4458
 			// Backward-compatible solution for clusters that don't have monitored operators data
 			// Those clusters shouldn't finish until the controller would tell them.
 			{
-				name:                       "success - no operators (backward-compatability)",
+				name:                       "no operators (backward-compatability) -> installed",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: true,
 				destState:                  models.ClusterStatusInstalled,
 				destStatusInfo:             statusInfoInstalled,
 			},
 			{
-				name:                       "success - available operators",
+				name:                       "available builtin operators, no OLM -> installed",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: true,
 				operators: []*models.MonitoredOperator{
@@ -139,7 +139,20 @@ var _ = Describe("Transition tests", func() {
 				destStatusInfo: statusInfoInstalled,
 			},
 			{
-				name:                       "no change - failed operator",
+				name:                       "progressing builtin operator, no OLM -> finalizing",
+				uploadKubeConfig:           true,
+				updateSuccessfullyFinished: false,
+				operators: []*models.MonitoredOperator{
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeBuiltin,
+						Status: models.OperatorStatusProgressing,
+					},
+				},
+
+				destState: models.ClusterStatusFinalizing,
+			},
+			{
+				name:                       "failed builtin operator, no OLM -> finalizing",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: false,
 				operators: []*models.MonitoredOperator{
@@ -152,33 +165,57 @@ var _ = Describe("Transition tests", func() {
 				destState: models.ClusterStatusFinalizing,
 			},
 			{
-				name:                       "success - failed OLM operators",
+				name:                       "available builtin operators, progress OLM -> finalizing",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: true,
 				operators: []*models.MonitoredOperator{
 					{
-						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeOlm,
-						Status: models.OperatorStatusFailed,
-					},
-					{
-						Name: common.TestDefaultConfig.MonitoredOperator.Name + "2", OperatorType: models.OperatorTypeOlm,
+						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeBuiltin,
 						Status: models.OperatorStatusAvailable,
 					},
 					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name + "2", OperatorType: models.OperatorTypeOlm,
+						Status: models.OperatorStatusProgressing,
+					},
+				},
+				destState: models.ClusterStatusFinalizing,
+			},
+			{
+				name:                       "available builtin operators, failed OLM -> installed (degraded)",
+				uploadKubeConfig:           true,
+				updateSuccessfullyFinished: true,
+				operators: []*models.MonitoredOperator{
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeBuiltin,
+						Status: models.OperatorStatusAvailable,
+					},
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name + "2", OperatorType: models.OperatorTypeOlm,
+						Status: models.OperatorStatusFailed,
+					},
+					{
 						Name: common.TestDefaultConfig.MonitoredOperator.Name + "3", OperatorType: models.OperatorTypeOlm,
+						Status: models.OperatorStatusAvailable,
+					},
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name + "4", OperatorType: models.OperatorTypeOlm,
 						Status: models.OperatorStatusFailed,
 					},
 				},
 				destState:      models.ClusterStatusInstalled,
-				destStatusInfo: StatusInfoDegraded + ". Failed OLM operators: dummy, dummy3",
+				destStatusInfo: StatusInfoDegraded + ". Failed OLM operators: dummy2, dummy4",
 			},
 			{
-				name:                       "success - avilable OLM operators",
+				name:                       "available builtin operators, available OLM -> installed",
 				uploadKubeConfig:           true,
 				updateSuccessfullyFinished: true,
 				operators: []*models.MonitoredOperator{
 					{
-						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeOlm,
+						Name: common.TestDefaultConfig.MonitoredOperator.Name, OperatorType: models.OperatorTypeBuiltin,
+						Status: models.OperatorStatusAvailable,
+					},
+					{
+						Name: common.TestDefaultConfig.MonitoredOperator.Name + "2", OperatorType: models.OperatorTypeOlm,
 						Status: models.OperatorStatusAvailable,
 					},
 				},
@@ -186,7 +223,7 @@ var _ = Describe("Transition tests", func() {
 				destStatusInfo: statusInfoInstalled,
 			},
 			{
-				name:                         "success - with AMS",
+				name:                         "success - with AMS -> installed",
 				uploadKubeConfig:             true,
 				updateSuccessfullyFinished:   true,
 				updateAMSSubscription:        true,
