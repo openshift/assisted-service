@@ -87,7 +87,6 @@ type Config struct {
 	RhQaRegCred                     string            `envconfig:"REGISTRY_CREDS" default:""`
 	AgentTimeoutStart               time.Duration     `envconfig:"AGENT_TIMEOUT_START" default:"3m"`
 	ServiceIPs                      string            `envconfig:"SERVICE_IPS" default:""`
-	DeletedUnregisteredAfter        time.Duration     `envconfig:"DELETED_UNREGISTERED_AFTER" default:"168h"`
 	DefaultNTPSource                string            `envconfig:"NTP_DEFAULT_SERVER"`
 	ISOCacheDir                     string            `envconfig:"ISO_CACHE_DIR" default:"/tmp/isocache"`
 	DefaultClusterNetworkCidr       string            `envconfig:"CLUSTER_NETWORK_CIDR" default:"10.128.0.0/14"`
@@ -4273,30 +4272,6 @@ func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) 
 		return "", err
 	}
 	return k8sclient.GetClusterVersion(clusterVersion)
-}
-
-func (b bareMetalInventory) PermanentlyDeleteUnregisteredClustersAndHosts() {
-	if !b.leaderElector.IsLeader() {
-		b.log.Debugf("Not a leader, exiting periodic clusters and hosts deletion")
-		return
-	}
-
-	olderThen := strfmt.DateTime(time.Now().Add(-b.Config.DeletedUnregisteredAfter))
-	b.log.Debugf(
-		"Permanently deleting all clusters that were de-registered before %s",
-		olderThen)
-	if err := b.clusterApi.PermanentClustersDeletion(context.Background(), olderThen, b.objectHandler); err != nil {
-		b.log.WithError(err).Errorf("Failed deleting de-registered clusters")
-		return
-	}
-
-	b.log.Debugf(
-		"Permanently deleting all hosts that were soft-deleted before %s",
-		olderThen)
-	if err := b.hostApi.PermanentHostsDeletion(olderThen); err != nil {
-		b.log.WithError(err).Errorf("Failed deleting soft-deleted hosts")
-		return
-	}
 }
 
 func secretValidationToUserError(err error) error {
