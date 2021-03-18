@@ -31,7 +31,8 @@ import (
 var BootstrapStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
-	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone,
+	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
+	models.HostStageDone,
 }
 var MasterStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
@@ -41,7 +42,8 @@ var MasterStages = [...]models.HostStage{
 var WorkerStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageRebooting,
-	models.HostStageWaitingForIgnition, models.HostStageConfiguring, models.HostStageDone,
+	models.HostStageWaitingForIgnition, models.HostStageConfiguring,
+	models.HostStageJoined, models.HostStageDone,
 }
 
 var manualRebootStages = [...]models.HostStage{
