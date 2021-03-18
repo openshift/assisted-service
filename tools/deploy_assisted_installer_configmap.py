@@ -23,7 +23,7 @@ def handle_arguments():
     parser.add_argument("--img-expr-time", default="")
     parser.add_argument("--img-expr-interval", default="")
     parser.add_argument("--check-cvo", default="False")
-    parser.add_argument("--ipv6-support", default="False")
+    parser.add_argument("--ipv6-support", default="True")
     parser.add_argument("--enable-sno-dnsmasq", default="True")
 
     return deployment_options.load_deployment_options(parser)

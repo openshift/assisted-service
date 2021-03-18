@@ -90,7 +90,7 @@ parameters:
 - name: CHECK_CLUSTER_VERSION
   value: "false"
 - name: IPV6_SUPPORT
-  value: "false"
+  value: "true"
   required: false
 - name: ENABLE_SINGLE_NODE_DNSMASQ
   value: "true"
