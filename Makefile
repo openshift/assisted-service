@@ -58,6 +58,7 @@ TESTING_PUBLIC_CONTAINER_REGISTRIES := quay.io,registry.svc.ci.openshift.org
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUBLIC_CONTAINER_REGISTRIES))
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
+GENERATE_CRD := $(or ${GENERATE_CRD},true)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
 IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, False)
 ifeq ($(ENABLE_KUBE_API),true)
@@ -221,7 +222,8 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 	$(MAKE) deploy-role deploy-resources
 
 deploy-resources: generate-manifests
-	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" \
+ 	--target "$(TARGET)" --namespace "$(NAMESPACE)"
 
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
@@ -294,7 +296,8 @@ deploy-onprem-for-subsystem:
 
 deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
-	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
+	export TARGET='oc' && export PROFILE='openshift-ci' && \
+	export ENABLE_KUBE_API='true' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
 

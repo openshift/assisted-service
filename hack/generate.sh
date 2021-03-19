@@ -81,11 +81,16 @@ function generate_manifests() {
     local controller_crd_path=${controller_config_path}/crd
     local controller_rbac_path=${controller_config_path}/rbac
 
-    controller-gen ${crd_options} rbac:roleName=assisted-service-manager-role paths="./..." output:rbac:dir=${controller_rbac_path} \
-    webhook paths="./..." output:crd:artifacts:config=${controller_crd_path}/bases
-    kustomize build ${controller_crd_path} > ${BUILD_FOLDER}/resources.yaml
-    controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
-    goimports -w  ${controller_path}
+    if [ "${GENERATE_CRD:-true}" == "true" ]; then
+        echo "Generating CRDs"
+        controller-gen ${crd_options} rbac:roleName=assisted-service-manager-role paths="./..." output:rbac:dir=${controller_rbac_path} \
+        webhook paths="./..." output:crd:artifacts:config=${controller_crd_path}/bases
+        kustomize build ${controller_crd_path} > ${controller_crd_path}/resources.yaml
+        controller-gen object:headerFile="hack/boilerplate.go.txt" paths="./..."
+        goimports -w  ${controller_path}
+    fi
+
+    cp ${controller_crd_path}/resources.yaml ${BUILD_FOLDER}/resources.yaml
 }
 
 function generate_all() {
