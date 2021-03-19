@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
@@ -719,6 +720,12 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 			return errors.New("Failed to generate image: error generating cluster ISO URL")
 		}
 		downloadURL = fmt.Sprintf("%s%s", b.Config.ServiceBaseURL, clusterISOURL.RequestURI())
+		if b.authHandler.AuthType() == auth.TypeLocal {
+			downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String())
+			if err != nil {
+				return errors.Wrap(err, "Failed to sign cluster ISO URL")
+			}
+		}
 	}
 	updates["image_download_url"] = downloadURL
 	cluster.ImageInfo.DownloadURL = downloadURL

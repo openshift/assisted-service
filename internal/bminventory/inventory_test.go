@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"sort"
@@ -36,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/ignition"
@@ -260,6 +262,43 @@ var _ = Describe("GenerateClusterISO", func() {
 		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
 		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
 
+	})
+
+	It("sets the auth token when using local auth", func() {
+		// Use a local auth handler
+		pub, priv, err := gencrypto.ECDSAKeyPairPEM()
+		Expect(err).NotTo(HaveOccurred())
+		os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+		defer os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		bm.authHandler, err = auth.NewLocalAuthenticator(
+			&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
+			common.GetTestLog().WithField("pkg", "auth"),
+			db,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Success flow
+		cluster := registerCluster(true)
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockUploadIso(cluster, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+		bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+
+		// Check that a valid token was added to the URL
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		u, err := url.Parse(getReply.Payload.ImageInfo.DownloadURL)
+		Expect(err).NotTo(HaveOccurred())
+		tok := u.Query().Get("api_key")
+		_, err = bm.authHandler.AuthURLAuth(tok)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("image already exists", func() {
