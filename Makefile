@@ -219,10 +219,10 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
-        --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
+                --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
 	@if [ $(INSTALL_TYPE) = "IPV6" ]; then\
 		python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py --target "$(TARGET)" --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD);\
-    fi
+        fi
 	$(MAKE) deploy-role deploy-resources
 
 deploy-resources: generate-manifests
