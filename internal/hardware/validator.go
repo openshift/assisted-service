@@ -13,6 +13,11 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const (
+	intelVirtCpuFlag = "vmx"
+	amdVirtCpuFlag   = "svm"
+)
+
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
@@ -123,4 +128,8 @@ func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequire
 			DiskSizeGb: v.ValidatorCfg.MinDiskSizeGb,
 		}
 	}
+}
+
+func IsVirtSupported(inventory *models.Inventory) bool {
+	return funk.Contains(inventory.CPU.Flags, intelVirtCpuFlag) || funk.Contains(inventory.CPU.Flags, amdVirtCpuFlag)
 }

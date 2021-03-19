@@ -26,8 +26,9 @@ import (
 )
 
 const (
-	defaultReleaseImage = "releaseImage"
-	defaultMCOImage     = "mcoImage"
+	defaultReleaseImage    = "releaseImage"
+	defaultMCOImage        = "mcoImage"
+	defaultMustGatherImage = "mustGatherImage"
 )
 
 var DefaultInstructionConfig = InstructionConfig{
@@ -82,6 +83,11 @@ var _ = Describe("installcmd", func() {
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).Times(times)
 	}
 
+	mockImages := func(times int) {
+		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(times)
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).Times(times)
+	}
+
 	Context("negative", func() {
 		It("get_step_one_master", func() {
 			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, errors.New("error")).Times(1)
@@ -111,7 +117,7 @@ var _ = Describe("installcmd", func() {
 	It("get_step_one_master_success", func() {
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
-		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, nil, models.ClusterHighAvailabilityModeFull)
@@ -126,7 +132,7 @@ var _ = Describe("installcmd", func() {
 		host3 := createHostInDb(db, clusterId, models.HostRoleMaster, true, "some_hostname")
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(3)
 		mockGetReleaseImage(3)
-		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(3)
+		mockImages(3)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, nil, models.ClusterHighAvailabilityModeFull)
@@ -141,7 +147,7 @@ var _ = Describe("installcmd", func() {
 		host.Inventory = "blah"
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
-		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(true, true, nil, stepErr, "")
 	})
@@ -164,7 +170,7 @@ var _ = Describe("installcmd", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, message, gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
-		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, []string{"/dev/sda"}, models.ClusterHighAvailabilityModeFull)
@@ -196,7 +202,7 @@ var _ = Describe("installcmd", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sdc on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
-		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, []string{"/dev/sda", "/dev/sdc"}, models.ClusterHighAvailabilityModeFull)
@@ -224,7 +230,7 @@ var _ = Describe("installcmd", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sdc on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
 		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
 		mockGetReleaseImage(1)
-		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).Times(1)
+		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
 		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, []string{"/dev/sda", "/dev/sdc"}, models.ClusterHighAvailabilityModeFull)
@@ -258,6 +264,11 @@ var _ = Describe("installcmd arguments", func() {
 		mockVersions *versions.MockHandler
 	)
 
+	mockImages := func() {
+		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).AnyTimes()
+		mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
+	}
+
 	BeforeSuite(func() {
 		db = common.PrepareTestDB(dbName)
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
@@ -270,7 +281,7 @@ var _ = Describe("installcmd arguments", func() {
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).AnyTimes()
-		mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).AnyTimes()
+		mockImages()
 	})
 
 	AfterSuite(func() {
@@ -363,6 +374,7 @@ var _ = Describe("installcmd arguments", func() {
 		It("verify empty value", func() {
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).AnyTimes()
+			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
 
 			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
@@ -375,6 +387,7 @@ var _ = Describe("installcmd arguments", func() {
 			value := "\nescaped_\n\t_value\n"
 			mockRelease = oc.NewMockRelease(ctrl)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(value, nil).AnyTimes()
+			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
 
 			installCmd := NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, InstructionConfig{}, mockEvents, mockVersions)
 			stepReply, err := installCmd.GetSteps(ctx, &host)
@@ -505,6 +518,7 @@ func validateInstallCommand(installCmd *installCmd, reply *models.Step, role mod
 	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage, 1)
 	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.AgentImage, 1)
 	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)), 1)
+	verifyArgInCommand(reply.Args[1], "--must-gather-image", defaultMustGatherImage, 1)
 
 	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet --name=assisted-installer -v /dev:/dev:rw -v /var/log:/var/log " +
 		"-v /run/systemd/journal/socket:/run/systemd/journal/socket " +

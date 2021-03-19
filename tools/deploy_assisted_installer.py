@@ -51,7 +51,6 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_TOKEN_URL', 'value': WIREMOCK_SERVICE + '/token'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_ID', 'value': 'mock-ocm-client-id'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_SECRET', 'value': 'mock-ocm-client-secret'})
-            data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'ENABLE_KUBE_API', 'value': str(deploy_options.enable_kube_api).lower()})
 
             if deploy_options.profile == utils.OPENSHIFT_CI:
                 # Images built on infra cluster but needed on ephemeral cluster
@@ -66,6 +65,8 @@ def main():
             service_container = spec["containers"][0]
             service_container["env"].append({'name': 'DEPLOY_TARGET', 'value': "ocp"})
             service_container["env"].append({'name': 'STORAGE', 'value': "filesystem"})
+            service_container["env"].append({'name': 'ISO_WORKSPACE_BASE_DIR', 'value': '/data'})
+            service_container["env"].append({'name': 'ISO_CACHE_DIR', 'value': '/data/cache'})
 
 
     with open(DST_FILE, "w+") as dst:

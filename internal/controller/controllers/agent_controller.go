@@ -228,6 +228,9 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 				Eligible:           d.InstallationEligibility.Eligible,
 				NotEligibleReasons: d.InstallationEligibility.NotEligibleReasons,
 			}
+			if d.InstallationEligibility.NotEligibleReasons == nil {
+				disks[i].InstallationEligibility.NotEligibleReasons = make([]string, 0)
+			}
 			if d.IoPerf != nil {
 				disks[i].IoPerf = adiiov1alpha1.HostIOPerf{
 					SyncDurationMilliseconds: d.IoPerf.SyncDuration,
@@ -306,7 +309,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alph
 		}
 	}
 
-	if spec.InstallationDiskPath != host.InstallationDiskPath {
+	if spec.InstallationDiskPath != "" && spec.InstallationDiskPath != host.InstallationDiskPath {
 		clusterUpdate = true
 		params.DisksSelectedConfig = []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
 			{

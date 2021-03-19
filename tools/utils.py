@@ -61,8 +61,26 @@ def set_namespace_in_yaml_docs(docs, ns):
             continue
 
 
-def check_output(cmd):
-    return subprocess.check_output(cmd, shell=True).decode("utf-8")
+def check_output(command, raise_on_error=True):
+    process = subprocess.run(
+        command,
+        shell=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True
+    )
+
+    out = process.stdout.strip()
+    err = process.stderr.strip()
+
+    if raise_on_error and process.returncode != 0:
+        raise RuntimeError(
+            f'command={command} exited with an '
+            f'error={err if err else out} '
+            f'code={process.returncode}'
+        )
+
+    return out if out else err
 
 
 def get_service_host(

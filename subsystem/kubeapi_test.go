@@ -138,6 +138,13 @@ func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.Namespa
 	return agent
 }
 
+func getSecret(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *corev1.Secret {
+	secret := &corev1.Secret{}
+	err := client.Get(ctx, key, secret)
+	Expect(err).To(BeNil())
+	return secret
+}
+
 // FindStatusClusterDeploymentCondition is a port of conditionsv1.FindStatusCondition
 func FindStatusClusterDeploymentCondition(conditions []hivev1.ClusterDeploymentCondition,
 	conditionType hivev1.ClusterDeploymentConditionType) *hivev1.ClusterDeploymentCondition {
@@ -476,4 +483,87 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.IgnitionConfigOverrides).ShouldNot(Equal(fakeIgnitionConfigOverride))
 		Expect(cluster.ImageGenerated).Should(Equal(false))
 	})
+
+	It("deploy clusterDeployment full install and validate MetaData", func() {
+		By("Create cluster")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		By("Approve Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Wait for installing")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+
+		By("Wait for finalizing")
+		updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
+
+		By("Wait for installed")
+		completeInstallation(agentBMClient, *cluster.ID)
+		isSuccess := true
+		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+			ClusterID: *cluster.ID,
+			CompletionParams: &models.CompletionParams{
+				IsSuccess: &isSuccess,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalled))
+
+		By("Verify Cluster Metadata")
+		Eventually(func() bool {
+			return getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.Installed
+		}, "1m", "2s").Should(BeTrue())
+		passwordSecretRef := getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.ClusterMetadata.AdminPasswordSecretRef
+		Expect(passwordSecretRef).NotTo(BeNil())
+		passwordkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      passwordSecretRef.Name,
+		}
+		passwordSecret := getSecret(ctx, kubeClient, passwordkey)
+		Expect(passwordSecret.Data["password"]).NotTo(BeNil())
+		Expect(passwordSecret.Data["username"]).NotTo(BeNil())
+		configSecretRef := getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
+		Expect(passwordSecretRef).NotTo(BeNil())
+		configkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      configSecretRef.Name,
+		}
+		configSecret := getSecret(ctx, kubeClient, configkey)
+		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
+	})
+
 })

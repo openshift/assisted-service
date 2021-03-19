@@ -53,11 +53,13 @@ OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 AUTH_TYPE := $(or ${AUTH_TYPE},none)
 WITH_AMS_SUBSCRIPTIONS := $(or ${WITH_AMS_SUBSCRIPTIONS},False)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
+ENABLE_SINGLE_NODE_DNSMASQ := $(or ${ENABLE_SINGLE_NODE_DNSMASQ},True)
 DELETE_PVC := $(or ${DELETE_PVC},False)
 TESTING_PUBLIC_CONTAINER_REGISTRIES := quay.io,registry.svc.ci.openshift.org
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUBLIC_CONTAINER_REGISTRIES))
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
+GENERATE_CRD := $(or ${GENERATE_CRD},true)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
 IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, False)
 ifeq ($(ENABLE_KUBE_API),true)
@@ -117,7 +119,7 @@ generate-%: ${BUILD_FOLDER}
 .PHONY: build docs
 build: lint $(UNIT_TEST_TARGET) build-minimal
 
-build-all: build-in-docker
+build-all: build-in-docker operator-bundle-build
 
 build-in-docker:
 	skipper make build-image
@@ -148,6 +150,7 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
+	$(call publish_image,podman,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
 	skipper make publish-client
 
 publish-client: generate-python-client
@@ -166,6 +169,11 @@ else ifdef DEPLOY_MANIFEST_PATH
 else ifdef DEPLOY_MANIFEST_TAG
   DEPLOY_TAG_OPTION = --deploy-manifest-tag "$(DEPLOY_MANIFEST_TAG)"
 endif
+
+define restart_service_pods
+$(KUBECTL) rollout restart deployment assisted-service
+$(KUBECTL) rollout status  deployment assisted-service
+endef
 
 _verify_cluster:
 	$(KUBECTL) cluster-info
@@ -205,25 +213,29 @@ deploy-inventory-service-file: deploy-namespace
 		--profile "$(PROFILE)" --apply-manifest $(APPLY_MANIFEST)
 	sleep 5;  # wait for service to get an address
 
-deploy-service-requirements: deploy-namespace deploy-inventory-service-file
+deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" --profile "$(PROFILE)" \
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
-    --ipv6-support $(IPV6_SUPPORT)
+        --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
 	@if [ $(INSTALL_TYPE) = "IPV6" ]; then\
 		python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py --target "$(TARGET)" --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD);\
-  fi
+    fi
+	$(MAKE) deploy-role deploy-resources
 
 deploy-resources: generate-manifests
-	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" --target "$(TARGET)"
+	python3 ./tools/deploy_crd.py $(ENABLE_KUBE_API_CMD) --apply-manifest $(APPLY_MANIFEST) --profile "$(PROFILE)" \
+ 	--target "$(TARGET)" --namespace "$(NAMESPACE)"
 
-deploy-service: deploy-namespace deploy-service-requirements deploy-role deploy-resources
+deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		--profile "$(PROFILE)" $(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
-		--apply-manifest $(APPLY_MANIFEST) \
-		$(ENABLE_KUBE_API_CMD)
+		--apply-manifest $(APPLY_MANIFEST)
+	$(MAKE) wait-for-service
+
+wait-for-service:
 	python3 ./tools/wait_for_assisted_service.py --target $(TARGET) --namespace "$(NAMESPACE)" \
 		--profile "$(PROFILE)" --domain "$(INGRESS_DOMAIN)" --apply-manifest $(APPLY_MANIFEST)
 
@@ -288,7 +300,8 @@ deploy-onprem-for-subsystem:
 
 deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
-	export TARGET='oc' && export PROFILE='openshift-ci' && unset GOFLAGS && \
+	export TARGET='oc' && export PROFILE='openshift-ci' && \
+	export ENABLE_KUBE_API='true' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
 
@@ -302,9 +315,15 @@ docs_serve:
 # Test #
 ########
 
-subsystem-run: test subsystem-clean
+subsystem-run: | test enable-kube-api-for-subsystem test-kube-api subsystem-clean
 
 test:
+	$(MAKE) _run_test AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
+
+test-kube-api:
+	$(MAKE) _run_test AUTH_TYPE=none ENABLE_KUBE_API=true FOCUS=kube-api
+
+_run_test:
 	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
 		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
 		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
@@ -312,9 +331,12 @@ test:
 		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
 		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
 		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
-		AUTH_TYPE="rhsso" \
-		WITH_AMS_SUBSCRIPTIONS="true" \
 		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
+
+enable-kube-api-for-subsystem: $(BUILD_FOLDER)
+	$(MAKE) deploy-service-requirements AUTH_TYPE=none ENABLE_KUBE_API=true
+	$(call restart_service_pods)
+	$(MAKE) wait-for-service
 
 deploy-wiremock: deploy-namespace
 	python3 ./tools/deploy_wiremock.py --target $(TARGET) --namespace "$(NAMESPACE)" --profile "$(PROFILE)"

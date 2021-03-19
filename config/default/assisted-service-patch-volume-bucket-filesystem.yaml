@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: assisted-service
+  namespace: assisted-installer
+spec:
+  template:
+    metadata:
+      labels:
+        app: assisted-service
+    spec:
+      containers:
+      - name: assisted-service
+        volumeMounts:
+        - mountPath: /data
+          name: bucket-filesystem
+      volumes:
+      - name: bucket-filesystem
+        persistentVolumeClaim:
+          claimName: bucket-pv-claim

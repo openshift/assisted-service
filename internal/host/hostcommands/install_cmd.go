@@ -124,6 +124,11 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		return "", err
 	}
 
+	mustGatherImage, err := i.ocRelease.GetMustGatherImage(i.log, releaseImage, i.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	if err != nil {
+		return "", err
+	}
+
 	i.log.Infof("Install command releaseImage: %s, mcoImage: %s", releaseImage, mcoImage)
 
 	podmanCmd := podmanBaseCmd[:]
@@ -138,6 +143,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		"--mco-image", mcoImage,
 		"--controller-image", i.instructionConfig.ControllerImage,
 		"--agent-image", i.instructionConfig.AgentImage,
+		"--must-gather-image", mustGatherImage,
 	}
 
 	/*

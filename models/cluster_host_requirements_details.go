@@ -24,8 +24,8 @@ type ClusterHostRequirementsDetails struct {
 	// Required installation disk speed in ms
 	InstallationDiskSpeedThresholdMs int64 `json:"installation_disk_speed_threshold_ms,omitempty"`
 
-	// Required number of RAM in GiB
-	RAMGib int64 `json:"ram_gib,omitempty"`
+	// Required number of RAM in MiB
+	RAMMib int64 `json:"ram_mib,omitempty"`
 }
 
 // Validate validates this cluster host requirements details

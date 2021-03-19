@@ -68,3 +68,15 @@ func NewDummyCRDUtils() *DummyCRDUtils {
 func (u *DummyCRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, hostId, clusterNamespace, clusterName string) error {
 	return nil
 }
+
+func AddLabel(labels map[string]string, labelKey, labelValue string) map[string]string {
+	if labelKey == "" {
+		// Don't need to add a label.
+		return labels
+	}
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	labels[labelKey] = labelValue
+	return labels
+}

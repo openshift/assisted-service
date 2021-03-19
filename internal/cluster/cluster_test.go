@@ -2252,7 +2252,9 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		mockOperatorMgr = operators.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, dummy, mockOperatorMgr, nil, nil)
+		cfg := getDefaultConfig()
+		cfg.EnableSingleNodeDnsmasq = true
+		capi = NewManager(cfg, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, dummy, mockOperatorMgr, nil, nil)
 		id := strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:     &id,
@@ -2282,6 +2284,117 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		err := capi.GenerateAdditionalManifests(ctx, &c)
 		Expect(err).To(HaveOccurred())
+	})
+
+	It("Single node manifests success with disabled dnsmasq", func() {
+		cfg2 := getDefaultConfig()
+		cfg2.EnableSingleNodeDnsmasq = false
+		capi = NewManager(cfg2, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil)
+		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+		err := capi.GenerateAdditionalManifests(ctx, &c)
+		Expect(err).To(Not(HaveOccurred()))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+})
+
+var _ = Describe("Deregister inactive clusters", func() {
+	var (
+		ctrl          *gomock.Controller
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		c             common.Cluster
+		eventsHandler events.Handler
+		mockMetric    *metrics.MockAPI
+		dbName        = "deregister_inactive_clusters"
+	)
+
+	registerCluster := func() common.Cluster {
+		id := strfmt.UUID(uuid.New().String())
+		eventsHandler.AddEvent(ctx, id, &id, "", "", time.Now())
+		cl := common.Cluster{Cluster: models.Cluster{
+			ID:                 &id,
+			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
+		}}
+		Expect(db.Create(&cl).Error).ShouldNot(HaveOccurred())
+		return cl
+	}
+
+	wasDeregisterd := func(db *gorm.DB, clusterId strfmt.UUID) bool {
+		c, err := common.GetClusterFromDBWhere(db, common.UseEagerLoading, true, "id = ?", clusterId.String())
+		Expect(err).ShouldNot(HaveOccurred())
+		return c.DeletedAt != nil
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockMetric = metrics.NewMockAPI(ctrl)
+		mockOperators := operators.NewMockAPI(ctrl)
+		db = common.PrepareTestDB(dbName)
+		eventsHandler = events.New(db, logrus.New())
+		dummy := &leader.DummyElector{}
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil)
+		c = registerCluster()
+	})
+
+	It("Deregister inactive cluster", func() {
+		Expect(state.DeregisterInactiveCluster(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
+		Expect(wasDeregisterd(db, *c.ID)).To(BeTrue())
+	})
+
+	It("Do noting, active cluster", func() {
+		lastActive := strfmt.DateTime(time.Now().Add(-time.Hour))
+		Expect(state.DeregisterInactiveCluster(ctx, 10, lastActive)).ShouldNot(HaveOccurred())
+		Expect(wasDeregisterd(db, *c.ID)).To(BeFalse())
+	})
+
+	It("Deregister inactive cluster with new clusters", func() {
+		inactiveCluster1 := registerCluster()
+		inactiveCluster2 := registerCluster()
+		inactiveCluster3 := registerCluster()
+
+		lastActive := strfmt.DateTime(time.Now())
+
+		activeCluster1 := registerCluster()
+		activeCluster2 := registerCluster()
+		activeCluster3 := registerCluster()
+
+		Expect(state.DeregisterInactiveCluster(ctx, 10, lastActive)).ShouldNot(HaveOccurred())
+
+		Expect(wasDeregisterd(db, *inactiveCluster1.ID)).To(BeTrue())
+		Expect(wasDeregisterd(db, *inactiveCluster2.ID)).To(BeTrue())
+		Expect(wasDeregisterd(db, *inactiveCluster3.ID)).To(BeTrue())
+
+		Expect(wasDeregisterd(db, *activeCluster1.ID)).To(BeFalse())
+		Expect(wasDeregisterd(db, *activeCluster2.ID)).To(BeFalse())
+		Expect(wasDeregisterd(db, *activeCluster3.ID)).To(BeFalse())
+	})
+
+	It("Deregister inactive cluster limited", func() {
+		inactiveCluster1 := registerCluster()
+		inactiveCluster2 := registerCluster()
+		inactiveCluster3 := registerCluster()
+		inactiveCluster4 := registerCluster()
+		inactiveCluster5 := registerCluster()
+		inactiveCluster6 := registerCluster()
+
+		lastActive := strfmt.DateTime(time.Now())
+
+		Expect(state.DeregisterInactiveCluster(ctx, 3, lastActive)).ShouldNot(HaveOccurred())
+
+		Expect(wasDeregisterd(db, *inactiveCluster1.ID)).To(BeTrue())
+		Expect(wasDeregisterd(db, *inactiveCluster2.ID)).To(BeTrue())
+
+		Expect(wasDeregisterd(db, *inactiveCluster3.ID)).To(BeFalse())
+		Expect(wasDeregisterd(db, *inactiveCluster4.ID)).To(BeFalse())
+		Expect(wasDeregisterd(db, *inactiveCluster5.ID)).To(BeFalse())
+		Expect(wasDeregisterd(db, *inactiveCluster6.ID)).To(BeFalse())
 	})
 
 	AfterEach(func() {

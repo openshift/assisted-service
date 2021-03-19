@@ -31,7 +31,8 @@ import (
 var BootstrapStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
-	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageDone,
+	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
+	models.HostStageDone,
 }
 var MasterStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
@@ -41,7 +42,8 @@ var MasterStages = [...]models.HostStage{
 var WorkerStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageRebooting,
-	models.HostStageWaitingForIgnition, models.HostStageConfiguring, models.HostStageDone,
+	models.HostStageWaitingForIgnition, models.HostStageConfiguring,
+	models.HostStageJoined, models.HostStageDone,
 }
 
 var manualRebootStages = [...]models.HostStage{
@@ -126,7 +128,7 @@ type API interface {
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
-	PermanentHostsDeletion(olderThen strfmt.DateTime) error
+	PermanentHostsDeletion(olderThan strfmt.DateTime) error
 	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
 
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
@@ -951,10 +953,10 @@ func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	return m.hwValidator.GetHostValidDisks(host)
 }
 
-func (m Manager) PermanentHostsDeletion(olderThen strfmt.DateTime) error {
+func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {
 	var hosts []*models.Host
 	db := m.db.Unscoped()
-	if reply := db.Where("deleted_at < ?", olderThen).Delete(&hosts); reply.Error != nil {
+	if reply := db.Where("deleted_at < ?", olderThan).Delete(&hosts); reply.Error != nil {
 		return reply.Error
 	} else if reply.RowsAffected > 0 {
 		m.log.Debugf("Deleted %s hosts from db", reply.RowsAffected)

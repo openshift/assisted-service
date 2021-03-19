@@ -8,7 +8,9 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	models "github.com/openshift/assisted-service/models"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
+	io "io"
 	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
@@ -48,6 +50,22 @@ func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context,
 func (mr *MockInstallerInternalsMockRecorder) DeregisterClusterInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterClusterInternal), arg0, arg1)
+}
+
+// DownloadClusterKubeconfigInternal mocks base method
+func (m *MockInstallerInternals) DownloadClusterKubeconfigInternal(arg0 context.Context, arg1 installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadClusterKubeconfigInternal", arg0, arg1)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// DownloadClusterKubeconfigInternal indicates an expected call of DownloadClusterKubeconfigInternal
+func (mr *MockInstallerInternalsMockRecorder) DownloadClusterKubeconfigInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterKubeconfigInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DownloadClusterKubeconfigInternal), arg0, arg1)
 }
 
 // GenerateClusterISOInternal mocks base method
@@ -108,6 +126,21 @@ func (m *MockInstallerInternals) GetCommonHostInternal(arg0 context.Context, arg
 func (mr *MockInstallerInternalsMockRecorder) GetCommonHostInternal(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCommonHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetCommonHostInternal), arg0, arg1, arg2)
+}
+
+// GetCredentialsInternal mocks base method
+func (m *MockInstallerInternals) GetCredentialsInternal(arg0 context.Context, arg1 installer.GetCredentialsParams) (*models.Credentials, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCredentialsInternal", arg0, arg1)
+	ret0, _ := ret[0].(*models.Credentials)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCredentialsInternal indicates an expected call of GetCredentialsInternal
+func (mr *MockInstallerInternalsMockRecorder) GetCredentialsInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCredentialsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetCredentialsInternal), arg0, arg1)
 }
 
 // InstallClusterInternal mocks base method

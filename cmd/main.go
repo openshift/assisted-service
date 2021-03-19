@@ -27,9 +27,11 @@ import (
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/domains"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -89,6 +91,7 @@ var Options struct {
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           hostcommands.InstructionConfig
+	GCConfig                    garbagecollector.Config
 	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	S3Config                    s3wrapper.Config
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
@@ -104,13 +107,16 @@ var Options struct {
 	HostConfig                  host.Config
 	LogConfig                   logconfig.Config
 	LeaderConfig                leader.Config
-	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	InstallEnvConfig            controllers.InstallEnvConfig
 	ISOEditorConfig             isoeditor.Config
-	CheckClusterVersion         bool `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
+	CheckClusterVersion         bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
+	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
+	DeregisterWorkerInterval    time.Duration `envconfig:"DEREGISTER_WORKER_INTERVAL" default:"1h"`
+	EnableDeletedUnregisteredGC bool          `envconfig:"ENABLE_DELETE_UNREGISTER_GC" default:"true"`
+	EnableDeregisterInactiveGC  bool          `envconfig:"ENABLE_DEREGISTER_INACTIVE_GC" default:"true"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -223,7 +229,7 @@ func main() {
 	Options.JobConfig.S3EndpointURL = newUrl
 
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
-
+	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig)
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
 	var objectHandler s3wrapper.API = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
@@ -300,18 +306,35 @@ func main() {
 	} else {
 		crdUtils = controllers.NewDummyCRDUtils()
 	}
+	if Options.EnableDeregisterInactiveGC || Options.EnableDeletedUnregisteredGC {
+		gc := garbagecollector.NewGarbageCollectors(Options.GCConfig, db, log.WithField("pkg", "garbage_collector"), hostApi, clusterApi, objectHandler, lead)
+
+		if Options.EnableDeregisterInactiveGC {
+			deregisterWorker := thread.New(
+				log.WithField("garbagecollector", "Deregister Worker"),
+				"Deregister Worker",
+				Options.DeregisterWorkerInterval,
+				gc.DeregisterInactiveClusters)
+
+			deregisterWorker.Start()
+			defer deregisterWorker.Stop()
+		}
+
+		if Options.EnableDeletedUnregisteredGC {
+			deletionWorker := thread.New(
+				log.WithField("garbagecollector", "Deletion Worker"),
+				"Deletion Worker",
+				Options.DeletionWorkerInterval,
+				gc.PermanentlyDeleteUnregisteredClustersAndHosts)
+
+			deletionWorker.Start()
+			defer deletionWorker.Stop()
+		}
+	}
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
-		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, staticNetworkConfig)
-
-	deletionWorker := thread.New(
-		log.WithField("inventory", "Deletion Worker"),
-		"Deletion Worker",
-		Options.DeletionWorkerInterval,
-		bm.PermanentlyDeleteUnregisteredClustersAndHosts)
-	deletionWorker.Start()
-	defer deletionWorker.Stop()
+		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)

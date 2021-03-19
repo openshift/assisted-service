@@ -24,6 +24,7 @@ def handle_arguments():
     parser.add_argument("--img-expr-interval", default="")
     parser.add_argument("--check-cvo", default="False")
     parser.add_argument("--ipv6-support", default="False")
+    parser.add_argument("--enable-sno-dnsmasq", default="True")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -92,6 +93,8 @@ def main():
 
             y = yaml.safe_load(data)
             y['data'].update(versions)
+
+            y['data']['ENABLE_SINGLE_NODE_DNSMASQ'] = deploy_options.enable_sno_dnsmasq
 
             if deploy_options.installation_timeout:
                 y['data']['INSTALLATION_TIMEOUT'] = str(deploy_options.installation_timeout)

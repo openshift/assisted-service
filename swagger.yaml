@@ -2719,7 +2719,7 @@ paths:
       tags:
         - installer
       security:
-        - agentAuth: [admin, read-only-admin, user]
+        - userAuth: [admin, read-only-admin, user]
       description: Get host requirements of a cluster.
       operationId: GetClusterHostRequirements
       parameters:
@@ -3228,9 +3228,9 @@ definitions:
       cpu_cores:
         type: integer
         description: Required number of CPU cores
-      ram_gib:
+      ram_mib:
         type: integer
-        description: Required number of RAM in GiB
+        description: Required number of RAM in MiB
       disk_size_gb:
         type: integer
         description: Required disk size in GB
