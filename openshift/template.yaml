@@ -57,6 +57,9 @@ parameters:
 - name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
   value: ''
   required: true
+- name: HW_VALIDATOR_REQUIREMENTS
+  value: ''
+  required: true
 - name: INSTALLER_IMAGE
   value: ''
   required: true
@@ -268,6 +271,8 @@ objects:
                 value: ${HW_VALIDATOR_MIN_RAM_GIB}
               - name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
                 value: ${HW_VALIDATOR_MIN_DISK_SIZE_GIB}
+              - name: HW_VALIDATOR_REQUIREMENTS
+                value: ${HW_VALIDATOR_REQUIREMENTS}
               - name: INSTALLER_IMAGE
                 value: ${INSTALLER_IMAGE}
               - name: SELF_VERSION
