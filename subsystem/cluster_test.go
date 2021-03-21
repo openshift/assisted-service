@@ -3,6 +3,7 @@ package subsystem
 import (
 	"archive/tar"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,6 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/manifests"
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
@@ -2217,6 +2219,59 @@ var _ = Describe("cluster install", func() {
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
 						defaultWaitForHostStateTimeout)
 				}
+			})
+
+			It("reset cluster doesn't delete manifests", func() {
+				content := `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+  - 'loglevel=7'`
+				base64Content := base64.StdEncoding.EncodeToString([]byte(content))
+				manifest := models.Manifest{
+					FileName: "99-openshift-machineconfig-master-kargs.yaml",
+					Folder:   "openshift",
+				}
+				response, err := userBMClient.Manifests.CreateClusterManifest(ctx, &manifests.CreateClusterManifestParams{
+					ClusterID: clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &base64Content,
+						FileName: &manifest.FileName,
+						Folder:   &manifest.Folder,
+					},
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*response.Payload).Should(Equal(manifest))
+
+				c := installCluster(clusterID)
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+				Expect(len(c.Hosts)).Should(Equal(5))
+
+				updateProgress(*c.Hosts[0].ID, clusterID, "Installing")
+				updateProgress(*c.Hosts[1].ID, clusterID, "Done")
+
+				h1 := getHost(clusterID, *c.Hosts[0].ID)
+				Expect(*h1.Status).Should(Equal(models.HostStatusInstallingInProgress))
+				h2 := getHost(clusterID, *c.Hosts[1].ID)
+				Expect(*h2.Status).Should(Equal(models.HostStatusInstalled))
+
+				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+						defaultWaitForClusterStateTimeout)
+				}
+
+				// verify manifest remains after cluster reset
+				response2, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(response2.Payload).Should(ContainElement(&manifest))
 			})
 
 			AfterEach(func() {
