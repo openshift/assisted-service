@@ -3344,6 +3344,22 @@ var _ = Describe("Refresh Host", func() {
 	})
 })
 
+var _ = Describe("validationResult sort", func() {
+	It("validationResult sort", func() {
+		validationResults := []validationResult{
+			{ID: "cab", Status: "abc", Message: "abc"},
+			{ID: "bac", Status: "abc", Message: "abc"},
+			{ID: "acb", Status: "abc", Message: "abc"},
+			{ID: "abc", Status: "abc", Message: "abc"},
+		}
+		sortByValidationResultID(validationResults)
+		Expect(validationResults[0].ID.String()).Should(Equal("abc"))
+		Expect(validationResults[1].ID.String()).Should(Equal("acb"))
+		Expect(validationResults[2].ID.String()).Should(Equal("bac"))
+		Expect(validationResults[3].ID.String()).Should(Equal("cab"))
+	})
+})
+
 func formatProgressTimedOutInfo(stage models.HostStage) string {
 	timeFormat := InstallationProgressTimeout[stage].String()
 	statusInfo := statusInfoInstallationInProgressTimedOut
