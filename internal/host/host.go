@@ -139,6 +139,7 @@ type API interface {
 	UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
+	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -951,6 +952,31 @@ func (m *Manager) GetHostRequirements(role models.HostRole) models.HostRequireme
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	return m.hwValidator.GetHostValidDisks(host)
+}
+
+func (m *Manager) SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, m.log)
+	if db == nil {
+		db = m.db
+	}
+	disksInfo, err := common.SetDiskSpeed(path, speedMs, exitCode, h.DisksInfo)
+	if err != nil {
+		log.WithError(err).Errorf("Could not set disk response value in %s", h.DisksInfo)
+		return err
+	}
+	if disksInfo != h.DisksInfo {
+		resultDb := db.Model(h).UpdateColumn("disks_info", disksInfo)
+		if resultDb.Error != nil {
+			log.WithError(err).Errorf("Update disk info for host %s", h.ID.String())
+			return resultDb.Error
+		}
+		if resultDb.RowsAffected == 0 {
+			err = errors.Errorf("No row updated for disk info.  Host %s", h.ID.String())
+			log.WithError(err).Error("Disks info")
+			return err
+		}
+	}
+	return nil
 }
 
 func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {

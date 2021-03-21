@@ -375,6 +375,20 @@ func (mr *MockAPIMockRecorder) SetBootstrap(arg0, arg1, arg2, arg3 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetBootstrap", reflect.TypeOf((*MockAPI)(nil).SetBootstrap), arg0, arg1, arg2, arg3)
 }
 
+// SetDiskSpeed mocks base method
+func (m *MockAPI) SetDiskSpeed(arg0 context.Context, arg1 *models.Host, arg2 string, arg3, arg4 int64, arg5 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetDiskSpeed", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetDiskSpeed indicates an expected call of SetDiskSpeed
+func (mr *MockAPIMockRecorder) SetDiskSpeed(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetDiskSpeed", reflect.TypeOf((*MockAPI)(nil).SetDiskSpeed), arg0, arg1, arg2, arg3, arg4, arg5)
+}
+
 // SetUploadLogsAt mocks base method
 func (m *MockAPI) SetUploadLogsAt(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
 	m.ctrl.T.Helper()

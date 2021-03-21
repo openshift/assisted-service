@@ -1337,6 +1337,61 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 	})
+	Context("Disk speed", func() {
+		var (
+			clusterId *strfmt.UUID
+			hostId    *strfmt.UUID
+		)
+
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, path string, ioDuration, exitCode int64) installer.PostStepReplyParams {
+			response := models.DiskSpeedCheckResponse{
+				IoSyncDuration: ioDuration,
+				Path:           path,
+			}
+
+			b, err := json.Marshal(&response)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			return installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    hostID,
+				Reply: &models.StepReply{
+					ExitCode: exitCode,
+					Output:   string(b),
+					StepType: models.StepTypeInstallationDiskSpeedCheck,
+				},
+			}
+		}
+
+		BeforeEach(func() {
+			clusterId = strToUUID(uuid.New().String())
+			hostId = strToUUID(uuid.New().String())
+
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("discovering"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("Disk speed success", func() {
+			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+
+			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+
+		It("Disk speed failure", func() {
+			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, -1)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+	})
 })
 
 var _ = Describe("GetFreeAddresses", func() {
