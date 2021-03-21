@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/go-openapi/swag"
@@ -91,7 +92,17 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	for _, condition := range r.conditions {
 		stateMachineInput[condition.id.String()] = condition.fn(c)
 	}
+	for _, validationResults := range validationsOutput {
+		sortByValidationResultID(validationResults)
+	}
 	return stateMachineInput, validationsOutput, nil
+}
+
+// sortByValidationResultID sorts results by models.ClusterValidationID
+func sortByValidationResultID(validationResults []ValidationResult) {
+	sort.SliceStable(validationResults, func(i, j int) bool {
+		return validationResults[i].ID < validationResults[j].ID
+	})
 }
 
 func newValidations(log logrus.FieldLogger, api host.API) []validation {

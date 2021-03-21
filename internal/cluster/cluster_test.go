@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -2031,6 +2032,7 @@ var _ = Describe("ready_state", func() {
 
 			Expect(updateErr).Should(BeNil())
 			Expect(*clusterAfterRefresh.Status).Should(Equal(models.ClusterStatusReady))
+			Expect(checkValidationInfoIsSorted(clusterAfterRefresh.ValidationsInfo)).Should(BeTrue())
 		})
 
 		It("cluster is not satisfying the install requirements", func() {
@@ -2041,12 +2043,29 @@ var _ = Describe("ready_state", func() {
 
 			Expect(updateErr).Should(BeNil())
 			Expect(*clusterAfterRefresh.Status).Should(Equal(models.ClusterStatusInsufficient))
+			Expect(checkValidationInfoIsSorted(clusterAfterRefresh.ValidationsInfo)).Should(BeTrue())
 		})
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
+
+func checkValidationInfoIsSorted(validationInfo string) bool {
+	validationsOutput := make(map[string][]ValidationResult)
+	Expect(json.Unmarshal([]byte(validationInfo), &validationsOutput)).ToNot(HaveOccurred())
+
+	for _, v := range validationsOutput {
+		vRes := v
+		sortedByID := sort.SliceIsSorted(vRes, func(i, j int) bool {
+			return vRes[i].ID < vRes[j].ID
+		})
+		if !sortedByID {
+			return false
+		}
+	}
+	return true
+}
 
 var _ = Describe("insufficient_state", func() {
 	var (

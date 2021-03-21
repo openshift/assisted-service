@@ -1139,6 +1139,7 @@ type validationsChecker struct {
 func (j *validationsChecker) check(validationsStr string) {
 	validationRes := make(validationsStatus)
 	Expect(json.Unmarshal([]byte(validationsStr), &validationRes)).ToNot(HaveOccurred())
+	Expect(checkValidationInfoIsSorted(validationRes["operators"])).Should(BeTrue())
 next:
 	for id, checkedResult := range j.expected {
 		category, err := id.category()
@@ -1155,6 +1156,12 @@ next:
 		// Should not reach here
 		Expect(false).To(BeTrue())
 	}
+}
+
+func checkValidationInfoIsSorted(vRes validationResults) bool {
+	return sort.SliceIsSorted(vRes, func(i, j int) bool {
+		return vRes[i].ID < vRes[j].ID
+	})
 }
 
 type validationCheckResult struct {
@@ -3389,6 +3396,22 @@ var _ = Describe("Refresh Host", func() {
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+	})
+})
+
+var _ = Describe("validationResult sort", func() {
+	It("validationResult sort", func() {
+		validationResults := []validationResult{
+			{ID: "cab", Status: "abc", Message: "abc"},
+			{ID: "bac", Status: "abc", Message: "abc"},
+			{ID: "acb", Status: "abc", Message: "abc"},
+			{ID: "abc", Status: "abc", Message: "abc"},
+		}
+		sortByValidationResultID(validationResults)
+		Expect(validationResults[0].ID.String()).Should(Equal("abc"))
+		Expect(validationResults[1].ID.String()).Should(Equal("acb"))
+		Expect(validationResults[2].ID.String()).Should(Equal("bac"))
+		Expect(validationResults[3].ID.String()).Should(Equal("cab"))
 	})
 })
 
