@@ -5571,7 +5571,8 @@ func init() {
         },
         "file_name": {
           "description": "The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.",
-          "type": "string"
+          "type": "string",
+          "pattern": "^.*\\.(yaml|yml|json)$"
         },
         "folder": {
           "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
@@ -12891,7 +12892,8 @@ func init() {
         },
         "file_name": {
           "description": "The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.",
-          "type": "string"
+          "type": "string",
+          "pattern": "^.*\\.(yaml|yml|json)$"
         },
         "folder": {
           "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",

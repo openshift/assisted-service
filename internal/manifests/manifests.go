@@ -3,6 +3,7 @@ package manifests
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"path/filepath"
@@ -21,6 +22,7 @@ import (
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v2"
 )
 
 var _ restapi.ManifestsAPI = &Manifests{}
@@ -64,6 +66,19 @@ func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations
 		log.WithError(err).Errorf("Cluster manifest %s for cluster %s failed to base64 decode: [%s]",
 			fileName, cluster.ID, *params.CreateManifestParams.Content)
 		return common.GenerateErrorResponderWithDefault(errors.New("failed to base64-decode cluster manifest content"), http.StatusBadRequest)
+	}
+	extension := filepath.Ext(fileName)
+	if extension == ".yaml" || extension == ".yml" {
+		var s map[interface{}]interface{}
+		if yaml.Unmarshal(manifestContent, &s) != nil {
+			return common.GenerateErrorResponderWithDefault(errors.New("Manifest content has an invalid YAML format"), http.StatusBadRequest)
+		}
+	} else if extension == ".json" {
+		if !json.Valid(manifestContent) {
+			return common.GenerateErrorResponderWithDefault(errors.New("Manifest content has an illegal JSON format"), http.StatusBadRequest)
+		}
+	} else {
+		return common.GenerateErrorResponderWithDefault(errors.New("Unsupported manifest extension. Only json, yaml and yml extensions are supported"), http.StatusBadRequest)
 	}
 
 	objectName := GetManifestObjectName(*cluster.ID, fileName)

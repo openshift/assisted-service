@@ -4948,6 +4948,7 @@ definitions:
       file_name:
         description: The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.
         type: string
+        pattern: '^.*\.(yaml|yml|json)$'
       content:
         description: base64 encoded manifest content.
         type: string
