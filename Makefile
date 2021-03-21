@@ -60,7 +60,7 @@ PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
 GENERATE_CRD := $(or ${GENERATE_CRD},true)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
-IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, False)
+IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, True)
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 endif

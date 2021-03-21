@@ -93,7 +93,7 @@ type Config struct {
 	DefaultClusterNetworkHostPrefix int64             `envconfig:"CLUSTER_NETWORK_HOST_PREFIX" default:"23"`
 	DefaultServiceNetworkCidr       string            `envconfig:"SERVICE_NETWORK_CIDR" default:"172.30.0.0/16"`
 	ISOImageType                    string            `envconfig:"ISO_IMAGE_TYPE" default:"full-iso"`
-	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"false"`
+	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 }
 
 const minimalOpenShiftVersionForSingleNode = "4.8"
