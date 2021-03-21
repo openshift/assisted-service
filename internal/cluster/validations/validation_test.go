@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/route53/route53iface"
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
+	"github.com/go-openapi/swag"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -654,6 +655,95 @@ var _ = Describe("vip dhcp allocation", func() {
 				Expect(ValidateVipDHCPAllocationWithIPv6(t.vipDHCPAllocation, t.machineNetworkCIDR)).ToNot(HaveOccurred())
 			} else {
 				Expect(ValidateVipDHCPAllocationWithIPv6(t.vipDHCPAllocation, t.machineNetworkCIDR)).To(HaveOccurred())
+			}
+		})
+	}
+})
+
+var _ = Describe("IPv6 support", func() {
+	tests := []struct {
+		ipV6Supported bool
+		element       []*string
+		valid         bool
+	}{
+		{
+			ipV6Supported: true,
+			element:       []*string{swag.String("1001:db8::/120")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("1001:db8::/120")},
+			valid:         false,
+		},
+		{
+			ipV6Supported: true,
+			element:       []*string{swag.String("10.56.20.0/24")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("10.56.20.0/24")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: true,
+			element:       []*string{swag.String("1001:db8::1")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("1001:db8::1")},
+			valid:         false,
+		},
+		{
+			ipV6Supported: true,
+			element:       []*string{swag.String("10.56.20.70")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("10.56.20.70")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("")},
+			valid:         true,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{nil},
+			valid:         true,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{nil, swag.String("1001:db8::1")},
+			valid:         false,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
+			valid:         false,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("1001:db8::/64"), swag.String("10.56.20.0/24")},
+			valid:         false,
+		},
+		{
+			ipV6Supported: false,
+			element:       []*string{swag.String("10.56.20.70"), swag.String("10.56.20.0/24")},
+			valid:         true,
+		},
+	}
+	for _, t := range tests {
+		t := t
+		It(fmt.Sprintf("IPv6 support validation. Supported: %t, IP addresses/CIDRs: %v", t.ipV6Supported, t.element), func() {
+			if t.valid {
+				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).ToNot(HaveOccurred())
+			} else {
+				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).To(HaveOccurred())
 			}
 		})
 	}
