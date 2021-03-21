@@ -752,31 +752,6 @@ var _ = Describe("cluster install", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
-	updateVipParams := func(clusterID strfmt.UUID) {
-		apiVip := "1.2.3.5"
-		ingressVip := "1.2.3.6"
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(false),
-				APIVip:            &apiVip,
-				IngressVip:        &ingressVip,
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-	}
-
-	register3nodes := func(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
-		h1 := registerNode(ctx, clusterID, "h1")
-		generateFAPostStepReply(h1, validFreeAddresses)
-		h2 := registerNode(ctx, clusterID, "h2")
-		h3 := registerNode(ctx, clusterID, "h3")
-		updateVipParams(clusterID)
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
-
-		return []*models.Host{h1, h2, h3}
-	}
-
 	It("auto-assign", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID

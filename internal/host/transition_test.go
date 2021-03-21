@@ -2769,13 +2769,13 @@ var _ = Describe("Refresh Host", func() {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
 						gomock.Any(), gomock.Any())
 				}
-				Expect(getHost(clusterId, hostId).ValidationsInfo).To(Equal(""))
+				Expect(getHost(clusterId, hostId).ValidationsInfo).To(BeEmpty())
 				err = hapi.RefreshStatus(ctx, &host, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
 				} else {
 					Expect(err).ToNot(HaveOccurred())
-					Expect(getHost(clusterId, hostId).ValidationsInfo).ToNot(Equal(""))
+					Expect(getHost(clusterId, hostId).ValidationsInfo).ToNot(BeEmpty())
 				}
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())

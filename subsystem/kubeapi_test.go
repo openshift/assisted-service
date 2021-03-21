@@ -2,7 +2,6 @@ package subsystem
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -239,22 +238,6 @@ func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-}
-
-func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses models.FreeNetworksAddresses) {
-	fa, err := json.Marshal(&freeAddresses)
-	Expect(err).NotTo(HaveOccurred())
-	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
-		HostID:    *h.ID,
-		Reply: &models.StepReply{
-			ExitCode: 0,
-			Output:   string(fa),
-			StepID:   string(models.StepTypeFreeNetworkAddresses),
-			StepType: models.StepTypeFreeNetworkAddresses,
-		},
-	})
-	Expect(err).To(BeNil())
 }
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {

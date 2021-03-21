@@ -324,24 +324,6 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	}).Error
 }
 
-func (m *Manager) checkValidationChanged(ctx context.Context, h *models.Host, newValidationRes validationsStatus) (validationsStatus, bool, error) {
-	var currentValidationRes validationsStatus
-	if h.ValidationsInfo != "" {
-		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
-			return validationsStatus{}, false, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
-		}
-	}
-	return currentValidationRes, !reflect.DeepEqual(newValidationRes, currentValidationRes), nil
-}
-
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*models.Host, error) {
-	b, err := json.Marshal(newValidationRes)
-	if err != nil {
-		return nil, err
-	}
-	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
-}
-
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
@@ -354,11 +336,11 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	if err != nil {
 		return err
 	}
-	currentValidationRes, validationsChanged, err := m.checkValidationChanged(ctx, h, newValidationRes)
+	currentValidationRes, err := m.getValidations(ctx, h)
 	if err != nil {
 		return err
 	}
-	if validationsChanged {
+	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
 		// Validation status changes are detected when new validations are different from the
 		// current validations in the DB.
 		// For changes to be detected and reported correctly, the comparison needs to be
@@ -808,12 +790,14 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 
 func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {
 	log := logutil.FromContext(ctx, m.log)
+	if h.ValidationsInfo == "" {
+		log.Warnf("Host %s in cluster %s doesn't contain any validations info, cannot report metrics for that host", h.ID, h.ClusterID)
+		return nil
+	}
 	var validationRes validationsStatus
-	if h.ValidationsInfo != "" {
-		if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
-			log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
-			return err
-		}
+	if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+		return err
 	}
 	for _, vRes := range validationRes {
 		for _, v := range vRes {
@@ -827,24 +811,61 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
 	newValidationRes, currentValidationRes validationsStatus) {
-	for vCategory, vRes := range currentValidationRes {
-		for i, v := range vRes {
-			// after reboot there is no agent, therefore, the host validation for 'connected' will constantly fail.
-			// this is the expected behaviour and we don't need to generate event/metric for it.
-			if v.ID == IsConnected && funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
-				continue
-			}
-			if newValidationRes[vCategory][i].Status == ValidationFailure && v.Status == ValidationSuccess {
-				m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
-				eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-				m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
-			}
-			if newValidationRes[vCategory][i].Status == ValidationSuccess && v.Status == ValidationFailure {
-				eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
-				m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+	for vCategory, vRes := range newValidationRes {
+		for _, v := range vRes {
+			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
+				// after reboot there is no agent, therefore, the host validation for 'connected' will constantly fail.
+				// this is the expected behaviour and we don't need to generate event/metric for it.
+				if v.ID == IsConnected && funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
+					continue
+				}
+				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
+					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
+					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
+					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
+				}
+				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+					eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
+					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+				}
 			}
 		}
 	}
+}
+
+func (m *Manager) getValidationStatus(vs validationsStatus, category string, vID validationID) (ValidationStatus, bool) {
+	for _, v := range vs[category] {
+		if v.ID == vID {
+			return v.Status, true
+		}
+	}
+	return ValidationStatus(""), false
+}
+
+func (m *Manager) getValidations(ctx context.Context, h *models.Host) (validationsStatus, error) {
+	var currentValidationRes validationsStatus
+	if h.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
+			return validationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+		}
+	}
+	return currentValidationRes, nil
+}
+
+func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes validationsStatus) bool {
+	if len(newValidationRes) == 0 {
+		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
+		return false
+	}
+	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
+}
+
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*models.Host, error) {
+	b, err := json.Marshal(newValidationRes)
+	if err != nil {
+		return nil, err
+	}
+	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {

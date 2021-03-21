@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -400,16 +399,11 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		}
 
 		var (
-			b              []byte
 			err            error
 			updatedCluster *common.Cluster
 		)
-		b, err = json.Marshal(&params.validationResults)
-		if err != nil {
-			return err
-		}
 		updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
-			reason, "validations_info", string(b))
+			reason)
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed
 		cluster := sCluster.cluster
 		if updatedCluster != nil {
