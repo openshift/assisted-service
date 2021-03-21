@@ -75,7 +75,7 @@ def get_file_content(repo_url, revision, file_path):
 
 
 def get_manifest_from_url(tag):
-    manifest_file = get_file_content("https://api.github.com/repos/eranco74/assisted-installer-deployment", tag, "assisted-installer.yaml")
+    manifest_file = get_file_content("https://api.github.com/repos/openshift-assisted/assisted-installer-deployment", tag, "assisted-installer.yaml")
     return yaml.safe_load(manifest_file)
 
 
