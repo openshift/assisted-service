@@ -11,25 +11,26 @@ import (
 type validationID models.HostValidationID
 
 const (
-	IsConnected                 = validationID(models.HostValidationIDConnected)
-	HasInventory                = validationID(models.HostValidationIDHasInventory)
-	IsMachineCidrDefined        = validationID(models.HostValidationIDMachineCidrDefined)
-	BelongsToMachineCidr        = validationID(models.HostValidationIDBelongsToMachineCidr)
-	HasMinCPUCores              = validationID(models.HostValidationIDHasMinCPUCores)
-	HasMinValidDisks            = validationID(models.HostValidationIDHasMinValidDisks)
-	HasMinMemory                = validationID(models.HostValidationIDHasMinMemory)
-	HasCPUCoresForRole          = validationID(models.HostValidationIDHasCPUCoresForRole)
-	HasMemoryForRole            = validationID(models.HostValidationIDHasMemoryForRole)
-	IsHostnameUnique            = validationID(models.HostValidationIDHostnameUnique)
-	IsHostnameValid             = validationID(models.HostValidationIDHostnameValid)
-	IsAPIVipConnected           = validationID(models.HostValidationIDAPIVipConnected)
-	BelongsToMajorityGroup      = validationID(models.HostValidationIDBelongsToMajorityGroup)
-	IsPlatformValid             = validationID(models.HostValidationIDValidPlatform)
-	IsNTPSynced                 = validationID(models.HostValidationIDNtpSynced)
-	AreContainerImagesAvailable = validationID(models.HostValidationIDContainerImagesAvailable)
-	AreLsoRequirementsSatisfied = validationID(models.HostValidationIDLsoRequirementsSatisfied)
-	AreOcsRequirementsSatisfied = validationID(models.HostValidationIDOcsRequirementsSatisfied)
-	AreCnvRequirementsSatisfied = validationID(models.HostValidationIDCnvRequirementsSatisfied)
+	IsConnected                              = validationID(models.HostValidationIDConnected)
+	HasInventory                             = validationID(models.HostValidationIDHasInventory)
+	IsMachineCidrDefined                     = validationID(models.HostValidationIDMachineCidrDefined)
+	BelongsToMachineCidr                     = validationID(models.HostValidationIDBelongsToMachineCidr)
+	HasMinCPUCores                           = validationID(models.HostValidationIDHasMinCPUCores)
+	HasMinValidDisks                         = validationID(models.HostValidationIDHasMinValidDisks)
+	HasMinMemory                             = validationID(models.HostValidationIDHasMinMemory)
+	HasCPUCoresForRole                       = validationID(models.HostValidationIDHasCPUCoresForRole)
+	HasMemoryForRole                         = validationID(models.HostValidationIDHasMemoryForRole)
+	IsHostnameUnique                         = validationID(models.HostValidationIDHostnameUnique)
+	IsHostnameValid                          = validationID(models.HostValidationIDHostnameValid)
+	IsAPIVipConnected                        = validationID(models.HostValidationIDAPIVipConnected)
+	BelongsToMajorityGroup                   = validationID(models.HostValidationIDBelongsToMajorityGroup)
+	IsPlatformValid                          = validationID(models.HostValidationIDValidPlatform)
+	IsNTPSynced                              = validationID(models.HostValidationIDNtpSynced)
+	AreContainerImagesAvailable              = validationID(models.HostValidationIDContainerImagesAvailable)
+	AreLsoRequirementsSatisfied              = validationID(models.HostValidationIDLsoRequirementsSatisfied)
+	AreOcsRequirementsSatisfied              = validationID(models.HostValidationIDOcsRequirementsSatisfied)
+	AreCnvRequirementsSatisfied              = validationID(models.HostValidationIDCnvRequirementsSatisfied)
+	SufficientOrUnknownInstallationDiskSpeed = validationID(models.HostValidationIDSufficientOrUnknownInstallationDiskSpeed)
 )
 
 func (v validationID) category() (string, error) {
@@ -37,7 +38,7 @@ func (v validationID) category() (string, error) {
 	case IsConnected, IsMachineCidrDefined, BelongsToMachineCidr,
 		IsAPIVipConnected, BelongsToMajorityGroup, IsNTPSynced, AreContainerImagesAvailable:
 		return "network", nil
-	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory,
+	case HasInventory, HasMinCPUCores, HasMinValidDisks, HasMinMemory, SufficientOrUnknownInstallationDiskSpeed,
 		HasCPUCoresForRole, HasMemoryForRole, IsHostnameUnique, IsHostnameValid, IsPlatformValid:
 		return "hardware", nil
 	case AreLsoRequirementsSatisfied, AreOcsRequirementsSatisfied, AreCnvRequirementsSatisfied:

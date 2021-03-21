@@ -948,8 +948,8 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus
 	return false, nil
 }
 
-func (m *Manager) canBeMaster(conditions map[validationID]bool) bool {
-	if conditions[HasCPUCoresForRole] && conditions[HasMemoryForRole] {
+func (m *Manager) canBeMaster(conditions map[string]bool) bool {
+	if conditions[HasCPUCoresForRole.String()] && conditions[HasMemoryForRole.String()] {
 		return true
 	}
 	return false

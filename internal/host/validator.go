@@ -88,6 +88,18 @@ func (c *validationContext) loadInventory() error {
 	return nil
 }
 
+func (v *validator) getBootDeviceInfo(host *models.Host) (*models.DiskInfo, error) {
+	bootDevice, err := hardware.GetBootDevice(v.log, v.hwValidator, host)
+	if err != nil {
+		return nil, err
+	}
+	info, err := common.GetDiskInfo(host.DisksInfo, bootDevice)
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
+}
+
 func (c *validationContext) validateRole() error {
 	switch c.host.Role {
 	case models.HostRoleMaster, models.HostRoleWorker, models.HostRoleAutoAssign:
@@ -613,4 +625,37 @@ func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
 func isInvalidImageStatus(imageStatus *models.ContainerImageAvailability) bool {
 	return imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
 		(imageStatus.SizeBytes > 0 && imageStatus.DownloadRate < ImageStatusDownloadRateThreshold)
+}
+
+/*
+   This is a pre-install validation that checks that the boot device was either not tested for sufficient disk speed
+   or the disk speed check has been successful.  Since disk speed test is performed after installation has started,
+   in order to have result for such test, the result has to be from a previous installation attempt.
+   Since all pre-install validations have to pass before starting installation, it is mandatory that in case installation
+   on the current boot device has not been attempted yet, this validation must pass.
+*/
+func (v *validator) sufficientOrUnknownInstallationDiskSpeed(c *validationContext) ValidationStatus {
+	info, err := v.getBootDeviceInfo(c.host)
+	if err != nil {
+		return ValidationError
+	}
+
+	return boolValue(info == nil || info.DiskSpeed == nil || !info.DiskSpeed.Tested || info.DiskSpeed.ExitCode == 0)
+}
+
+func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		info, _ := v.getBootDeviceInfo(c.host)
+		if info == nil || info.DiskSpeed == nil || !info.DiskSpeed.Tested {
+			return "Speed of installation disk has not yet been measured"
+		}
+		return "Speed of installation disk is sufficient"
+	case ValidationFailure:
+		return "Insufficient disk speed or error occurred during disk speed measurement"
+	case ValidationError:
+		return "Error occured while getting boot device"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status.String())
+	}
 }

@@ -384,18 +384,18 @@ func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logru
 type TransitionArgsRefreshHost struct {
 	ctx               context.Context
 	eventHandler      events.Handler
-	conditions        map[validationID]bool
+	conditions        map[string]bool
 	validationResults validationsStatus
 	db                *gorm.DB
 }
 
-func If(id validationID) stateswitch.Condition {
+func If(id stringer) stateswitch.Condition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 		params, ok := args.(*TransitionArgsRefreshHost)
 		if !ok {
 			return false, errors.Errorf("If(%s) invalid argument", id.String())
 		}
-		b, ok := params.conditions[id]
+		b, ok := params.conditions[id.String()]
 		if !ok {
 			return false, errors.Errorf("If(%s) no such condition", id.String())
 		}

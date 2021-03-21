@@ -196,5 +196,21 @@ func newConditions() []condition {
 			id: VipDhcpAllocationSet,
 			fn: isVipDhcpAllocationSet,
 		},
+		{
+			id: AllHostsPreparedSuccessfully,
+			fn: areAllHostsPreparedSuccessfully,
+		},
+		{
+			id: InsufficientHostExists,
+			fn: isInsufficientHostExists,
+		},
+		{
+			id: ClusterPreparationSucceeded,
+			fn: isClusterPreparationSucceeded,
+		},
+		{
+			id: ClusterPreparationFailed,
+			fn: isClusterPreparationFailed,
+		},
 	}
 }

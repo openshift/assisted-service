@@ -6442,7 +6442,7 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed",
+        "sufficient-or-unknown-installation-disk-speed",
         "cnv-requirements-satisfied"
       ]
     },
@@ -13838,7 +13838,7 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed",
+        "sufficient-or-unknown-installation-disk-speed",
         "cnv-requirements-satisfied"
       ]
     },
