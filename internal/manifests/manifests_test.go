@@ -216,7 +216,7 @@ var _ = Describe("ClusterManifestTests", func() {
 			Expect(err.Error()).To(ContainSubstring("failed to base64-decode cluster manifest content"))
 		})
 
-		Context("File extension and format", func() {
+		Context("File validation and format", func() {
 			It("accepts manifest in json format and .json extension", func() {
 				clusterID := registerCluster().ID
 				jsonContent := encodeToBase64(contentAsJSON)
@@ -362,6 +362,22 @@ spec:
 				err := response.(*common.ApiErrorResponse)
 				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 				Expect(err.Error()).To(ContainSubstring("Unsupported manifest extension"))
+			})
+
+			It("fails for filename that contains folder in the name", func() {
+				clusterID := registerCluster().ID
+				fileNameWithFolder := "openshift/99-test.yaml"
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileNameWithFolder,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("should not include a directory in its name"))
 			})
 		})
 	})
