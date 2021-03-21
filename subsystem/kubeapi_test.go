@@ -299,10 +299,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				Namespace: Options.Namespace,
 				Name:      host.ID.String(),
 			}
-			agent := getAgentCRD(ctx, kubeClient, hostkey)
-			agent.Spec.Approved = true
-			err := kubeClient.Update(ctx, agent)
-			Expect(err).To(BeNil())
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
 		}
 		Eventually(func() string {
 			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, key).Status.Conditions, hivev1.UnreachableCondition)
@@ -328,19 +329,20 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
-		agent := getAgentCRD(ctx, kubeClient, key)
-		agent.Spec.Hostname = "newhostname"
-		agent.Spec.Approved = true
-		agent.Spec.InstallationDiskPath = installDisk
-		err := kubeClient.Update(ctx, agent)
-		Expect(err).To(BeNil())
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Hostname = "newhostname"
+			agent.Spec.Approved = true
+			agent.Spec.InstallationDiskPath = installDisk
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
 		Eventually(func() string {
 			return getHost(*cluster.ID, *host.ID).RequestedHostname
 		}, "2m", "10s").Should(Equal("newhostname"))
 		Eventually(func() string {
 			return getHost(*cluster.ID, *host.ID).InstallationDiskPath
 		}, "2m", "10s").Should(Equal(installDisk))
-
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
