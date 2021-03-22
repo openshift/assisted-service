@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -60,6 +61,10 @@ func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations
 		return common.GenerateErrorResponder(apierr)
 	}
 
+	if strings.ContainsRune(*params.CreateManifestParams.FileName, os.PathSeparator) {
+		log.Errorf("Cluster manifest %s for cluster %s should not include a directory in its name.", *params.CreateManifestParams.FileName, cluster.ID)
+		return common.GenerateErrorResponderWithDefault(errors.New("Manifest should not include a directory in its name"), http.StatusBadRequest)
+	}
 	fileName := filepath.Join(*params.CreateManifestParams.Folder, *params.CreateManifestParams.FileName)
 	manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
 	if err != nil {
