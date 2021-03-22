@@ -50,12 +50,12 @@ type API interface {
 	GetSupportedOperators() []string
 	// GetOperatorProperties provides description of properties of an operator
 	GetOperatorProperties(operatorName string) (models.OperatorProperties, error)
-	// GetRequirementsBreakdownForRole provides host requirements breakdown for each OLM operator
-	GetRequirementsBreakdownForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) ([]*models.OperatorHostRequirements, error)
+	// GetRequirementsBreakdownForRoleInCluster provides host requirements breakdown for each OLM operator in the cluster
+	GetRequirementsBreakdownForRoleInCluster(ctx context.Context, cluster *common.Cluster, role models.HostRole) ([]*models.OperatorHostRequirements, error)
 }
 
-// GetRequirementsBreakdownForRole provides host requirements breakdown for each OLM operator
-func (mgr *Manager) GetRequirementsBreakdownForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) ([]*models.OperatorHostRequirements, error) {
+// GetRequirementsBreakdownForRoleInCluster provides host requirements breakdown for each OLM operator in the cluster
+func (mgr *Manager) GetRequirementsBreakdownForRoleInCluster(ctx context.Context, cluster *common.Cluster, role models.HostRole) ([]*models.OperatorHostRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHostRequirements
 	for _, monitoredOperator := range cluster.MonitoredOperators {

@@ -159,7 +159,7 @@ func (o *operator) GetHostRequirementsForRole(_ context.Context, _ *common.Clust
 			CPUCores: masterCPU,
 			RAMMib:   masterMemory,
 		}, nil
-	case models.HostRoleWorker:
+	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		return &models.ClusterHostRequirementsDetails{
 			CPUCores: workerCPU,
 			RAMMib:   workerMemory,

@@ -271,7 +271,7 @@ var _ = Describe("Operators manager", func() {
 			requirements2 := models.ClusterHostRequirementsDetails{CPUCores: 2}
 			operator2.EXPECT().GetHostRequirementsForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(&requirements2, nil)
 
-			reqBreakdown, err := manager.GetRequirementsBreakdownForRole(context.TODO(), cluster, role)
+			reqBreakdown, err := manager.GetRequirementsBreakdownForRoleInCluster(context.TODO(), cluster, role)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reqBreakdown).To(HaveLen(2))
@@ -290,7 +290,7 @@ var _ = Describe("Operators manager", func() {
 			theError := errors.New("boom")
 			operator2.EXPECT().GetHostRequirementsForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(nil, theError)
 
-			_, err := manager.GetRequirementsBreakdownForRole(context.TODO(), cluster, role)
+			_, err := manager.GetRequirementsBreakdownForRoleInCluster(context.TODO(), cluster, role)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(BeEquivalentTo(theError))

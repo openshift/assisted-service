@@ -197,8 +197,17 @@ var _ = Describe("Cluster host requirements", func() {
 	)
 
 	BeforeEach(func() {
+		operatorName1 := "op-one"
+		operatorName2 := "op-two"
+
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+		cluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &clusterID,
+			MonitoredOperators: []*models.MonitoredOperator{
+				{Name: operatorName1, ClusterID: clusterID},
+				{Name: operatorName2, ClusterID: clusterID},
+			},
+		}}
 
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 
@@ -214,9 +223,10 @@ var _ = Describe("Cluster host requirements", func() {
 			CPUCores:                         2,
 			DiskSizeGb:                       5,
 		}
+
 		operatorRequirements = []*models.OperatorHostRequirements{
-			{OperatorName: "op-one", Requirements: &details1},
-			{OperatorName: "op-two", Requirements: &details2},
+			{OperatorName: operatorName1, Requirements: &details1},
+			{OperatorName: operatorName2, Requirements: &details2},
 		}
 
 		ctrl = gomock.NewController(GinkgoT())
@@ -234,7 +244,7 @@ var _ = Describe("Cluster host requirements", func() {
 		id1 := strfmt.UUID(uuid.New().String())
 		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
 
-		operatorsMock.EXPECT().GetRequirementsBreakdownForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
+		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
 
 		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
 
@@ -259,7 +269,7 @@ var _ = Describe("Cluster host requirements", func() {
 		id1 := strfmt.UUID(uuid.New().String())
 		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
 
-		operatorsMock.EXPECT().GetRequirementsBreakdownForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
+		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
 
 		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
 
@@ -285,7 +295,7 @@ var _ = Describe("Cluster host requirements", func() {
 		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
 
 		failure := errors.New("boom")
-		operatorsMock.EXPECT().GetRequirementsBreakdownForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(nil, failure)
+		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(nil, failure)
 
 		_, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
 

@@ -108,19 +108,19 @@ func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorProperties", reflect.TypeOf((*MockAPI)(nil).GetOperatorProperties), arg0)
 }
 
-// GetRequirementsBreakdownForRole mocks base method
-func (m *MockAPI) GetRequirementsBreakdownForRole(arg0 context.Context, arg1 *common.Cluster, arg2 models.HostRole) ([]*models.OperatorHostRequirements, error) {
+// GetRequirementsBreakdownForRoleInCluster mocks base method
+func (m *MockAPI) GetRequirementsBreakdownForRoleInCluster(arg0 context.Context, arg1 *common.Cluster, arg2 models.HostRole) ([]*models.OperatorHostRequirements, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetRequirementsBreakdownForRole", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetRequirementsBreakdownForRoleInCluster", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]*models.OperatorHostRequirements)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetRequirementsBreakdownForRole indicates an expected call of GetRequirementsBreakdownForRole
-func (mr *MockAPIMockRecorder) GetRequirementsBreakdownForRole(arg0, arg1, arg2 interface{}) *gomock.Call {
+// GetRequirementsBreakdownForRoleInCluster indicates an expected call of GetRequirementsBreakdownForRoleInCluster
+func (mr *MockAPIMockRecorder) GetRequirementsBreakdownForRoleInCluster(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequirementsBreakdownForRole", reflect.TypeOf((*MockAPI)(nil).GetRequirementsBreakdownForRole), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequirementsBreakdownForRoleInCluster", reflect.TypeOf((*MockAPI)(nil).GetRequirementsBreakdownForRoleInCluster), arg0, arg1, arg2)
 }
 
 // GetSupportedOperators mocks base method

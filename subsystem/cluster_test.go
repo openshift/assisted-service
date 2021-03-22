@@ -61,9 +61,10 @@ const (
 )
 
 const (
-	validDiskSize     = int64(128849018880)
-	minSuccessesInRow = 2
-	minHosts          = 3
+	validDiskSize      = int64(128849018880)
+	minSuccessesInRow  = 2
+	minHosts           = 3
+	minHostsWithWorker = 5
 )
 
 var (
@@ -2788,8 +2789,6 @@ var _ = Describe("Cluster Host Requirements", func() {
 		ctx                   context.Context
 		cluster               *models.Cluster
 		clusterID             strfmt.UUID
-		clusterCIDR           = "10.128.0.0/14"
-		serviceCIDR           = "172.30.0.0/16"
 		masterOCPRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores:   4,
 			DiskSizeGb: 120,
@@ -2822,23 +2821,10 @@ var _ = Describe("Cluster Host Requirements", func() {
 
 	BeforeEach(func() {
 		ctx = context.Background()
-		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
-			NewClusterParams: &models.ClusterCreateParams{
-				BaseDNSDomain:            "example.com",
-				ClusterNetworkCidr:       &clusterCIDR,
-				ClusterNetworkHostPrefix: 23,
-				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
-				PullSecret:               swag.String(pullSecret),
-				ServiceNetworkCidr:       &serviceCIDR,
-				SSHPublicKey:             sshPublicKey,
-			},
-		})
+		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 		Expect(err).ToNot(HaveOccurred())
-		cluster = registerClusterReply.GetPayload()
-		clusterID = *cluster.ID
-
-		registerHostsAndSetRoles(clusterID, 5)
+		clusterID = cID
+		registerHostsAndSetRoles(clusterID, minHostsWithWorker)
 
 		clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
 			ClusterID: clusterID,
@@ -2852,22 +2838,16 @@ var _ = Describe("Cluster Host Requirements", func() {
 	})
 
 	It("should be reported for cluster without operators", func() {
-		params := installer.GetClusterHostRequirementsParams{
-			ClusterID: clusterID,
-		}
+		hosts := cluster.Hosts
+		params := installer.GetClusterHostRequirementsParams{ClusterID: clusterID}
 
 		response, err := userBMClient.Installer.GetClusterHostRequirements(ctx, &params)
 
 		Expect(err).ToNot(HaveOccurred())
 		requirements := response.GetPayload()
-		hosts := cluster.Hosts
 		Expect(requirements).To(HaveLen(len(hosts)))
 
-		hostIDToRequirements := make(map[strfmt.UUID]*models.ClusterHostRequirements)
-		for _, rq := range requirements {
-			hostIDToRequirements[rq.HostID] = rq
-		}
-
+		hostIDToRequirements := mapHostsToRequirements(requirements)
 		for _, host := range hosts {
 			hostRequirements := hostIDToRequirements[*host.ID]
 			expectedRequirements := workerOCPRequirements
@@ -2883,39 +2863,19 @@ var _ = Describe("Cluster Host Requirements", func() {
 	})
 
 	It("should be reported for cluster with operators", func() {
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				OlmOperators: []*models.OperatorCreateParams{
-					{Name: lso.Operator.Name},
-					{Name: ocs.Operator.Name},
-					{Name: cnv.Operator.Name},
-				},
-			},
-			ClusterID: clusterID,
-		})
+		cluster, err := updateOLMOperators(ctx, clusterID, lso.Operator.Name, cnv.Operator.Name, ocs.Operator.Name)
 		Expect(err).ToNot(HaveOccurred())
-
-		clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
-			ClusterID: clusterID,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		cluster = clusterResp.GetPayload()
 		hosts := cluster.Hosts
 
-		params := installer.GetClusterHostRequirementsParams{
-			ClusterID: clusterID,
-		}
+		params := installer.GetClusterHostRequirementsParams{ClusterID: clusterID}
+
 		response, err := userBMClient.Installer.GetClusterHostRequirements(ctx, &params)
 
 		Expect(err).ToNot(HaveOccurred())
 		requirements := response.GetPayload()
 		Expect(requirements).To(HaveLen(len(hosts)))
 
-		hostIDToRequirements := make(map[strfmt.UUID]*models.ClusterHostRequirements)
-		for _, rq := range requirements {
-			hostIDToRequirements[rq.HostID] = rq
-		}
-
+		hostIDToRequirements := mapHostsToRequirements(requirements)
 		for _, host := range hosts {
 			hostRequirements := hostIDToRequirements[*host.ID]
 
@@ -2951,6 +2911,34 @@ var _ = Describe("Cluster Host Requirements", func() {
 		}
 	})
 })
+
+func updateOLMOperators(ctx context.Context, clusterID strfmt.UUID, olmOperators ...string) (*models.Cluster, error) {
+	var operatorCreateParams []*models.OperatorCreateParams
+	for _, operatorName := range olmOperators {
+		operatorCreateParams = append(operatorCreateParams, &models.OperatorCreateParams{Name: operatorName})
+	}
+	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		ClusterID:           clusterID,
+		ClusterUpdateParams: &models.ClusterUpdateParams{OlmOperators: operatorCreateParams},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	if err != nil {
+		return nil, err
+	}
+	return clusterResp.GetPayload(), nil
+}
+
+func mapHostsToRequirements(requirements models.ClusterHostRequirementsList) map[strfmt.UUID]*models.ClusterHostRequirements {
+	hostIDToRequirements := make(map[strfmt.UUID]*models.ClusterHostRequirements)
+	for _, rq := range requirements {
+		hostIDToRequirements[rq.HostID] = rq
+	}
+	return hostIDToRequirements
+}
 
 func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Host {
 	ctx := context.Background()

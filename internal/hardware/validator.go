@@ -132,7 +132,7 @@ func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequire
 }
 
 func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
-	operatorsRequirements, err := v.operatorsAPI.GetRequirementsBreakdownForRole(ctx, cluster, host.Role)
+	operatorsRequirements, err := v.operatorsAPI.GetRequirementsBreakdownForRoleInCluster(ctx, cluster, host.Role)
 	if err != nil {
 		return nil, err
 	}
