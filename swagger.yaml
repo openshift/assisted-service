@@ -4231,6 +4231,15 @@ definitions:
         type: string
       successful:
         type: boolean
+      average_rtt_ms:
+        type: number
+        format: double
+        description: Average round trip time in milliseconds.
+        x-go-name: "AverageRTTMs"
+      packet_loss_percentage:
+        type: number
+        format: double
+        description: Percentage of packets lost during connectivity check.
 
   connectivity-remote-host:
     type: object

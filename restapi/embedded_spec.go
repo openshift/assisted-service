@@ -6728,8 +6728,19 @@ func init() {
     "l3-connectivity": {
       "type": "object",
       "properties": {
+        "average_rtt_ms": {
+          "description": "Average round trip time in milliseconds.",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "AverageRTTMs"
+        },
         "outgoing_nic": {
           "type": "string"
+        },
+        "packet_loss_percentage": {
+          "description": "Percentage of packets lost during connectivity check.",
+          "type": "number",
+          "format": "double"
         },
         "remote_ip_address": {
           "type": "string"
@@ -14112,8 +14123,19 @@ func init() {
     "l3-connectivity": {
       "type": "object",
       "properties": {
+        "average_rtt_ms": {
+          "description": "Average round trip time in milliseconds.",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "AverageRTTMs"
+        },
         "outgoing_nic": {
           "type": "string"
+        },
+        "packet_loss_percentage": {
+          "description": "Percentage of packets lost during connectivity check.",
+          "type": "number",
+          "format": "double"
         },
         "remote_ip_address": {
           "type": "string"
