@@ -294,7 +294,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				return condition.Message
 			}
 			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusPreparingForInstallation))
+		}, "2m", "2s").Should(Equal(models.ClusterStatusInstalling))
 	})
 
 	It("deploy clusterDeployment with agent and update agent", func() {
@@ -531,7 +531,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Verify Cluster Metadata")
 		Eventually(func() bool {
 			return getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.Installed
-		}, "1m", "2s").Should(BeTrue())
+		}, "2m", "2s").Should(BeTrue())
 		passwordSecretRef := getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.ClusterMetadata.AdminPasswordSecretRef
 		Expect(passwordSecretRef).NotTo(BeNil())
 		passwordkey := types.NamespacedName{
