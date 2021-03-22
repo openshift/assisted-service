@@ -91,6 +91,7 @@ var Options struct {
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           hostcommands.InstructionConfig
+	OperatorsConfig             operators.Options
 	GCConfig                    garbagecollector.Config
 	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	S3Config                    s3wrapper.Config
@@ -188,6 +189,8 @@ func main() {
 	ocmClient := getOCMClient(log, metricsManager)
 
 	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
+	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
+	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.JobConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 
 	var lead leader.ElectorInterface
@@ -277,7 +280,7 @@ func main() {
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
-	operatorsManager := operators.NewManager(log, manifestsApi, operators.Options{})
+	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
