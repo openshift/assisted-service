@@ -1710,9 +1710,16 @@ func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *com
 			updates["pull_secret_set"] = false
 		}
 	}
-	if params.ClusterUpdateParams.APIVipDNSName != nil && swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
-		log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
-		updates["api_vip_dns_name"] = *params.ClusterUpdateParams.APIVipDNSName
+
+	if params.ClusterUpdateParams.APIVipDNSName != nil {
+		if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+			log.Infof("Updating api vip to %s for day2 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
+			updates["api_vip_dns_name"] = *params.ClusterUpdateParams.APIVipDNSName
+		} else {
+			msg := fmt.Sprintf("Can't update api vip to %s for day1 cluster %s", *params.ClusterUpdateParams.APIVipDNSName, cluster.ID)
+			log.Error(msg)
+			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
+		}
 	}
 
 	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
