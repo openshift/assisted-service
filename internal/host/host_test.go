@@ -1831,82 +1831,6 @@ var _ = Describe("UpdateImageStatus", func() {
 	})
 })
 
-var _ = Describe("PrepareForInstallation", func() {
-	var (
-		ctx               = context.Background()
-		hapi              API
-		db                *gorm.DB
-		ctrl              *gomock.Controller
-		mockEvents        *events.MockHandler
-		hostId, clusterId strfmt.UUID
-		host              models.Host
-		dbName            string
-	)
-
-	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		ctrl = gomock.NewController(GinkgoT())
-		mockEvents = events.NewMockHandler(ctrl)
-		dummy := &leader.DummyElector{}
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil)
-		hostId = strfmt.UUID(uuid.New().String())
-		clusterId = strfmt.UUID(uuid.New().String())
-	})
-
-	It("success", func() {
-		host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusKnown)
-		host.LogsCollectedAt = strfmt.DateTime(time.Now())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo,
-			fmt.Sprintf("Host %s: updated status from \"known\" to \"preparing-for-installation\" (Host is preparing for installation)", host.ID.String()),
-			gomock.Any())
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		Expect(hapi.PrepareForInstallation(ctx, &host, db)).NotTo(HaveOccurred())
-		h := hostutil.GetHostFromDB(hostId, clusterId, db)
-		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusPreparingForInstallation))
-		Expect(swag.StringValue(h.StatusInfo)).To(Equal(statusInfoPreparingForInstallation))
-		Expect(h.LogsCollectedAt).To(Equal(strfmt.DateTime(time.Time{})))
-	})
-
-	It("failure - no role set", func() {
-		host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusKnown)
-		host.Role = ""
-		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		Expect(hapi.PrepareForInstallation(ctx, &host, db)).To(HaveOccurred())
-		h := hostutil.GetHostFromDB(hostId, clusterId, db)
-		Expect(swag.StringValue(h.Status)).To(Equal(models.HostStatusKnown))
-	})
-
-	Context("forbidden", func() {
-
-		forbiddenStates := []string{
-			models.HostStatusDisabled,
-			models.HostStatusDisconnected,
-			models.HostStatusError,
-			models.HostStatusInstalling,
-			models.HostStatusInstallingInProgress,
-			models.HostStatusDiscovering,
-			models.HostStatusPreparingForInstallation,
-			models.HostStatusResetting,
-		}
-
-		for _, state := range forbiddenStates {
-			state := state
-			It(fmt.Sprintf("forbidden state %s", state), func() {
-				host = hostutil.GenerateTestHost(hostId, clusterId, state)
-				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				Expect(hapi.PrepareForInstallation(ctx, &host, db)).To(HaveOccurred())
-				h := hostutil.GetHostFromDB(hostId, clusterId, db)
-				Expect(swag.StringValue(h.Status)).To(Equal(state))
-			})
-		}
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-})
-
 var _ = Describe("AutoAssignRole", func() {
 	var (
 		ctx             = context.Background()
@@ -1962,7 +1886,7 @@ var _ = Describe("AutoAssignRole", func() {
 			}
 			return &models.ClusterHostRequirements{Total: &details}, nil
 		})
-
+		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
 	})
 
 	AfterEach(func() {

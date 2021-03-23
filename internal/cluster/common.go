@@ -35,6 +35,8 @@ const (
 	statusInfoError                           = "cluster has hosts in error"
 	statusInfoAddingHosts                     = "cluster is adding hosts to existing OCP cluster"
 	statusInfoInstallingPendingUserAction     = "Cluster has hosts with wrong boot order"
+	statusInfoUnpreparingHostExists           = "At least one host has stopped preparing for installation"
+	statusInfoClusterFailedToPrepare          = "Cluster failed to prepare for installation"
 )
 
 func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,

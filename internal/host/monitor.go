@@ -37,6 +37,7 @@ func (m *Manager) HostMonitoring() {
 		models.HostStatusInsufficient,
 		models.HostStatusPendingForInput,
 		models.HostStatusPreparingForInstallation,
+		models.HostStatusPreparingSuccessful,
 		models.HostStatusInstalling,
 		models.HostStatusInstallingInProgress,
 		models.HostStatusInstalled,

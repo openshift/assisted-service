@@ -34,10 +34,15 @@ type refreshPreprocessor struct {
 }
 
 func newRefreshPreprocessor(log logrus.FieldLogger, hostAPI host.API, operatorsAPI operators.API) *refreshPreprocessor {
+	v := clusterValidator{
+		log:     log,
+		hostAPI: hostAPI,
+	}
+
 	return &refreshPreprocessor{
 		log:          log,
-		validations:  newValidations(log, hostAPI),
-		conditions:   newConditions(),
+		validations:  newValidations(&v),
+		conditions:   newConditions(&v),
 		operatorsAPI: operatorsAPI,
 	}
 }
@@ -46,7 +51,7 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	stateMachineInput := make(map[string]bool)
 	validationsOutput := make(map[string][]ValidationResult)
 	checkValidationsInStatuses := []string{
-		models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput,
+		models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusPreparingForInstallation,
 	}
 	//if the cluster is not on discovery stages - skip the validations check
 	if !funk.ContainsString(checkValidationsInStatuses, swag.StringValue(c.cluster.Status)) {
@@ -105,11 +110,7 @@ func sortByValidationResultID(validationResults []ValidationResult) {
 	})
 }
 
-func newValidations(log logrus.FieldLogger, api host.API) []validation {
-	v := clusterValidator{
-		log:     log,
-		hostAPI: api,
-	}
+func newValidations(v *clusterValidator) []validation {
 	ret := []validation{
 		{
 			id:        IsMachineCidrDefined,
@@ -190,27 +191,27 @@ func newValidations(log logrus.FieldLogger, api host.API) []validation {
 	return ret
 }
 
-func newConditions() []condition {
+func newConditions(v *clusterValidator) []condition {
 	return []condition{
 		{
 			id: VipDhcpAllocationSet,
-			fn: isVipDhcpAllocationSet,
+			fn: v.isVipDhcpAllocationSet,
 		},
 		{
 			id: AllHostsPreparedSuccessfully,
-			fn: areAllHostsPreparedSuccessfully,
+			fn: v.areAllHostsPreparedSuccessfully,
 		},
 		{
-			id: InsufficientHostExists,
-			fn: isInsufficientHostExists,
+			id: UnPreparingtHostsExist,
+			fn: v.isUnPreparingHostsExist,
 		},
 		{
 			id: ClusterPreparationSucceeded,
-			fn: isClusterPreparationSucceeded,
+			fn: v.isClusterPreparationSucceeded,
 		},
 		{
 			id: ClusterPreparationFailed,
-			fn: isClusterPreparationFailed,
+			fn: v.isClusterPreparationFailed,
 		},
 	}
 }

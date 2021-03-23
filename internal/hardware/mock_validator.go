@@ -120,3 +120,17 @@ func (mr *MockValidatorMockRecorder) ListEligibleDisks(inventory interface{}) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEligibleDisks", reflect.TypeOf((*MockValidator)(nil).ListEligibleDisks), inventory)
 }
+
+// GetInstallationDiskSpeedThresholdMs mocks base method
+func (m *MockValidator) GetInstallationDiskSpeedThresholdMs() int64 {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInstallationDiskSpeedThresholdMs")
+	ret0, _ := ret[0].(int64)
+	return ret0
+}
+
+// GetInstallationDiskSpeedThresholdMs indicates an expected call of GetInstallationDiskSpeedThresholdMs
+func (mr *MockValidatorMockRecorder) GetInstallationDiskSpeedThresholdMs() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationDiskSpeedThresholdMs", reflect.TypeOf((*MockValidator)(nil).GetInstallationDiskSpeedThresholdMs))
+}

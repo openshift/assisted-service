@@ -14,7 +14,6 @@ const (
 	TransitionTypeDisableHost                = "DisableHost"
 	TransitionTypeEnableHost                 = "EnableHost"
 	TransitionTypeResettingPendingUserAction = "ResettingPendingUserAction"
-	TransitionTypePrepareForInstallation     = "Prepare for installation"
 	TransitionTypeRefresh                    = "RefreshHost"
 	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
 )
@@ -32,6 +31,8 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusDisconnected),
 			stateswitch.State(models.HostStatusInsufficient),
 			stateswitch.State(models.HostStatusResettingPendingUserAction),
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
 		DestinationState: stateswitch.State(models.HostStatusDiscovering),
 		PostTransition:   th.PostRegisterHost,
@@ -83,7 +84,6 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRegisterHost,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 		},
@@ -137,13 +137,22 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		TransitionType: TransitionTypeCancelInstallation,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingPendingUserAction),
-			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
 		},
 		DestinationState: stateswitch.State(models.HostStatusCancelled),
+		PostTransition:   th.PostCancelInstallation,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeCancelInstallation,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+		},
+		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostCancelInstallation,
 	})
 
@@ -162,7 +171,6 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingPendingUserAction),
 			stateswitch.State(models.HostStatusInstalling),
-			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
@@ -173,15 +181,17 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostResetHost,
 	})
 
-	// Install host
 	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeInstallHost,
+		TransitionType: TransitionTypeResetHost,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
-		DestinationState: stateswitch.State(models.HostStatusInstalling),
-		PostTransition:   th.PostInstallHost,
+		DestinationState: stateswitch.State(models.HostStatusKnown),
+		PostTransition:   th.PostResetHost,
 	})
+
+	// Install host
 
 	// Install disabled host will not do anything
 	sm.AddTransition(stateswitch.TransitionRule{
@@ -237,6 +247,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstallingPendingUserAction),
 			stateswitch.State(models.HostStatusInstalling),
 			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
@@ -257,16 +268,78 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	// Prepare for installation
 	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypePrepareForInstallation,
-		Condition:      th.IsValidRoleForInstallation,
+		TransitionType: TransitionTypeRefresh,
+		Condition:      stateswitch.And(If(ValidRoleForInstallation), If(IsConnected), If(ClusterPreparingForInstallation)),
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusKnown),
 		},
 		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
-		PostTransition:   th.PostPrepareForInstallation,
+		PostTransition:   th.PostRefreshHost(statusInfoPreparingForInstallation),
+	})
+
+	// Install host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+		},
+		Condition:        stateswitch.And(If(IsConnected), If(ClusterInstalling)),
+		DestinationState: stateswitch.State(models.HostStatusInstalling),
+		PostTransition:   th.PostRefreshHost(statusInfoInstalling),
 	})
 
 	// Refresh host
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
+		Condition:        stateswitch.And(If(IsConnected), If(InstallationDiskSpeedCheckSuccessful), If(ClusterPreparingForInstallation)),
+		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
+		PostTransition:   th.PostRefreshHost(statusInfoHostPreparationSuccessful),
+	})
+
+	installationDiskSpeedCheckFailed := stateswitch.Not(If(SufficientOrUnknownInstallationDiskSpeed))
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
+		Condition:        stateswitch.And(If(IsConnected), installationDiskSpeedCheckFailed),
+		DestinationState: stateswitch.State(models.HostStatusInsufficient),
+		PostTransition:   th.PostRefreshHost(statusInfoNotReadyForInstall),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
+		Condition:        stateswitch.And(If(IsConnected), If(SufficientOrUnknownInstallationDiskSpeed), stateswitch.Not(If(ClusterPreparingForInstallation))),
+		DestinationState: stateswitch.State(models.HostStatusKnown),
+		PostTransition:   th.PostRefreshHost(statusInfoClusterIsNotPreparing),
+	})
+
+	installationDiskSpeedUnknown := stateswitch.Not(stateswitch.Or(If(InstallationDiskSpeedCheckSuccessful), installationDiskSpeedCheckFailed))
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
+		Condition:        stateswitch.And(If(IsConnected), installationDiskSpeedUnknown, If(ClusterPreparingForInstallation)),
+		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+		},
+		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(If(ClusterPreparingForInstallation))),
+		DestinationState: stateswitch.State(models.HostStatusKnown),
+		PostTransition:   th.PostRefreshHost(statusInfoClusterIsNotPreparing),
+	})
+
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
@@ -301,7 +374,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstalling)},
-		Condition:        stateswitch.And(th.HasInstallationTimedOut),
+		Condition:        th.HasInstallationTimedOut,
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationTimedOut),
 	})
@@ -310,11 +383,21 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusPreparingForInstallation),
 			stateswitch.State(models.HostStatusInstalling),
 		},
-		Condition:        th.HostNotResponsiveWhilePreparingInstallation,
+		Condition:        stateswitch.Not(If(IsConnected)),
 		DestinationState: stateswitch.State(models.HostStatusError),
+		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOut),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+		},
+		Condition:        stateswitch.Not(If(IsConnected)),
+		DestinationState: stateswitch.State(models.HostStatusDisconnected),
 		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOut),
 	})
 
@@ -384,7 +467,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr),
 		If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup),
-		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied))
+		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(SufficientOrUnknownInstallationDiskSpeed))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
@@ -447,7 +530,6 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInsufficient),
 			stateswitch.State(models.HostStatusPendingForInput),
 			stateswitch.State(models.HostStatusDiscovering),
-			stateswitch.State(models.HostStatusKnown),
 		},
 		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
 			hasMinRequiredHardware,
@@ -460,20 +542,15 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusPreparingForInstallation),
+			stateswitch.State(models.HostStatusKnown),
 		},
-		Condition:        th.IsPreparingTimedOut,
-		DestinationState: stateswitch.State(models.HostStatusError),
-		PostTransition:   th.PostRefreshHost(statusInfoPreparingTimedOut),
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeRefresh,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusPreparingForInstallation),
-		},
-		Condition:        stateswitch.Not(th.IsPreparingTimedOut),
-		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
+		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+			hasMinRequiredHardware,
+			requiredInputFieldsExist,
+			isSufficientForInstall,
+			stateswitch.Not(stateswitch.And(If(ClusterPreparingForInstallation), If(ValidRoleForInstallation)))),
+		DestinationState: stateswitch.State(models.HostStatusKnown),
+		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
 
 	// check timeout of log collection

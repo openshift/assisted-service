@@ -3,6 +3,7 @@ package hostcommands
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -44,15 +45,16 @@ type InstructionManager struct {
 }
 
 type InstructionConfig struct {
-	ServiceBaseURL       string `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath    string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs           string `envconfig:"SERVICE_IPS" default:""`
-	InstallerImage       string `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage      string `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	AgentImage           string `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	SkipCertVerification bool   `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	SupportL2            bool   `envconfig:"SUPPORT_L2" default:"true"`
-	InstallationTimeout  uint   `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	ServiceBaseURL       string        `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	ServiceIPs           string        `envconfig:"SERVICE_IPS" default:""`
+	InstallerImage       string        `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage      string        `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	AgentImage           string        `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	SkipCertVerification bool          `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	SupportL2            bool          `envconfig:"SUPPORT_L2" default:"true"`
+	InstallationTimeout  uint          `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	DiskCheckTimeout     time.Duration `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
 	ReleaseImageMirror   string
 	CheckClusterVersion  bool
 }
@@ -69,6 +71,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	dhcpAllocateCmd := NewDhcpAllocateCmd(log, instructionConfig.AgentImage, db)
 	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.AgentImage, instructionConfig.SupportL2)
 	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.AgentImage, db)
+	diskPerfCheckCmd := NewDiskPerfCheckCmd(log, instructionConfig.AgentImage, hwValidator, instructionConfig.DiskCheckTimeout.Seconds())
 
 	return &InstructionManager{
 		log: log,
@@ -81,7 +84,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusPendingForInput:          {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
 			models.HostStatusInstalling:               {[]CommandGetter{installCmd, dhcpAllocateCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusInstallingInProgress:     {[]CommandGetter{inventoryCmd, dhcpAllocateCmd}, defaultNextInstructionInSec}, //TODO inventory step here is a temporary solution until format command is moved to a different state
-			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd}, defaultNextInstructionInSec},
+			models.HostStatusPreparingForInstallation: {[]CommandGetter{dhcpAllocateCmd, diskPerfCheckCmd}, defaultNextInstructionInSec},
 			models.HostStatusDisabled:                 {[]CommandGetter{}, defaultBackedOffInstructionInSec},
 			models.HostStatusResetting:                {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusError:                    {[]CommandGetter{logsCmd, stopCmd}, defaultBackedOffInstructionInSec},

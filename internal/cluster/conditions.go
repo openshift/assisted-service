@@ -4,6 +4,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 type conditionId string
@@ -15,7 +16,7 @@ type condition struct {
 const (
 	VipDhcpAllocationSet         = conditionId("vip-dhcp-allocation-set")
 	AllHostsPreparedSuccessfully = conditionId("all-hosts-prepared-successfully")
-	InsufficientHostExists       = conditionId("insufficient-host-exists")
+	UnPreparingtHostsExist       = conditionId("unpreparing-hosts-exist")
 	ClusterPreparationSucceeded  = conditionId("cluster-preparation-succeeded")
 	ClusterPreparationFailed     = conditionId("cluster-preparation-failed")
 )
@@ -24,11 +25,11 @@ func (c conditionId) String() string {
 	return string(c)
 }
 
-func isVipDhcpAllocationSet(c *clusterPreprocessContext) bool {
+func (v *clusterValidator) isVipDhcpAllocationSet(c *clusterPreprocessContext) bool {
 	return swag.BoolValue(c.cluster.VipDhcpAllocation)
 }
 
-func areAllHostsPreparedSuccessfully(c *clusterPreprocessContext) bool {
+func (v *clusterValidator) areAllHostsPreparedSuccessfully(c *clusterPreprocessContext) bool {
 	for _, h := range c.cluster.Hosts {
 		if swag.StringValue(h.Status) != models.HostStatusPreparingSuccessful {
 			return false
@@ -37,19 +38,26 @@ func areAllHostsPreparedSuccessfully(c *clusterPreprocessContext) bool {
 	return true
 }
 
-func isInsufficientHostExists(c *clusterPreprocessContext) bool {
+func (v *clusterValidator) isUnPreparingHostsExist(c *clusterPreprocessContext) bool {
+	validStates := []string{
+		models.HostStatusPreparingForInstallation,
+		models.HostStatusPreparingSuccessful,
+		models.HostStatusDisabled,
+		models.HostStatusKnown,
+	}
 	for _, h := range c.cluster.Hosts {
-		if swag.StringValue(h.Status) == models.HostStatusInsufficient {
+		if !funk.ContainsString(validStates, swag.StringValue(h.Status)) {
+			v.log.Warnf("Found unpreparing host: id %s status %s", h.ID.String(), swag.StringValue(h.Status))
 			return true
 		}
 	}
 	return false
 }
 
-func isClusterPreparationSucceeded(c *clusterPreprocessContext) bool {
+func (v *clusterValidator) isClusterPreparationSucceeded(c *clusterPreprocessContext) bool {
 	return c.cluster.InstallationPreparationCompletionStatus == common.InstallationPreparationSucceeded
 }
 
-func isClusterPreparationFailed(c *clusterPreprocessContext) bool {
+func (v *clusterValidator) isClusterPreparationFailed(c *clusterPreprocessContext) bool {
 	return c.cluster.InstallationPreparationCompletionStatus == common.InstallationPreparationFailed
 }

@@ -3,6 +3,7 @@ package host
 import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 type conditionId string
@@ -13,7 +14,9 @@ type condition struct {
 
 const (
 	InstallationDiskSpeedCheckSuccessful = conditionId("installation-disk-speed-check-successful")
-	ClusterInsufficient                  = conditionId("cluster-insufficient")
+	ClusterPreparingForInstallation      = conditionId("cluster-preparing-for-installation")
+	ClusterInstalling                    = conditionId("cluster-installing")
+	ValidRoleForInstallation             = conditionId("valid-role-for-installation")
 )
 
 func (c conditionId) String() string {
@@ -25,6 +28,15 @@ func (v *validator) isInstallationDiskSpeedCheckSuccessful(c *validationContext)
 	return err == nil && info != nil && info.DiskSpeed != nil && info.DiskSpeed.Tested && info.DiskSpeed.ExitCode == 0
 }
 
-func (v *validator) isClusterInsufficient(c *validationContext) bool {
-	return swag.StringValue(c.cluster.Status) == models.ClusterStatusInsufficient
+func (v *validator) isClusterPreparingForInstallation(c *validationContext) bool {
+	return swag.StringValue(c.cluster.Status) == models.ClusterStatusPreparingForInstallation
+}
+
+func (v *validator) isClusterInstalling(c *validationContext) bool {
+	return swag.StringValue(c.cluster.Status) == models.ClusterStatusInstalling
+}
+
+func (v *validator) isValidRoleForInstallation(c *validationContext) bool {
+	validRoles := []string{string(models.HostRoleMaster), string(models.HostRoleWorker)}
+	return funk.ContainsString(validRoles, string(c.host.Role))
 }
