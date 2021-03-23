@@ -204,7 +204,17 @@ func main() {
 		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	eventsHandler := events.New(db, log.WithField("pkg", "events"))
-	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
+	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
+	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig)
+	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
+
+	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
+		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
+	createS3Bucket(objectHandler, log)
+
+	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
+	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig)
+	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
@@ -230,14 +240,6 @@ func main() {
 	newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
 	Options.JobConfig.S3EndpointURL = newUrl
-
-	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
-	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig)
-	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
-
-	var objectHandler s3wrapper.API = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
-		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
-	createS3Bucket(objectHandler, log)
 
 	failOnError(bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme),
 		"Failed to add BareMetalHost to scheme")
@@ -279,8 +281,6 @@ func main() {
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
-	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
-	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig)
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
@@ -337,7 +337,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
-		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder)
+		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder, hwValidator)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)

@@ -10,6 +10,14 @@ func GibToBytes(gib int64) int64 {
 	return gib * int64(units.GiB)
 }
 
+func GibToMib(gib int64) int64 {
+	return gib * int64(units.KiB)
+}
+
+func MibToGiB(mib int64) int64 {
+	return mib / int64(units.KiB)
+}
+
 func BytesToGiB(bytes int64) int64 {
 	return bytes / int64(units.GiB)
 }

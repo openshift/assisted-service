@@ -81,36 +81,6 @@ func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte
 	return Manifests(o.config)
 }
 
-// GetCPURequirementForWorker provides worker CPU requirements for the operator
-func (o *operator) GetCPURequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetCPURequirementForMaster provides master CPU requirements for the operator
-func (o *operator) GetCPURequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetMemoryRequirementForWorker provides worker memory requirements for the operator in MB
-func (o *operator) GetMemoryRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetMemoryRequirementForMaster provides master memory requirements for the operator
-func (o *operator) GetMemoryRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetDisksRequirementForMaster provides a number of disks required in a master
-func (o *operator) GetDisksRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetDisksRequirementForWorker provides a number of disks required in a worker
-func (o *operator) GetDisksRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
 // GetProperties provides description of operator properties: none required
 func (o *operator) GetProperties() models.OperatorProperties {
 	return models.OperatorProperties{}
@@ -119,4 +89,9 @@ func (o *operator) GetProperties() models.OperatorProperties {
 // GetMonitoredOperator returns MonitoredOperator corresponding to the OCS Operator
 func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 	return &Operator
+}
+
+// GetHostRequirementsForRole provides operator's requirements towards host in a given role
+func (o *operator) GetHostRequirementsForRole(context.Context, *common.Cluster, models.HostRole) (*models.ClusterHostRequirementsDetails, error) {
+	return &models.ClusterHostRequirementsDetails{}, nil
 }

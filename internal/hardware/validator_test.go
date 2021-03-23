@@ -1,16 +1,20 @@
 package hardware
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
+	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
@@ -32,7 +36,7 @@ var _ = Describe("Disk eligibility", func() {
 	BeforeEach(func() {
 		var cfg ValidatorCfg
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
-		hwvalidator = NewValidator(logrus.New(), cfg)
+		hwvalidator = NewValidator(logrus.New(), cfg, nil)
 
 		bigEnoughSize = conversions.GbToBytes(cfg.MinDiskSizeGb) + 1
 		tooSmallSize = conversions.GbToBytes(cfg.MinDiskSizeGb) - 1
@@ -84,7 +88,7 @@ var _ = Describe("hardware_validator", func() {
 	BeforeEach(func() {
 		var cfg ValidatorCfg
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
-		hwvalidator = NewValidator(logrus.New(), cfg)
+		hwvalidator = NewValidator(logrus.New(), cfg, nil)
 		id1 := strfmt.UUID(uuid.New().String())
 		id2 := strfmt.UUID(uuid.New().String())
 		id3 := strfmt.UUID(uuid.New().String())
@@ -175,6 +179,130 @@ var _ = Describe("hardware_validator", func() {
 		Expect(disks[0].Name).Should(Equal("xvda"))
 		Expect(len(disks)).Should(Equal(1))
 	})
+})
+
+var _ = Describe("Cluster host requirements", func() {
+
+	var (
+		cfg         ValidatorCfg
+		hwvalidator Validator
+		cluster     *common.Cluster
+		host        *models.Host
+
+		ctrl          *gomock.Controller
+		operatorsMock *operators.MockAPI
+
+		operatorRequirements []*models.OperatorHostRequirements
+		details1, details2   models.ClusterHostRequirementsDetails
+	)
+
+	BeforeEach(func() {
+		operatorName1 := "op-one"
+		operatorName2 := "op-two"
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &clusterID,
+			MonitoredOperators: []*models.MonitoredOperator{
+				{Name: operatorName1, ClusterID: clusterID},
+				{Name: operatorName2, ClusterID: clusterID},
+			},
+		}}
+
+		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+
+		details1 = models.ClusterHostRequirementsDetails{
+			InstallationDiskSpeedThresholdMs: 10,
+			RAMMib:                           1024,
+			CPUCores:                         4,
+			DiskSizeGb:                       10,
+		}
+		details2 = models.ClusterHostRequirementsDetails{
+			InstallationDiskSpeedThresholdMs: 5,
+			RAMMib:                           256,
+			CPUCores:                         2,
+			DiskSizeGb:                       5,
+		}
+
+		operatorRequirements = []*models.OperatorHostRequirements{
+			{OperatorName: operatorName1, Requirements: &details1},
+			{OperatorName: operatorName2, Requirements: &details2},
+		}
+
+		ctrl = gomock.NewController(GinkgoT())
+		operatorsMock = operators.NewMockAPI(ctrl)
+
+		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("should contain correct requirements for master host", func() {
+		role := models.HostRoleMaster
+		id1 := strfmt.UUID(uuid.New().String())
+		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresMaster))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibMaster * int64(units.KiB)))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeZero())
+
+		Expect(result.Operators).To(ConsistOf(operatorRequirements))
+
+		Expect(result.Total.DiskSizeGb).To(Equal(cfg.MinDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresMaster + details1.CPUCores + details2.CPUCores))
+		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibMaster*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
+		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+	})
+
+	It("should contain correct requirements for worker host", func() {
+		role := models.HostRoleWorker
+		id1 := strfmt.UUID(uuid.New().String())
+		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresWorker))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibWorker * int64(units.KiB)))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeZero())
+
+		Expect(result.Operators).To(ConsistOf(operatorRequirements))
+
+		Expect(result.Total.DiskSizeGb).To(Equal(cfg.MinDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresWorker + details1.CPUCores + details2.CPUCores))
+		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibWorker*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
+		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+	})
+
+	It("should fail providing on operator API error", func() {
+		role := models.HostRoleWorker
+		id1 := strfmt.UUID(uuid.New().String())
+		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+
+		failure := errors.New("boom")
+		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(nil, failure)
+
+		_, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(Equal(failure))
+	})
+
 })
 
 func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {

@@ -6,10 +6,10 @@ import (
 	"fmt"
 
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
-	models "github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 )
@@ -80,7 +80,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID()}, err
 	}
 
-	if !hardware.IsVirtSupported(&inventory) {
+	if !virt.IsVirtSupported(&inventory) {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
 	}
 
@@ -141,16 +141,6 @@ func (o *operator) GenerateManifests(c *common.Cluster) (map[string][]byte, erro
 	return Manifests(c.Cluster.OpenshiftVersion)
 }
 
-// GetDisksRequirementForMaster provides a number of disks required in a master
-func (o *operator) GetDisksRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
-// GetDisksRequirementForWorker provides a number of disks required in a worker
-func (o *operator) GetDisksRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return 0, nil
-}
-
 // GetProperties provides description of operator properties: none required
 func (o *operator) GetProperties() models.OperatorProperties {
 	return models.OperatorProperties{}
@@ -159,4 +149,21 @@ func (o *operator) GetProperties() models.OperatorProperties {
 // GetMonitoredOperator returns MonitoredOperator corresponding to the CNV Operator
 func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 	return &Operator
+}
+
+// GetHostRequirementsForRole provides operator's requirements towards host in a given role
+func (o *operator) GetHostRequirementsForRole(_ context.Context, _ *common.Cluster, role models.HostRole) (*models.ClusterHostRequirementsDetails, error) {
+	switch role {
+	case models.HostRoleMaster:
+		return &models.ClusterHostRequirementsDetails{
+			CPUCores: masterCPU,
+			RAMMib:   masterMemory,
+		}, nil
+	case models.HostRoleWorker, models.HostRoleAutoAssign:
+		return &models.ClusterHostRequirementsDetails{
+			CPUCores: workerCPU,
+			RAMMib:   workerMemory,
+		}, nil
+	}
+	return nil, fmt.Errorf("unsupported role: %s", role)
 }

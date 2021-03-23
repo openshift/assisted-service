@@ -42,6 +42,9 @@ var _ = Describe("monitor_disconnection", func() {
 		dummy := &leader.DummyElector{}
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
+			Total: &models.ClusterHostRequirementsDetails{},
+		}, nil)
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, defaultConfig, dummy, mockOperators)
@@ -59,8 +62,6 @@ var _ = Describe("monitor_disconnection", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -144,6 +145,9 @@ var _ = Describe("TestHostMonitoring", func() {
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
+			Total: &models.ClusterHostRequirementsDetails{},
+		}, nil)
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, &cfg, &leader.DummyElector{}, mockOperators)
@@ -153,8 +157,6 @@ var _ = Describe("TestHostMonitoring", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
 
 	AfterEach(func() {

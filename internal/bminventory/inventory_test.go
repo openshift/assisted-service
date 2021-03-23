@@ -36,6 +36,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
@@ -77,6 +78,7 @@ var (
 	mockCRDUtils            *MockCRDUtils
 	mockAccountsMgmt        *ocm.MockOCMAccountsMgmt
 	mockOperatorManager     *operators.MockAPI
+	mockHwValidator         *hardware.MockValidator
 	mockIgnitionBuilder     *ignition.MockIgnitionBuilder
 	secondDayWorkerIgnition = []byte(`{
 		"ignition": {
@@ -6469,11 +6471,11 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockCRDUtils = NewMockCRDUtils(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
-
+	mockHwValidator = hardware.NewMockValidator(ctrl)
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
-		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder)
+		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator)
 }
 
 var _ = Describe("IPv6 support disabled", func() {

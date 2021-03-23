@@ -50,36 +50,6 @@ func (mr *MockOperatorMockRecorder) GenerateManifests(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockOperator)(nil).GenerateManifests), arg0)
 }
 
-// GetCPURequirementForMaster mocks base method
-func (m *MockOperator) GetCPURequirementForMaster(arg0 context.Context, arg1 *common.Cluster) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCPURequirementForMaster", arg0, arg1)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCPURequirementForMaster indicates an expected call of GetCPURequirementForMaster
-func (mr *MockOperatorMockRecorder) GetCPURequirementForMaster(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCPURequirementForMaster", reflect.TypeOf((*MockOperator)(nil).GetCPURequirementForMaster), arg0, arg1)
-}
-
-// GetCPURequirementForWorker mocks base method
-func (m *MockOperator) GetCPURequirementForWorker(arg0 context.Context, arg1 *common.Cluster) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCPURequirementForWorker", arg0, arg1)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCPURequirementForWorker indicates an expected call of GetCPURequirementForWorker
-func (mr *MockOperatorMockRecorder) GetCPURequirementForWorker(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCPURequirementForWorker", reflect.TypeOf((*MockOperator)(nil).GetCPURequirementForWorker), arg0, arg1)
-}
-
 // GetClusterValidationID mocks base method
 func (m *MockOperator) GetClusterValidationID() string {
 	m.ctrl.T.Helper()
@@ -108,34 +78,19 @@ func (mr *MockOperatorMockRecorder) GetDependencies() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockOperator)(nil).GetDependencies))
 }
 
-// GetDisksRequirementForMaster mocks base method
-func (m *MockOperator) GetDisksRequirementForMaster(arg0 context.Context, arg1 *common.Cluster) (int64, error) {
+// GetHostRequirementsForRole mocks base method
+func (m *MockOperator) GetHostRequirementsForRole(arg0 context.Context, arg1 *common.Cluster, arg2 models.HostRole) (*models.ClusterHostRequirementsDetails, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDisksRequirementForMaster", arg0, arg1)
-	ret0, _ := ret[0].(int64)
+	ret := m.ctrl.Call(m, "GetHostRequirementsForRole", arg0, arg1, arg2)
+	ret0, _ := ret[0].(*models.ClusterHostRequirementsDetails)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetDisksRequirementForMaster indicates an expected call of GetDisksRequirementForMaster
-func (mr *MockOperatorMockRecorder) GetDisksRequirementForMaster(arg0, arg1 interface{}) *gomock.Call {
+// GetHostRequirementsForRole indicates an expected call of GetHostRequirementsForRole
+func (mr *MockOperatorMockRecorder) GetHostRequirementsForRole(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDisksRequirementForMaster", reflect.TypeOf((*MockOperator)(nil).GetDisksRequirementForMaster), arg0, arg1)
-}
-
-// GetDisksRequirementForWorker mocks base method
-func (m *MockOperator) GetDisksRequirementForWorker(arg0 context.Context, arg1 *common.Cluster) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDisksRequirementForWorker", arg0, arg1)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetDisksRequirementForWorker indicates an expected call of GetDisksRequirementForWorker
-func (mr *MockOperatorMockRecorder) GetDisksRequirementForWorker(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDisksRequirementForWorker", reflect.TypeOf((*MockOperator)(nil).GetDisksRequirementForWorker), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirementsForRole", reflect.TypeOf((*MockOperator)(nil).GetHostRequirementsForRole), arg0, arg1, arg2)
 }
 
 // GetHostValidationID mocks base method
@@ -150,36 +105,6 @@ func (m *MockOperator) GetHostValidationID() string {
 func (mr *MockOperatorMockRecorder) GetHostValidationID() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidationID", reflect.TypeOf((*MockOperator)(nil).GetHostValidationID))
-}
-
-// GetMemoryRequirementForMaster mocks base method
-func (m *MockOperator) GetMemoryRequirementForMaster(arg0 context.Context, arg1 *common.Cluster) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMemoryRequirementForMaster", arg0, arg1)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMemoryRequirementForMaster indicates an expected call of GetMemoryRequirementForMaster
-func (mr *MockOperatorMockRecorder) GetMemoryRequirementForMaster(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMemoryRequirementForMaster", reflect.TypeOf((*MockOperator)(nil).GetMemoryRequirementForMaster), arg0, arg1)
-}
-
-// GetMemoryRequirementForWorker mocks base method
-func (m *MockOperator) GetMemoryRequirementForWorker(arg0 context.Context, arg1 *common.Cluster) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMemoryRequirementForWorker", arg0, arg1)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMemoryRequirementForWorker indicates an expected call of GetMemoryRequirementForWorker
-func (mr *MockOperatorMockRecorder) GetMemoryRequirementForWorker(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMemoryRequirementForWorker", reflect.TypeOf((*MockOperator)(nil).GetMemoryRequirementForWorker), arg0, arg1)
 }
 
 // GetMonitoredOperator mocks base method
