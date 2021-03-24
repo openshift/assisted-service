@@ -968,6 +968,8 @@ github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca h
 github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca/go.mod h1:GDjWl0tX6FNIj82vIxeudWeSx2Ff6nDZ8uJn0ohUFvo=
 github.com/openshift/hive/apis v0.0.0-20210302234131-7026427c0ae5 h1:guQJngzPKsFw84NigJwIOHWSUrVGcjYKJLMjiSK2R0g=
 github.com/openshift/hive/apis v0.0.0-20210302234131-7026427c0ae5/go.mod h1:jpKB2/wcJC/WZF0xg2TqOrH6QHG+8/4eqFsAvZQkGdo=
+github.com/openshift/hive/apis v0.0.0-20210323190723-391a0f02748c h1:BJq3B4wTau1OGT1o3++M17O9aLG3sYTRH4Srj7mqkZ4=
+github.com/openshift/hive/apis v0.0.0-20210323190723-391a0f02748c/go.mod h1:jpKB2/wcJC/WZF0xg2TqOrH6QHG+8/4eqFsAvZQkGdo=
 github.com/openshift/origin v0.0.0-20160503220234-8f127d736703/go.mod h1:0Rox5r9C8aQn6j1oAOQ0c1uC86mYbUFObzjBRvUKHII=
 github.com/openshift/prom-label-proxy v0.1.1-0.20191016113035-b8153a7f39f1/go.mod h1:p5MuxzsYP1JPsNGwtjtcgRHHlGziCJJfztff91nNixw=
 github.com/opentracing-contrib/go-observer v0.0.0-20170622124052-a52f23424492/go.mod h1:Ngi6UdF0k5OKD5t5wlmGhe/EDKPoUM3BXZSSfIuJbis=

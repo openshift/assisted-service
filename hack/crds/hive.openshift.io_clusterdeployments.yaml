@@ -63,6 +63,18 @@ spec:
               description: BaseDomain is the base domain to which the cluster should
                 belong.
               type: string
+            boundServiceAccountSigningKeySecretRef:
+              description: BoundServiceAccountSignkingKeySecretRef refers to a Secret
+                that contains a 'bound-service-account-signing-key.key' data key pointing
+                to the private key that will be used to sign ServiceAccount objects.
+                Primarily used to provision AWS clusters to use Amazon's Security
+                Token Service.
+              properties:
+                name:
+                  description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                    TODO: Add other useful fields. apiVersion, kind, uid?'
+                  type: string
+              type: object
             certificateBundles:
               description: CertificateBundles is a list of certificate bundles associated
                 with this cluster
@@ -335,6 +347,24 @@ spec:
             installed:
               description: Installed is true if the cluster has been installed
               type: boolean
+            machineManagement:
+              description: MachineManagement contains machine management settings
+                including the strategy that will be used when provisioning worker
+                machines.
+              properties:
+                central:
+                  description: Central contains settings for central machine management.
+                    If set Central indicates that central machine management will
+                    be used as opposed to management on the spoke cluster.
+                  type: object
+                targetNamespace:
+                  description: TargetNamespace is the namespace in which we will create
+                    worker machineset resources. Resources required to create machines
+                    will be copied to the TargetNamespace. TargetNamespace is created
+                    for you and cannot be set during creation. TargetNamespace is
+                    also immutable once set.
+                  type: string
+              type: object
             manageDNS:
               description: ManageDNS specifies whether a DNSZone should be created
                 and managed automatically for this ClusterDeployment
@@ -348,6 +378,52 @@ spec:
                     an Assisted Agent based installation to bare metal. Can only be
                     used with the Assisted InstallStrategy.
                   properties:
+                    agentSelector:
+                      description: AgentSelector is a label selector used for associating
+                        relevant custom resources with this cluster. (Agent, BareMetalHost,
+                        etc)
+                      properties:
+                        matchExpressions:
+                          description: matchExpressions is a list of label selector
+                            requirements. The requirements are ANDed.
+                          items:
+                            description: A label selector requirement is a selector
+                              that contains values, a key, and an operator that relates
+                              the key and values.
+                            properties:
+                              key:
+                                description: key is the label key that the selector
+                                  applies to.
+                                type: string
+                              operator:
+                                description: operator represents a key's relationship
+                                  to a set of values. Valid operators are In, NotIn,
+                                  Exists and DoesNotExist.
+                                type: string
+                              values:
+                                description: values is an array of string values.
+                                  If the operator is In or NotIn, the values array
+                                  must be non-empty. If the operator is Exists or
+                                  DoesNotExist, the values array must be empty. This
+                                  array is replaced during a strategic merge patch.
+                                items:
+                                  type: string
+                                type: array
+                            required:
+                              - key
+                              - operator
+                            type: object
+                          type: array
+                        matchLabels:
+                          additionalProperties:
+                            type: string
+                          description: matchLabels is a map of {key,value} pairs.
+                            A single {key,value} in the matchLabels map is equivalent
+                            to an element of matchExpressions, whose key field is
+                            "key", the operator is "In", and the values array contains
+                            only "value". The requirements are ANDed.
+                          type: object
+                      type: object
                     apiVIP:
                       description: APIVIP is the virtual IP used to reach the OpenShift
                         cluster's API.
@@ -360,16 +436,8 @@ spec:
                       description: IngressVIP is the virtual IP used for cluster ingress
                         traffic.
                       type: string
-                    vipDHCPAllocation:
-                      description: VIPDHCPAllocation indicates if virtual IP DHCP
-                        allocation mode is enabled.
-                      enum:
-                        - ""
-                        - Enabled
-                      type: string
                   required:
-                    - apiVIP
-                    - ingressVIP
+                    - agentSelector
                   type: object
                 aws:
                   description: AWS is the configuration used when installing on AWS.
@@ -382,6 +450,18 @@ spec:
                           description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                             TODO: Add other useful fields. apiVersion, kind, uid?'
                           type: string
+                      type: object
+                    privateLink:
+                      description: PrivateLink allows uses to enable access to the
+                        cluster's API server using AWS PrivateLink. AWS PrivateLink
+                        includes a pair of VPC Endpoint Service and VPC Endpoint accross
+                        AWS accounts and allows clients to connect to services using
+                        AWS's internal networking instead of the Internet.
+                      properties:
+                        enabled:
+                          type: boolean
+                      required:
+                        - enabled
                       type: object
                     region:
                       description: Region specifies the AWS region where the cluster
@@ -654,53 +734,6 @@ spec:
                       description: Agent is the install strategy configuration for
                         provisioning a cluster with the Agent based assisted installer.
                       properties:
-                        agentSelector:
-                          description: AgentSelector is a label selector used for
-                            associating relevant custom resources with this cluster.
-                            (Agent, BareMetalHost, etc)
-                          properties:
-                            matchExpressions:
-                              description: matchExpressions is a list of label selector
-                                requirements. The requirements are ANDed.
-                              items:
-                                description: A label selector requirement is a selector
-                                  that contains values, a key, and an operator that
-                                  relates the key and values.
-                                properties:
-                                  key:
-                                    description: key is the label key that the selector
-                                      applies to.
-                                    type: string
-                                  operator:
-                                    description: operator represents a key's relationship
-                                      to a set of values. Valid operators are In,
-                                      NotIn, Exists and DoesNotExist.
-                                    type: string
-                                  values:
-                                    description: values is an array of string values.
-                                      If the operator is In or NotIn, the values array
-                                      must be non-empty. If the operator is Exists
-                                      or DoesNotExist, the values array must be empty.
-                                      This array is replaced during a strategic merge
-                                      patch.
-                                    items:
-                                      type: string
-                                    type: array
-                                required:
-                                  - key
-                                  - operator
-                                type: object
-                              type: array
-                            matchLabels:
-                              additionalProperties:
-                                type: string
-                              description: matchLabels is a map of {key,value} pairs.
-                                A single {key,value} in the matchLabels map is equivalent
-                                to an element of matchExpressions, whose key field
-                                is "key", the operator is "In", and the values array
-                                contains only "value". The requirements are ANDed.
-                              type: object
-                          type: object
                         networking:
                           description: Networking is the configuration for the pod
                             network provider in the cluster.
@@ -777,7 +810,6 @@ spec:
                             for use in debugging.
                           type: string
                       required:
-                        - agentSelector
                         - networking
                         - provisionRequirements
                       type: object
@@ -1056,6 +1088,31 @@ spec:
               description: InstallerImage is the name of the installer image to use
                 when installing the target cluster
               type: string
+            platformStatus:
+              description: Platform contains the observed state for the specific platform
+                upon which to perform the installation.
+              properties:
+                aws:
+                  description: AWS is the observed state on AWS.
+                  properties:
+                    privateLink:
+                      description: PrivateLinkAccessStatus contains the observed state
+                        for PrivateLinkAccess resources.
+                      properties:
+                        hostedZoneID:
+                          type: string
+                        vpcEndpointID:
+                          type: string
+                        vpcEndpointService:
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                          type: object
+                      type: object
+                  type: object
+              type: object
             provisionRef:
               description: ProvisionRef is a reference to the last ClusterProvision
                 created for the deployment
