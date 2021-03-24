@@ -2611,7 +2611,7 @@ var _ = Describe("Validation metrics and events", func() {
 		ctrl       *gomock.Controller
 		ctx        = context.Background()
 		db         *gorm.DB
-		dbName     = "validation_metrics_and_events"
+		dbName     = "cluster_validation_metrics_and_events"
 		mockEvents *events.MockHandler
 		mockHost   *host.MockAPI
 		mockMetric *metrics.MockAPI
