@@ -873,44 +873,6 @@ var _ = Describe("Metrics tests", func() {
 			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDSufficientMastersCount, false)
 		})
 
-		It("'dns-domain-defined' failed", func() {
-
-			// create a validation success
-			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDDNSDomainDefined)
-
-			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDDNSDomainDefined), clusterValidationChangedMetric)
-			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDDNSDomainDefined), clusterValidationFailedMetric)
-
-			// create a validation failure
-			noBaseDNSDomain := ""
-			updateCluster(&models.ClusterUpdateParams{BaseDNSDomain: &noBaseDNSDomain})
-			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDDNSDomainDefined)
-
-			// check generated events
-			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDDNSDomainDefined, true)
-
-			// check generated metrics
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDDNSDomainDefined), clusterValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
-			metricsDeregisterCluster(ctx, clusterID)
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDDNSDomainDefined), clusterValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
-		})
-
-		It("'dns-domain-defined' got fixed", func() {
-
-			// create a validation failure
-			noBaseDNSDomain := ""
-			updateCluster(&models.ClusterUpdateParams{BaseDNSDomain: &noBaseDNSDomain})
-			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDDNSDomainDefined)
-
-			// create a validation success
-			baseDNSDomain := "example.com"
-			updateCluster(&models.ClusterUpdateParams{BaseDNSDomain: &baseDNSDomain})
-			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDDNSDomainDefined)
-
-			// check generated events
-			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDDNSDomainDefined, false)
-		})
-
 		It("'pull-secret-set' failed", func() {
 
 			// create a validation success
