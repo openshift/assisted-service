@@ -118,6 +118,7 @@ type InstallerInternals interface {
 	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error)
+	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -526,6 +527,14 @@ func verifyMinimalOpenShiftVersionForSingleNode(requestedOpenshiftVersion string
 	return nil
 }
 func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params installer.RegisterAddHostsClusterParams) middleware.Responder {
+	c, err := b.RegisterAddHostsClusterInternal(ctx, nil, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&c.Cluster)
+
+}
+func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	id := params.NewAddHostsClusterParams.ID
 	url := installer.GetClusterURL{ClusterID: *id}
@@ -536,13 +545,17 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 	log.Infof("Register add-hosts-cluster: %s, id %s, version %s", clusterName, id.String(), inputOpenshiftVersion)
 
 	if clusterPkg.ClusterExists(b.db, *id) {
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
+		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
 	}
 
 	openshiftVersion, err := b.versionsHandler.GetSupportedVersionFormat(inputOpenshiftVersion)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
-		return common.NewApiError(http.StatusBadRequest, fmt.Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
+		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
+	}
+
+	if kubeKey == nil {
+		kubeKey = &types.NamespacedName{}
 	}
 
 	newCluster := common.Cluster{Cluster: models.Cluster{
@@ -556,23 +569,25 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 		EmailDomain:      ocm.EmailDomainFromContext(ctx),
 		UpdatedAt:        strfmt.DateTime{},
 		APIVipDNSName:    swag.String(apivipDnsname),
-	}}
+	},
+		KubeKeyName:      kubeKey.Name,
+		KubeKeyNamespace: kubeKey.Namespace,
+	}
 
 	err = validations.ValidateClusterNameFormat(clusterName)
 	if err != nil {
-		return common.NewApiError(http.StatusBadRequest, err)
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
 	err = b.clusterApi.RegisterAddHostsCluster(ctx, &newCluster)
 	if err != nil {
 		log.Errorf("failed to register cluster %s ", clusterName)
-		return installer.NewRegisterAddHostsClusterInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	b.metricApi.ClusterRegistered(openshiftVersion, *newCluster.ID, newCluster.EmailDomain)
-	return installer.NewRegisterAddHostsClusterCreated().WithPayload(&newCluster.Cluster)
+	return &newCluster, nil
 }
 
 func (b *bareMetalInventory) createAndUploadNodeIgnition(ctx context.Context, cluster *common.Cluster, host *models.Host) error {

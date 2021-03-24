@@ -22,7 +22,9 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
@@ -95,7 +97,12 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
 	if gorm.IsRecordNotFoundError(err) {
-		return r.createNewCluster(ctx, req.NamespacedName, clusterDeployment)
+		if !clusterDeployment.Spec.Installed {
+			return r.createNewCluster(ctx, req.NamespacedName, clusterDeployment)
+		}
+		if !r.isSNO(clusterDeployment) {
+			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment)
+		}
 	}
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, nil, err)
@@ -117,7 +124,20 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
 		if !clusterDeployment.Spec.Installed {
 			err = r.updateClusterMetadata(ctx, clusterDeployment, cluster)
+			if err != nil {
+				return r.updateState(ctx, clusterDeployment, cluster, err)
+			}
+		}
+		// Delete Day1 Cluster
+		err = r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
+			ClusterID: *cluster.ID,
+		})
+		if err != nil {
 			return r.updateState(ctx, clusterDeployment, cluster, err)
+		}
+		if !r.isSNO(clusterDeployment) {
+			//Create Day2 cluster
+			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment)
 		}
 		return r.updateState(ctx, clusterDeployment, cluster, nil)
 	}
@@ -363,11 +383,15 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 
 func (r *ClusterDeploymentsReconciler) getOCPVersion(cluster *hivev1.ClusterDeployment) string {
 	// TODO: fix when HIVE-1383 is resolved, As for now single node supported only with 4.8, default version is 4.7
-	if cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
+	if r.isSNO(cluster) {
 		return "4.8"
 	}
 	return "4.7"
+}
+
+func (r *ClusterDeploymentsReconciler) isSNO(cluster *hivev1.ClusterDeployment) bool {
+	return cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0
 }
 
 func (r *ClusterDeploymentsReconciler) createNewCluster(
@@ -412,6 +436,30 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{
 		NewClusterParams: clusterParams,
+	})
+
+	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
+	return r.updateState(ctx, clusterDeployment, c, err)
+}
+
+func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
+	ctx context.Context,
+	key types.NamespacedName,
+	clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
+
+	r.Log.Infof("Creating a new Day2 Cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	spec := clusterDeployment.Spec
+	id := strfmt.UUID(uuid.New().String())
+	apiVipDnsname := fmt.Sprintf("api.%s.%s", spec.ClusterName, spec.BaseDomain)
+	clusterParams := &models.AddHostsClusterCreateParams{
+		APIVipDnsname:    swag.String(apiVipDnsname),
+		Name:             swag.String(spec.ClusterName),
+		OpenshiftVersion: swag.String(r.getOCPVersion(clusterDeployment)),
+		ID:               &id,
+	}
+
+	c, err := r.Installer.RegisterAddHostsClusterInternal(ctx, &key, installer.RegisterAddHostsClusterParams{
+		NewAddHostsClusterParams: clusterParams,
 	})
 
 	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
