@@ -9,8 +9,11 @@ type storageInfo struct {
 	OCSDisks int64
 }
 
-func generateStorageClusterManifest(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
+func getOCSOperatorVersion() string {
+	return "4.6"
+}
 
+func generateStorageClusterManifest(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
 	// Disk counts are a multiple of 3
 	ocsDiskCounts /= 3
 
@@ -25,7 +28,12 @@ func generateStorageClusterManifest(StorageClusterManifest string, ocsDiskCounts
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	if getOCSOperatorVersion() == "4.6" {
+		return buf.Bytes(), nil
+	}
+
+	return []byte{}, nil
 
 }
 
@@ -3474,7 +3482,42 @@ spec:
           storageClassName: 'localblock-sc'
           volumeMode: Block
       name: ocs-deviceset
-      placement: {}
+      placement:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: Exists
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rook-ceph-osd
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+    preparePlacement:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: Exists
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rook-ceph-osd-prepare
+            topologyKey: kubernetes.io/hostname
+          weight: 100
       portable: false
       replica: 3
       resources:
@@ -3505,6 +3548,7 @@ spec:
         values:
         - ""
 
+  manageNodes: false
   monDataDirHostPath: /var/lib/rook
 
   storageDeviceSets:
@@ -3531,7 +3575,42 @@ spec:
 
     name: ocs-deviceset
 
-    placement: {}
+    placement:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: Exists
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rook-ceph-osd
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+    preparePlacement:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: Exists
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rook-ceph-osd-prepare
+            topologyKey: kubernetes.io/hostname
+          weight: 100
 
     portable: false
 
