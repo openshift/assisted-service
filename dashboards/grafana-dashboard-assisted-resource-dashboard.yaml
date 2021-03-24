@@ -18,8 +18,8 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 4,
-      "iteration": 1614784830747,
+      "id": 34,
+      "iteration": 1616435787047,
       "links": [],
       "panels": [
         {
@@ -81,7 +81,7 @@ data:
             "showThresholdMarkers": true,
             "text": {}
           },
-          "pluginVersion": "7.4.3",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
               "expr": "sum(rate(container_cpu_usage_seconds_total {namespace=\"$namespace\",pod=~\"assisted-service-.*\"\n} [5m]))/ sum(kube_pod_container_resource_limits_cpu_cores {namespace=\"$namespace\",pod=~\"assisted-service-.*\"})",
@@ -152,7 +152,7 @@ data:
             "showThresholdMarkers": true,
             "text": {}
           },
-          "pluginVersion": "7.4.3",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
               "expr": "sum(rate(container_memory_working_set_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\"}[5m])) / sum(kube_pod_container_resource_limits_memory_bytes{namespace=\"$namespace\",pod=~\"assisted-service-.*\"}) * 100",
@@ -217,7 +217,7 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.4.3",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
               "expr": "sum (container_network_receive_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"})",
@@ -282,7 +282,7 @@ data:
             "text": {},
             "textMode": "auto"
           },
-          "pluginVersion": "7.4.3",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
               "expr": "sum (container_network_transmit_bytes_total{namespace=\"$namespace\",pod=~\"assisted-service-.*\"})",
@@ -336,7 +336,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.3",
+          "pluginVersion": "7.2.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -438,7 +438,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.3",
+          "pluginVersion": "7.2.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -540,7 +540,7 @@ data:
             "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.4.3",
+          "pluginVersion": "7.2.1",
           "pointradius": 5,
           "points": false,
           "renderer": "flot",
@@ -607,7 +607,7 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 27,
+      "schemaVersion": 26,
       "style": "dark",
       "tags": [],
       "templating": {
@@ -636,11 +636,11 @@ data:
           {
             "allValue": null,
             "current": {
-              "selected": false,
+              "selected": true,
               "text": "assisted-installer-production",
               "value": "assisted-installer-production"
             },
-            "datasource": "${datasource}",
+            "datasource": "$datasource",
             "definition": "label_values(namespace)",
             "description": null,
             "error": null,
@@ -650,10 +650,7 @@ data:
             "multi": false,
             "name": "namespace",
             "options": [],
-            "query": {
-              "query": "label_values(namespace)",
-              "refId": "StandardVariableQuery"
-            },
+            "query": "label_values(namespace)",
             "refresh": 1,
             "regex": "/assisted-installer.*/",
             "skipUrlSync": false,
@@ -696,13 +693,13 @@ data:
         ]
       },
       "timezone": "",
-      "title": "Assisted Service Resurce Dashboard",
-      "uid": "assisted-service-resurce-dashboard",
-      "version": 7
+      "title": "Assisted Service Resource Dashboard",
+      "uid": "assisted-service-resource-dashboard",
+      "version": 1
     }
 kind: ConfigMap
 metadata:
-  name: assisted-installer-resurce-dashboard
+  name: assisted-installer-resource-dashboard
   labels:
     grafana_dashboard: "true"
   annotations:
