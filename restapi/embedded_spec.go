@@ -1278,6 +1278,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads files relating to the installed/installing cluster.",
@@ -1504,6 +1507,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO.",
@@ -1659,6 +1665,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the kubeconfig file for this cluster.",
@@ -3038,6 +3047,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download host logs.",
@@ -3513,6 +3525,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download cluster logs.",
@@ -7181,6 +7196,11 @@ func init() {
       "name": "X-Secret-Key",
       "in": "header"
     },
+    "urlAuth": {
+      "type": "apiKey",
+      "name": "api_key",
+      "in": "query"
+    },
     "userAuth": {
       "type": "apiKey",
       "name": "Authorization",
@@ -8495,6 +8515,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads files relating to the installed/installing cluster.",
@@ -8721,6 +8744,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO.",
@@ -8876,6 +8902,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the kubeconfig file for this cluster.",
@@ -10255,6 +10284,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download host logs.",
@@ -10730,6 +10762,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download cluster logs.",
@@ -14455,6 +14490,11 @@ func init() {
       "type": "apiKey",
       "name": "X-Secret-Key",
       "in": "header"
+    },
+    "urlAuth": {
+      "type": "apiKey",
+      "name": "api_key",
+      "in": "query"
     },
     "userAuth": {
       "type": "apiKey",

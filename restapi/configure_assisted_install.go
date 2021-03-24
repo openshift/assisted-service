@@ -283,6 +283,9 @@ type Config struct {
 	// AuthAgentAuth Applies when the "X-Secret-Key" header is set
 	AuthAgentAuth func(token string) (interface{}, error)
 
+	// AuthURLAuth Applies when the "api_key" query is set
+	AuthURLAuth func(token string) (interface{}, error)
+
 	// AuthUserAuth Applies when the "Authorization" header is set
 	AuthUserAuth func(token string) (interface{}, error)
 
@@ -332,6 +335,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 			return token, nil
 		}
 		return c.AuthAgentAuth(token)
+	}
+
+	api.URLAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthURLAuth == nil {
+			return token, nil
+		}
+		return c.AuthURLAuth(token)
 	}
 
 	api.UserAuthAuth = func(token string) (interface{}, error) {
