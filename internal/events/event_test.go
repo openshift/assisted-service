@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
@@ -16,7 +17,6 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/requestid"
-	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -109,7 +109,7 @@ var _ = Describe("Events library", func() {
 	Context("events with request ID", func() {
 		It("events with request ID", func() {
 			ctx := context.Background()
-			rid1 := uuid.NewRandom().String()
+			rid1 := uuid.New().String()
 			ctx = requestid.ToContext(ctx, rid1)
 			theEvents.AddEvent(ctx, cluster1, &host, models.EventSeverityInfo, "event1", time.Now())
 			Expect(numOfEvents(cluster1, &host)).Should(Equal(1))

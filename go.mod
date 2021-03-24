@@ -48,7 +48,6 @@ require (
 	github.com/openshift/hive/apis v0.0.0-20210302234131-7026427c0ae5
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pborman/uuid v1.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.15.0
