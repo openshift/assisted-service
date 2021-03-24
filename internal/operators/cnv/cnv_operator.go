@@ -86,54 +86,31 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if host.Role == models.HostRoleAutoAssign {
-		status := "All host roles must be assigned to enable OCS."
+		status := "All host roles must be assigned to enable CNV."
 		o.log.Info("Validate Requirements status ", status)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{status}}, nil
-	} else if host.Role == models.HostRoleWorker {
-		cpu, _ := o.GetCPURequirementForWorker(ctx, cluster)
-		if inventory.CPU.Count < cpu {
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
-		}
-		mem, _ := o.GetMemoryRequirementForWorker(ctx, cluster)
-		if inventory.Memory.UsableBytes < mem {
-			usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-			memBytes := conversions.BytesToMib(mem)
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", memBytes, usableMemory)}}, nil
-		}
-	} else if host.Role == models.HostRoleMaster {
-		// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them
-		cpu, _ := o.GetCPURequirementForMaster(ctx, cluster)
-		if inventory.CPU.Count < cpu {
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
-		}
-		mem, _ := o.GetMemoryRequirementForMaster(ctx, cluster)
-		if inventory.Memory.UsableBytes < mem {
-			usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-			memBytes := conversions.BytesToMib(mem)
-			return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", memBytes, usableMemory)}}, nil
-		}
 	}
+	requirements, err := o.GetHostRequirementsForRole(ctx, cluster, host.Role)
+	if err != nil {
+		message := fmt.Sprintf("Failed to get host requirements for host with id %s", host.ID)
+		o.log.Error(message)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message, err.Error()}}, err
+	}
+
+	cpu := requirements.CPUCores
+	if inventory.CPU.Count < cpu {
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
+	}
+
+	mem := requirements.RAMMib
+	memBytes := conversions.MibToBytes(mem)
+	if inventory.Memory.UsableBytes < memBytes {
+		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
+	}
+
+	// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
-}
-
-// GetCPURequirementForWorker provides worker CPU requirements for the operator
-func (o *operator) GetCPURequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return workerCPU, nil
-}
-
-// GetCPURequirementForMaster provides master CPU requirements for the operator
-func (o *operator) GetCPURequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return masterCPU, nil
-}
-
-// GetMemoryRequirementForWorker provides worker memory requirements for the operator
-func (o *operator) GetMemoryRequirementForWorker(_ context.Context, _ *common.Cluster) (int64, error) {
-	return conversions.MibToBytes(workerMemory), nil
-}
-
-// GetMemoryRequirementForMaster provides master memory requirements for the operator
-func (o *operator) GetMemoryRequirementForMaster(_ context.Context, _ *common.Cluster) (int64, error) {
-	return conversions.MibToBytes(masterMemory), nil
 }
 
 // GenerateManifests generates manifests for the operator
