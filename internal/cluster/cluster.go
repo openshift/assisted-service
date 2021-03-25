@@ -76,7 +76,7 @@ type API interface {
 	// Refresh state in case of hosts update
 	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 	ClusterMonitoring()
-	GetCredentials(c *common.Cluster) (err error)
+	IsOperatorAvailable(c *common.Cluster, operatorName string) bool
 	UploadIngressCert(c *common.Cluster) (err error)
 	VerifyClusterUpdatability(c *common.Cluster) (err error)
 	AcceptRegistration(c *common.Cluster) (err error)
@@ -539,14 +539,13 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
-	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
-	if !funk.ContainsString(allowedStatuses, clusterStatus) {
-		err = errors.Errorf("Cluster %s is in %s state, credentials are available only in installing or installed state", c.ID, clusterStatus)
+func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
+	for _, o := range c.MonitoredOperators {
+		if o.Name == operatorName {
+			return o.Status == models.OperatorStatusAvailable
+		}
 	}
-
-	return err
+	return false
 }
 
 func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {

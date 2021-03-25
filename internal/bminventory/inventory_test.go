@@ -6769,3 +6769,51 @@ var _ = Describe("IPv6 support disabled", func() {
 		})
 	})
 })
+
+var _ = Describe("GetCredentials", func() {
+
+	var (
+		ctx    = context.Background()
+		cfg    = Config{}
+		bm     *bareMetalInventory
+		db     *gorm.DB
+		dbName string
+		c      common.Cluster
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterID,
+			},
+		}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Console operator available", func() {
+
+		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(true)
+		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
+		mockS3Client.EXPECT().Download(ctx, objectName).Return(ioutil.NopCloser(strings.NewReader("my_password")), int64(0), nil)
+
+		reply := bm.GetCredentials(ctx, installer.GetCredentialsParams{ClusterID: *c.ID})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsOK())))
+	})
+
+	It("Console operator not available", func() {
+
+		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(false)
+
+		reply := bm.GetCredentials(ctx, installer.GetCredentialsParams{ClusterID: *c.ID})
+		verifyApiError(reply, http.StatusConflict)
+	})
+})

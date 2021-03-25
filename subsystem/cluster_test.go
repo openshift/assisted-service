@@ -1491,20 +1491,21 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("Get credentials", func() {
-			By("Test getting kubeadmin password for not found cluster")
+			By("Test getting credentials for not found cluster")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
 				_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: missingClusterId})
 				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsNotFound())))
 			}
-			By("Test getting kubeadmin password in wrong state")
+			By("Test getting credentials before console operator is available")
 			{
 				_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewGetCredentialsConflict())))
 			}
 			By("Test happy flow")
 			{
-				installCluster(clusterID)
+				setClusterAsFinalizing(ctx, clusterID)
+				completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 				creds, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creds.GetPayload().Username).To(Equal(bminventory.DefaultUser))
