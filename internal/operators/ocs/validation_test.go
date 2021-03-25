@@ -282,7 +282,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI                                   *host.MockAPI
 		mockMetric                                    *metrics.MockAPI
 		ctrl                                          *gomock.Controller
-		dbName                                        = "cluster_transition_test_with_ocs_validations"
+		dbName                                        string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -292,7 +292,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)

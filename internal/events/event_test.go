@@ -29,13 +29,13 @@ var _ = Describe("Events library", func() {
 	var (
 		db        *gorm.DB
 		theEvents *events.Events
-		dbName    = "events_test"
+		dbName    string
 		cluster1  = strfmt.UUID("46a8d745-dfce-4fd8-9df0-549ee8eabb3d")
 		cluster2  = strfmt.UUID("60415d9c-7c44-4978-89f5-53d510b03a47")
 		host      = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 	})
 	numOfEvents := func(clusterID strfmt.UUID, hostID *strfmt.UUID) int {

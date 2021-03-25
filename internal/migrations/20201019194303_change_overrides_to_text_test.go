@@ -20,7 +20,7 @@ var _ = Describe("changeOverridesToText", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB("change_overrides_to_text")
+		db, _ = common.PrepareTestDB()
 
 		overrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		clusterID = strfmt.UUID(uuid.New().String())

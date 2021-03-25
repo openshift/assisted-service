@@ -39,11 +39,11 @@ var _ = Describe("instruction_manager", func() {
 		mockRelease       *oc.MockRelease
 		cnValidator       *connectivity.MockValidator
 		instructionConfig InstructionConfig
-		dbName            = "instruction_manager"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)

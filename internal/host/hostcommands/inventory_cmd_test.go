@@ -22,10 +22,10 @@ var _ = Describe("inventory", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "inventorycmd"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		invCmd = NewInventoryCmd(common.GetTestLog(), "quay.io/ocpmetal/inventory:latest")
 
 		id = strfmt.UUID(uuid.New().String())

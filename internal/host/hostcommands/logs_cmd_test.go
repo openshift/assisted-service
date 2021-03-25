@@ -24,10 +24,10 @@ var _ = Describe("upload_logs", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "logs_cmd"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		logsCmd = NewLogsCmd(common.GetTestLog(), db, DefaultInstructionConfig)
 
 		id = strfmt.UUID(uuid.New().String())

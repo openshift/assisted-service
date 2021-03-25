@@ -36,14 +36,14 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler    events.Handler
 		ctrl             *gomock.Controller
 		mockMetric       *metrics.MockAPI
-		dbName           = "cluster_transition_test"
+		dbName           string
 		operatorsManager *operators.MockAPI
 		mockS3Api        *s3wrapper.MockAPI
 		mockAccountsMgmt *ocm.MockOCMAccountsMgmt
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -329,7 +329,7 @@ var _ = Describe("Transition tests", func() {
 var _ = Describe("Cancel cluster installation", func() {
 	var (
 		ctx               = context.Background()
-		dbName            = "cancel_cluster_installation_test"
+		dbName            string
 		capi              API
 		db                *gorm.DB
 		ctrl              *gomock.Controller
@@ -338,7 +338,7 @@ var _ = Describe("Cancel cluster installation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -401,7 +401,7 @@ var _ = Describe("Cancel cluster installation", func() {
 var _ = Describe("Reset cluster", func() {
 	var (
 		ctx               = context.Background()
-		dbName            = "reset_cluster_test"
+		dbName            string
 		capi              API
 		db                *gorm.DB
 		ctrl              *gomock.Controller
@@ -409,7 +409,7 @@ var _ = Describe("Reset cluster", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
@@ -526,7 +526,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
+		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
 	)
 
@@ -543,7 +543,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1171,14 +1171,14 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2015,7 +2015,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_host_with_dhcp"
+		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
 	)
 
@@ -2023,7 +2023,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2527,7 +2527,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  = "cluster_transition_test_refresh_installing_cases"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -2538,7 +2538,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2803,7 +2803,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		mockHostAPI *host.MockAPI
 		mockMetric  *metrics.MockAPI
 		ctrl        *gomock.Controller
-		dbName      string = "log_refresh_cluster"
+		dbName      string
 	)
 
 	var (
@@ -2830,7 +2830,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2965,14 +2965,14 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -3323,14 +3323,14 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -3682,7 +3682,7 @@ var _ = Describe("Single node", func() {
 		mockHostAPI                 *host.MockAPI
 		mockMetric                  *metrics.MockAPI
 		ctrl                        *gomock.Controller
-		dbName                      string = "cluster_transition_test_refresh_cluster_with_ntp"
+		dbName                      string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -3692,7 +3692,7 @@ var _ = Describe("Single node", func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)

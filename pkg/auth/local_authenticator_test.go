@@ -21,12 +21,12 @@ var _ = Describe("AuthAgentAuth", func() {
 		a       *LocalAuthenticator
 		cluster *common.Cluster
 		db      *gorm.DB
-		dbName  = "local_auth_test"
+		dbName  string
 		token   string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())

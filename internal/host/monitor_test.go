@@ -32,11 +32,11 @@ var _ = Describe("monitor_disconnection", func() {
 		host       models.Host
 		ctrl       *gomock.Controller
 		mockEvents *events.MockHandler
-		dbName     = "monitor_disconnection"
+		dbName     string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -131,12 +131,12 @@ var _ = Describe("TestHostMonitoring", func() {
 		ctrl       *gomock.Controller
 		cfg        Config
 		mockEvents *events.MockHandler
-		dbName     = "host_monitor_tests"
+		dbName     string
 		clusterID  = strfmt.UUID(uuid.New().String())
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockEvents.EXPECT().

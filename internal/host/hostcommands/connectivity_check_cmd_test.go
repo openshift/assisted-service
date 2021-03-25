@@ -21,10 +21,10 @@ var _ = Describe("connectivitycheckcmd", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "connectivitycheckcmd"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		connectivityCheckCmd = NewConnectivityCheckCmd(common.GetTestLog(), db, nil, "quay.io/ocpmetal/connectivity_check:latest")
 
 		id = strfmt.UUID(uuid.New().String())

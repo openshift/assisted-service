@@ -21,7 +21,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB("change_host_validations_info_to_text")
+		db, _ = common.PrepareTestDB()
 		hostID = strfmt.UUID(uuid.New().String())
 		clusterID := strfmt.UUID(uuid.New().String())
 		host := models.Host{

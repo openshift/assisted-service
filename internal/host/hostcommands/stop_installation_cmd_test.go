@@ -21,10 +21,10 @@ var _ = Describe("stop-podman", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "stop_podman"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		stopCmd = NewStopInstallationCmd(common.GetTestLog())
 
 		id = strfmt.UUID(uuid.New().String())

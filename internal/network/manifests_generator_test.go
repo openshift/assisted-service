@@ -114,7 +114,7 @@ var _ = Describe("chrony manifest", func() {
 			manifestsApi *mocks.MockManifestsAPI
 			ntpUtils     ManifestsGeneratorAPI
 			db           *gorm.DB
-			dbName       = "ntp_utils"
+			dbName       string
 			clusterId    strfmt.UUID
 			cluster      common.Cluster
 		)
@@ -124,7 +124,7 @@ var _ = Describe("chrony manifest", func() {
 			ctrl = gomock.NewController(GinkgoT())
 			manifestsApi = mocks.NewMockManifestsAPI(ctrl)
 			ntpUtils = NewManifestsGenerator(manifestsApi)
-			db = common.PrepareTestDB(dbName)
+			db, dbName = common.PrepareTestDB()
 			clusterId = strfmt.UUID(uuid.New().String())
 
 			hosts := make([]*models.Host, 0)
