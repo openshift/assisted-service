@@ -75,38 +75,33 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create 10 manifests (OCS + LSO) using the manifest API when OCS operator is enabled", func() {
+		It("should create 10 manifests (OCS + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
+				&lso.Operator,
 			}
 
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
-			err := manager.GenerateManifests(ctx, cluster)
-
-			Expect(err).NotTo(HaveOccurred())
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 5 manifests (LSO) using the manifest API when only LSO is enabled", func() {
+		It("should create 5 manifests (LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&lso.Operator,
 			}
 
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(5)
-			err := manager.GenerateManifests(ctx, cluster)
-
-			Expect(err).NotTo(HaveOccurred())
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 10 manifests (CNV + LSO) using the manifest API when OCS operator is enabled", func() {
+		It("should create 10 manifests (CNV + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
+				&lso.Operator,
 			}
 
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
-			err := manager.GenerateManifests(ctx, cluster)
-
-			Expect(err).NotTo(HaveOccurred())
-
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})
 
@@ -153,6 +148,7 @@ var _ = Describe("Operators manager", func() {
 		It("should deem OCS operator cluster-invalid when it's enabled and invalid", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
+				&lso.Operator,
 			}
 
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
@@ -186,6 +182,7 @@ var _ = Describe("Operators manager", func() {
 		It("should deem operators host-valid when OCS is enabled", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
+				&lso.Operator,
 			}
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
@@ -200,14 +197,14 @@ var _ = Describe("Operators manager", func() {
 		})
 	})
 
-	Context("UpdateDependencies", func() {
+	Context("ResolveDependencies", func() {
 		table.DescribeTable("should resolve dependencies", func(input []*models.MonitoredOperator, expected []*models.MonitoredOperator) {
 			cluster.MonitoredOperators = input
-			err := manager.UpdateDependencies(cluster)
+			resolvedDependencies, err := manager.ResolveDependencies(cluster.MonitoredOperators)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cluster.MonitoredOperators).To(HaveLen(len(expected)))
-			Expect(cluster.MonitoredOperators).To(ContainElements(expected))
+			Expect(resolvedDependencies).To(HaveLen(len(expected)))
+			Expect(resolvedDependencies).To(ContainElements(expected))
 		},
 			table.Entry("when only LSO is specified",
 				[]*models.MonitoredOperator{&lso.Operator},

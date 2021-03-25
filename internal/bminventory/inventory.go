@@ -2094,7 +2094,7 @@ func (b *bareMetalInventory) getOLMOperators(newOperators []*models.OperatorCrea
 		monitoredOperators = append(monitoredOperators, operator)
 	}
 
-	return monitoredOperators, nil
+	return b.operatorManagerApi.ResolveDependencies(monitoredOperators)
 }
 
 func (b *bareMetalInventory) updateHostsAndClusterStatus(ctx context.Context, cluster *common.Cluster, db *gorm.DB, log logrus.FieldLogger) error {

@@ -38,8 +38,8 @@ type API interface {
 	GenerateManifests(ctx context.Context, cluster *common.Cluster) error
 	// AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
 	AnyOLMOperatorEnabled(cluster *common.Cluster) bool
-	// UpdateDependencies amends the list of requested additional operators with any missing dependencies
-	UpdateDependencies(cluster *common.Cluster) error
+	// ResolveDependencies amends the list of requested additional operators with any missing dependencies
+	ResolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error)
 	// GetMonitoredOperatorsList returns the monitored operators available by the manager.
 	GetMonitoredOperatorsList() map[string]*models.MonitoredOperator
 	// GetOperatorByName the manager's supported operator object by name.
@@ -80,13 +80,6 @@ func (mgr *Manager) GetRequirementsBreakdownForRoleInCluster(ctx context.Context
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
 func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
-	// TODO: cluster should already contain up-to-date list of operators - implemented here for now to replicate
-	// the original behaviour
-	err := mgr.UpdateDependencies(cluster)
-	if err != nil {
-		return err
-	}
-
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
@@ -144,13 +137,6 @@ func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
 
 // ValidateHost validates host requirements
 func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
-	// TODO: cluster should already contain up-to-date list of operators - implemented here for now to replicate
-	// the original behaviour
-	err := mgr.UpdateDependencies(cluster)
-	if err != nil {
-		return nil, err
-	}
-
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
 
 	// To track operators that are disabled or not present in the cluster configuration, but have to be present
@@ -166,9 +152,8 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 		}
 
 		operator := mgr.olmOperators[clusterOperator.Name]
-		var result api.ValidationResult
 		if operator != nil {
-			result, err = operator.ValidateHost(ctx, cluster, host)
+			result, err := operator.ValidateHost(ctx, cluster, host)
 			if err != nil {
 				return nil, err
 			}
@@ -193,13 +178,6 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 
 // ValidateCluster validates cluster requirements
 func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
-	// TODO: cluster should already contain up-to-date list of operators - implemented here for now to replicate
-	// the original behaviour
-	err := mgr.UpdateDependencies(cluster)
-	if err != nil {
-		return nil, err
-	}
-
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
 
 	pendingOperators := make(map[string]struct{})
@@ -213,9 +191,8 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 		}
 
 		operator := mgr.olmOperators[clusterOperator.Name]
-		var result api.ValidationResult
 		if operator != nil {
-			result, err = operator.ValidateCluster(ctx, cluster)
+			result, err := operator.ValidateCluster(ctx, cluster)
 			if err != nil {
 				return nil, err
 			}
@@ -238,17 +215,6 @@ func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster
 	return results, nil
 }
 
-// UpdateDependencies amends the list of requested additional operators with any missing dependencies
-func (mgr *Manager) UpdateDependencies(cluster *common.Cluster) error {
-	operators, err := mgr.resolveDependencies(cluster.MonitoredOperators)
-	if err != nil {
-		return err
-	}
-
-	cluster.MonitoredOperators = operators
-	return nil
-}
-
 // GetSupportedOperators returns a list of OLM operators that are supported
 func (mgr *Manager) GetSupportedOperators() []string {
 	keys := make([]string, 0, len(mgr.olmOperators))
@@ -266,7 +232,7 @@ func (mgr *Manager) GetOperatorProperties(operatorName string) (models.OperatorP
 	return nil, errors.Errorf("Operator %s not found", operatorName)
 }
 
-func (mgr *Manager) resolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+func (mgr *Manager) ResolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 	allDependentOperators := mgr.getDependencies(operators)
 
 	inputOperatorNames := make([]string, len(operators))

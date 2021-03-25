@@ -45,7 +45,6 @@ import (
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -2161,6 +2160,35 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("Monitored Operators", func() {
+			var (
+				testOLMOperators = []*models.MonitoredOperator{
+					{
+						Name:           "0",
+						OperatorType:   models.OperatorTypeOlm,
+						TimeoutSeconds: 1000,
+					},
+					{
+						Name:           "1",
+						OperatorType:   models.OperatorTypeOlm,
+						TimeoutSeconds: 2000,
+					},
+				}
+			)
+
+			mockGetOperatorByName := func(operatorName string) {
+				testOLMOperatorIndex, err := strconv.Atoi(operatorName)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockOperatorManager.EXPECT().GetOperatorByName(operatorName).Return(
+					&models.MonitoredOperator{
+						Name:             testOLMOperators[testOLMOperatorIndex].Name,
+						OperatorType:     testOLMOperators[testOLMOperatorIndex].OperatorType,
+						TimeoutSeconds:   testOLMOperators[testOLMOperatorIndex].TimeoutSeconds,
+						Namespace:        testOLMOperators[testOLMOperatorIndex].Namespace,
+						SubscriptionName: testOLMOperators[testOLMOperatorIndex].SubscriptionName,
+					}, nil).Times(1)
+			}
+
 			Context("RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
@@ -2183,11 +2211,15 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("OLM register non default value", func() {
-					newOperatorName := lso.Operator.Name
+					newOperatorName := testOLMOperators[0].Name
 					newProperties := "blob-info"
 
 					mockClusterRegisterSuccess(bm, true)
-					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(&lso.Operator, nil).Times(1)
+					mockGetOperatorByName(newOperatorName)
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
 
 					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
@@ -2205,15 +2237,63 @@ var _ = Describe("cluster", func() {
 					expectedMonitoredOperator := models.MonitoredOperator{
 						Name:             newOperatorName,
 						Properties:       newProperties,
-						OperatorType:     lso.Operator.OperatorType,
-						TimeoutSeconds:   lso.Operator.TimeoutSeconds,
-						Namespace:        lso.Operator.Namespace,
-						SubscriptionName: lso.Operator.SubscriptionName,
+						OperatorType:     testOLMOperators[0].OperatorType,
+						TimeoutSeconds:   testOLMOperators[0].TimeoutSeconds,
+						Namespace:        testOLMOperators[0].Namespace,
+						SubscriptionName: testOLMOperators[0].SubscriptionName,
 						ClusterID:        *actual.Payload.ID,
 					}
 
 					Expect(actual.Payload.MonitoredOperators).To(ContainElement(&common.TestDefaultConfig.MonitoredOperator))
 					Expect(actual.Payload.MonitoredOperators).To(ContainElement(&expectedMonitoredOperator))
+				})
+
+				It("Resolve OLM dependencies", func() {
+					newOperatorName := testOLMOperators[1].Name
+
+					mockClusterRegisterSuccess(bm, true)
+					mockGetOperatorByName(newOperatorName)
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return append(operators, testOLMOperators[0]), nil
+						}).Times(1)
+
+					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							Name:             swag.String("some-cluster-name"),
+							OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+							PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+							OlmOperators: []*models.OperatorCreateParams{
+								{Name: newOperatorName},
+							},
+						},
+					})
+					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+					actual := reply.(*installer.RegisterClusterCreated)
+
+					expectedUpdatedMonitoredOperator := models.MonitoredOperator{
+						Name:             newOperatorName,
+						OperatorType:     testOLMOperators[1].OperatorType,
+						TimeoutSeconds:   testOLMOperators[1].TimeoutSeconds,
+						Namespace:        testOLMOperators[1].Namespace,
+						SubscriptionName: testOLMOperators[1].SubscriptionName,
+						ClusterID:        *actual.Payload.ID,
+					}
+
+					expectedResolvedMonitoredOperator := models.MonitoredOperator{
+						Name:             testOLMOperators[0].Name,
+						OperatorType:     testOLMOperators[0].OperatorType,
+						TimeoutSeconds:   testOLMOperators[0].TimeoutSeconds,
+						Namespace:        testOLMOperators[0].Namespace,
+						SubscriptionName: testOLMOperators[0].SubscriptionName,
+						ClusterID:        *actual.Payload.ID,
+					}
+
+					Expect(actual.Payload.MonitoredOperators).To(ContainElements(
+						&common.TestDefaultConfig.MonitoredOperator,
+						&expectedUpdatedMonitoredOperator,
+						&expectedResolvedMonitoredOperator,
+					))
 				})
 
 				It("OLM invalid name", func() {
@@ -2240,18 +2320,6 @@ var _ = Describe("cluster", func() {
 			Context("UpdateCluster", func() {
 				var (
 					defaultProperties = "properties"
-					testOLMOperators  = []*models.MonitoredOperator{
-						{
-							Name:           "0",
-							OperatorType:   models.OperatorTypeOlm,
-							TimeoutSeconds: 1000,
-						},
-						{
-							Name:           "1",
-							OperatorType:   models.OperatorTypeOlm,
-							TimeoutSeconds: 2000,
-						},
-					}
 				)
 
 				tests := []struct {
@@ -2360,10 +2428,13 @@ var _ = Describe("cluster", func() {
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 						for _, updateOperator := range test.updateOperators {
-							index, err := strconv.Atoi(updateOperator.Name)
-							Expect(err).ShouldNot(HaveOccurred())
-
-							mockOperatorManager.EXPECT().GetOperatorByName(updateOperator.Name).Return(testOLMOperators[index], nil).Times(1)
+							mockGetOperatorByName(updateOperator.Name)
+						}
+						if test.updateOperators != nil {
+							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+								DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+									return operators, nil
+								}).Times(1)
 						}
 
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -2378,6 +2449,62 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.MonitoredOperators).To(ContainElements(test.expectedOperators))
 					})
 				}
+			})
+
+			It("Resolve OLM dependencies", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Update
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+				newOperatorName := testOLMOperators[1].Name
+
+				mockGetOperatorByName(newOperatorName)
+				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+					DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+						return append(operators, testOLMOperators[0]), nil
+					}).Times(1)
+
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						OlmOperators: []*models.OperatorCreateParams{
+							{Name: newOperatorName},
+						},
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				actual := reply.(*installer.UpdateClusterCreated)
+
+				expectedUpdatedMonitoredOperator := models.MonitoredOperator{
+					Name:             newOperatorName,
+					OperatorType:     testOLMOperators[1].OperatorType,
+					TimeoutSeconds:   testOLMOperators[1].TimeoutSeconds,
+					Namespace:        testOLMOperators[1].Namespace,
+					SubscriptionName: testOLMOperators[1].SubscriptionName,
+					ClusterID:        *actual.Payload.ID,
+				}
+
+				expectedResolvedMonitoredOperator := models.MonitoredOperator{
+					Name:             testOLMOperators[0].Name,
+					OperatorType:     testOLMOperators[0].OperatorType,
+					TimeoutSeconds:   testOLMOperators[0].TimeoutSeconds,
+					Namespace:        testOLMOperators[0].Namespace,
+					SubscriptionName: testOLMOperators[0].SubscriptionName,
+					ClusterID:        *actual.Payload.ID,
+				}
+
+				Expect(actual.Payload.MonitoredOperators).To(ContainElements(
+					&expectedUpdatedMonitoredOperator,
+					&expectedResolvedMonitoredOperator,
+				))
 			})
 
 			It("OLM invalid name", func() {
