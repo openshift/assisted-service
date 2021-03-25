@@ -12,7 +12,7 @@ spec:
       ingressVIP: ""
   provisioning:
     imageSetRef:
-      name: openshift-v4.7.0
+      name: openshift-v4.8.0
     installConfigSecretRef:
       name: mycluster-install-config
     sshPrivateKeySecretRef:
