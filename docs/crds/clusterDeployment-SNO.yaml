@@ -10,6 +10,9 @@ spec:
     agentBareMetal:
       apiVIP: ""
       ingressVIP: ""
+      agentSelector:
+        matchLabels:
+          bla: aaa
   provisioning:
     imageSetRef:
       name: openshift-v4.7.0
@@ -28,8 +31,5 @@ spec:
             - 172.30.0.0/16
         provisionRequirements:
           controlPlaneAgents: 1
-        agentSelector:
-          matchLabels:
-            bla: aaa
   pullSecretRef:
     name: pull-secret

@@ -8,9 +8,11 @@ spec:
   clusterName: mycluster
   platform:
     agentBareMetal:
-      apiVIP: ""
-      ingressVIP: ""
-      vipDHCPAllocation: Enabled
+      apiVIP: 192.168.126.45
+      ingressVIP: 192.168.126.182
+      agentSelector:
+        matchLabels:
+          bla: aaa
   provisioning:
     imageSetRef:
       name: openshift-v4.7.0
@@ -28,8 +30,5 @@ spec:
             - 172.30.0.0/16
         provisionRequirements:
           controlPlaneAgents: 3
-        agentSelector:
-          matchLabels:
-            bla: aaa
   pullSecretRef:
     name: pull-secret
