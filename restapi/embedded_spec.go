@@ -6053,6 +6053,27 @@ func init() {
         "$ref": "#/definitions/free_network_addresses"
       }
     },
+    "gpu": {
+      "type": "object",
+      "properties": {
+        "bus_info": {
+          "description": "Device bus information (for example \"pci@0000:00:02.0\")",
+          "type": "string"
+        },
+        "clock_hz": {
+          "description": "GPU clock frequency in Hz",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Product name of the device (for example \"UHD Graphics 620 (Whiskey Lake)\")",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "The name of the device vendor (for example \"Intel Corporation\")",
+          "type": "string"
+        }
+      }
+    },
     "host": {
       "type": "object",
       "required": [
@@ -6643,6 +6664,12 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/disk"
+          }
+        },
+        "gpus": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/gpu"
           }
         },
         "hostname": {
@@ -13358,6 +13385,27 @@ func init() {
         "$ref": "#/definitions/free_network_addresses"
       }
     },
+    "gpu": {
+      "type": "object",
+      "properties": {
+        "bus_info": {
+          "description": "Device bus information (for example \"pci@0000:00:02.0\")",
+          "type": "string"
+        },
+        "clock_hz": {
+          "description": "GPU clock frequency in Hz",
+          "type": "integer"
+        },
+        "name": {
+          "description": "Product name of the device (for example \"UHD Graphics 620 (Whiskey Lake)\")",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "The name of the device vendor (for example \"Intel Corporation\")",
+          "type": "string"
+        }
+      }
+    },
     "host": {
       "type": "object",
       "required": [
@@ -13949,6 +13997,12 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/disk"
+          }
+        },
+        "gpus": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/gpu"
           }
         },
         "hostname": {
