@@ -72,15 +72,15 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   labels:
-    app: scality
-  name: scality-pv-claim
+    app: assisted-service
+  name: bucket-pv-claim
   namespace: assisted-installer
 spec:
   accessModes:
   - ReadWriteOnce
   resources:
     requests:
-      storage: 20Gi
+      storage: 10Gi
 EOF
 ```
 
