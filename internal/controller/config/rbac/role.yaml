@@ -71,6 +71,12 @@ rules:
 - apiGroups:
   - hive.openshift.io
   resources:
+  - clusterdeployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - hive.openshift.io
+  resources:
   - clusterdeployments/status
   verbs:
   - get

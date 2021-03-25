@@ -77,6 +77,7 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/finalizers,verbs=update
 
 func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -475,6 +476,7 @@ func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterD
 	}
 
 	if err != nil {
+		r.Log.WithError(err).Errorf("Updating state with error for %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		setClusterApiError(err, clusterDeployment)
 		reply.RequeueAfter = defaultRequeueAfterOnError
 	}
