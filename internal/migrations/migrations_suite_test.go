@@ -49,6 +49,9 @@ func migrateTo(db *gorm.DB, migratoinID string) error {
 func getColumnType(db *gorm.DB, model interface{}, column string) (string, error) {
 	rows, err := db.Model(model).Rows()
 	Expect(err).NotTo(HaveOccurred())
+	defer func() {
+		Expect(rows.Close()).To(Succeed())
+	}()
 
 	colTypes, err := rows.ColumnTypes()
 	Expect(err).NotTo(HaveOccurred())
