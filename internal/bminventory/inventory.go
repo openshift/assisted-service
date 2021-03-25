@@ -718,6 +718,36 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 		contentLength)
 }
 
+func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
+	log := logutil.FromContext(ctx, b.log)
+	var cluster common.Cluster
+
+	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	imgName := getImageName(*cluster.ID)
+	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
+			"Failed to download image: error fetching from storage backend", time.Now())
+		return installer.NewDownloadClusterISOHeadersInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+	if !exists {
+		return installer.NewDownloadClusterISOHeadersNotFound().
+			WithPayload(common.GenerateError(http.StatusNotFound, errors.New("The image was not found")))
+	}
+	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get ISO size for cluster %s", cluster.ID.String())
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+	return installer.NewDownloadClusterISOHeadersOK().WithContentLength(imgSize)
+}
+
 func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType, generated bool) error {
 	updates := map[string]interface{}{}
 	imgName := getImageName(*cluster.ID)
