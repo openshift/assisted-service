@@ -124,6 +124,16 @@ spec:
                 secretKeyRef:
                   key: endpoint
                   name: assisted-installer-public-s3
+            - name: EC_PUBLIC_KEY_PEM
+              valueFrom:
+                secretKeyRef:
+                  key: ec-public-key.pem
+                  name: assisted-installer-local-auth-key
+            - name: EC_PRIVATE_KEY_PEM
+              valueFrom:
+                secretKeyRef:
+                  key: ec-private-key.pem
+                  name: assisted-installer-local-auth-key
             - name: S3_USE_SSL
               value: "false"
             - name: LOG_LEVEL
