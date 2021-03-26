@@ -1,13 +1,11 @@
 package s3wrapper
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -86,19 +84,7 @@ func (f *FSClient) UploadISO(ctx context.Context, ignitionConfig, srcObject, des
 		return err
 	}
 
-	installerCommand := filepath.Join(f.basedir, "coreos-installer")
-	cmd := exec.Command(installerCommand, "iso", "ignition", "embed", "-o", resultFile, baseFile, "-f")
-	var out bytes.Buffer
-	cmd.Stdin = strings.NewReader(ignitionConfig)
-	cmd.Stdout = &out
-	cmd.Stderr = &out
-	err = cmd.Run()
-	if err != nil {
-		err = errors.Wrapf(err, "coreos-installer failed: %s", out.String())
-		log.Error(err)
-		return err
-	}
-	return nil
+	return isoeditor.EmbedIgnition(baseFile, resultFile, ignitionConfig)
 }
 
 func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {

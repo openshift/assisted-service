@@ -278,17 +278,9 @@ podman-pull-service-from-docker-daemon:
 deploy-onprem:
 	# Format: ip:hostPort:containerPort | ip::containerPort | hostPort:containerPort | containerPort
 	podman pod create --name assisted-installer -p 5432:5432,8000:8000,8090:8090,8080:8080
-	# These are required because when running on RHCOS livecd, the coreos-installer binary and
-	# livecd are bind-mounted from the host into the assisted-service container at runtime.
-	[ -f livecd.iso ] || ./hack/retry.sh 5 1 "curl $(RHCOS_BASE_ISO) -o livecd.iso"
-	[ -f coreos-installer ] || podman run --privileged --pull=always -it --rm \
-		-v .:/data -w /data --entrypoint /bin/bash \
-		quay.io/coreos/coreos-installer:v0.7.0 -c 'cp /usr/sbin/coreos-installer /data/coreos-installer'
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always --name db quay.io/ocpmetal/postgresql-12-centos7
 	podman run -dt --pod assisted-installer --env-file onprem-environment --pull always -v $(PWD)/deploy/ui/nginx.conf:/opt/bitnami/nginx/conf/server_blocks/nginx.conf:z --name ui quay.io/ocpmetal/ocp-metal-ui:latest
 	podman run -dt --pod assisted-installer --env-file onprem-environment ${PODMAN_PULL_FLAG} --env DUMMY_IGNITION=$(DUMMY_IGNITION) \
-		-v ./livecd.iso:/data/livecd.iso:z \
-		-v ./coreos-installer:/data/coreos-installer:z \
 		--restart always --name installer $(SERVICE)
 	./hack/retry.sh 90 2 "curl http://127.0.0.1:8090/ready"
 
@@ -409,8 +401,6 @@ clear-images:
 
 clean-onprem:
 	podman pod rm -f assisted-installer || true
-	rm livecd.iso || true
-	rm coreos-installer || true
 
 delete-minikube-profile:
 	minikube delete -p $(PROFILE)

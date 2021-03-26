@@ -29,14 +29,17 @@ Environment=HTTP_PROXY={{.HTTP_PROXY}}
 Environment=HTTPS_PROXY={{.HTTPS_PROXY}}
 Environment=NO_PROXY={{.NO_PROXY}}`
 
-const RamDiskPaddingLength = uint64(1024 * 1024) // 1MB
-const IgnitionPaddingLength = uint64(256 * 1024) // 256KB
-
-const ignitionImagePath = "/images/ignition.img"
-const ramDiskImagePath = "/images/assisted_installer_custom.img"
-const ignitionHeaderKey = "coreiso+"
-const ramdiskHeaderKey = "ramdisk+"
-const headerLength = int64(32768) // first 32KB in ISO
+const (
+	RamDiskPaddingLength  = uint64(1024 * 1024) // 1MB
+	IgnitionPaddingLength = uint64(256 * 1024)  // 256KB
+	ignitionImagePath     = "/images/ignition.img"
+	ramDiskImagePath      = "/images/assisted_installer_custom.img"
+	ignitionHeaderKey     = "coreiso+"
+	ramdiskHeaderKey      = "ramdisk+"
+	isoSystemAreaSize     = 32768
+	ignitionHeaderSize    = 24
+	headerLength          = int64(32768) // first 32KB in ISO
+)
 
 type ClusterProxyInfo struct {
 	HTTPProxy  string
@@ -405,6 +408,8 @@ func writeAt(b []byte, offset int64, clusterISOPath string) error {
 	return nil
 }
 
+// IgnitionImageArchive takes an ignitionConfig and returns a gzipped CPIO
+// archive (in bytes) or err on failure.
 func IgnitionImageArchive(ignitionConfig string) ([]byte, error) {
 	ignitionBytes := []byte(ignitionConfig)
 
@@ -558,4 +563,51 @@ func ParseOffsetInfo(headerBytes []byte) (*OffsetInfo, error) {
 		return nil, err
 	}
 	return offsetInfo, nil
+}
+
+func EmbedIgnition(inputISOPath, outputISOPath, ignitionConfig string) error {
+	coreosIgnitionHeader := make([]byte, ignitionHeaderSize)
+
+	inputISO, err := os.Open(inputISOPath)
+	if err != nil {
+		return err
+	}
+	defer inputISO.Close()
+
+	// Reading the last 24 bytes at the end of the system area)
+	if _, err = inputISO.ReadAt(coreosIgnitionHeader, isoSystemAreaSize-ignitionHeaderSize); err != nil {
+		return err
+	}
+	ignitionOffsetInfo, err := GetIgnitionArea(coreosIgnitionHeader)
+	if err != nil {
+		return err
+	}
+
+	cpio, err := IgnitionImageArchive(ignitionConfig)
+	if err != nil {
+		return err
+	}
+
+	if uint64(len(cpio)) > ignitionOffsetInfo.Length {
+		return errors.Errorf("Compressed Ignition config is too large: %v > %v", len(cpio), int(ignitionOffsetInfo.Length))
+	}
+
+	resultISO, err := os.Create(outputISOPath)
+	if err != nil {
+		return err
+	}
+	defer resultISO.Close()
+
+	if _, err = io.Copy(resultISO, inputISO); err != nil {
+		return err
+	}
+
+	// clear out the embed area
+	embedArea := make([]byte, ignitionOffsetInfo.Length)
+	copy(embedArea, cpio)
+	if _, err = resultISO.WriteAt(embedArea, int64(ignitionOffsetInfo.Offset)); err != nil {
+		return err
+	}
+
+	return nil
 }

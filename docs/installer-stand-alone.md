@@ -11,35 +11,6 @@ stand-alone mode via `podman`.
 You will need a valid OpenShift user pull secret. Copy or download the pull
 secret from https://cloud.redhat.com/openshift/install/pull-secret
 
-## Download CoreOS Installer
-
-This is used by the assisted-service to generate the discovery ISO. You can grab
-it from a released container image by:
-
-```
-podman run --privileged --pull=always -it --rm \
-  -v .:/data --entrypoint /bin/cp \
-  quay.io/coreos/coreos-installer:v0.7.0 /usr/sbin/coreos-installer /data/coreos-installer
-```
-
-## Download RHCOS Live ISO
-
-The RHCOS Live ISO is used as the base when building discovery ISOs. These
-images can be found at https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos
-Later on, in this document, you will see it referred to as `livecd.iso`.
-
-To pull the latest RHCOS Live ISO for OpenShift 4.6 and save it as `livecd.iso`.
-
-```
-curl https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/latest/rhcos-live.x86_64.iso -o livecd.iso
-```
-
-**NOTE** 
-The RHCOS images might not change with every release of OpenShift Container Platform.
-You must download images with the highest version that is less than or equal to the
-OpenShift Container Platform version that you install. Use the image versions that
-match your OpenShift Container Platform version if they are available.
-
 # Running the Assisted Installer using Podman
 
 ## Environment
@@ -114,18 +85,12 @@ podman run -dt --pod assisted-installer \
   --name installer \
   --env-file onprem-environment \
   --pull always \
-  -v ${PWD}/livecd.iso:/data/livecd.iso:z \
-  -v ${PWD}/coreos-installer:/data/coreos-installer:z \
   --restart always \
   quay.io/ocpmetal/assisted-service:latest /assisted-service
 ```
 
 **NOTE**
 * `onprem-environment` is the file downloaded and modified previously
-* `$(PWD)/livecd.iso` should be updated to reflect the RHCOS Live ISO previously
-    downloaded.
-* `$(PWD)/coreos-installer` is referencing the coreos-installer binary
-    previously downloaded.
 * If you modified the port for `SERVICE_BASE_URL` you would add `--port ${SERVICE_API_PORT}`
 
 ## Start Assisted Installer UI
