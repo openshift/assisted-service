@@ -38,8 +38,8 @@ type Operator interface {
 	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
 	GenerateManifests(*common.Cluster) (map[string][]byte, error)
-	// GetHostRequirementsForRole provides operator's requirements towards host in a given role
-	GetHostRequirementsForRole(ctx context.Context, cluster *common.Cluster, role models.HostRole) (*models.ClusterHostRequirementsDetails, error)
+	// GetHostRequirements provides operator's requirements towards the host
+	GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error)
 	// GetClusterValidationID returns cluster validation ID for the Operator
 	GetClusterValidationID() string
 	// GetHostValidationID returns host validation ID for the Operator

@@ -2049,7 +2049,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
 		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators)
-		mockOperators.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
+		mockOperators.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
 		hapi = NewManager(
 			common.GetTestLog(),
 			db,

@@ -91,7 +91,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 	return &Operator
 }
 
-// GetHostRequirementsForRole provides operator's requirements towards host in a given role
-func (o *operator) GetHostRequirementsForRole(context.Context, *common.Cluster, models.HostRole) (*models.ClusterHostRequirementsDetails, error) {
+// GetHostRequirements provides operator's requirements towards the host
+func (o *operator) GetHostRequirements(context.Context, *common.Cluster, *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	return &models.ClusterHostRequirementsDetails{}, nil
 }

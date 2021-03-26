@@ -50,19 +50,19 @@ type API interface {
 	GetSupportedOperators() []string
 	// GetOperatorProperties provides description of properties of an operator
 	GetOperatorProperties(operatorName string) (models.OperatorProperties, error)
-	// GetRequirementsBreakdownForRoleInCluster provides host requirements breakdown for each OLM operator in the cluster
-	GetRequirementsBreakdownForRoleInCluster(ctx context.Context, cluster *common.Cluster, role models.HostRole) ([]*models.OperatorHostRequirements, error)
+	// GetRequirementsBreakdownForHostInCluster provides host requirements breakdown for each OLM operator in the cluster
+	GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error)
 }
 
 // GetRequirementsBreakdownForRoleInCluster provides host requirements breakdown for each OLM operator in the cluster
-func (mgr *Manager) GetRequirementsBreakdownForRoleInCluster(ctx context.Context, cluster *common.Cluster, role models.HostRole) ([]*models.OperatorHostRequirements, error) {
+func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHostRequirements
 	for _, monitoredOperator := range cluster.MonitoredOperators {
 		operatorName := monitoredOperator.Name
 		operator := mgr.olmOperators[operatorName]
 		if operator != nil {
-			reqs, err := operator.GetHostRequirementsForRole(ctx, cluster, role)
+			reqs, err := operator.GetHostRequirements(ctx, cluster, host)
 			if err != nil {
 				logger.WithError(err).Errorf("Cannot get host requirements for %s operator", operatorName)
 				return nil, err
