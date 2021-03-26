@@ -1,17 +1,38 @@
-import os
-
+import base64
 import deployment_options
+import os
 import tempfile
 import utils
 
-def main():
-    secret_name = 'assisted-installer-local-auth-key'
-    deploy_options = deployment_options.load_deployment_options()
+def render_file(namespace, private_key, public_key):
+    src_file = os.path.join(os.getcwd(), 'deploy/assisted-installer-local-auth.yaml')
+    dst_file = os.path.join(os.getcwd(), 'build', namespace, 'assisted-installer-local-auth.yaml')
+    with open(src_file, "r") as src:
+        with open(dst_file, "w+") as dst:
+            data = src.read()
+            data = data.replace('REPLACE_NAMESPACE', f'"{namespace}"')
+            data = data.replace('REPLACE_PRIVATE_KEY', f'"{private_key}"')
+            data = data.replace('REPLACE_PUBLIC_KEY', f'"{public_key}"')
+            print("Deploying {}".format(dst_file))
+            dst.write(data)
+    return dst_file
 
-    # NO OP if we don't apply manifests as we don't want the secret included in the operator bundle
+
+def encoded_contents(filename):
+    with open(filename, 'r') as f:
+        return base64.b64encode(bytearray(f.read(), 'utf-8')).decode('utf-8')
+
+
+def main():
+    deploy_options = deployment_options.load_deployment_options()
+    utils.verify_build_directory(deploy_options.namespace)
+
+    # Render a file without values for the operator as we don't want every deployment to have the same values
     if not deploy_options.apply_manifest:
+        render_file(deploy_options.namespace, "", "")
         return
 
+    secret_name = 'assisted-installer-local-auth-key'
     exists = utils.check_if_exists(
         "secret",
         secret_name,
@@ -24,8 +45,6 @@ def main():
         print(f'Secret {secret_name} already exists in namespace {deploy_options.namespace}')
         return
 
-    utils.verify_build_directory(deploy_options.namespace)
-
     output_dir = tempfile.TemporaryDirectory()
     priv_path = os.path.join(output_dir.name, f'ec-private-key.pem')
     pub_path = os.path.join(output_dir.name, f'ec-public-key.pem')
@@ -33,8 +52,14 @@ def main():
     print(utils.check_output(f'openssl ecparam -name prime256v1 -genkey -noout -out {priv_path}'))
     print(utils.check_output(f'openssl ec -in {priv_path} -pubout -out {pub_path}'))
 
-    kubectl = utils.get_kubectl_command(deploy_options.target, deploy_options.namespace, deploy_options.profile)
-    print(utils.check_output(f'{kubectl} create secret generic {secret_name} --from-file={priv_path} --from-file={pub_path}'))
+    secret_file = render_file(deploy_options.namespace, encoded_contents(priv_path), encoded_contents(pub_path))
+
+    utils.apply(
+        target=deploy_options.target,
+        namespace=deploy_options.namespace,
+        profile=deploy_options.profile,
+        file=secret_file
+    )
 
 
 if __name__ == "__main__":
