@@ -16,12 +16,13 @@ const hostValidationsInfo = `{"operators":[{"id":"ocs-requirements-satisfied","s
 var _ = Describe("ChangeHostValidationsInfoToText", func() {
 	var (
 		db     *gorm.DB
+		dbName string
 		gm     *gormigrate.Gormigrate
 		hostID strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		db, _ = common.PrepareTestDB()
+		db, dbName = common.PrepareTestDB()
 		hostID = strfmt.UUID(uuid.New().String())
 		clusterID := strfmt.UUID(uuid.New().String())
 		host := models.Host{
@@ -35,6 +36,10 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
 		err = gm.MigrateTo("20210223090000")
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

@@ -16,12 +16,13 @@ const clusterValidationsInfo = `{"configuration":[{"id":"pull-secret-set","statu
 var _ = Describe("ChangeValidationsInfoToText", func() {
 	var (
 		db        *gorm.DB
+		dbName    string
 		gm        *gormigrate.Gormigrate
 		clusterID strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		db, _ = common.PrepareTestDB()
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{
 			ID:              &clusterID,
@@ -33,6 +34,10 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
 		err = gm.MigrateTo("20210218160100")
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {
