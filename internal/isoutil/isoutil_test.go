@@ -151,6 +151,17 @@ var _ = Context("with test files", func() {
 			Expect(id).To(Equal(volumeID))
 		})
 	})
+
+	Describe("efiLoadSectors", func() {
+		It("returns the correct value", func() {
+			p, err := filepath.Abs(filepath.Join(filesDir, "boot_files"))
+			Expect(err).ToNot(HaveOccurred())
+			h := NewHandler("", p).(*installerHandler)
+			sectors, err := h.efiLoadSectors()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sectors).To(Equal(uint16(3997)))
+		})
+	})
 })
 
 func createIsoViaGenisoimage(volumeID string) (string, string, string) {
@@ -173,7 +184,10 @@ func createIsoViaGenisoimage(volumeID string) (string, string, string) {
 	Expect(err).ToNot(HaveOccurred())
 	err = os.Mkdir(filepath.Join(filesDir, "boot_files", "images"), 0755)
 	Expect(err).ToNot(HaveOccurred())
-	err = ioutil.WriteFile(filepath.Join(filesDir, "boot_files", "images", "efiboot.img"), []byte(""), 0600)
+	// Create a file with some size to test load sector calculation
+	f, err := os.Create(filepath.Join(filesDir, "boot_files", "images", "efiboot.img"))
+	Expect(err).ToNot(HaveOccurred())
+	err = f.Truncate(8184422)
 	Expect(err).ToNot(HaveOccurred())
 	err = os.Mkdir(filepath.Join(filesDir, "boot_files", "isolinux"), 0755)
 	Expect(err).ToNot(HaveOccurred())

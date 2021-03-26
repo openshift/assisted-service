@@ -331,10 +331,12 @@ func (e *rhcosEditor) create() (string, error) {
 
 func (e *rhcosEditor) fixTemplateConfigs(serviceBaseURL string) error {
 	// Add the rootfs url
-	replacement := fmt.Sprintf("$1 $2 coreos.live.rootfs_url=%s", e.getRootFSURL(serviceBaseURL))
+	rootFSURL := e.getRootFSURL(serviceBaseURL)
+	replacement := fmt.Sprintf("$1 $2 'coreos.live.rootfs_url=%s'", rootFSURL)
 	if err := editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), `(?m)^(\s+linux) (.+| )+$`, replacement); err != nil {
 		return err
 	}
+	replacement = fmt.Sprintf("$1 $2 coreos.live.rootfs_url=%s", rootFSURL)
 	if err := editFile(e.isoHandler.ExtractedPath("isolinux/isolinux.cfg"), `(?m)^(\s+append) (.+| )+$`, replacement); err != nil {
 		return err
 	}

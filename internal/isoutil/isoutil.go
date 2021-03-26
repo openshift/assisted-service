@@ -3,6 +3,7 @@ package isoutil
 import (
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -166,6 +167,10 @@ func (h *installerHandler) Create(outPath string, volumeLabel string) error {
 	if haveFiles, err := h.haveBootFiles(); err != nil {
 		return err
 	} else if haveFiles {
+		efiSectors, err := h.efiLoadSectors()
+		if err != nil {
+			return err
+		}
 		options.ElTorito = &iso9660.ElTorito{
 			BootCatalog: "isolinux/boot.cat",
 			Entries: []*iso9660.ElToritoEntry{
@@ -180,12 +185,23 @@ func (h *installerHandler) Create(outPath string, volumeLabel string) error {
 					Platform:  iso9660.EFI,
 					Emulation: iso9660.NoEmulation,
 					BootFile:  "images/efiboot.img",
+					LoadSize:  efiSectors,
 				},
 			},
 		}
 	}
 
 	return iso.Finalize(options)
+}
+
+// Returns the number of sectors to load for efi boot
+// Load Sectors * 2048 should be the size of efiboot.img rounded up to a multiple of 2048
+func (h *installerHandler) efiLoadSectors() (uint16, error) {
+	efiStat, err := os.Stat(filepath.Join(h.workDir, "images/efiboot.img"))
+	if err != nil {
+		return 0, err
+	}
+	return uint16(math.Ceil(float64(efiStat.Size()) / 2048)), nil
 }
 
 func (h *installerHandler) haveBootFiles() (bool, error) {

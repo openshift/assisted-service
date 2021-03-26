@@ -119,7 +119,7 @@ var _ = Context("with test files", func() {
 			err = editor.(*rhcosEditor).fixTemplateConfigs(defaultTestServiceBaseURL)
 			Expect(err).ToNot(HaveOccurred())
 
-			newLine := "	linux /images/pxeboot/vmlinuz random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal coreos.live.rootfs_url=%s"
+			newLine := "	linux /images/pxeboot/vmlinuz random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal 'coreos.live.rootfs_url=%s'"
 			grubCfg := fmt.Sprintf(newLine, rootfsURL)
 			validateFileContainsLine(isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), grubCfg)
 
