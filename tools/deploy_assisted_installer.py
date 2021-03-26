@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--subsystem-test", help='deploy in subsystem mode',
                     action='store_true')
 deploy_options = deployment_options.load_deployment_options(parser)
+log = utils.get_logger('deploy-assisted-installer')
 
 SRC_FILE = os.path.join(os.getcwd(), 'deploy/assisted-service.yaml')
 DST_FILE = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service.yaml')
@@ -23,7 +24,7 @@ def load_key():
         with open(KEY_FILE, "r") as f:
             return f.read()
     except Exception as e:
-        print("Got exception {}, when tried to read key file at {}."
+        log.warn("Got exception {}, when tried to read key file at {}."
               "Make sure you used tools/auth_keys_generator.go before running subsystem tests".format(e, KEY_FILE))
         return ""
 
@@ -76,7 +77,7 @@ def main():
     if not deploy_options.apply_manifest:
         return
 
-    print("Deploying {}".format(DST_FILE))
+    log.info(f"Deploying {DST_FILE}")
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
