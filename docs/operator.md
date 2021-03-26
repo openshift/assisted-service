@@ -48,7 +48,7 @@ metadata:
 EOF
 ```
 
-Create two PVCs, one for postgres and another for s3 (temporary until filesystem implementation is available).
+Create two PVCs, one for postgres and another for bucket (temporary until filesystem implementation is available).
 
 ```bash
 cat <<EOF | kubectl create -f -
