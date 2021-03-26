@@ -56,9 +56,15 @@ pipeline {
             }
         }
 
-        stage('Subsystem Test') {
+        stage('Subsystem Test - REST-API') {
             steps {
                 sh "make subsystem-run"
+            }
+        }
+
+        stage('Subsystem Test - KUBE-API') {
+            steps {
+                sh "make subsystem-run-kube-api"
             }
         }
 
