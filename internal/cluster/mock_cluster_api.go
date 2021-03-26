@@ -281,18 +281,18 @@ func (mr *MockAPIMockRecorder) ClusterMonitoring() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterMonitoring", reflect.TypeOf((*MockAPI)(nil).ClusterMonitoring))
 }
 
-// GetCredentials mocks base method
-func (m *MockAPI) GetCredentials(c *common.Cluster) error {
+// IsOperatorAvailable mocks base method
+func (m *MockAPI) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCredentials", c)
-	ret0, _ := ret[0].(error)
+	ret := m.ctrl.Call(m, "IsOperatorAvailable", c, operatorName)
+	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
-// GetCredentials indicates an expected call of GetCredentials
-func (mr *MockAPIMockRecorder) GetCredentials(c interface{}) *gomock.Call {
+// IsOperatorAvailable indicates an expected call of IsOperatorAvailable
+func (mr *MockAPIMockRecorder) IsOperatorAvailable(c, operatorName interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCredentials", reflect.TypeOf((*MockAPI)(nil).GetCredentials), c)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsOperatorAvailable", reflect.TypeOf((*MockAPI)(nil).IsOperatorAvailable), c, operatorName)
 }
 
 // UploadIngressCert mocks base method

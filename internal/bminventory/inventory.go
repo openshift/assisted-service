@@ -3273,7 +3273,8 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
 
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
+	db := common.LoadTableFromDB(b.db, common.MonitoredOperatorsTable)
+	if err := db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
 		if gorm.IsRecordNotFoundError(err) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
@@ -3281,8 +3282,9 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
-	if err := b.clusterApi.GetCredentials(&cluster); err != nil {
-		log.WithError(err).Errorf("failed to get credentials of cluster %s", params.ClusterID.String())
+	if !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
+		err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
+		log.WithError(err)
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
 	objectName := fmt.Sprintf("%s/%s", params.ClusterID, "kubeadmin-password")
