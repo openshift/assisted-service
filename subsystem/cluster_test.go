@@ -418,7 +418,7 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 
 func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) {
 	ctx := context.Background()
-	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	rep, err := client.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 
 	status := models.OperatorStatusAvailable

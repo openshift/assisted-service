@@ -312,7 +312,7 @@ test:
 	$(MAKE) _run_test AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
 
 test-kube-api:
-	$(MAKE) _run_test AUTH_TYPE=none ENABLE_KUBE_API=true FOCUS=kube-api
+	$(MAKE) _run_test AUTH_TYPE=local ENABLE_KUBE_API=true FOCUS=kube-api
 
 _run_test:
 	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
@@ -325,7 +325,7 @@ _run_test:
 		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
-	$(MAKE) deploy-service-requirements AUTH_TYPE=none ENABLE_KUBE_API=true
+	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true
 	$(call restart_service_pods)
 	$(MAKE) wait-for-service
 
