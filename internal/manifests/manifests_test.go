@@ -60,7 +60,7 @@ var _ = Describe("ClusterManifestTests", func() {
 		ctx           = context.Background()
 		ctrl          *gomock.Controller
 		mockS3Client  *s3wrapper.MockAPI
-		dbName        = "cluster_manifest"
+		dbName        string
 		fileName      = "99-openshift-machineconfig-master-kargs.yaml"
 		validFolder   = "openshift"
 		defaultFolder = "manifests"
@@ -69,7 +69,7 @@ var _ = Describe("ClusterManifestTests", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 
 		manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client)

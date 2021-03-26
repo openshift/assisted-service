@@ -21,7 +21,7 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB("change_validations_info_to_text")
+		db, _ = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{Cluster: models.Cluster{
 			ID:              &clusterID,

@@ -21,10 +21,10 @@ var _ = Describe("reset", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "reset_cmd"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		rstCmd = NewResetInstallationCmd(common.GetTestLog())
 
 		id = strfmt.UUID(uuid.New().String())

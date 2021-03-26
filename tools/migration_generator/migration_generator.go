@@ -30,13 +30,11 @@ func main() {
 	testFilePath := filepath.Join("internal/migrations", fmt.Sprintf("%s_%s_test.go", id, funcNameSnake))
 
 	data := struct {
-		ID            string
-		FuncName      string
-		FuncNameSnake string
+		ID       string
+		FuncName string
 	}{
-		ID:            id,
-		FuncName:      funcName,
-		FuncNameSnake: funcNameSnake,
+		ID:       id,
+		FuncName: funcName,
 	}
 
 	file, err := os.Create(filePath)
@@ -105,14 +103,15 @@ import (
 var _ = Describe("{{.FuncName}}", func() {
 	var (
 		db        *gorm.DB
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB("{{.FuncNameSnake}}")
+		db, dbName = common.PrepareTestDB()
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, "{{.FuncNameSnake}}")
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates up", func() {

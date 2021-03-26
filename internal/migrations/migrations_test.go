@@ -8,7 +8,8 @@ import (
 
 var _ = Describe("Migrate", func() {
 	It("Succeeds", func() {
-		db := common.PrepareTestDB("migration_test")
+		db, dbName := common.PrepareTestDB()
+		defer common.DeleteTestDB(db, dbName)
 		err := Migrate(db)
 		Expect(err).ToNot(HaveOccurred())
 	})

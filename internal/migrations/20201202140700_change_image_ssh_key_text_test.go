@@ -21,7 +21,7 @@ var _ = Describe("changeOverridesToText", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB("change_image_ssh_key_to_text")
+		db, _ = common.PrepareTestDB()
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
 
 		// create cluster in order to get rows from DB

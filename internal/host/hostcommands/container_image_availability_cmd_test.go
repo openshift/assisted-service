@@ -27,7 +27,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 		db            *gorm.DB
 		cmd           *imageAvailabilityCmd
 		id, clusterID strfmt.UUID
-		dbName        = "apivipconnectivitycheckcmd"
+		dbName        string
 		ctrl          *gomock.Controller
 		mockRelease   *oc.MockRelease
 		mockVersions  *versions.MockHandler
@@ -38,7 +38,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig)
 
 		id = strfmt.UUID(uuid.New().String())

@@ -51,12 +51,12 @@ var _ = Describe("RegisterHost", func() {
 		ctrl              *gomock.Controller
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
-		dbName            = "register_host"
+		dbName            string
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
@@ -433,11 +433,11 @@ var _ = Describe("HostInstallationFailed", func() {
 		ctrl              *gomock.Controller
 		mockMetric        *metrics.MockAPI
 		mockEvents        *events.MockHandler
-		dbName            = "host_installation_failed"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
@@ -477,11 +477,11 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		ctrl              *gomock.Controller
 		mockMetric        *metrics.MockAPI
 		mockEvents        *events.MockHandler
-		dbName            = "register_installed_host"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
@@ -507,7 +507,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 var _ = Describe("Cancel host installation", func() {
 	var (
 		ctx               = context.Background()
-		dbName            = "cancel_host_installation_test"
+		dbName            string
 		hapi              API
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
@@ -517,7 +517,7 @@ var _ = Describe("Cancel host installation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -594,7 +594,7 @@ var _ = Describe("Cancel host installation", func() {
 var _ = Describe("Reset host", func() {
 	var (
 		ctx               = context.Background()
-		dbName            = "reset_host_test"
+		dbName            string
 		hapi              API
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
@@ -604,7 +604,7 @@ var _ = Describe("Reset host", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -688,11 +688,11 @@ var _ = Describe("Install", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "transition_install"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -843,11 +843,11 @@ var _ = Describe("Disable", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "transition_disable"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -976,11 +976,11 @@ var _ = Describe("Enable", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "transition_enable"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -1176,12 +1176,12 @@ var _ = Describe("Refresh Host", func() {
 		cluster           common.Cluster
 		mockEvents        *events.MockHandler
 		ctrl              *gomock.Controller
-		dbName            string = "host_transition_test_refresh_host"
+		dbName            string
 		mockHwValidator   *hardware.MockValidator
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)

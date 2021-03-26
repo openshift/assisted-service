@@ -18,11 +18,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const dbName = "operators_handler"
-
 var _ = Describe("Operators manager", func() {
 	var (
 		db                *gorm.DB
+		dbName            string
 		cluster, cluster2 *common.Cluster
 		log               = logrus.New()
 		ctrl              *gomock.Controller
@@ -31,7 +30,7 @@ var _ = Describe("Operators manager", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockApi = operators.NewMockAPI(ctrl)
 		handler = hndlr.NewHandler(mockApi, log, db)

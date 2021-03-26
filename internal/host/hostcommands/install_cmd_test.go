@@ -55,13 +55,13 @@ var _ = Describe("installcmd", func() {
 		mockRelease       *oc.MockRelease
 		instructionConfig InstructionConfig
 		disks             []*models.Disk
-		dbName            = "install_cmd"
+		dbName            string
 		validDiskSize     = int64(128849018880)
 		mockEvents        *events.MockHandler
 		mockVersions      *versions.MockHandler
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		instructionConfig = DefaultInstructionConfig
@@ -258,7 +258,7 @@ var _ = Describe("installcmd arguments", func() {
 		db           *gorm.DB
 		validator    *hardware.MockValidator
 		mockRelease  *oc.MockRelease
-		dbName       = "installcmd_args"
+		dbName       string
 		ctrl         *gomock.Controller
 		mockEvents   *events.MockHandler
 		mockVersions *versions.MockHandler
@@ -270,7 +270,7 @@ var _ = Describe("installcmd arguments", func() {
 	}
 
 	BeforeSuite(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
 		disks := []*models.Disk{{Name: "Disk1"}}

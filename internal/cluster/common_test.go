@@ -20,11 +20,11 @@ var _ = Describe("update_cluster_state", func() {
 		cluster         *common.Cluster
 		lastUpdatedTime strfmt.DateTime
 		err             error
-		dbName          string = "common_test"
+		dbName          string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
