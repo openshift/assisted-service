@@ -290,7 +290,7 @@ func (v *validator) hasMemoryForRole(c *validationContext) ValidationStatus {
 		return ValidationPending
 	}
 	requiredBytes := conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)
-	return boolValue(c.inventory.Memory.UsableBytes >= requiredBytes)
+	return boolValue(c.inventory.Memory.PhysicalBytes >= requiredBytes)
 }
 
 func (v *validator) isValidPlatform(c *validationContext) ValidationStatus {
@@ -323,7 +323,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status Validatio
 	case ValidationFailure:
 
 		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d GiB",
-			conversions.MibToGiB(c.clusterHostRequirements.Total.RAMMib), c.host.Role, conversions.BytesToGiB(c.inventory.Memory.UsableBytes))
+			conversions.MibToGiB(c.clusterHostRequirements.Total.RAMMib), c.host.Role, conversions.BytesToGiB(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
