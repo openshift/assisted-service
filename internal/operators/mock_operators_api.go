@@ -151,18 +151,19 @@ func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedOperatorsByType", reflect.TypeOf((*MockAPI)(nil).GetSupportedOperatorsByType), arg0)
 }
 
-// UpdateDependencies mocks base method
-func (m *MockAPI) UpdateDependencies(arg0 *common.Cluster) error {
+// ResolveDependencies mocks base method
+func (m *MockAPI) ResolveDependencies(arg0 []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateDependencies", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "ResolveDependencies", arg0)
+	ret0, _ := ret[0].([]*models.MonitoredOperator)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// UpdateDependencies indicates an expected call of UpdateDependencies
-func (mr *MockAPIMockRecorder) UpdateDependencies(arg0 interface{}) *gomock.Call {
+// ResolveDependencies indicates an expected call of ResolveDependencies
+func (mr *MockAPIMockRecorder) ResolveDependencies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDependencies", reflect.TypeOf((*MockAPI)(nil).UpdateDependencies), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveDependencies", reflect.TypeOf((*MockAPI)(nil).ResolveDependencies), arg0)
 }
 
 // ValidateCluster mocks base method
