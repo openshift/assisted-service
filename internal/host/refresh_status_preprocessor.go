@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -17,6 +18,8 @@ type validationResult struct {
 }
 
 type validationsStatus map[string][]validationResult
+
+type validationResults []validationResult
 
 type refreshPreprocessor struct {
 	log          logrus.FieldLogger
@@ -72,9 +75,17 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID
 			Status:  status,
 			Message: strings.Join(result.Reasons, "\n"),
 		})
+		sortByValidationResultID(validationsOutput[category])
 	}
 
 	return stateMachineInput, validationsOutput, nil
+}
+
+// sortByValidationResultID sorts results by models.HostValidationID
+func sortByValidationResultID(validationResults []validationResult) {
+	sort.SliceStable(validationResults, func(i, j int) bool {
+		return validationResults[i].ID < validationResults[j].ID
+	})
 }
 
 func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsAPI operators.API) []validation {

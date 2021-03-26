@@ -3980,6 +3980,22 @@ var _ = Describe("Single node", func() {
 	})
 })
 
+var _ = Describe("ValidationResult sort", func() {
+	It("ValidationResult sort", func() {
+		validationResults := []ValidationResult{
+			{ID: "cab", Status: "abc", Message: "abc"},
+			{ID: "bac", Status: "abc", Message: "abc"},
+			{ID: "acb", Status: "abc", Message: "abc"},
+			{ID: "abc", Status: "abc", Message: "abc"},
+		}
+		sortByValidationResultID(validationResults)
+		Expect(validationResults[0].ID.String()).Should(Equal("abc"))
+		Expect(validationResults[1].ID.String()).Should(Equal("acb"))
+		Expect(validationResults[2].ID.String()).Should(Equal("bac"))
+		Expect(validationResults[3].ID.String()).Should(Equal("cab"))
+	})
+})
+
 func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
 	c, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
 	Expect(err).ShouldNot(HaveOccurred())
