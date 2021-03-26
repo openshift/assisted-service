@@ -771,15 +771,6 @@ var _ = Describe("Metrics tests", func() {
 
 	Context("Cluster validation metrics", func() {
 
-		updateCluster := func(params *models.ClusterUpdateParams) *models.Cluster {
-			cluster, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-				ClusterID:           clusterID,
-				ClusterUpdateParams: params,
-			})
-			Expect(err).NotTo(HaveOccurred())
-			return cluster.GetPayload()
-		}
-
 		deregisterHost := func(hostID strfmt.UUID) {
 			_, err := userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 				ClusterID: clusterID,
@@ -871,43 +862,6 @@ var _ = Describe("Metrics tests", func() {
 
 			// check generated events
 			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDSufficientMastersCount, false)
-		})
-
-		It("'pull-secret-set' failed", func() {
-
-			// create a validation success
-			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDPullSecretSet)
-
-			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDPullSecretSet), clusterValidationChangedMetric)
-			oldFailedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDPullSecretSet), clusterValidationFailedMetric)
-
-			// create a validation failure
-			noPullSecret := ""
-			updateCluster(&models.ClusterUpdateParams{PullSecret: &noPullSecret})
-			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDPullSecretSet)
-
-			// check generated events
-			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDPullSecretSet, true)
-
-			// check generated metrics
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDPullSecretSet), clusterValidationChangedMetric)).To(Equal(oldChangedMetricCounter + 1))
-			metricsDeregisterCluster(ctx, clusterID)
-			Expect(getValidationMetricCounter(string(models.ClusterValidationIDPullSecretSet), clusterValidationFailedMetric)).To(Equal(oldFailedMetricCounter + 1))
-		})
-
-		It("'pull-secret-set' got fixed", func() {
-
-			// create a validation failure
-			noPullSecret := ""
-			updateCluster(&models.ClusterUpdateParams{PullSecret: &noPullSecret})
-			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDPullSecretSet)
-
-			// create a validation success
-			updateCluster(&models.ClusterUpdateParams{PullSecret: swag.String(pullSecret)})
-			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDPullSecretSet)
-
-			// check generated events
-			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDPullSecretSet, false)
 		})
 
 		It("'ntp-server-configured' failed", func() {
