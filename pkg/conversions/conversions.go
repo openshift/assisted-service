@@ -1,6 +1,10 @@
 package conversions
 
-import "github.com/alecthomas/units"
+import (
+	"fmt"
+
+	"github.com/alecthomas/units"
+)
 
 func GbToBytes(gb int64) int64 {
 	return gb * int64(units.GB)
@@ -28,4 +32,37 @@ func MibToBytes(mib int64) int64 {
 
 func BytesToMib(bytes int64) int64 {
 	return bytes / int64(units.MiB)
+}
+
+const (
+	_ = iota
+	// KiB 1024 bytes
+	KiB = 1 << (10 * iota)
+	// MiB 1024 KiB
+	MiB
+	// GiB 1024 MiB
+	GiB
+	// TiB 1024 GiB
+	TiB
+	// PiB 1024 TiB
+	PiB
+)
+
+func BytesToString(b int64) string {
+	if b >= PiB {
+		return fmt.Sprintf("%.2f PiB", float64(b)/float64(PiB))
+	}
+	if b >= TiB {
+		return fmt.Sprintf("%.2f TiB", float64(b)/float64(TiB))
+	}
+	if b >= GiB {
+		return fmt.Sprintf("%.2f GiB", float64(b)/float64(GiB))
+	}
+	if b >= MiB {
+		return fmt.Sprintf("%v MiB", b/MiB)
+	}
+	if b >= KiB {
+		return fmt.Sprintf("%v KiB", b/KiB)
+	}
+	return fmt.Sprintf("%v bytes", b)
 }
