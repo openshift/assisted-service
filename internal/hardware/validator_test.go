@@ -244,7 +244,7 @@ var _ = Describe("Cluster host requirements", func() {
 		id1 := strfmt.UUID(uuid.New().String())
 		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
 
-		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
 
 		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
 
@@ -269,7 +269,7 @@ var _ = Describe("Cluster host requirements", func() {
 		id1 := strfmt.UUID(uuid.New().String())
 		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
 
-		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(operatorRequirements, nil)
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
 
 		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
 
@@ -295,7 +295,7 @@ var _ = Describe("Cluster host requirements", func() {
 		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
 
 		failure := errors.New("boom")
-		operatorsMock.EXPECT().GetRequirementsBreakdownForRoleInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(nil, failure)
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(nil, failure)
 
 		_, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
 

@@ -78,19 +78,19 @@ func (mr *MockOperatorMockRecorder) GetDependencies() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDependencies", reflect.TypeOf((*MockOperator)(nil).GetDependencies))
 }
 
-// GetHostRequirementsForRole mocks base method
-func (m *MockOperator) GetHostRequirementsForRole(arg0 context.Context, arg1 *common.Cluster, arg2 models.HostRole) (*models.ClusterHostRequirementsDetails, error) {
+// GetHostRequirements mocks base method
+func (m *MockOperator) GetHostRequirements(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostRequirementsForRole", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "GetHostRequirements", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*models.ClusterHostRequirementsDetails)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetHostRequirementsForRole indicates an expected call of GetHostRequirementsForRole
-func (mr *MockOperatorMockRecorder) GetHostRequirementsForRole(arg0, arg1, arg2 interface{}) *gomock.Call {
+// GetHostRequirements indicates an expected call of GetHostRequirements
+func (mr *MockOperatorMockRecorder) GetHostRequirements(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirementsForRole", reflect.TypeOf((*MockOperator)(nil).GetHostRequirementsForRole), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockOperator)(nil).GetHostRequirements), arg0, arg1, arg2)
 }
 
 // GetHostValidationID mocks base method

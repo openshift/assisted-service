@@ -252,6 +252,7 @@ var _ = Describe("Operators manager", func() {
 		var (
 			manager              *operators.Manager
 			operator1, operator2 *api.MockOperator
+			host                 *models.Host
 		)
 
 		BeforeEach(func() {
@@ -259,16 +260,17 @@ var _ = Describe("Operators manager", func() {
 			operator2 = mockOperatorBase(operatorName2)
 			cluster.MonitoredOperators = models.MonitoredOperatorsList{{Name: operatorName1}, {Name: operatorName2}}
 			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, operator1, operator2)
+			host = &models.Host{}
 		})
 		It("should be provided for configured operators", func() {
-			role := models.HostRoleMaster
+			host.Role = models.HostRoleMaster
 
 			requirements1 := models.ClusterHostRequirementsDetails{CPUCores: 1}
-			operator1.EXPECT().GetHostRequirementsForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(&requirements1, nil)
+			operator1.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(&requirements1, nil)
 			requirements2 := models.ClusterHostRequirementsDetails{CPUCores: 2}
-			operator2.EXPECT().GetHostRequirementsForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(&requirements2, nil)
+			operator2.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(&requirements2, nil)
 
-			reqBreakdown, err := manager.GetRequirementsBreakdownForRoleInCluster(context.TODO(), cluster, role)
+			reqBreakdown, err := manager.GetRequirementsBreakdownForHostInCluster(context.TODO(), cluster, host)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(reqBreakdown).To(HaveLen(2))
@@ -279,15 +281,14 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("should return error", func() {
-			role := models.HostRoleMaster
-
+			host.Role = models.HostRoleMaster
 			requirements1 := models.ClusterHostRequirementsDetails{CPUCores: 1}
-			operator1.EXPECT().GetHostRequirementsForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(&requirements1, nil)
+			operator1.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(&requirements1, nil)
 
 			theError := errors.New("boom")
-			operator2.EXPECT().GetHostRequirementsForRole(gomock.Any(), gomock.Eq(cluster), gomock.Eq(role)).Return(nil, theError)
+			operator2.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(nil, theError)
 
-			_, err := manager.GetRequirementsBreakdownForRoleInCluster(context.TODO(), cluster, role)
+			_, err := manager.GetRequirementsBreakdownForHostInCluster(context.TODO(), cluster, host)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err).To(BeEquivalentTo(theError))

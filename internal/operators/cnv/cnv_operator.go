@@ -90,7 +90,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		o.log.Info("Validate Requirements status ", status)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{status}}, nil
 	}
-	requirements, err := o.GetHostRequirementsForRole(ctx, cluster, host.Role)
+	requirements, err := o.GetHostRequirements(ctx, cluster, host)
 	if err != nil {
 		message := fmt.Sprintf("Failed to get host requirements for host with id %s", host.ID)
 		o.log.Error(message)
@@ -128,9 +128,9 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 	return &Operator
 }
 
-// GetHostRequirementsForRole provides operator's requirements towards host in a given role
-func (o *operator) GetHostRequirementsForRole(_ context.Context, _ *common.Cluster, role models.HostRole) (*models.ClusterHostRequirementsDetails, error) {
-	switch role {
+// GetHostRequirements provides operator's requirements towards the host
+func (o *operator) GetHostRequirements(_ context.Context, _ *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+	switch host.Role {
 	case models.HostRoleMaster:
 		return &models.ClusterHostRequirementsDetails{
 			CPUCores: masterCPU,
@@ -142,5 +142,5 @@ func (o *operator) GetHostRequirementsForRole(_ context.Context, _ *common.Clust
 			RAMMib:   workerMemory,
 		}, nil
 	}
-	return nil, fmt.Errorf("unsupported role: %s", role)
+	return nil, fmt.Errorf("unsupported role: %s", host.Role)
 }
