@@ -569,6 +569,8 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		EmailDomain:      ocm.EmailDomainFromContext(ctx),
 		UpdatedAt:        strfmt.DateTime{},
 		APIVipDNSName:    swag.String(apivipDnsname),
+		HostNetworks:     []*models.HostNetwork{},
+		Hosts:            []*models.Host{},
 	},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,

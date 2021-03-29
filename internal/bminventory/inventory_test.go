@@ -5361,6 +5361,9 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	})
 
 	It("Create AddHosts cluster", func() {
+		defaultHostNetworks := make([]*models.HostNetwork, 0)
+		defaultHosts := make([]*models.Host, 0)
+
 		params := installer.RegisterAddHostsClusterParams{
 			HTTPRequest: request,
 			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
@@ -5374,6 +5377,10 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.OpenShiftVersion, clusterID, "Unknown").Times(1)
 		mockVersions.EXPECT().GetSupportedVersionFormat(common.TestDefaultConfig.OpenShiftVersion).Return(common.TestDefaultConfig.OpenShiftVersion, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
+		actual := res.(*installer.RegisterAddHostsClusterCreated)
+
+		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
+		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
 
