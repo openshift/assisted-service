@@ -5595,6 +5595,64 @@ var _ = Describe("Install Host test", func() {
 	})
 })
 
+var _ = Describe("InstallSingleDay2Host test", func() {
+
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		dbName    string
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			Kind:             swag.String(models.ClusterKindAddHostsCluster),
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			Status:           swag.String(models.ClusterStatusAddingHosts),
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		bm = createInventory(db, cfg)
+		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Install Single Day2 Host", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, hostId)
+		Expect(res).Should(BeNil())
+	})
+
+	It("Install fail Single Day2 Host", func() {
+		expectedErrMsg := "some-internal-error"
+		hostId := strfmt.UUID(uuid.New().String())
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, hostId)
+		Expect(res.Error()).Should(Equal(expectedErrMsg))
+	})
+})
+
 var _ = Describe("Install Hosts test", func() {
 
 	var (

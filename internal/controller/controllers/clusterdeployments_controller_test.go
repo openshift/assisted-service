@@ -424,6 +424,7 @@ var _ = Describe("cluster reconcile", func() {
 					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
 					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -723,6 +724,60 @@ var _ = Describe("cluster reconcile", func() {
 				To(Equal(models.ClusterStatusPendingForInput))
 		})
 
+		It("install day2 host", func() {
+			openshiftID := strfmt.UUID(uuid.New().String())
+			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
+			backEndCluster.OpenshiftClusterID = openshiftID
+			backEndCluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+			backEndCluster.Status = swag.String(models.ClusterStatusAddingHosts)
+			id := strfmt.UUID(uuid.New().String())
+			h := &models.Host{
+				ID:     &id,
+				Status: swag.String(models.HostStatusKnown),
+			}
+			backEndCluster.Hosts = []*models.Host{h}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
+			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusAddingHosts))
+		})
+
+		It("install failure day2 host", func() {
+			openshiftID := strfmt.UUID(uuid.New().String())
+			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
+			backEndCluster.OpenshiftClusterID = openshiftID
+			backEndCluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+			backEndCluster.Status = swag.String(models.ClusterStatusAddingHosts)
+			id := strfmt.UUID(uuid.New().String())
+			h := &models.Host{
+				ID:     &id,
+				Status: swag.String(models.HostStatusKnown),
+			}
+			backEndCluster.Hosts = []*models.Host{h}
+			expectedError := errors.New("internal error")
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
+			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(expectedError)
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusAddingHosts))
+			Expect(getConditionByReason(AgentPlatformError, cluster).Message).To(Equal(expectedError.Error()))
+		})
+
 	})
 
 	Context("cluster update", func() {
@@ -805,6 +860,7 @@ var _ = Describe("cluster reconcile", func() {
 					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
 					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					Kind:                     swag.String(models.ClusterKindCluster),
 				},
 				PullSecret: testPullSecretVal,
 			}

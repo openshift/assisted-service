@@ -119,6 +119,7 @@ type InstallerInternals interface {
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
+	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -1252,6 +1253,78 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
 	return cluster, nil
+}
+
+func (b *bareMetalInventory) InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error {
+
+	log := logutil.FromContext(ctx, b.log)
+	var err error
+	var cluster *common.Cluster
+	var h *models.Host
+
+	if cluster, err = common.GetClusterFromDB(b.db, clusterId, common.UseEagerLoading); err != nil {
+		return err
+	}
+	if h, err = b.getHost(ctx, clusterId.String(), hostId.String()); err != nil {
+		return err
+	}
+	// auto select host roles if not selected yet.
+	err = b.db.Transaction(func(tx *gorm.DB) error {
+		if err = b.hostApi.AutoAssignRole(ctx, h, tx); err != nil {
+			return err
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if err = b.setMajorityGroupForCluster(cluster.ID, b.db); err != nil {
+		return err
+	}
+	if err = b.hostApi.RefreshStatus(ctx, h, b.db); err != nil {
+		return err
+	}
+
+	txSuccess := false
+	tx := b.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("InstallSingleDay2HostInternal failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("InstallSingleDay2HostInternal failed")
+			tx.Rollback()
+		}
+	}()
+
+	// in case host monitor already updated the state we need to use FOR UPDATE option
+	tx = transaction.AddForUpdateQueryOption(tx)
+
+	if cluster, err = common.GetClusterFromDB(tx, clusterId, common.UseEagerLoading); err != nil {
+		return err
+	}
+
+	// move host to installing
+	err = b.createAndUploadNodeIgnition(ctx, cluster, h)
+	if err != nil {
+		log.Errorf("Failed to upload ignition for host %s", h.RequestedHostname)
+		return err
+	}
+	if installErr := b.hostApi.Install(ctx, h, tx); installErr != nil {
+		log.Errorf("Failed to move host %s to installing", h.RequestedHostname)
+		return installErr
+	}
+
+	err = tx.Commit().Error
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+	txSuccess = true
+
+	return nil
 }
 
 func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.InstallHostsParams) middleware.Responder {

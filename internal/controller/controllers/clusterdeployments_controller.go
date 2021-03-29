@@ -143,11 +143,25 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return r.updateState(ctx, clusterDeployment, cluster, nil)
 	}
 
+	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
+		// Day 1
+		return r.installDay1(ctx, clusterDeployment, cluster)
+
+	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		// Day 2
+		return r.installDay2Hosts(ctx, clusterDeployment, cluster)
+	}
+
+	return r.updateState(ctx, clusterDeployment, cluster, nil)
+}
+
+func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, cluster)
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, cluster, err)
 	}
 	if ready {
+		r.Log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
 			ClusterID: *cluster.ID,
@@ -157,7 +171,24 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		}
 		return r.updateState(ctx, clusterDeployment, ic, nil)
 	}
+	return r.updateState(ctx, clusterDeployment, cluster, nil)
+}
 
+func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
+
+	for _, h := range cluster.Hosts {
+		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
+		if err != nil {
+			return r.updateState(ctx, clusterDeployment, cluster, err)
+		}
+		if r.HostApi.IsInstallable(h) && commonh.Approved {
+			r.Log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
+			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, *h.ID)
+			if err != nil {
+				return r.updateState(ctx, clusterDeployment, cluster, err)
+			}
+		}
+	}
 	return r.updateState(ctx, clusterDeployment, cluster, nil)
 }
 
