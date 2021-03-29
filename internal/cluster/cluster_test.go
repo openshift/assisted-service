@@ -37,7 +37,7 @@ import (
 
 func getDefaultConfig() Config {
 	var cfg Config
-	Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+	Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 	return cfg
 }
 
@@ -2142,7 +2142,7 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		cfg := Config{}
-		Expect(envconfig.Process("myapp", &cfg)).NotTo(HaveOccurred())
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).NotTo(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)

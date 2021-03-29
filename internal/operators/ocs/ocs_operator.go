@@ -28,7 +28,7 @@ var Operator = models.MonitoredOperator{
 // NewOcsOperator creates new OCSOperator
 func NewOcsOperator(log logrus.FieldLogger) *operator {
 	cfg := Config{}
-	err := envconfig.Process("myapp", &cfg)
+	err := envconfig.Process(common.EnvConfigPrefix, &cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}

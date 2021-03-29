@@ -37,7 +37,7 @@ var _ = Describe("Disk eligibility", func() {
 
 	BeforeEach(func() {
 		var cfg ValidatorCfg
-		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		hwvalidator = NewValidator(logrus.New(), cfg, nil)
 
 		bigEnoughSize = conversions.GbToBytes(cfg.MinDiskSizeGb) + 1
@@ -89,7 +89,7 @@ var _ = Describe("hardware_validator", func() {
 	)
 	BeforeEach(func() {
 		var cfg ValidatorCfg
-		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		hwvalidator = NewValidator(logrus.New(), cfg, nil)
 		id1 := strfmt.UUID(uuid.New().String())
 		id2 := strfmt.UUID(uuid.New().String())
@@ -250,7 +250,7 @@ var _ = Describe("Cluster host requirements", func() {
 		versionRequirements, err := json.Marshal(versionRequirementsSource)
 		Expect(err).ToNot(HaveOccurred())
 		_ = os.Setenv(prefixedRequirementsEnv, string(versionRequirements))
-		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.VersionedRequirements).ToNot(HaveKey(openShiftVersionNotInJSON))
 		details1 = models.ClusterHostRequirementsDetails{
 			InstallationDiskSpeedThresholdMs: 10,

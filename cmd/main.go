@@ -145,7 +145,7 @@ func InitLogs() *logrus.Entry {
 }
 
 func main() {
-	err := envconfig.Process("myapp", &Options)
+	err := envconfig.Process(common.EnvConfigPrefix, &Options)
 	log := InitLogs()
 
 	if err != nil {
