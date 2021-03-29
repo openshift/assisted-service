@@ -2,29 +2,32 @@ package cnv
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
+	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/sirupsen/logrus"
 )
 
 const (
 	// Memory value provided in MiB
-	masterMemory int64 = 150
-	masterCPU    int64 = 4
+	MasterMemory int64 = 150
+	MasterCPU    int64 = 4
 	// Memory value provided in MiB
-	workerMemory int64 = 360
-	workerCPU    int64 = 2
+	WorkerMemory int64 = 360
+	WorkerCPU    int64 = 2
 )
 
 type operator struct {
-	log logrus.FieldLogger
+	log    logrus.FieldLogger
+	config Config
 }
 
 var Operator = models.MonitoredOperator{
@@ -35,11 +38,23 @@ var Operator = models.MonitoredOperator{
 	TimeoutSeconds:   60 * 60,
 }
 
+// NewCNVOperatorWithConfig creates new instance of a Container Native Virtualization installation plugin configured
+// with given Config
+func NewCNVOperatorWithConfig(log logrus.FieldLogger, cfg Config) *operator {
+	return &operator{
+		log:    log,
+		config: cfg,
+	}
+}
+
 // NewCNVOperator creates new instance of a Container Native Virtualization installation plugin
 func NewCNVOperator(log logrus.FieldLogger) *operator {
-	return &operator{
-		log: log,
+	var cfg Config
+	err := envconfig.Process("myapp", &cfg)
+	if err != nil {
+		log.Fatal(err.Error())
 	}
+	return NewCNVOperatorWithConfig(log, cfg)
 }
 
 // GetName reports the name of an operator this Operator manages
@@ -70,17 +85,17 @@ func (o *operator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.Va
 
 // ValidateHost returns validationResult based on node type requirements such as memory and cpu
 func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
-	var inventory models.Inventory
 	if host.Inventory == "" {
 		o.log.Info("Empty Inventory of host with hostID ", host.ID)
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetClusterValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
 	}
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	if err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID()}, err
 	}
 
-	if !virt.IsVirtSupported(&inventory) {
+	if !virt.IsVirtSupported(inventory) {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
 	}
 
@@ -129,18 +144,51 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (o *operator) GetHostRequirements(_ context.Context, _ *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (o *operator) GetHostRequirements(ctx context.Context, _ *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+	log := logutil.FromContext(ctx, o.log)
 	switch host.Role {
 	case models.HostRoleMaster:
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: masterCPU,
-			RAMMib:   masterMemory,
+			CPUCores: MasterCPU,
+			RAMMib:   MasterMemory,
 		}, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
+		overhead, err := o.getDevicesMemoryOverhead(host)
+		if err != nil {
+			log.WithError(err).WithField("inventory", host.Inventory).Errorf("Cannot parse inventory for host %v", host.ID)
+			return nil, err
+		}
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: workerCPU,
-			RAMMib:   workerMemory,
+			CPUCores: WorkerCPU,
+			RAMMib:   WorkerMemory + overhead,
 		}, nil
 	}
 	return nil, fmt.Errorf("unsupported role: %s", host.Role)
+}
+
+func (o *operator) getDevicesMemoryOverhead(host *models.Host) (int64, error) {
+	if host.Inventory == "" {
+		return 0, nil
+	}
+	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	if err != nil {
+		return 0, err
+	}
+	gpuCount := o.getGPUCount(*inventory)
+	// One GPU imposes 1GiB of additional memory requirement
+	return conversions.GibToMib(gpuCount), nil
+}
+
+func (o *operator) getGPUCount(inventory models.Inventory) int64 {
+	var gpuCount int64
+	for _, gpu := range inventory.Gpus {
+		if o.config.SupportedGPUs[getDeviceKey(gpu)] {
+			gpuCount = gpuCount + 1
+		}
+	}
+	return gpuCount
+}
+
+func getDeviceKey(gpu *models.Gpu) string {
+	return gpu.VendorID + ":" + gpu.DeviceID
 }
