@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/renameio"
 	"github.com/moby/moby/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -59,7 +60,7 @@ func (f *FSClient) Upload(ctx context.Context, data []byte, objectName string) e
 		log.Error(err)
 		return err
 	}
-	if err := ioutil.WriteFile(filePath, data, 0600); err != nil {
+	if err := renameio.WriteFile(filePath, data, 0600); err != nil {
 		err = errors.Wrapf(err, "Unable to write data to file %s", filePath)
 		log.Error(err)
 		return err
@@ -117,17 +118,20 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 		return err
 	}
 	buffer := make([]byte, 1024)
-	fo, err := os.Create(filePath)
+
+	t, err := renameio.TempFile("", filePath)
 	if err != nil {
-		err = errors.Wrapf(err, "Unable to open file for writing %s", filePath)
+		err = errors.Wrapf(err, "Unable to create a temp file for %s", filePath)
 		log.Error(err)
 		return err
 	}
+
 	defer func() {
-		if err := fo.Close(); err != nil {
-			log.Errorf("Unable to close file %s", filePath)
+		if err := t.Cleanup(); err != nil {
+			log.Errorf("Unable to clean up temp file %s", t.Name())
 		}
 	}()
+
 	for {
 		length, err := reader.Read(buffer)
 		if err != nil && err != io.EOF {
@@ -136,8 +140,8 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 			return err
 		}
 		if length > 0 {
-			if _, writeErr := fo.Write(buffer[0:length]); writeErr != nil {
-				writeErr = errors.Wrapf(err, "Unable to write data to file %s", filePath)
+			if _, writeErr := t.Write(buffer[0:length]); writeErr != nil {
+				writeErr = errors.Wrapf(err, "Unable to write data to temp file %s", t.Name())
 				log.Error(writeErr)
 				return writeErr
 			}
@@ -146,6 +150,12 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 		if err == io.EOF {
 			break
 		}
+	}
+
+	if err := t.CloseAtomicallyReplace(); err != nil {
+		err = errors.Wrapf(err, "Unable to atomically replace %s with temp file %s", filePath, t.Name())
+		log.Error(err)
+		return err
 	}
 
 	log.Infof("Successfully uploaded file %s", objectName)
