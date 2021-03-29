@@ -1776,7 +1776,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 	userManagedNetworking := swag.BoolValue(cluster.UserManagedNetworking)
 
 	if params.ClusterUpdateParams.ClusterNetworkCidr != nil {
-		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ClusterNetworkCidr); err != nil {
+		if err = network.VerifyClusterOrServiceCIDR(*params.ClusterUpdateParams.ClusterNetworkCidr); err != nil {
 			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Cluster network CIDR"))
 		}
 		clusterCidr = *params.ClusterUpdateParams.ClusterNetworkCidr
@@ -1796,7 +1796,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		}
 	}
 	if params.ClusterUpdateParams.ServiceNetworkCidr != nil {
-		if err = network.VerifySubnetCIDR(*params.ClusterUpdateParams.ServiceNetworkCidr); err != nil {
+		if err = network.VerifyClusterOrServiceCIDR(*params.ClusterUpdateParams.ServiceNetworkCidr); err != nil {
 			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Service network CIDR"))
 		}
 		serviceCidr = *params.ClusterUpdateParams.ServiceNetworkCidr
@@ -1837,7 +1837,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 
 	if params.ClusterUpdateParams.MachineNetworkCidr != nil && common.IsSingleNodeCluster(cluster) {
 		machineCidr = swag.StringValue(params.ClusterUpdateParams.MachineNetworkCidr)
-		if err = network.VerifySubnetCIDR(machineCidr); err != nil {
+		if err = network.VerifyMachineCIDR(machineCidr); err != nil {
 			log.WithError(err).Warningf("Given machine cidr %q is not valid", machineCidr)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
