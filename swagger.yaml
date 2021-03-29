@@ -3309,6 +3309,9 @@ definitions:
       image_type:
         description: Type of image that should be generated.
         $ref: '#/definitions/image_type'
+      mirror_registries_ca_config:
+        description: configuration of the mirror registries for discovery ISO and installed nodes
+        $ref: '#/definitions/mirror_registries_ca_config'
 
   assisted-service-iso-create-params:
     type: object
@@ -4146,6 +4149,42 @@ definitions:
   image_type:
     type: string
     enum: [full-iso, minimal-iso]
+
+  mirror_registries_ca_config:
+    type: object
+    properties:
+      mirror_registries_config:
+        $ref: '#/definitions/mirror_registries_config'
+        description: configuration of registries conf
+      ca_config:
+        type: string
+        description: string containing CA or CA bundle for mirrored registries
+
+  mirror_registries_config:
+    type: object
+    properties:
+      unqualified-search-registries:
+        type: array
+        items:
+          type: string
+      mirror_registries:
+        type: array
+        items:
+          $ref: '#/definitions/mirror_registry'
+
+  mirror_registry:
+    type: object
+    properties:
+      prefix:
+        type: string
+        description: prefix for choosing this specific mirror
+      location:
+        type: string
+        description: the original registry location
+      mirror_location:
+        type: string
+        description: the mirror regsitry location
+
 
   free-addresses-list:
     type: array
