@@ -264,6 +264,9 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", time.Now())
+	log.Infof("Custom discovery ignition config was applied to cluster %s", params.ClusterID)
+
 	existed, err := b.objectHandler.DeleteObject(ctx, getImageName(*c.ID))
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -1409,6 +1412,8 @@ func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, par
 		return installer.NewUpdateClusterInstallConfigInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, "Custom install config was applied to the cluster", time.Now())
+	log.Infof("Custom install config was applied to cluster %s", params.ClusterID)
 	return installer.NewUpdateClusterInstallConfigCreated()
 }
 
@@ -2468,7 +2473,7 @@ func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params
 		return installer.NewUpdateHostInstallerArgsBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
 	}
 
-	_, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -2484,7 +2489,10 @@ func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params
 		return installer.NewUpdateHostInstallerArgsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", hostutil.GetHostnameForMsg(h)), time.Now())
+	log.Infof("Custom installer arguments were applied to host %s in cluster %s", params.HostID, params.ClusterID)
+
+	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
 		return common.NewApiError(http.StatusInternalServerError, err)
@@ -3177,7 +3185,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	_, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -3193,6 +3201,8 @@ func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params inst
 		return installer.NewUpdateHostIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
+	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom discovery ignition config was applied", hostutil.GetHostnameForMsg(h)), time.Now())
+	log.Infof("Custom discovery ignition config was applied to host %s in cluster %s", params.HostID, params.ClusterID)
 	return installer.NewUpdateHostIgnitionCreated()
 }
 
