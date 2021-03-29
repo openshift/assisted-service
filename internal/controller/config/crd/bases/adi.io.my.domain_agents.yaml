@@ -16,7 +16,16 @@ spec:
     singular: agent
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - additionalPrinterColumns:
+    - description: The name of the cluster the Agent registered to.
+      jsonPath: .spec.clusterDeploymentName.name
+      name: Cluster
+      type: string
+    - description: The `Approve` state of the Agent.
+      jsonPath: .spec.approved
+      name: Approved
+      type: boolean
+    name: v1alpha1
     schema:
       openAPIV3Schema:
         description: Agent is the Schema for the hosts API
