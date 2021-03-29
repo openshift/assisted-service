@@ -7,3 +7,4 @@ resources:
 - assisted-service-service.yaml
 - assisted-installer-sso.yaml
 - deploy_ui.yaml
+- assisted-installer-local-auth.yaml
