@@ -21,11 +21,17 @@ type Gpu struct {
 	// GPU clock frequency in Hz
 	ClockHz int64 `json:"clock_hz,omitempty"`
 
+	// ID of the device (for example "3ea0")
+	DeviceID string `json:"device_id,omitempty"`
+
 	// Product name of the device (for example "UHD Graphics 620 (Whiskey Lake)")
 	Name string `json:"name,omitempty"`
 
 	// The name of the device vendor (for example "Intel Corporation")
 	Vendor string `json:"vendor,omitempty"`
+
+	// ID of the vendor (for example "8086")
+	VendorID string `json:"vendor_id,omitempty"`
 }
 
 // Validate validates this gpu

@@ -4541,6 +4541,12 @@ definitions:
       vendor:
         type: string
         description: The name of the device vendor (for example "Intel Corporation")
+      vendor_id:
+        type: string
+        description: ID of the vendor (for example "8086")
+      device_id:
+        type: string
+        description: ID of the device (for example "3ea0")
       name:
         type: string
         description: Product name of the device (for example "UHD Graphics 620 (Whiskey Lake)")

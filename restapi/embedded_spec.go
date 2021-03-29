@@ -6064,12 +6064,20 @@ func init() {
           "description": "GPU clock frequency in Hz",
           "type": "integer"
         },
+        "device_id": {
+          "description": "ID of the device (for example \"3ea0\")",
+          "type": "string"
+        },
         "name": {
           "description": "Product name of the device (for example \"UHD Graphics 620 (Whiskey Lake)\")",
           "type": "string"
         },
         "vendor": {
           "description": "The name of the device vendor (for example \"Intel Corporation\")",
+          "type": "string"
+        },
+        "vendor_id": {
+          "description": "ID of the vendor (for example \"8086\")",
           "type": "string"
         }
       }
@@ -13447,12 +13455,20 @@ func init() {
           "description": "GPU clock frequency in Hz",
           "type": "integer"
         },
+        "device_id": {
+          "description": "ID of the device (for example \"3ea0\")",
+          "type": "string"
+        },
         "name": {
           "description": "Product name of the device (for example \"UHD Graphics 620 (Whiskey Lake)\")",
           "type": "string"
         },
         "vendor": {
           "description": "The name of the device vendor (for example \"Intel Corporation\")",
+          "type": "string"
+        },
+        "vendor_id": {
+          "description": "ID of the vendor (for example \"8086\")",
           "type": "string"
         }
       }
