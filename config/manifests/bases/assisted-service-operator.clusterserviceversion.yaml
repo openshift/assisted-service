@@ -2,7 +2,39 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: '[]'
+    alm-examples: |-
+      [
+        {
+           "apiVersion": "adi.io.my.domain/v1alpha1",
+           "kind": "AgentServiceConfig",
+           "metadata": {
+              "namespace": "assisted-installer",
+              "name": "agent"
+           },
+           "spec": {
+              "databaseStorage": {
+                 "accessModes": [
+                    "ReadWriteOnce"
+                 ],
+                 "resources": {
+                    "requests": {
+                       "storage": "10Gi"
+                    }
+                 }
+              },
+              "filesystemStorage": {
+                 "accessModes": [
+                    "ReadWriteOnce"
+                 ],
+                 "resources": {
+                    "requests": {
+                       "storage": "20Gi"
+                    }
+                 }
+              }
+           }
+        }
+      ]
     capabilities: Basic Install
     description: Assisted Service is used to orchestrate baremetal OpenShift installations.
     operators.operatorframework.io/builder: operator-sdk-v1.3.0
@@ -23,45 +55,6 @@ spec:
       version: v1alpha1
   description: |-
     Assisted Service is used to orchestrate baremetal OpenShift installations.
-
-    # Prerequisites
-
-    The ClusterDeployment CRD from Hive is required. Install the Hive operator
-    if it hasn't already been installed.
-
-    A PersistentVolumeClaim named postgres-pv-claim is required.
-
-    ````
-    cat <<EOF | oc create -f -
-    apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      labels: {app: postgres}
-      name: postgres-pv-claim
-      namespace: assisted-installer
-    spec:
-      accessModes: [ReadWriteOnce]
-      resources:
-        requests: {storage: 10Gi}
-    EOF
-    ````
-
-    A PersistentVolumeClaim named bucket-pv-claim is required for the filesystem storage.
-
-    ````
-    cat <<EOF | oc create -f -
-    apiVersion: v1
-    kind: PersistentVolumeClaim
-    metadata:
-      labels: {app: assisted-service}
-      name: bucket-pv-claim
-      namespace: assisted-installer
-    spec:
-      accessModes: [ReadWriteOnce]
-      resources:
-        requests: {storage: 10Gi}
-    EOF
-    ````
   displayName: Assisted Service Operator
   icon:
     - base64data: >-

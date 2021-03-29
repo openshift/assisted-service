@@ -20,6 +20,7 @@ COPY go.sum go.sum
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
+RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
 
 # Create final image
 FROM quay.io/centos/centos:centos8
@@ -62,6 +63,7 @@ ARG OC_URL=https://mirror.openshift.com/pub/openshift-v4/clients/ocp/latest/open
 RUN curl -s $OC_URL | tar -xzC /usr/local/bin/ oc
 
 COPY --from=builder /build/assisted-service /assisted-service
+COPY --from=builder /build/assisted-service-operator /assisted-service-operator
 COPY --from=pybuilder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
 COPY /config/onprem-iso-config.ign /data/onprem-iso-config.ign
 CMD ["/assisted-service"]

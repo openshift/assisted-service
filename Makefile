@@ -117,6 +117,7 @@ build-in-docker:
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
+	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service-operator cmd/operator/main.go
 
 build-image: build
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)

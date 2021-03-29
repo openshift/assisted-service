@@ -24,9 +24,35 @@ import (
 
 // AgentServiceConfigSpec defines the desired state of AgentServiceConfig
 type AgentServiceConfigSpec struct {
+	// FileSystemStorage defines the spec of the PersistentVolumeClaim to be
+	// created for the assisted-service's filesystem (logs, etc).
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage for service filesystem"
 	FileSystemStorage corev1.PersistentVolumeClaimSpec `json:"filesystemStorage"`
-	DatabaseStorage   corev1.PersistentVolumeClaimSpec `json:"databaseStorage"`
+	// DatabaseStorage defines the spec of the PersistentVolumeClaim to be
+	// created for the database's filesystem.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage for database"
+	DatabaseStorage corev1.PersistentVolumeClaimSpec `json:"databaseStorage"`
 }
+
+// ConditionType related to our reconcile loop in addition to all the reasons
+// why ConditionStatus could be true or false.
+const (
+	// ConditionReconcileCompleted reports whether reconcile completed without error.
+	ConditionReconcileCompleted conditionsv1.ConditionType = "ReconcileCompleted"
+
+	// ReasonReconcileSucceeded when the reconcile completes all operations without error.
+	ReasonReconcileSucceeded string = "ReconcileSucceeded"
+	// ReasonStorageFailure when there was a failure configuring/deploying storage.
+	ReasonStorageFailure string = "StorageFailure"
+	// ReasonAgentServiceFailure when there was a failure related to the assisted-service's service.
+	ReasonAgentServiceFailure string = "AgentServiceFailure"
+	// ReasonAgentRouteFailure when there was a failure configuring/deploying the assisted-service's route.
+	ReasonAgentRouteFailure string = "AgentRouteFailure"
+	// ReasonPostgresSecretFailure when there was a failure generating/deploying the database secret.
+	ReasonPostgresSecretFailure string = "PostgresSecretFailure"
+	// ReasonDeploymentFailure when there was a failure configuring/deploying the assisted-service deployment.
+	ReasonDeploymentFailure string = "DeploymentFailure"
+)
 
 // AgentServiceConfigStatus defines the observed state of AgentServiceConfig
 type AgentServiceConfigStatus struct {
@@ -39,6 +65,7 @@ type AgentServiceConfigStatus struct {
 
 // AgentServiceConfig represents an Assisted Service deployment
 // +operator-sdk:csv:customresourcedefinitions:displayName="Agent Service Config"
+// +operator-sdk:csv:customresourcedefinitions:order=1
 type AgentServiceConfig struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
