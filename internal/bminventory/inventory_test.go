@@ -4908,6 +4908,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			ClusterID:           clusterID,
 			InstallConfigParams: override,
 		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom install config was applied to the cluster", gomock.Any())
 		response := bm.UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigCreated{}))
 
@@ -5055,6 +5056,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		}
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
 			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(false, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", gomock.Any())
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
 
@@ -5114,6 +5116,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		}
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
 			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(false, fmt.Errorf("error"))
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", gomock.Any())
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		verifyApiError(response, http.StatusInternalServerError)
 	})
@@ -5126,6 +5129,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		}
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
 			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(true, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", gomock.Any())
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", gomock.Any())
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
@@ -6347,6 +6351,7 @@ var _ = Describe("UpdateHostIgnition", func() {
 			HostID:             hostID,
 			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
 		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom discovery ignition config was applied", params.HostID.String()), gomock.Any())
 		response := bm.UpdateHostIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostIgnitionCreated{}))
 
@@ -6448,6 +6453,7 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 			HostID:              hostID,
 			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
 		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", params.HostID.String()), gomock.Any())
 		response := bm.UpdateHostInstallerArgs(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsCreated{}))
 
