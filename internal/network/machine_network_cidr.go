@@ -3,7 +3,6 @@ package network
 import (
 	"encoding/json"
 	"net"
-	"net/http"
 	"strings"
 
 	"github.com/go-openapi/strfmt"
@@ -115,18 +114,6 @@ func VerifyVips(hosts []*models.Host, machineNetworkCidr string, apiVip string, 
 		err = VerifyDifferentVipAddresses(apiVip, ingressVip)
 	}
 	return err
-}
-
-func VerifyMachineCIDR(machineCidr string) error {
-	ip, ipNet, err := net.ParseCIDR(machineCidr)
-	if err != nil {
-		return err
-	}
-
-	if !ip.Equal(ipNet.IP) {
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("%s is not a valid machine CIDR", machineCidr))
-	}
-	return nil
 }
 
 func findMatchingIPForFamily(ipnet *net.IPNet, addresses []string) (bool, string) {

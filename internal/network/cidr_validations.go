@@ -6,8 +6,11 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Minimum mask size to allow 128 addresses
+// Minimum mask size to allow 128 addresses for cluster or service CIDRs
 const MinMaskDelta = 7
+
+// Minimum mask size for Machine CIDR to allow at least 64 addresses
+const MinMachineMaskDelta = 6
 
 // VerifyCIDRsNotOverlap returns true if one of the CIDRs is a subset of the other.
 func verifyCIDRsNotOverlap(acidr, bcidr *net.IPNet) error {
@@ -32,16 +35,15 @@ func VerifyCIDRsNotOverlap(aCidrStr, bCidrStr string) error {
 	return verifyCIDRsNotOverlap(acidr, bcidr)
 }
 
-// SubnetCIDR checks if the given IP net is a valid CIDR.
-func VerifySubnetCIDR(cidrStr string) error {
+func verifySubnetCIDR(cidrStr string, minSubnetMaskSize int) error {
 	ip, cidr, err := net.ParseCIDR(cidrStr)
 	if err != nil {
 		return err
 	}
 	ones, bits := cidr.Mask.Size()
-	// We would like to allow at least 128 addresses.  Therefore, ones must be not greater than (bits-7)
-	if ones < 1 || ones > bits-MinMaskDelta {
-		return errors.Errorf("Address mask size must be between 1 to %d and must include at least 128 addresses", bits-7)
+	// We would like to allow enough addresses.  Therefore, ones must be not greater than (bits-minSubnetMaskSize)
+	if ones < 1 || ones > bits-minSubnetMaskSize {
+		return errors.Errorf("Address mask size must be between 1 to %d and must include at least %d addresses", bits-minSubnetMaskSize, 1<<minSubnetMaskSize)
 	}
 	if cidr.IP.IsUnspecified() {
 		return errors.Errorf("The specified CIDR %s is invalid because its resulting routing prefix matches the unspecified address", cidrStr)
@@ -50,6 +52,14 @@ func VerifySubnetCIDR(cidrStr string) error {
 		return errors.Errorf("%s is not a valid network CIDR", (&net.IPNet{IP: ip, Mask: cidr.Mask}).String())
 	}
 	return nil
+}
+
+func VerifyClusterOrServiceCIDR(cidrStr string) error {
+	return verifySubnetCIDR(cidrStr, MinMaskDelta)
+}
+
+func VerifyMachineCIDR(cidrStr string) error {
+	return verifySubnetCIDR(cidrStr, MinMachineMaskDelta)
 }
 
 func max(x, y int) int {
