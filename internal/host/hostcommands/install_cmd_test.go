@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -54,9 +55,7 @@ var _ = Describe("installcmd", func() {
 		mockValidator     *hardware.MockValidator
 		mockRelease       *oc.MockRelease
 		instructionConfig InstructionConfig
-		disks             []*models.Disk
 		dbName            string
-		validDiskSize     = int64(128849018880)
 		mockEvents        *events.MockHandler
 		mockVersions      *versions.MockHandler
 	)
@@ -72,11 +71,6 @@ var _ = Describe("installcmd", func() {
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeFull)
 		clusterId = *cluster.ID
 		host = createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
-		disks = []*models.Disk{
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize},
-		}
 	})
 
 	mockGetReleaseImage := func(times int) {
@@ -90,16 +84,11 @@ var _ = Describe("installcmd", func() {
 
 	Context("negative", func() {
 		It("get_step_one_master", func() {
-			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, errors.New("error")).Times(1)
-		})
-
-		It("get_step_one_master_no_disks", func() {
-			var emptydisks []*models.Disk
-			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(emptydisks, nil).Times(1)
+			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("").Times(1)
 		})
 
 		It("get_step_one_master_no_mco_image", func() {
-			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+			mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 			mockGetReleaseImage(1)
 			mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("error")).Times(1)
 		})
@@ -110,53 +99,56 @@ var _ = Describe("installcmd", func() {
 			postvalidation(true, true, nil, stepErr, "")
 			hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
 			Expect(hostFromDb.InstallerVersion).Should(BeEmpty())
-			Expect(hostFromDb.InstallationDiskPath).Should(BeEmpty())
 		})
 	})
 
 	It("get_step_one_master_success", func() {
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 		mockGetReleaseImage(1)
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, nil, models.ClusterHighAvailabilityModeFull)
-
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-		Expect(hostFromDb.InstallationDiskPath).Should(Equal(hostutil.GetDeviceFullName(disks[0].Name)))
 	})
 
 	It("get_step_three_master_success", func() {
 		host2 := createHostInDb(db, clusterId, models.HostRoleMaster, false, "")
 		host3 := createHostInDb(db, clusterId, models.HostRoleMaster, true, "some_hostname")
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(3)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(3)
 		mockGetReleaseImage(3)
 		mockImages(3)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host2)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host2.ID, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host2.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host3)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleBootstrap)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleBootstrap, clusterId, *host3.ID, nil, models.ClusterHighAvailabilityModeFull)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleBootstrap, clusterId, *host3.ID, common.TestDiskId, nil, models.ClusterHighAvailabilityModeFull)
 	})
 	It("invalid_inventory", func() {
 		host.Inventory = "blah"
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).Times(1)
 		mockGetReleaseImage(1)
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(true, true, nil, stepErr, "")
 	})
 
+	sda := createDisk("sda", true)
+	sdb := createDisk("sdb", false)
+	sdh := createDisk("sdh", false)
+	sdc := createDisk("sdc", true)
+	eventStatusInfo := "%s: Performing quick format of disk %s(%s)"
+
 	It("format_one_bootable", func() {
-		disks = []*models.Disk{
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize, Bootable: true},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize},
+		disks := []*models.Disk{
+			sdb,
+			sda,
+			sdh,
 		}
 		inventory := models.Inventory{
 			Disks: disks,
@@ -164,32 +156,35 @@ var _ = Describe("installcmd", func() {
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
-
-		message := fmt.Sprintf("Performing quick format of disk /dev/sda on host %s", hostutil.GetHostnameForMsg(&host))
-
+		message := fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, message, gomock.Any())
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(sdb.ID)
 		mockGetReleaseImage(1)
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, []string{"/dev/sda"}, models.ClusterHighAvailabilityModeFull)
-
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-		Expect(hostFromDb.InstallationDiskPath).Should(Equal(hostutil.GetDeviceFullName(disks[0].Name)))
 	})
 
 	It("format_multiple_bootable_skip", func() {
-		disks = []*models.Disk{
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize, Bootable: true},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdc", SizeBytes: validDiskSize, Bootable: true},
-			{DriveType: "HDD", Name: "sdi", SizeBytes: validDiskSize, Bootable: true, ByPath: "pci-0000:04:00.0-fc-0x5006016b08603d0d-lun-0"},
-			{DriveType: "HDD", Name: "sdf", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdg", SizeBytes: validDiskSize, Bootable: true, ByPath: "ip-10.188.2.249:3260-iscsi-iqn.2001-05.com.equallogic:0-fe83b6-aaea957cc-b6e9d343a9758fdc-volume-50a72e0c-0a4a-4b2d-92ab-b0500dfe5c64-lun-0"},
-			{DriveType: "HDD", Name: "sdg", SizeBytes: validDiskSize, Bootable: true, IsInstallationMedia: true},
+		sdi := createDisk("sdi", true)
+		sdi.ByPath = "pci-0000:04:00.0-fc-0x5006016b08603d0d-lun-0"
+		sdg := createDisk("sdg", true)
+		sdg.ByPath = "ip-10.188.2.249:3260-iscsi-iqn.2001-05.com.equallogic:0-fe83b6-aaea957cc-b6e9d343a9758fdc-volume-50a72e0c-0a4a-4b2d-92ab-b0500dfe5c64-lun-0"
+		sdd := createDisk("sdd", false)
+		sdd.IsInstallationMedia = true
+
+		disks := []*models.Disk{
+			sdb,
+			sda,
+			sdc,
+			sdi,
+			createDisk("sdf", false),
+			sdg,
+			sdh,
+			sdd,
 		}
 		inventory := models.Inventory{
 			Disks: disks,
@@ -197,27 +192,24 @@ var _ = Describe("installcmd", func() {
 		b, err := json.Marshal(&inventory)
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
-
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sda on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sdc on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(sdb.ID)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sdc.Name, sdc.ID), gomock.Any())
 		mockGetReleaseImage(1)
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, []string{"/dev/sda", "/dev/sdc"}, models.ClusterHighAvailabilityModeFull)
-
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, []string{sda.ID, sdc.ID}, models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-		Expect(hostFromDb.InstallationDiskPath).Should(Equal(hostutil.GetDeviceFullName(disks[0].Name)))
 	})
 
 	It("format_multiple_bootable", func() {
-		disks = []*models.Disk{
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sda", SizeBytes: validDiskSize, Bootable: true},
-			{DriveType: "HDD", Name: "sdh", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdc", SizeBytes: validDiskSize, Bootable: true},
+		disks := []*models.Disk{
+			sdb,
+			sda,
+			sdh,
+			sdc,
 		}
 		inventory := models.Inventory{
 			Disks: disks,
@@ -226,18 +218,17 @@ var _ = Describe("installcmd", func() {
 		Expect(err).To(Not(HaveOccurred()))
 		host.Inventory = string(b)
 
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sda on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
-		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf("Performing quick format of disk /dev/sdc on host %s", hostutil.GetHostnameForMsg(&host)), gomock.Any())
-		mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).Times(1)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sda.Name, sda.ID), gomock.Any())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo, fmt.Sprintf(eventStatusInfo, hostutil.GetHostnameForMsg(&host), sdc.Name, sdc.ID), gomock.Any())
 		mockGetReleaseImage(1)
+		mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(sdb.ID)
 		mockImages(1)
 		stepReply, stepErr = installCmd.GetSteps(ctx, &host)
 		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
-		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, []string{"/dev/sda", "/dev/sdc"}, models.ClusterHighAvailabilityModeFull)
-
+		postvalidation(false, false, stepReply[0], stepErr, models.HostRoleMaster)
+		validateInstallCommand(installCmd, stepReply[0], models.HostRoleMaster, clusterId, *host.ID, sdb.ID, getBootableDiskNames(disks), models.ClusterHighAvailabilityModeFull)
 		hostFromDb := hostutil.GetHostFromDB(*host.ID, clusterId, db)
 		Expect(hostFromDb.InstallerVersion).Should(Equal(DefaultInstructionConfig.InstallerImage))
-		Expect(hostFromDb.InstallationDiskPath).Should(Equal(hostutil.GetDeviceFullName(disks[0].Name)))
 	})
 
 	AfterEach(func() {
@@ -273,10 +264,9 @@ var _ = Describe("installcmd arguments", func() {
 		db, dbName = common.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
-		disks := []*models.Disk{{Name: "Disk1"}}
 		ctrl = gomock.NewController(GinkgoT())
 		validator = hardware.NewMockValidator(ctrl)
-		validator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
+		validator.EXPECT().GetHostInstallationPath(gomock.Any()).Return(common.TestDiskId).AnyTimes()
 		mockEvents = events.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
@@ -453,6 +443,21 @@ var _ = Describe("installcmd arguments", func() {
 	})
 })
 
+func createDisk(name string, bootable bool) *models.Disk {
+	return &models.Disk{DriveType: "HDD", ID: fmt.Sprintf("/dev/disk/by-id/wwn-%s", name), Name: name,
+		SizeBytes: int64(128849018880), Bootable: bootable}
+}
+
+func getBootableDiskNames(disks []*models.Disk) []string {
+	bootableDisks := funk.Filter(disks, func(disk *models.Disk) bool {
+		return disk.Bootable
+	}).([]*models.Disk)
+
+	return funk.Map(bootableDisks, func(disk *models.Disk) string {
+		return disk.ID
+	}).([]string)
+}
+
 func verifyArgInCommand(command, key, value string, count int) {
 	r := regexp.MustCompile(fmt.Sprintf(`%s ([^ ]+)`, key))
 	match := r.FindAllStringSubmatch(command, -1)
@@ -502,11 +507,8 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 }
 
 func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, clusterId, hostId strfmt.UUID,
-	bootableDisks []string, haMode string) {
+	bootDevice string, bootableDisks []string, haMode string) {
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
-
-	bootDevice := "/dev/sdb"
-
 	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId), 2)
 	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId), 2)
 	verifyArgInCommand(reply.Args[1], "--high-availability-mode", haMode, 1)

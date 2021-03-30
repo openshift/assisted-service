@@ -3479,7 +3479,11 @@ definitions:
         description: Installer version.
       installation_disk_path:
         type: string
-        description: Host installation path.
+        description: Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.
+        example: /dev/sda
+      installation_disk_id:
+        type: string
+        description: Contains the inventory disk id to install on.
       updated_at:
         type: string
         format: date-time
@@ -4455,7 +4459,7 @@ definitions:
         description: by-path is the shortest physical path to the device
       by_id:
         type: string
-        description: by-id is the wwn/enve-ei which guaranteed to be unique for every storage device
+        description: by-id is the World Wide Number of the device which guaranteed to be unique for every storage device
       model:
         type: string
       wwn:

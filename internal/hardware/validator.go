@@ -9,6 +9,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -20,6 +21,7 @@ import (
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
+	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(disk *models.Disk) []string
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
@@ -53,6 +55,10 @@ type validator struct {
 // DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
 func DiskEligibilityInitialized(disk *models.Disk) bool {
 	return disk.InstallationEligibility.Eligible || len(disk.InstallationEligibility.NotEligibleReasons) != 0
+}
+
+func (v *validator) GetHostInstallationPath(host *models.Host) string {
+	return hostutil.GetHostInstallationPath(host)
 }
 
 func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {

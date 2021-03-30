@@ -189,7 +189,7 @@ var _ = Describe("agent reconcile", func() {
 	It("Agent update", func() {
 		newHostName := "hostname123"
 		newRole := "worker"
-		newInstallDiskPath := "/dev/sdb"
+		newInstallDiskPath := "/dev/disk/by-id/wwn-0x6141877064533b0020adf3bb03167694"
 		hostId := strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &sId,
@@ -210,7 +210,7 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		host.Spec.Hostname = newHostName
 		host.Spec.Role = models.HostRole(newRole)
-		host.Spec.InstallationDiskPath = newInstallDiskPath
+		host.Spec.InstallationDiskID = newInstallDiskPath
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -247,14 +247,14 @@ var _ = Describe("agent reconcile", func() {
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
-					ID:                   &hostId,
-					Inventory:            common.GenerateTestDefaultInventory(),
-					InstallationDiskPath: "/dev/sdb",
+					ID:                 &hostId,
+					Inventory:          common.GenerateTestDefaultInventory(),
+					InstallationDiskID: "/dev/disk/by-id/wwn-0x1111111111111111111111",
 				},
 			}}}
 
 		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
-		host.Spec.InstallationDiskPath = newInstallDiskPath
+		host.Spec.InstallationDiskID = newInstallDiskPath
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)

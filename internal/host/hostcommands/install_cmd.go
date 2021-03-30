@@ -66,7 +66,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	bootdevice, err := getBootDevice(i.log, i.hwValidator, *host)
+	bootdevice, err := getBootDevice(i.log, i.hwValidator, host)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	step.Args = []string{"-c", unbootableCmd + fioPerfCheckCmd.GetCommandString() + fullCmd}
 
 	if _, err := hostutil.UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,
-		"installer_version", i.instructionConfig.InstallerImage, "installation_disk_path", bootdevice); err != nil {
+		"installer_version", i.instructionConfig.InstallerImage); err != nil {
 		return nil, err
 	}
 
@@ -218,30 +218,15 @@ func (i *installCmd) hasCACert() bool {
 	return i.instructionConfig.ServiceCACertPath != ""
 }
 
-func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host models.Host) (string, error) {
-	if host.InstallationDiskPath != "" {
-		return host.InstallationDiskPath, nil
+func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host *models.Host) (string, error) {
+	path := hwValidator.GetHostInstallationPath(host)
+
+	if path != "" {
+		return path, nil
 	}
 
-	// TODO: We generally shouldn't reach this point on any version containing this comment.
-	//  It might happen a few times while this version is first rolled out. Remove the call to GetHostValidDisks when
-	//  that new version has been running for a sufficiently long time.
-	//  Note that instead of a call to GetHostValidDisks, an error should occur. That's because if the installation disk
-	//  path is empty, it means there are no valid disks to install on.
-	disks, err := hwValidator.GetHostValidDisks(&host)
-	if err != nil || len(disks) == 0 {
-		log.Errorf("Failed to get valid disks on host with id %s", host.ID)
-
-		var newErr error
-		if err != nil {
-			newErr = errors.Wrapf(err, "failed to get valid disks on host with id %s", host.ID)
-		} else {
-			newErr = errors.Errorf("host has no valid disks id %s", host.ID)
-		}
-
-		return "", newErr
-	}
-	return hostutil.GetDeviceFullName(disks[0].Name), nil
+	log.Errorf("Failed to determine installation path for host with id %s", host.ID)
+	return "", errors.Errorf("host has no installation path %s", host.ID)
 }
 
 func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host) (string, error) {
@@ -254,14 +239,13 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 	for _, disk := range inventory.Disks {
 		isFcIscsi := strings.Contains(disk.ByPath, "-fc-") || strings.Contains(disk.ByPath, "-iscsi-")
 		if disk.Bootable && !isFcIscsi && !disk.IsInstallationMedia {
-			dev := hostutil.GetDeviceFullName(disk.Name)
-			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", dev)
+			formatCmds += fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", hostutil.GetDeviceIdentifier(disk))
 			i.eventsHandler.AddEvent(
 				ctx,
 				host.ClusterID,
 				host.ID,
 				models.EventSeverityInfo,
-				fmt.Sprintf("Performing quick format of disk %s on host %s", dev, hostutil.GetHostnameForMsg(&host)),
+				fmt.Sprintf("%s: Performing quick format of disk %s(%s)", hostutil.GetHostnameForMsg(&host), disk.Name, hostutil.GetDeviceIdentifier(disk)),
 				time.Now())
 		}
 	}

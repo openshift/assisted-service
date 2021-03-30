@@ -68,6 +68,96 @@ func ValidateHostname(hostname string) error {
 	return nil
 }
 
+// determineDefaultInstallationDisk considers both the previously set installation disk and the current list of valid
+// disks to determine the current required installation disk.
+//
+// Once the installation disk has been set, we usually no longer change it, even when an inventory update occurs
+// that contains new disks that might be better "fit" for installation. This is because this field can also be set by
+// the user via the API, and we don't want inventory updates to override the user's choice. However, if the disk that
+// was set is no longer part of the inventory, the new installation disk is re-evaluated because it is not longer
+// a valid choice.
+func DetermineInstallationDisk(disks []*models.Disk, installationPath string) *models.Disk {
+	if len(disks) == 0 {
+		return nil
+	}
+
+	installationDisk := GetDiskByInstallationPath(disks, installationPath)
+
+	if installationDisk == nil {
+		installationDisk = disks[0]
+	}
+
+	return installationDisk
+}
+
+func GetDeviceIdentifier(installationDisk *models.Disk) string {
+	// We changed the host.installationDiskPath to contain the disk id instead of the disk path.
+	// Here we updates the old installationDiskPath to the disk id.
+	// (That's the reason we return the disk.ID instead of the previousInstallationDisk if exist)
+	if installationDisk.ID != "" {
+		return installationDisk.ID
+	}
+
+	// Old inventory or a bug
+	return GetDeviceFullName(installationDisk)
+}
+
+func GetDeviceFullName(installationDisk *models.Disk) string {
+	return fmt.Sprintf("/dev/%s", installationDisk.Name)
+}
+
+func MarshalInventory(inventory *models.Inventory) (string, error) {
+	if data, err := json.Marshal(inventory); err != nil {
+		return "", err
+	} else {
+		return string(data), nil
+	}
+}
+
+func UnmarshalInventory(inventoryStr string) (*models.Inventory, error) {
+	var inventory models.Inventory
+
+	if err := json.Unmarshal([]byte(inventoryStr), &inventory); err != nil {
+		return nil, err
+	}
+	return &inventory, nil
+}
+
+func GetHostInstallationPath(host *models.Host) string {
+	if host.InstallationDiskID != "" {
+		return host.InstallationDiskID
+	}
+
+	return host.InstallationDiskPath
+}
+
+func GetHostInstallationDisk(host *models.Host) (*models.Disk, error) {
+	inventory, err := UnmarshalInventory(host.Inventory)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return GetDiskByInstallationPath(inventory.Disks, GetHostInstallationPath(host)), nil
+}
+
+func GetDiskByInstallationPath(disks []*models.Disk, installationPath string) *models.Disk {
+	if len(disks) == 0 || installationPath == "" {
+		return nil
+	}
+
+	// We changed the host.installationDiskPath to contain the disk id instead of the disk path.
+	// We will search for the installation path in the disk.Id and the disk.Path field for backward compatibility.
+	result := funk.Find(disks, func(disk *models.Disk) bool {
+		return disk.ID == installationPath || GetDeviceFullName(disk) == installationPath
+	})
+
+	if result == nil {
+		return nil
+	}
+	return result.(*models.Disk)
+}
+
 func IgnitionFileName(host *models.Host) string {
 	return fmt.Sprintf("%s-%s.ign", host.Role, host.ID)
 }
@@ -94,16 +184,6 @@ func ValidateInstallerArgs(args []string) error {
 	}
 
 	return nil
-}
-
-func FindDiskPathByID(ID string, host *models.Host) string {
-	//Currently, the disk is identified by its path. In the future, a disk may be
-	//identified by a UUID and then it should be looked up in the inventory
-	return ID
-}
-
-func GetDeviceFullName(name string) string {
-	return fmt.Sprintf("/dev/%s", name)
 }
 
 func IsDay2Host(h *models.Host) bool {

@@ -19,9 +19,7 @@ var (
 	validHwInfoV6 = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
 		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
-		Disks: []*models.Disk{
-			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+		Disks:  []*models.Disk{&loop0, &sdb},
 		Interfaces: []*models.Interface{
 			{
 				IPV6Addresses: []string{

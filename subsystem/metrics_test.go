@@ -31,6 +31,16 @@ const (
 	clusterValidationChangedMetric = "assisted_installer_cluster_validation_failed_after_success_before_installation"
 )
 
+var (
+	sda1 = models.Disk{
+		ID:        "wwn-0x1111111111111111111111",
+		ByID:      "wwn-0x1111111111111111111111",
+		DriveType: "HDD",
+		Name:      "sda1",
+		SizeBytes: validDiskSize,
+	}
+)
+
 type hostValidationResult struct {
 	ID      models.HostValidationID `json:"id"`
 	Status  string                  `json:"status"`
@@ -403,7 +413,7 @@ var _ = Describe("Metrics tests", func() {
 			nonValidInventory := &models.Inventory{
 				CPU:          &models.CPU{Count: 1},
 				Memory:       &models.Memory{PhysicalBytes: int64(4 * units.GiB), UsableBytes: int64(4 * units.GiB)},
-				Disks:        []*models.Disk{{Name: "sda1", DriveType: "HDD", SizeBytes: validDiskSize}},
+				Disks:        []*models.Disk{&sda1},
 				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 				Interfaces:   []*models.Interface{{IPV4Addresses: []string{"1.2.3.4/24"}}},
 			}
@@ -444,7 +454,7 @@ var _ = Describe("Metrics tests", func() {
 			nonValidInventory := &models.Inventory{
 				CPU:          &models.CPU{Count: 1},
 				Memory:       &models.Memory{PhysicalBytes: int64(4 * units.GiB), UsableBytes: int64(4 * units.GiB)},
-				Disks:        []*models.Disk{{Name: "sda1", DriveType: "HDD", SizeBytes: validDiskSize}},
+				Disks:        []*models.Disk{&sda1},
 				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 				Interfaces:   []*models.Interface{{IPV4Addresses: []string{"1.2.3.4/24"}}},
 			}

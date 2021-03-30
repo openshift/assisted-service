@@ -224,14 +224,8 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 	ExpectWithOffset(1, updateReply).ShouldNot(BeNil())
 	h := hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
 	ExpectWithOffset(1, swag.StringValue(h.Status)).Should(Equal(state))
-	validDiskSize := int64(128849018880)
-	var disks = []*models.Disk{
-		{DriveType: "disk", Name: "sdb", SizeBytes: validDiskSize},
-		{DriveType: "disk", Name: "sda", SizeBytes: validDiskSize},
-		{DriveType: "disk", Name: "sdh", SizeBytes: validDiskSize},
-	}
-	mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(disks, nil).AnyTimes()
 	mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return(defaultReleaseImage, nil).AnyTimes()
+	mockValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/disk/by-id/wwn-sda").AnyTimes()
 	mockRelease.EXPECT().GetMCOImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMCOImage, nil).AnyTimes()
 	mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(defaultMustGatherImage, nil).AnyTimes()
 	if funk.Contains(expectedStepTypes, models.StepTypeConnectivityCheck) {
@@ -245,6 +239,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 			},
 		}, nil).Times(1)
 	}
+
 	stepsReply, stepsErr := instMng.GetNextSteps(ctx, h)
 	ExpectWithOffset(1, stepsReply.Instructions).To(HaveLen(len(expectedStepTypes)))
 	if stateValues, ok := instMng.installingClusterStateToSteps[state]; ok {

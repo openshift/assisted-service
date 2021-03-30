@@ -26,9 +26,6 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
-	"github.com/openshift/assisted-service/internal/operators/cnv"
-	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -61,19 +58,34 @@ const (
 )
 
 const (
-	validDiskSize      = int64(128849018880)
-	minSuccessesInRow  = 2
-	minHosts           = 3
-	minHostsWithWorker = 5
+	validDiskSize     = int64(128849018880)
+	minSuccessesInRow = 2
+	minHosts          = 3
+	loop0Id           = "wwn-0x1111111111111111111111"
+	sdbId             = "wwn-0x2222222222222222222222"
 )
 
 var (
+	loop0 = models.Disk{
+		ID:        loop0Id,
+		ByID:      loop0Id,
+		DriveType: "SSD",
+		Name:      "loop0",
+		SizeBytes: validDiskSize,
+	}
+
+	sdb = models.Disk{
+		ID:        sdbId,
+		ByID:      sdbId,
+		DriveType: "HDD",
+		Name:      "sdb",
+		SizeBytes: validDiskSize,
+	}
+
 	validWorkerHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 2},
 		Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
-		Disks: []*models.Disk{
-			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+		Disks:  []*models.Disk{&loop0, &sdb},
 		Interfaces: []*models.Interface{
 			{IPV4Addresses: []string{"1.2.3.4/24"}},
 		},
@@ -83,9 +95,7 @@ var (
 	validHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
 		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
-		Disks: []*models.Disk{
-			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+		Disks:  []*models.Disk{&loop0, &sdb},
 		Interfaces: []*models.Interface{
 			{
 				IPV4Addresses: []string{
@@ -756,6 +766,31 @@ var _ = Describe("cluster install", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 	}
 
+	updateVipParams := func(clusterID strfmt.UUID) {
+		apiVip := "1.2.3.5"
+		ingressVip := "1.2.3.6"
+		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				VipDhcpAllocation: swag.Bool(false),
+				APIVip:            &apiVip,
+				IngressVip:        &ingressVip,
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+	}
+
+	register3nodes := func(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
+		h1 := registerNode(ctx, clusterID, "h1")
+		generateFAPostStepReply(h1, validFreeAddresses)
+		h2 := registerNode(ctx, clusterID, "h2")
+		h3 := registerNode(ctx, clusterID, "h3")
+		updateVipParams(clusterID)
+		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
+
+		return []*models.Host{h1, h2, h3}
+	}
+
 	It("auto-assign", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
@@ -1075,6 +1110,7 @@ var _ = Describe("cluster install", func() {
 				hostInDb := getHost(clusterID, *hostID)
 				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingInProgress))
 				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
+				Expect(hostInDb.InstallationDiskID).ShouldNot(BeEmpty())
 				Expect(hostInDb.InstallationDiskPath).ShouldNot(BeEmpty())
 				Expect(hostInDb.Inventory).ShouldNot(BeEmpty())
 			})
@@ -2408,9 +2444,7 @@ var _ = Describe("cluster install", func() {
 		hwInfo := &models.Inventory{
 			CPU:    &models.CPU{Count: 2},
 			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
-			Disks: []*models.Disk{
-				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
-			},
+			Disks:  []*models.Disk{&sdb},
 			Interfaces: []*models.Interface{
 				{
 					IPV4Addresses: []string{
@@ -2784,162 +2818,6 @@ var _ = Describe("cluster install, with default network params", func() {
 		Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 	})
 })
-
-var _ = Describe("Cluster Host Requirements", func() {
-	var (
-		ctx                   context.Context
-		cluster               *models.Cluster
-		clusterID             strfmt.UUID
-		masterOCPRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores:   4,
-			DiskSizeGb: 120,
-			RAMMib:     16384,
-		}
-		workerOCPRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores:   2,
-			DiskSizeGb: 120,
-			RAMMib:     8192,
-		}
-		workerCNVRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores: 2,
-			RAMMib:   360,
-		}
-		masterCNVRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores: 4,
-			RAMMib:   150,
-		}
-		workerTotalRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores:   workerOCPRequirements.CPUCores + workerCNVRequirements.CPUCores,
-			RAMMib:     workerOCPRequirements.RAMMib + workerCNVRequirements.RAMMib,
-			DiskSizeGb: workerOCPRequirements.DiskSizeGb,
-		}
-		masterTotalRequirements = models.ClusterHostRequirementsDetails{
-			CPUCores:   masterOCPRequirements.CPUCores + masterCNVRequirements.CPUCores,
-			RAMMib:     masterOCPRequirements.RAMMib + masterCNVRequirements.RAMMib,
-			DiskSizeGb: masterOCPRequirements.DiskSizeGb,
-		}
-	)
-
-	BeforeEach(func() {
-		ctx = context.Background()
-		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
-		Expect(err).ToNot(HaveOccurred())
-		clusterID = cID
-		registerHostsAndSetRoles(clusterID, minHostsWithWorker)
-
-		clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
-			ClusterID: clusterID,
-		})
-		Expect(err).ToNot(HaveOccurred())
-		cluster = clusterResp.GetPayload()
-	})
-
-	AfterEach(func() {
-		clearDB()
-	})
-
-	It("should be reported for cluster without operators", func() {
-		hosts := cluster.Hosts
-		params := installer.GetClusterHostRequirementsParams{ClusterID: clusterID}
-
-		response, err := userBMClient.Installer.GetClusterHostRequirements(ctx, &params)
-
-		Expect(err).ToNot(HaveOccurred())
-		requirements := response.GetPayload()
-		Expect(requirements).To(HaveLen(len(hosts)))
-
-		hostIDToRequirements := mapHostsToRequirements(requirements)
-		for _, host := range hosts {
-			hostRequirements := hostIDToRequirements[*host.ID]
-			expectedRequirements := workerOCPRequirements
-			if host.Role == models.HostRoleMaster {
-				expectedRequirements = masterOCPRequirements
-			}
-			Expect(hostRequirements.HostID).To(Equal(*host.ID))
-			Expect(hostRequirements.Operators).To(BeEmpty())
-
-			Expect(*hostRequirements.Ocp).To(BeEquivalentTo(expectedRequirements))
-			Expect(hostRequirements.Total).To(BeEquivalentTo(hostRequirements.Ocp))
-		}
-	})
-
-	It("should be reported for cluster with operators", func() {
-		cluster, err := updateOLMOperators(ctx, clusterID, lso.Operator.Name, cnv.Operator.Name, ocs.Operator.Name)
-		Expect(err).ToNot(HaveOccurred())
-		hosts := cluster.Hosts
-
-		params := installer.GetClusterHostRequirementsParams{ClusterID: clusterID}
-
-		response, err := userBMClient.Installer.GetClusterHostRequirements(ctx, &params)
-
-		Expect(err).ToNot(HaveOccurred())
-		requirements := response.GetPayload()
-		Expect(requirements).To(HaveLen(len(hosts)))
-
-		hostIDToRequirements := mapHostsToRequirements(requirements)
-		for _, host := range hosts {
-			hostRequirements := hostIDToRequirements[*host.ID]
-
-			Expect(hostRequirements.HostID).To(Equal(*host.ID))
-
-			expectedOCPRequirements := workerOCPRequirements
-			cnvRequirements := workerCNVRequirements
-			totalRequirements := workerTotalRequirements
-			if host.Role == models.HostRoleMaster {
-				expectedOCPRequirements = masterOCPRequirements
-				cnvRequirements = masterCNVRequirements
-				totalRequirements = masterTotalRequirements
-			}
-			Expect(*hostRequirements.Ocp).To(BeEquivalentTo(expectedOCPRequirements))
-
-			Expect(hostRequirements.Operators).To(HaveLen(3))
-			Expect(hostRequirements.Operators).To(ConsistOf(
-				&models.OperatorHostRequirements{
-					OperatorName: lso.Operator.Name,
-					Requirements: &models.ClusterHostRequirementsDetails{},
-				},
-				&models.OperatorHostRequirements{
-					OperatorName: ocs.Operator.Name,
-					Requirements: &models.ClusterHostRequirementsDetails{},
-				},
-				&models.OperatorHostRequirements{
-					OperatorName: cnv.Operator.Name,
-					Requirements: &cnvRequirements,
-				},
-			))
-
-			Expect(*hostRequirements.Total).To(BeEquivalentTo(totalRequirements))
-		}
-	})
-})
-
-func updateOLMOperators(ctx context.Context, clusterID strfmt.UUID, olmOperators ...string) (*models.Cluster, error) {
-	var operatorCreateParams []*models.OperatorCreateParams
-	for _, operatorName := range olmOperators {
-		operatorCreateParams = append(operatorCreateParams, &models.OperatorCreateParams{Name: operatorName})
-	}
-	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterID:           clusterID,
-		ClusterUpdateParams: &models.ClusterUpdateParams{OlmOperators: operatorCreateParams},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-	if err != nil {
-		return nil, err
-	}
-	return clusterResp.GetPayload(), nil
-}
-
-func mapHostsToRequirements(requirements models.ClusterHostRequirementsList) map[strfmt.UUID]*models.ClusterHostRequirements {
-	hostIDToRequirements := make(map[strfmt.UUID]*models.ClusterHostRequirements)
-	for _, rq := range requirements {
-		hostIDToRequirements[rq.HostID] = rq
-	}
-	return hostIDToRequirements
-}
 
 func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Host {
 	ctx := context.Background()

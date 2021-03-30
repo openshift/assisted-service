@@ -1970,35 +1970,44 @@ func (b *bareMetalInventory) updateHostNames(ctx context.Context, params install
 	return nil
 }
 
+func getHost(hostId string, clusterId string, db *gorm.DB, log logrus.FieldLogger) (*models.Host, error) {
+	var host models.Host
+	err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>", hostId, clusterId)
+		return nil, err
+	}
+	return &host, nil
+}
+
 func (b *bareMetalInventory) updateHostsDiskSelection(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	for i := range params.ClusterUpdateParams.DisksSelectedConfig {
-		var host models.Host
-		err := db.First(&host, "id = ? and cluster_id = ?",
-			params.ClusterUpdateParams.DisksSelectedConfig[i].ID, params.ClusterID).Error
+		disksConfig := params.ClusterUpdateParams.DisksSelectedConfig[i]
+		hostId := string(disksConfig.ID)
+		host, err := getHost(hostId, string(params.ClusterID), db, log)
+
 		if err != nil {
-			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
-				params.ClusterUpdateParams.DisksSelectedConfig[i].ID, params.ClusterID)
 			return common.NewApiError(http.StatusNotFound, err)
 		}
 
-		var installationDiskPath = ""
-		for _, diskConfig := range params.ClusterUpdateParams.DisksSelectedConfig[i].DisksConfig {
-			if models.DiskRoleInstall == diskConfig.Role {
-				if installationDiskPath != "" {
-					return common.NewApiError(http.StatusConflict,
-						fmt.Errorf("duplicate setting of installation path by the user"))
-				}
-				installationDiskPath = hostutil.FindDiskPathByID(*diskConfig.ID, &host)
-			}
+		disksToInstallOn := funk.Filter(disksConfig.DisksConfig, func(diskConfigParams *models.DiskConfigParams) bool {
+			return models.DiskRoleInstall == diskConfigParams.Role
+		}).([]*models.DiskConfigParams)
+
+		installationDiskId := ""
+
+		if len(disksToInstallOn) > 1 {
+			return common.NewApiError(http.StatusConflict, errors.New("duplicate setting of installation path by the user"))
+		} else if len(disksToInstallOn) == 1 {
+			installationDiskId = *disksToInstallOn[0].ID
 		}
 
-		log.Infof("Update host %s to install from path %s",
-			params.ClusterUpdateParams.DisksSelectedConfig[i].ID, installationDiskPath)
-		err = b.hostApi.UpdateInstallationDiskPath(ctx, db, &host, installationDiskPath)
+		log.Infof("Update host %s to install from disk id %s", hostId, installationDiskId)
+		err = b.hostApi.UpdateInstallationDisk(ctx, db, host, installationDiskId)
 		if err != nil {
 			log.WithError(err).Errorf("failed to set installation disk path <%s> host <%s> in cluster <%s>",
-				installationDiskPath,
-				params.ClusterUpdateParams.DisksSelectedConfig[i].ID,
+				installationDiskId,
+				hostId,
 				params.ClusterID)
 			return common.NewApiError(http.StatusConflict, err)
 		}

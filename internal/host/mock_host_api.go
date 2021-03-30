@@ -473,18 +473,18 @@ func (mr *MockAPIMockRecorder) UpdateInstallProgress(arg0, arg1, arg2 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), arg0, arg1, arg2)
 }
 
-// UpdateInstallationDiskPath mocks base method
-func (m *MockAPI) UpdateInstallationDiskPath(arg0 context.Context, arg1 *gorm.DB, arg2 *models.Host, arg3 string) error {
+// UpdateInstallationDisk mocks base method
+func (m *MockAPI) UpdateInstallationDisk(arg0 context.Context, arg1 *gorm.DB, arg2 *models.Host, arg3 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateInstallationDiskPath", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "UpdateInstallationDisk", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateInstallationDiskPath indicates an expected call of UpdateInstallationDiskPath
-func (mr *MockAPIMockRecorder) UpdateInstallationDiskPath(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+// UpdateInstallationDisk indicates an expected call of UpdateInstallationDisk
+func (mr *MockAPIMockRecorder) UpdateInstallationDisk(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallationDiskPath", reflect.TypeOf((*MockAPI)(nil).UpdateInstallationDiskPath), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallationDisk", reflect.TypeOf((*MockAPI)(nil).UpdateInstallationDisk), arg0, arg1, arg2, arg3)
 }
 
 // UpdateInventory mocks base method
