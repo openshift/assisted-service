@@ -224,7 +224,7 @@ func registerDay2Cluster(ctx context.Context) strfmt.UUID {
 	c, err := userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
 		NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
 			Name:             swag.String("test-metrics-day2-cluster"),
-			OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+			OpenshiftVersion: swag.String(openshiftVersion),
 			APIVipDnsname:    swag.String("api_vip_dnsname"),
 			ID:               strToUUID(uuid.New().String()),
 		},

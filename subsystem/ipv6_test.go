@@ -11,7 +11,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -51,7 +50,7 @@ var _ = Describe("IPv6 installation", func() {
 				ClusterNetworkCidr:       &clusterCIDR,
 				ClusterNetworkHostPrefix: 64,
 				Name:                     swag.String("test-cluster"),
-				OpenshiftVersion:         swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftVersion:         swag.String(openshiftVersion),
 				PullSecret:               swag.String(pullSecret),
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,

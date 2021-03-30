@@ -12,7 +12,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/bminventory"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -30,7 +29,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		cluster, err = userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
 			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftVersion: swag.String(openshiftVersion),
 				APIVipDnsname:    swag.String("api_vip_dnsname"),
 				ID:               strToUUID(uuid.New().String()),
 			},

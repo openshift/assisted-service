@@ -1,6 +1,7 @@
 package subsystem
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"testing"
@@ -14,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
+	"github.com/openshift/assisted-service/client/versions"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/pkg/auth"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -28,6 +30,7 @@ var agentBMClient, badAgentBMClient, userBMClient, readOnlyAdminUserBMClient, un
 var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
+var openshiftVersion string = "4.6"
 
 const (
 	pollDefaultInterval = 1 * time.Millisecond
@@ -126,6 +129,15 @@ func init() {
 
 		if err = wiremock.CreateWiremockStubsForOCM(); err != nil {
 			logrus.Fatal("Failed to init wiremock stubs, ", err)
+		}
+	}
+
+	// Test on first openshift version. We can't test on latest because quay.io/openshift-release-dev/ocp-release-nightly
+	// is not public, so we would have to add PULL_SECRET env var as mandatory to access the quay.
+	if reply, err := userBMClient.Versions.ListSupportedOpenshiftVersions(context.Background(),
+		&versions.ListSupportedOpenshiftVersionsParams{}); err == nil {
+		for openshiftVersion = range reply.GetPayload() {
+			break
 		}
 	}
 }

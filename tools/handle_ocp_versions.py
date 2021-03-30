@@ -4,6 +4,7 @@ import json
 import sys
 import os
 import tempfile
+import distutils.util
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import List
@@ -27,6 +28,15 @@ def handle_arguments():
     parser.add_argument('--version-override', type=str)
     parser.add_argument('--skip-verify', action="store_true")
 
+    parser.add_argument(
+        '--single-version-only',
+        type=distutils.util.strtobool,
+        default=False,
+        help='''By default use OPENSHIFT_VERSION env variable, if not
+        set use ocp-override openshift version. If none of those
+        are set, use the latest version from openshift versions file.''',
+    )
+
     return parser.parse_args()
 
 
@@ -43,11 +53,30 @@ def main():
         print("Verifying that images match keys", file=sys.stderr)
         verify_ocp_versions(ocp_versions)
 
+    if bool(args.single_version_only):
+        print("Using only single version of the RHCOS ISO", file=sys.stderr)
+        ocp_versions = update_openshift_versions_hashmap_to_single_only(ocp_versions, args.ocp_override)
+
     if args.dest:
         with Path(args.dest).open("w") as file_stream:
             json.dump(ocp_versions, file_stream, indent=4)
     else:
         print(json.dumps(ocp_versions, indent=4))
+
+
+def update_openshift_versions_hashmap_to_single_only(ocp_versions: dict, release_image: str):
+    key = os.getenv('OPENSHIFT_VERSION')
+    if key is None and release_image:
+        oc_version = get_oc_version(release_image)
+        major, minor, *_other_version_components = oc_version.split(".")
+        key = f"{major}.{minor}"
+
+    if key is None:
+        key = get_largest_version(list(ocp_versions.keys()))
+
+    single_version = dict()
+    single_version[key] = ocp_versions[key].copy()
+    return single_version
 
 
 def update_openshift_versions_hashmap(ocp_versions: dict, release_image: str, name_override: str, version_override: str):

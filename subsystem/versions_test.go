@@ -22,8 +22,6 @@ var _ = Describe("[minimal-set]test versions", func() {
 		reply, err := userBMClient.Versions.ListSupportedOpenshiftVersions(context.Background(),
 			&versions.ListSupportedOpenshiftVersionsParams{})
 		Expect(err).ShouldNot(HaveOccurred())
-
-		// 4.6, 4.7, 4.8
-		Expect(reply.GetPayload()).To(HaveLen(3))
+		Expect(len(reply.GetPayload())).To(BeNumerically(">=", 1))
 	})
 })
