@@ -389,6 +389,7 @@ clean:
 	-rm config/assisted-service/assisted-service-service.yaml
 	-rm config/assisted-service/assisted-service.yaml
 	-rm config/assisted-service/deploy_ui.yaml
+	-rm config/assisted-service/assisted-installer-local-auth.yaml
 	-rm -rf bundle*
 
 subsystem-clean:
@@ -433,6 +434,7 @@ operator-bundle: create-ocp-manifests
 	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
 	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-installer-local-auth.yaml config/assisted-service
 	# To use --output-dir, needed to break manifests and metadata generation into two steps
 	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp1
 	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp2
