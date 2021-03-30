@@ -269,7 +269,7 @@ type Generator interface {
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
-	FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, params *models.ImageCreateParams, safeForLogs bool, authType auth.AuthType) (string, error)
+	FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
 	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error)
 }
 
@@ -1199,7 +1199,7 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
-func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, params *models.ImageCreateParams, safeForLogs bool, authType auth.AuthType) (string, error) {
+func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	pullSecretToken, err := clusterPkg.AgentToken(cluster, authType)
 	if err != nil {
 		return "", err
@@ -1213,7 +1213,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		rhCa = url.PathEscape(RedhatRootCA)
 	}
 	var ignitionParams = map[string]interface{}{
-		"userSshKey":           getUserSSHKey(params.SSHPublicKey),
+		"userSshKey":           getUserSSHKey(cluster.ImageInfo.SSHPublicKey),
 		"AgentDockerImg":       cfg.AgentDockerImg,
 		"ServiceBaseURL":       strings.TrimSpace(cfg.ServiceBaseURL),
 		"clusterId":            cluster.ID.String(),
@@ -1248,7 +1248,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}
 
-	if cluster.ImageInfo.StaticNetworkConfig != "" && params.ImageType == models.ImageTypeFullIso {
+	if cluster.ImageInfo.StaticNetworkConfig != "" && cluster.ImageInfo.Type == models.ImageTypeFullIso {
 		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(cluster)
 		if newErr != nil {
 			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for cluster %s", cluster.ID)

@@ -1144,7 +1144,7 @@ func init() {
             ]
           }
         ],
-        "description": "Get the cluster discovery ignition config",
+        "description": "Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.\nUsed to test the validity of the discovery ignition when it is being overridden.\nFor downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign\n",
         "tags": [
           "installer"
         ],
@@ -1199,7 +1199,7 @@ func init() {
         }
       },
       "patch": {
-        "description": "Override values in the discovery ignition config",
+        "description": "Override values in the discovery ignition config.",
         "tags": [
           "installer"
         ],
@@ -8459,7 +8459,7 @@ func init() {
             ]
           }
         ],
-        "description": "Get the cluster discovery ignition config",
+        "description": "Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.\nUsed to test the validity of the discovery ignition when it is being overridden.\nFor downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign\n",
         "tags": [
           "installer"
         ],
@@ -8514,7 +8514,7 @@ func init() {
         }
       },
       "patch": {
-        "description": "Override values in the discovery ignition config",
+        "description": "Override values in the discovery ignition config.",
         "tags": [
           "installer"
         ],

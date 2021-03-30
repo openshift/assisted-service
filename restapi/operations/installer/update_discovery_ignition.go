@@ -31,7 +31,7 @@ func NewUpdateDiscoveryIgnition(ctx *middleware.Context, handler UpdateDiscovery
 
 /*UpdateDiscoveryIgnition swagger:route PATCH /clusters/{cluster_id}/discovery-ignition installer updateDiscoveryIgnition
 
-Override values in the discovery ignition config
+Override values in the discovery ignition config.
 
 */
 type UpdateDiscoveryIgnition struct {

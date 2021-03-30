@@ -73,7 +73,10 @@ type API interface {
 	   GetCredentials Get the cluster admin credentials.*/
 	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
 	/*
-	   GetDiscoveryIgnition Get the cluster discovery ignition config*/
+	   GetDiscoveryIgnition Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+	   Used to test the validity of the discovery ignition when it is being overridden.
+	   For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
+	*/
 	GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error)
 	/*
 	   GetFreeAddresses Retrieves the free address list for a network.*/
@@ -139,7 +142,7 @@ type API interface {
 	   UpdateClusterLogsProgress Update log collection state and progress.*/
 	UpdateClusterLogsProgress(ctx context.Context, params *UpdateClusterLogsProgressParams) (*UpdateClusterLogsProgressNoContent, error)
 	/*
-	   UpdateDiscoveryIgnition Override values in the discovery ignition config*/
+	   UpdateDiscoveryIgnition Override values in the discovery ignition config.*/
 	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
 	/*
 	   UpdateHostIgnition Patch the ignition file for this host*/
@@ -633,7 +636,10 @@ func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParam
 }
 
 /*
-GetDiscoveryIgnition Get the cluster discovery ignition config
+GetDiscoveryIgnition Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+Used to test the validity of the discovery ignition when it is being overridden.
+For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
+
 */
 func (a *Client) GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error) {
 
@@ -1183,7 +1189,7 @@ func (a *Client) UpdateClusterLogsProgress(ctx context.Context, params *UpdateCl
 }
 
 /*
-UpdateDiscoveryIgnition Override values in the discovery ignition config
+UpdateDiscoveryIgnition Override values in the discovery ignition config.
 */
 func (a *Client) UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error) {
 

@@ -31,7 +31,10 @@ func NewGetDiscoveryIgnition(ctx *middleware.Context, handler GetDiscoveryIgniti
 
 /*GetDiscoveryIgnition swagger:route GET /clusters/{cluster_id}/discovery-ignition installer getDiscoveryIgnition
 
-Get the cluster discovery ignition config
+Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+Used to test the validity of the discovery ignition when it is being overridden.
+For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
+
 
 */
 type GetDiscoveryIgnition struct {

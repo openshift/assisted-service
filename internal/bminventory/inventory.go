@@ -225,9 +225,8 @@ func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params in
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	isoParams := installer.GenerateClusterISOParams{ClusterID: params.ClusterID, ImageCreateParams: &models.ImageCreateParams{}}
 
-	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(c, b.IgnitionConfig, isoParams.ImageCreateParams, false, b.authHandler.AuthType())
+	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(c, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Error("Failed to format ignition config")
 		return common.GenerateErrorResponder(err)
@@ -913,8 +912,10 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 	}
 
-	ignitionConfig, formatErr := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster,
-		b.IgnitionConfig, params.ImageCreateParams, false, b.authHandler.AuthType())
+	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
+	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
+	cluster.ImageInfo.Type = params.ImageCreateParams.ImageType
+	ignitionConfig, formatErr := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if formatErr != nil {
 		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 		msg := "Failed to generate image: error formatting ignition file"
@@ -959,8 +960,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 }
 
 func (b *bareMetalInventory) getIgnitionConfigForLogging(cluster *common.Cluster, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {
-	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster,
-		b.IgnitionConfig, params.ImageCreateParams, true, b.authHandler.AuthType())
+	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster, b.IgnitionConfig, true, b.authHandler.AuthType())
 	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
 	msg := "Generated image"
 	var msgExtras []string
