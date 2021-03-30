@@ -224,6 +224,8 @@ type AgentStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterDeploymentName.name",description="The name of the cluster the Agent registered to."
+// +kubebuilder:printcolumn:name="Approved",type="boolean",JSONPath=".spec.approved",description="The `Approve` state of the Agent."
 
 // Agent is the Schema for the hosts API
 type Agent struct {
