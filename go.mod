@@ -49,6 +49,7 @@ require (
 	github.com/openshift/hive/apis v0.0.0-20210323190723-391a0f02748c
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/pelletier/go-toml v1.8.1
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.9.0
 	github.com/prometheus/common v0.15.0

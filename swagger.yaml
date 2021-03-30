@@ -4129,6 +4129,12 @@ definitions:
         description: static network configuration string in the format expected by discovery ignition generation
       type:
         $ref: '#/definitions/image_type'
+      ca_config:
+        type: string
+        description: CA config data for mirror registries
+      mirror_registries_config:
+        type: string
+        description: registries.conf file contents in a TOML format
 
   host_static_network_config:
     type: object

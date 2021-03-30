@@ -17,6 +17,9 @@ import (
 // swagger:model image_info
 type ImageInfo struct {
 
+	// CA config data for mirror registries
+	CaConfig string `json:"ca_config,omitempty"`
+
 	// created at
 	// Format: date-time
 	CreatedAt strfmt.DateTime `json:"created_at,omitempty" gorm:"type:timestamp with time zone"`
@@ -30,6 +33,9 @@ type ImageInfo struct {
 
 	// Image generator version.
 	GeneratorVersion string `json:"generator_version,omitempty"`
+
+	// registries.conf file contents in a TOML format
+	MirrorRegistriesConfig string `json:"mirror_registries_config,omitempty"`
 
 	// size bytes
 	// Minimum: 0
