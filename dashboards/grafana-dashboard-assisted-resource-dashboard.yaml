@@ -18,8 +18,7 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 34,
-      "iteration": 1616435787047,
+      "iteration": 1617043450235,
       "links": [],
       "panels": [
         {
@@ -303,107 +302,6 @@ data:
           "fieldConfig": {
             "defaults": {
               "custom": {},
-              "links": []
-            },
-            "overrides": []
-          },
-          "fill": 1,
-          "fillGradient": 0,
-          "gridPos": {
-            "h": 8,
-            "w": 24,
-            "x": 0,
-            "y": 7
-          },
-          "hiddenSeries": false,
-          "id": 33,
-          "legend": {
-            "alignAsTable": true,
-            "avg": true,
-            "current": true,
-            "max": true,
-            "min": true,
-            "rightSide": true,
-            "show": true,
-            "total": false,
-            "values": true
-          },
-          "lines": true,
-          "linewidth": 1,
-          "links": [],
-          "nullPointMode": "null",
-          "options": {
-            "alertThreshold": true
-          },
-          "percentage": false,
-          "pluginVersion": "7.2.1",
-          "pointradius": 5,
-          "points": false,
-          "renderer": "flot",
-          "seriesOverrides": [],
-          "spaceLength": 10,
-          "stack": false,
-          "steppedLine": false,
-          "targets": [
-            {
-              "expr": "sum(rate(container_cpu_usage_seconds_total {namespace=\"$namespace\",pod=~\"assisted-service-.*\"\n} [5m])) by (pod)",
-              "interval": "",
-              "legendFormat": "{{ pod }}",
-              "refId": "A"
-            }
-          ],
-          "thresholds": [],
-          "timeFrom": null,
-          "timeRegions": [],
-          "timeShift": null,
-          "title": "Pods CPU Usage",
-          "tooltip": {
-            "shared": true,
-            "sort": 0,
-            "value_type": "individual"
-          },
-          "type": "graph",
-          "xaxis": {
-            "buckets": null,
-            "mode": "time",
-            "name": null,
-            "show": true,
-            "values": []
-          },
-          "yaxes": [
-            {
-              "$$hashKey": "object:388",
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            },
-            {
-              "$$hashKey": "object:389",
-              "format": "short",
-              "label": null,
-              "logBase": 1,
-              "max": null,
-              "min": null,
-              "show": true
-            }
-          ],
-          "yaxis": {
-            "align": false,
-            "alignLevel": null
-          }
-        },
-        {
-          "aliasColors": {},
-          "bars": false,
-          "dashLength": 10,
-          "dashes": false,
-          "datasource": "${datasource}",
-          "fieldConfig": {
-            "defaults": {
-              "custom": {},
               "links": [],
               "unit": "bytes"
             },
@@ -415,7 +313,7 @@ data:
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 15
+            "y": 7
           },
           "hiddenSeries": false,
           "id": 34,
@@ -517,7 +415,7 @@ data:
             "h": 8,
             "w": 24,
             "x": 0,
-            "y": 23
+            "y": 15
           },
           "hiddenSeries": false,
           "id": 35,
@@ -604,6 +502,69 @@ data:
             "align": false,
             "alignLevel": null
           }
+        },
+        {
+          "datasource": "${datasource}",
+          "fieldConfig": {
+            "defaults": {
+              "custom": {
+                "align": null,
+                "filterable": false
+              },
+              "links": [],
+              "mappings": [],
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 80
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "gridPos": {
+            "h": 8,
+            "w": 24,
+            "x": 0,
+            "y": 23
+          },
+          "id": 33,
+          "links": [],
+          "options": {
+            "displayMode": "basic",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "mean"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showUnfilled": false
+          },
+          "pluginVersion": "7.2.1",
+          "targets": [
+            {
+              "expr": "sum(service_assisted_installer_cluster_host_disk_sync_duration_ms_bucket) by (le)",
+              "format": "time_series",
+              "instant": false,
+              "interval": "",
+              "legendFormat": "{{pod}}",
+              "refId": "A"
+            }
+          ],
+          "timeFrom": null,
+          "timeShift": null,
+          "title": "Disk sync duration [ms]",
+          "transparent": true,
+          "type": "bargauge"
         }
       ],
       "refresh": false,
@@ -614,7 +575,7 @@ data:
         "list": [
           {
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "app-sre-prod-04-prometheus",
               "value": "app-sre-prod-04-prometheus"
             },
@@ -636,7 +597,7 @@ data:
           {
             "allValue": null,
             "current": {
-              "selected": true,
+              "selected": false,
               "text": "assisted-installer-production",
               "value": "assisted-installer-production"
             },
