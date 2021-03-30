@@ -439,7 +439,60 @@ var _ = Describe("installcmd arguments", func() {
 			Expect(stepReply).NotTo(BeNil())
 			verifyArgInCommand(stepReply[0].Args[1], "--installer-args", fmt.Sprintf("'%s'", host.InstallerArgs), 1)
 		})
+	})
 
+	Context("proxy arguments", func() {
+		var (
+			installCmd        *installCmd
+			instructionConfig InstructionConfig
+		)
+
+		BeforeEach(func() {
+			instructionConfig = DefaultInstructionConfig
+			installCmd = NewInstallCmd(common.GetTestLog(), db, validator, mockRelease, instructionConfig, mockEvents, mockVersions)
+		})
+		It("no-proxy without httpProxy", func() {
+			args := installCmd.getProxyArguments("t-cluster", "proxy.org", "", "", "domain.com,192.168.1.0/24")
+			Expect(args).Should(Equal([]string{}))
+		})
+
+		It("default no-proxy", func() {
+			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", "")
+			Expect(noProxy).Should(Equal([]string{
+				"--http-proxy",
+				"http://10.56.20.90:8080",
+				"--no-proxy",
+				"127.0.0.1,localhost,.svc,.cluster.local,api-int.t-cluster.proxy.org",
+			}))
+		})
+		It("updated no-proxy", func() {
+			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", "domain.org,127.0.0.2")
+			Expect(noProxy).Should(Equal([]string{
+				"--http-proxy",
+				"http://10.56.20.90:8080",
+				"--no-proxy",
+				"domain.org,127.0.0.2,127.0.0.1,localhost,.svc,.cluster.local,api-int.t-cluster.proxy.org",
+			}))
+		})
+		It("all-excluded no-proxy", func() {
+			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", "*")
+			Expect(noProxy).Should(Equal([]string{
+				"--http-proxy",
+				"http://10.56.20.90:8080",
+				"--no-proxy",
+				"*",
+			}))
+
+		})
+		It("all-excluded no-proxy with spaces", func() {
+			noProxy := installCmd.getProxyArguments("t-cluster", "proxy.org", "http://10.56.20.90:8080", "", " * ")
+			Expect(noProxy).Should(Equal([]string{
+				"--http-proxy",
+				"http://10.56.20.90:8080",
+				"--no-proxy",
+				"*",
+			}))
+		})
 	})
 })
 

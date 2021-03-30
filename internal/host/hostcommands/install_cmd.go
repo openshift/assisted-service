@@ -179,22 +179,35 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 
 func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, httpsProxy, noProxy string) []string {
 	cmd := make([]string, 0)
+	if httpProxy == "" && httpsProxy == "" {
+		return cmd
+	}
 
-	if httpProxy != "" || httpsProxy != "" {
-		if httpProxy != "" {
-			cmd = append(cmd, "--http-proxy", httpProxy)
-		}
-		if httpsProxy != "" {
-			cmd = append(cmd, "--https-proxy", httpsProxy)
-		}
+	if httpProxy != "" {
+		cmd = append(cmd, "--http-proxy", httpProxy)
+	}
 
+	if httpsProxy != "" {
+		cmd = append(cmd, "--https-proxy", httpsProxy)
+	}
+
+	noProxyTrim := strings.TrimSpace(noProxy)
+	if noProxyTrim == "*" {
+		cmd = append(cmd, "--no-proxy", noProxyTrim)
+	} else {
+
+		noProxyUpdated := []string{}
+		if noProxyTrim != "" {
+			noProxyUpdated = append(noProxyUpdated, noProxyTrim)
+		}
 		// if we set proxy we need to update assisted installer no proxy with no proxy params as installer.
 		// it must be able to connect to api int. Added this way for not to pass name and base domain
-		noProxyUpdated := []string{noProxy, "127.0.0.1",
+		noProxyUpdated = append(noProxyUpdated,
+			"127.0.0.1",
 			"localhost",
 			".svc",
 			".cluster.local",
-			fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain)}
+			fmt.Sprintf("api-int.%s.%s", clusterName, baseDNSDomain))
 		cmd = append(cmd, "--no-proxy", strings.Join(noProxyUpdated, ","))
 	}
 

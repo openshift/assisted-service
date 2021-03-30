@@ -404,7 +404,9 @@ var _ = Describe("Proxy validations", func() {
 		})
 		It("'*' bypass proxy for all destinations", func() {
 			err := ValidateNoProxyFormat("*")
-			Expect(err).Should(BeNil())
+			// TODO: Start accepting '*' when https://bugzilla.redhat.com/show_bug.cgi?id=1947066 is fixed
+			Expect(err).ShouldNot(BeNil())
+			Expect(err.Error()).Should(ContainSubstring("Sorry, no-proxy value '*' is not supported in this release"))
 		})
 		It("invalid format", func() {
 			err := ValidateNoProxyFormat("...")
@@ -412,6 +414,10 @@ var _ = Describe("Proxy validations", func() {
 		})
 		It("invalid format of a single value", func() {
 			err := ValidateNoProxyFormat("domain.com,...")
+			Expect(err).ShouldNot(BeNil())
+		})
+		It("invalid use of asterisk", func() {
+			err := ValidateNoProxyFormat("*,domain.com")
 			Expect(err).ShouldNot(BeNil())
 		})
 	})

@@ -926,6 +926,17 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
 	})
 
+	It("ignition_file_contains_asterisk_no_proxy", func() {
+		cluster.HTTPProxy = "http://10.10.1.1:3128"
+		cluster.NoProxy = "*"
+		serviceBaseURL := "file://10.56.20.70:7878"
+		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
+
+		Expect(err).Should(BeNil())
+		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["*"] }`))
+	})
+
 	It("produces a valid ignition v3.1 spec by default", func() {
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())

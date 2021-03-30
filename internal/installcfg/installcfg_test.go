@@ -403,6 +403,40 @@ func getInventoryStr(hostname, bootMode string, ipv6only bool) string {
 	return string(ret)
 }
 
+var _ = Describe("Generate NoProxy", func() {
+	var (
+		cluster *common.Cluster
+	)
+	BeforeEach(func() {
+		cluster = &common.Cluster{Cluster: models.Cluster{
+			MachineNetworkCidr: "10.35.20.0/24",
+			Name:               "proxycluster",
+			BaseDNSDomain:      "myproxy.com",
+			ClusterNetworkCidr: "192.168.1.0/24",
+			ServiceNetworkCidr: "fe80::1/64",
+		}}
+	})
+	It("Default NoProxy", func() {
+		noProxy := generateNoProxy(cluster)
+		Expect(noProxy).Should(Equal("10.35.20.0/24,.proxycluster.myproxy.com,192.168.1.0/24,fe80::1/64"))
+	})
+	It("Update NoProxy", func() {
+		cluster.NoProxy = "domain.org,127.0.0.2"
+		noProxy := generateNoProxy(cluster)
+		Expect(noProxy).Should(Equal("domain.org,127.0.0.2,10.35.20.0/24,.proxycluster.myproxy.com,192.168.1.0/24,fe80::1/64"))
+	})
+	It("All-excluded NoProxy", func() {
+		cluster.NoProxy = "*"
+		noProxy := generateNoProxy(cluster)
+		Expect(noProxy).Should(Equal("*"))
+	})
+	It("All-excluded NoProxy with spaces", func() {
+		cluster.NoProxy = " * "
+		noProxy := generateNoProxy(cluster)
+		Expect(noProxy).Should(Equal("*"))
+	})
+})
+
 func TestSubsystem(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "installcfg tests")
