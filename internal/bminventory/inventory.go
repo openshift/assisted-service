@@ -48,6 +48,7 @@ import (
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	ctxparams "github.com/openshift/assisted-service/pkg/context"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -311,9 +312,10 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	kubeKey *types.NamespacedName,
 	params installer.RegisterClusterParams) (*common.Cluster, error) {
 
-	log := logutil.FromContext(ctx, b.log)
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
+
+	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
 	success := false
 	var err error
@@ -537,9 +539,10 @@ func (b *bareMetalInventory) RegisterAddHostsCluster(ctx context.Context, params
 
 }
 func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error) {
-	log := logutil.FromContext(ctx, b.log)
 	id := params.NewAddHostsClusterParams.ID
 	url := installer.GetClusterURL{ClusterID: *id}
+
+	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	apivipDnsname := swag.StringValue(params.NewAddHostsClusterParams.APIVipDnsname)
 	clusterName := swag.StringValue(params.NewAddHostsClusterParams.Name)
 	inputOpenshiftVersion := swag.StringValue(params.NewAddHostsClusterParams.OpenshiftVersion)
@@ -4264,11 +4267,11 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
 }
 
 func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
-	log := logutil.FromContext(ctx, b.log)
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
 	clusterName := "ocp-assisted-service-cluster"
 
+	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	log.Infof("Register OCP cluster: %s with id %s", clusterName, id.String())
 
 	apiVIP, baseDNSDomain, machineCidr, sshKey, err := b.getInstallConfigParamsFromOCP(log)
@@ -4415,7 +4418,7 @@ func (b *bareMetalInventory) createInstalledOCPHosts(ctx context.Context, cluste
 
 		inventory, err := b.getOCPHostInventory(node, cluster.MachineNetworkCidr)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to create inventory for host %s, cluster %s", id, *cluster.ID)
+			log.WithError(err).WithField(ctxparams.HostId, id).Errorf("Failed to create inventory for host %s, cluster %s", id, *cluster.ID)
 			return err
 		}
 
