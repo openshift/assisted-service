@@ -1200,7 +1200,7 @@ var _ = Describe("Refresh Host", func() {
 				return disk.SizeBytes >= conversions.GibToBytes(validatorCfg.MinDiskSizeGb)
 			}).([]*models.Disk)
 		}).AnyTimes()
-
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())

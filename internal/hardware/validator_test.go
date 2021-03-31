@@ -254,7 +254,7 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
 		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresMaster))
 		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibMaster * int64(units.KiB)))
-		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeZero())
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
@@ -279,7 +279,7 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
 		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresWorker))
 		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibWorker * int64(units.KiB)))
-		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeZero())
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 

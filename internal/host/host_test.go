@@ -1921,6 +1921,7 @@ var _ = Describe("AutoAssignRole", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())

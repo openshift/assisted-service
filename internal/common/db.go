@@ -9,6 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	InstallationPreparationSucceeded = "success"
+	InstallationPreparationFailed    = "failed"
+)
+
 type Cluster struct {
 	models.Cluster
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
@@ -35,6 +40,9 @@ type Cluster struct {
 
 	// The ID of the subscription created in AMS
 	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
+
+	// Indication if installation preparation succeeded or failed
+	InstallationPreparationCompletionStatus string
 
 	// ImageGenerated indicates if the discovery image was generated successfully. It will be used internally
 	// when an image needs to be generated. In case the user request to generate an image with custom parameters,

@@ -45,6 +45,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
 			Total: &models.ClusterHostRequirementsDetails{},
 		}, nil)
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, defaultConfig, dummy, mockOperators)
@@ -148,6 +149,7 @@ var _ = Describe("TestHostMonitoring", func() {
 		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
 			Total: &models.ClusterHostRequirementsDetails{},
 		}, nil)
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, &cfg, &leader.DummyElector{}, mockOperators)
