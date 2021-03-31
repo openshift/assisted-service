@@ -203,6 +203,21 @@ func (mr *MockInstallerInternalsMockRecorder) RegisterClusterInternal(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).RegisterClusterInternal), arg0, arg1, arg2)
 }
 
+// UpdateClusterInstallConfigInternal mocks base method
+func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.UpdateClusterInstallConfigParams) (*common.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateClusterInstallConfigInternal", arg0, arg1)
+	ret0, _ := ret[0].(*common.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateClusterInstallConfigInternal indicates an expected call of UpdateClusterInstallConfigInternal
+func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInstallConfigInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInstallConfigInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInstallConfigInternal), arg0, arg1)
+}
+
 // UpdateClusterInternal mocks base method
 func (m *MockInstallerInternals) UpdateClusterInternal(arg0 context.Context, arg1 installer.UpdateClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

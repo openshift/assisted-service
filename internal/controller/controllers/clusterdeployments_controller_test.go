@@ -905,7 +905,6 @@ var _ = Describe("cluster reconcile", func() {
 			expectedUpdateError := errors.Errorf("update internal error")
 			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
 				Return(nil, expectedUpdateError)
-
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(request)
 			Expect(err).To(BeNil())
@@ -915,5 +914,127 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(getConditionByReason(AgentPlatformError, cluster).Message).NotTo(Equal(""))
 			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusPendingForInput))
 		})
+
+		It("add install config overrides annotation", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.7",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			installConfigOverrides := `{"controlPlane": {"hyperthreading": "Disabled"}}`
+			updateReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                     &sId,
+					Status:                 swag.String(models.ClusterStatusInsufficient),
+					InstallConfigOverrides: installConfigOverrides,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+					Expect(param.ClusterID).To(Equal(sId))
+					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
+				}).Return(updateReply, nil)
+			// Add annotation
+			cluster.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
+			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("Remove existing install config overrides annotation", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.7",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					InstallConfigOverrides:   `{"controlPlane": {"hyperthreading": "Disabled"}}`,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			updateReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                     &sId,
+					Status:                 swag.String(models.ClusterStatusInsufficient),
+					InstallConfigOverrides: "",
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+					Expect(param.ClusterID).To(Equal(sId))
+					Expect(param.InstallConfigParams).To(Equal(""))
+				}).Return(updateReply, nil)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
+		It("Update install config overrides annotation", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.7",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					InstallConfigOverrides:   `{"controlPlane": {"hyperthreading": "Disabled"}}`,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			installConfigOverrides := `{"controlPlane": {"hyperthreading": "Enabled"}}`
+			updateReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                     &sId,
+					Status:                 swag.String(models.ClusterStatusInsufficient),
+					InstallConfigOverrides: installConfigOverrides,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+					Expect(param.ClusterID).To(Equal(sId))
+					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
+				}).Return(updateReply, nil)
+			// Add annotation
+			cluster.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
+			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+
 	})
 })

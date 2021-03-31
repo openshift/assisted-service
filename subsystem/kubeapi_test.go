@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -76,6 +77,11 @@ func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, sp
 		},
 		Spec: *spec,
 	})
+	Expect(err).To(BeNil())
+}
+
+func updateClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, clusterDeployment *hivev1.ClusterDeployment) {
+	err := client.Update(ctx, clusterDeployment)
 	Expect(err).To(BeNil())
 }
 
@@ -485,7 +491,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      installEnvName,
 		}
-
 		Eventually(func() string {
 			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
 			if condition != nil {
@@ -496,6 +501,76 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.IgnitionConfigOverrides).ShouldNot(Equal(fakeIgnitionConfigOverride))
 		Expect(cluster.ImageGenerated).Should(Equal(false))
+
+	})
+
+	It("deploy clusterDeployment with install config override", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
+
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName)
+		installConfigOverrides := `{"controlPlane": {"hyperthreading": "Enabled"}}`
+		clusterDeploymentCRD.SetAnnotations(map[string]string{controllers.InstallConfigOverrides: installConfigOverrides})
+		updateClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentCRD)
+
+		Eventually(func() string {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+			if c != nil {
+				return c.InstallConfigOverrides
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(installConfigOverrides))
+	})
+
+	It("deploy clusterDeployment with malformed install config override", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
+
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName)
+		installConfigOverrides := `{"controlPlane": "malformed json": "Enabled"}}`
+		clusterDeploymentCRD.SetAnnotations(map[string]string{controllers.InstallConfigOverrides: installConfigOverrides})
+		updateClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentCRD)
+
+		Eventually(func() string {
+			// currently all conditions have the same type, so filter by status = False
+			conditions := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions
+			for i := range conditions {
+				if conditions[i].Status == "False" {
+					return conditions[i].Message
+				}
+			}
+			return ""
+		}, "30s", "2s").Should(ContainSubstring("failed to update clusterDeployment"))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 	})
 
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
