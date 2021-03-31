@@ -15,8 +15,14 @@ import (
 // swagger:model l3-connectivity
 type L3Connectivity struct {
 
+	// Average round trip time in milliseconds.
+	AverageRTTMs float64 `json:"average_rtt_ms,omitempty"`
+
 	// outgoing nic
 	OutgoingNic string `json:"outgoing_nic,omitempty"`
+
+	// Percentage of packets lost during connectivity check.
+	PacketLossPercentage float64 `json:"packet_loss_percentage,omitempty"`
 
 	// remote ip address
 	RemoteIPAddress string `json:"remote_ip_address,omitempty"`
