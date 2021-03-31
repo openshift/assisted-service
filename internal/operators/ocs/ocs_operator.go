@@ -2,6 +2,7 @@ package ocs
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
@@ -92,6 +93,21 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (o *operator) GetHostRequirements(context.Context, *common.Cluster, *models.Host) (*models.ClusterHostRequirementsDetails, error) {
-	return &models.ClusterHostRequirementsDetails{}, nil
+func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+	numOfHosts := len(cluster.Hosts)
+	switch host.Role {
+	case models.HostRoleMaster, models.HostRoleWorker:
+		return &models.ClusterHostRequirementsDetails{
+			CPUCores: CPU,
+			RAMMib:   Memory,
+		}, nil
+	case models.HostRoleAutoAssign:
+		if numOfHosts == 3 {
+			return &models.ClusterHostRequirementsDetails{
+				CPUCores: CPU,
+				RAMMib:   Memory,
+			}, nil
+		}
+	}
+	return nil, fmt.Errorf("unsupported role: %s", host.Role)
 }
