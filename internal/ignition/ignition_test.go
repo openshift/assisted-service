@@ -1025,4 +1025,59 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(0))
 		})
 	})
+	Context("mirror registries config", func() {
+		mirrorRegistry1 := models.MirrorRegistry{Location: "location1", MirrorLocation: "mirror_location1", Prefix: "prefix1"}
+		mirrorRegistry2 := models.MirrorRegistry{Location: "location2", MirrorLocation: "mirror_location2", Prefix: "prefix1"}
+		mirrorRegistry3 := models.MirrorRegistry{Location: "location3", MirrorLocation: "mirror_location3", Prefix: "prefix1"}
+		mirrorRegistries := []*models.MirrorRegistry{&mirrorRegistry1, &mirrorRegistry2, &mirrorRegistry3}
+		mirrorRegistriesConfig := models.MirrorRegistriesConfig{MirrorRegistries: mirrorRegistries, UnqualifiedSearchRegistries: []string{"registry1", "registry2", "registry3"}}
+		registriesConfigInput := models.MirrorRegistriesCaConfig{CaConfig: "some certificate", MirrorRegistriesConfig: &mirrorRegistriesConfig}
+		expectedOutput := `unqualified-search-registries = ["registry1", "registry2", "registry3"]
+
+[[registry]]
+  location = "location1"
+  mirror-by-digest-only = false
+  prefix = "prefix1"
+
+  [[registry.mirror]]
+    location = "mirror_location1"
+
+[[registry]]
+  location = "location2"
+  mirror-by-digest-only = false
+  prefix = "prefix1"
+
+  [[registry.mirror]]
+    location = "mirror_location2"
+
+[[registry]]
+  location = "location3"
+  mirror-by-digest-only = false
+  prefix = "prefix1"
+
+  [[registry.mirror]]
+    location = "mirror_location3"
+`
+		It("produce ignition with nirror registries config", func() {
+			registriesFileContent, caConfig, err := FormatRegistriesConfForIgnition(&registriesConfigInput)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(registriesFileContent).Should(Equal(expectedOutput))
+			cluster.ImageInfo.CaConfig = caConfig
+			cluster.ImageInfo.MirrorRegistriesConfig = registriesFileContent
+			cluster.ImageInfo.Type = models.ImageTypeFullIso
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(2))
+		})
+	})
+
 })

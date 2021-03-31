@@ -852,6 +852,13 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	staticNetworkConfig := staticnetworkconfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
 
+	mirrorRegistiresConfig, mirrorCA, err := ignition.FormatRegistriesConfForIgnition(params.ImageCreateParams.MirrorRegistriesCaConfig)
+	if err != nil {
+		msg := "Failed to format mirror registries config data"
+		log.WithError(err).Errorf("%s", msg)
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
+	}
+
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
 		cluster.ProxyHash == clusterProxyHash &&
@@ -874,6 +881,8 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_download_url"] = ""
 	updates["image_static_network_config"] = staticNetworkConfig
+	updates["image_mirror_registries_config"] = mirrorRegistiresConfig
+	updates["image_ca_config"] = mirrorCA
 	if !imageExists {
 		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
 		// state of the image creation based on the cluster parameters which will be committed to the DB
@@ -914,20 +923,30 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 	}
 
+	err = b.createAndUploadNewImage(ctx, log, clusterProxyHash, cluster, params)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+}
+
+func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, clusterProxyHash string,
+	cluster *common.Cluster, params installer.GenerateClusterISOParams) error {
 	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
 	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
 	cluster.ImageInfo.Type = params.ImageCreateParams.ImageType
-	ignitionConfig, formatErr := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster, b.IgnitionConfig, false, b.authHandler.AuthType())
-	if formatErr != nil {
-		log.WithError(formatErr).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
+	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster, b.IgnitionConfig, false, b.authHandler.AuthType())
+	if err != nil {
+		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
 		msg := "Failed to generate image: error formatting ignition file"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
-		return nil, common.NewApiError(http.StatusInternalServerError, formatErr)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if err = b.objectHandler.Upload(ctx, []byte(ignitionConfig), fmt.Sprintf("%s/discovery.ign", cluster.ID)); err != nil {
 		log.WithError(err).Errorf("Upload discovery ignition failed for cluster %s", cluster.ID)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	objectPrefix := fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())
@@ -936,29 +955,29 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		if err := b.generateClusterMinimalISO(ctx, log, cluster, ignitionConfig, objectPrefix); err != nil {
 			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", cluster.ID)
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
 		baseISOName, err := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
 		if err != nil {
 			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 
 		if err := b.objectHandler.UploadISO(ctx, ignitionConfig, baseISOName, objectPrefix); err != nil {
 			log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
+			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 
 	if err := b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType, true); err != nil {
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-
 	msg := b.getIgnitionConfigForLogging(cluster, params, log)
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
-	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+
+	return nil
 }
 
 func (b *bareMetalInventory) getIgnitionConfigForLogging(cluster *common.Cluster, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {

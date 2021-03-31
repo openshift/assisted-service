@@ -6548,6 +6548,10 @@ func init() {
     "image_info": {
       "type": "object",
       "properties": {
+        "ca_config": {
+          "description": "CA config data for mirror registries",
+          "type": "string"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -6563,6 +6567,10 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version.",
+          "type": "string"
+        },
+        "mirror_registries_config": {
+          "description": "registries.conf file contents in a TOML format",
           "type": "string"
         },
         "size_bytes": {
@@ -13962,6 +13970,10 @@ func init() {
     "image_info": {
       "type": "object",
       "properties": {
+        "ca_config": {
+          "description": "CA config data for mirror registries",
+          "type": "string"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -13977,6 +13989,10 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version.",
+          "type": "string"
+        },
+        "mirror_registries_config": {
+          "description": "registries.conf file contents in a TOML format",
           "type": "string"
         },
         "size_bytes": {
