@@ -122,7 +122,7 @@ build: lint $(UNIT_TEST_TARGET) build-minimal
 build-all: build-in-docker
 
 build-in-docker:
-	skipper make build-image operator-bundle-build operator-index-build
+	skipper make build-image operator-bundle-build
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
@@ -151,8 +151,10 @@ endef # publish_image
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
 	$(call publish_image,docker,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
-	$(call publish_image,docker,${INDEX_IMAGE},quay.io/ocpmetal/assisted-service-index:${PUBLISH_TAG})
 	skipper make publish-client
+
+publish-index:
+	$(call publish_image,docker,${INDEX_IMAGE},quay.io/ocpmetal/assisted-service-index:${PUBLISH_TAG})
 
 publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
