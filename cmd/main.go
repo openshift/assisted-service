@@ -390,47 +390,21 @@ func main() {
 	h = spec.WithSpecMiddleware(h)
 
 	go func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		errs, _ := errgroup.WithContext(ctx)
-		//cancel the context in case this method ends
-		defer cancel()
-
-		// Checks whether latest version of minimal ISO templates already exists
-		haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(context.Background(), log, objectHandler)
-
-		switch Options.DeployTarget {
-		case deployment_type_k8s:
+		// Upload boot files with a leader lock if we're running with multiple replicas
+		if Options.DeployTarget == deployment_type_k8s {
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
 
-			for version := range openshiftVersionsMap {
-				currVresion := version
-				errs.Go(func() error {
-					return errors.Wrapf(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
-						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
-					}), "Failed uploading boot files for OCP version %s", currVresion)
-				})
-			}
-		case deployment_type_onprem, deployment_type_ocp:
-			for version := range openshiftVersionsMap {
-				currVresion := version
-				errs.Go(func() error {
-					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate),
-						"Failed uploading boot files for OCP version %s", currVresion)
-				})
-			}
-
-			if Options.DeployTarget == deployment_type_ocp {
-				errs.Go(func() error {
-					return errors.Wrapf(bm.RegisterOCPCluster(context.Background()), "Failed to create OCP cluster")
-				})
-			}
+			uploadFunc := func() error { return uploadBootFiles(objectHandler, openshiftVersionsMap, log) }
+			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
+		} else {
+			failOnError(uploadBootFiles(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
 		}
 
-		if err = errs.Wait(); err != nil {
-			failOnError(err, "Failed to make API ready")
+		if Options.DeployTarget == deployment_type_ocp {
+			failOnError(bm.RegisterOCPCluster(context.Background()), "Failed to create OCP cluster")
 		}
 
 		apiEnabler.Enable()
@@ -469,6 +443,26 @@ func main() {
 	}()
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+}
+
+func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	errs, _ := errgroup.WithContext(ctx)
+	//cancel the context in case this method ends
+	defer cancel()
+
+	// Checks whether latest version of minimal ISO templates already exists
+	// Must be done while holding the leader lock but outside of the version loop
+	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(context.Background(), log, objectHandler)
+	for version := range openshiftVersionsMap {
+		currVersion := version
+		errs.Go(func() error {
+			err := objectHandler.UploadBootFiles(context.Background(), currVersion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
+			return errors.Wrapf(err, "Failed uploading boot files for OCP version %s", currVersion)
+		})
+	}
+
+	return errs.Wait()
 }
 
 func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsApi operators.API) generator.ISOInstallConfigGenerator {
