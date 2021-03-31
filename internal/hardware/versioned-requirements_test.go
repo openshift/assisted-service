@@ -1,6 +1,7 @@
 package hardware
 
 import (
+	"encoding/json"
 	"os"
 
 	"github.com/kelseyhightower/envconfig"
@@ -17,10 +18,12 @@ const (
 
 var _ = Describe("Versioned Requirements", func() {
 	BeforeEach(func() {
-		err := os.Unsetenv(requirementsEnv)
-		Expect(err).ToNot(HaveOccurred())
+		_ = os.Unsetenv(requirementsEnv)
 	})
 
+	AfterEach(func() {
+		_ = os.Unsetenv(requirementsEnv)
+	})
 	It("should be set to default when no env variable", func() {
 		cfg := ValidatorCfg{}
 
@@ -30,32 +33,36 @@ var _ = Describe("Versioned Requirements", func() {
 		Expect(cfg.VersionedRequirements).To(BeEmpty())
 	})
 
-	table.DescribeTable("should be decoded from JSON", func(json string, expected map[string]models.VersionedHostRequirements) {
-		_ = os.Setenv(requirementsEnv, json)
+	table.DescribeTable("should be decoded from JSON", func(jsonData []map[string]interface{}, expected map[string]models.VersionedHostRequirements) {
+		json, err := json.Marshal(jsonData)
+		Expect(err).ToNot(HaveOccurred())
+		_ = os.Setenv(requirementsEnv, string(json))
 		cfg := ValidatorCfg{}
 
-		err := envconfig.Process("", &cfg)
+		err = envconfig.Process("", &cfg)
 
 		Expect(err).ToNot(HaveOccurred())
 		Expect(cfg.VersionedRequirements).To(BeEquivalentTo(expected))
 	},
-		table.Entry("empty", "[]", map[string]models.VersionedHostRequirements{}),
+		table.Entry("empty", []map[string]interface{}{}, map[string]models.VersionedHostRequirements{}),
 		table.Entry("One version - full",
-			`[{
-  			"version": "4.6.0",
-  			"master": {
-  			  "cpu_cores": 4,
-  			  "ram_mib": 16384,
-  			  "disk_size_gb": 120,
- 			  "installation_disk_speed_threshold_ms": 2
-  			},
-  			"worker": {
-  			  "cpu_cores": 2,
-  			  "ram_mib": 8192,
-  			  "disk_size_gb": 120,
-		  	  "installation_disk_speed_threshold_ms": 3
-  			}
-		}]`,
+			[]map[string]interface{}{
+				{
+					"version": "4.6.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         120,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         120,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+				},
+			},
 			map[string]models.VersionedHostRequirements{
 				"4.6.0": {
 					Version: "4.6.0",
@@ -64,57 +71,37 @@ var _ = Describe("Versioned Requirements", func() {
 					WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
 						RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
 				}}),
-		table.Entry("One version - sparse",
-			`[{
-  			"version": "4.6.0",
-  			"master": {
-  			  "ram_mib": 16384,
-  			  "disk_size_gb": 120,
-			  "installation_disk_speed_threshold_ms": 3
-  			},
-  			"worker": {
-  			  "cpu_cores": 2,
-  			  "disk_size_gb": 120,
-			  "installation_disk_speed_threshold_ms": 2
-  			}
-		}]`,
-			map[string]models.VersionedHostRequirements{
-				"4.6.0": {
-					Version: "4.6.0",
-					MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 0, DiskSizeGb: 120,
-						RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 3},
-					WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
-						RAMMib: 0, InstallationDiskSpeedThresholdMs: 2},
-				}}),
 		table.Entry("Two versions - full",
-			`[{
-  			"version": "4.6.0",
-  			"master": {
-  			  "cpu_cores": 4,
-  			  "ram_mib": 16384,
-  			  "disk_size_gb": 120,
-			  "installation_disk_speed_threshold_ms": 2
-  			},
-  			"worker": {
-  			  "cpu_cores": 2,
-  			  "ram_mib": 8192,
-  			  "disk_size_gb": 120,
-			  "installation_disk_speed_threshold_ms": 1
-  			}
-		}, {
-  			"version": "4.7.0",
-  			"master": {
-  			  "cpu_cores": 5,
-  			  "ram_mib": 17408,
-  			  "disk_size_gb": 121,
-			  "installation_disk_speed_threshold_ms": 3
-  			},
-  			"worker": {
-  			  "cpu_cores": 3,
-  			  "ram_mib": 9216,
-  			  "disk_size_gb": 122
-  			}
-		}]`,
+			[]map[string]interface{}{
+				{
+					"version": "4.6.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         120,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         120,
+						"installation_disk_speed_threshold_ms": 1,
+					},
+				}, {
+					"version": "4.7.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            5,
+						"ram_mib":                              17408,
+						"disk_size_gb":                         121,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":    3,
+						"ram_mib":      9216,
+						"disk_size_gb": 122,
+					},
+				},
+			},
 			map[string]models.VersionedHostRequirements{
 				"4.6.0": {
 					Version: "4.6.0",
@@ -129,23 +116,25 @@ var _ = Describe("Versioned Requirements", func() {
 					WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 122, RAMMib: conversions.GibToMib(9)},
 				}}),
 		table.Entry("Two versions - one master, one worker",
-			`[{
-  			"version": "4.6.0",
-  			"master": {
-  			  "cpu_cores": 4,
-  			  "ram_mib": 16384,
-  			  "disk_size_gb": 120, 
-			  "installation_disk_speed_threshold_ms": 2
-  			}
-		}, {
-  			"version": "4.7.0",
-  			"worker": {
-  			  "cpu_cores": 3,
-  			  "ram_mib": 9216,
-  			  "disk_size_gb": 122,
-			  "installation_disk_speed_threshold_ms": 3
-  			}
-		}]`,
+			[]map[string]interface{}{
+				{
+					"version": "4.6.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         120,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+				}, {
+					"version": "4.7.0",
+					"worker": map[string]interface{}{
+						"cpu_cores":                            3,
+						"ram_mib":                              9216,
+						"disk_size_gb":                         122,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+				},
+			},
 			map[string]models.VersionedHostRequirements{
 				"4.6.0": {
 					Version: "4.6.0",
@@ -159,5 +148,46 @@ var _ = Describe("Versioned Requirements", func() {
 					WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 3, DiskSizeGb: 122,
 						RAMMib: conversions.GibToMib(9), InstallationDiskSpeedThresholdMs: 3},
 				}}),
+	)
+
+	table.DescribeTable("should not be decoded due to validation problems", func(role string, cpu, ram, disk, diskSpeed int) {
+		jsonData := []map[string]interface{}{
+			{
+				"version": "4.6.0",
+				role: map[string]interface{}{
+					"cpu_cores":                            cpu,
+					"ram_mib":                              ram,
+					"disk_size_gb":                         disk,
+					"installation_disk_speed_threshold_ms": diskSpeed,
+				},
+			},
+		}
+
+		json, err := json.Marshal(jsonData)
+		Expect(err).ToNot(HaveOccurred())
+		_ = os.Setenv(requirementsEnv, string(json))
+		cfg := ValidatorCfg{}
+
+		err = envconfig.Process("", &cfg)
+
+		Expect(err).To(HaveOccurred())
+	},
+		table.Entry("master: zero CPU", "master", 0, 1, 1, 1),
+		table.Entry("master: zero RAM", "master", 1, 0, 1, 1),
+		table.Entry("master: zero disk", "master", 1, 1, 0, 1),
+
+		table.Entry("master: negative CPU", "master", -1, 1, 1, 1),
+		table.Entry("master: negative RAM", "master", 1, -1, 1, 1),
+		table.Entry("master: negative disk", "master", 1, 1, -1, 1),
+		table.Entry("master: negative disk sped", "master", 1, 1, 1, -1),
+
+		table.Entry("worker: zero CPU", "worker", 0, 1, 1, 1),
+		table.Entry("worker: zero RAM", "worker", 1, 0, 1, 1),
+		table.Entry("worker: zero disk", "worker", 1, 1, 0, 1),
+
+		table.Entry("worker: negative CPU", "worker", -1, 1, 1, 1),
+		table.Entry("worker: negative RAM", "worker", 1, -1, 1, 1),
+		table.Entry("worker: negative disk", "worker", 1, 1, -1, 1),
+		table.Entry("worker: negative disk speed", "worker", 1, 1, 1, -1),
 	)
 })

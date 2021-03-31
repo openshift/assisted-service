@@ -198,35 +198,39 @@ var _ = Describe("Cluster host requirements", func() {
 		details1, details2   models.ClusterHostRequirementsDetails
 	)
 
+	var versionRequirementsSource = []map[string]interface{}{
+		{
+			"version": "4.6",
+			"master": map[string]interface{}{
+				"cpu_cores":    4,
+				"ram_mib":      16384,
+				"disk_size_gb": 120,
+			},
+			"worker": map[string]interface{}{
+				"cpu_cores":    2,
+				"ram_mib":      8192,
+				"disk_size_gb": 120,
+			},
+		},
+		{
+			"version": "4.7",
+			"master": map[string]interface{}{
+				"cpu_cores":                            5,
+				"ram_mib":                              17408,
+				"disk_size_gb":                         121,
+				"installation_disk_speed_threshold_ms": 1,
+			},
+			"worker": map[string]interface{}{
+				"cpu_cores":                            3,
+				"ram_mib":                              9216,
+				"disk_size_gb":                         122,
+				"installation_disk_speed_threshold_ms": 2,
+			},
+		},
+	}
+
 	const (
-		prefixedRequirementsEnv = "MYAPP_" + requirementsEnv
-		versionRequirements     = `[{
-  			"version": "4.6",
-  			"master": {
-  			  "cpu_cores": 4,
-  			  "ram_gib": 16384,
-  			  "disk_size_gb": 120
-  			},
-  			"worker": {
-  			  "cpu_cores": 2,
-  			  "ram_mib": 8192,
-  			  "disk_size_gb": 120
-  			}
-		}, {
-  			"version": "4.7",
-  			"master": {
-  			  "cpu_cores": 5,
-  			  "ram_mib": 17408,
-  			  "disk_size_gb": 121,
- 			  "installation_disk_speed_threshold_ms": 1
-  			},
-  			"worker": {
-  			  "cpu_cores": 3,
-  			  "ram_mib": 9216,
-  			  "disk_size_gb": 122,
- 			  "installation_disk_speed_threshold_ms": 2
-  			}
-		}]`
+		prefixedRequirementsEnv   = "MYAPP_" + requirementsEnv
 		openShiftVersionNotInJSON = "4.5"
 	)
 
@@ -243,7 +247,9 @@ var _ = Describe("Cluster host requirements", func() {
 				{Name: operatorName2, ClusterID: clusterID},
 			},
 		}}
-		_ = os.Setenv(prefixedRequirementsEnv, versionRequirements)
+		versionRequirements, err := json.Marshal(versionRequirementsSource)
+		Expect(err).ToNot(HaveOccurred())
+		_ = os.Setenv(prefixedRequirementsEnv, string(versionRequirements))
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.VersionedRequirements).ToNot(HaveKey(openShiftVersionNotInJSON))
 		details1 = models.ClusterHostRequirementsDetails{

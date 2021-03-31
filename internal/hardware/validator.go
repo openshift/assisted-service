@@ -147,17 +147,19 @@ func (v *validator) GetHostRequirementsForVersion(role models.HostRole, openShif
 
 func (v *validator) defaultWorkerRequirements() models.HostRequirementsRole {
 	return models.HostRequirementsRole{
-		CPUCores:   v.ValidatorCfg.MinCPUCoresWorker,
-		RAMGib:     v.ValidatorCfg.MinRamGibWorker,
-		DiskSizeGb: v.ValidatorCfg.MinDiskSizeGb,
+		CPUCores:                         v.ValidatorCfg.MinCPUCoresWorker,
+		RAMGib:                           v.ValidatorCfg.MinRamGibWorker,
+		DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
+		InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
 	}
 }
 
 func (v *validator) defaultMasterRequirements() models.HostRequirementsRole {
 	return models.HostRequirementsRole{
-		CPUCores:   v.ValidatorCfg.MinCPUCoresMaster,
-		RAMGib:     v.ValidatorCfg.MinRamGibMaster,
-		DiskSizeGb: v.ValidatorCfg.MinDiskSizeGb,
+		CPUCores:                         v.ValidatorCfg.MinCPUCoresMaster,
+		RAMGib:                           v.ValidatorCfg.MinRamGibMaster,
+		DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
+		InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
 	}
 }
 
