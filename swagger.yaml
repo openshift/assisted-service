@@ -3250,6 +3250,21 @@ definitions:
         type: integer
         description: Required installation disk speed in ms
 
+  versioned-host-requirements:
+    type: object
+    properties:
+      version:
+        type: string
+        description: Version of the component for which requirements are defined
+      master:
+        x-go-name: MasterRequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Master node requirements
+      worker:
+        x-go-name: WorkerRequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Worker node requirements
+
   host-requirements-role:
     type: object
     properties:

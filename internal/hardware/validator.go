@@ -161,11 +161,12 @@ func (v *validator) defaultMasterRequirements() models.HostRequirementsRole {
 	}
 }
 
-func fromRequirements(nodeRequirements *Requirements) models.HostRequirementsRole {
+func fromRequirements(nodeRequirements *models.ClusterHostRequirementsDetails) models.HostRequirementsRole {
 	return models.HostRequirementsRole{
-		CPUCores:   nodeRequirements.CPUCores,
-		RAMGib:     nodeRequirements.RAMGib,
-		DiskSizeGb: nodeRequirements.DiskSizeGb,
+		CPUCores:                         nodeRequirements.CPUCores,
+		RAMGib:                           conversions.MibToGiB(nodeRequirements.RAMMib),
+		DiskSizeGb:                       nodeRequirements.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: nodeRequirements.InstallationDiskSpeedThresholdMs,
 	}
 }
 

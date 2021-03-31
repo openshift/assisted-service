@@ -204,27 +204,30 @@ var _ = Describe("Cluster host requirements", func() {
   			"version": "4.6",
   			"master": {
   			  "cpu_cores": 4,
-  			  "ram_gib": 16,
+  			  "ram_gib": 16384,
   			  "disk_size_gb": 120
   			},
   			"worker": {
   			  "cpu_cores": 2,
-  			  "ram_gib": 8,
+  			  "ram_mib": 8192,
   			  "disk_size_gb": 120
   			}
 		}, {
   			"version": "4.7",
   			"master": {
   			  "cpu_cores": 5,
-  			  "ram_gib": 17,
-  			  "disk_size_gb": 121
+  			  "ram_mib": 17408,
+  			  "disk_size_gb": 121,
+ 			  "installation_disk_speed_threshold_ms": 1
   			},
   			"worker": {
   			  "cpu_cores": 3,
-  			  "ram_gib": 9,
-  			  "disk_size_gb": 122
+  			  "ram_mib": 9216,
+  			  "disk_size_gb": 122,
+ 			  "installation_disk_speed_threshold_ms": 2
   			}
 		}]`
+		openShiftVersionNotInJSON = "4.5"
 	)
 
 	BeforeEach(func() {
@@ -234,7 +237,7 @@ var _ = Describe("Cluster host requirements", func() {
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
-			OpenshiftVersion: "4.5",
+			OpenshiftVersion: openShiftVersionNotInJSON,
 			MonitoredOperators: []*models.MonitoredOperator{
 				{Name: operatorName1, ClusterID: clusterID},
 				{Name: operatorName2, ClusterID: clusterID},
@@ -242,7 +245,7 @@ var _ = Describe("Cluster host requirements", func() {
 		}}
 		_ = os.Setenv(prefixedRequirementsEnv, versionRequirements)
 		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
-
+		Expect(cfg.VersionedRequirements).ToNot(HaveKey(openShiftVersionNotInJSON))
 		details1 = models.ClusterHostRequirementsDetails{
 			InstallationDiskSpeedThresholdMs: 10,
 			RAMMib:                           1024,
@@ -357,17 +360,19 @@ var _ = Describe("Cluster host requirements", func() {
 			Expect(result.Total.DiskSizeGb).To(Equal(expectedOcpRequirements.DiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
 			Expect(result.Total.CPUCores).To(Equal(expectedOcpRequirements.CPUCores + details1.CPUCores + details2.CPUCores))
 			Expect(result.Total.RAMMib).To(Equal(expectedOcpRequirements.RAMMib + details1.RAMMib + details2.RAMMib))
-			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(expectedOcpRequirements.InstallationDiskSpeedThresholdMs))
 		},
 		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
-			CPUCores:   3,
-			DiskSizeGb: 122,
-			RAMMib:     9 * int64(units.KiB),
+			CPUCores:                         3,
+			DiskSizeGb:                       122,
+			RAMMib:                           9 * int64(units.KiB),
+			InstallationDiskSpeedThresholdMs: 2,
 		}),
 		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
-			CPUCores:   5,
-			DiskSizeGb: 121,
-			RAMMib:     17 * int64(units.KiB),
+			CPUCores:                         5,
+			DiskSizeGb:                       121,
+			RAMMib:                           17 * int64(units.KiB),
+			InstallationDiskSpeedThresholdMs: 1,
 		}),
 	)
 
