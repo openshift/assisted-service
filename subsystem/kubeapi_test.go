@@ -9,10 +9,13 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
@@ -144,6 +147,24 @@ func getSecret(ctx context.Context, client k8sclient.Client, key types.Namespace
 	return secret
 }
 
+// configureLoclAgentClient reassigns the global agentBMClient variable to a client instance using local token auth
+func configureLocalAgentClient(clusterID string) {
+	if Options.AuthType != auth.TypeLocal {
+		Fail(fmt.Sprintf("Agent client shouldn't be configured for local auth when auth type is %s", Options.AuthType))
+	}
+
+	key := types.NamespacedName{
+		Namespace: Options.Namespace,
+		Name:      "assisted-installer-local-auth-key",
+	}
+	secret := getSecret(context.Background(), kubeClient, key)
+	privKeyPEM := secret.Data["ec-private-key.pem"]
+	tok, err := gencrypto.LocalJWTForKey(clusterID, string(privKeyPEM))
+	Expect(err).To(BeNil())
+
+	agentBMClient = client.New(clientcfg(auth.AgentAuthHeaderWriter(tok)))
+}
+
 // FindStatusClusterDeploymentCondition is a port of conditionsv1.FindStatusCondition
 func FindStatusClusterDeploymentCondition(conditions []hivev1.ClusterDeploymentCondition,
 	conditionType hivev1.ClusterDeploymentConditionType) *hivev1.ClusterDeploymentCondition {
@@ -270,6 +291,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
@@ -306,6 +328,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		host := setupNewHost(ctx, "hostname1", *cluster.ID)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -320,10 +343,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() string {
-			return getHost(*cluster.ID, *host.ID).RequestedHostname
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			return h.RequestedHostname
 		}, "2m", "10s").Should(Equal("newhostname"))
 		Eventually(func() string {
-			return getHost(*cluster.ID, *host.ID).InstallationDiskID
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			return h.InstallationDiskID
 		}, "2m", "10s").Should(Equal(sdb.ID))
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
@@ -350,6 +377,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.NoProxy).Should(Equal(""))
 		Expect(cluster.HTTPProxy).Should(Equal(""))
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
@@ -405,6 +433,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
@@ -445,6 +474,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
@@ -478,6 +508,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		host := setupNewHost(ctx, "hostname1", *cluster.ID)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -553,6 +584,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
@@ -596,6 +628,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
 
 		By("Complete Installation")
+		fmt.Printf("cluster operators: %v\n", cluster.MonitoredOperators)
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
 		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{

@@ -28,7 +28,7 @@ var _ = Describe("test authorization", func() {
 	var capabilityReviewAdminStubID string
 
 	BeforeSuite(func() {
-		if Options.AuthType == auth.TypeNone {
+		if Options.AuthType != auth.TypeRHSSO {
 			return
 		}
 
@@ -46,7 +46,7 @@ var _ = Describe("test authorization", func() {
 	})
 
 	AfterSuite(func() {
-		if Options.AuthType == auth.TypeNone {
+		if Options.AuthType != auth.TypeRHSSO {
 			return
 		}
 

@@ -51,7 +51,7 @@ func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
 			Path:   client.DefaultBasePath,
 		},
 	}
-	if Options.AuthType == auth.TypeRHSSO {
+	if Options.AuthType != auth.TypeNone {
 		log.Info("API Key authentication enabled for subsystem tests")
 		cfg.AuthInfo = authInfo
 	}
