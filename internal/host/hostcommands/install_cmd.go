@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -244,35 +245,50 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 /*
 	This function combines existing InstallerArgs ( set by user for his own reasons ) with the
 	--copy-network argument needed by the static ips configuration. In case user has also
-	set --copy-network, function will set only one such argument
+	set --copy-network, function will set only one such argument. It also append an arg that
+	controls DHCP depending on the IP stack being used.
 */
 func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host) (string, error) {
-	if cluster.ImageInfo.StaticNetworkConfig == "" {
-		return host.InstallerArgs, nil
-	}
 
-	if host.InstallerArgs == "" {
-		newArgs := []string{"--copy-network"}
-		argsBytes, err := json.Marshal(newArgs)
+	var installerArgs []string
+	if host.InstallerArgs != "" {
+		err := json.Unmarshal([]byte(host.InstallerArgs), &installerArgs)
 		if err != nil {
 			return "", err
 		}
-		return string(argsBytes), nil
 	}
 
-	var currentInstallerArgs []string
-	err := json.Unmarshal([]byte(host.InstallerArgs), &currentInstallerArgs)
-	if err != nil {
-		return "", err
+	if cluster.MachineNetworkCidr != "" && !hasUserConfiguredIP(installerArgs) {
+		if network.IsIPv6CIDR(cluster.MachineNetworkCidr) {
+			installerArgs = append(installerArgs, "--append-karg", "ip=dhcp6")
+		} else {
+			installerArgs = append(installerArgs, "--append-karg", "ip=dhcp")
+		}
 	}
 
-	// installer args already contain  command for network configuration
-	if funk.Contains(currentInstallerArgs, "--copy-network") {
-		return host.InstallerArgs, nil
+	if cluster.ImageInfo.StaticNetworkConfig != "" && !funk.Contains(installerArgs, "--copy-network") {
+		// network not configured statically or
+		// installer args already contain command for network configuration
+		installerArgs = append(installerArgs, "--copy-network")
 	}
 
-	currentInstallerArgs = append(currentInstallerArgs, "--copy-network")
-	argsBytes, err := json.Marshal(currentInstallerArgs)
+	return toJSONString(installerArgs)
+}
+
+func hasUserConfiguredIP(args []string) bool {
+	// check if the user has configured ip manually
+	// https://man7.org/linux/man-pages/man7/dracut.cmdline.7.html
+	_, result := funk.FindString(args, func(s string) bool {
+		return strings.HasPrefix(s, "ip=")
+	})
+	return result
+}
+
+func toJSONString(args []string) (string, error) {
+	if len(args) == 0 {
+		return "", nil
+	}
+	argsBytes, err := json.Marshal(args)
 	if err != nil {
 		return "", err
 	}

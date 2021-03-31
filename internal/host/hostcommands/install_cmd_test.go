@@ -496,6 +496,113 @@ var _ = Describe("installcmd arguments", func() {
 	})
 })
 
+var _ = Describe("construct host install arguments", func() {
+	var (
+		cluster *common.Cluster
+		host    *models.Host
+	)
+	BeforeEach(func() {
+		cluster = &common.Cluster{
+			Cluster: models.Cluster{
+				ImageInfo: &models.ImageInfo{},
+			},
+		}
+		host = &models.Host{}
+	})
+	It("ip=dhcp6 added when machine CIDR is IPv6", func() {
+		cluster.MachineNetworkCidr = "2001:db8::/120"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
+	})
+	It("ip=dhcp added when machine CIDR is IPv4", func() {
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\"]"))
+	})
+	It("ip=dhcp and copy-network added with static config", func() {
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		cluster.ImageInfo.StaticNetworkConfig = "something"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\",\"--copy-network\"]"))
+	})
+	It("ip=dhcp added with static config and copy-network set by the user", func() {
+		host.InstallerArgs = "[\"--copy-network\"]"
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		cluster.ImageInfo.StaticNetworkConfig = "something"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--copy-network\",\"--append-karg\",\"ip=dhcp\"]"))
+	})
+	It("ip=dhcp added when copy-network set by the user without static config", func() {
+		host.InstallerArgs = "[\"--copy-network\"]"
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--copy-network\",\"--append-karg\",\"ip=dhcp\"]"))
+	})
+	It("existing args updated with ip=dhcp when machine CIDR is IPv4", func() {
+		cluster.MachineNetworkCidr = "2001:db8::/120"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
+	})
+	It("existing args updated with ip=dhcp6 when machine CIDR is IPv6", func() {
+		host.InstallerArgs = "[\"--append-karg\",\"rd.break=cmdline\"]"
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--append-karg\",\"rd.break=cmdline\",\"--append-karg\",\"ip=dhcp\"]"))
+	})
+	It("don't add ip arg if ip=dhcp added by user", func() {
+		kargs := "[\"--append-karg\",\"ip=dhcp\"]"
+		host.InstallerArgs = kargs
+		cluster.MachineNetworkCidr = "2001:db8::/120"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(kargs))
+	})
+	It("don't add ip arg if ip=dhcp6 added by user", func() {
+		kargs := "[\"--append-karg\",\"ip=dhcp6\"]"
+		host.InstallerArgs = kargs
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(kargs))
+	})
+	It("don't add ip arg if ip=eth0:any added by user", func() {
+		kargs := "[\"--append-karg\",\"ip=eth0:any\"]"
+		host.InstallerArgs = kargs
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(kargs))
+	})
+	It("don't add ip arg if ip=dhcp deleted by user", func() {
+		kargs := "[\"--delete-karg\",\"ip=dhcp\"]"
+		host.InstallerArgs = kargs
+		cluster.MachineNetworkCidr = "2001:db8::/120"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(kargs))
+	})
+	It("don't add ip arg if ip=dhcp6 deleted by user", func() {
+		kargs := "[\"--delete-karg\",\"ip=dhcp6\"]"
+		host.InstallerArgs = kargs
+		cluster.MachineNetworkCidr = "192.186.10.0/24"
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(kargs))
+	})
+	It("leave default ip if machine CIDR not known", func() {
+		args, err := constructHostInstallerArgs(cluster, host)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(""))
+	})
+})
+
 func createDisk(name string, bootable bool) *models.Disk {
 	return &models.Disk{DriveType: "HDD", ID: fmt.Sprintf("/dev/disk/by-id/wwn-%s", name), Name: name,
 		SizeBytes: int64(128849018880), Bootable: bootable}
