@@ -79,6 +79,10 @@ type InstallerConfigBaremetal struct {
 		Hyperthreading string `yaml:"hyperthreading"`
 		Name           string `yaml:"name"`
 		Replicas       int    `yaml:"replicas"`
+		Workloads      []struct {
+			Name   string `yaml:"name"`
+			CPUIds string `yaml:"cpuIDs"`
+		} `yaml:"workloads,omitempty"`
 	} `yaml:"controlPlane"`
 	Platform              platform         `yaml:"platform"`
 	BootstrapInPlace      bootstrapInPlace `yaml:"bootstrapInPlace,omitempty"`
@@ -207,6 +211,10 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *Ins
 			Hyperthreading string `yaml:"hyperthreading"`
 			Name           string `yaml:"name"`
 			Replicas       int    `yaml:"replicas"`
+			Workloads      []struct {
+				Name   string `yaml:"name"`
+				CPUIds string `yaml:"cpuIDs"`
+			} `yaml:"workloads,omitempty"`
 		}{
 			Hyperthreading: "Enabled",
 			Name:           string(models.HostRoleMaster),
