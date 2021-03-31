@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
 	reflect "reflect"
 	"strings"
 	"time"
@@ -826,35 +827,10 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	return nil
 }
 
-func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folder string) error {
 	log := logutil.FromContext(ctx, m.log)
-	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
-	if err != nil {
-		return common.NewApiError(http.StatusNotFound, err)
-	}
-
-	var failedToDelete []string
-	for _, file := range files {
-		log.Debugf("Deleting cluster %s S3 log file: %s", c.ID.String(), file)
-		_, err = objectHandler.DeleteObject(ctx, file)
-		if err != nil {
-			m.log.WithError(err).Errorf("failed deleting s3 log %s", file)
-			failedToDelete = append(failedToDelete, file)
-		}
-	}
-
-	if len(failedToDelete) > 0 {
-		return common.NewApiError(
-			http.StatusInternalServerError,
-			errors.Errorf("failed to delete s3 logs: %q", failedToDelete))
-	}
-	return nil
-}
-
-func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	var failedToDelete []string
-	path := fmt.Sprintf("%s/", c.ID)
-	filesList, err := objectHandler.ListObjectsByPrefix(ctx, path)
+	path := filepath.Join(string(*c.ID), folder) + "/"
+	files, err := objectHandler.ListObjectsByPrefix(ctx, path)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to list files in %s", path)
 		m.log.WithError(err).Errorf(msg)
@@ -862,15 +838,18 @@ func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 			http.StatusInternalServerError,
 			errors.Errorf(msg))
 	}
-	for _, fileName := range filesList {
-		//skip log deletion
-		if strings.Contains(fileName, "logs") {
+
+	var failedToDelete []string
+	for _, file := range files {
+		//skip log and manifests deletion when deleting cluster files
+		if folder == "" && (strings.Contains(file, "logs") || strings.Contains(file, "manifests")) {
 			continue
 		}
-		_, err := objectHandler.DeleteObject(ctx, fileName)
+		log.Debugf("Deleting cluster %s S3 file: %s", c.ID.String(), file)
+		_, err = objectHandler.DeleteObject(ctx, file)
 		if err != nil {
-			m.log.WithError(err).Errorf("failed deleting s3 file %s", fileName)
-			failedToDelete = append(failedToDelete, fileName)
+			m.log.WithError(err).Errorf("failed deleting s3 file: %s", file)
+			failedToDelete = append(failedToDelete, file)
 		}
 	}
 
@@ -880,6 +859,18 @@ func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 			errors.Errorf("failed to delete s3 files: %q", failedToDelete))
 	}
 	return nil
+}
+
+func (m *Manager) deleteClusterManifests(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFiles(ctx, c, objectHandler, "manifests")
+}
+
+func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFiles(ctx, c, objectHandler, "logs")
+}
+
+func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFiles(ctx, c, objectHandler, "")
 }
 
 func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error {
@@ -921,7 +912,10 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 			deleteFromDB = false
 			m.log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", c.ID.String())
 		}
-
+		if err := m.deleteClusterManifests(ctx, c, objectHandler); err != nil {
+			deleteFromDB = false
+			m.log.WithError(err).Warnf("Failed deleting s3 manifests of cluster %s", c.ID.String())
+		}
 		if !deleteFromDB {
 			continue
 		}
