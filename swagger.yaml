@@ -4015,6 +4015,22 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/host'
+      ready_host_count:
+        type: integer
+        format: int64
+        description: hosts associated to this cluster that are in 'known' state.
+        x-go-custom-tag: gorm:"-"
+      enabled_host_count:
+        type: integer
+        format: int64
+        description: hosts associated to this cluster that are not in 'disabled' state.
+        x-go-custom-tag: gorm:"-"
+      total_host_count:
+        type: integer
+        format: int64
+        description: All hosts associated to this cluster.
+        x-go-custom-tag: gorm:"-"
+
       updated_at:
         type: string
         format: date-time

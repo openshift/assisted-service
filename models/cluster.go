@@ -64,6 +64,9 @@ type Cluster struct {
 	// email domain
 	EmailDomain string `json:"email_domain,omitempty"`
 
+	// hosts associated to this cluster that are not in 'disabled' state.
+	EnabledHostCount int64 `json:"enabled_host_count,omitempty" gorm:"-"`
+
 	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
 	// over multiple master nodes whereas 'None' installs a full cluster over one node.
 	//
@@ -157,6 +160,9 @@ type Cluster struct {
 	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
 
+	// hosts associated to this cluster that are in 'known' state.
+	ReadyHostCount int64 `json:"ready_host_count,omitempty" gorm:"-"`
+
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
@@ -176,6 +182,9 @@ type Cluster struct {
 	// The last time that the cluster status was updated.
 	// Format: date-time
 	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
+
+	// All hosts associated to this cluster.
+	TotalHostCount int64 `json:"total_host_count,omitempty" gorm:"-"`
 
 	// The last time that this cluster was updated.
 	// Format: date-time

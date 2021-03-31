@@ -121,7 +121,10 @@ func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeD
 
 	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Take(&cluster, where...).Error
-	return &cluster, err
+	if err != nil {
+		return nil, err
+	}
+	return &cluster, nil
 }
 
 func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) ([]*Cluster, error) {
@@ -129,11 +132,15 @@ func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, include
 
 	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Find(&clusters, where...).Error
-	return clusters, err
+	if err != nil {
+		return nil, err
+	}
+	return clusters, nil
 }
 
 func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
 	var host Host
+
 	err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error
 	if err != nil {
 		return nil, errors.Wrapf(err, "Failed to get host %s in cluster %s", hostId, clusterId)
@@ -143,4 +150,19 @@ func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
 
 func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, value interface{}, where ...interface{}) error {
 	return db.Where("cluster_id = ?", clusterID).Delete(value, where...).Error
+}
+
+func (c *Cluster) AfterFind(db *gorm.DB) error {
+	for _, h := range c.Hosts {
+		if *h.Status == models.HostStatusKnown {
+			c.ReadyHostCount++
+			c.EnabledHostCount++
+			continue
+		}
+		if *h.Status != models.HostStatusDisabled {
+			c.EnabledHostCount++
+		}
+	}
+	c.TotalHostCount = int64(len(c.Hosts))
+	return nil
 }

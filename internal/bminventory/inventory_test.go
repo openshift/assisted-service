@@ -4299,7 +4299,9 @@ var _ = Describe("List unregistered clusters", func() {
 		payload := resp.(*installer.ListClustersOK).Payload
 		Expect(len(payload)).Should(Equal(1))
 		Expect(payload[0].ID.String()).Should(Equal(clusterID.String()))
-		Expect(len(payload[0].Hosts)).Should(Equal(1))
+		Expect(payload[0].TotalHostCount).Should(Equal(int64(1)))
+		Expect(payload[0].EnabledHostCount).Should(Equal(int64(1)))
+		Expect(payload[0].ReadyHostCount).Should(Equal(int64(1)))
 		Expect(payload[0].Hosts[0].ID.String()).Should(Equal(hostID.String()))
 	})
 
@@ -4387,7 +4389,9 @@ var _ = Describe("Get unregistered clusters", func() {
 		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
 		cluster := resp.(*installer.GetClusterOK).Payload
 		Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
-		Expect(len(cluster.Hosts)).Should(Equal(1))
+		Expect(cluster.TotalHostCount).Should(Equal(int64(1)))
+		Expect(cluster.ReadyHostCount).Should(Equal(int64(1)))
+		Expect(cluster.EnabledHostCount).Should(Equal(int64(1)))
 		Expect(cluster.Hosts[0].ID.String()).Should(Equal(hostID.String()))
 	})
 
@@ -5158,6 +5162,7 @@ func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, clust
 		Role:      role,
 		Inventory: inventory,
 	}
+
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	return host
 }

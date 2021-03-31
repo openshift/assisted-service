@@ -4803,6 +4803,12 @@ func init() {
         "email_domain": {
           "type": "string"
         },
+        "enabled_host_count": {
+          "description": "hosts associated to this cluster that are not in 'disabled' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -4937,6 +4943,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "ready_host_count": {
+          "description": "hosts associated to this cluster that are in 'known' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
@@ -4973,6 +4985,12 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "total_host_count": {
+          "description": "All hosts associated to this cluster.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
@@ -12275,6 +12293,12 @@ func init() {
         "email_domain": {
           "type": "string"
         },
+        "enabled_host_count": {
+          "description": "hosts associated to this cluster that are not in 'disabled' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -12409,6 +12433,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "ready_host_count": {
+          "description": "hosts associated to this cluster that are in 'known' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
@@ -12445,6 +12475,12 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "total_host_count": {
+          "description": "All hosts associated to this cluster.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
