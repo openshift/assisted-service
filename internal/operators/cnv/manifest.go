@@ -5,27 +5,96 @@ import (
 	"text/template"
 )
 
+const (
+	UpstreamNamespace   string = "kubevirt-hyperconverged"
+	DownstreamNamespace string = "openshift-cnv"
+
+	upstreamSource   string = "community-operators"
+	downstreamSource string = "redhat-operators"
+
+	upstreamSourceName   string = "community-kubevirt-hyperconverged"
+	downstreamSourceName string = "kubevirt-hyperconverged"
+)
+
+type manifestConfig struct {
+	// CNV operator namespace
+	Namespace string
+
+	// CNV operator source from where we fetch HCO image
+	Source string
+
+	// CNV operator source name used to identify HCO
+	SourceName string
+}
+
+func configSource(config Config) manifestConfig {
+	if config.Mode {
+		return manifestConfig{Namespace: DownstreamNamespace, Source: downstreamSource, SourceName: downstreamSourceName}
+	}
+	return manifestConfig{Namespace: UpstreamNamespace, Source: upstreamSource, SourceName: upstreamSourceName}
+}
+
 // Manifests returns manifests needed to deploy CNV
-func Manifests() (map[string][]byte, error) {
-	cnvSubs, err := subscription()
+func Manifests(config Config) (map[string][]byte, error) {
+	configSource := configSource(config)
+	cnvSubsManifest, err := subscription(configSource)
+	if err != nil {
+		return nil, err
+	}
+	cnvNs, err := namespace(configSource)
+	if err != nil {
+		return nil, err
+	}
+	cnvGrp, err := group(configSource)
+	if err != nil {
+		return nil, err
+	}
+	cnvHco, err := hco(configSource)
 	if err != nil {
 		return nil, err
 	}
 	manifests := make(map[string][]byte)
-	manifests["99_openshift-cnv_subscription.yaml"] = cnvSubs
+	manifests["99_openshift-cnv_subscription.yaml"] = cnvSubsManifest
 	manifests["99_openshift-cnv_crd.yaml"] = []byte(cnvCRD)
-	manifests["99_openshift-cnv_ns.yaml"] = []byte(cnvNamespace)
-	manifests["99_openshift-cnv_operator_group.yaml"] = []byte(cnvGroup)
-	manifests["99_openshift-cnv_hco.yaml"] = []byte(cnvHCO)
+	manifests["99_openshift-cnv_ns.yaml"] = cnvNs
+	manifests["99_openshift-cnv_operator_group.yaml"] = cnvGrp
+	manifests["99_openshift-cnv_hco.yaml"] = cnvHco
 	return manifests, nil
 }
 
-func subscription() ([]byte, error) {
+func subscription(config manifestConfig) ([]byte, error) {
 	data := map[string]string{
-		"OPERATOR_NAMESPACE":         Operator.Namespace,
+		"OPERATOR_NAMESPACE":         config.Namespace,
 		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
+		"OPERATOR_SOURCE":            config.Source,
+		"OPERATOR_SOURCE_NAME":       config.SourceName,
 	}
-	tmpl, err := template.New("cnvSubscription").Parse(cnvSubscription)
+	return executeTemplate(data, "cnvSubscription", cnvSubscription)
+}
+
+func namespace(config manifestConfig) ([]byte, error) {
+	data := map[string]string{
+		"OPERATOR_NAMESPACE": config.Namespace,
+	}
+	return executeTemplate(data, "cnvNamespace", cnvNamespace)
+}
+
+func group(config manifestConfig) ([]byte, error) {
+	data := map[string]string{
+		"OPERATOR_NAMESPACE": config.Namespace,
+	}
+	return executeTemplate(data, "cnvGroup", cnvGroup)
+}
+
+func hco(config manifestConfig) ([]byte, error) {
+	data := map[string]string{
+		"OPERATOR_NAMESPACE": config.Namespace,
+	}
+	return executeTemplate(data, "cnvHCO", cnvHCOManifestTemplate)
+}
+
+func executeTemplate(data map[string]string, contentName, content string) ([]byte, error) {
+	tmpl, err := template.New(contentName).Parse(content)
 	if err != nil {
 		return nil, err
 	}
@@ -43,31 +112,31 @@ metadata:
   name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
-  source: redhat-operators
+  source: "{{.OPERATOR_SOURCE}}"
   sourceNamespace: openshift-marketplace
-  name: kubevirt-hyperconverged
+  name: "{{.OPERATOR_SOURCE_NAME}}"
   channel: stable
   installPlanApproval: "Automatic"`
 
 const cnvNamespace = `apiVersion: v1
 kind: Namespace
 metadata:
-  name: openshift-cnv`
+  name: "{{.OPERATOR_NAMESPACE}}"`
 
 const cnvGroup = `apiVersion: operators.coreos.com/v1
 kind: OperatorGroup
 metadata:
   name: kubevirt-hyperconverged-group
-  namespace: openshift-cnv
+  namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   targetNamespaces:
-  - openshift-cnv`
+  - "{{.OPERATOR_NAMESPACE}}"`
 
-const cnvHCO = `apiVersion: hco.kubevirt.io/v1beta1
+const cnvHCOManifestTemplate = `apiVersion: hco.kubevirt.io/v1beta1
 kind: HyperConverged
 metadata:
   name: kubevirt-hyperconverged
-  namespace: openshift-cnv
+  namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
   BareMetalPlatform: true`
 
