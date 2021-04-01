@@ -628,7 +628,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
 
 		By("Complete Installation")
-		fmt.Printf("cluster operators: %v\n", cluster.MonitoredOperators)
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
 		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
@@ -672,4 +671,98 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 	})
+
+	It("None SNO deploy clusterDeployment full install and Day 2 new host", func() {
+		By("Create cluster")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		hosts := make([]*models.Host, 0)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := setupNewHost(ctx, hostname, *cluster.ID)
+			hosts = append(hosts, host)
+		}
+		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+
+		By("Wait for installing")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+
+		By("Wait for finalizing")
+		for _, host := range hosts {
+			updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+		}
+
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
+
+		By("Complete Installation")
+		completeInstallation(agentBMClient, *cluster.ID)
+		isSuccess := true
+		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+			ClusterID: *cluster.ID,
+			CompletionParams: &models.CompletionParams{
+				IsSuccess: &isSuccess,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Verify Day 2 Cluster")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(models.ClusterStatusAddingHosts))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
+
+		By("Add Day 2 host and approve agent")
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostnameday2", *cluster.ID)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		generateApiVipPostStepReply(ctx, host, true)
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		//TODO check Agent status when implemented By("Wait for Day 2 host to be installing")
+
+	})
+
 })
