@@ -45,26 +45,12 @@ pipeline {
         stage('Build') {
             steps {
                 sh "make build-all"
-                sh "make jenkins-deploy-for-subsystem"
-                sh "kubectl get pods -A"
             }
             post {
                 always {
                     junit '**/reports/*test.xml'
                     cobertura coberturaReportFile: '**/reports/*coverage.xml', onlyStable: false, enableNewApi: true
                 }
-            }
-        }
-
-        stage('Subsystem Test - REST-API') {
-            steps {
-                sh "make subsystem-run"
-            }
-        }
-
-        stage('Subsystem Test - KUBE-API') {
-            steps {
-                sh "make subsystem-run-kube-api"
             }
         }
 
@@ -97,15 +83,9 @@ pipeline {
                     sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt" https://hooks.slack.com/services/${SLACK_TOKEN}'''
                 }
 
-                sh "kubectl get all -A"
-
-                for (service in ["assisted-service","postgres","scality","createimage"]) {
-                    sh "kubectl get pods -o=custom-columns=NAME:.metadata.name -A | grep ${service} | xargs -r -I {} sh -c \"kubectl logs {} -n assisted-installer > k8s_{}.log\" || true"
-                }
-
                 sh "make clear-all"
 
-                archiveArtifacts artifacts: '*.log', fingerprint: true
+                archiveArtifacts artifacts: '*.log', fingerprint: true, allowEmptyArchive: true
             }
         }
     }

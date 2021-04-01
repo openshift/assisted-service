@@ -256,8 +256,6 @@ create-ocp-manifests:
 	export OPENSHIFT_VERSIONS="$(subst ",\", $(shell cat default_ocp_versions.json | tr -d "\n\t "))" && \
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
-jenkins-deploy-for-subsystem: ci-deploy-for-subsystem
-
 ci-deploy-for-subsystem: $(VERIFY_CLUSTER) generate-keys
 	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && export WITH_AMS_SUBSCRIPTIONS="True" && \
 	export IPV6_SUPPORT="True" && \
