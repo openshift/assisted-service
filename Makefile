@@ -36,6 +36,7 @@ ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
+INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
@@ -118,10 +119,10 @@ generate-%: ${BUILD_FOLDER}
 .PHONY: build docs
 build: lint $(UNIT_TEST_TARGET) build-minimal
 
-build-all: build-in-docker operator-bundle-build
+build-all: build-in-docker
 
 build-in-docker:
-	skipper make build-image
+	skipper make build-image operator-bundle-build
 
 build-minimal: $(BUILD_FOLDER)
 	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
@@ -149,8 +150,11 @@ endef # publish_image
 
 publish:
 	$(call publish_image,docker,${SERVICE},quay.io/ocpmetal/assisted-service:${PUBLISH_TAG})
-	$(call publish_image,podman,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
+	$(call publish_image,docker,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
 	skipper make publish-client
+
+publish-index:
+	$(call publish_image,docker,${INDEX_IMAGE},quay.io/ocpmetal/assisted-service-index:${PUBLISH_TAG})
 
 publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
@@ -446,10 +450,13 @@ operator-bundle: create-ocp-manifests
 	rm -rf $(BUNDLE_OUTPUT_DIR)/temp2
 	operator-sdk bundle validate $(BUNDLE_OUTPUT_DIR)
 
-# Build the bundle image.
+# Build the bundle and index images.
 .PHONY: operator-bundle-build operator-bundle-update
 operator-bundle-build:
-	podman build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.bundle -t $(BUNDLE_IMAGE) .
+	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.bundle -t $(BUNDLE_IMAGE) .
 
 operator-bundle-update:
-	podman push $(BUNDLE_IMAGE)
+	docker push $(BUNDLE_IMAGE)
+
+operator-index-build:
+	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool docker
