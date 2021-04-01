@@ -125,27 +125,13 @@ func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Dis
 
 func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
 	if role == models.HostRoleMaster {
-		return v.defaultMasterRequirements()
-	}
-	return v.defaultWorkerRequirements()
-}
-
-func (v *validator) GetHostRequirementsForVersion(role models.HostRole, openShiftVersion string) models.HostRequirementsRole {
-	requirements, ok := v.VersionedRequirements[openShiftVersion]
-	if role == models.HostRoleMaster {
-		if ok && requirements.MasterRequirements != nil {
-			return fromRequirements(requirements.MasterRequirements)
+		return models.HostRequirementsRole{
+			CPUCores:                         v.ValidatorCfg.MinCPUCoresMaster,
+			RAMGib:                           v.ValidatorCfg.MinRamGibMaster,
+			DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
+			InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
 		}
-		return v.defaultMasterRequirements()
 	}
-
-	if ok && requirements.WorkerRequirements != nil {
-		return fromRequirements(requirements.WorkerRequirements)
-	}
-	return v.defaultWorkerRequirements()
-}
-
-func (v *validator) defaultWorkerRequirements() models.HostRequirementsRole {
 	return models.HostRequirementsRole{
 		CPUCores:                         v.ValidatorCfg.MinCPUCoresWorker,
 		RAMGib:                           v.ValidatorCfg.MinRamGibWorker,
@@ -154,13 +140,15 @@ func (v *validator) defaultWorkerRequirements() models.HostRequirementsRole {
 	}
 }
 
-func (v *validator) defaultMasterRequirements() models.HostRequirementsRole {
-	return models.HostRequirementsRole{
-		CPUCores:                         v.ValidatorCfg.MinCPUCoresMaster,
-		RAMGib:                           v.ValidatorCfg.MinRamGibMaster,
-		DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
-		InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
+func (v *validator) GetHostRequirementsForVersion(role models.HostRole, openShiftVersion string) models.HostRequirementsRole {
+	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(openShiftVersion)
+	if err != nil {
+		return v.GetHostRequirements(role)
 	}
+	if role == models.HostRoleMaster {
+		return fromRequirements(requirements.MasterRequirements)
+	}
+	return fromRequirements(requirements.WorkerRequirements)
 }
 
 func fromRequirements(nodeRequirements *models.ClusterHostRequirementsDetails) models.HostRequirementsRole {
