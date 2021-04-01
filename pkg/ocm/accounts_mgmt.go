@@ -26,6 +26,7 @@ type OCMAccountsMgmt interface {
 	GetSubscription(ctx context.Context, subscriptionID strfmt.UUID) (*amgmtv1.Subscription, error)
 	UpdateSubscriptionPostInstallation(ctx context.Context, subscriptionID, openshiftClusterID strfmt.UUID) error
 	UpdateSubscriptionDisplayName(ctx context.Context, subscriptionID strfmt.UUID, displayName string) error
+	UpdateSubscriptionConsoleUrl(ctx context.Context, subscriptionID strfmt.UUID, consoleUrl string) error
 	DeleteSubscription(ctx context.Context, subscriptionID strfmt.UUID) error
 }
 
@@ -81,30 +82,47 @@ func (a accountsMgmt) GetSubscription(ctx context.Context, subscriptionID strfmt
 	return responseVal, nil
 }
 
+func (a accountsMgmt) updateSubscription(ctx context.Context, subscriptionID strfmt.UUID, sub *amgmtv1.Subscription, err error) error {
+	if err != nil {
+		a.client.logger.Error(ctx, "Failed to create subscription request. Error: %v", err)
+		return err
+	}
+	return a.sendSubscriptionUpdateRequest(ctx, subscriptionID, sub)
+}
+
 // This function updates all the subscription's data that we didn't know at the subscription creation time
 // and we know only after installation is done such openshift_cluster_id.
 func (a accountsMgmt) UpdateSubscriptionPostInstallation(ctx context.Context, subscriptionID, openshiftClusterID strfmt.UUID) error {
 	defer commonutils.MeasureOperation("OCM-UpdateSubscriptionPostInstallation", a.client.log, a.client.metricsApi)()
 
 	sub, err := amgmtv1.NewSubscription().ExternalClusterID(openshiftClusterID.String()).Status(SubscriptionStatusActive).Build()
-	if err != nil {
-		a.client.logger.Error(ctx, "Failed to create subscription request. Error: %v", err)
-		return err
+	err = a.updateSubscription(ctx, subscriptionID, sub, err)
+	if err == nil {
+		a.client.logger.Info(ctx, "Updated post installation changes in subscription %s", subscriptionID)
 	}
-
-	return a.sendSubscriptionUpdateRequest(ctx, subscriptionID, sub)
+	return err
 }
 
 func (a accountsMgmt) UpdateSubscriptionDisplayName(ctx context.Context, subscriptionID strfmt.UUID, displayName string) error {
 	defer commonutils.MeasureOperation("OCM-UpdateSubscriptionDisplayName", a.client.log, a.client.metricsApi)()
 
 	sub, err := amgmtv1.NewSubscription().DisplayName(displayName).Build()
-	if err != nil {
-		a.client.logger.Error(ctx, "Failed to create subscription request. Error: %v", err)
-		return err
+	err = a.updateSubscription(ctx, subscriptionID, sub, err)
+	if err == nil {
+		a.client.logger.Info(ctx, "Updated display-name in subscription %s", subscriptionID)
 	}
+	return err
+}
 
-	return a.sendSubscriptionUpdateRequest(ctx, subscriptionID, sub)
+func (a accountsMgmt) UpdateSubscriptionConsoleUrl(ctx context.Context, subscriptionID strfmt.UUID, consoleUrl string) error {
+	defer commonutils.MeasureOperation("OCM-UpdateSubscriptionConsoleUrl", a.client.log, a.client.metricsApi)()
+
+	sub, err := amgmtv1.NewSubscription().ConsoleURL(consoleUrl).Build()
+	err = a.updateSubscription(ctx, subscriptionID, sub, err)
+	if err == nil {
+		a.client.logger.Info(ctx, "Updated console-url in subscription %s", subscriptionID)
+	}
+	return err
 }
 
 func (a accountsMgmt) DeleteSubscription(ctx context.Context, subscriptionID strfmt.UUID) error {

@@ -13,7 +13,6 @@ require (
 	github.com/containers/image/v5 v5.7.0
 	github.com/coreos/ignition/v2 v2.9.0
 	github.com/coreos/vcontext v0.0.0-20201120045928-b0e13dab675c
-	github.com/daixiang0/gci v0.2.8 // indirect
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/diskfs/go-diskfs v1.1.2-0.20210216073915-ba492710e2d8
@@ -22,7 +21,6 @@ require (
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/frankban/quicktest v1.11.3 // indirect
 	github.com/go-logr/logr v0.4.0 // indirect
-	github.com/go-logr/zapr v0.2.0 // indirect
 	github.com/go-openapi/errors v0.19.6
 	github.com/go-openapi/loads v0.19.5
 	github.com/go-openapi/runtime v0.19.20
@@ -32,11 +30,9 @@ require (
 	github.com/go-openapi/validate v0.19.10
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.4.4
-	github.com/golangci/golangci-lint v1.32.0 // indirect
 	github.com/google/renameio v0.1.0
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
-	github.com/gophercloud/gophercloud v0.12.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.0
 	github.com/hashicorp/go-version v1.2.1
 	github.com/iancoleman/strcase v0.1.2
@@ -47,7 +43,7 @@ require (
 	github.com/moby/moby v1.13.1
 	github.com/onsi/ginkgo v1.14.1
 	github.com/onsi/gomega v1.10.2
-	github.com/openshift-online/ocm-sdk-go v0.1.160
+	github.com/openshift-online/ocm-sdk-go v0.1.165
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
@@ -65,24 +61,21 @@ require (
 	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
 	github.com/thoas/go-funk v0.6.0
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
-	go.uber.org/goleak v1.1.10 // indirect
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/tools v0.0.0-20201118003311-bd56c0adb394 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
 	gopkg.in/ini.v1 v1.51.0
 	gopkg.in/square/go-jose.v2 v2.3.1
 	gopkg.in/yaml.v2 v2.4.0
-	honnef.co/go/tools v0.0.1-2020.1.6 // indirect
 	k8s.io/api v0.20.0
 	k8s.io/apiextensions-apiserver v0.19.2 // indirect
 	k8s.io/apimachinery v0.20.0
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920
 	sigs.k8s.io/controller-runtime v0.6.2
-	sigs.k8s.io/controller-tools v0.4.1 // indirect
-	sigs.k8s.io/kustomize/kustomize/v3 v3.8.5 // indirect
 	sigs.k8s.io/yaml v1.2.0
 )
 
