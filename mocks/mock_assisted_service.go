@@ -6,11 +6,10 @@ package mocks
 
 import (
 	context "context"
-	reflect "reflect"
-
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
+	reflect "reflect"
 )
 
 // MockInstallerAPI is a mock of InstallerAPI interface

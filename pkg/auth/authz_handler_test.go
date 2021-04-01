@@ -664,11 +664,7 @@ func downloadClusterISO(ctx context.Context, cli *client.AssistedInstall) error 
 }
 
 func downloadClusterISOHeaders(ctx context.Context, cli *client.AssistedInstall) error {
-	_, err := ioutil.TempFile("/tmp", "test")
-	if err != nil {
-		return err
-	}
-	_, err = cli.Installer.DownloadClusterISOHeaders(
+	_, err := cli.Installer.DownloadClusterISOHeaders(
 		ctx,
 		&installer.DownloadClusterISOHeadersParams{
 			ClusterID: strfmt.UUID(uuid.New().String()),
