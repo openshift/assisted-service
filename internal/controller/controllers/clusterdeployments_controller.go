@@ -332,7 +332,6 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	}
 
 	updateString(spec.Platform.AgentBareMetal.APIVIP, cluster.APIVip, &params.APIVip)
-	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(cluster.APIVipDNSName), &params.APIVipDNSName)
 	updateString(spec.Platform.AgentBareMetal.IngressVIP, cluster.IngressVip, &params.IngressVip)
 	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
