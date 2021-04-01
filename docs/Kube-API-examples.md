@@ -1,4 +1,67 @@
-#Assisted Installer Kube API CR examples
+# Hive Integration
+
+The goal of the Hive integration is to enable Assisted Installer capabilities on-premise in users' "Hub" clusters by installing clusters via Multi-cluster management, such as through [Hive](https://github.com/openshift/hive/) and [RHACM](https://github.com/open-cluster-management) (Red Hat Advanced Cluster Management).
+
+A full description of the enhancement is available [here](https://github.com/openshift/enhancements/blob/master/enhancements/installer/agent-based-installation-in-hive.md).
+
+For this integration, the Assisted Installer APIs are available via [CRDs](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/)
+
+## CRD Types
+
+### [ClusterDeployment](https://github.com/openshift/hive/blob/master/apis/hive/v1/clusterdeployment_types.go)
+The ClusterDeployment CRD is defined in the Hive repository, where additional fields are added for Agent Based installation.
+In the ClusterDeployment, the user can specify requirements like Networking, number of Control Plane and Workers nodes and more.
+
+The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
+
+### [InstallEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1alpha1/installenv_types.go)
+The InstallEnv CRD represents the configuration needed to create the discovery ISO.
+The user can specify proxy settings, ignition overrides and specify NMState labels.
+
+When the ISO is ready, an URL will be available in the CR.
+
+
+### [NMStateConfig](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1alpha1/nmstate_config_types.go)
+The NMStateConfig contains network configuration that will applied on the hosts. See NMState repository [here](https://github.com/nmstate/nmstate).
+
+
+### [Agent](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1alpha1/agent_types.go)
+The Agent CRD represents a Host that boot from an ISO and registered to a cluster.
+It will be created by Assisted Service when a host registers.
+In the Agent, the user can specify the hostname, role, installation disk and more.
+Also, the host hardware inventory and statuses are available.
+
+Note that if the Agent is not Approved, it will not be part of the installation.
+
+Here how to approve an Agent:
+
+`kubectl -n assisted-installer patch agents.adi.io.my.domain 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge`
+
+## Day 2 worker
+Once the cluster is installed, the ClusterDeployment is set to Installed and secrets for kubeconfig and credentials are created and referenced in the ClusterDeployment.
+
+In the Assisted Service, the original cluster is deleted and a Day 2 cluster is created instead.
+
+Additional nodes can be added by booting from the new generated ISO. Each additional host will start installation once the Agent is Approved and the Host is in known state.
+
+Note that the user needs to approved the additional nodes in the installed cluster.
+
+## Bare Metal Operator Integration
+
+In case that the Bare Metal Operator is installed, the Baremetal Agent Controller will sync between the Agent CR and the matching BareMetalHost CR:
+
+- Find the right pairs of BMH/Agent using their MAC addresses
+- Set the Image.URL in the BMH copying it from the InstallEnv's status.
+- Reconcile the Agent's spec by copying the following attributes from the BMH's annotations:
+    - Role: master/worker
+    - Hostname (optional for user to set)
+    - MachineConfigPool (optional for user to set)
+- Reconcile the BareMetalHost hardware details by copying the Agent's inventory data to the BMH's hardwaredetails annotation.
+
+
+See BMAC documentation [here](./baremetal-agent-controller.md).
+
+## Assisted Installer Kube API CR examples
 
 [docs/crds](https://github.com/openshift/assisted-service/tree/master/docs/crds) stores working examples of various resources we spawn via kube-api in assisted-installer, for Hive integration.
 Those examples are here for reference.
