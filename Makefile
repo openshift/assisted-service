@@ -153,7 +153,8 @@ publish:
 	$(call publish_image,docker,${BUNDLE_IMAGE},quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG})
 	skipper make publish-client
 
-publish-index:
+build-publish-index:
+	skipper make operator-index-build BUNDLE_IMAGE=quay.io/ocpmetal/assisted-service-operator-bundle:${PUBLISH_TAG}
 	$(call publish_image,docker,${INDEX_IMAGE},quay.io/ocpmetal/assisted-service-index:${PUBLISH_TAG})
 
 publish-client: generate-python-client

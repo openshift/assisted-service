@@ -63,8 +63,7 @@ pipeline {
                 // When the index index is being built, the opm tooling pulls the bundle
                 // image from quay, so the index is built after the bundle image has been
                 // published.
-                sh "skipper make operator-index-build"
-                sh "make publish-index"
+                sh "make build-publish-index"
             }
         }
 
@@ -75,8 +74,7 @@ pipeline {
                 // When the index index is being built, the opm tooling pulls the bundle
                 // image from quay, so the index is built after the bundle image has been
                 // published.
-                sh "skipper make operator-index-build"
-                sh "make publish-index PUBLISH_TAG=latest"
+                sh "make build-publish-index PUBLISH_TAG=latest"
             }
         }
     }
