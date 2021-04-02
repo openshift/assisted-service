@@ -7311,6 +7311,25 @@ func init() {
         }
       }
     },
+    "versioned-host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "description": "Master node requirements",
+          "x-go-name": "MasterRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
+        "version": {
+          "description": "Version of the component for which requirements are defined",
+          "type": "string"
+        },
+        "worker": {
+          "description": "Worker node requirements",
+          "x-go-name": "WorkerRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
     "versions": {
       "type": "object",
       "additionalProperties": {
@@ -14731,6 +14750,25 @@ func init() {
         "virtual": {
           "description": "Whether the machine appears to be a virtual machine or not",
           "type": "boolean"
+        }
+      }
+    },
+    "versioned-host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "description": "Master node requirements",
+          "x-go-name": "MasterRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
+        "version": {
+          "description": "Version of the component for which requirements are defined",
+          "type": "string"
+        },
+        "worker": {
+          "description": "Worker node requirements",
+          "x-go-name": "WorkerRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
         }
       }
     },

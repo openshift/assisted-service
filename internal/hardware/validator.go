@@ -36,15 +36,16 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 }
 
 type ValidatorCfg struct {
-	MinCPUCores                      int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
-	MinCPUCoresWorker                int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
-	MinCPUCoresMaster                int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
-	MinRamGib                        int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
-	MinRamGibWorker                  int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
-	MinRamGibMaster                  int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
-	MinDiskSizeGb                    int64 `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
-	MaximumAllowedTimeDiffMinutes    int64 `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
-	InstallationDiskSpeedThresholdMs int64 `envconfig:"HW_INSTALLATION_DISK_SPEED_THRESHOLD_MS" default:"10"`
+	MinCPUCores                      int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
+	MinCPUCoresWorker                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
+	MinCPUCoresMaster                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
+	MinRamGib                        int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
+	MinRamGibWorker                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
+	MinRamGibMaster                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
+	MinDiskSizeGb                    int64                        `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
+	MaximumAllowedTimeDiffMinutes    int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
+	InstallationDiskSpeedThresholdMs int64                        `envconfig:"HW_INSTALLATION_DISK_SPEED_THRESHOLD_MS" default:"10"`
+	VersionedRequirements            VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
 }
 
 type validator struct {
@@ -130,13 +131,32 @@ func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequire
 			DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
 			InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
 		}
-	} else {
-		return models.HostRequirementsRole{
-			CPUCores:                         v.ValidatorCfg.MinCPUCoresWorker,
-			RAMGib:                           v.ValidatorCfg.MinRamGibWorker,
-			DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
-			InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
-		}
+	}
+	return models.HostRequirementsRole{
+		CPUCores:                         v.ValidatorCfg.MinCPUCoresWorker,
+		RAMGib:                           v.ValidatorCfg.MinRamGibWorker,
+		DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
+		InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
+	}
+}
+
+func (v *validator) GetHostRequirementsForVersion(role models.HostRole, openShiftVersion string) models.HostRequirementsRole {
+	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(openShiftVersion)
+	if err != nil {
+		return v.GetHostRequirements(role)
+	}
+	if role == models.HostRoleMaster {
+		return fromRequirements(requirements.MasterRequirements)
+	}
+	return fromRequirements(requirements.WorkerRequirements)
+}
+
+func fromRequirements(nodeRequirements *models.ClusterHostRequirementsDetails) models.HostRequirementsRole {
+	return models.HostRequirementsRole{
+		CPUCores:                         nodeRequirements.CPUCores,
+		RAMGib:                           conversions.MibToGiB(nodeRequirements.RAMMib),
+		DiskSizeGb:                       nodeRequirements.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: nodeRequirements.InstallationDiskSpeedThresholdMs,
 	}
 }
 
@@ -146,7 +166,7 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 		return nil, err
 	}
 
-	hostRequirements := v.GetHostRequirements(host.Role)
+	hostRequirements := v.GetHostRequirementsForVersion(host.Role, cluster.OpenshiftVersion)
 	ocpRequirements := models.ClusterHostRequirementsDetails{
 		CPUCores:                         hostRequirements.CPUCores,
 		RAMMib:                           conversions.GibToMib(hostRequirements.RAMGib),
