@@ -25,6 +25,7 @@ def handle_arguments():
     parser.add_argument("--check-cvo", default="False")
     parser.add_argument("--ipv6-support", default="True")
     parser.add_argument("--enable-sno-dnsmasq", default="True")
+    parser.add_argument("--hw-requirements")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -69,6 +70,7 @@ def main():
             data = data.replace('REPLACE_OPENSHIFT_VERSIONS', '"{}"'.format(deploy_options.ocp_versions))
             data = data.replace('REPLACE_PUBLIC_CONTAINER_REGISTRIES', '"{}"'.format(deploy_options.public_registries))
             data = data.replace('REPLACE_IPV6_SUPPORT', '"{}"'.format(deploy_options.ipv6_support))
+            data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
 
             versions = {"INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",

@@ -57,20 +57,27 @@ function generate_from_swagger() {
     generate_go_server
 }
 
-function generate_ocp_version() {
+function generate_configuration() {
     OPENSHIFT_VERSIONS=$(< ${__root}/default_ocp_versions.json tr -d "\n\t ")
     PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/default_public_container_registries.txt)
+    HW_VALIDATOR_REQUIREMENTS=$(< ${__root}/data/default_hw_requirements.json tr -d "\n\t ")
 
     sed -i "s|value: '.*' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/openshift/template.yaml
 
     sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" ${__root}/onprem-environment
     sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ${__root}/onprem-environment
+    sed -i "s|HW_VALIDATOR_REQUIREMENTS=.*|HW_VALIDATOR_REQUIREMENTS=${HW_VALIDATOR_REQUIREMENTS}|" ${__root}/onprem-environment
 
     sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" ${__root}/config/onprem-iso-fcc.yaml
     sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ${__root}/config/onprem-iso-fcc.yaml
 
     sed -i "s|value: '.*' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/config/manager/manager.yaml
+    sed -i "s|HW_VALIDATOR_REQUIREMENTS=.*|HW_VALIDATOR_REQUIREMENTS=${HW_VALIDATOR_REQUIREMENTS}|" ${__root}/config/onprem-iso-fcc.yaml
     docker run --rm -v ${__root}/config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ${__root}/config/onprem-iso-config.ign
+}
+
+function generate_ocp_version() {
+  generate_configuration
 }
 
 # Generate manifests e.g. CRD, RBAC etc.
@@ -98,7 +105,7 @@ function generate_manifests() {
 function generate_all() {
     generate_from_swagger
     generate_mocks
-    generate_ocp_version
+    generate_configuration
     ENABLE_KUBE_API=true generate_manifests
 }
 
