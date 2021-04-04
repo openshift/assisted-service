@@ -2,11 +2,11 @@ package oc
 
 import (
 	"fmt"
-	"io/ioutil"
 	os "os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	gomock "github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
@@ -28,31 +28,35 @@ var (
 
 var _ = Describe("oc", func() {
 	var (
-		oc                 Release
-		tempPullSecretFile *os.File
-		ctrl               *gomock.Controller
-		mockExecuter       *executer.MockExecuter
+		oc           Release
+		tempFilePath string
+		ctrl         *gomock.Controller
+		mockExecuter *executer.MockExecuter
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockExecuter = executer.NewMockExecuter(ctrl)
-		oc = NewRelease(mockExecuter)
-
-		var err error
-		tempPullSecretFile, err = ioutil.TempFile("", "")
-		Expect(err).ShouldNot(HaveOccurred())
-		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).Return(tempPullSecretFile, nil).AnyTimes()
+		config := Config{MaxTries: DefaultTries, RetryDelay: time.Millisecond}
+		oc = NewRelease(mockExecuter, config)
+		tempFilePath = "/tmp/pull-secret"
+		mockExecuter.EXPECT().TempFile(gomock.Any(), gomock.Any()).DoAndReturn(
+			func(dir, pattern string) (*os.File, error) {
+				tempPullSecretFile, err := os.Create(tempFilePath)
+				Expect(err).ShouldNot(HaveOccurred())
+				return tempPullSecretFile, nil
+			},
+		).AnyTimes()
 	})
 
 	AfterEach(func() {
-		os.Remove(tempPullSecretFile.Name())
+		os.Remove(tempFilePath)
 	})
 
 	Context("GetMCOImage", func() {
 		It("mco image from release image", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mcoImageName, false, releaseImage, tempPullSecretFile.Name())
+				mcoImageName, false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
 
@@ -63,7 +67,7 @@ var _ = Describe("oc", func() {
 
 		It("mco image from release image mirror", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mcoImageName, true, releaseImageMirror, tempPullSecretFile.Name())
+				mcoImageName, true, releaseImageMirror, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
 
@@ -82,7 +86,7 @@ var _ = Describe("oc", func() {
 			stdout := fmt.Sprintf("\n%s\n", mcoImage)
 
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mcoImageName, false, releaseImage, tempPullSecretFile.Name())
+				mcoImageName, false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(stdout, "", 0).Times(1)
 
@@ -95,7 +99,7 @@ var _ = Describe("oc", func() {
 	Context("GetMustGatherImage", func() {
 		It("must-gather image from release image", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mustGatherImageName, false, releaseImage, tempPullSecretFile.Name())
+				mustGatherImageName, false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
 
@@ -106,7 +110,7 @@ var _ = Describe("oc", func() {
 
 		It("must-gather image from release image mirror", func() {
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mustGatherImageName, true, releaseImageMirror, tempPullSecretFile.Name())
+				mustGatherImageName, true, releaseImageMirror, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
 
@@ -125,7 +129,7 @@ var _ = Describe("oc", func() {
 			stdout := fmt.Sprintf("\n%s\n", mustGatherImage)
 
 			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
-				mustGatherImageName, false, releaseImage, tempPullSecretFile.Name())
+				mustGatherImageName, false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(stdout, "", 0).Times(1)
 
@@ -138,7 +142,7 @@ var _ = Describe("oc", func() {
 	Context("GetOpenshiftVersion", func() {
 		It("image version from release image", func() {
 			command := fmt.Sprintf(templateGetVersion+" --registry-config=%s",
-				false, releaseImage, tempPullSecretFile.Name())
+				false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(fullVersion, "", 0).Times(1)
 
@@ -149,7 +153,7 @@ var _ = Describe("oc", func() {
 
 		It("image version from release image mirror", func() {
 			command := fmt.Sprintf(templateGetVersion+" --registry-config=%s",
-				true, releaseImageMirror, tempPullSecretFile.Name())
+				true, releaseImageMirror, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(fullVersion, "", 0).Times(1)
 
@@ -201,7 +205,7 @@ var _ = Describe("oc", func() {
 			t := tests[i]
 			It(t.fullVersion, func() {
 				command := fmt.Sprintf(templateGetVersion+" --registry-config=%s",
-					false, releaseImage, tempPullSecretFile.Name())
+					false, releaseImage, tempFilePath)
 				args := splitStringToInterfacesArray(command)
 				mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(t.fullVersion, "", 0).Times(1)
 
@@ -221,7 +225,7 @@ var _ = Describe("oc", func() {
 	Context("Extract", func() {
 		It("extract baremetal-install from release image", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				filepath.Join(cacheDir, releaseImage), false, releaseImage, tempPullSecretFile.Name())
+				filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
@@ -233,7 +237,7 @@ var _ = Describe("oc", func() {
 
 		It("extract baremetal-install from release image mirror", func() {
 			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
-				filepath.Join(cacheDir, releaseImageMirror), true, releaseImageMirror, tempPullSecretFile.Name())
+				filepath.Join(cacheDir, releaseImageMirror), true, releaseImageMirror, tempFilePath)
 			args := splitStringToInterfacesArray(command)
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
 
@@ -246,6 +250,29 @@ var _ = Describe("oc", func() {
 		It("extract baremetal-install with no release image or mirror", func() {
 			path, err := oc.Extract(log, "", "", cacheDir, pullSecret)
 			Expect(path).Should(BeEmpty())
+			Expect(err).Should(HaveOccurred())
+		})
+		It("extract baremetal-install from release image with retry", func() {
+			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
+				filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(1)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "", 0).Times(1)
+
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
+			filePath := filepath.Join(cacheDir+"/"+releaseImage, "openshift-baremetal-install")
+			Expect(path).To(Equal(filePath))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("extract baremetal-install from release image retry exhausted", func() {
+			command := fmt.Sprintf(templateExtract+" --registry-config=%s",
+				filepath.Join(cacheDir, releaseImage), false, releaseImage, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return("", "Failed to extract the installer", 1).Times(5)
+
+			path, err := oc.Extract(log, releaseImage, "", cacheDir, pullSecret)
+			Expect(path).To(Equal(""))
 			Expect(err).Should(HaveOccurred())
 		})
 	})

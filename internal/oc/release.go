@@ -6,16 +6,25 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
+	"github.com/thedevsaddam/retry"
 )
 
 const (
 	mcoImageName        = "machine-config-operator"
 	mustGatherImageName = "must-gather"
+	DefaultTries        = 5
+	DefaltRetryDelay    = time.Second * 5
 )
+
+type Config struct {
+	MaxTries   uint
+	RetryDelay time.Duration
+}
 
 //go:generate mockgen -source=release.go -package=oc -destination=mock_release.go
 type Release interface {
@@ -28,10 +37,11 @@ type Release interface {
 
 type release struct {
 	executer executer.Executer
+	config   Config
 }
 
-func NewRelease(executer executer.Executer) Release {
-	return &release{executer}
+func NewRelease(executer executer.Executer, config Config) Release {
+	return &release{executer, config}
 }
 
 const (
@@ -114,8 +124,7 @@ func (r *release) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage stri
 
 func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string, insecure bool) (string, error) {
 	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
-	args := strings.Split(cmd, " ")
-	image, err := r.execute(log, pullSecret, args[0], args[1:]...)
+	image, err := r.execute(log, pullSecret, cmd)
 	if err != nil {
 		log.WithError(err).Errorf("error running \"oc adm release info\" for release %s", releaseImage)
 		return "", err
@@ -125,8 +134,7 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 
 func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, releaseImage string, pullSecret string, insecure bool) (string, error) {
 	cmd := fmt.Sprintf(templateGetVersion, insecure, releaseImage)
-	args := strings.Split(cmd, " ")
-	version, err := r.execute(log, pullSecret, args[0], args[1:]...)
+	version, err := r.execute(log, pullSecret, cmd)
 	if err != nil {
 		log.WithError(err).Errorf("error running \"oc adm release info\" for release %s", releaseImage)
 		return "", err
@@ -170,8 +178,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	}
 
 	cmd := fmt.Sprintf(templateExtract, workdir, insecure, releaseImage)
-	args := strings.Split(cmd, " ")
-	_, err = r.execute(log, pullSecret, args[0], args[1:]...)
+	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, r.execute, log, pullSecret, cmd)
 	if err != nil {
 		log.WithError(err).Errorf("error running \"oc adm release extract\" for release %s", releaseImage)
 		return "", err
@@ -183,7 +190,7 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	return path, nil
 }
 
-func (r *release) execute(log logrus.FieldLogger, pullSecret string, command string, args ...string) (string, error) {
+func (r *release) execute(log logrus.FieldLogger, pullSecret string, command string) (string, error) {
 	// write pull secret to a temp file
 	ps, err := r.executer.TempFile("", "registry-config")
 	if err != nil {
@@ -199,10 +206,10 @@ func (r *release) execute(log logrus.FieldLogger, pullSecret string, command str
 	}
 	// flush the buffer to ensure the file can be read
 	ps.Close()
-
+	args := strings.Split(command, " ")
 	args = append(args, "--registry-config="+ps.Name())
 
-	stdout, stderr, exitCode := r.executer.Execute(command, args...)
+	stdout, stderr, exitCode := r.executer.Execute(args[0], args[1:]...)
 
 	if exitCode == 0 {
 		return strings.TrimSpace(stdout), nil

@@ -47,7 +47,8 @@ func Get(releaseID, releaseIDMirror, cacheDir, pullSecret string, log logrus.Fie
 	var err error
 	//cache miss
 	if r.path == "" {
-		path, err = oc.NewRelease(&executer.CommonExecuter{}).Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret)
+		path, err = oc.NewRelease(&executer.CommonExecuter{}, oc.Config{
+			MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay}).Extract(log, releaseID, releaseIDMirror, cacheDir, pullSecret)
 		if err != nil {
 			return "", err
 		}

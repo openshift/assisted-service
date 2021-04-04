@@ -32,8 +32,8 @@ require (
 	github.com/go-openapi/validate v0.19.10
 	github.com/golang-collections/go-datastructures v0.0.0-20150211160725-59788d5eb259
 	github.com/golang/mock v1.4.4
-	github.com/google/renameio v0.1.0
 	github.com/golangci/golangci-lint v1.32.0 // indirect
+	github.com/google/renameio v0.1.0
 	github.com/google/uuid v1.1.2
 	github.com/googleapis/gnostic v0.5.1 // indirect
 	github.com/gophercloud/gophercloud v0.12.0 // indirect
@@ -62,6 +62,7 @@ require (
 	github.com/sirupsen/logrus v1.7.0
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.6.1
+	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
 	github.com/thoas/go-funk v0.6.0
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	go.uber.org/goleak v1.1.10 // indirect

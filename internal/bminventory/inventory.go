@@ -1538,8 +1538,9 @@ func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, c
 	}
 
 	if err := b.generator.GenerateInstallConfig(ctx, cluster, cfg, releaseImage); err != nil {
-		log.WithError(err).Errorf("failed generating kubeconfig files for cluster %s", cluster.ID)
-		return errors.Wrapf(err, "failed generating kubeconfig files for cluster %s", cluster.ID)
+		msg := fmt.Sprintf("failed generating install config for cluster %s", cluster.ID)
+		log.WithError(err).Error(msg)
+		return errors.Wrap(err, msg)
 	}
 
 	return nil
