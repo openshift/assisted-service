@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -128,6 +129,7 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 
 	operator.Status = status
 	operator.StatusInfo = statusInfo
+	operator.StatusUpdatedAt = strfmt.DateTime(time.Now())
 
 	if err = tx.Save(operator).Error; err != nil {
 		err = errors.Wrapf(err, "failed to update operator %s of cluster %s", operator.Name, clusterID)
