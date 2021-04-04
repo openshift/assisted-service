@@ -541,6 +541,14 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 }
 
 func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
+	// TODO: MGMT-4458
+	// Backward-compatible solution for clusters that don't have monitored operators data
+	if len(c.MonitoredOperators) == 0 {
+		clusterStatus := swag.StringValue(c.Status)
+		allowedStatuses := []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
+		return funk.ContainsString(allowedStatuses, clusterStatus)
+	}
+
 	for _, o := range c.MonitoredOperators {
 		if o.Name == operatorName {
 			return o.Status == models.OperatorStatusAvailable

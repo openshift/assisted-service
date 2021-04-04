@@ -2729,7 +2729,6 @@ var _ = Describe("Console-operator's availability", func() {
 
 	var (
 		ctrl       *gomock.Controller
-		ctx        = context.Background()
 		db         *gorm.DB
 		dbName     string
 		clusterApi API
@@ -2737,21 +2736,16 @@ var _ = Describe("Console-operator's availability", func() {
 		c          common.Cluster
 	)
 
-	registerCluster := func(operators []*models.MonitoredOperator) common.Cluster {
-
+	createCluster := func(status string, operators []*models.MonitoredOperator) common.Cluster {
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{
-			Cluster: models.Cluster{
-				ID:                 &clusterID,
-				MonitoredOperators: operators,
-			},
-		}
+		cluster := common.Cluster{Cluster: models.Cluster{
+			ID:                 &clusterID,
+			Status:             swag.String(status),
+			MonitoredOperators: operators,
+		}}
+		Expect(common.LoadTableFromDB(db, common.MonitoredOperatorsTable).Create(&cluster).Error).ShouldNot(HaveOccurred())
 
-		mockEvents.EXPECT().AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-
-		err := clusterApi.RegisterCluster(ctx, &cluster)
-		Expect(err).ToNot(HaveOccurred())
-		return getClusterFromDB(clusterID, db)
+		return cluster
 	}
 
 	BeforeEach(func() {
@@ -2766,49 +2760,83 @@ var _ = Describe("Console-operator's availability", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	It("Operator available", func() {
-
-		ops := []*models.MonitoredOperator{
-			{
-				Name:         operators.OperatorConsole.Name,
-				OperatorType: models.OperatorTypeBuiltin,
-				Status:       models.OperatorStatusAvailable,
+	tests := []struct {
+		name          string
+		ops           []*models.MonitoredOperator
+		clusterStatus string
+		result        bool
+	}{
+		{
+			name: "Operator available",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorConsole.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusAvailable,
+				},
 			},
-		}
-		c = registerCluster(ops)
-		Expect(clusterApi.IsOperatorAvailable(&c, operators.OperatorConsole.Name)).To(BeTrue())
-	})
-
-	It("Operator doesn't exist", func() {
-
-		ops := []*models.MonitoredOperator{}
-		c = registerCluster(ops)
-		Expect(clusterApi.IsOperatorAvailable(&c, operators.OperatorConsole.Name)).To(BeFalse())
-	})
-
-	It("Operator progressing", func() {
-
-		ops := []*models.MonitoredOperator{
-			{
-				Name:         operators.OperatorConsole.Name,
-				OperatorType: models.OperatorTypeBuiltin,
-				Status:       models.OperatorStatusProgressing,
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        true,
+		},
+		{
+			name: "Operator can't be found",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorCVO.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusAvailable,
+				},
 			},
-		}
-		c = registerCluster(ops)
-		Expect(clusterApi.IsOperatorAvailable(&c, operators.OperatorConsole.Name)).To(BeFalse())
-	})
-
-	It("Operator failed", func() {
-
-		ops := []*models.MonitoredOperator{
-			{
-				Name:         operators.OperatorConsole.Name,
-				OperatorType: models.OperatorTypeBuiltin,
-				Status:       models.OperatorStatusFailed,
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        false,
+		},
+		{
+			name: "Operator progressing",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorConsole.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusProgressing,
+				},
 			},
-		}
-		c = registerCluster(ops)
-		Expect(clusterApi.IsOperatorAvailable(&c, operators.OperatorConsole.Name)).To(BeFalse())
-	})
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        false,
+		},
+		{
+			name: "Operator failed",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorConsole.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusFailed,
+				},
+			},
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        false,
+		},
+		{
+			// TODO: MGMT-4458
+			// Backward-compatible solution for clusters that don't have monitored operators data
+			name:          "No operators (Backward-compatible) - finalizing",
+			ops:           []*models.MonitoredOperator{},
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        true,
+		},
+		{
+			// TODO: MGMT-4458
+			// Backward-compatible solution for clusters that don't have monitored operators data
+			name:          "No operators (Backward-compatible) - insufficient",
+			ops:           []*models.MonitoredOperator{},
+			clusterStatus: models.ClusterStatusInsufficient,
+			result:        false,
+		},
+	}
+
+	for i := range tests {
+		test := tests[i]
+		It(test.name, func() {
+			c = createCluster(test.clusterStatus, test.ops)
+			Expect(clusterApi.IsOperatorAvailable(&c, operators.OperatorConsole.Name)).To(Equal(test.result))
+		})
+	}
 })
