@@ -4292,7 +4292,7 @@ definitions:
         description: the original registry location
       mirror_location:
         type: string
-        description: the mirror regsitry location
+        description: the mirror registry location
 
 
   free-addresses-list:

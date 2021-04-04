@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -52,6 +53,11 @@ type proxy struct {
 	NoProxy    string `yaml:"noProxy,omitempty"`
 }
 
+type imageContentSource struct {
+	Mirrors []string `yaml:"mirrors"`
+	Source  string   `yaml:"source"`
+}
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
@@ -80,16 +86,13 @@ type InstallerConfigBaremetal struct {
 		Name           string `yaml:"name"`
 		Replicas       int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
-	Platform              platform         `yaml:"platform"`
-	BootstrapInPlace      bootstrapInPlace `yaml:"bootstrapInPlace,omitempty"`
-	FIPS                  bool             `yaml:"fips"`
-	PullSecret            string           `yaml:"pullSecret"`
-	SSHKey                string           `yaml:"sshKey"`
-	AdditionalTrustBundle string           `yaml:"additionalTrustBundle,omitempty"`
-	ImageContentSources   []struct {
-		Mirrors []string `yaml:"mirrors"`
-		Source  string   `yaml:"source"`
-	} `yaml:"imageContentSources,omitempty"`
+	Platform              platform             `yaml:"platform"`
+	BootstrapInPlace      bootstrapInPlace     `yaml:"bootstrapInPlace,omitempty"`
+	FIPS                  bool                 `yaml:"fips"`
+	PullSecret            string               `yaml:"pullSecret"`
+	SSHKey                string               `yaml:"sshKey"`
+	AdditionalTrustBundle string               `yaml:"additionalTrustBundle,omitempty"`
+	ImageContentSources   []imageContentSource `yaml:"imageContentSources,omitempty"`
 }
 
 func (c *InstallerConfigBaremetal) Validate() error {
@@ -156,7 +159,7 @@ func generateNoProxy(cluster *common.Cluster) string {
 	return strings.Join(append(splitNoProxy, internalDnsDomain, cluster.ClusterNetworkCidr, cluster.ServiceNetworkCidr), ",")
 }
 
-func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *InstallerConfigBaremetal {
+func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) (*InstallerConfigBaremetal, error) {
 	networkType := getNetworkType(cluster)
 	log.Infof("Selected network type %s for cluster %s", networkType, cluster.ID.String())
 	cfg := &InstallerConfigBaremetal{
@@ -223,7 +226,28 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *Ins
 			NoProxy:    generateNoProxy(cluster),
 		}
 	}
-	return cfg
+
+	if cluster.ImageInfo.MirrorRegistriesConfig != "" {
+		err := setImageContentSources(log, cluster.ImageInfo.MirrorRegistriesConfig, cfg)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return cfg, nil
+}
+
+func setImageContentSources(log logrus.FieldLogger, mirrorRegistriesConf string, cfg *InstallerConfigBaremetal) error {
+	mirrorRegistriesConfigs, err := mirrorregistries.ExtractLocationMirrorDataFromRegistries(mirrorRegistriesConf)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageContentSources")
+		return err
+	}
+	imageContentSourceList := make([]imageContentSource, len(mirrorRegistriesConfigs))
+	for i, mirrorRegistriesConfig := range mirrorRegistriesConfigs {
+		imageContentSourceList[i] = imageContentSource{Source: mirrorRegistriesConfig.Location, Mirrors: []string{mirrorRegistriesConfig.Mirror}}
+	}
+	cfg.ImageContentSources = imageContentSourceList
+	return nil
 }
 
 func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *InstallerConfigBaremetal) error {
@@ -300,7 +324,11 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 }
 
 func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) (*InstallerConfigBaremetal, error) {
-	cfg := getBasicInstallConfig(log, cluster)
+	cfg, err := getBasicInstallConfig(log, cluster)
+	if err != nil {
+		return nil, err
+	}
+
 	if swag.BoolValue(cluster.UserManagedNetworking) {
 		cfg.Platform = platform{
 			Baremetal: nil,
@@ -330,17 +358,18 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 		}
 
 	} else {
-		err := setBMPlatformInstallconfig(log, cluster, cfg)
+		err = setBMPlatformInstallconfig(log, cluster, cfg)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err := applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
+	err = applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
 	if err != nil {
 		return nil, err
 	}
-	if addRhCa {
+	caContent := getCAContents(cluster, ca, addRhCa)
+	if caContent != "" {
 		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, ca)
 	}
 
@@ -382,6 +411,17 @@ func getHypethreadingConfiguration(cluster *common.Cluster, machineType string) 
 		if machineType == "worker" {
 			return "Enabled"
 		}
+	}
+	return ""
+}
+
+func getCAContents(cluster *common.Cluster, rhRootCA string, installRHRootCAFlag bool) string {
+	// CA for mirror registries and RH CA are mutually exclusive
+	if cluster.ImageInfo.CaConfig != "" {
+		return "\n" + cluster.ImageInfo.CaConfig
+	}
+	if installRHRootCAFlag {
+		return rhRootCA
 	}
 	return ""
 }

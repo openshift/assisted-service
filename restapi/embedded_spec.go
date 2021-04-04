@@ -7054,7 +7054,7 @@ func init() {
           "type": "string"
         },
         "mirror_location": {
-          "description": "the mirror regsitry location",
+          "description": "the mirror registry location",
           "type": "string"
         },
         "prefix": {
@@ -14610,7 +14610,7 @@ func init() {
           "type": "string"
         },
         "mirror_location": {
-          "description": "the mirror regsitry location",
+          "description": "the mirror registry location",
           "type": "string"
         },
         "prefix": {

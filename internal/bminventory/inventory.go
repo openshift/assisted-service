@@ -54,6 +54,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -887,7 +888,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 
 	staticNetworkConfig := staticnetworkconfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
 
-	mirrorRegistiresConfig, mirrorCA, err := ignition.FormatRegistriesConfForIgnition(params.ImageCreateParams.MirrorRegistriesCaConfig)
+	mirrorRegistriesConfig, mirrorCA, err := mirrorregistries.FormatRegistriesConfForIgnition(params.ImageCreateParams.MirrorRegistriesCaConfig)
 	if err != nil {
 		msg := "Failed to format mirror registries config data"
 		log.WithError(err).Errorf("%s", msg)
@@ -916,7 +917,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
 	updates["image_download_url"] = ""
 	updates["image_static_network_config"] = staticNetworkConfig
-	updates["image_mirror_registries_config"] = mirrorRegistiresConfig
+	updates["image_mirror_registries_config"] = mirrorRegistriesConfig
 	updates["image_ca_config"] = mirrorCA
 	if !imageExists {
 		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
