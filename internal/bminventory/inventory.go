@@ -832,8 +832,6 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
 	if previousCreatedAt.Add(10 * time.Second).After(now) {
 		log.Error("request came too soon after previous request")
-		msg := "Failed to generate image: another request to generate an image has been recently submitted - please wait a few seconds and try again"
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
 		return nil, common.NewApiError(
 			http.StatusConflict,
 			errors.New("Another request to generate an image has been recently submitted. Please wait a few seconds and try again."))
