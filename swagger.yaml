@@ -3385,11 +3385,10 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Host', 'AddToExistingClusterHost', 'AddToExistingClusterOCPHost']
+        enum: ['Host', 'AddToExistingClusterHost']
         description: |
           Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
           'AddToExistingClusterHost' for host being added to existing OCP cluster, or
-          'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster
       id:
         type: string
         format: uuid
@@ -3911,11 +3910,10 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Cluster', 'AddHostsCluster', 'AddHostsOCPCluster']
+        enum: ['Cluster', 'AddHostsCluster']
         description: |
           Indicates the type of this object. Will be 'Cluster' if this is a complete object,
           'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
-          'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
       high_availability_mode:
         type: string
         enum: ['Full', 'None']

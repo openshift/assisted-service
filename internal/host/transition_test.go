@@ -2587,15 +2587,6 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     false,
 			},
 			{
-				name:              "AddedtoExistingCluster to AddedtoExistingCluster for day2 OCP",
-				srcState:          models.HostStatusAddedToExistingCluster,
-				dstState:          models.HostStatusAddedToExistingCluster,
-				kind:              models.HostKindAddToExistingClusterOCPHost,
-				role:              models.HostRoleWorker,
-				statusInfoChecker: makeValueChecker(""),
-				errorExpected:     false,
-			},
-			{
 				name:               "CNV + LSO enabled: known to insufficient with 1 worker",
 				validCheckInTime:   true,
 				srcState:           models.HostStatusKnown,

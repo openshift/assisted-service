@@ -187,7 +187,5 @@ func ValidateInstallerArgs(args []string) error {
 }
 
 func IsDay2Host(h *models.Host) bool {
-	day2HostKinds := []string{models.HostKindAddToExistingClusterHost,
-		models.HostKindAddToExistingClusterOCPHost}
-	return funk.ContainsString(day2HostKinds, swag.StringValue(h.Kind))
+	return swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost
 }

@@ -31,7 +31,6 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
-	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -58,7 +57,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -5206,139 +5204,6 @@ func getInventoryStrWithIPv6(hostname, bootMode string, ipv4Addresses []string, 
 	return string(ret)
 }
 
-var _ = Describe("Register OCPCluster test", func() {
-
-	var (
-		bm             *bareMetalInventory
-		configMap      v1.ConfigMap
-		pullSecret     v1.Secret
-		clusterVersion configv1.ClusterVersion
-		ips            []string
-		names          []string
-		roles          []string
-		statuses       []v1.ConditionStatus
-		nodesList      *v1.NodeList
-		archituctures  []string
-		cfg            Config
-		db             *gorm.DB
-		dbName         string
-		ctx            = context.Background()
-	)
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
-		bm = createInventory(db, cfg)
-		configMap.Data = make(map[string]string)
-		configMap.Data["install-config"] = "baseDomain: redhat.com\nnetworking:\n  machineNetwork:\n  - cidr: 192.168.126.0/24\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2\nsshKey: ssh-rsa kjfhkefkfsk"
-		pullSecret.Data = make(map[string][]byte)
-		pullSecret.Data[".dockerconfigjson"] = []byte("some kind of secret")
-		clusterVersion.Status.Desired.Version = "4.6.0-rc5"
-		names = []string{"node1", "node2"}
-		ips = []string{"192.168.6.1", "192.168.6.2"}
-		roles = []string{"node-role.kubernetes.io/master", "node-role.kubernetes.io/worker"}
-		statuses = []v1.ConditionStatus{v1.ConditionTrue, v1.ConditionTrue}
-		archituctures = []string{"x64_64", "amd64"}
-		nodesList = prepareK8NodeList(names, ips, roles, archituctures, statuses)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
-		ctrl.Finish()
-	})
-
-	It("Register OCP cluster", func() {
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	It("Register OCP cluster failer to get cluster-config-v1", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(basedomain) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "baseDoimain: 98iijhk\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(platform) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "platfiuoiorm:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(baremetal) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "platform:\n  baremioihetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(api vip) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "platform:\n  baremetal:\n    apiiefVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failer to get cluster version", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to get pull secret", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to register", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to get node list", func() {
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		mockK8sClient.EXPECT().ListNodes().Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to register host", func() {
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-})
-
 var _ = Describe("Register AddHostsCluster test", func() {
 
 	var (
@@ -6709,24 +6574,6 @@ var _ = Describe("Get Cluster by Kube Key", func() {
 		Expect(cluster).Should(BeNil())
 	})
 })
-
-func prepareK8NodeList(names, ips, roles, archituctures []string, readyStatuses []v1.ConditionStatus) *v1.NodeList {
-	var node v1.Node
-	nodeList := &v1.NodeList{}
-	for i := range names {
-		node.Name = names[i]
-		node.Status.Conditions = make([]v1.NodeCondition, 1)
-		node.Status.Conditions[0].Type = v1.NodeReady
-		node.Status.Conditions[0].Status = readyStatuses[i]
-		node.Status.Addresses = make([]v1.NodeAddress, 1)
-		node.Status.Addresses[0].Address = ips[i]
-		node.Labels = make(map[string]string)
-		node.Labels[roles[i]] = ""
-		node.Status.NodeInfo.Architecture = archituctures[i]
-		nodeList.Items = append(nodeList.Items, node)
-	}
-	return nodeList
-}
 
 func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	ctrl = gomock.NewController(GinkgoT())

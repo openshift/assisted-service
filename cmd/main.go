@@ -401,10 +401,6 @@ func main() {
 			failOnError(uploadBootFiles(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
 		}
 
-		if Options.DeployTarget == deployment_type_ocp {
-			failOnError(bm.RegisterOCPCluster(context.Background()), "Failed to create OCP cluster")
-		}
-
 		apiEnabler.Enable()
 	}()
 
