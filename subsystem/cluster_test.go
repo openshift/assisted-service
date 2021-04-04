@@ -27,6 +27,7 @@ import (
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 )
@@ -1711,7 +1712,7 @@ var _ = Describe("cluster install", func() {
 				// Download kubeconfig before uploading
 				kubeconfigNoIngress, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
-				_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: "kubeconfig-noingress"}, kubeconfigNoIngress)
+				_, err = userBMClient.Installer.DownloadClusterFiles(ctx, &installer.DownloadClusterFilesParams{ClusterID: clusterID, FileName: constants.KubeconfigNoIngress}, kubeconfigNoIngress)
 				Expect(err).NotTo(HaveOccurred())
 				sni, err := kubeconfigNoIngress.Stat()
 				Expect(err).NotTo(HaveOccurred())

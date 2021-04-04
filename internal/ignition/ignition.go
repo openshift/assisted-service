@@ -273,7 +273,7 @@ var fileNames = [...]string{
 	masterIgn,
 	"metadata.json",
 	workerIgn,
-	"kubeconfig-noingress",
+	constants.KubeconfigNoIngress,
 	"kubeadmin-password",
 	"install-config.yaml",
 }
@@ -445,7 +445,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	}
 	// after installation completes, a new kubeconfig will be created and made
 	// available that includes ingress details, so we rename this one
-	err = os.Rename(filepath.Join(g.workDir, "auth/kubeconfig"), filepath.Join(g.workDir, "kubeconfig-noingress"))
+	err = os.Rename(filepath.Join(g.workDir, "auth/kubeconfig"), filepath.Join(g.workDir, constants.KubeconfigNoIngress))
 	if err != nil {
 		return err
 	}

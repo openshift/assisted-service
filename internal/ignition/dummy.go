@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -54,7 +55,7 @@ func (g *dummyGenerator) Generate(_ context.Context, installConfig []byte) error
 		defer f.Close()
 		data := "data"
 		// use the pre-baked data
-		if fileName == "kubeconfig-noingress" {
+		if fileName == constants.KubeconfigNoIngress {
 			data = kubeconfig
 		} else if fileName == "bootstrap.ign" {
 			data = bootstrapIgnition

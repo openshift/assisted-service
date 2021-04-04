@@ -3204,11 +3204,20 @@ func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, para
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error) {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
+	respBody, contentLength, err := b.downloadClusterFileIfAvailable(ctx, params.ClusterID.String(), constants.Kubeconfig)
+	if err != nil {
+		return b.downloadClusterFileIfAvailable(ctx, params.ClusterID.String(), constants.KubeconfigNoIngress)
+	}
+
+	return respBody, contentLength, nil
+}
+
+func (b *bareMetalInventory) downloadClusterFileIfAvailable(ctx context.Context, clusterID, fileName string) (io.ReadCloser, int64, error) {
+	if err := b.checkFileForDownload(ctx, clusterID, fileName); err != nil {
 		return nil, 0, err
 	}
 
-	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
+	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterID, fileName))
 	if err != nil {
 		return nil, 0, common.NewApiError(http.StatusConflict, err)
 	}
@@ -3484,7 +3493,7 @@ func (b *bareMetalInventory) UploadClusterIngressCert(ctx context.Context, param
 		return installer.NewUploadClusterIngressCertCreated()
 	}
 
-	noingress := fmt.Sprintf("%s/%s-noingress", cluster.ID, constants.Kubeconfig)
+	noingress := fmt.Sprintf("%s/%s", cluster.ID, constants.KubeconfigNoIngress)
 	resp, _, err := b.objectHandler.Download(ctx, noingress)
 	if err != nil {
 		return installer.NewUploadClusterIngressCertInternalServerError().

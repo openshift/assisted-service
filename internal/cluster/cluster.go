@@ -41,12 +41,12 @@ const DhcpLeaseTimeoutMinutes = 2
 
 var S3FileNames = []string{
 	constants.Kubeconfig,
+	constants.KubeconfigNoIngress,
 	"bootstrap.ign",
 	"master.ign",
 	"worker.ign",
 	"metadata.json",
 	"kubeadmin-password",
-	"kubeconfig-noingress",
 	"install-config.yaml",
 	"discovery.ign",
 }
