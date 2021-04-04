@@ -626,11 +626,6 @@ func (in *InstallEnvSpec) DeepCopyInto(out *InstallEnvSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.SSHAuthorizedKeys != nil {
-		in, out := &in.SSHAuthorizedKeys, &out.SSHAuthorizedKeys
-		*out = make([]string, len(*in))
-		copy(*out, *in)
-	}
 	if in.PullSecretRef != nil {
 		in, out := &in.PullSecretRef, &out.PullSecretRef
 		*out = new(corev1.LocalObjectReference)
