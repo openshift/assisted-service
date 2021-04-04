@@ -204,7 +204,8 @@ func main() {
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
-	eventsHandler := events.New(db, log.WithField("pkg", "events"))
+	crdEventsHandler := createCRDEventsHandler()
+	eventsHandler := createEventsHandler(crdEventsHandler, db, log)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig)
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
@@ -406,7 +407,6 @@ func main() {
 
 	go func() {
 		if Options.EnableKubeAPI {
-			crdEventsHandler := controllers.NewCRDEventsHandler()
 			failOnError((&controllers.InstallEnvReconciler{
 				Client:           ctrlMgr.GetClient(),
 				Config:           Options.InstallEnvConfig,
@@ -426,10 +426,11 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
-				Client:    ctrlMgr.GetClient(),
-				Log:       log,
-				Scheme:    ctrlMgr.GetScheme(),
-				Installer: bm,
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				Scheme:           ctrlMgr.GetScheme(),
+				Installer:        bm,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError((&controllers.BMACReconciler{
@@ -607,6 +608,22 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 	})
 }
 
+func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, log logrus.FieldLogger) events.Handler {
+	eventsHandler := events.New(db, log.WithField("pkg", "events"))
+
+	if crdEventsHandler != nil {
+		return controllers.NewControllerEventsWrapper(crdEventsHandler, eventsHandler, db, log)
+	}
+	return eventsHandler
+}
+
+func createCRDEventsHandler() controllers.CRDEventsHandler {
+	if Options.EnableKubeAPI {
+		return controllers.NewCRDEventsHandler()
+	}
+	return nil
+}
+
 func createControllerManager() (manager.Manager, error) {
 	if Options.EnableKubeAPI {
 		var schemes = runtime.NewScheme()
@@ -615,15 +632,11 @@ func createControllerManager() (manager.Manager, error) {
 		utilruntime.Must(hivev1.AddToScheme(schemes))
 		utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 
-		syncPeriod := 10 * time.Second
-
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
 			Port:             9443,
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.my.domain",
-			// TODO: remove it after we have backend notifications
-			SyncPeriod: &syncPeriod,
 		})
 	}
 	return nil, nil

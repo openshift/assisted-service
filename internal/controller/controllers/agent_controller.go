@@ -39,14 +39,17 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 // AgentReconciler reconciles a Agent object
 type AgentReconciler struct {
 	client.Client
-	Log       logrus.FieldLogger
-	Scheme    *runtime.Scheme
-	Installer bminventory.InstallerInternals
+	Log              logrus.FieldLogger
+	Scheme           *runtime.Scheme
+	Installer        bminventory.InstallerInternals
+	CRDEventsHandler CRDEventsHandler
 }
 
 // +kubebuilder:rbac:groups=adi.io.my.domain,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -369,5 +372,7 @@ func getHostFromCluster(c *common.Cluster, agentId string) *models.Host {
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&adiiov1alpha1.Agent{}).
+		Watches(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},
+			&handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
