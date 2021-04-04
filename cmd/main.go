@@ -199,7 +199,8 @@ func main() {
 	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	failOnError(err, "failed to create authenticator")
 	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"))
-	releaseHandler := oc.NewRelease(&executer.CommonExecuter{})
+	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)

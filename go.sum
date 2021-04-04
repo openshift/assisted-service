@@ -1675,6 +1675,8 @@ github.com/tdakkota/asciicheck v0.0.0-20200416190851-d7f85be797a2/go.mod h1:yHp0
 github.com/tetafro/godot v0.4.9 h1:dSOiuasshpevY73eeI3+zaqFnXSBKJ3mvxbyhh54VRo=
 github.com/tetafro/godot v0.4.9/go.mod h1:/7NLHhv08H1+8DNj0MElpAACw1ajsCuf3TKNQxA5S+0=
 github.com/thanos-io/thanos v0.11.0/go.mod h1:N/Yes7J68KqvmY+xM6J5CJqEvWIvKSR5sqGtmuD6wDc=
+github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d h1:U8ZUZKRBI+Xgo3QWD/alCQ2vIysyl0Efx8yCJWPdaGQ=
+github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d/go.mod h1:2rz2mY+1qEXG47loLDkV+ZJHGFwmhax5rOTpP+5aR80=
 github.com/thoas/go-funk v0.6.0 h1:ryxN0pa9FnI7YHgODdLIZ4T6paCZJt8od6N9oRztMxM=
 github.com/thoas/go-funk v0.6.0/go.mod h1:+IWnUfUmFO1+WVYQWQtIJHeRRdaIyyYglZN7xzUPe4Q=
 github.com/tidwall/pretty v0.0.0-20180105212114-65a9db5fad51/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
