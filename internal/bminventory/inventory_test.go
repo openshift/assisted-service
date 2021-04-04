@@ -4929,7 +4929,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			InstallConfigParams: override,
 		}
 		response := bm.UpdateClusterInstallConfig(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigNotFound{}))
+		verifyApiError(response, http.StatusNotFound)
 	})
 
 	It("returns bad request when provided invalid json", func() {
@@ -4939,7 +4939,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			InstallConfigParams: override,
 		}
 		response := bm.UpdateClusterInstallConfig(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+		verifyApiError(response, http.StatusBadRequest)
 	})
 
 	It("returns bad request when provided invalid options", func() {
@@ -4949,7 +4949,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			InstallConfigParams: override,
 		}
 		response := bm.UpdateClusterInstallConfig(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+		verifyApiError(response, http.StatusBadRequest)
 	})
 })
 

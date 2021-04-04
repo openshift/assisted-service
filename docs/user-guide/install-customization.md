@@ -60,7 +60,29 @@ curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSIS
 ## Install Config
 
 These endpoints alter the default install config yaml used when running `openshift-install create` commands.
+Install config customization reference is available [here](https://github.com/openshift/installer/blob/master/docs/user/customization.md)
 Some of this content will be pinned to particular values, but most can be edited.
+Note, some of this content will be pinned to particular values by the assisted-installer (can't be overwritten).
+
+You can compose the install-config overrides by creating a json string with the options you wish to set.
+An example install config with disabled hyperthreading for the control plane:
+```
+apiVersion: v1
+baseDomain: example.com
+controlPlane:
+  name: master
+  hyperthreading: Disabled
+compute:
+- name: worker
+  replicas: 5
+metadata:
+  name: test-cluster
+platform: ...
+pullSecret: '{"auths": ...}'
+sshKey: ssh-ed25519 AAAA...
+```
+should look like this:
+```"{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"```
 
 ### Patch the install config
 
