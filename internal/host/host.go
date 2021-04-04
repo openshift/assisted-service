@@ -326,7 +326,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	if err != nil {
 		return err
 	}
-	currentValidationRes, err := m.getValidations(ctx, h)
+	currentValidationRes, err := GetValidations(h)
 	if err != nil {
 		return err
 	}
@@ -784,7 +784,7 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 		log.Warnf("Host %s in cluster %s doesn't contain any validations info, cannot report metrics for that host", h.ID, h.ClusterID)
 		return nil
 	}
-	var validationRes validationsStatus
+	var validationRes ValidationsStatus
 	if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
 		log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
 		return err
@@ -800,7 +800,7 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 }
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
-	newValidationRes, currentValidationRes validationsStatus) {
+	newValidationRes, currentValidationRes ValidationsStatus) {
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
@@ -823,7 +823,7 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 	}
 }
 
-func (m *Manager) getValidationStatus(vs validationsStatus, category string, vID validationID) (ValidationStatus, bool) {
+func (m *Manager) getValidationStatus(vs ValidationsStatus, category string, vID validationID) (ValidationStatus, bool) {
 	for _, v := range vs[category] {
 		if v.ID == vID {
 			return v.Status, true
@@ -832,17 +832,7 @@ func (m *Manager) getValidationStatus(vs validationsStatus, category string, vID
 	return ValidationStatus(""), false
 }
 
-func (m *Manager) getValidations(ctx context.Context, h *models.Host) (validationsStatus, error) {
-	var currentValidationRes validationsStatus
-	if h.ValidationsInfo != "" {
-		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
-			return validationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
-		}
-	}
-	return currentValidationRes, nil
-}
-
-func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes validationsStatus) bool {
+func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes ValidationsStatus) bool {
 	if len(newValidationRes) == 0 {
 		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
 		return false
@@ -850,7 +840,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
 }
 
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*common.Host, error) {
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*common.Host, error) {
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err

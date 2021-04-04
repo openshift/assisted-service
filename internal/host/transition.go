@@ -385,7 +385,7 @@ type TransitionArgsRefreshHost struct {
 	ctx               context.Context
 	eventHandler      events.Handler
 	conditions        map[string]bool
-	validationResults validationsStatus
+	validationResults ValidationsStatus
 	db                *gorm.DB
 }
 

@@ -2175,8 +2175,8 @@ var _ = Describe("Validation metrics and events", func() {
 		h               *models.Host
 	)
 
-	generateTestValidationResult := func(status ValidationStatus) validationsStatus {
-		validationRes := validationsStatus{
+	generateTestValidationResult := func(status ValidationStatus) ValidationsStatus {
+		validationRes := ValidationsStatus{
 			"hw": {
 				{
 					ID:     HasMinCPUCores,
@@ -2247,7 +2247,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 		vc := generateValidationCtx()
 		newValidationRes := generateTestValidationResult(ValidationSuccess)
-		var currentValidationRes validationsStatus
+		var currentValidationRes ValidationsStatus
 		err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes)
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)

@@ -21,12 +21,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -58,8 +61,6 @@ type AgentReconciler struct {
 func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	agent := &aiv1beta1.Agent{}
-	var Requeue bool
-	var inventoryErr error
 
 	err := r.Get(ctx, req.NamespacedName, agent)
 	if err != nil {
@@ -80,58 +81,117 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
 		errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
-		Requeue = false
-		clientError := true
-		if !k8serrors.IsNotFound(err) {
-			Requeue = true
-			clientError = false
-		}
-		clusterDeploymentRefErr := newKubeAPIError(errors.Wrapf(err, errMsg), clientError)
 		// Update that we failed to retrieve the clusterDeployment
-		r.updateFailure(ctx, agent, clusterDeploymentRefErr)
-		return ctrl.Result{Requeue: Requeue}, nil
+		return r.updateStatus(ctx, agent, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
 	}
 
 	// Retrieve cluster for ClusterDeploymentName from the database
 	cluster, err := r.Installer.GetClusterByKubeKey(kubeKey)
 	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
-			Requeue = true
-			inventoryErr = common.NewApiError(http.StatusNotFound, err)
-		} else {
-			Requeue = false
-			inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
-		}
 		// Update that we failed to retrieve the cluster from the database
-		r.updateFailure(ctx, agent, inventoryErr)
-		return ctrl.Result{Requeue: Requeue}, nil
+		return r.updateStatus(ctx, agent, nil, err, !gorm.IsRecordNotFoundError(err))
 	}
 
-	var result ctrl.Result
+	//Retrieve host from cluster
+	host := getHostFromCluster(cluster, agent.Name)
+	if host == nil {
+		return r.updateStatus(ctx, agent, nil, errors.New("host not found in cluster"), false)
+	}
+
 	// check for updates from user, compare spec and update if needed
-	result, err = r.updateIfNeeded(ctx, agent, cluster)
+	err = r.updateIfNeeded(ctx, agent, cluster)
 	if err != nil {
-		r.updateFailure(ctx, agent, err)
-		return result, nil
+		return r.updateStatus(ctx, agent, host, err, !IsHTTP4XXError(err))
 	}
 
-	err = r.updateInventory(cluster, agent)
+	err = r.updateInventory(host, agent)
 	if err != nil {
-		r.updateFailure(ctx, agent, err)
-		return ctrl.Result{Requeue: true}, nil
+		return r.updateStatus(ctx, agent, host, err, true)
 	}
 
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.AgentSyncedCondition,
-		Status:  corev1.ConditionTrue,
-		Reason:  aiv1beta1.AgentSyncedReason,
-		Message: aiv1beta1.AgentStateSynced,
-	})
+	return r.updateStatus(ctx, agent, host, nil, false)
+}
+
+// updateStatus is updating all the Agent Conditions.
+// In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
+// Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
+func (r *AgentReconciler) updateStatus(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host, syncErr error, internal bool) (ctrl.Result, error) {
+
+	specSynced(agent, syncErr, internal)
+
+	if h != nil && h.Status != nil {
+		status := *h.Status
+		connected(agent, status)
+		readyForInstallation(agent, status)
+		validated(agent, status, h)
+		installed(agent, status, swag.StringValue(h.StatusInfo))
+	} else {
+		setConditionsUnknown(agent)
+	}
 	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update agent status")
+		r.Log.WithError(updateErr).Error("failed to update agent Status")
 		return ctrl.Result{Requeue: true}, nil
 	}
-	return result, nil
+	if internal {
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+func setConditionsUnknown(agent *aiv1beta1.Agent) {
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.InstalledCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  aiv1beta1.NotAvailableReason,
+		Message: aiv1beta1.NotAvailableMsg,
+	})
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ConnectedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  aiv1beta1.NotAvailableReason,
+		Message: aiv1beta1.NotAvailableMsg,
+	})
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ReadyForInstallationCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  aiv1beta1.NotAvailableReason,
+		Message: aiv1beta1.NotAvailableMsg,
+	})
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ValidatedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  aiv1beta1.NotAvailableReason,
+		Message: aiv1beta1.NotAvailableMsg,
+	})
+}
+
+// specSynced is updating the Agent SpecSynced Condition.
+//Internal bool differentiate between the reason BackendErrorReason/InputErrorReason.
+//if true then it is a backend server error (internal HTTP 5XX) otherwise an user input error (HTTP 4XXX)
+func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	if syncErr == nil {
+		condStatus = corev1.ConditionTrue
+		reason = aiv1beta1.SyncedOkReason
+		msg = aiv1beta1.SyncedOkMsg
+	} else {
+		condStatus = corev1.ConditionFalse
+		if internal {
+			reason = aiv1beta1.BackendErrorReason
+			msg = aiv1beta1.BackendErrorMsg + " " + syncErr.Error()
+		} else {
+			reason = aiv1beta1.InputErrorReason
+			msg = aiv1beta1.InputErrorMsg + " " + syncErr.Error()
+		}
+	}
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.SpecSyncedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
 }
 
 func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
@@ -174,15 +234,140 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Clu
 	return err
 }
 
-func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *aiv1beta1.Agent) error {
-
-	host := getHostFromCluster(c, agent.Name)
-	if host == nil {
-		r.Log.Errorf("Fail to update inventory: Host %s not found in cluster %s", agent.Name, c.Name)
-		return errors.New("Fail to update inventory: Host not found in cluster")
+func installed(agent *aiv1beta1.Agent, status, statusInfo string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.HostStatusInstalled:
+		condStatus = corev1.ConditionTrue
+		reason = aiv1beta1.AgentInstalledReason
+		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentInstalledMsg, statusInfo)
+	case models.HostStatusError:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.AgentInstallationFailedReason
+		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentInstallationFailedMsg, statusInfo)
+	case models.HostStatusInsufficient, models.HostStatusDisconnected, models.HostStatusDiscovering,
+		models.HostStatusPendingForInput, models.HostStatusKnown:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.AgentInstallationNotStartedReason
+		msg = aiv1beta1.AgentInstallationNotStartedMsg
+	case models.HostStatusPreparingForInstallation, models.HostStatusPreparingSuccessful,
+		models.HostStatusInstalling, models.HostStatusInstallingInProgress,
+		models.HostStatusInstallingPendingUserAction:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.AgentInstallationInProgressReason
+		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentInstallationInProgressMsg, statusInfo)
+	default:
+		condStatus = corev1.ConditionUnknown
+		reason = aiv1beta1.UnknownStatusReason
+		msg = fmt.Sprintf("%s %s", aiv1beta1.UnknownStatusMsg, status)
 	}
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.InstalledCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
+	failedValidationInfo := ""
+	validationRes, err := host.GetValidations(h)
+	var failures []string
+	if err == nil {
+		for _, vRes := range validationRes {
+			for _, v := range vRes {
+				if v.Status == host.ValidationFailure {
+					failures = append(failures, v.Message)
+				}
+			}
+		}
+		failedValidationInfo = strings.Join(failures[:], ",")
+	}
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch {
+	case models.HostStatusInsufficient == status:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.AgentValidationsFailingReason
+		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentValidationsFailingMsg, failedValidationInfo)
+	case h.ValidationsInfo == "":
+		condStatus = corev1.ConditionUnknown
+		reason = aiv1beta1.AgentValidationsUnknownReason
+		msg = aiv1beta1.AgentValidationsUnknownMsg
+	default:
+		condStatus = corev1.ConditionTrue
+		reason = aiv1beta1.AgentValidationsPassingReason
+		msg = aiv1beta1.AgentValidationsPassingMsg
+	}
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ValidatedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func connected(agent *aiv1beta1.Agent, status string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.HostStatusDisconnected:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.AgentDisconnectedReason
+		msg = aiv1beta1.AgentDisonnectedMsg
+	default:
+		condStatus = corev1.ConditionTrue
+		reason = aiv1beta1.AgentConnectedReason
+		msg = aiv1beta1.AgentConnectedMsg
+	}
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ConnectedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func readyForInstallation(agent *aiv1beta1.Agent, status string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.HostStatusKnown:
+		condStatus = corev1.ConditionTrue
+		reason = aiv1beta1.AgentReadyReason
+		msg = aiv1beta1.AgentReadyMsg
+	case models.HostStatusInsufficient, models.HostStatusDisconnected,
+		models.HostStatusDiscovering, models.HostStatusPendingForInput:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.AgentNotReadyReason
+		msg = aiv1beta1.AgentNotReadyMsg
+	case models.HostStatusPreparingForInstallation, models.HostStatusPreparingSuccessful, models.HostStatusInstalled,
+		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
+		models.HostStatusError:
+		condStatus = corev1.ConditionFalse
+		reason = aiv1beta1.AgentAlreadyInstallingReason
+		msg = aiv1beta1.AgentAlreadyInstallingMsg
+	default:
+		condStatus = corev1.ConditionUnknown
+		reason = aiv1beta1.UnknownStatusReason
+		msg = fmt.Sprintf("%s %s", aiv1beta1.UnknownStatusMsg, status)
+	}
+	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+		Type:    aiv1beta1.ReadyForInstallationCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func (r *AgentReconciler) updateInventory(host *models.Host, agent *aiv1beta1.Agent) error {
 	if host.Inventory == "" {
-		r.Log.Debugf("Skip update inventory: Host %s cluster %s inventory not set", agent.Name, c.Name)
+		r.Log.Debugf("Skip update inventory: Host %s inventory not set", agent.Name)
 		return nil
 	}
 	var inventory models.Inventory
@@ -286,52 +471,38 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *aiv1beta1.Ag
 	return nil
 }
 
-func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.Agent, c *common.Cluster) (ctrl.Result, error) {
+func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.Agent, c *common.Cluster) error {
 	spec := agent.Spec
-	var Requeue bool
-	var inventoryErr error
 	host := getHostFromCluster(c, agent.Name)
 	if host == nil {
 		r.Log.Errorf("Host %s not found in cluster %s", agent.Name, c.Name)
-		return ctrl.Result{}, errors.New("Host not found in cluster")
+		return errors.New("Host not found in cluster")
 	}
 
 	internalHost, err := r.Installer.GetCommonHostInternal(ctx, string(*c.ID), agent.Name)
 	if err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			Requeue = true
-			inventoryErr = common.NewApiError(http.StatusNotFound, err)
-		} else {
-			Requeue = false
-			inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
+			err = common.NewApiError(http.StatusNotFound, err)
 		}
-		return ctrl.Result{Requeue: Requeue}, inventoryErr
+		return err
 	}
 
 	if internalHost.Approved != spec.Approved {
 		err = r.Installer.UpdateHostApprovedInternal(ctx, string(*c.ID), agent.Name, spec.Approved)
 		if err != nil {
 			if gorm.IsRecordNotFoundError(err) {
-				Requeue = true
-				inventoryErr = common.NewApiError(http.StatusNotFound, err)
-			} else {
-				Requeue = false
-				inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
+				err = common.NewApiError(http.StatusNotFound, err)
 			}
-			return ctrl.Result{Requeue: Requeue}, inventoryErr
+			return err
 		}
 	}
 
 	err = r.updateInstallerArgs(ctx, c, internalHost, agent)
 	if err != nil {
 		if gorm.IsRecordNotFoundError(err) {
-			Requeue = true
-			inventoryErr = common.NewApiError(http.StatusNotFound, err)
-		} else {
-			Requeue = false
-			inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
+			err = common.NewApiError(http.StatusNotFound, err)
 		}
-		return ctrl.Result{Requeue: Requeue}, inventoryErr
+		return err
 	}
 
 	clusterUpdate := false
@@ -379,35 +550,20 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 	}
 
 	if !clusterUpdate {
-		return ctrl.Result{}, nil
+		return nil
 	}
 
 	_, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *c.ID,
 	})
-	if err != nil && IsHTTP4XXError(err) {
-		return ctrl.Result{}, err
-	}
 	if err != nil {
-		return ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError}, err
+		return err
 	}
 
 	r.Log.Infof("Updated Agent spec %s %s", agent.Name, agent.Namespace)
 
-	return ctrl.Result{}, nil
-}
-
-func (r *AgentReconciler) updateFailure(ctx context.Context, agent *aiv1beta1.Agent, err error) {
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.AgentSyncedCondition,
-		Status:  corev1.ConditionUnknown,
-		Reason:  aiv1beta1.AgentSyncErrorReason,
-		Message: aiv1beta1.AgentStateFailedToSync + ": " + err.Error(),
-	})
-	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update agent status")
-	}
+	return nil
 }
 
 func getHostFromCluster(c *common.Cluster, agentId string) *models.Host {
