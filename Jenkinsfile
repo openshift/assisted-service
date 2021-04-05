@@ -84,7 +84,7 @@ pipeline {
             script {
                 if ((env.BRANCH_NAME == 'master') && (currentBuild.currentResult == "ABORTED" || currentBuild.currentResult == "FAILURE")){
                     script {
-                        def data = [text: "Attention! ${BUILD_TAG} job failed, see: ${BUILD_URL}"]
+                        def data = [text: "Attention! ${BUILD_TAG} job ${currentBuild.currentResult}, see: ${BUILD_URL}"]
                         writeJSON(file: 'data.txt', json: data, pretty: 4)
                     }
 
