@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -27,6 +28,7 @@ var _ = Describe("Operators manager", func() {
 		ctrl              *gomock.Controller
 		mockApi           *operators.MockAPI
 		handler           *hndlr.Handler
+		lastUpdatedTime   strfmt.DateTime
 	)
 
 	BeforeEach(func() {
@@ -61,6 +63,7 @@ var _ = Describe("Operators manager", func() {
 		}
 		cluster2.ImageInfo = &models.ImageInfo{}
 		Expect(db.Save(&cluster2).Error).ShouldNot(HaveOccurred())
+		lastUpdatedTime = cluster.StatusUpdatedAt
 	})
 
 	AfterEach(func() {
@@ -129,7 +132,6 @@ var _ = Describe("Operators manager", func() {
 
 	Context("UpdateMonitoredOperatorStatus", func() {
 		It("should update operator status", func() {
-
 			statusInfo := "sorry, failed"
 			operatorName := common.TestDefaultConfig.MonitoredOperator.Name
 			newStatus := models.OperatorStatusFailed
@@ -144,11 +146,10 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(operators[0].StatusInfo).To(Equal(statusInfo))
 			Expect(operators[0].Status).To(Equal(newStatus))
-
+			Expect(operators[0].StatusUpdatedAt.String()).ShouldNot(Equal(lastUpdatedTime.String()))
 		})
 
 		It("should report error when operator not found", func() {
-
 			statusInfo := "the very new progressing info"
 			newStatus := models.OperatorStatusProgressing
 			operatorName := "unknown"
@@ -157,10 +158,15 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusNotFound))
+
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, swag.String(""), db)
+			Expect(err).ToNot(HaveOccurred())
+			for _, operator := range operators {
+				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+			}
 		})
 
 		It("should report error for empty operator name", func() {
-
 			statusInfo := "the very new progressing info"
 			newStatus := models.OperatorStatusProgressing
 			operatorName := ""
@@ -169,8 +175,13 @@ var _ = Describe("Operators manager", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusBadRequest))
-		})
 
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, swag.String(""), db)
+			Expect(err).ToNot(HaveOccurred())
+			for _, operator := range operators {
+				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
+			}
+		})
 	})
 })
 
