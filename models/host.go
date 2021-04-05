@@ -86,10 +86,9 @@ type Host struct {
 
 	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
 	// 'AddToExistingClusterHost' for host being added to existing OCP cluster, or
-	// 'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster
 	//
 	// Required: true
-	// Enum: [Host AddToExistingClusterHost AddToExistingClusterOCPHost]
+	// Enum: [Host AddToExistingClusterHost]
 	Kind *string `json:"kind"`
 
 	// logs collected at
@@ -317,7 +316,7 @@ var hostTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Host","AddToExistingClusterHost","AddToExistingClusterOCPHost"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Host","AddToExistingClusterHost"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -332,9 +331,6 @@ const (
 
 	// HostKindAddToExistingClusterHost captures enum value "AddToExistingClusterHost"
 	HostKindAddToExistingClusterHost string = "AddToExistingClusterHost"
-
-	// HostKindAddToExistingClusterOCPHost captures enum value "AddToExistingClusterOCPHost"
-	HostKindAddToExistingClusterOCPHost string = "AddToExistingClusterOCPHost"
 )
 
 // prop value enum

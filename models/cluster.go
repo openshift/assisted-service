@@ -122,10 +122,9 @@ type Cluster struct {
 
 	// Indicates the type of this object. Will be 'Cluster' if this is a complete object,
 	// 'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
-	// 'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
 	//
 	// Required: true
-	// Enum: [Cluster AddHostsCluster AddHostsOCPCluster]
+	// Enum: [Cluster AddHostsCluster]
 	Kind *string `json:"kind"`
 
 	// The progress of log collection or empty if logs are not applicable
@@ -592,7 +591,7 @@ var clusterTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Cluster","AddHostsCluster","AddHostsOCPCluster"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Cluster","AddHostsCluster"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -607,9 +606,6 @@ const (
 
 	// ClusterKindAddHostsCluster captures enum value "AddHostsCluster"
 	ClusterKindAddHostsCluster string = "AddHostsCluster"
-
-	// ClusterKindAddHostsOCPCluster captures enum value "AddHostsOCPCluster"
-	ClusterKindAddHostsOCPCluster string = "AddHostsOCPCluster"
 )
 
 // prop value enum

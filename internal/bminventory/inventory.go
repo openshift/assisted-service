@@ -63,7 +63,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/clientcmd"
 )
@@ -2408,11 +2407,8 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	url := installer.GetHostURL{ClusterID: params.ClusterID, HostID: *params.NewHostParams.HostID}
 	kind := swag.String(models.HostKindHost)
-	switch swag.StringValue(cluster.Kind) {
-	case models.ClusterKindAddHostsCluster:
+	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		kind = swag.String(models.HostKindAddToExistingClusterHost)
-	case models.ClusterKindAddHostsOCPCluster:
-		kind = swag.String(models.HostKindAddToExistingClusterOCPHost)
 	}
 
 	// We immediately set the role to master in single node clusters to have more strict (master) validations.
@@ -4347,129 +4343,6 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
 	return nil
 }
 
-func (b *bareMetalInventory) RegisterOCPCluster(ctx context.Context) error {
-	id := strfmt.UUID(uuid.New().String())
-	url := installer.GetClusterURL{ClusterID: id}
-	clusterName := "ocp-assisted-service-cluster"
-
-	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
-	log.Infof("Register OCP cluster: %s with id %s", clusterName, id.String())
-
-	apiVIP, baseDNSDomain, machineCidr, sshKey, err := b.getInstallConfigParamsFromOCP(log)
-	if err != nil {
-		return err
-	}
-
-	openshiftVersion, err := b.getOpenshiftVersionFromOCP(log)
-	if err != nil {
-		return err
-	}
-
-	cluster := common.Cluster{Cluster: models.Cluster{
-		ID:                 &id,
-		Href:               swag.String(url.String()),
-		Kind:               swag.String(models.ClusterKindAddHostsOCPCluster),
-		Name:               clusterName,
-		OpenshiftVersion:   openshiftVersion,
-		UserName:           ocm.UserNameFromContext(ctx),
-		OrgID:              ocm.OrgIDFromContext(ctx),
-		EmailDomain:        ocm.EmailDomainFromContext(ctx),
-		UpdatedAt:          strfmt.DateTime{},
-		APIVip:             apiVIP,
-		BaseDNSDomain:      baseDNSDomain,
-		MachineNetworkCidr: machineCidr,
-		SSHPublicKey:       sshKey,
-	}}
-
-	err = b.setPullSecretFromOCP(&cluster, log)
-	if err != nil {
-		return err
-	}
-
-	err = validations.ValidateClusterNameFormat(clusterName)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to validate cluster name: %s", clusterName)
-		return err
-	}
-
-	txSuccess := false
-	tx := b.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("update cluster failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Error("update cluster failed")
-			tx.Rollback()
-		}
-	}()
-	if tx.Error != nil {
-		log.WithError(err).Errorf("Failed to open transaction during RegisterOCPCluster")
-		return err
-	}
-
-	// After registering the cluster, its status should be 'ClusterStatusAddingHosts'
-	err = b.clusterApi.RegisterAddHostsOCPCluster(&cluster, tx)
-	if err != nil {
-		log.WithError(err).Errorf("failed to register cluster %s ", clusterName)
-		return err
-	}
-
-	err = b.createInstalledOCPHosts(ctx, &cluster, tx, log)
-	if err != nil {
-		log.WithError(err).Errorf("failed to create installed nodes for ocp cluster %s ", clusterName)
-		return err
-	}
-	if err := tx.Commit().Error; err != nil {
-		log.WithError(err).Errorf("Failed to commit transaction in register OCP cluster")
-		return err
-	}
-	txSuccess = true
-	return nil
-}
-
-func (b *bareMetalInventory) getInstallConfigParamsFromOCP(log logrus.FieldLogger) (string, string, string, string, error) {
-	configMap, err := b.k8sClient.GetConfigMap("kube-system", "cluster-config-v1")
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", "", err
-	}
-	apiVIP, err := k8sclient.GetApiVIP(configMap, log)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get api VIP from configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", "", err
-	}
-	log.Infof("apiVIP is %s", apiVIP)
-	baseDomain, err := k8sclient.GetBaseDNSDomain(configMap, log)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get base domain from configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", "", err
-	}
-	log.Infof("baseDomain is %s", baseDomain)
-	machineCidr, err := k8sclient.GetMachineNetworkCIDR(configMap, log)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get machineCidr from configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", "", err
-	}
-	log.Infof("machineCidr is %s", machineCidr)
-	sshKey, err := k8sclient.GetSSHPublicKey(configMap, log)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get ssh public key from configmap cluster-config-v1 from namespace kube-system")
-		return "", "", "", "", err
-	}
-	return apiVIP, baseDomain, machineCidr, sshKey, nil
-}
-
-func (b *bareMetalInventory) getOpenshiftVersionFromOCP(log logrus.FieldLogger) (string, error) {
-	clusterVersion, err := b.k8sClient.GetClusterVersion("version")
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get cluster version from OCP")
-		return "", err
-	}
-	return k8sclient.GetClusterVersion(clusterVersion)
-}
-
 func secretValidationToUserError(err error) error {
 
 	if _, ok := err.(*validations.PullSecretError); ok {
@@ -4477,89 +4350,6 @@ func secretValidationToUserError(err error) error {
 	}
 
 	return errors.New("Failed validating pull secret")
-}
-
-func (b *bareMetalInventory) createInstalledOCPHosts(ctx context.Context, cluster *common.Cluster, tx *gorm.DB, log logrus.FieldLogger) error {
-	nodes, err := b.k8sClient.ListNodes()
-	if err != nil {
-		log.WithError(err).Errorf("Failed to list OCP nodes")
-		return err
-	}
-
-	for i := range nodes.Items {
-		node := &nodes.Items[i]
-		if !k8sclient.IsNodeReady(node) {
-			log.Infof("Node %s is not in ready state, skipping..", node.Name)
-			continue
-		}
-		id := strfmt.UUID(uuid.New().String())
-		url := installer.GetHostURL{ClusterID: *cluster.ID, HostID: id}
-		hostname := node.Name
-		role := k8sclient.GetNodeRole(node)
-
-		inventory, err := b.getOCPHostInventory(node, cluster.MachineNetworkCidr)
-		if err != nil {
-			log.WithError(err).WithField(ctxparams.HostId, id).Errorf("Failed to create inventory for host %s, cluster %s", id, *cluster.ID)
-			return err
-		}
-
-		host := models.Host{
-			ID:                &id,
-			Href:              swag.String(url.String()),
-			Kind:              swag.String(models.HostKindAddToExistingClusterOCPHost),
-			ClusterID:         *cluster.ID,
-			CheckedInAt:       strfmt.DateTime(time.Now()),
-			UserName:          ocm.UserNameFromContext(ctx),
-			Role:              role,
-			RequestedHostname: hostname,
-			Inventory:         inventory,
-		}
-
-		err = b.hostApi.RegisterInstalledOCPHost(ctx, &host, tx)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (b *bareMetalInventory) getOCPHostInventory(node *v1.Node, machineNetworkCidr string) (string, error) {
-	hostname := node.Name
-	ip := k8sclient.GetNodeInternalIP(node)
-	ipWithCidr, err := network.CreateIpWithCidr(ip, machineNetworkCidr)
-	if err != nil {
-		return "", err
-	}
-	arch := node.Status.NodeInfo.Architecture
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				IPV4Addresses: append(make([]string, 0), ipWithCidr),
-				MacAddress:    "some MAC address",
-			},
-		},
-		Hostname: hostname,
-		CPU:      &models.CPU{Architecture: arch},
-		Memory:   &models.Memory{},
-		Disks:    []*models.Disk{{}},
-	}
-	ret, err := json.Marshal(&inventory)
-	return string(ret), err
-}
-
-func (b *bareMetalInventory) setPullSecretFromOCP(cluster *common.Cluster, log logrus.FieldLogger) error {
-	secret, err := b.k8sClient.GetSecret("openshift-config", "pull-secret")
-	if err != nil {
-		log.WithError(err).Errorf("Failed to get secret pull-secret from openshift-config namespce")
-		return err
-	}
-	pullSecret, err := k8sclient.GetDataByKeyFromSecret(secret, ".dockerconfigjson")
-	if err != nil {
-		log.WithError(err).Errorf("Failed to extract .dockerconfigjson from secret pull-secret")
-		return err
-	}
-	setPullSecret(cluster, pullSecret)
-	return nil
 }
 
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
