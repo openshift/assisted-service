@@ -823,7 +823,8 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	err = db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update(&common.Cluster{
+
+	err = db.Model(&common.Cluster{}).Where("id = ? and connectivity_majority_groups <> ?", clusterID.String(), string(b)).Update(&common.Cluster{
 		Cluster: models.Cluster{
 			ConnectivityMajorityGroups: string(b),
 		},
