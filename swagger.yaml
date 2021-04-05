@@ -4130,6 +4130,10 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/monitored-operator'
+      ams_subscription_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the AMS subscription in OCM.
 
   image_info:
     type: object

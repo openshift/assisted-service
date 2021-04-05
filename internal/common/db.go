@@ -38,9 +38,6 @@ type Cluster struct {
 	// Namespace of the KubeAPI resource
 	KubeKeyNamespace string `json:"kube_key_namespace"`
 
-	// The ID of the subscription created in AMS
-	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
-
 	// Indication if we updated console_url in AMS subscription
 	IsAmsSubscriptionConsoleUrlSet bool `json:"is_ams_subscription_console_url_set"`
 
