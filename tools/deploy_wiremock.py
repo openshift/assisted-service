@@ -21,7 +21,6 @@ def deploy_wiremock(deploy_options):
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 

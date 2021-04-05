@@ -17,7 +17,6 @@ def main():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=file_path
         )
 
@@ -27,7 +26,6 @@ def main():
             utils.apply(
                 target=deploy_options.target,
                 namespace=deploy_options.namespace,
-                profile=deploy_options.profile,
                 file=file_path
             )
 

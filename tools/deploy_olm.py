@@ -18,8 +18,7 @@ def check_deployment():
             k8s_object='deployment',
             k8s_object_name=deployment,
             target=deploy_options.target,
-            namespace='olm',
-            profile=deploy_options.profile
+            namespace='olm'
         )
 
 
@@ -33,8 +32,7 @@ def main():
             k8s_object='namespace',
             k8s_object_name='olm',
             target=deploy_options.target,
-            namespace='olm',
-            profile=deploy_options.profile
+            namespace='olm'
         )
         if not deployed:
             olm_manifests = [ 
@@ -53,7 +51,6 @@ def main():
                 utils.apply(
                     target=deploy_options.target,
                     namespace=None,
-                    profile=deploy_options.profile,
                     file=dst_file
                 )
 

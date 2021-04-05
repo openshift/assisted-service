@@ -10,10 +10,7 @@ def main():
 
     utils.verify_build_directory(deploy_options.namespace)
 
-    kubectl_cmd = utils.get_kubectl_command(
-        target=deploy_options.target,
-        profile=deploy_options.profile
-    )
+    kubectl_cmd = utils.get_kubectl_command(target=deploy_options.target)
     print(utils.check_output(f'{kubectl_cmd} delete all --all -n {deploy_options.namespace} --force --grace-period=0 1> /dev/null ; true'))
     # configmaps are not deleted with `delete all`
     print(utils.check_output(f"{kubectl_cmd} get configmap -o name -n {deploy_options.namespace} | " +

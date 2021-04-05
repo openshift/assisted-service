@@ -63,9 +63,9 @@ class DecBytesSuffix(BytesSuffix):
     }
 
 
-def update_size_in_yaml_docs(target, ns, profile, name, docs):
+def update_size_in_yaml_docs(target, ns, name, docs):
     req = extract_requested_size_from_yaml_docs(name, docs)
-    cur = get_current_size_if_exist(target, ns, profile, name)
+    cur = get_current_size_if_exist(target, ns, name)
     size = determine_which_size_to_deploy(req, cur)
     set_size_in_yaml_docs(name, size, docs)
 
@@ -85,8 +85,8 @@ def extract_requested_size_from_yaml_docs(name, docs):
     )
 
 
-def get_current_size_if_exist(target, ns, profile, name):
-    kubectl_cmd = utils.get_kubectl_command(target, ns, profile)
+def get_current_size_if_exist(target, ns, name):
+    kubectl_cmd = utils.get_kubectl_command(target, ns)
     p = sp.Popen(
         f'{kubectl_cmd} get persistentvolumeclaims {name} '
         '-o=jsonpath="{.status.capacity.storage}"',

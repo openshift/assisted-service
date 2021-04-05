@@ -37,8 +37,7 @@ def main():
         "secret",
         secret_name,
         target=deploy_options.target,
-        namespace=deploy_options.namespace,
-        profile=deploy_options.profile
+        namespace=deploy_options.namespace
     )
 
     if exists:
@@ -57,7 +56,6 @@ def main():
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=secret_file
     )
 

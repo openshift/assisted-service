@@ -18,7 +18,6 @@ def main():
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -33,7 +32,6 @@ def main():
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -46,8 +44,7 @@ def main():
             try:
                 kubectl_cmd = utils.get_kubectl_command(
                     target=deploy_options.target,
-                    namespace=deploy_options.namespace,
-                    profile=deploy_options.profile
+                    namespace=deploy_options.namespace
                 )
                 size = utils.check_output(
                     f'{kubectl_cmd} get persistentvolumeclaims mariadb-pv-claim ' +
@@ -63,7 +60,6 @@ def main():
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 

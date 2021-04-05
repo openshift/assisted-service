@@ -15,8 +15,7 @@ utils.verify_build_directory(deploy_options.namespace)
 
 if deploy_options.target != "oc-ingress":
     CMD_BIN = utils.get_kubectl_command(
-        target=deploy_options.target,
-        profile=deploy_options.profile
+        target=deploy_options.target
     )
     OLM_NS = 'olm'
     CAT_SRC = 'operatorhubio-catalog'
@@ -34,8 +33,7 @@ def deploy_oauth_reqs():
             k8s_object='secret',
             k8s_object_name=secret_name,
             target=deploy_options.target,
-            namespace=deploy_options.namespace,
-            profile=deploy_options.profile
+            namespace=deploy_options.namespace
             ):
         cmd = "{} -n {} create secret generic {} --from-literal=session_secret={}" \
                 .format(CMD_BIN, deploy_options.namespace, secret_name, session_secret)
@@ -78,7 +76,6 @@ def deploy_oauth_reqs():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=dst_file
         )
     else:
@@ -96,8 +93,7 @@ def deploy_prometheus_route():
         # I have permissions
         ingress_domain = utils.get_domain(
             target=deploy_options.target,
-            namespace=deploy_options.namespace,
-            profile=deploy_options.profile
+            namespace=deploy_options.namespace
         )
     except:
         # I have not permissions, yes it's ugly...
@@ -121,7 +117,6 @@ def deploy_prometheus_route():
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -143,15 +138,13 @@ def deploy_prometheus_sub(olm_ns, cat_src):
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
     utils.wait_for_rollout(
         k8s_object='deployment',
         k8s_object_name='prometheus-operator',
         target=deploy_options.target,
-        namespace=deploy_options.namespace,
-        profile=deploy_options.profile
+        namespace=deploy_options.namespace
     )
 
 
@@ -168,7 +161,6 @@ def deployer(src_file, topic):
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -192,8 +184,7 @@ def main():
             k8s_object='statefulset',
             k8s_object_name='prometheus-assisted-installer-prometheus',
             target=deploy_options.target,
-            namespace=deploy_options.namespace,
-            profile=deploy_options.profile
+            namespace=deploy_options.namespace
         )
         # Deploy Prom svc Monitor
         deployer('deploy/monitoring/prometheus/assisted-installer-prometheus-svc-monitor.yaml',
@@ -226,8 +217,7 @@ def main():
             k8s_object='statefulset',
             k8s_object_name='prometheus-assisted-installer-prometheus',
             target=deploy_options.target,
-            namespace=deploy_options.namespace,
-            profile=deploy_options.profile
+            namespace=deploy_options.namespace
         )
         # Deploy Prom svc Monitor
         deployer('deploy/monitoring/prometheus/assisted-installer-prometheus-svc-monitor.yaml',
