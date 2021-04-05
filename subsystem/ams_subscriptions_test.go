@@ -4,11 +4,14 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 var _ = Describe("test AMS subscriptions", func() {
@@ -205,6 +208,43 @@ var _ = Describe("test AMS subscriptions", func() {
 				},
 			})
 			Expect(err).To(HaveOccurred())
+
+			// override back to keep other tests consistent tests
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdatePostInstallation)
+			Expect(err).ToNot(HaveOccurred())
+		})
+	})
+
+	// ClusterMonitoring don't return any error, it only logs error and continue, therefore, we check
+	// only the happy flow.
+	Context("AMS subscription on cluster monitoring when console-url gets available", func() {
+
+		waitForConsoleUrlUpdateInAMS := func(clusterID strfmt.UUID) {
+
+			waitFunc := func() (bool, error) {
+				c := getCommonCluster(ctx, clusterID)
+				return c.IsAmsSubscriptionConsoleUrlSet, nil
+			}
+			err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
+		It("happy flow", func() {
+
+			// create subscription
+			clusterID, err := registerCluster(ctx, userBMClient, "test-ams-subscriptions-cluster", pullSecret)
+			Expect(err).ToNot(HaveOccurred())
+			log.Infof("Register cluster %s", clusterID)
+
+			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateConsoleUrl)
+			Expect(err).ToNot(HaveOccurred())
+
+			// update subscription with console url
+			registerHostsAndSetRoles(clusterID, minHosts)
+			setClusterAsFinalizing(ctx, clusterID)
+			reportMonitoredOperatorStatus(ctx, agentBMClient, clusterID, operators.OperatorConsole.Name, models.OperatorStatusAvailable)
+			waitForConsoleUrlUpdateInAMS(clusterID)
 
 			// override back to keep other tests consistent tests
 			err = wiremock.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdatePostInstallation)

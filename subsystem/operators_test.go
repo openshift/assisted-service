@@ -205,16 +205,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should be updated", func() {
-			statusInfo := "Unfortunately failed"
-			_, err := agentBMClient.Operators.ReportMonitoredOperatorStatus(ctx, opclient.NewReportMonitoredOperatorStatusParams().
-				WithClusterID(*cluster.Payload.ID).
-				WithReportParams(&models.OperatorMonitorReport{
-					Name:       ocs.Operator.Name,
-					Status:     models.OperatorStatusFailed,
-					StatusInfo: statusInfo,
-				}))
-
-			Expect(err).ToNot(HaveOccurred())
+			reportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, ocs.Operator.Name, models.OperatorStatusFailed)
 
 			ops, err := agentBMClient.Operators.ListOfClusterOperators(ctx, opclient.NewListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
@@ -223,7 +214,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(err).ToNot(HaveOccurred())
 			operators := ops.GetPayload()
 			Expect(operators).To(HaveLen(1))
-			Expect(operators[0].StatusInfo).To(BeEquivalentTo(statusInfo))
+			Expect(operators[0].StatusInfo).To(BeEquivalentTo(string(models.OperatorStatusFailed)))
 			Expect(operators[0].Status).To(BeEquivalentTo(models.OperatorStatusFailed))
 
 		})
@@ -251,13 +242,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator available", func() {
-				_, err := agentBMClient.Operators.ReportMonitoredOperatorStatus(context.TODO(), opclient.NewReportMonitoredOperatorStatusParams().
-					WithClusterID(clusterID).
-					WithReportParams(&models.OperatorMonitorReport{
-						Name:   lso.Operator.Name,
-						Status: models.OperatorStatusAvailable,
-					}))
-				Expect(err).ToNot(HaveOccurred())
+				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable)
 			})
 
 			By("Wait for cluster to be installed", func() {
@@ -280,13 +265,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator failed", func() {
-				_, err := agentBMClient.Operators.ReportMonitoredOperatorStatus(context.TODO(), opclient.NewReportMonitoredOperatorStatusParams().
-					WithClusterID(clusterID).
-					WithReportParams(&models.OperatorMonitorReport{
-						Name:   lso.Operator.Name,
-						Status: models.OperatorStatusFailed,
-					}))
-				Expect(err).ToNot(HaveOccurred())
+				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed)
 			})
 
 			By("Wait for cluster to be degraded", func() {

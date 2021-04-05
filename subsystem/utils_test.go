@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
+	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
@@ -308,4 +309,16 @@ func register3nodes(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
 	generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
 
 	return []*models.Host{h1, h2, h3}
+}
+
+func reportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, opName string, opStatus models.OperatorStatus) {
+	_, err := client.Operators.ReportMonitoredOperatorStatus(ctx, &operatorsClient.ReportMonitoredOperatorStatusParams{
+		ClusterID: clusterID,
+		ReportParams: &models.OperatorMonitorReport{
+			Name:       opName,
+			Status:     opStatus,
+			StatusInfo: string(opStatus),
+		},
+	})
+	Expect(err).NotTo(HaveOccurred())
 }

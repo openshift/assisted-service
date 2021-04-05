@@ -330,6 +330,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 		validationResults: newValidationRes,
 		clusterAPI:        m,
 		objectHandler:     m.objectHandler,
+		ocmClient:         m.ocmClient,
 	})
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)

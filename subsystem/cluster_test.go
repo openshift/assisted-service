@@ -24,7 +24,6 @@ import (
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/manifests"
-	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
@@ -425,7 +424,10 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 
 	status := models.OperatorStatusAvailable
 
-	_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+	_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{
+		ClusterID:         clusterID,
+		IngressCertParams: models.IngressCertParams(ingressCa),
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, operator := range rep.Payload.MonitoredOperators {
@@ -433,15 +435,7 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 			continue
 		}
 
-		_, err := client.Operators.ReportMonitoredOperatorStatus(context.Background(), &operatorsClient.ReportMonitoredOperatorStatusParams{
-			ClusterID: clusterID,
-			ReportParams: &models.OperatorMonitorReport{
-				Name:       operator.Name,
-				Status:     status,
-				StatusInfo: string(status),
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
+		reportMonitoredOperatorStatus(ctx, client, clusterID, operator.Name, status)
 	}
 }
 

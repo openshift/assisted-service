@@ -41,6 +41,9 @@ type Cluster struct {
 	// The ID of the subscription created in AMS
 	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
 
+	// Indication if we updated console_url in AMS subscription
+	IsAmsSubscriptionConsoleUrlSet bool `json:"is_ams_subscription_console_url_set"`
+
 	// Indication if installation preparation succeeded or failed
 	InstallationPreparationCompletionStatus string
 

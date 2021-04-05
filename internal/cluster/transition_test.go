@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -2526,6 +2527,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
+		mockS3Api                               *s3wrapper.MockAPI
+		mockAccountsMgmt                        *ocm.MockOCMAccountsMgmt
+		operatorsManager                        *operators.Manager
 		ctrl                                    *gomock.Controller
 		dbName                                  string
 	)
@@ -2543,9 +2547,10 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2568,6 +2573,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 			dstState           string
 			hosts              []models.Host
 			statusInfoChecker  statusInfoChecker
+			withOCMClient      bool
+			requiresAMSUpdate  bool
+			operators          []*models.MonitoredOperator
 		}{
 			{
 				name:               "installing to installing",
@@ -2739,6 +2747,59 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				},
 				statusInfoChecker: makeValueChecker(statusInfoError),
 			},
+			{
+				name:               "finalizing to finalizing",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
+				withOCMClient:     true,
+				requiresAMSUpdate: true,
+				operators: []*models.MonitoredOperator{
+					{
+						Name:         operators.OperatorConsole.Name,
+						OperatorType: models.OperatorTypeBuiltin,
+						Status:       models.OperatorStatusAvailable,
+					},
+				},
+			},
+			{
+				name:               "finalizing to finalizing (2)",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
+				withOCMClient:     true,
+				// console URL should be updated only once in AMS
+				requiresAMSUpdate: false,
+				operators: []*models.MonitoredOperator{
+					{
+						Name:         operators.OperatorConsole.Name,
+						OperatorType: models.OperatorTypeBuiltin,
+						Status:       models.OperatorStatusAvailable,
+					},
+				},
+			},
 		}
 
 		for i := range tests {
@@ -2758,7 +2819,17 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						ServiceNetworkCidr:       "1.2.4.0/24",
 						ClusterNetworkCidr:       "1.3.0.0/16",
 						ClusterNetworkHostPrefix: 24,
+						MonitoredOperators:       t.operators,
 					},
+				}
+				if t.withOCMClient {
+					mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
+					ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{WithAMSSubscriptions: true}}
+					clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
+						mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api)
+					if !t.requiresAMSUpdate {
+						cluster.IsAmsSubscriptionConsoleUrlSet = true
+					}
 				}
 				cluster.MachineNetworkCidrUpdatedAt = time.Now().Add(-3 * time.Minute)
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2771,11 +2842,19 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				}
+				if t.srcState == models.ClusterStatusFinalizing {
+					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
+				}
 				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
 				if funk.Contains(reportInstallationCompleteStatuses, t.dstState) {
 					mockMetricsAPIInstallationFinished()
 				} else if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
+				}
+				if t.requiresAMSUpdate {
+					subscriptionID := cluster.AmsSubscriptionID
+					consoleUrl := fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)
+					mockAccountsMgmt.EXPECT().UpdateSubscriptionConsoleUrl(ctx, subscriptionID, consoleUrl)
 				}
 				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)

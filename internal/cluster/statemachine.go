@@ -254,6 +254,16 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(statusInfoError),
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusFinalizing),
+		},
+		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
+		Condition:        th.WithAMSSubscriptions,
+		PostTransition:   th.PostUpdateFinalizingAMSConsoleUrl,
+	})
+
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.ClusterStatusInstalling),
 		stateswitch.State(models.ClusterStatusFinalizing)} {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/go-openapi/runtime"
 	"github.com/jinzhu/gorm"
@@ -26,6 +27,11 @@ var agentBMClient, badAgentBMClient, userBMClient, readOnlyAdminUserBMClient, un
 var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
+
+const (
+	pollDefaultInterval = 1 * time.Millisecond
+	pollDefaultTimeout  = 30 * time.Second
+)
 
 var Options struct {
 	DBHost               string        `envconfig:"DB_HOST"`

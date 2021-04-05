@@ -102,7 +102,7 @@ func waitForHostValidationStatus(clusterID, hostID strfmt.UUID, expectedStatus s
 		}
 		return true, nil
 	}
-	err := wait.Poll(time.Millisecond, 30*time.Second, waitFunc)
+	err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
 	Expect(err).NotTo(HaveOccurred())
 }
 
@@ -117,7 +117,7 @@ func waitForClusterValidationStatus(clusterID strfmt.UUID, expectedStatus string
 		}
 		return true, nil
 	}
-	err := wait.Poll(time.Millisecond, 30*time.Second, waitFunc)
+	err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
 	Expect(err).NotTo(HaveOccurred())
 }
 

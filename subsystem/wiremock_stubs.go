@@ -53,6 +53,7 @@ const (
 	subscriptionPrefix                 string      = "/api/accounts_mgmt/v1/subscriptions/"
 	subscriptionUpdatePostInstallation string      = "subscription_update_post_installation"
 	subscriptionUpdateDisplayName      string      = "subscription_update_display_name"
+	subscriptionUpdateConsoleUrl       string      = "subscription_update_console_url"
 	tokenPath                          string      = "/token"
 	fakePayloadUsername                string      = "jdoe123@example.com"
 	fakePayloadAdmin                   string      = "admin@example.com"
@@ -192,13 +193,15 @@ func (w *WireMock) createStubsForGettingAMSSubscription(resStatus int) error {
 
 func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateType string) error {
 
-	if updateType == subscriptionUpdateDisplayName {
+	switch updateType {
+
+	case subscriptionUpdateDisplayName:
 
 		type subscriptionUpdateRequest struct {
 			DisplayName string `json:"display_name"`
 		}
 
-		suRequest := subscriptionUpdateRequest{
+		subRequest := subscriptionUpdateRequest{
 			DisplayName: "${json-unit.any-string}",
 		}
 
@@ -207,7 +210,70 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		}
 
 		var reqBody []byte
-		reqBody, err := json.Marshal(suRequest)
+		reqBody, err := json.Marshal(subRequest)
+		if err != nil {
+			return err
+		}
+
+		var resBody []byte
+		resBody, err = json.Marshal(subResponse)
+		if err != nil {
+			return err
+		}
+
+		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		_, err = w.addStub(amsSubscriptionStub)
+		return err
+
+	case subscriptionUpdateConsoleUrl:
+
+		type subscriptionUpdateRequest struct {
+			ConsoleUrl string `json:"console_url"`
+		}
+
+		subRequest := subscriptionUpdateRequest{
+			ConsoleUrl: "${json-unit.any-string}",
+		}
+
+		subResponse := subscription{
+			ID: FakeSubscriptionID,
+		}
+
+		var reqBody []byte
+		reqBody, err := json.Marshal(subRequest)
+		if err != nil {
+			return err
+		}
+
+		var resBody []byte
+		resBody, err = json.Marshal(subResponse)
+		if err != nil {
+			return err
+		}
+
+		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
+		_, err = w.addStub(amsSubscriptionStub)
+		return err
+
+	// subscriptionUpdatePostInstallation
+	default:
+
+		type subscriptionUpdateRequest struct {
+			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
+			Status            string      `json:"status"`
+		}
+
+		subRequest := subscriptionUpdateRequest{
+			ExternalClusterID: "${json-unit.any-string}",
+			Status:            ocm.SubscriptionStatusActive,
+		}
+
+		subResponse := subscription{
+			ID: FakeSubscriptionID,
+		}
+
+		var reqBody []byte
+		reqBody, err := json.Marshal(subRequest)
 		if err != nil {
 			return err
 		}
@@ -222,36 +288,6 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		_, err = w.addStub(amsSubscriptionStub)
 		return err
 	}
-
-	type subscriptionUpdateRequest struct {
-		ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
-		Status            string      `json:"status"`
-	}
-
-	suRequest := subscriptionUpdateRequest{
-		ExternalClusterID: "${json-unit.any-string}",
-		Status:            ocm.SubscriptionStatusActive,
-	}
-
-	subResponse := subscription{
-		ID: FakeSubscriptionID,
-	}
-
-	var reqBody []byte
-	reqBody, err := json.Marshal(suRequest)
-	if err != nil {
-		return err
-	}
-
-	var resBody []byte
-	resBody, err = json.Marshal(subResponse)
-	if err != nil {
-		return err
-	}
-
-	amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
-	_, err = w.addStub(amsSubscriptionStub)
-	return err
 }
 
 func (w *WireMock) createStubsForDeletingAMSSubscription(resStatus int) error {
