@@ -178,26 +178,28 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 }
 
 func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	var host models.Host
-	err := db.First(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error
-	if err != nil && !gorm.IsRecordNotFoundError(err) {
-		return err
-	}
+	dbHost, err := common.GetHostFromDB(db, h.ClusterID.String(), h.ID.String())
+	var host *models.Host
+	if err != nil {
+		if !gorm.IsRecordNotFoundError(errors.Cause(err)) {
+			return err
+		}
 
-	pHost := &host
-	if err != nil && gorm.IsRecordNotFoundError(err) {
 		// Delete any previews record of the host if it was soft deleted from the cluster,
 		// no error will be returned if the host was not existed.
-		if err := db.Unscoped().Delete(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
+		if err := db.Unscoped().Delete(&common.Host{}, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
 			return errors.Wrapf(
 				err,
 				"error while trying to delete previews record from db (if exists) of host %s in cluster %s",
-				host.ID.String(), host.ClusterID.String())
+				h.ID.String(), h.ClusterID.String())
 		}
-		pHost = h
+
+		host = h
+	} else {
+		host = &dbHost.Host
 	}
 
-	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(pHost), &TransitionArgsRegisterHost{
+	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(host), &TransitionArgsRegisterHost{
 		ctx:                   ctx,
 		discoveryAgentVersion: h.DiscoveryAgentVersion,
 		db:                    db,
@@ -848,7 +850,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
 }
 
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*models.Host, error) {
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*common.Host, error) {
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
