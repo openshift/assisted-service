@@ -30,6 +30,7 @@ import (
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	service_events "github.com/openshift/assisted-service/internal/common/events"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -133,7 +134,7 @@ type bareMetalInventory struct {
 	log                logrus.FieldLogger
 	hostApi            host.API
 	clusterApi         clusterPkg.API
-	eventsHandler      events.Handler
+	eventsHandler      events.Sender
 	objectHandler      s3wrapper.API
 	metricApi          metrics.API
 	operatorManagerApi operators.API
@@ -940,8 +941,9 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
-		msg := "Failed to generate image: error formatting ignition file"
-		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
+		ev := service_events.NewIsoGenFailedFormatIgnEvent(params.ClusterID)
+
+		b.eventsHandler.SendClusterEvent(ctx, ev, time.Now())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
@@ -954,8 +956,9 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 
 	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
 		if err := b.generateClusterMinimalISO(ctx, log, cluster, ignitionConfig, objectPrefix); err != nil {
-			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", cluster.ID)
-			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
+			ev := service_events.NewIsoGenFailedEvent(params.ClusterID)
+			log.WithError(err).Errorf(ev.FormatLogMessage())
+			b.eventsHandler.SendClusterEvent(ctx, ev, time.Now())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
@@ -3569,11 +3572,11 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 	}()
 
 	if tx.Error != nil {
-		msg := "Failed to cancel installation: error starting DB transaction"
-		log.WithError(tx.Error).Errorf(msg)
-		b.eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
+		ev := service_events.NewCancelInstallFailedStartEvent(*cluster.ID)
+		log.WithError(tx.Error).Errorf(ev.FormatLogMessage())
+		b.eventsHandler.SendClusterEvent(ctx, ev, time.Now())
 		return installer.NewCancelInstallationInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New(msg)))
+			common.GenerateError(http.StatusInternalServerError, errors.New(ev.FormatLogMessage())))
 	}
 
 	var err error
@@ -3599,9 +3602,9 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		log.Errorf("Failed to cancel installation: error committing DB transaction (%s)", err)
-		msg := "Failed to cancel installation: error committing DB transaction"
-		b.eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
+		ev := service_events.NewCancelInstallFailedCommitEvent(*cluster.ID)
+		log.WithError(err).Errorf(ev.FormatLogMessage())
+		b.eventsHandler.SendClusterEvent(ctx, ev, time.Now())
 		return installer.NewCancelInstallationInternalServerError().WithPayload(
 			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
 	}

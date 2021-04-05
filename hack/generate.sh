@@ -57,6 +57,12 @@ function generate_from_swagger() {
     generate_go_server
 }
 
+function generate_events() {
+    rm -rf internal/common/events
+    mkdir -p internal/common/events
+    tools/generate_events.py ./events.yaml internal/common/events/events.go
+}
+
 function generate_ocp_version() {
     OPENSHIFT_VERSIONS=$(< ${__root}/default_ocp_versions.json tr -d "\n\t ")
     PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/default_public_container_registries.txt)
@@ -95,6 +101,7 @@ function generate_manifests() {
 
 function generate_all() {
     generate_from_swagger
+    generate_events
     generate_mocks
     generate_ocp_version
     ENABLE_KUBE_API=true generate_manifests

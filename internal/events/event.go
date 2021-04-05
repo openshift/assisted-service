@@ -13,15 +13,21 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-//go:generate mockgen -source=event.go -package=events -destination=mock_event.go
-
-type Handler interface {
+type Sender interface {
 	// AddEvents and an event for and entityID.
 	// Since events, might relate to multiple entities, for example:
 	//     host added to cluster, we have the host-id as the main entityID and
 	//     the cluster-id as another ID that this event should be related to
 	// otherEntities arguments provides for specifying mor IDs that are relevant for this event
 	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time)
+
+	SendClusterEvent(ctx context.Context, event ClusterEvent, eventTime time.Time)
+	SendHostEvent(ctx context.Context, event HostEvent, eventTime time.Time)
+}
+
+//go:generate mockgen -source=event.go -package=events -destination=mock_event.go
+type Handler interface {
+	Sender
 	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error)
 }
 
@@ -63,6 +69,14 @@ func addEventToDB(log logrus.FieldLogger, db *gorm.DB, clusterID strfmt.UUID, ho
 	return nil
 }
 
+func (e *Events) SendClusterEvent(ctx context.Context, event ClusterEvent, eventTime time.Time) {
+	e.AddEvent(ctx, *event.GetClusterId(), nil, event.GetSeverity(), event.FormatMessage(), eventTime)
+}
+
+func (e *Events) SendHostEvent(ctx context.Context, event HostEvent, eventTime time.Time) {
+	e.AddEvent(ctx, *event.GetClusterId(), event.GetHostId(), event.GetSeverity(), event.FormatMessage(), eventTime)
+}
+
 func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time) {
 	log := logutil.FromContext(ctx, e.log)
 	var isSuccess bool = false
@@ -97,4 +111,22 @@ func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common
 	}
 
 	return evs, nil
+}
+
+type BaseEvent interface {
+	GetId() string
+	GetSeverity() string
+	FormatMessage() string
+	FormatLogMessage() string
+}
+
+type ClusterEvent interface {
+	BaseEvent
+	GetClusterId() *strfmt.UUID
+}
+
+type HostEvent interface {
+	BaseEvent
+	GetClusterId() *strfmt.UUID
+	GetHostId() *strfmt.UUID
 }

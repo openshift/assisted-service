@@ -1,0 +1,35 @@
+x-events:
+  - name: cancel_install_failed_start
+    id: "CIE00001"
+    message: "Failed to cancel installation: error starting DB transaction"
+    event_type: cluster
+    severity: "error"
+    properties:
+        cluster_id:  UUID
+
+  - name: cancel_install_failed_commit
+    id: "CIE00002"
+    message: "Failed to cancel installation: error committing DB transaction"
+    event_type: cluster
+    severity: "error"
+    properties:
+        cluster_id:  UUID
+
+  - name: iso_gen_failed_format_ign
+    id: "GIF00003"
+    message: "Failed to generate image: error formatting ignition file"
+    event_type: cluster
+    severity: "error"
+    properties:
+        cluster_id:  UUID
+
+  - name: iso_gen_failed
+    id: "GIF00004"
+    message: "Failed to generate minimal ISO"
+    log_message: "Failed to generate minimal ISO for cluster {cluster_id}"
+    event_type: cluster
+    severity: "error"
+    properties:
+        cluster_id:  UUID
+
+
