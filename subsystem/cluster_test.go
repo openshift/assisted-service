@@ -2317,6 +2317,8 @@ spec:
 		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, defaultWaitForClusterStateTimeout,
 			clusterPendingForInputStateInfo)
 
+		checkUpdateAtWhileStatic(ctx, clusterID)
+
 		hosts := register3nodes(ctx, clusterID)
 		h4 := &registerHost(clusterID).Host
 		h5 := registerNode(ctx, clusterID, "h5")
@@ -2395,6 +2397,9 @@ spec:
 			ClusterID: clusterID,
 		})
 		Expect(getErr).ToNot(HaveOccurred())
+
+		checkUpdateAtWhileStatic(ctx, clusterID)
+
 		Expect(clusterReply.Payload.APIVip).To(Equal(apiVip))
 		Expect(clusterReply.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
@@ -2795,6 +2800,21 @@ spec:
 	})
 
 })
+
+func checkUpdateAtWhileStatic(ctx context.Context, clusterID strfmt.UUID) {
+	clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+		ClusterID: clusterID,
+	})
+	Expect(getErr).ToNot(HaveOccurred())
+	preSecondRefreshUpdatedTime := clusterReply.Payload.UpdatedAt
+	time.Sleep(30 * time.Second)
+	clusterReply, getErr = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+		ClusterID: clusterID,
+	})
+	Expect(getErr).ToNot(HaveOccurred())
+	postRefreshUpdateTime := clusterReply.Payload.UpdatedAt
+	Expect(preSecondRefreshUpdatedTime).Should(Equal(postRefreshUpdateTime))
+}
 
 func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
 	c := installCluster(clusterID)
