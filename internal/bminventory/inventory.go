@@ -288,8 +288,7 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 	return installer.NewRegisterClusterCreated().WithPayload(&c.Cluster)
 }
 
-func (b *bareMetalInventory) setDefaultRegisterClusterParams(ctx context.Context, params installer.RegisterClusterParams) installer.RegisterClusterParams {
-
+func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, params installer.RegisterClusterParams) installer.RegisterClusterParams {
 	if params.NewClusterParams.ClusterNetworkCidr == nil {
 		params.NewClusterParams.ClusterNetworkCidr = &b.Config.DefaultClusterNetworkCidr
 	}
@@ -558,7 +557,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 	openshiftVersion, err := b.versionsHandler.GetSupportedVersionFormat(inputOpenshiftVersion)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
-		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
+		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
 	}
 
 	if kubeKey == nil {
@@ -1473,7 +1472,7 @@ func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params
 	return installer.NewGetClusterInstallConfigOK().WithPayload(string(cfg))
 }
 
-func (b *bareMetalInventory) GetClusterDefaultConfig(ctx context.Context, params installer.GetClusterDefaultConfigParams) middleware.Responder {
+func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ installer.GetClusterDefaultConfigParams) middleware.Responder {
 	body := models.ClusterDefaultConfig{}
 
 	body.NtpSource = b.Config.DefaultNTPSource
@@ -1765,7 +1764,7 @@ func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetwo
 	updates["machine_network_cidr_updated_at"] = time.Now()
 }
 
-func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string) error {
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, _ *string) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
 	if params.ClusterUpdateParams.APIVip != nil {
@@ -1829,7 +1828,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	return nil
 }
 
-func (b *bareMetalInventory) updateClusterData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -2163,7 +2162,7 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 	return nil
 }
 
-func (b *bareMetalInventory) updateOperatorsData(ctx context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.OlmOperators == nil {
 		return nil
 	}
@@ -2350,7 +2349,7 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	return cluster, nil
 }
 
-func (b *bareMetalInventory) GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
+func (b *bareMetalInventory) GetHostRequirements(_ context.Context, _ installer.GetHostRequirementsParams) middleware.Responder {
 	masterReqs := b.hostApi.GetHostRequirements(models.HostRoleMaster)
 	workerReqs := b.hostApi.GetHostRequirements(models.HostRoleWorker)
 	return installer.NewGetHostRequirementsOK().WithPayload(
@@ -3728,12 +3727,12 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 
 	if !hostutil.IsDay2Host(h) {
 		log.Errorf("InstallHost for host %s is forbidden: not a Day2 hosts", params.HostID.String())
-		return common.NewApiError(http.StatusConflict, fmt.Errorf("Method only allowed when adding hosts to an existing cluster"))
+		return common.NewApiError(http.StatusConflict, fmt.Errorf("method only allowed when adding hosts to an existing cluster"))
 	}
 
 	if swag.StringValue(h.Status) != models.HostStatusKnown {
 		log.Errorf("Install host for host %s, state %s is forbidden: host not in Known state", params.HostID.String(), swag.StringValue(h.Status))
-		return common.NewApiError(http.StatusConflict, fmt.Errorf("Cannot install host in state %s", swag.StringValue(h.Status)))
+		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s", swag.StringValue(h.Status)))
 	}
 
 	err = b.hostApi.AutoAssignRole(ctx, h, b.db)
@@ -3749,7 +3748,7 @@ func (b *bareMetalInventory) InstallHost(ctx context.Context, params installer.I
 	}
 
 	if swag.StringValue(h.Status) != models.HostStatusKnown {
-		return common.NewApiError(http.StatusConflict, fmt.Errorf("Cannot install host in state %s after refresh", swag.StringValue(h.Status)))
+		return common.NewApiError(http.StatusConflict, fmt.Errorf("cannot install host in state %s after refresh", swag.StringValue(h.Status)))
 	}
 	err = b.createAndUploadNodeIgnition(ctx, cluster, h)
 	if err != nil {

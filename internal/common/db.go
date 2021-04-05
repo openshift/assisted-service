@@ -151,7 +151,7 @@ func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
 
 	err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get host %s in cluster %s", hostId, clusterId)
+		return nil, errors.Wrapf(err, "failed to get host %s in cluster %s", hostId, clusterId)
 	}
 	return &host, nil
 }
