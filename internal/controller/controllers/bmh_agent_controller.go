@@ -25,6 +25,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -214,7 +215,12 @@ func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, age
 	// Label the agent with the reference to this BMH
 	agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
 
-	// TODO: Analyze the root device hints
+	// findInstalltionDiskID will return an empty string
+	// if no disk is found from the list. Should be find
+	// to "overwrite" this value everytime as the default
+	// is ""
+	agent.Spec.InstallationDiskID = r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
+
 	return reconcileComplete{true}
 }
 
@@ -270,7 +276,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 
 	// Add storage
 	for _, d := range inventory.Disks {
-		// missing vendor, rotational, WWNVendorExtension, WWNWithExtension
+		// missing WWNVendorExtension, WWNWithExtension
 		disk := bmh_v1alpha1.Storage{
 			Name:         d.Path,
 			HCTL:         d.Hctl,
@@ -278,6 +284,8 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 			SizeBytes:    bmh_v1alpha1.Capacity(d.SizeBytes),
 			SerialNumber: d.Serial,
 			WWN:          d.Wwn,
+			Vendor:       d.Vendor,
+			Rotational:   strings.EqualFold(d.DriveType, "hdd"),
 		}
 
 		hardwareDetails.Storage = append(hardwareDetails.Storage, disk)
@@ -285,7 +293,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 
 	// Add the memory information in MebiByte
 	if agent.Status.Inventory.Memory.PhysicalBytes > 0 {
-		hardwareDetails.RAMMebibytes = int(inventory.Memory.PhysicalBytes / (1024 * 1024))
+		hardwareDetails.RAMMebibytes = int(conversions.BytesToGiB(inventory.Memory.PhysicalBytes))
 	}
 
 	// Add CPU information
@@ -382,6 +390,91 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 	}
 
 	return reconcileComplete{}
+}
+
+// Finds the installation disk based on the RootDeviceHints
+//
+// This function implements the logic to find the installation disk following what's currently
+// supported by OpenShift, instead of *all* the supported cases in Ironic. The following link
+// points to the RootDeviceDisk translation done by the BareMetal Operator that is then sent to
+// Ironic:
+// https://github.com/metal3-io/baremetal-operator/blob/dbe8780ad14f53132ba606d1baec808997febe49/pkg/provisioner/ironic/devicehints/devicehints.go#L11-L54
+//
+// The logic is quite straightforward and the checks done match what is in the aforementioned link.
+// Some string checks require equality, others partial equality, whereas the int checks require numeric comparison.
+//
+// Ironic's internal filter process requires that all the disks have to fully match the RootDeviceHints (and operation),
+// which is what this function does.
+//
+// This function also filters out disks that are not elegible for installation, as we already know those cannot be used.
+func (r *BMACReconciler) findInstallationDiskID(devices []adiiov1alpha1.HostDisk, hints *bmh_v1alpha1.RootDeviceHints) string {
+	if hints == nil {
+		return ""
+	}
+
+	for _, disk := range devices {
+
+		if !disk.InstallationEligibility.Eligible {
+			continue
+		}
+
+		if hints.DeviceName != "" && hints.DeviceName != disk.Path {
+			continue
+		}
+
+		if hints.HCTL != "" && hints.HCTL != disk.Hctl {
+			continue
+		}
+
+		if hints.Model != "" && !strings.Contains(disk.Model, hints.Model) {
+			continue
+		}
+
+		if hints.Vendor != "" && !strings.Contains(disk.Vendor, hints.Model) {
+			continue
+		}
+
+		if hints.SerialNumber != "" && hints.SerialNumber != disk.Serial {
+			continue
+		}
+
+		if hints.MinSizeGigabytes != 0 {
+			sizeGB := int(disk.SizeBytes / (1024 * 3))
+			if hints.MinSizeGigabytes < sizeGB {
+				continue
+			}
+		}
+
+		if hints.WWN != "" && hints.WWN != disk.Wwn {
+			continue
+		}
+
+		// No WWNWithExtension
+		// if hints.WWWithExtension != "" && hints.WWWithExtension != disk.Wwwithextension {
+		// 	return ""
+		// }
+
+		// No WWNNVendorExtension
+		// if hints.WWNVendorExtension != "" && hints.WWNVendorExtension != disk.WwnVendorextension {
+		// 	return ""
+		// }
+
+		switch {
+		case hints.Rotational == nil:
+		case *hints.Rotational:
+			if !strings.EqualFold(disk.DriveType, "hdd") {
+				continue
+			}
+		case !*hints.Rotational:
+			if strings.EqualFold(disk.DriveType, "hdd") {
+				continue
+			}
+		}
+
+		return disk.ID
+	}
+
+	return ""
 }
 
 // Finds the agents related to this BMH
