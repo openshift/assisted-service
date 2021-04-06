@@ -763,6 +763,75 @@ func createCluster(db *gorm.DB, status string) *common.Cluster {
 	return createClusterWithAvailability(db, status, models.ClusterCreateParamsHighAvailabilityModeFull)
 }
 
+var _ = Describe("GetHost", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		hostID    strfmt.UUID
+		clusterId strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		clusterId = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		db, _ = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+
+		hostObj := models.Host{
+			ID:        &hostID,
+			ClusterID: clusterId,
+			Status:    swag.String("discovering"),
+		}
+		Expect(db.Create(&hostObj).Error).ShouldNot(HaveOccurred())
+	})
+
+	It("Get host failed", func() {
+		ctx := context.Background()
+		params := installer.GetHostParams{
+			ClusterID: clusterId,
+			HostID:    "no-such-host",
+		}
+
+		response := bm.GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostNotFound{}))
+	})
+
+	It("Get host succeed", func() {
+		ctx := context.Background()
+		params := installer.GetHostParams{
+			ClusterID: clusterId,
+			HostID:    hostID,
+		}
+
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		response := bm.GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostOK{}))
+	})
+
+	It("Validate customization have occurred", func() {
+		ctx := context.Background()
+
+		hostObj := models.Host{
+			ID:        &hostID,
+			ClusterID: clusterId,
+			Status:    swag.String("discovering"),
+			Bootstrap: true,
+		}
+		Expect(db.Model(&hostObj).Update("Bootstrap", true).Error).ShouldNot(HaveOccurred())
+		objectAfterUpdating, _ := common.GetHostFromDB(db, clusterId.String(), hostID.String())
+		Expect(objectAfterUpdating.ProgressStages).To(BeEmpty())
+		params := installer.GetHostParams{
+			ClusterID: clusterId,
+			HostID:    hostID,
+		}
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.BootstrapStages[:]).Times(1)
+		response := bm.GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostOK{}))
+		Expect(response.(*installer.GetHostOK).Payload.ProgressStages).To(ConsistOf(host.BootstrapStages[:]))
+	})
+})
+
 var _ = Describe("RegisterHost", func() {
 	var (
 		bm     *bareMetalInventory

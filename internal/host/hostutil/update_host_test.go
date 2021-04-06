@@ -26,7 +26,7 @@ var _ = Describe("update_host_state", func() {
 		mockEvents      *events.MockHandler
 		host            models.Host
 		lastUpdatedTime strfmt.DateTime
-		returnedHost    *models.Host
+		returnedHost    *common.Host
 		err             error
 		dbName          string
 	)
