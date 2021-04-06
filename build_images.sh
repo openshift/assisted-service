@@ -1,13 +1,12 @@
 #!/bin/bash
 
-set -e
-
-# required for `skipper` according to
-# https://github.com/Stratoscale/skipper/blob/upstream/README.md#python3-environment
-export LC_ALL="en_US.UTF-8"
-export LANG="en_US.UTF-8"
+set -o nounset
+set -o pipefail
+set -o errexit
+set -o xtrace
 
 TAG=$(git rev-parse --short=7 HEAD)
 ASSISTED_SERVICE_IMAGE=quay.io/app-sre/assisted-service
+export SERVICE="${ASSISTED_SERVICE_IMAGE}:${TAG}"
 
-SERVICE="${ASSISTED_SERVICE_IMAGE}:${TAG}" skipper make update-minimal
+make update-minimal
