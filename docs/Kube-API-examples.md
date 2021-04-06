@@ -76,10 +76,10 @@ You will likely need to adapt those for your own needs.
 
 
 
-###Creating InstallConfig overrides
+### Creating InstallConfig overrides
 
 In order to alter the default install config yaml used when running `openshift-install create` commands.
-More information about install-config overrides is available [here](user/guide/install-customization.md#Install-Config)
+More information about install-config overrides is available [here](user-guide/install-customization.md#Install-Config)
 In case of failure to apply the overrides the clusterdeployment conditions will reflect the error and show the relevant error message. 
 
 Add an annotation with the desired options, the clusterdeployment controller will update the install config yaml with the annotation value.
