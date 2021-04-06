@@ -5829,6 +5829,10 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("deregister cluster that don't have 'Reserved' subscriptions", func() {
+			mockS3Client = s3wrapper.NewMockAPI(ctrl)
+			mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil)
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
 
@@ -5983,6 +5987,10 @@ var _ = Describe("AMS subscriptions", func() {
 		})
 
 		It("register and deregister cluster happy flow - nil OCM client", func() {
+			mockS3Client = s3wrapper.NewMockAPI(ctrl)
+			mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+				db, mockEvents, nil, nil, nil, nil, nil, nil, mockS3Client, nil)
 			bm.ocmClient = nil
 			mockClusterRegisterSuccess(bm, true)
 

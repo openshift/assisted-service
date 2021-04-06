@@ -2313,6 +2313,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 		eventsHandler events.Handler
 		mockMetric    *metrics.MockAPI
 		dbName        string
+		mockS3Client  *s3wrapper.MockAPI
 	)
 
 	registerCluster := func() common.Cluster {
@@ -2339,22 +2340,26 @@ var _ = Describe("Deregister inactive clusters", func() {
 		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
-		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, mockS3Client, nil)
 		c = registerCluster()
 	})
 
 	It("Deregister inactive cluster", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
 		Expect(state.DeregisterInactiveCluster(ctx, 10, strfmt.DateTime(time.Now()))).ShouldNot(HaveOccurred())
 		Expect(wasDeregisterd(db, *c.ID)).To(BeTrue())
 	})
 
 	It("Do noting, active cluster", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Times(0)
 		lastActive := strfmt.DateTime(time.Now().Add(-time.Hour))
 		Expect(state.DeregisterInactiveCluster(ctx, 10, lastActive)).ShouldNot(HaveOccurred())
 		Expect(wasDeregisterd(db, *c.ID)).To(BeFalse())
 	})
 
 	It("Deregister inactive cluster with new clusters", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(4)
 		inactiveCluster1 := registerCluster()
 		inactiveCluster2 := registerCluster()
 		inactiveCluster3 := registerCluster()
@@ -2377,6 +2382,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 	})
 
 	It("Deregister inactive cluster limited", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(3)
 		inactiveCluster1 := registerCluster()
 		inactiveCluster2 := registerCluster()
 		inactiveCluster3 := registerCluster()
@@ -2608,15 +2614,16 @@ var _ = Describe("Validation metrics and events", func() {
 	)
 
 	var (
-		ctrl       *gomock.Controller
-		ctx        = context.Background()
-		db         *gorm.DB
-		dbName     string
-		mockEvents *events.MockHandler
-		mockHost   *host.MockAPI
-		mockMetric *metrics.MockAPI
-		m          *Manager
-		c          *common.Cluster
+		ctrl         *gomock.Controller
+		ctx          = context.Background()
+		db           *gorm.DB
+		dbName       string
+		mockEvents   *events.MockHandler
+		mockHost     *host.MockAPI
+		mockMetric   *metrics.MockAPI
+		m            *Manager
+		c            *common.Cluster
+		mockS3Client *s3wrapper.MockAPI
 	)
 
 	generateTestValidationResult := func(status ValidationStatus) validationsStatus {
@@ -2662,7 +2669,8 @@ var _ = Describe("Validation metrics and events", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHost = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		m = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, mockHost, mockMetric, nil, nil, nil, nil, nil, nil)
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
+		m = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, mockHost, mockMetric, nil, nil, nil, nil, mockS3Client, nil)
 		c = registerTestClusterWithValidationsAndHost()
 	})
 
@@ -2671,8 +2679,20 @@ var _ = Describe("Validation metrics and events", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
-	It("Test DeregisterCluster", func() {
+	It("Test DeregisterCluster before discovery image was generated", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Times(0)
+		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
+		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
+		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
 
+		err := m.DeregisterCluster(ctx, c)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("Test DeregisterCluster after discovery image was generated", func() {
+		mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
+		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
 		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
 		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
@@ -2682,7 +2702,6 @@ var _ = Describe("Validation metrics and events", func() {
 	})
 
 	It("Test reportValidationStatusChanged", func() {
-
 		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
 
 		newValidationRes := generateTestValidationResult(ValidationSuccess)

@@ -211,7 +211,22 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 		return metricsErr
 	}
 
-	err := m.registrationAPI.DeregisterCluster(ctx, c)
+	// Delete discovery image for deregistered cluster
+	discoveryImage := fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, c.ID.String()))
+	exists, err := m.objectHandler.DoesObjectExist(ctx, discoveryImage)
+	if err != nil {
+		m.log.WithError(err).Errorf("Failed to find cluster discovery image %s", discoveryImage)
+		return err
+	}
+	if exists {
+		_, err = m.objectHandler.DeleteObject(ctx, discoveryImage)
+		if err != nil {
+			m.log.WithError(err).Errorf("Failed to delete cluster discovery image %s", discoveryImage)
+			return err
+		}
+	}
+
+	err = m.registrationAPI.DeregisterCluster(ctx, c)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
 			fmt.Sprintf("Failed to deregister cluster. Error: %s", err.Error()), time.Now())

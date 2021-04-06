@@ -28,14 +28,16 @@ type Manager struct {
 	eventsHandler events.Handler
 	deleteTime    time.Duration
 	leaderElector leader.Leader
+	enableKubeAPI bool
 }
 
-func NewManager(objectHandler s3wrapper.API, eventsHandler events.Handler, deleteTime time.Duration, leaderElector leader.ElectorInterface) *Manager {
+func NewManager(objectHandler s3wrapper.API, eventsHandler events.Handler, deleteTime time.Duration, leaderElector leader.ElectorInterface, enableKubeAPI bool) *Manager {
 	return &Manager{
 		objectHandler: objectHandler,
 		eventsHandler: eventsHandler,
 		deleteTime:    deleteTime,
 		leaderElector: leaderElector,
+		enableKubeAPI: enableKubeAPI,
 	}
 }
 
@@ -44,7 +46,9 @@ func (m *Manager) ExpirationTask() {
 		return
 	}
 	ctx := requestid.ToContext(context.Background(), requestid.NewID())
-	m.objectHandler.ExpireObjects(ctx, imagePrefix, m.deleteTime, m.DeletedImageCallback)
+	if !m.enableKubeAPI {
+		m.objectHandler.ExpireObjects(ctx, imagePrefix, m.deleteTime, m.DeletedImageCallback)
+	}
 	m.objectHandler.ExpireObjects(ctx, AssistedServiceLiveISOPrefix, m.deleteTime, m.DeletedImageNoCallback)
 }
 
