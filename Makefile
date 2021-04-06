@@ -127,7 +127,7 @@ update-service: build-in-docker
 update: build-all
 	docker push $(SERVICE)
 
-update-minimal: build-minimal
+update-minimal:
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 _update-local-image: build-minimal
