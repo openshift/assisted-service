@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
 type statusInfoChecker interface {
@@ -76,201 +77,6 @@ func makeJsonChecker(expected map[clust.ValidationID]validationCheckResult) *val
 	return &validationsChecker{expected: expected}
 }
 
-func defaultInventory() string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: 16,
-		},
-		Memory: &models.Memory{
-			UsableBytes: 64000000000,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-			}, {
-				SizeBytes: 40000000000,
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithTwoDisks(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-				DriveType: "HDD",
-			}, {
-				SizeBytes: 40000000000,
-				DriveType: "SSD",
-			},
-			{
-				SizeBytes: 40000000000,
-				DriveType: "HDD",
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithDisks(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-				DriveType: "HDD",
-			}, {
-				SizeBytes: 40000000000,
-				DriveType: "SSD",
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithInsufficientDiskSize(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-				DriveType: "HDD",
-			}, {
-				SizeBytes: 1000000000,
-				DriveType: "SSD",
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func ocsInventoryWithoutDisks(cpus int64, ram int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				IPV6Addresses: []string{
-					"1001:db8::10/120",
-				},
-			},
-		},
-		CPU: &models.CPU{
-			Count: cpus,
-		},
-		Memory: &models.Memory{
-			UsableBytes: ram,
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
-func defaultInventoryWithTimestamp(timestamp int64) string {
-	inventory := models.Inventory{
-		Interfaces: []*models.Interface{
-			{
-				Name: "eth0",
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-			},
-		},
-		Timestamp: timestamp,
-		CPU: &models.CPU{
-			Count: 16,
-		},
-		Memory: &models.Memory{
-			UsableBytes: 64000000000,
-		},
-		Disks: []*models.Disk{
-			{
-				SizeBytes: 20000000000,
-				DriveType: "HDD",
-			}, {
-				SizeBytes: 40000000000,
-				DriveType: "SSD",
-			},
-		},
-	}
-	b, err := json.Marshal(&inventory)
-	Expect(err).To(Not(HaveOccurred()))
-	return string(b)
-}
-
 var _ = Describe("Ocs Operator use-cases", func() {
 	var (
 		ctx                                           = context.Background()
@@ -288,6 +94,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
+
 	mockIsValidMasterCandidate := func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
@@ -338,9 +145,21 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -368,12 +187,36 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 15000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 32000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(9, 60000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{{
+						SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 15 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 32 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 9, Ram: 60 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -401,8 +244,16 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: "", Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
@@ -431,9 +282,23 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -447,7 +312,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Total disks on the cluster must be a multiple of 3 of size >= 5 GB"},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "The number of disks in the cluster for OCS must be a multiple of 3 with a minimum size of 5 GB"},
 			}),
 			errorExpected: false,
 		},
@@ -461,9 +326,21 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(6, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(7, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(6, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 6, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 7, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 6, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -491,8 +368,16 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(7, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 7, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -520,9 +405,21 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 5000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 5000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 5000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 5 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 5 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 5 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -550,9 +447,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -580,9 +477,21 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithInsufficientDiskSize(16, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 1 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -596,7 +505,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Total disks on the cluster must be a multiple of 3 of size >= 5 GB"},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "The number of disks in the cluster for OCS must be a multiple of 3 with a minimum size of 5 GB"},
 			}),
 			errorExpected: false,
 		},
@@ -610,9 +519,24 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -640,9 +564,24 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(14, 32000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(14, 32000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(14, 32000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 14, Ram: 32 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 14, Ram: 32 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 14, Ram: 32 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -670,9 +609,24 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(3, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(2, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 3, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 2, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -701,11 +655,23 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -733,11 +699,23 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: "", Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
@@ -766,12 +744,30 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithInsufficientDiskSize(12, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 1 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -785,7 +781,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Total disks on the cluster must be a multiple of 3 of size >= 5 GB"},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "The number of disks in the cluster for OCS must be a multiple of 3 with a minimum size of 5 GB"},
 			}),
 			errorExpected: false,
 		},
@@ -799,12 +795,16 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(12, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -818,7 +818,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Total disks on the cluster must be a multiple of 3 of size >= 5 GB"},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "The number of disks in the cluster for OCS must be a multiple of 3 with a minimum size of 5 GB"},
 			}),
 			errorExpected: false,
 		},
@@ -832,12 +832,28 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(4, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(3, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 4, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 3, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -865,12 +881,28 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 10000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 6000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 5000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 10 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 6 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 5 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -898,12 +930,31 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+					}}), Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -931,12 +982,31 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(2, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(3, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithTwoDisks(8, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 2, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 3, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 8, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "HDD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -965,12 +1035,16 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(16, 64000000000), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(10, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(10, 64000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithoutDisks(12, 64000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB}), Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GB}), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 10, Ram: 64 * conversions.GB}), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 64 * conversions.GB}), Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -998,12 +1072,36 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleAutoAssign},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleAutoAssign},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoInsufficient),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -1031,9 +1129,21 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleAutoAssign},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleAutoAssign},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleMaster},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
@@ -1061,12 +1171,36 @@ var _ = Describe("Ocs Operator use-cases", func() {
 			dnsDomain:          "test.com",
 			pullSecretSet:      true,
 			hosts: []models.Host{
-				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 32000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 32000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 32000000000), Role: models.HostRoleWorker},
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{

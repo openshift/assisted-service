@@ -34,6 +34,10 @@ func BytesToMib(bytes int64) int64 {
 	return bytes / int64(units.MiB)
 }
 
+func GbToMib(gb int64) int64 {
+	return BytesToMib(GbToBytes(gb))
+}
+
 const (
 	_ = iota
 	// KiB 1024 bytes
@@ -46,6 +50,14 @@ const (
 	TiB
 	// PiB 1024 TiB
 	PiB
+)
+
+const (
+	KB = 1000
+	MB = 1000 * KB
+	GB = 1000 * MB
+	TB = 1000 * GB
+	PB = 1000 * TB
 )
 
 func BytesToString(b int64) string {

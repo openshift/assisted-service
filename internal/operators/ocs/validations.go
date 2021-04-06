@@ -156,7 +156,7 @@ func (o *operator) canOCSBeDeployed(hosts []*models.Host, nodeInfo *resourceInfo
 	}
 
 	if nodeInfo.numDisks%3 != 0 {
-		status = fmt.Sprint("Total disks on the cluster must be a multiple of 3 of size >= ", minDiskSize, " GB")
+		status = fmt.Sprint("The number of disks in the cluster for OCS must be a multiple of 3 with a minimum size of ", MinDiskSize, " GB")
 		o.log.Info(status)
 		return false, status
 	}
@@ -217,7 +217,7 @@ func (o *operator) setStatusInsufficientResources(nodeInfo *resourceInfo, mode o
 		status = status + fmt.Sprint(totalRAMGB, " RAM GB, excluding disk RAM resources ")
 	}
 	if nodeInfo.numDisks < o.config.OCSRequiredDisk {
-		status = status + fmt.Sprint(o.config.OCSRequiredDisk, " Disks of minimum ", minDiskSize, "GB is required ")
+		status = status + fmt.Sprint(o.config.OCSRequiredDisk, " Disks of minimum ", MinDiskSize, "GB is required ")
 	}
 	if nodeInfo.hostsWithDisks < o.config.OCSRequiredHosts {
 		status = status + fmt.Sprint(o.config.OCSRequiredHosts, " Hosts with disks, ")
@@ -232,7 +232,7 @@ func getValidDiskCount(disks []*models.Disk) int {
 	var countDisks int
 
 	for _, disk := range disks {
-		if disk.SizeBytes >= conversions.GbToBytes(minDiskSize) && (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) {
+		if disk.SizeBytes >= conversions.GbToBytes(MinDiskSize) && (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) {
 			countDisks++
 		}
 	}
