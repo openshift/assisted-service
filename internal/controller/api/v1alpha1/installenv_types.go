@@ -55,10 +55,9 @@ type InstallEnvSpec struct {
 	// +optional
 	AdditionalNTPSources []string `json:"additionalNTPSources,omitempty"`
 
-	// SSHAuthorizedKeys is a list of SSH public keys that will be added to all agents for use
-	// in debugging.
+	// SSHAuthorizedKey is a SSH public keys that will be added to all agents for use in debugging.
 	// +optional
-	SSHAuthorizedKeys []string `json:"sshAuthorizedKeys,omitempty"`
+	SSHAuthorizedKey string `json:"sshAuthorizedKey,omitempty"`
 
 	// PullSecretRef is the reference to the secret to use when pulling images.
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef"`

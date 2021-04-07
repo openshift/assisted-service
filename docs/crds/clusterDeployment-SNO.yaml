@@ -22,7 +22,7 @@ spec:
       name: mycluster-ssh-key
     installStrategy:
       agent:
-        sshPublicKey: 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDphFEgnLEQknipClTiSoHpvu078bd0aTSp5WBfXvSC5nAqkprUcF/rB+iNne/MpjSONEqiUyHZayvRvVgEGfRUucAUQ89o36aJmMT8N1U85uNuPNSHVuNogyAi/pmh29C6vfs1B1qGSZRA4P/FvYn7+NdQgZQzqHxkWUDj3BqMby3+b2VKOKQ4SDHXaBSrR9BigWEWCwFJeHgTFAaEZ8p8XpPhEOhbfn9ZZ47Myq1LqfP4gw+62dBhYBNI7r44PnWbLczNLTHYUZXyappt9NBBrcwHtG+3NogDCt0eJkSYydeJh5wPQYN50kvZNJdXrMtGx9WDutTr5famFRmqcxmD'
+        sshPublicKey: 'your_pub_key_here'
         networking:
           clusterNetwork:
             - cidr: 10.128.0.0/14
