@@ -1175,6 +1175,7 @@ func makeJsonChecker(expected map[validationID]validationCheckResult) *validatio
 
 var _ = Describe("Refresh Host", func() {
 	var (
+		supportedGPU      = models.Gpu{VendorID: "10de", DeviceID: "1db6"}
 		ctx               = context.Background()
 		hapi              API
 		db                *gorm.DB
@@ -1201,7 +1202,12 @@ var _ = Describe("Refresh Host", func() {
 			}).([]*models.Disk)
 		}).AnyTimes()
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		operatorsOptions := operators.Options{
+			CNVConfig: cnv.Config{SupportedGPUs: map[string]bool{
+				fmt.Sprintf("%s:%s", supportedGPU.VendorID, supportedGPU.DeviceID): true,
+			}},
+		}
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operatorsOptions)
 		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -1714,7 +1720,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient worker memory for host with GPU",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateInventoryWithResources(4, 1, "worker", &models.Gpu{VendorID: "10de", DeviceID: "1db6"}),
+				inventory:     hostutil.GenerateInventoryWithResources(4, 1, "worker", &supportedGPU),
 				role:          models.HostRoleWorker,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,

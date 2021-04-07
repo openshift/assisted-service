@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -38,23 +37,13 @@ var Operator = models.MonitoredOperator{
 	TimeoutSeconds:   60 * 60,
 }
 
-// NewCNVOperatorWithConfig creates new instance of a Container Native Virtualization installation plugin configured
-// with given Config
-func NewCNVOperatorWithConfig(log logrus.FieldLogger, cfg Config) *operator {
+// NewCNVOperator creates new instance of a Container Native Virtualization installation plugin
+func NewCNVOperator(log logrus.FieldLogger, cfg Config) *operator {
+	log.WithField("config", cfg).Infof("Configuring CNV Operator plugin")
 	return &operator{
 		log:    log,
 		config: cfg,
 	}
-}
-
-// NewCNVOperator creates new instance of a Container Native Virtualization installation plugin
-func NewCNVOperator(log logrus.FieldLogger) *operator {
-	var cfg Config
-	err := envconfig.Process("myapp", &cfg)
-	if err != nil {
-		log.Fatal(err.Error())
-	}
-	return NewCNVOperatorWithConfig(log, cfg)
 }
 
 // GetName reports the name of an operator this Operator manages

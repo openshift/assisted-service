@@ -24,7 +24,7 @@ var _ = Describe("CNV operator", func() {
 			"10de:1db6": true,
 			"10de:1eb8": true,
 		}}
-		operator = cnv.NewCNVOperatorWithConfig(log, cfg)
+		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
 	Context("host requirements", func() {
@@ -117,7 +117,7 @@ var _ = Describe("CNV operator", func() {
 				"0000:1111": true,
 				"2222:3333": true,
 			}}
-			operator = cnv.NewCNVOperatorWithConfig(log, cfg)
+			operator = cnv.NewCNVOperator(log, cfg)
 
 			host := models.Host{
 				Role:      models.HostRoleWorker,
