@@ -4747,6 +4747,11 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
+        "ams_subscription_id": {
+          "description": "Unique identifier of the AMS subscription in OCM.",
+          "type": "string",
+          "format": "uuid"
+        },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
@@ -12272,6 +12277,11 @@ func init() {
         "additional_ntp_source": {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
+        },
+        "ams_subscription_id": {
+          "description": "Unique identifier of the AMS subscription in OCM.",
+          "type": "string",
+          "format": "uuid"
         },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",

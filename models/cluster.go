@@ -23,6 +23,10 @@ type Cluster struct {
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	AdditionalNtpSource string `json:"additional_ntp_source,omitempty"`
 
+	// Unique identifier of the AMS subscription in OCM.
+	// Format: uuid
+	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id,omitempty"`
+
 	// The virtual IP used to reach the OpenShift cluster's API.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
 	APIVip string `json:"api_vip,omitempty"`
@@ -206,6 +210,10 @@ type Cluster struct {
 func (m *Cluster) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateAmsSubscriptionID(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateAPIVip(formats); err != nil {
 		res = append(res, err)
 	}
@@ -317,6 +325,19 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Cluster) validateAmsSubscriptionID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.AmsSubscriptionID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("ams_subscription_id", "body", "uuid", m.AmsSubscriptionID.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
