@@ -301,7 +301,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			})
 
 			It("finalizing -> finalizing (s3 failure)", func() {
-				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, errors.New("error")).Times(1)
+				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, errors.New("error")).Times(2)
 				shouldHaveUpdated = false
 				expectedState = models.ClusterStatusFinalizing
 			})
@@ -522,6 +522,12 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(c.StatusUpdatedAt).Should(Equal(saveUpdatedTime))
 				Expect(c.StatusInfo).Should(Equal(saveStatusInfo))
 			}
+
+			preSecondRefreshUpdatedTime := c.UpdatedAt
+			clusterApi.ClusterMonitoring()
+			c = getClusterFromDB(id, db)
+			postRefreshUpdateTime := c.UpdatedAt
+			Expect(preSecondRefreshUpdatedTime).Should(Equal(postRefreshUpdateTime))
 		})
 	})
 
@@ -2029,7 +2035,13 @@ var _ = Describe("ready_state", func() {
 	Context("refresh_state", func() {
 		It("cluster is satisfying the install requirements", func() {
 			clusterAfterRefresh, updateErr := clusterApi.RefreshStatus(ctx, &cluster, db)
+			Expect(updateErr).Should(BeNil())
 
+			preSecondRefreshUpdatedTime := clusterAfterRefresh.UpdatedAt
+			clusterAfterRefresh, updateErr = clusterApi.RefreshStatus(ctx, clusterAfterRefresh, db)
+			postRefreshUpdateTime := clusterAfterRefresh.UpdatedAt
+
+			Expect(preSecondRefreshUpdatedTime).Should(Equal(postRefreshUpdateTime))
 			Expect(updateErr).Should(BeNil())
 			Expect(*clusterAfterRefresh.Status).Should(Equal(models.ClusterStatusReady))
 			Expect(checkValidationInfoIsSorted(clusterAfterRefresh.ValidationsInfo)).Should(BeTrue())

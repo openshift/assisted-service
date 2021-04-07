@@ -402,8 +402,11 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			err            error
 			updatedCluster *common.Cluster
 		)
-		updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
-			reason)
+		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
+			updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+				reason)
+		}
+
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed
 		cluster := sCluster.cluster
 		if updatedCluster != nil {
