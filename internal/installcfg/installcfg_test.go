@@ -310,6 +310,25 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
 	})
 
+	It("Hyperthreading config", func() {
+		cluster.Hyperthreading = "none"
+		data := getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(data.ControlPlane.Hyperthreading).Should(Equal(""))
+		Expect(data.Compute[0].Hyperthreading).Should(Equal(""))
+		cluster.Hyperthreading = "all"
+		data = getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
+		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
+		cluster.Hyperthreading = "workers"
+		data = getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(data.ControlPlane.Hyperthreading).Should(Equal(""))
+		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
+		cluster.Hyperthreading = "masters"
+		data = getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
+		Expect(data.Compute[0].Hyperthreading).Should(Equal(""))
+	})
+
 	AfterEach(func() {
 		// cleanup
 		ctrl.Finish()
