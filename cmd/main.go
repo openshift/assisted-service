@@ -609,13 +609,14 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 
 func createControllerManager() (manager.Manager, error) {
 	if Options.EnableKubeAPI {
+		fmt.Println("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
 		var schemes = runtime.NewScheme()
 		utilruntime.Must(scheme.AddToScheme(schemes))
 		utilruntime.Must(adiiov1alpha1.AddToScheme(schemes))
 		utilruntime.Must(hivev1.AddToScheme(schemes))
 		utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 
-		syncPeriod := 10 * time.Second
+		syncPeriod := 1 * time.Second
 
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,

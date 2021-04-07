@@ -83,6 +83,7 @@ type ClusterDeploymentsReconciler struct {
 func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	clusterDeployment := &hivev1.ClusterDeployment{}
+	r.Log.Infof("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 	err := r.Get(ctx, req.NamespacedName, clusterDeployment)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
@@ -676,9 +677,11 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 }
 
 func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	r.Log.Infof("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
 	mapSecretToClusterDeployment := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			clusterDeployments := &hivev1.ClusterDeploymentList{}
+			r.Log.Infof("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
 			if err := r.List(context.Background(), clusterDeployments); err != nil {
 				return []reconcile.Request{}
 			}
