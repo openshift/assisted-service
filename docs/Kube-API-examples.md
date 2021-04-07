@@ -35,7 +35,9 @@ Note that if the Agent is not Approved, it will not be part of the installation.
 
 Here how to approve an Agent:
 
-`kubectl -n assisted-installer patch agents.adi.io.my.domain 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge`
+```sh
+$ kubectl -n assisted-installer patch agents.adi.io.my.domain 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge
+```
 
 ## Day 2 worker
 Once the cluster is installed, the ClusterDeployment is set to Installed and secrets for kubeconfig and credentials are created and referenced in the ClusterDeployment.
@@ -56,7 +58,7 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
     - Role: master/worker
     - Hostname (optional for user to set)
     - MachineConfigPool (optional for user to set)
-- Reconcile the BareMetalHost hardware details by copying the Agent's inventory data to the BMH's hardwaredetails annotation.
+- Reconcile the BareMetalHost hardware details by copying the Agent's inventory data to the BMH's `hardwaredetails` annotation.
 
 
 See BMAC documentation [here](./baremetal-agent-controller.md).
@@ -84,11 +86,15 @@ In case of failure to apply the overrides the clusterdeployment conditions will 
 
 Add an annotation with the desired options, the clusterdeployment controller will update the install config yaml with the annotation value.
 Note that this configuration must be applied prior to starting the installation
-```
-$kubectl annotate clusterdeployments.hive.openshift.io test-cluster -n assisted-installer adi.io.my.domain/install-config-overrides="{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"
+```sh
+$ kubectl annotate clusterdeployments.hive.openshift.io test-cluster -n assisted-installer adi.io.my.domain/install-config-overrides="{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"
 clusterdeployment.hive.openshift.io/test-cluster annotated
+```
 
-$kubectl get clusterdeployments.hive.openshift.io test-cluster -n assisted-installer -o yaml
+```sh
+$ kubectl get clusterdeployments.hive.openshift.io test-cluster -n assisted-installer -o yaml
+```
+```yaml
 apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
