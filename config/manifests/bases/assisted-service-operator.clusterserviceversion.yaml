@@ -28,7 +28,7 @@ metadata:
                  ],
                  "resources": {
                     "requests": {
-                       "storage": "20Gi"
+                       "storage": "100Gi"
                     }
                  }
               }
@@ -55,6 +55,10 @@ spec:
       version: v1alpha1
   description: |-
     Assisted Service is used to orchestrate baremetal OpenShift installations.
+
+    When creating the AgentServiceConfig CR. It is important to note that the
+    controller will only ever reconcile an AgentServiceConfig named "agent".
+    No other name will be accepted.
   displayName: Assisted Service Operator
   icon:
     - base64data: >-

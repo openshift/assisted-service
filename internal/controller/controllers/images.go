@@ -20,6 +20,10 @@ import (
 	"os"
 )
 
+const (
+	OpenshiftVersionsEnvVar string = "OPENSHIFT_VERSIONS"
+)
+
 func ServiceImage() string {
 	return getEnvVar("SERVICE_IMAGE", "quay.io/ocpmetal/assisted-service:latest")
 }
@@ -38,6 +42,17 @@ func ControllerImage() string {
 
 func InstallerImage() string {
 	return getEnvVar("INSTALLER_IMAGE", "quay.io/ocpmetal/assisted-installer:latest")
+}
+
+func ServiceAccountName() string {
+	return getEnvVar("SERVICE_ACCOUNT_NAME", "default")
+}
+
+// This is left blank so that we don't include the json string in source
+// it should always be specified on the CSV (and operator deployment)
+// and is enforced in cmd/operator/main.go
+func OpenshiftVersions() string {
+	return getEnvVar(OpenshiftVersionsEnvVar, "")
 }
 
 func getEnvVar(key, def string) string {

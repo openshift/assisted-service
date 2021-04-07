@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
@@ -24,6 +25,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
 	controllers "github.com/openshift/assisted-service/internal/controller/controllers"
+	"github.com/openshift/assisted-service/models"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -80,7 +82,25 @@ func main() {
 
 	ns, found := os.LookupEnv(NamespaceEnvVar)
 	if !found {
-		setupLog.Error(fmt.Errorf("%s must be set", NamespaceEnvVar), "unable to get namespace")
+		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod)", NamespaceEnvVar), "unable to get namespace")
+		os.Exit(1)
+	}
+
+	// must have openshift versions specified on the operator
+	// this prevents us from having to include the full json in source
+	// ie. this should ALWAYS be specified on the CSV, until a proper
+	// API is provided for it
+	// I think it's reasonable to check that the OPENSHIFT_VERSIONS is
+	// legit before we go passing it down to the assisted-service deployment
+	// and letting it fail there.
+	var openshiftVersionsMap models.OpenshiftVersions
+	openshiftVersions, found := os.LookupEnv(controllers.OpenshiftVersionsEnvVar)
+	if !found || openshiftVersions == "" {
+		setupLog.Error(fmt.Errorf("%s environment variable must be set (commonly set automatically in every Pod) to a non-empty value.", controllers.OpenshiftVersionsEnvVar), "unable to get OpenShift Versions")
+		os.Exit(1)
+	}
+	if err = json.Unmarshal([]byte(openshiftVersions), &openshiftVersionsMap); err != nil {
+		setupLog.Error(fmt.Errorf("OpenShift versions (%v) specified in %s are not valid", openshiftVersions, controllers.OpenshiftVersionsEnvVar), "invalid OpenShift Versions")
 		os.Exit(1)
 	}
 
