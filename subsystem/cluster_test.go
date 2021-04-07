@@ -2398,8 +2398,6 @@ spec:
 		})
 		Expect(getErr).ToNot(HaveOccurred())
 
-		checkUpdateAtWhileStatic(ctx, clusterID)
-
 		Expect(clusterReply.Payload.APIVip).To(Equal(apiVip))
 		Expect(clusterReply.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
