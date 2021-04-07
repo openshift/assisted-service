@@ -35,3 +35,10 @@ aliases:
   ci-approvers:
     - yuvigold
     - oshercc
+  reviewers-only:
+    - jakub-dzon
+    - pkliczewski
+    - masayag
+    - jordigilh
+    - machacekondra
+
