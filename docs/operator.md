@@ -48,42 +48,6 @@ metadata:
 EOF
 ```
 
-Create two PVCs, one for postgres and another for s3 (temporary until filesystem implementation is available).
-
-```bash
-cat <<EOF | kubectl create -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app: postgres
-  name: postgres-pv-claim
-  namespace: assisted-installer
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 10Gi
-EOF
-
-cat <<EOF | kubectl create -f -
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  labels:
-    app: scality
-  name: scality-pv-claim
-  namespace: assisted-installer
-spec:
-  accessModes:
-  - ReadWriteOnce
-  resources:
-    requests:
-      storage: 20Gi
-EOF
-```
-
 Having the ClusterDeployment CRD installed is a prerequisite.
 Install Hive, if it has not already been installed. Note the
 startingCSV version, it may need to be updated to a more
@@ -106,7 +70,9 @@ spec:
 ```
 
 Create a CatalogSource for the operator to appear in OperatorHub.
-The CatalogSource references the index image built earlier.
+The CatalogSource spec image can be set to quay.io/ocpmetal/assisted-service-index:latest
+if you want to pick up the latest merged change on master or to a
+custom the index image.
 
 ``` bash
 cat <<EOF | kubectl create -f -
@@ -117,7 +83,7 @@ metadata:
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
-  image: $INDEX_IMAGE
+  image: quay.io/ocpmetal/assisted-service-index:latest
 EOF
 ```
 
@@ -155,6 +121,36 @@ spec:
   startingCSV: assisted-service-operator.v0.0.1
 EOF
 ```
+
+## Deploying the operand
+
+An Assisted Service Deployment is created by creating an
+AgentServiceConfig CustomResource. Here is a basic example:
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: adi.io.my.domain/v1alpha1
+kind: AgentServiceConfig
+metadata:
+  namespace: assisted-installer
+  name: agent
+spec:
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+EOF
+```
+
+For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/internal/controller/config/crd/bases/adi.io.my.domain_agentserviceconfigs.yaml).
 
 ## Subscription config
 

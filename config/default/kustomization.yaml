@@ -18,7 +18,7 @@ bases:
 #- ../crd
 - ../rbac
 # Commented out manager because we are building a operator-less bundle
-#- ../manager
+- ../manager
 - ../assisted-service
 - ../../internal/controller/config/crd
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
@@ -38,24 +38,24 @@ patchesStrategicMerge:
 # through an init container. This used by in-cluster deployments so that 
 # a route to the service is created and the SERVICE_BASE_URL is updated 
 # to match the route's URL.
-- assisted-service-patch-init-containers.yaml
+#- assisted-service-patch-init-containers.yaml
 
 # An init container that creates a random password and secret for postgres
 # if a secret does not already exist.
-- postgres-patch-init-container.yaml
+#- postgres-patch-init-container.yaml
 
 # Sets ISO_IMAGE_TYPE to minimal-iso 
-- assisted-service-patch-iso-image-type.yaml
+#- assisted-service-patch-iso-image-type.yaml
 
 # Creates the volume and PersistentVolumeClaim for the filesystem client.
 # If using scality uncomment the assisted-service-patch-deploy-target.yaml 
 # and comment these out. In the generated config DEPLOY_TARGET is "ocp" and 
 # STORAGE is "filesystem".
-- assisted-service-patch-volume-bucket-filesystem.yaml
+#- assisted-service-patch-volume-bucket-filesystem.yaml
 
 # An init container that updates proxy-pass in nginx.conf in the
 # ocp-metal-ui ConfigMap to match the assisted-service's service route URL.
-- ui-patch-init-containers.yaml
+#- ui-patch-init-containers.yaml
 
 ###################
 # Optional patches

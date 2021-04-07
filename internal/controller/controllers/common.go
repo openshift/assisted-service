@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,4 +44,11 @@ func getInstallEnvByClusterDeployment(ctx context.Context, c client.Client, clus
 	}
 	logrus.Infof("no installEnv for the clusterDeployment %s", clusterDeployment.Name)
 	return nil, nil
+}
+
+func addAppLabel(appName string, meta *metav1.ObjectMeta) {
+	if meta.Labels == nil {
+		meta.Labels = make(map[string]string)
+	}
+	meta.Labels["app"] = appName
 }

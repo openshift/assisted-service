@@ -3,7 +3,7 @@ controller manager, it performs RBAC authorization against the Kubernetes API us
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: controller-manager
+  name: assisted-service-operator
   namespace: system
 spec:
   template:

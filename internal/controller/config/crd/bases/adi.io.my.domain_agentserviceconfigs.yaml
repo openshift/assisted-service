@@ -37,8 +37,8 @@ spec:
             description: AgentServiceConfigSpec defines the desired state of AgentServiceConfig
             properties:
               databaseStorage:
-                description: PersistentVolumeClaimSpec describes the common attributes
-                  of storage devices and allows a Source for provider-specific attributes
+                description: DatabaseStorage defines the spec of the PersistentVolumeClaim
+                  to be created for the database's filesystem.
                 properties:
                   accessModes:
                     description: 'AccessModes contains the desired access modes the
@@ -159,8 +159,8 @@ spec:
                     type: string
                 type: object
               filesystemStorage:
-                description: PersistentVolumeClaimSpec describes the common attributes
-                  of storage devices and allows a Source for provider-specific attributes
+                description: FileSystemStorage defines the spec of the PersistentVolumeClaim
+                  to be created for the assisted-service's filesystem (logs, etc).
                 properties:
                   accessModes:
                     description: 'AccessModes contains the desired access modes the
