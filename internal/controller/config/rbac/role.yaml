@@ -24,7 +24,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - agents
   verbs:
@@ -36,7 +36,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - agents/status
   verbs:
@@ -44,7 +44,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - agentserviceconfigs
   verbs:
@@ -56,13 +56,13 @@ rules:
   - update
   - watch
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - agentserviceconfigs/finalizers
   verbs:
   - update
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - agentserviceconfigs/status
   verbs:
@@ -70,7 +70,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - installenvs
   verbs:
@@ -82,7 +82,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - installenvs/status
   verbs:
@@ -90,7 +90,7 @@ rules:
   - patch
   - update
 - apiGroups:
-  - adi.io.my.domain
+  - agent-install.openshift.io
   resources:
   - nmstateconfigs
   verbs:

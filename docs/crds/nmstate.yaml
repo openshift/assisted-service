@@ -1,4 +1,4 @@
-apiVersion: adi.io.my.domain/v1alpha1
+apiVersion: agent-install.openshift.io/v1beta1
 kind: NMStateConfig
 metadata:
   name: mynmstateconfig

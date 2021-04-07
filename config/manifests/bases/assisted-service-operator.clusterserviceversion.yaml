@@ -5,7 +5,7 @@ metadata:
     alm-examples: |-
       [
         {
-           "apiVersion": "adi.io.my.domain/v1alpha1",
+           "apiVersion": "agent-install.openshift.io/v1beta1",
            "kind": "AgentServiceConfig",
            "metadata": {
               "namespace": "assisted-installer",
@@ -48,11 +48,11 @@ spec:
   customresourcedefinitions:
     owned:
     - kind: Agents
-      name: agents.adi.io.my.domain
-      version: v1alpha1
+      name: agents.agent-install.openshift.io
+      version: v1beta1
     - kind: InstallEnv
-      name: installenvs.adi.io.my.domain
-      version: v1alpha1
+      name: installenvs.agent-install.openshift.io
+      version: v1beta1
   description: |-
     Assisted Service is used to orchestrate baremetal OpenShift installations.
 

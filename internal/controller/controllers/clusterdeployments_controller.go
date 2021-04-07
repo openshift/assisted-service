@@ -29,7 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -58,7 +58,7 @@ const (
 	AgentPlatformStateInfo            = "AgentPlatformStateInfo"
 	adminPasswordSecretStringTemplate = "%s-admin-password"
 	adminKubeConfigStringTemplate     = "%s-admin-kubeconfig"
-	InstallConfigOverrides            = "adi.io.my.domain/install-config-overrides"
+	InstallConfigOverrides            = v1beta1.Group + "/install-config-overrides"
 )
 
 const HighAvailabilityModeNone = "None"
@@ -342,7 +342,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 
 	update := false
 	notifyInstallEnv := false
-	var installEnv *v1alpha1.InstallEnv
+	var installEnv *v1beta1.InstallEnv
 
 	params := &models.ClusterUpdateParams{}
 

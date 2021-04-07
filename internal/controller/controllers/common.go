@@ -6,7 +6,7 @@ import (
 	"math/big"
 	"strings"
 
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -34,8 +34,8 @@ func getPullSecret(ctx context.Context, c client.Client, name, namespace string)
 	return string(data), nil
 }
 
-func getInstallEnvByClusterDeployment(ctx context.Context, c client.Client, clusterDeployment *hivev1.ClusterDeployment) (*adiiov1alpha1.InstallEnv, error) {
-	installEnvs := &adiiov1alpha1.InstallEnvList{}
+func getInstallEnvByClusterDeployment(ctx context.Context, c client.Client, clusterDeployment *hivev1.ClusterDeployment) (*aiv1beta1.InstallEnv, error) {
+	installEnvs := &aiv1beta1.InstallEnvList{}
 	if err := c.List(ctx, installEnvs); err != nil {
 		logrus.WithError(err).Errorf("failed to search for installEnv for clusterDeployment %s", clusterDeployment.Name)
 		return nil, err

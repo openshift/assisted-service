@@ -124,7 +124,7 @@ and adding the following annotation:
 ```
   labels:
     # optionally add the installenvs annotation, if needed for BMAC
-    installenvs.adi.openshift.io: "bmac-test"
+    installenvs.agent-install.openshift.io: "bmac-test"
 
   annotations:
     # BMAC will add this annotation if not present

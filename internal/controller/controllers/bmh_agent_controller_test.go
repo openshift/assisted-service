@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -53,17 +53,17 @@ var _ = Describe("bmac reconcile", func() {
 
 	Describe("queue bmh request for agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
-		var agent *v1alpha1.Agent
+		var agent *v1beta1.Agent
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
-			agent = newAgent("bmac-agent", testNamespace, v1alpha1.AgentSpec{})
-			agent.Status.Inventory = v1alpha1.HostInventory{
+			agent = newAgent("bmac-agent", testNamespace, v1beta1.AgentSpec{})
+			agent.Status.Inventory = v1beta1.HostInventory{
 				ReportTime: &metav1.Time{Time: time.Now()},
-				Memory: v1alpha1.HostMemory{
+				Memory: v1beta1.HostMemory{
 					PhysicalBytes: 2,
 				},
-				Interfaces: []v1alpha1.HostInterface{
+				Interfaces: []v1beta1.HostInterface{
 					{
 						Name: "eth0",
 						IPV4Addresses: []string{
@@ -96,7 +96,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should return nil if there is no match", func() {
-				agent = newAgent("bmac-agent-no-MAC", testNamespace, v1alpha1.AgentSpec{})
+				agent = newAgent("bmac-agent-no-MAC", testNamespace, v1beta1.AgentSpec{})
 				Expect(c.Create(ctx, agent)).To(BeNil())
 
 				result, err := bmhr.findBMH(context.Background(), agent)
@@ -130,7 +130,7 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("with an existing installEnv without ISODownloadURL", func() {
 			It("should requeue the reconcile", func() {
-				installEnv := newInstallEnvImage("testInstallEnv", testNamespace, v1alpha1.InstallEnvSpec{})
+				installEnv := newInstallEnvImage("testInstallEnv", testNamespace, v1beta1.InstallEnvSpec{})
 				Expect(c.Create(ctx, installEnv)).To(BeNil())
 
 				result, err := bmhr.Reconcile(newBMHRequest(host))
@@ -140,13 +140,13 @@ var _ = Describe("bmac reconcile", func() {
 		})
 
 		Context("with an existing installEnv with ISODownloadURL", func() {
-			var installEnv *v1alpha1.InstallEnv
+			var installEnv *v1beta1.InstallEnv
 			var isoImageURL string
 
 			BeforeEach(func() {
 				isoImageURL = "http://buzz.lightyear.io/discovery-image.iso"
-				installEnv = newInstallEnvImage("testInstallEnv", testNamespace, v1alpha1.InstallEnvSpec{})
-				installEnv.Status = v1alpha1.InstallEnvStatus{ISODownloadURL: isoImageURL}
+				installEnv = newInstallEnvImage("testInstallEnv", testNamespace, v1beta1.InstallEnvSpec{})
+				installEnv.Status = v1beta1.InstallEnvStatus{ISODownloadURL: isoImageURL}
 				Expect(c.Create(ctx, installEnv)).To(BeNil())
 			})
 
@@ -182,15 +182,15 @@ var _ = Describe("bmac reconcile", func() {
 
 	Describe("Reconcile a BMH with a non-approved matching agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
-		var agent *v1alpha1.Agent
-		var staleAgent *v1alpha1.Agent
+		var agent *v1beta1.Agent
+		var staleAgent *v1beta1.Agent
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
-			staleAgent = newAgent("stale-bmac-agent", testNamespace, v1alpha1.AgentSpec{})
+			staleAgent = newAgent("stale-bmac-agent", testNamespace, v1beta1.AgentSpec{})
 			staleAgent.ObjectMeta.CreationTimestamp.Time = time.Now()
-			staleAgent.Status.Inventory = v1alpha1.HostInventory{
-				Interfaces: []v1alpha1.HostInterface{
+			staleAgent.Status.Inventory = v1beta1.HostInventory{
+				Interfaces: []v1beta1.HostInterface{
 					{
 						Name:       "eth0",
 						MacAddress: macStr,
@@ -199,26 +199,26 @@ var _ = Describe("bmac reconcile", func() {
 			}
 			Expect(c.Create(ctx, staleAgent)).To(BeNil())
 
-			agent = newAgent("bmac-agent", testNamespace, v1alpha1.AgentSpec{})
+			agent = newAgent("bmac-agent", testNamespace, v1beta1.AgentSpec{})
 			agent.ObjectMeta.CreationTimestamp.Time = time.Now().Add(time.Minute)
-			agent.Status.Inventory = v1alpha1.HostInventory{
-				Interfaces: []v1alpha1.HostInterface{
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Interfaces: []v1beta1.HostInterface{
 					{
 						Name:       "eth0",
 						MacAddress: macStr,
 					},
 				},
-				Disks: []v1alpha1.HostDisk{
+				Disks: []v1beta1.HostDisk{
 					{
 						ID:                      "1",
-						InstallationEligibility: v1alpha1.HostInstallationEligibility{Eligible: true},
+						InstallationEligibility: v1beta1.HostInstallationEligibility{Eligible: true},
 						Path:                    "/dev/sda",
 						DriveType:               "SSD",
 						Bootable:                true,
 					},
 					{
 						ID:                      "2",
-						InstallationEligibility: v1alpha1.HostInstallationEligibility{Eligible: true},
+						InstallationEligibility: v1beta1.HostInstallationEligibility{Eligible: true},
 						Path:                    "/dev/sdb",
 						DriveType:               "SSD",
 						Bootable:                true,
@@ -259,7 +259,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(result).To(Equal(ctrl.Result{}))
 
 				// Check that staleAgent is *NOT* approved, since it's stale and old!
-				updatedAgent := &v1alpha1.Agent{}
+				updatedAgent := &v1beta1.Agent{}
 				err = c.Get(ctx, types.NamespacedName{Name: staleAgent.Name, Namespace: staleAgent.Namespace}, updatedAgent)
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.Approved).To(Equal(false))
@@ -276,7 +276,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
-				updatedAgent := &v1alpha1.Agent{}
+				updatedAgent := &v1beta1.Agent{}
 				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
 				Expect(err).To(BeNil())
 				Expect(string(updatedAgent.Spec.Role)).To(Equal("without-purpose"))
@@ -287,7 +287,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
-				updatedAgent := &v1alpha1.Agent{}
+				updatedAgent := &v1beta1.Agent{}
 				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.Approved).To(Equal(true))
@@ -298,7 +298,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
-				updatedAgent := &v1alpha1.Agent{}
+				updatedAgent := &v1beta1.Agent{}
 				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.ObjectMeta.Labels[AGENT_BMH_LABEL]).To(Equal(host.Name))
@@ -309,7 +309,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
-				updatedAgent := &v1alpha1.Agent{}
+				updatedAgent := &v1beta1.Agent{}
 				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.Role).To(Equal(models.HostRoleMaster))
@@ -328,7 +328,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
-				updatedAgent := &v1alpha1.Agent{}
+				updatedAgent := &v1beta1.Agent{}
 				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal(""))
@@ -339,7 +339,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
-				updatedAgent := &v1alpha1.Agent{}
+				updatedAgent := &v1beta1.Agent{}
 				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
 				Expect(err).To(BeNil())
 				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
@@ -349,16 +349,16 @@ var _ = Describe("bmac reconcile", func() {
 
 	Describe("Reconcile a BMH with an approved matching agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
-		var agent *v1alpha1.Agent
+		var agent *v1beta1.Agent
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
-			agent = newAgent("bmac-agent", testNamespace, v1alpha1.AgentSpec{Approved: true})
-			agent.Status.Inventory = v1alpha1.HostInventory{
-				Memory: v1alpha1.HostMemory{
+			agent = newAgent("bmac-agent", testNamespace, v1beta1.AgentSpec{Approved: true})
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Memory: v1beta1.HostMemory{
 					PhysicalBytes: 2,
 				},
-				Interfaces: []v1alpha1.HostInterface{
+				Interfaces: []v1beta1.HostInterface{
 					{
 						Name: "eth0",
 						IPV4Addresses: []string{
@@ -370,7 +370,7 @@ var _ = Describe("bmac reconcile", func() {
 						MacAddress: macStr,
 					},
 				},
-				Disks: []v1alpha1.HostDisk{
+				Disks: []v1beta1.HostDisk{
 					{Path: "/dev/sda", Bootable: true},
 					{Path: "/dev/sdb", Bootable: false},
 				},

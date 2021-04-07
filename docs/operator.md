@@ -133,7 +133,7 @@ AgentServiceConfig CustomResource. Here is a basic example:
 
 ``` bash
 cat <<EOF | kubectl create -f -
-apiVersion: adi.io.my.domain/v1alpha1
+apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
   namespace: assisted-installer
@@ -154,7 +154,7 @@ spec:
 EOF
 ```
 
-For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/internal/controller/config/crd/bases/adi.io.my.domain_agentserviceconfigs.yaml).
+For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/internal/controller/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml).
 
 ## Subscription config
 
