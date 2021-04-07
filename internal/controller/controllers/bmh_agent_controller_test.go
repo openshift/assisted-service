@@ -194,11 +194,35 @@ var _ = Describe("bmac reconcile", func() {
 						MacAddress: macStr,
 					},
 				},
+				Disks: []v1alpha1.HostDisk{
+					{
+						ID:                      "1",
+						InstallationEligibility: v1alpha1.HostInstallationEligibility{Eligible: true},
+						Path:                    "/dev/sda",
+						DriveType:               "SSD",
+						Bootable:                true,
+					},
+					{
+						ID:                      "2",
+						InstallationEligibility: v1alpha1.HostInstallationEligibility{Eligible: true},
+						Path:                    "/dev/sdb",
+						DriveType:               "SSD",
+						Bootable:                true,
+					},
+				},
 			}
 			Expect(c.Create(ctx, agent)).To(BeNil())
 
 			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
-			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr})
+			hostSpec := bmh_v1alpha1.BareMetalHostSpec{
+				Image: image,
+				RootDeviceHints: &bmh_v1alpha1.RootDeviceHints{
+					DeviceName: "/dev/sda",
+					Rotational: new(bool),
+				},
+				BootMACAddress: macStr,
+			}
+			host = newBMH("bmh-reconcile", &hostSpec)
 			annotations := make(map[string]string)
 			annotations[BMH_AGENT_ROLE] = "master"
 			annotations[BMH_AGENT_HOSTNAME] = "happy-meal"
@@ -264,6 +288,34 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.Role).To(Equal(models.HostRoleMaster))
 				Expect(updatedAgent.Spec.Hostname).To(Equal("happy-meal"))
 				Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
+			})
+
+			It("should keep InstallationDiskID as empty string if not RootDeviceHints match", func() {
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				updatedHost.Spec.RootDeviceHints.DeviceName = "/dev/sdc"
+				Expect(c.Update(ctx, updatedHost)).To(BeNil())
+
+				result, err := bmhr.Reconcile(newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1alpha1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal(""))
+			})
+
+			It("should set the InstallationDiskID if the RootDeviceHints were provided and match", func() {
+				result, err := bmhr.Reconcile(newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedAgent := &v1alpha1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: agent.Name, Namespace: agent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.InstallationDiskID).To(Equal("1"))
 			})
 		})
 	})
