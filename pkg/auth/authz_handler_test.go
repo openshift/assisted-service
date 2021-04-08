@@ -339,6 +339,11 @@ var _ = Describe("authz", func() {
 			apiCall:      downloadClusterISO,
 		},
 		{
+			name:         "download cluster iso headers",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      downloadClusterISOHeaders,
+		},
+		{
 			name:             "download cluster files",
 			allowedRoles:     []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
 			apiCall:          downloadClusterFiles,
@@ -655,6 +660,15 @@ func downloadClusterISO(ctx context.Context, cli *client.AssistedInstall) error 
 			ClusterID: strfmt.UUID(uuid.New().String()),
 		},
 		file)
+	return err
+}
+
+func downloadClusterISOHeaders(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.DownloadClusterISOHeaders(
+		ctx,
+		&installer.DownloadClusterISOHeadersParams{
+			ClusterID: strfmt.UUID(uuid.New().String()),
+		})
 	return err
 }
 

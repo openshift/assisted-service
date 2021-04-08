@@ -76,6 +76,18 @@ func (f fakeInventory) DownloadClusterISO(ctx context.Context, params installer.
 		0)
 }
 
+func (f fakeInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
+	_, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return installer.NewDownloadClusterISOHeadersInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		installer.NewDownloadClusterISOHeadersOK(),
+		"test",
+		0)
+}
+
 func (f fakeInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
 	file, err := ioutil.TempFile("/tmp", "test.file")
 	if err != nil {
@@ -310,6 +322,18 @@ func (f fakeAssistedServiceIsoAPI) DownloadISO(ctx context.Context, params assis
 	}
 	return filemiddleware.NewResponder(
 		assisted_service_iso.NewDownloadISOOK().WithPayload(io.ReadCloser(file)),
+		"test",
+		0)
+}
+
+func (f fakeAssistedServiceIsoAPI) DownloadISOHeaders(ctx context.Context, params assisted_service_iso.DownloadISOParams) middleware.Responder {
+	_, err := ioutil.TempFile("/tmp", "test.file")
+	if err != nil {
+		return assisted_service_iso.NewDownloadISOInternalServerError().WithPayload(
+			common.GenerateError(http.StatusInternalServerError, err))
+	}
+	return filemiddleware.NewResponder(
+		assisted_service_iso.NewDownloadISOOK(),
 		"test",
 		0)
 }

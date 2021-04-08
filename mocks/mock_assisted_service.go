@@ -133,6 +133,20 @@ func (mr *MockInstallerAPIMockRecorder) DownloadClusterISO(arg0, arg1 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterISO", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadClusterISO), arg0, arg1)
 }
 
+// DownloadClusterISOHeaders mocks base method
+func (m *MockInstallerAPI) DownloadClusterISOHeaders(arg0 context.Context, arg1 installer.DownloadClusterISOHeadersParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DownloadClusterISOHeaders", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// DownloadClusterISOHeaders indicates an expected call of DownloadClusterISOHeaders
+func (mr *MockInstallerAPIMockRecorder) DownloadClusterISOHeaders(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadClusterISOHeaders", reflect.TypeOf((*MockInstallerAPI)(nil).DownloadClusterISOHeaders), arg0, arg1)
+}
+
 // DownloadClusterKubeconfig mocks base method
 func (m *MockInstallerAPI) DownloadClusterKubeconfig(arg0 context.Context, arg1 installer.DownloadClusterKubeconfigParams) middleware.Responder {
 	m.ctrl.T.Helper()
