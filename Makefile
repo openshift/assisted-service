@@ -8,12 +8,6 @@ BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
 
-ifeq ($(BUILD_TYPE), standalone)
-    UNIT_TEST_TARGET = unit-test
-else
-    UNIT_TEST_TARGET = convert-coverage
-endif
-
 define get_service
 kubectl get service $(1) -n $(NAMESPACE) | grep $(1) | awk '{print $$4 ":" $$5}' | \
 	awk '{split($$0,a,":"); print a[1] ":" a[2]}'
@@ -67,16 +61,23 @@ ifdef INSTALLATION_TIMEOUT
 	INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
 endif
 
-# define focus flag for test so users can run individual tests or suites
-ifdef FOCUS
-		GINKGO_FOCUS_FLAG = -ginkgo.focus="$(FOCUS)"
+REPORTS ?= $(ROOT_DIR)/reports
+
+ifneq ($(BUILD_TYPE), standalone)
+	TEST_FORMAT = standard-verbose
+else
+	TEST_FORMAT = pkgname
 endif
-REPORTS = $(ROOT_DIR)/reports
-TEST_PUBLISH_FLAGS = --junitfile-testsuite-name=relative --junitfile-testcase-classname=relative --junitfile $(REPORTS)/unittest.xml
+
+GOTEST_FLAGS = --format=$(TEST_FORMAT) $(GOTEST_PUBLISH_FLAGS) -- -count=1 -cover -coverprofile=$(REPORTS)/$(TEST_SCENARIO)_coverage.out
+GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.v -ginkgo.skip="$(SKIP)" -ginkgo.reportFile=./junit_$(TEST_SCENARIO)_test.xml
 
 .EXPORT_ALL_VARIABLES:
 
 all: build
+
+init:
+	./hack/setup_env.sh
 
 ci-lint:
 ifdef SKIPPER_USERNAME
@@ -108,7 +109,7 @@ generate-%: ${BUILD_FOLDER}
 ##################
 
 .PHONY: build docs
-build: lint $(UNIT_TEST_TARGET) build-minimal
+build: lint unit-test build-minimal
 
 build-all: build-in-docker
 
@@ -151,8 +152,7 @@ build-publish-index:
 publish-client: generate-python-client
 	python3 -m twine upload --skip-existing "$(BUILD_FOLDER)/assisted-service-client/dist/*"
 
-build-openshift-ci-test-bin:
-	pip3 install pyyaml waiting
+build-openshift-ci-test-bin: init
 
 ##########
 # Deploy #
@@ -298,20 +298,20 @@ subsystem-run: test subsystem-clean
 subsystem-run-kube-api: enable-kube-api-for-subsystem test-kube-api subsystem-clean
 
 test:
-	$(MAKE) _run_test AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
+	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
 
 test-kube-api:
-	$(MAKE) _run_test AUTH_TYPE=local ENABLE_KUBE_API=true FOCUS=kube-api
+	$(MAKE) _run_subsystem_test AUTH_TYPE=local ENABLE_KUBE_API=true FOCUS="$(or ${FOCUS},kube-api)"
 
-_run_test:
+_run_subsystem_test:
 	INVENTORY=$(shell $(call get_service,assisted-service) | sed 's/http:\/\///g') \
-		DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
-		DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
-		OCM_HOST=$(shell $(call get_service,wiremock) | sed 's/http:\/\///g') \
-		TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
-		TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
-		TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
-		go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 120m
+	DB_HOST=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 1) \
+	DB_PORT=$(shell $(call get_service,postgres) | sed 's/http:\/\///g' | cut -d ":" -f 2) \
+	OCM_HOST=$(shell $(call get_service,wiremock) | sed 's/http:\/\///g') \
+	TEST_TOKEN="$(shell cat $(BUILD_FOLDER)/auth-tokenString)" \
+	TEST_TOKEN_ADMIN="$(shell cat $(BUILD_FOLDER)/auth-tokenAdminString)" \
+	TEST_TOKEN_UNALLOWED="$(shell cat $(BUILD_FOLDER)/auth-tokenUnallowedString)" \
+	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
 	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true
@@ -332,17 +332,28 @@ deploy-grafana: $(BUILD_FOLDER)
 
 deploy-monitoring: deploy-olm deploy-prometheus deploy-grafana
 
-unit-test: $(REPORTS)
+_test: $(REPORTS)
+	gotestsum $(GOTEST_FLAGS) $(TEST) $(GINKGO_FLAGS) -timeout $(TIMEOUT) || ($(MAKE) _post_test && /bin/false)
+	$(MAKE) _post_test
+
+_post_test: $(REPORTS)
+	for name in `find -name 'junit*.xml' -type f`; do \
+		mv -f $$name $(REPORTS)/junit_$(TEST_SCENARIO)_$$(basename $$(dirname $$name)).xml; \
+	done
+	$(MAKE) _coverage
+
+_coverage: $(REPORTS)
+ifneq ($(BUILD_TYPE), standalone)
+	gocov convert $(REPORTS)/$(TEST_SCENARIO)_coverage.out | gocov-xml > $(REPORTS)/$(TEST_SCENARIO)_coverage.xml
+endif
+
+unit-test:
 	docker ps -q --filter "name=postgres" | xargs -r docker kill && sleep 3
 	docker run -d  --rm --tmpfs /var/lib/postgresql/data --name postgres -e POSTGRES_PASSWORD=admin -e POSTGRES_USER=admin -p 127.0.0.1:5432:5432 \
 		quay.io/ocpmetal/postgres:12.3-alpine -c 'max_connections=10000'
 	timeout 5m ./hack/wait_for_postgres.sh
-	SKIP_UT_DB=1 gotestsum --format=pkgname $(TEST_PUBLISH_FLAGS) -- -cover -coverprofile=$(REPORTS)/coverage.out $(or ${TEST},${TEST},$(shell go list ./... | grep -v subsystem)) $(GINKGO_FOCUS_FLAG) \
-		-ginkgo.v -timeout 30m -count=1 || (docker kill postgres && /bin/false)
+	SKIP_UT_DB=1 $(MAKE) _test TEST_SCENARIO=unit TIMEOUT=30m TEST="$(or $(TEST),$(shell go list ./... | grep -v subsystem))" || (docker kill postgres && /bin/false)
 	docker kill postgres
-
-convert-coverage: unit-test
-	gocov convert $(REPORTS)/coverage.out | gocov-xml > $(REPORTS)/coverage.xml
 
 $(REPORTS):
 	-mkdir -p $(REPORTS)
@@ -353,7 +364,7 @@ test-onprem:
 	DB_PORT=5432 \
 	DEPLOY_TARGET=onprem \
 	STORAGE=filesystem \
-	go test -v ./subsystem/... -count=1 $(GINKGO_FOCUS_FLAG) -ginkgo.v -timeout 30m
+	$(MAKE) _test TEST_SCENARIO=onprem TIMEOUT=30m TEST="$(or $(TEST),./subsystem/...)"
 
 test-on-openshift-ci:
 	export TARGET='oc' && unset GOFLAGS && \
