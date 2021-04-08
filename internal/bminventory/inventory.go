@@ -303,6 +303,9 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.UserManagedNetworking == nil {
 		params.NewClusterParams.UserManagedNetworking = swag.Bool(false)
 	}
+	if params.NewClusterParams.Hyperthreading == nil {
+		params.NewClusterParams.Hyperthreading = swag.String(models.ClusterHyperthreadingAll)
+	}
 
 	return params
 }
@@ -434,6 +437,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			AdditionalNtpSource:      swag.StringValue(params.NewClusterParams.AdditionalNtpSource),
 			MonitoredOperators:       monitoredOperators,
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
+			Hyperthreading:           swag.StringValue(params.NewClusterParams.Hyperthreading),
 		},
 		KubeKeyName:      kubeKey.Name,
 		KubeKeyNamespace: kubeKey.Namespace,
@@ -1836,6 +1840,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	optionalParam(params.ClusterUpdateParams.HTTPSProxy, "https_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.NoProxy, "no_proxy", updates)
 	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
+	optionalParam(params.ClusterUpdateParams.Hyperthreading, "hyperthreading", updates)
 
 	if err = b.updateNetworkParams(params, cluster, updates, log); err != nil {
 		return err
