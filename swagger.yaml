@@ -4619,12 +4619,9 @@ definitions:
       name:
         type: string
         description: Product name of the device (for example "UHD Graphics 620 (Whiskey Lake)")
-      bus_info:
+      address:
         type: string
-        description: Device bus information (for example "pci@0000:00:02.0")
-      clock_hz:
-        type: integer
-        description: GPU clock frequency in Hz
+        description: Device address (for example "0000:00:02.0")
 
   inventory:
     type: object
