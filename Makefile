@@ -279,7 +279,7 @@ deploy-onprem-for-subsystem:
 
 deploy-on-openshift-ci:
 	ln -s $(shell which oc) $(shell dirname $(shell which oc))/kubectl
-	export TARGET='oc' && export ENABLE_KUBE_API='true' && export GENERATE_CRD='false' && unset GOFLAGS && \
+	export TARGET='oc' && export GENERATE_CRD='false' && unset GOFLAGS && \
 	$(MAKE) ci-deploy-for-subsystem
 	oc get pods
 

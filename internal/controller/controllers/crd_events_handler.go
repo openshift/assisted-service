@@ -9,21 +9,23 @@ import (
 type CRDEventsHandler interface {
 	NotifyClusterDeploymentUpdates(clusterDeploymentName string, clusterDeploymentNamespace string)
 	NotifyInstallEnvUpdates(installEnvName string, installEnvNamespace string)
+	NotifyAgentUpdates(agentName string, agentNamespace string)
 	GetInstallEnvUpdates() chan event.GenericEvent
 	GetClusterDeploymentUpdates() chan event.GenericEvent
+	GetAgentUpdates() chan event.GenericEvent
 }
 
 type CRDEventsHandlerChannels struct {
-	ClusterDeploymentUpdates chan event.GenericEvent
-	InstallEnvUpdates        chan event.GenericEvent
+	clusterDeploymentUpdates chan event.GenericEvent
+	installEnvUpdates        chan event.GenericEvent
+	agentUpdates             chan event.GenericEvent
 }
 
 func NewCRDEventsHandler() CRDEventsHandler {
-	clusterDeploymentUpdates := make(chan event.GenericEvent)
-	installEnvUpdates := make(chan event.GenericEvent)
 	return &CRDEventsHandlerChannels{
-		ClusterDeploymentUpdates: clusterDeploymentUpdates,
-		InstallEnvUpdates:        installEnvUpdates,
+		clusterDeploymentUpdates: make(chan event.GenericEvent),
+		installEnvUpdates:        make(chan event.GenericEvent),
+		agentUpdates:             make(chan event.GenericEvent),
 	}
 }
 
@@ -37,16 +39,25 @@ func (h *CRDEventsHandlerChannels) NotifyUpdates(ch chan<- event.GenericEvent, n
 }
 
 func (h *CRDEventsHandlerChannels) NotifyClusterDeploymentUpdates(clusterDeploymentName string, clusterDeploymentNamespace string) {
-	h.NotifyUpdates(h.ClusterDeploymentUpdates, clusterDeploymentName, clusterDeploymentNamespace)
+	h.NotifyUpdates(h.clusterDeploymentUpdates, clusterDeploymentName, clusterDeploymentNamespace)
+}
+
+func (h *CRDEventsHandlerChannels) NotifyAgentUpdates(agentName string, agentNamespace string) {
+	h.NotifyUpdates(h.agentUpdates, agentName, agentNamespace)
 }
 
 func (h *CRDEventsHandlerChannels) NotifyInstallEnvUpdates(installEnvName string, installEnvNamespace string) {
-	h.NotifyUpdates(h.InstallEnvUpdates, installEnvName, installEnvNamespace)
+	h.NotifyUpdates(h.installEnvUpdates, installEnvName, installEnvNamespace)
 }
 
 func (h *CRDEventsHandlerChannels) GetInstallEnvUpdates() chan event.GenericEvent {
-	return h.InstallEnvUpdates
+	return h.installEnvUpdates
 }
+
 func (h *CRDEventsHandlerChannels) GetClusterDeploymentUpdates() chan event.GenericEvent {
-	return h.ClusterDeploymentUpdates
+	return h.clusterDeploymentUpdates
+}
+
+func (h *CRDEventsHandlerChannels) GetAgentUpdates() chan event.GenericEvent {
+	return h.agentUpdates
 }
