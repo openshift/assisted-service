@@ -97,6 +97,10 @@ type Cluster struct {
 	//
 	HTTPSProxy string `json:"https_proxy,omitempty" gorm:"column:https_proxy"`
 
+	// Enable/disable hyperthreading on master nodes, worker nodes, or all nodes
+	// Enum: [masters workers all none]
+	Hyperthreading string `json:"hyperthreading,omitempty"`
+
 	// Unique identifier of the object.
 	// Required: true
 	// Format: uuid
@@ -255,6 +259,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHref(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHyperthreading(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -532,6 +540,55 @@ func (m *Cluster) validateHosts(formats strfmt.Registry) error {
 func (m *Cluster) validateHref(formats strfmt.Registry) error {
 
 	if err := validate.Required("href", "body", m.Href); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var clusterTypeHyperthreadingPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["masters","workers","all","none"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterTypeHyperthreadingPropEnum = append(clusterTypeHyperthreadingPropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterHyperthreadingMasters captures enum value "masters"
+	ClusterHyperthreadingMasters string = "masters"
+
+	// ClusterHyperthreadingWorkers captures enum value "workers"
+	ClusterHyperthreadingWorkers string = "workers"
+
+	// ClusterHyperthreadingAll captures enum value "all"
+	ClusterHyperthreadingAll string = "all"
+
+	// ClusterHyperthreadingNone captures enum value "none"
+	ClusterHyperthreadingNone string = "none"
+)
+
+// prop value enum
+func (m *Cluster) validateHyperthreadingEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, clusterTypeHyperthreadingPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Cluster) validateHyperthreading(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Hyperthreading) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateHyperthreadingEnum("hyperthreading", "body", m.Hyperthreading); err != nil {
 		return err
 	}
 

@@ -6,6 +6,7 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"encoding/json"
 	"strconv"
 
 	"github.com/go-openapi/errors"
@@ -62,6 +63,10 @@ type ClusterUpdateParams struct {
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
 	//
 	HTTPSProxy *string `json:"https_proxy,omitempty"`
+
+	// Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
+	// Enum: [masters workers all none]
+	Hyperthreading *string `json:"hyperthreading,omitempty"`
 
 	// The virtual IP used for cluster ingress traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))?$
@@ -128,6 +133,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHostsRoles(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHyperthreading(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -295,6 +304,55 @@ func (m *ClusterUpdateParams) validateHostsRoles(formats strfmt.Registry) error 
 			}
 		}
 
+	}
+
+	return nil
+}
+
+var clusterUpdateParamsTypeHyperthreadingPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["masters","workers","all","none"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterUpdateParamsTypeHyperthreadingPropEnum = append(clusterUpdateParamsTypeHyperthreadingPropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterUpdateParamsHyperthreadingMasters captures enum value "masters"
+	ClusterUpdateParamsHyperthreadingMasters string = "masters"
+
+	// ClusterUpdateParamsHyperthreadingWorkers captures enum value "workers"
+	ClusterUpdateParamsHyperthreadingWorkers string = "workers"
+
+	// ClusterUpdateParamsHyperthreadingAll captures enum value "all"
+	ClusterUpdateParamsHyperthreadingAll string = "all"
+
+	// ClusterUpdateParamsHyperthreadingNone captures enum value "none"
+	ClusterUpdateParamsHyperthreadingNone string = "none"
+)
+
+// prop value enum
+func (m *ClusterUpdateParams) validateHyperthreadingEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, clusterUpdateParamsTypeHyperthreadingPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateHyperthreading(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Hyperthreading) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateHyperthreadingEnum("hyperthreading", "body", *m.Hyperthreading); err != nil {
+		return err
 	}
 
 	return nil
