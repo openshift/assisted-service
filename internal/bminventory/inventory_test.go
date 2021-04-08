@@ -6539,6 +6539,9 @@ var _ = Describe("UpdateHostApproved", func() {
 	})
 
 	It("update approved value", func() {
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo,
+			fmt.Sprintf("Host %s: updated approved to %t", hostID.String(), true),
+			gomock.Any()).Times(1)
 		err := bm.UpdateHostApprovedInternal(ctx, string(clusterID), string(hostID), true)
 		Expect(err).ShouldNot(HaveOccurred())
 		h, err := bm.GetCommonHostInternal(ctx, string(clusterID), string(hostID))
