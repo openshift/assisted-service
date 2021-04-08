@@ -5178,6 +5178,9 @@ definitions:
         type: string
         enum: [beta, production]
         description: Level of support of the version.
+      default:
+        type: boolean
+        description: Indication that the version is the recommended one.
 
   operator-property:
     type: object
