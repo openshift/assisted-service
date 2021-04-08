@@ -232,6 +232,16 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefreshStatus,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusFinalizing),
+		},
+		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
+		Condition:        th.WithAMSSubscriptions,
+		PostTransition:   th.PostUpdateFinalizingAMSConsoleUrl,
+	})
+
 	// This transition is fired when the cluster is in finalizing
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType:   TransitionTypeRefreshStatus,
@@ -252,16 +262,6 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.Not(th.IsInstalling)),
 		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostRefreshCluster(statusInfoError),
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeRefreshStatus,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusFinalizing),
-		},
-		DestinationState: stateswitch.State(models.ClusterStatusFinalizing),
-		Condition:        th.WithAMSSubscriptions,
-		PostTransition:   th.PostUpdateFinalizingAMSConsoleUrl,
 	})
 
 	for _, state := range []stateswitch.State{

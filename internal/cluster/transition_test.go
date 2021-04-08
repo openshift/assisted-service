@@ -270,6 +270,7 @@ var _ = Describe("Transition tests", func() {
 						Status:             swag.String(models.ClusterStatusFinalizing),
 						MonitoredOperators: t.operators,
 					},
+					IsAmsSubscriptionConsoleUrlSet: true,
 				}
 				Expect(common.LoadTableFromDB(db, common.MonitoredOperatorsTable).Create(&c).Error).ShouldNot(HaveOccurred())
 
@@ -2842,7 +2843,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				}
-				if t.srcState == models.ClusterStatusFinalizing {
+				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate {
 					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
 				}
 				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}

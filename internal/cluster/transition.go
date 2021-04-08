@@ -364,7 +364,8 @@ func (th *transitionHandler) WithAMSSubscriptions(sw stateswitch.StateSwitch, ar
 	if !ok {
 		return false, errors.New("WithAMSSubscriptions invalid argument")
 	}
-	if params.ocmClient != nil && params.ocmClient.Config.WithAMSSubscriptions && !sCluster.cluster.IsAmsSubscriptionConsoleUrlSet {
+	if params.ocmClient != nil && params.ocmClient.Config.WithAMSSubscriptions &&
+		!sCluster.cluster.IsAmsSubscriptionConsoleUrlSet && params.clusterAPI.IsOperatorAvailable(sCluster.cluster, operators.OperatorConsole.Name) {
 		return true, nil
 	}
 	return false, nil
@@ -380,9 +381,6 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 		return errors.New("PostUpdateFinalizingAMSConsoleUrl invalid argument")
 	}
 	log := logutil.FromContext(params.ctx, th.log)
-	if !params.clusterAPI.IsOperatorAvailable(sCluster.cluster, operators.OperatorConsole.Name) {
-		return nil
-	}
 	subscriptionID := sCluster.cluster.AmsSubscriptionID
 	consoleUrl := fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, sCluster.cluster.Name, sCluster.cluster.BaseDNSDomain)
 	if err := params.ocmClient.AccountsMgmt.UpdateSubscriptionConsoleUrl(params.ctx, subscriptionID, consoleUrl); err != nil {

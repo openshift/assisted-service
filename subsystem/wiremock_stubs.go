@@ -3,6 +3,7 @@ package subsystem
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
@@ -93,7 +94,15 @@ func (w *WireMock) CreateWiremockStubsForOCM() error {
 		return err
 	}
 
-	if err := w.createStubsForGettingAMSSubscription(http.StatusOK); err != nil {
+	if err := w.createStubsForGettingAMSSubscription(http.StatusOK, ocm.SubscriptionStatusReserved); err != nil {
+		return err
+	}
+
+	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateDisplayName); err != nil {
+		return err
+	}
+
+	if err := w.createStubsForUpdatingAMSSubscription(http.StatusOK, subscriptionUpdateConsoleUrl); err != nil {
 		return err
 	}
 
@@ -173,11 +182,11 @@ func (w *WireMock) createStubsForCreatingAMSSubscription(resStatus int) error {
 	return err
 }
 
-func (w *WireMock) createStubsForGettingAMSSubscription(resStatus int) error {
+func (w *WireMock) createStubsForGettingAMSSubscription(resStatus int, status string) error {
 
 	subResponse := subscription{
 		ID:     FakeSubscriptionID,
-		Status: ocm.SubscriptionStatusReserved,
+		Status: status,
 	}
 
 	var resBody []byte
@@ -255,8 +264,7 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		_, err = w.addStub(amsSubscriptionStub)
 		return err
 
-	// subscriptionUpdatePostInstallation
-	default:
+	case subscriptionUpdatePostInstallation:
 
 		type subscriptionUpdateRequest struct {
 			ExternalClusterID strfmt.UUID `json:"external_cluster_id"`
@@ -287,6 +295,10 @@ func (w *WireMock) createStubsForUpdatingAMSSubscription(resStatus int, updateTy
 		amsSubscriptionStub := w.createStubDefinition(subscriptionPath, "PATCH", string(reqBody), string(resBody), resStatus)
 		_, err = w.addStub(amsSubscriptionStub)
 		return err
+
+	default:
+
+		return errors.New("Invalid updateType arg")
 	}
 }
 
