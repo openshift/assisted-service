@@ -47,6 +47,8 @@ var _ = Describe("Controller events wrapper", func() {
 			KubeKeyNamespace: "cluster1Nm",
 		}
 
+		err := db.Create(&cluster1).Error
+		Expect(err).ShouldNot(HaveOccurred())
 		clusterID2 := strfmt.UUID(uuid.New().String())
 		cluster2 = &common.Cluster{
 			Cluster: models.Cluster{
@@ -55,7 +57,8 @@ var _ = Describe("Controller events wrapper", func() {
 			KubeKeyName:      "cluster2",
 			KubeKeyNamespace: "cluster2Nm",
 		}
-
+		err = db.Create(&cluster2).Error
+		Expect(err).ShouldNot(HaveOccurred())
 	})
 	numOfEvents := func(clusterID strfmt.UUID, hostID *strfmt.UUID) int {
 		evs, err := cEventsWrapper.GetEvents(clusterID, hostID)
@@ -94,7 +97,8 @@ var _ = Describe("Controller events wrapper", func() {
 		})
 
 		It("Adding a host event ", func() {
-			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(&host, cluster1.KubeKeyNamespace).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyAgentUpdates(host.String(), cluster1.KubeKeyNamespace).Times(1)
+			mockCRDEventsHandler.EXPECT().NotifyClusterDeploymentUpdates(cluster1.KubeKeyName, cluster1.KubeKeyNamespace).Times(1)
 			cEventsWrapper.AddEvent(context.TODO(), *cluster1.ID, &host, models.EventSeverityInfo, "event2", time.Now())
 			Expect(numOfEvents(*cluster1.ID, nil)).Should(Equal(1))
 			Expect(numOfEvents(*cluster1.ID, &host)).Should(Equal(1))
@@ -103,6 +107,7 @@ var _ = Describe("Controller events wrapper", func() {
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
+		mockCtrl.Finish()
 	})
 
 })

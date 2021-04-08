@@ -4221,7 +4221,7 @@ func (b *bareMetalInventory) GetCommonHostInternal(_ context.Context, clusterId,
 func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, clusterId, hostId string, approved bool) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Updating Approved to %t Host %s Cluster %s", approved, hostId, clusterId)
-	_, err := b.GetCommonHostInternal(ctx, clusterId, hostId)
+	dbHost, err := b.GetCommonHostInternal(ctx, clusterId, hostId)
 	if err != nil {
 		return err
 	}
@@ -4230,6 +4230,8 @@ func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, clu
 		log.WithError(err).Errorf("failed to update 'approved' in host: %s", hostId)
 		return err
 	}
+	b.eventsHandler.AddEvent(ctx, strfmt.UUID(clusterId), dbHost.ID, models.EventSeverityInfo,
+		fmt.Sprintf("Host %s: updated approved to %t", hostutil.GetHostnameForMsg(&dbHost.Host), approved), time.Now())
 	return nil
 }
 
