@@ -25,6 +25,7 @@ go get -u github.com/onsi/ginkgo/ginkgo@v1.16.1 \
     github.com/vektra/mockery/.../@v1.1.2 \
     gotest.tools/gotestsum@v1.6.3 \
     github.com/axw/gocov/gocov \
+    k8s.io/api@v0.20.5 \
     sigs.k8s.io/controller-tools/cmd/controller-gen@v0.4.0 \
     github.com/AlekSi/gocov-xml@v0.0.0-20190121064608-3a14fb1c4737
 
