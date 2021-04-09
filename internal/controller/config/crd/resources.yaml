@@ -53,6 +53,9 @@ spec:
                 type: object
               hostname:
                 type: string
+              ignitionConfigOverride:
+                description: Json formatted string containing the user overrides for the host's ignition config
+                type: string
               installation_disk_id:
                 description: InstallationDiskID defines the installation destination disk (must be equal to the inventory disk id).
                 type: string
