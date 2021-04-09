@@ -29,8 +29,7 @@ def main():
         return
 
     service_url = utils.get_service_url(service=SERVICE, target=deploy_options.target, domain=deploy_options.domain,
-                                        namespace=deploy_options.namespace, profile=deploy_options.profile,
-                                        disable_tls=deploy_options.disable_tls)
+                                        namespace=deploy_options.namespace, disable_tls=deploy_options.disable_tls)
     health_url = f'{service_url}/ready'
 
     print(f'Wait for {health_url}')

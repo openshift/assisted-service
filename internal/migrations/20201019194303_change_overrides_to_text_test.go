@@ -14,13 +14,14 @@ import (
 var _ = Describe("changeOverridesToText", func() {
 	var (
 		db        *gorm.DB
+		dbName    string
 		gm        *gormigrate.Gormigrate
 		clusterID strfmt.UUID
 		overrides string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB("change_overrides_to_text")
+		db, dbName = common.PrepareTestDB()
 
 		overrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -34,6 +35,10 @@ var _ = Describe("changeOverridesToText", func() {
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
 		err = gm.MigrateTo("20201019194303")
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

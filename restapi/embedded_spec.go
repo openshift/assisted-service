@@ -1144,7 +1144,7 @@ func init() {
             ]
           }
         ],
-        "description": "Get the cluster discovery ignition config",
+        "description": "Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.\nUsed to test the validity of the discovery ignition when it is being overridden.\nFor downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign\n",
         "tags": [
           "installer"
         ],
@@ -1199,7 +1199,7 @@ func init() {
         }
       },
       "patch": {
-        "description": "Override values in the discovery ignition config",
+        "description": "Override values in the discovery ignition config.",
         "tags": [
           "installer"
         ],
@@ -1278,6 +1278,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads files relating to the installed/installing cluster.",
@@ -1504,6 +1507,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO.",
@@ -1648,6 +1654,85 @@ func init() {
             }
           }
         }
+      },
+      "head": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the OpenShift per-cluster Discovery ISO Headers only.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadClusterISOHeaders",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose ISO headers should be downloaded.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "Content-Length": {
+                "type": "integer",
+                "description": "Size of the ISO in bytes"
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/clusters/{cluster_id}/downloads/kubeconfig": {
@@ -1659,6 +1744,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the kubeconfig file for this cluster.",
@@ -3038,6 +3126,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download host logs.",
@@ -3513,6 +3604,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download cluster logs.",
@@ -4732,6 +4826,11 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
+        "ams_subscription_id": {
+          "description": "Unique identifier of the AMS subscription in OCM.",
+          "type": "string",
+          "format": "uuid"
+        },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
@@ -4788,6 +4887,12 @@ func init() {
         "email_domain": {
           "type": "string"
         },
+        "enabled_host_count": {
+          "description": "hosts associated to this cluster that are not in 'disabled' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -4826,6 +4931,16 @@ func init() {
           "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
           "x-go-custom-tag": "gorm:\"column:https_proxy\""
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes",
+          "type": "string",
+          "enum": [
+            "masters",
+            "workers",
+            "all",
+            "none"
+          ]
         },
         "id": {
           "description": "Unique identifier of the object.",
@@ -4867,12 +4982,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
           "type": "string",
           "enum": [
             "Cluster",
-            "AddHostsCluster",
-            "AddHostsOCPCluster"
+            "AddHostsCluster"
           ]
         },
         "logs_info": {
@@ -4922,6 +5036,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "ready_host_count": {
+          "description": "hosts associated to this cluster that are in 'known' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
@@ -4958,6 +5078,12 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "total_host_count": {
+          "description": "All hosts associated to this cluster.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
@@ -5033,6 +5159,17 @@ func init() {
           "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
           "x-nullable": true
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "default": "all",
+          "enum": [
+            "masters",
+            "workers",
+            "none",
+            "all"
+          ]
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -5278,6 +5415,17 @@ func init() {
         "https_proxy": {
           "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
+          "x-nullable": true
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "enum": [
+            "masters",
+            "workers",
+            "all",
+            "none"
+          ],
           "x-nullable": true
         },
         "ingress_vip": {
@@ -5570,8 +5718,9 @@ func init() {
           "type": "string"
         },
         "file_name": {
-          "description": "The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.",
-          "type": "string"
+          "description": "The name of the manifest to customize the installed OCP cluster.",
+          "type": "string",
+          "pattern": "^[^/]*\\.(yaml|yml|json)$"
         },
         "folder": {
           "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
@@ -5671,7 +5820,7 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
-          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
+          "description": "by-id is the World Wide Number of the device which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
@@ -6037,6 +6186,35 @@ func init() {
         "$ref": "#/definitions/free_network_addresses"
       }
     },
+    "gpu": {
+      "type": "object",
+      "properties": {
+        "bus_info": {
+          "description": "Device bus information (for example \"pci@0000:00:02.0\")",
+          "type": "string"
+        },
+        "clock_hz": {
+          "description": "GPU clock frequency in Hz",
+          "type": "integer"
+        },
+        "device_id": {
+          "description": "ID of the device (for example \"3ea0\")",
+          "type": "string"
+        },
+        "name": {
+          "description": "Product name of the device (for example \"UHD Graphics 620 (Whiskey Lake)\")",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "The name of the device vendor (for example \"Intel Corporation\")",
+          "type": "string"
+        },
+        "vendor_id": {
+          "description": "ID of the vendor (for example \"8086\")",
+          "type": "string"
+        }
+      }
+    },
     "host": {
       "type": "object",
       "required": [
@@ -6115,9 +6293,14 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
-        "installation_disk_path": {
-          "description": "Host installation path.",
+        "installation_disk_id": {
+          "description": "Contains the inventory disk id to install on.",
           "type": "string"
+        },
+        "installation_disk_path": {
+          "description": "Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.",
+          "type": "string",
+          "example": "/dev/sda"
         },
         "installer_args": {
           "type": "string"
@@ -6131,12 +6314,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n",
           "type": "string",
           "enum": [
             "Host",
-            "AddToExistingClusterHost",
-            "AddToExistingClusterOCPHost"
+            "AddToExistingClusterHost"
           ]
         },
         "logs_collected_at": {
@@ -6392,7 +6574,7 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed",
+        "sufficient-or-unknown-installation-disk-speed",
         "cnv-requirements-satisfied"
       ]
     },
@@ -6461,6 +6643,10 @@ func init() {
           "description": "Type of image that should be generated.",
           "$ref": "#/definitions/image_type"
         },
+        "mirror_registries_ca_config": {
+          "description": "configuration of the mirror registries for discovery ISO and installed nodes",
+          "$ref": "#/definitions/mirror_registries_ca_config"
+        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -6476,6 +6662,10 @@ func init() {
     "image_info": {
       "type": "object",
       "properties": {
+        "ca_config": {
+          "description": "CA config data for mirror registries",
+          "type": "string"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -6491,6 +6681,10 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version.",
+          "type": "string"
+        },
+        "mirror_registries_config": {
+          "description": "registries.conf file contents in a TOML format",
           "type": "string"
         },
         "size_bytes": {
@@ -6629,6 +6823,12 @@ func init() {
             "$ref": "#/definitions/disk"
           }
         },
+        "gpus": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/gpu"
+          }
+        },
         "hostname": {
           "type": "string"
         },
@@ -6681,8 +6881,19 @@ func init() {
     "l3-connectivity": {
       "type": "object",
       "properties": {
+        "average_rtt_ms": {
+          "description": "Average round trip time in milliseconds.",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "AverageRTTMs"
+        },
         "outgoing_nic": {
           "type": "string"
+        },
+        "packet_loss_percentage": {
+          "description": "Percentage of packets lost during connectivity check.",
+          "type": "number",
+          "format": "double"
         },
         "remote_ip_address": {
           "type": "string"
@@ -6802,6 +7013,53 @@ func init() {
         },
         "usable_bytes": {
           "type": "integer"
+        }
+      }
+    },
+    "mirror_registries_ca_config": {
+      "type": "object",
+      "properties": {
+        "ca_config": {
+          "description": "string containing CA or CA bundle for mirrored registries",
+          "type": "string"
+        },
+        "mirror_registries_config": {
+          "description": "configuration of registries conf",
+          "$ref": "#/definitions/mirror_registries_config"
+        }
+      }
+    },
+    "mirror_registries_config": {
+      "type": "object",
+      "properties": {
+        "mirror_registries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mirror_registry"
+          }
+        },
+        "unqualified-search-registries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "mirror_registry": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "description": "the original registry location",
+          "type": "string"
+        },
+        "mirror_location": {
+          "description": "the mirror regsitry location",
+          "type": "string"
+        },
+        "prefix": {
+          "description": "prefix for choosing this specific mirror",
+          "type": "string"
         }
       }
     },
@@ -7167,6 +7425,25 @@ func init() {
         }
       }
     },
+    "versioned-host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "description": "Master node requirements",
+          "x-go-name": "MasterRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
+        "version": {
+          "description": "Version of the component for which requirements are defined",
+          "type": "string"
+        },
+        "worker": {
+          "description": "Worker node requirements",
+          "x-go-name": "WorkerRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
     "versions": {
       "type": "object",
       "additionalProperties": {
@@ -7179,6 +7456,11 @@ func init() {
       "type": "apiKey",
       "name": "X-Secret-Key",
       "in": "header"
+    },
+    "urlAuth": {
+      "type": "apiKey",
+      "name": "api_key",
+      "in": "query"
     },
     "userAuth": {
       "type": "apiKey",
@@ -8360,7 +8642,7 @@ func init() {
             ]
           }
         ],
-        "description": "Get the cluster discovery ignition config",
+        "description": "Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.\nUsed to test the validity of the discovery ignition when it is being overridden.\nFor downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign\n",
         "tags": [
           "installer"
         ],
@@ -8415,7 +8697,7 @@ func init() {
         }
       },
       "patch": {
-        "description": "Override values in the discovery ignition config",
+        "description": "Override values in the discovery ignition config.",
         "tags": [
           "installer"
         ],
@@ -8494,6 +8776,9 @@ func init() {
           },
           {
             "agentAuth": []
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads files relating to the installed/installing cluster.",
@@ -8720,6 +9005,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the OpenShift per-cluster Discovery ISO.",
@@ -8864,6 +9152,85 @@ func init() {
             }
           }
         }
+      },
+      "head": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          },
+          {
+            "urlAuth": []
+          }
+        ],
+        "description": "Downloads the OpenShift per-cluster Discovery ISO Headers only.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "DownloadClusterISOHeaders",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster whose ISO headers should be downloaded.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "headers": {
+              "Content-Length": {
+                "type": "integer",
+                "description": "Size of the ISO in bytes"
+              }
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed."
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
       }
     },
     "/clusters/{cluster_id}/downloads/kubeconfig": {
@@ -8875,6 +9242,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Downloads the kubeconfig file for this cluster.",
@@ -10254,6 +10624,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download host logs.",
@@ -10729,6 +11102,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Download cluster logs.",
@@ -12092,6 +12468,11 @@ func init() {
           "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
           "type": "string"
         },
+        "ams_subscription_id": {
+          "description": "Unique identifier of the AMS subscription in OCM.",
+          "type": "string",
+          "format": "uuid"
+        },
         "api_vip": {
           "description": "The virtual IP used to reach the OpenShift cluster's API.",
           "type": "string",
@@ -12148,6 +12529,12 @@ func init() {
         "email_domain": {
           "type": "string"
         },
+        "enabled_host_count": {
+          "description": "hosts associated to this cluster that are not in 'disabled' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -12186,6 +12573,16 @@ func init() {
           "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
           "x-go-custom-tag": "gorm:\"column:https_proxy\""
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes",
+          "type": "string",
+          "enum": [
+            "masters",
+            "workers",
+            "all",
+            "none"
+          ]
         },
         "id": {
           "description": "Unique identifier of the object.",
@@ -12227,12 +12624,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it\n",
+          "description": "Indicates the type of this object. Will be 'Cluster' if this is a complete object,\n'AddHostsCluster' for cluster that add hosts to existing OCP cluster,\n",
           "type": "string",
           "enum": [
             "Cluster",
-            "AddHostsCluster",
-            "AddHostsOCPCluster"
+            "AddHostsCluster"
           ]
         },
         "logs_info": {
@@ -12282,6 +12678,12 @@ func init() {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
         },
+        "ready_host_count": {
+          "description": "hosts associated to this cluster that are in 'known' state.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
+        },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
@@ -12318,6 +12720,12 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "total_host_count": {
+          "description": "All hosts associated to this cluster.",
+          "type": "integer",
+          "format": "int64",
+          "x-go-custom-tag": "gorm:\"-\""
         },
         "updated_at": {
           "description": "The last time that this cluster was updated.",
@@ -12393,6 +12801,17 @@ func init() {
           "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
           "x-nullable": true
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "default": "all",
+          "enum": [
+            "masters",
+            "workers",
+            "none",
+            "all"
+          ]
         },
         "ingress_vip": {
           "description": "The virtual IP used for cluster ingress traffic.",
@@ -12598,6 +13017,17 @@ func init() {
         "https_proxy": {
           "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
           "type": "string",
+          "x-nullable": true
+        },
+        "hyperthreading": {
+          "description": "Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.",
+          "type": "string",
+          "enum": [
+            "masters",
+            "workers",
+            "all",
+            "none"
+          ],
           "x-nullable": true
         },
         "ingress_vip": {
@@ -12890,8 +13320,9 @@ func init() {
           "type": "string"
         },
         "file_name": {
-          "description": "The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.",
-          "type": "string"
+          "description": "The name of the manifest to customize the installed OCP cluster.",
+          "type": "string",
+          "pattern": "^[^/]*\\.(yaml|yml|json)$"
         },
         "folder": {
           "description": "The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.",
@@ -12991,7 +13422,7 @@ func init() {
           "type": "boolean"
         },
         "by_id": {
-          "description": "by-id is the wwn/enve-ei which guaranteed to be unique for every storage device",
+          "description": "by-id is the World Wide Number of the device which guaranteed to be unique for every storage device",
           "type": "string"
         },
         "by_path": {
@@ -13321,6 +13752,35 @@ func init() {
         "$ref": "#/definitions/free_network_addresses"
       }
     },
+    "gpu": {
+      "type": "object",
+      "properties": {
+        "bus_info": {
+          "description": "Device bus information (for example \"pci@0000:00:02.0\")",
+          "type": "string"
+        },
+        "clock_hz": {
+          "description": "GPU clock frequency in Hz",
+          "type": "integer"
+        },
+        "device_id": {
+          "description": "ID of the device (for example \"3ea0\")",
+          "type": "string"
+        },
+        "name": {
+          "description": "Product name of the device (for example \"UHD Graphics 620 (Whiskey Lake)\")",
+          "type": "string"
+        },
+        "vendor": {
+          "description": "The name of the device vendor (for example \"Intel Corporation\")",
+          "type": "string"
+        },
+        "vendor_id": {
+          "description": "ID of the vendor (for example \"8086\")",
+          "type": "string"
+        }
+      }
+    },
     "host": {
       "type": "object",
       "required": [
@@ -13399,9 +13859,14 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
-        "installation_disk_path": {
-          "description": "Host installation path.",
+        "installation_disk_id": {
+          "description": "Contains the inventory disk id to install on.",
           "type": "string"
+        },
+        "installation_disk_path": {
+          "description": "Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.",
+          "type": "string",
+          "example": "/dev/sda"
         },
         "installer_args": {
           "type": "string"
@@ -13415,12 +13880,11 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\""
         },
         "kind": {
-          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster\n",
+          "description": "Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or\n'AddToExistingClusterHost' for host being added to existing OCP cluster, or\n",
           "type": "string",
           "enum": [
             "Host",
-            "AddToExistingClusterHost",
-            "AddToExistingClusterOCPHost"
+            "AddToExistingClusterHost"
           ]
         },
         "logs_collected_at": {
@@ -13676,7 +14140,7 @@ func init() {
         "container-images-available",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "sufficient-installation-disk-speed",
+        "sufficient-or-unknown-installation-disk-speed",
         "cnv-requirements-satisfied"
       ]
     },
@@ -13745,6 +14209,10 @@ func init() {
           "description": "Type of image that should be generated.",
           "$ref": "#/definitions/image_type"
         },
+        "mirror_registries_ca_config": {
+          "description": "configuration of the mirror registries for discovery ISO and installed nodes",
+          "$ref": "#/definitions/mirror_registries_ca_config"
+        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -13760,6 +14228,10 @@ func init() {
     "image_info": {
       "type": "object",
       "properties": {
+        "ca_config": {
+          "description": "CA config data for mirror registries",
+          "type": "string"
+        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -13775,6 +14247,10 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version.",
+          "type": "string"
+        },
+        "mirror_registries_config": {
+          "description": "registries.conf file contents in a TOML format",
           "type": "string"
         },
         "size_bytes": {
@@ -13914,6 +14390,12 @@ func init() {
             "$ref": "#/definitions/disk"
           }
         },
+        "gpus": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/gpu"
+          }
+        },
         "hostname": {
           "type": "string"
         },
@@ -13966,8 +14448,19 @@ func init() {
     "l3-connectivity": {
       "type": "object",
       "properties": {
+        "average_rtt_ms": {
+          "description": "Average round trip time in milliseconds.",
+          "type": "number",
+          "format": "double",
+          "x-go-name": "AverageRTTMs"
+        },
         "outgoing_nic": {
           "type": "string"
+        },
+        "packet_loss_percentage": {
+          "description": "Percentage of packets lost during connectivity check.",
+          "type": "number",
+          "format": "double"
         },
         "remote_ip_address": {
           "type": "string"
@@ -14076,6 +14569,53 @@ func init() {
         },
         "usable_bytes": {
           "type": "integer"
+        }
+      }
+    },
+    "mirror_registries_ca_config": {
+      "type": "object",
+      "properties": {
+        "ca_config": {
+          "description": "string containing CA or CA bundle for mirrored registries",
+          "type": "string"
+        },
+        "mirror_registries_config": {
+          "description": "configuration of registries conf",
+          "$ref": "#/definitions/mirror_registries_config"
+        }
+      }
+    },
+    "mirror_registries_config": {
+      "type": "object",
+      "properties": {
+        "mirror_registries": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/mirror_registry"
+          }
+        },
+        "unqualified-search-registries": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "mirror_registry": {
+      "type": "object",
+      "properties": {
+        "location": {
+          "description": "the original registry location",
+          "type": "string"
+        },
+        "mirror_location": {
+          "description": "the mirror regsitry location",
+          "type": "string"
+        },
+        "prefix": {
+          "description": "prefix for choosing this specific mirror",
+          "type": "string"
         }
       }
     },
@@ -14441,6 +14981,25 @@ func init() {
         }
       }
     },
+    "versioned-host-requirements": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "description": "Master node requirements",
+          "x-go-name": "MasterRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        },
+        "version": {
+          "description": "Version of the component for which requirements are defined",
+          "type": "string"
+        },
+        "worker": {
+          "description": "Worker node requirements",
+          "x-go-name": "WorkerRequirements",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
     "versions": {
       "type": "object",
       "additionalProperties": {
@@ -14453,6 +15012,11 @@ func init() {
       "type": "apiKey",
       "name": "X-Secret-Key",
       "in": "header"
+    },
+    "urlAuth": {
+      "type": "apiKey",
+      "name": "api_key",
+      "in": "query"
     },
     "userAuth": {
       "type": "apiKey",

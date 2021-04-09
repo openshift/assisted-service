@@ -26,13 +26,13 @@ var _ = Describe("update_host_state", func() {
 		mockEvents      *events.MockHandler
 		host            models.Host
 		lastUpdatedTime strfmt.DateTime
-		returnedHost    *models.Host
+		returnedHost    *common.Host
 		err             error
-		dbName          string = "host_common_test"
+		dbName          string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		id := strfmt.UUID(uuid.New().String())

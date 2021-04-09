@@ -21,6 +21,9 @@ type ImageCreateParams struct {
 	// Type of image that should be generated.
 	ImageType ImageType `json:"image_type,omitempty"`
 
+	// configuration of the mirror registries for discovery ISO and installed nodes
+	MirrorRegistriesCaConfig *MirrorRegistriesCaConfig `json:"mirror_registries_ca_config,omitempty"`
+
 	// SSH public key for debugging the installation.
 	SSHPublicKey string `json:"ssh_public_key,omitempty"`
 
@@ -33,6 +36,10 @@ func (m *ImageCreateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateImageType(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateMirrorRegistriesCaConfig(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -57,6 +64,24 @@ func (m *ImageCreateParams) validateImageType(formats strfmt.Registry) error {
 			return ve.ValidateName("image_type")
 		}
 		return err
+	}
+
+	return nil
+}
+
+func (m *ImageCreateParams) validateMirrorRegistriesCaConfig(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.MirrorRegistriesCaConfig) { // not required
+		return nil
+	}
+
+	if m.MirrorRegistriesCaConfig != nil {
+		if err := m.MirrorRegistriesCaConfig.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("mirror_registries_ca_config")
+			}
+			return err
+		}
 	}
 
 	return nil

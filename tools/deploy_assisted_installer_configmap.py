@@ -23,7 +23,7 @@ def handle_arguments():
     parser.add_argument("--img-expr-time", default="")
     parser.add_argument("--img-expr-interval", default="")
     parser.add_argument("--check-cvo", default="False")
-    parser.add_argument("--ipv6-support", default="False")
+    parser.add_argument("--ipv6-support", default="True")
     parser.add_argument("--enable-sno-dnsmasq", default="True")
 
     return deployment_options.load_deployment_options(parser)
@@ -58,7 +58,6 @@ def main():
                                                                             target=deploy_options.target,
                                                                             domain=deploy_options.domain,
                                                                             namespace=deploy_options.namespace,
-                                                                            profile=deploy_options.profile,
                                                                             disable_tls=deploy_options.disable_tls))
 
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
@@ -120,7 +119,6 @@ def main():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=DST_FILE
         )
 

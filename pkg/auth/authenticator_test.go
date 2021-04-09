@@ -3,6 +3,7 @@ package auth
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/sirupsen/logrus"
 )
 
@@ -36,11 +37,11 @@ var _ = Describe("NewAuthenticator", func() {
 		Expect(ok).To(BeTrue())
 
 		// LocalAuthenticator
-		_, ecdsaPubKey, err := ECDSATokenAndKey("")
+		pubKey, _, err := gencrypto.ECDSAKeyPairPEM()
 		Expect(err).ToNot(HaveOccurred())
 		config = &Config{
 			AuthType:       TypeLocal,
-			ECPublicKeyPEM: ecdsaPubKey,
+			ECPublicKeyPEM: pubKey,
 		}
 
 		a, err = NewAuthenticator(config, nil, logrus.New(), nil)

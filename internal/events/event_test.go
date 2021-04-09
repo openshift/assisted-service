@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
@@ -16,7 +17,6 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/requestid"
-	"github.com/pborman/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -29,13 +29,13 @@ var _ = Describe("Events library", func() {
 	var (
 		db        *gorm.DB
 		theEvents *events.Events
-		dbName    = "events_test"
+		dbName    string
 		cluster1  = strfmt.UUID("46a8d745-dfce-4fd8-9df0-549ee8eabb3d")
 		cluster2  = strfmt.UUID("60415d9c-7c44-4978-89f5-53d510b03a47")
 		host      = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 	})
 	numOfEvents := func(clusterID strfmt.UUID, hostID *strfmt.UUID) int {
@@ -109,7 +109,7 @@ var _ = Describe("Events library", func() {
 	Context("events with request ID", func() {
 		It("events with request ID", func() {
 			ctx := context.Background()
-			rid1 := uuid.NewRandom().String()
+			rid1 := uuid.New().String()
 			ctx = requestid.ToContext(ctx, rid1)
 			theEvents.AddEvent(ctx, cluster1, &host, models.EventSeverityInfo, "event1", time.Now())
 			Expect(numOfEvents(cluster1, &host)).Should(Equal(1))

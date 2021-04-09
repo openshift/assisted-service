@@ -2,7 +2,6 @@ package cluster
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -17,11 +16,17 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	consoleUrlPrefix = "https://console-openshift-console.apps"
 )
 
 var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
@@ -296,6 +301,7 @@ type TransitionArgsRefreshCluster struct {
 	db                *gorm.DB
 	objectHandler     s3wrapper.API
 	clusterAPI        API
+	ocmClient         *ocm.Client
 }
 
 func If(id stringer) stateswitch.Condition {
@@ -349,6 +355,47 @@ func (th *transitionHandler) IsInstallingPendingUserAction(
 	return false, nil
 }
 
+func (th *transitionHandler) WithAMSSubscriptions(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return false, errors.New("WithAMSSubscriptions incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return false, errors.New("WithAMSSubscriptions invalid argument")
+	}
+	if params.ocmClient != nil && params.ocmClient.Config.WithAMSSubscriptions &&
+		!sCluster.cluster.IsAmsSubscriptionConsoleUrlSet && params.clusterAPI.IsOperatorAvailable(sCluster.cluster, operators.OperatorConsole.Name) {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostUpdateFinalizingAMSConsoleUrl incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return errors.New("PostUpdateFinalizingAMSConsoleUrl invalid argument")
+	}
+	log := logutil.FromContext(params.ctx, th.log)
+	subscriptionID := sCluster.cluster.AmsSubscriptionID
+	consoleUrl := fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, sCluster.cluster.Name, sCluster.cluster.BaseDNSDomain)
+	if err := params.ocmClient.AccountsMgmt.UpdateSubscriptionConsoleUrl(params.ctx, subscriptionID, consoleUrl); err != nil {
+		log.WithError(err).Error("Failed to updated console-url in OCM")
+		return err
+	}
+	isAmsSubscriptionConsoleUrlSetField := "is_ams_subscription_console_url_set"
+	if _, err := UpdateCluster(log, th.db, *sCluster.cluster.ID, sCluster.srcState, isAmsSubscriptionConsoleUrlSetField, true); err != nil {
+		log.WithError(err).Errorf("Failed to update %s in cluster DB", isAmsSubscriptionConsoleUrlSetField)
+		return err
+	}
+	log.Infof("Updated console-url in AMS subscription with id %s", subscriptionID)
+	return nil
+}
+
 func (th *transitionHandler) enoughMastersAndWorkers(sCluster *stateCluster, statuses []string) bool {
 	mappedMastersByRole := MapMasterHostsByStatus(sCluster.cluster)
 	mappedWorkersByRole := MapWorkersHostsByStatus(sCluster.cluster)
@@ -400,16 +447,14 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		}
 
 		var (
-			b              []byte
 			err            error
 			updatedCluster *common.Cluster
 		)
-		b, err = json.Marshal(&params.validationResults)
-		if err != nil {
-			return err
+		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
+			updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+				reason)
 		}
-		updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
-			reason, "validations_info", string(b))
+
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed
 		cluster := sCluster.cluster
 		if updatedCluster != nil {

@@ -9,7 +9,7 @@ import (
 )
 
 var _ = Describe("CNV manifest generation", func() {
-	operator := NewCNVOperator(common.GetTestLog())
+	operator := NewCNVOperator(common.GetTestLog(), Config{})
 	cluster := common.Cluster{Cluster: models.Cluster{
 		OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 	}}

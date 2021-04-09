@@ -52,14 +52,15 @@ def main():
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_ID', 'value': 'mock-ocm-client-id'})
             data["spec"]["template"]["spec"]["containers"][0]["env"].append({'name':'OCM_SERVICE_CLIENT_SECRET', 'value': 'mock-ocm-client-secret'})
 
-            if deploy_options.profile == utils.OPENSHIFT_CI:
+            if deploy_options.target == deployment_options.OPENSHIFT_TARGET:
                 # Images built on infra cluster but needed on ephemeral cluster
                 data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "IfNotPresent"
             else:
                 data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
         else:
             data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
-        if deploy_options.target == utils.OCP_TARGET:
+
+        if deploy_options.target == deployment_options.OCP_TARGET:
             data["spec"]["replicas"] = 1 # force single replica
             spec = data["spec"]["template"]["spec"]
             service_container = spec["containers"][0]
@@ -79,7 +80,6 @@ def main():
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=DST_FILE
     )
 

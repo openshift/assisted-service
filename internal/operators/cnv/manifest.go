@@ -6,8 +6,8 @@ import (
 )
 
 // Manifests returns manifests needed to deploy CNV
-func Manifests(OpenShiftVersion string) (map[string][]byte, error) {
-	cnvSubs, err := subscription(OpenShiftVersion)
+func Manifests() (map[string][]byte, error) {
+	cnvSubs, err := subscription()
 	if err != nil {
 		return nil, err
 	}
@@ -20,9 +20,8 @@ func Manifests(OpenShiftVersion string) (map[string][]byte, error) {
 	return manifests, nil
 }
 
-func subscription(OpenShiftVersion string) ([]byte, error) {
+func subscription() ([]byte, error) {
 	data := map[string]string{
-		"OPENSHIFT_VERSION":          OpenShiftVersion,
 		"OPERATOR_NAMESPACE":         Operator.Namespace,
 		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
 	}
@@ -47,7 +46,7 @@ spec:
   source: redhat-operators
   sourceNamespace: openshift-marketplace
   name: kubevirt-hyperconverged
-  channel: "{{.OPENSHIFT_VERSION}}"
+  channel: stable
   installPlanApproval: "Automatic"`
 
 const cnvNamespace = `apiVersion: v1

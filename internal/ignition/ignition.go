@@ -26,7 +26,7 @@ import (
 	config_latest_types "github.com/coreos/ignition/v2/config/v3_2/types"
 	"github.com/coreos/vcontext/report"
 	"github.com/go-openapi/swag"
-	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
+	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
@@ -214,6 +215,24 @@ const discoveryIgnitionConfigFormat = `{
         "name": "root"
       },
       "append": [{ "source": "{{.ServiceIPs}}" }]
+    }{{end}}{{if .MirrorRegistriesConfig}},
+    {
+      "path": "/etc/containers/registries.conf",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesConfig}}"}
+    },
+    {
+      "path": "/etc/pki/ca-trust/source/anchors/domain.crt",
+      "mode": 420,
+      "overwrite": true,
+      "user": {
+        "name": "root"
+      },
+      "contents": { "source": "data:text/plain;base64,{{.MirrorRegistriesCAConfig}}"}
     }{{end}}{{if .StaticNetworkConfig}},
     {
         "path": "/usr/local/bin/pre-network-manager-config.sh",
@@ -269,7 +288,7 @@ type Generator interface {
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
-	FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, params *models.ImageCreateParams, safeForLogs bool, authType auth.AuthType) (string, error)
+	FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
 	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error)
 }
 
@@ -1199,7 +1218,7 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
-func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, params *models.ImageCreateParams, safeForLogs bool, authType auth.AuthType) (string, error) {
+func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	pullSecretToken, err := clusterPkg.AgentToken(cluster, authType)
 	if err != nil {
 		return "", err
@@ -1213,7 +1232,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		rhCa = url.PathEscape(RedhatRootCA)
 	}
 	var ignitionParams = map[string]interface{}{
-		"userSshKey":           getUserSSHKey(params.SSHPublicKey),
+		"userSshKey":           getUserSSHKey(cluster.ImageInfo.SSHPublicKey),
 		"AgentDockerImg":       cfg.AgentDockerImg,
 		"ServiceBaseURL":       strings.TrimSpace(cfg.ServiceBaseURL),
 		"clusterId":            cluster.ID.String(),
@@ -1248,7 +1267,12 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}
 
-	if cluster.ImageInfo.StaticNetworkConfig != "" && params.ImageType == models.ImageTypeFullIso {
+	if cluster.ImageInfo.MirrorRegistriesConfig != "" {
+		ignitionParams["MirrorRegistriesConfig"] = base64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.MirrorRegistriesConfig))
+		ignitionParams["MirrorRegistriesCAConfig"] = base64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.CaConfig))
+	}
+
+	if cluster.ImageInfo.StaticNetworkConfig != "" && cluster.ImageInfo.Type == models.ImageTypeFullIso {
 		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(cluster)
 		if newErr != nil {
 			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for cluster %s", cluster.ID)
@@ -1359,4 +1383,43 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		return "", err
 	}
 	return buf.String(), nil
+}
+
+// builds an /etc/containers/registries.conf file contents in TOML format based on the input.
+// for format details see man containers-registries.conf
+func FormatRegistriesConfForIgnition(mirrorRegistriesCaConfig *models.MirrorRegistriesCaConfig) (string, string, error) {
+	if mirrorRegistriesCaConfig == nil {
+		return "", "", nil
+	}
+	caConfig := mirrorRegistriesCaConfig.CaConfig
+	mirrorRegistriesConfig := mirrorRegistriesCaConfig.MirrorRegistriesConfig
+
+	// create a map that represents TOML tree
+	treeMap := make(map[string]interface{})
+	registryEntryList := []map[string]interface{}{}
+	// loop over mirror registries data and for each create its own map
+	for _, mirrorRegistryConfig := range mirrorRegistriesConfig.MirrorRegistries {
+		registryMap := make(map[string]interface{})
+		registryMap["prefix"] = mirrorRegistryConfig.Prefix
+		registryMap["location"] = mirrorRegistryConfig.Location
+		registryMap["mirror-by-digest-only"] = false
+		mirrorMap := make(map[string]interface{})
+		mirrorMap["location"] = mirrorRegistryConfig.MirrorLocation
+		// mirror is also an  TOML array, so it must be a list of maps
+		registryMap["mirror"] = []interface{}{mirrorMap}
+		registryEntryList = append(registryEntryList, registryMap)
+	}
+
+	treeMap["unqualified-search-registries"] = mirrorRegistriesConfig.UnqualifiedSearchRegistries
+	treeMap["registry"] = registryEntryList
+
+	tomlTree, err := toml.TreeFromMap(treeMap)
+	if err != nil {
+		return "", "", err
+	}
+	tomlString, err := tomlTree.ToTomlString()
+	if err != nil {
+		return "", "", err
+	}
+	return tomlString, caConfig, nil
 }

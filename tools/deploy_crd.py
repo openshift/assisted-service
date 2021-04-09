@@ -17,17 +17,17 @@ def main():
         utils.apply(
             target=deploy_options.target,
             namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
             file=file_path
         )
 
-        file_path = os.path.join(os.getcwd(), 'hack/crds/hive.openshift.io_clusterdeployments.yaml')
-        utils.apply(
-            target=deploy_options.target,
-            namespace=deploy_options.namespace,
-            profile=deploy_options.profile,
-            file=file_path
-        )
+        crds_dir = os.path.join(os.getcwd(), 'hack/crds/')
+        for crd in os.listdir(crds_dir):
+            file_path = f"{crds_dir}/{crd}"
+            utils.apply(
+                target=deploy_options.target,
+                namespace=deploy_options.namespace,
+                file=file_path
+            )
 
 
 if __name__ == "__main__":

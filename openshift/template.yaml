@@ -11,7 +11,7 @@ parameters:
 - name: BASE_DNS_DOMAINS # example: name1:id1/provider1,name2:id2/provider2
   value: ''
 - name: OPENSHIFT_VERSIONS
-  value: '{"4.6":{"display_name":"4.6.16","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.2","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.0/rhcos-4.7.0-x86_64-live.x86_64.iso","rhcos_version":"47.83.202102090044-0","support_level":"production"}}' # openshift version
+  value: '{"4.6":{"display_name":"4.6.16","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.5","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.5-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.0/rhcos-4.7.0-x86_64-live.x86_64.iso","rhcos_version":"47.83.202102090044-0","support_level":"production"}}' # openshift version
   required: false
 - name: JWKS_URL # example https://example.com/.well-known/jwks.json
   value: ''
@@ -57,6 +57,9 @@ parameters:
 - name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
   value: ''
   required: true
+- name: HW_VALIDATOR_REQUIREMENTS
+  value: ''
+  required: true
 - name: INSTALLER_IMAGE
   value: ''
   required: true
@@ -90,7 +93,7 @@ parameters:
 - name: CHECK_CLUSTER_VERSION
   value: "false"
 - name: IPV6_SUPPORT
-  value: "false"
+  value: "true"
   required: false
 - name: ENABLE_SINGLE_NODE_DNSMASQ
   value: "true"
@@ -268,6 +271,8 @@ objects:
                 value: ${HW_VALIDATOR_MIN_RAM_GIB}
               - name: HW_VALIDATOR_MIN_DISK_SIZE_GIB
                 value: ${HW_VALIDATOR_MIN_DISK_SIZE_GIB}
+              - name: HW_VALIDATOR_REQUIREMENTS
+                value: ${HW_VALIDATOR_REQUIREMENTS}
               - name: INSTALLER_IMAGE
                 value: ${INSTALLER_IMAGE}
               - name: SELF_VERSION

@@ -64,36 +64,6 @@ func (mr *MockAPIMockRecorder) GenerateManifests(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateManifests", reflect.TypeOf((*MockAPI)(nil).GenerateManifests), arg0, arg1)
 }
 
-// GetCPURequirementForRole mocks base method
-func (m *MockAPI) GetCPURequirementForRole(arg0 context.Context, arg1 *common.Cluster, arg2 models.HostRole) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetCPURequirementForRole", arg0, arg1, arg2)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetCPURequirementForRole indicates an expected call of GetCPURequirementForRole
-func (mr *MockAPIMockRecorder) GetCPURequirementForRole(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCPURequirementForRole", reflect.TypeOf((*MockAPI)(nil).GetCPURequirementForRole), arg0, arg1, arg2)
-}
-
-// GetMemoryRequirementForRole mocks base method
-func (m *MockAPI) GetMemoryRequirementForRole(arg0 context.Context, arg1 *common.Cluster, arg2 models.HostRole) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetMemoryRequirementForRole", arg0, arg1, arg2)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetMemoryRequirementForRole indicates an expected call of GetMemoryRequirementForRole
-func (mr *MockAPIMockRecorder) GetMemoryRequirementForRole(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMemoryRequirementForRole", reflect.TypeOf((*MockAPI)(nil).GetMemoryRequirementForRole), arg0, arg1, arg2)
-}
-
 // GetMonitoredOperatorsList mocks base method
 func (m *MockAPI) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {
 	m.ctrl.T.Helper()
@@ -138,6 +108,21 @@ func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorProperties", reflect.TypeOf((*MockAPI)(nil).GetOperatorProperties), arg0)
 }
 
+// GetRequirementsBreakdownForHostInCluster mocks base method
+func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]*models.OperatorHostRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetRequirementsBreakdownForHostInCluster", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*models.OperatorHostRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetRequirementsBreakdownForHostInCluster indicates an expected call of GetRequirementsBreakdownForHostInCluster
+func (mr *MockAPIMockRecorder) GetRequirementsBreakdownForHostInCluster(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetRequirementsBreakdownForHostInCluster", reflect.TypeOf((*MockAPI)(nil).GetRequirementsBreakdownForHostInCluster), arg0, arg1, arg2)
+}
+
 // GetSupportedOperators mocks base method
 func (m *MockAPI) GetSupportedOperators() []string {
 	m.ctrl.T.Helper()
@@ -166,18 +151,19 @@ func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSupportedOperatorsByType", reflect.TypeOf((*MockAPI)(nil).GetSupportedOperatorsByType), arg0)
 }
 
-// UpdateDependencies mocks base method
-func (m *MockAPI) UpdateDependencies(arg0 *common.Cluster) error {
+// ResolveDependencies mocks base method
+func (m *MockAPI) ResolveDependencies(arg0 []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateDependencies", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret := m.ctrl.Call(m, "ResolveDependencies", arg0)
+	ret0, _ := ret[0].([]*models.MonitoredOperator)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
-// UpdateDependencies indicates an expected call of UpdateDependencies
-func (mr *MockAPIMockRecorder) UpdateDependencies(arg0 interface{}) *gomock.Call {
+// ResolveDependencies indicates an expected call of ResolveDependencies
+func (mr *MockAPIMockRecorder) ResolveDependencies(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateDependencies", reflect.TypeOf((*MockAPI)(nil).UpdateDependencies), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveDependencies", reflect.TypeOf((*MockAPI)(nil).ResolveDependencies), arg0)
 }
 
 // ValidateCluster mocks base method

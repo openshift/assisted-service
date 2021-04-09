@@ -84,6 +84,9 @@ type InstallerAPI interface {
 	/* DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO. */
 	DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder
 
+	/* DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only. */
+	DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder
+
 	/* DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster. */
 	DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder
 
@@ -117,7 +120,10 @@ type InstallerAPI interface {
 	/* GetCredentials Get the cluster admin credentials. */
 	GetCredentials(ctx context.Context, params installer.GetCredentialsParams) middleware.Responder
 
-	/* GetDiscoveryIgnition Get the cluster discovery ignition config */
+	/* GetDiscoveryIgnition Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+	   Used to test the validity of the discovery ignition when it is being overridden.
+	   For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
+	*/
 	GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder
 
 	/* GetFreeAddresses Retrieves the free address list for a network. */
@@ -183,7 +189,7 @@ type InstallerAPI interface {
 	/* UpdateClusterLogsProgress Update log collection state and progress. */
 	UpdateClusterLogsProgress(ctx context.Context, params installer.UpdateClusterLogsProgressParams) middleware.Responder
 
-	/* UpdateDiscoveryIgnition Override values in the discovery ignition config */
+	/* UpdateDiscoveryIgnition Override values in the discovery ignition config. */
 	UpdateDiscoveryIgnition(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) middleware.Responder
 
 	/* UpdateHostIgnition Patch the ignition file for this host */
@@ -283,6 +289,9 @@ type Config struct {
 	// AuthAgentAuth Applies when the "X-Secret-Key" header is set
 	AuthAgentAuth func(token string) (interface{}, error)
 
+	// AuthURLAuth Applies when the "api_key" query is set
+	AuthURLAuth func(token string) (interface{}, error)
+
 	// AuthUserAuth Applies when the "Authorization" header is set
 	AuthUserAuth func(token string) (interface{}, error)
 
@@ -332,6 +341,13 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 			return token, nil
 		}
 		return c.AuthAgentAuth(token)
+	}
+
+	api.URLAuthAuth = func(token string) (interface{}, error) {
+		if c.AuthURLAuth == nil {
+			return token, nil
+		}
+		return c.AuthURLAuth(token)
 	}
 
 	api.UserAuthAuth = func(token string) (interface{}, error) {
@@ -395,6 +411,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterISO(ctx, params)
+	})
+	api.InstallerDownloadClusterISOHeadersHandler = installer.DownloadClusterISOHeadersHandlerFunc(func(params installer.DownloadClusterISOHeadersParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.DownloadClusterISOHeaders(ctx, params)
 	})
 	api.InstallerDownloadClusterKubeconfigHandler = installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

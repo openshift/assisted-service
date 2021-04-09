@@ -12,10 +12,10 @@ from utils import check_output
 
 OCP_VERSIONS_FILE = "default_ocp_versions.json"
 
-# 0.2.0 SNO was based on 4.7 but was placed under the 4.8 version key in versions JSONs.
+# 4.8.0-0.nightly SNO require pull secret, this should allow the deployment to skip this validation.
 # This entry disables the validation for that mismatch. Safe to remove this line and all
-# of its usages in about a month from now, when this image is less relevant.
-SKIP_IMAGES = ['registry.svc.ci.openshift.org/sno-dev/openshift-bip:0.2.0']
+# of its usages once the deployment env use pull secret with creds for this image.
+SKIP_IMAGES = ['quay.io/openshift-release-dev/ocp-release-nightly:4.8.0-0.nightly-2021-03-16-221720']
 
 
 def handle_arguments():

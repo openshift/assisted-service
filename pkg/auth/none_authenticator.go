@@ -33,6 +33,11 @@ func (a *NoneAuthenticator) AuthUserAuth(_ string) (interface{}, error) {
 	return ocm.AdminPayload(), nil
 }
 
+func (a *NoneAuthenticator) AuthURLAuth(_ string) (interface{}, error) {
+	a.log.Debug("URL Authentication Disabled")
+	return ocm.AdminPayload(), nil
+}
+
 func (a *NoneAuthenticator) CreateAuthenticator() func(_, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 	return func(_ string, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 		return security.HttpAuthenticator(func(_ *http.Request) (bool, interface{}, error) {

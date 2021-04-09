@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -9,6 +10,10 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/sirupsen/logrus"
 )
+
+type stringer interface {
+	String() string
+}
 
 type validationResult struct {
 	ID      validationID     `json:"id"`
@@ -18,26 +23,36 @@ type validationResult struct {
 
 type validationsStatus map[string][]validationResult
 
+type validationResults []validationResult
+
 type refreshPreprocessor struct {
 	log          logrus.FieldLogger
 	validations  []validation
+	conditions   []condition
 	operatorsApi operators.API
 }
 
 func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API) *refreshPreprocessor {
+	v := &validator{
+		log:            log,
+		hwValidatorCfg: hwValidatorCfg,
+		hwValidator:    hwValidator,
+		operatorsAPI:   operatorsApi,
+	}
 	return &refreshPreprocessor{
 		log:          log,
-		validations:  newValidations(log, hwValidatorCfg, hwValidator, operatorsApi),
+		validations:  newValidations(v),
+		conditions:   newConditions(v),
 		operatorsApi: operatorsApi,
 	}
 }
 
-func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID]bool, validationsStatus, error) {
-	stateMachineInput := make(map[validationID]bool)
+func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, validationsStatus, error) {
+	stateMachineInput := make(map[string]bool)
 	validationsOutput := make(validationsStatus)
 	for _, v := range r.validations {
 		st := v.condition(c)
-		stateMachineInput[v.id] = st == ValidationSuccess
+		stateMachineInput[v.id.String()] = st == ValidationSuccess
 		message := v.formatter(c, st)
 		category, err := v.id.category()
 		if err != nil {
@@ -51,6 +66,10 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID
 		})
 	}
 
+	for _, cn := range r.conditions {
+		stateMachineInput[cn.id.String()] = cn.fn(c)
+	}
+
 	// Validate operators
 	results, err := r.operatorsApi.ValidateHost(context.TODO(), c.cluster, c.host)
 	if err != nil {
@@ -58,7 +77,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID
 	}
 	for _, result := range results {
 		id := validationID(result.ValidationId)
-		stateMachineInput[id] = result.Status == api.Success
+		stateMachineInput[id.String()] = result.Status == api.Success
 		category, err := id.category()
 		if err != nil {
 			logrus.WithError(err).Warn("id.category()")
@@ -72,18 +91,20 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[validationID
 			Status:  status,
 			Message: strings.Join(result.Reasons, "\n"),
 		})
+		sortByValidationResultID(validationsOutput[category])
 	}
 
 	return stateMachineInput, validationsOutput, nil
 }
 
-func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsAPI operators.API) []validation {
-	v := validator{
-		log:            log,
-		hwValidatorCfg: hwValidatorCfg,
-		hwValidator:    hwValidator,
-		operatorsAPI:   operatorsAPI,
-	}
+// sortByValidationResultID sorts results by models.HostValidationID
+func sortByValidationResultID(validationResults []validationResult) {
+	sort.SliceStable(validationResults, func(i, j int) bool {
+		return validationResults[i].ID < validationResults[j].ID
+	})
+}
+
+func newValidations(v *validator) []validation {
 	ret := []validation{
 		{
 			id:        IsConnected,
@@ -164,6 +185,25 @@ func newValidations(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCf
 			id:        AreContainerImagesAvailable,
 			condition: v.areImagesAvailable,
 			formatter: v.printImageAvailability,
+		},
+		{
+			id:        SufficientOrUnknownInstallationDiskSpeed,
+			condition: v.sufficientOrUnknownInstallationDiskSpeed,
+			formatter: v.printSufficientOrUnknownInstallationDiskSpeed,
+		},
+	}
+	return ret
+}
+
+func newConditions(v *validator) []condition {
+	ret := []condition{
+		{
+			id: InstallationDiskSpeedCheckSuccessful,
+			fn: v.isInstallationDiskSpeedCheckSuccessful,
+		},
+		{
+			id: ClusterInsufficient,
+			fn: v.isClusterInsufficient,
 		},
 	}
 	return ret

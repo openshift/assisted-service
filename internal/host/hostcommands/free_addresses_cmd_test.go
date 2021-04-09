@@ -21,10 +21,10 @@ var _ = Describe("free_addresses", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "freeaddresses_cmd"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		fCmd = NewFreeAddressesCmd(common.GetTestLog(), "quay.io/ocpmetal/free_addresses:latest")
 
 		id = strfmt.UUID(uuid.New().String())

@@ -86,6 +86,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDownloadClusterISOHandler: installer.DownloadClusterISOHandlerFunc(func(params installer.DownloadClusterISOParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterISO has not yet been implemented")
 		}),
+		InstallerDownloadClusterISOHeadersHandler: installer.DownloadClusterISOHeadersHandlerFunc(func(params installer.DownloadClusterISOHeadersParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadClusterISOHeaders has not yet been implemented")
+		}),
 		InstallerDownloadClusterKubeconfigHandler: installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterKubeconfig has not yet been implemented")
 		}),
@@ -250,6 +253,10 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		AgentAuthAuth: func(token string) (interface{}, error) {
 			return nil, errors.NotImplemented("api key auth (agentAuth) X-Secret-Key from header param [X-Secret-Key] has not yet been implemented")
 		},
+		// Applies when the "api_key" query is set
+		URLAuthAuth: func(token string) (interface{}, error) {
+			return nil, errors.NotImplemented("api key auth (urlAuth) api_key from query param [api_key] has not yet been implemented")
+		},
 		// Applies when the "Authorization" header is set
 		UserAuthAuth: func(token string) (interface{}, error) {
 			return nil, errors.NotImplemented("api key auth (userAuth) Authorization from header param [Authorization] has not yet been implemented")
@@ -300,6 +307,10 @@ type AssistedInstallAPI struct {
 	// it performs authentication based on an api key X-Secret-Key provided in the header
 	AgentAuthAuth func(string) (interface{}, error)
 
+	// URLAuthAuth registers a function that takes a token and returns a principal
+	// it performs authentication based on an api key api_key provided in the query
+	URLAuthAuth func(string) (interface{}, error)
+
 	// UserAuthAuth registers a function that takes a token and returns a principal
 	// it performs authentication based on an api key Authorization provided in the header
 	UserAuthAuth func(string) (interface{}, error)
@@ -329,6 +340,8 @@ type AssistedInstallAPI struct {
 	InstallerDownloadClusterFilesHandler installer.DownloadClusterFilesHandler
 	// InstallerDownloadClusterISOHandler sets the operation handler for the download cluster i s o operation
 	InstallerDownloadClusterISOHandler installer.DownloadClusterISOHandler
+	// InstallerDownloadClusterISOHeadersHandler sets the operation handler for the download cluster i s o headers operation
+	InstallerDownloadClusterISOHeadersHandler installer.DownloadClusterISOHeadersHandler
 	// InstallerDownloadClusterKubeconfigHandler sets the operation handler for the download cluster kubeconfig operation
 	InstallerDownloadClusterKubeconfigHandler installer.DownloadClusterKubeconfigHandler
 	// InstallerDownloadClusterLogsHandler sets the operation handler for the download cluster logs operation
@@ -520,6 +533,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.AgentAuthAuth == nil {
 		unregistered = append(unregistered, "XSecretKeyAuth")
 	}
+	if o.URLAuthAuth == nil {
+		unregistered = append(unregistered, "APIKeyAuth")
+	}
 	if o.UserAuthAuth == nil {
 		unregistered = append(unregistered, "AuthorizationAuth")
 	}
@@ -556,6 +572,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerDownloadClusterISOHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterISOHandler")
+	}
+	if o.InstallerDownloadClusterISOHeadersHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadClusterISOHeadersHandler")
 	}
 	if o.InstallerDownloadClusterKubeconfigHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterKubeconfigHandler")
@@ -738,6 +757,10 @@ func (o *AssistedInstallAPI) AuthenticatorsFor(schemes map[string]spec.SecurityS
 			scheme := schemes[name]
 			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.AgentAuthAuth)
 
+		case "urlAuth":
+			scheme := schemes[name]
+			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.URLAuthAuth)
+
 		case "userAuth":
 			scheme := schemes[name]
 			result[name] = o.APIKeyAuthenticator(scheme.Name, scheme.In, o.UserAuthAuth)
@@ -865,6 +888,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISO(o.context, o.InstallerDownloadClusterISOHandler)
+	if o.handlers["HEAD"] == nil {
+		o.handlers["HEAD"] = make(map[string]http.Handler)
+	}
+	o.handlers["HEAD"]["/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISOHeaders(o.context, o.InstallerDownloadClusterISOHeadersHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

@@ -217,11 +217,9 @@ func (r *InstallEnvReconciler) ensureISO(ctx context.Context, installEnv *adiiov
 	isoParams := installer.GenerateClusterISOParams{
 		ClusterID: *cluster.ID,
 		ImageCreateParams: &models.ImageCreateParams{
-			ImageType: r.Config.ImageType,
+			ImageType:    r.Config.ImageType,
+			SSHPublicKey: installEnv.Spec.SSHAuthorizedKey,
 		},
-	}
-	if len(installEnv.Spec.SSHAuthorizedKeys) > 0 {
-		isoParams.ImageCreateParams.SSHPublicKey = installEnv.Spec.SSHAuthorizedKeys[0]
 	}
 	// GenerateClusterISOInternal will generate an ISO only if there it was not generated before,
 	// or something has changed in isoParams.

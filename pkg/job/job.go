@@ -82,7 +82,7 @@ func (k *kubeJob) getJob(ctx context.Context, job *batch.Job, name, namespace st
 		}
 		return err
 	}
-	//using retry for get job api because sometimes k8s (minikube) api service is not reachable
+	//using retry for get job api because sometimes k8s api service is not reachable
 	if err := retry(func() error {
 		return k.kube.Get(ctx, client.ObjectKey{
 			Namespace: namespace,

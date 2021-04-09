@@ -14,6 +14,7 @@ import (
 var _ = Describe("changeOverridesToText", func() {
 	var (
 		db        *gorm.DB
+		dbName    string
 		gm        *gormigrate.Gormigrate
 		clusterID strfmt.UUID
 		err       error
@@ -21,7 +22,7 @@ var _ = Describe("changeOverridesToText", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB("change_image_ssh_key_to_text")
+		db, dbName = common.PrepareTestDB()
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
 
 		// create cluster in order to get rows from DB
@@ -37,6 +38,10 @@ var _ = Describe("changeOverridesToText", func() {
 
 		err = gm.MigrateTo("20201202140700")
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

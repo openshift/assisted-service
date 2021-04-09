@@ -1,57 +1,66 @@
 package hardware
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/dustin/go-humanize"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
 
-const (
-	intelVirtCpuFlag = "vmx"
-	amdVirtCpuFlag   = "svm"
-)
-
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
+	GetHostInstallationPath(host *models.Host) string
+	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(disk *models.Disk) []string
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 }
 
-func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
+func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
 	return &validator{
 		ValidatorCfg: cfg,
 		log:          log,
+		operatorsAPI: operatorsAPI,
 	}
 }
 
 type ValidatorCfg struct {
-	MinCPUCores                   int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
-	MinCPUCoresWorker             int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
-	MinCPUCoresMaster             int64 `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
-	MinRamGib                     int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
-	MinRamGibWorker               int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
-	MinRamGibMaster               int64 `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
-	MinDiskSizeGb                 int64 `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
-	MaximumAllowedTimeDiffMinutes int64 `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
+	MinCPUCores                      int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
+	MinCPUCoresWorker                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
+	MinCPUCoresMaster                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
+	MinRamGib                        int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
+	MinRamGibWorker                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
+	MinRamGibMaster                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
+	MinDiskSizeGb                    int64                        `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
+	MaximumAllowedTimeDiffMinutes    int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
+	InstallationDiskSpeedThresholdMs int64                        `envconfig:"HW_INSTALLATION_DISK_SPEED_THRESHOLD_MS" default:"10"`
+	VersionedRequirements            VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
 }
 
 type validator struct {
 	ValidatorCfg
-	log logrus.FieldLogger
+	log          logrus.FieldLogger
+	operatorsAPI operators.API
 }
 
 // DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
 func DiskEligibilityInitialized(disk *models.Disk) bool {
 	return disk.InstallationEligibility.Eligible || len(disk.InstallationEligibility.NotEligibleReasons) != 0
+}
+
+func (v *validator) GetHostInstallationPath(host *models.Host) string {
+	return hostutil.GetHostInstallationPath(host)
 }
 
 func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
@@ -117,19 +126,76 @@ func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Dis
 func (v *validator) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
 	if role == models.HostRoleMaster {
 		return models.HostRequirementsRole{
-			CPUCores:   v.ValidatorCfg.MinCPUCoresMaster,
-			RAMGib:     v.ValidatorCfg.MinRamGibMaster,
-			DiskSizeGb: v.ValidatorCfg.MinDiskSizeGb,
+			CPUCores:                         v.ValidatorCfg.MinCPUCoresMaster,
+			RAMGib:                           v.ValidatorCfg.MinRamGibMaster,
+			DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
+			InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
 		}
-	} else {
-		return models.HostRequirementsRole{
-			CPUCores:   v.ValidatorCfg.MinCPUCoresWorker,
-			RAMGib:     v.ValidatorCfg.MinRamGibWorker,
-			DiskSizeGb: v.ValidatorCfg.MinDiskSizeGb,
-		}
+	}
+	return models.HostRequirementsRole{
+		CPUCores:                         v.ValidatorCfg.MinCPUCoresWorker,
+		RAMGib:                           v.ValidatorCfg.MinRamGibWorker,
+		DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
+		InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
 	}
 }
 
-func IsVirtSupported(inventory *models.Inventory) bool {
-	return funk.Contains(inventory.CPU.Flags, intelVirtCpuFlag) || funk.Contains(inventory.CPU.Flags, amdVirtCpuFlag)
+func (v *validator) GetHostRequirementsForVersion(role models.HostRole, openShiftVersion string) models.HostRequirementsRole {
+	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(openShiftVersion)
+	if err != nil {
+		return v.GetHostRequirements(role)
+	}
+	if role == models.HostRoleMaster {
+		return fromRequirements(requirements.MasterRequirements)
+	}
+	return fromRequirements(requirements.WorkerRequirements)
+}
+
+func fromRequirements(nodeRequirements *models.ClusterHostRequirementsDetails) models.HostRequirementsRole {
+	return models.HostRequirementsRole{
+		CPUCores:                         nodeRequirements.CPUCores,
+		RAMGib:                           conversions.MibToGiB(nodeRequirements.RAMMib),
+		DiskSizeGb:                       nodeRequirements.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: nodeRequirements.InstallationDiskSpeedThresholdMs,
+	}
+}
+
+func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+	operatorsRequirements, err := v.operatorsAPI.GetRequirementsBreakdownForHostInCluster(ctx, cluster, host)
+	if err != nil {
+		return nil, err
+	}
+
+	hostRequirements := v.GetHostRequirementsForVersion(host.Role, cluster.OpenshiftVersion)
+	ocpRequirements := models.ClusterHostRequirementsDetails{
+		CPUCores:                         hostRequirements.CPUCores,
+		RAMMib:                           conversions.GibToMib(hostRequirements.RAMGib),
+		DiskSizeGb:                       hostRequirements.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: hostRequirements.InstallationDiskSpeedThresholdMs,
+	}
+	total := totalizeRequirements(ocpRequirements, operatorsRequirements)
+	return &models.ClusterHostRequirements{
+		HostID:    *host.ID,
+		Ocp:       &ocpRequirements,
+		Operators: operatorsRequirements,
+		Total:     &total,
+	}, nil
+}
+
+func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails, operatorRequirements []*models.OperatorHostRequirements) models.ClusterHostRequirementsDetails {
+	total := ocpRequirements
+
+	for _, req := range operatorRequirements {
+		details := req.Requirements
+		total.RAMMib = total.RAMMib + details.RAMMib
+		total.CPUCores = total.CPUCores + details.CPUCores
+		total.DiskSizeGb = total.DiskSizeGb + details.DiskSizeGb
+
+		if details.InstallationDiskSpeedThresholdMs > 0 {
+			if total.InstallationDiskSpeedThresholdMs == 0 || details.InstallationDiskSpeedThresholdMs < total.InstallationDiskSpeedThresholdMs {
+				total.InstallationDiskSpeedThresholdMs = details.InstallationDiskSpeedThresholdMs
+			}
+		}
+	}
+	return total
 }

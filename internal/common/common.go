@@ -14,6 +14,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const EnvConfigPrefix = "myapp"
+
 const MinMasterHostsNeededForInstallation = 3
 const AllowedNumberOfMasterHostsInNoneHaMode = 1
 const AllowedNumberOfWorkersInNoneHaMode = 0

@@ -40,6 +40,9 @@ type API interface {
 	   DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO.*/
 	DownloadClusterISO(ctx context.Context, params *DownloadClusterISOParams, writer io.Writer) (*DownloadClusterISOOK, error)
 	/*
+	   DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only.*/
+	DownloadClusterISOHeaders(ctx context.Context, params *DownloadClusterISOHeadersParams) (*DownloadClusterISOHeadersOK, error)
+	/*
 	   DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster.*/
 	DownloadClusterKubeconfig(ctx context.Context, params *DownloadClusterKubeconfigParams, writer io.Writer) (*DownloadClusterKubeconfigOK, error)
 	/*
@@ -73,7 +76,10 @@ type API interface {
 	   GetCredentials Get the cluster admin credentials.*/
 	GetCredentials(ctx context.Context, params *GetCredentialsParams) (*GetCredentialsOK, error)
 	/*
-	   GetDiscoveryIgnition Get the cluster discovery ignition config*/
+	   GetDiscoveryIgnition Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+	   Used to test the validity of the discovery ignition when it is being overridden.
+	   For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
+	*/
 	GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error)
 	/*
 	   GetFreeAddresses Retrieves the free address list for a network.*/
@@ -139,7 +145,7 @@ type API interface {
 	   UpdateClusterLogsProgress Update log collection state and progress.*/
 	UpdateClusterLogsProgress(ctx context.Context, params *UpdateClusterLogsProgressParams) (*UpdateClusterLogsProgressNoContent, error)
 	/*
-	   UpdateDiscoveryIgnition Override values in the discovery ignition config*/
+	   UpdateDiscoveryIgnition Override values in the discovery ignition config.*/
 	UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error)
 	/*
 	   UpdateHostIgnition Patch the ignition file for this host*/
@@ -354,6 +360,31 @@ func (a *Client) DownloadClusterISO(ctx context.Context, params *DownloadCluster
 		return nil, err
 	}
 	return result.(*DownloadClusterISOOK), nil
+
+}
+
+/*
+DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only.
+*/
+func (a *Client) DownloadClusterISOHeaders(ctx context.Context, params *DownloadClusterISOHeadersParams) (*DownloadClusterISOHeadersOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadClusterISOHeaders",
+		Method:             "HEAD",
+		PathPattern:        "/clusters/{cluster_id}/downloads/image",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadClusterISOHeadersReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadClusterISOHeadersOK), nil
 
 }
 
@@ -633,7 +664,10 @@ func (a *Client) GetCredentials(ctx context.Context, params *GetCredentialsParam
 }
 
 /*
-GetDiscoveryIgnition Get the cluster discovery ignition config
+GetDiscoveryIgnition Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+Used to test the validity of the discovery ignition when it is being overridden.
+For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
+
 */
 func (a *Client) GetDiscoveryIgnition(ctx context.Context, params *GetDiscoveryIgnitionParams) (*GetDiscoveryIgnitionOK, error) {
 
@@ -1183,7 +1217,7 @@ func (a *Client) UpdateClusterLogsProgress(ctx context.Context, params *UpdateCl
 }
 
 /*
-UpdateDiscoveryIgnition Override values in the discovery ignition config
+UpdateDiscoveryIgnition Override values in the discovery ignition config.
 */
 func (a *Client) UpdateDiscoveryIgnition(ctx context.Context, params *UpdateDiscoveryIgnitionParams) (*UpdateDiscoveryIgnitionCreated, error) {
 

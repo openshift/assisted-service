@@ -47,12 +47,12 @@ var _ = Describe("update_role", func() {
 		state         API
 		host          models.Host
 		id, clusterID strfmt.UUID
-		dbName        = "update_role"
+		dbName        string
 	)
 
 	BeforeEach(func() {
 		dummy := &leader.DummyElector{}
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		state = NewManager(common.GetTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -264,7 +264,7 @@ var _ = Describe("update_progress", func() {
 		ctrl       *gomock.Controller
 		mockEvents *events.MockHandler
 		mockMetric *metrics.MockAPI
-		dbName     = "host_update_progress"
+		dbName     string
 	)
 
 	setDefaultReportHostInstallationMetrics := func(mockMetricApi *metrics.MockAPI) {
@@ -272,7 +272,7 @@ var _ = Describe("update_progress", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -494,11 +494,11 @@ var _ = Describe("cancel installation", func() {
 		state         API
 		h             models.Host
 		eventsHandler events.Handler
-		dbName        = "cancel_installation"
+		dbName        string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		state = NewManager(common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, defaultConfig, dummy, nil)
@@ -576,12 +576,12 @@ var _ = Describe("reset host", func() {
 		state         API
 		h             models.Host
 		eventsHandler events.Handler
-		dbName        = "reset_host"
+		dbName        string
 		config        Config
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		config = *defaultConfig
 		dummy := &leader.DummyElector{}
@@ -700,12 +700,12 @@ var _ = Describe("register host", func() {
 		state         API
 		h             models.Host
 		eventsHandler *events.MockHandler
-		dbName        = "host_tests_register_host"
+		dbName        string
 		config        Config
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		eventsHandler = events.NewMockHandler(ctrl)
 		config = *defaultConfig
@@ -847,11 +847,11 @@ var _ = Describe("UpdateInventory", func() {
 		mockValidator     *hardware.MockValidator
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "update_inventory"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
@@ -864,6 +864,54 @@ var _ = Describe("UpdateInventory", func() {
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+	})
+
+	Context("Check populate disk id", func() {
+		const (
+			name   = "name"
+			byPath = "/dev/disk/by-path/name"
+			path   = "/dev/name"
+		)
+		for _, test := range []struct {
+			testName   string
+			inventory  models.Inventory
+			expectedId string
+		}{
+			{testName: "Old agent - backwards compatibility - disk has by-path information",
+				inventory: models.Inventory{Disks: []*models.Disk{
+					{
+						Name:   name,
+						ByPath: byPath,
+					},
+				}},
+				expectedId: path,
+			}, {testName: "Old agent - backwards compatibility - disk has only its name",
+				inventory: models.Inventory{Disks: []*models.Disk{
+					{
+						Name: name,
+					},
+				}},
+				expectedId: path,
+			},
+		} {
+			test := test
+			It(test.testName, func() {
+				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+				mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(test.inventory.Disks)
+				inventoryStr, err := hostutil.MarshalInventory(&test.inventory)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(hapi.(*Manager).UpdateInventory(ctx, &host, inventoryStr)).ToNot(HaveOccurred())
+				h := hostutil.GetHostFromDB(hostId, clusterId, db)
+				Expect(h.Inventory).To(Not(BeEmpty()))
+				inventory, err := hostutil.UnmarshalInventory(h.Inventory)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(inventory).To(Not(BeNil()))
+				Expect(inventory.Disks).Should(HaveLen(1))
+				Expect(inventory.Disks[0].ID).To(Equal(test.expectedId))
+			})
+		}
 	})
 
 	Context("Check populate disk eligibility", func() {
@@ -912,12 +960,13 @@ var _ = Describe("UpdateInventory", func() {
 			It(test.testName, func() {
 				mockValidator.EXPECT().DiskIsEligible(gomock.Any()).Return(test.serviceReasons)
 
-				testInventory, err := json.Marshal(&models.Inventory{Disks: []*models.Disk{
+				testInventory := models.Inventory{Disks: []*models.Disk{
 					{InstallationEligibility: models.DiskInstallationEligibility{
 						Eligible: test.agentDecision, NotEligibleReasons: test.agentReasons},
 					},
-				}})
+				}}
 
+				_, err := json.Marshal(&testInventory)
 				Expect(err).ToNot(HaveOccurred())
 
 				expectedDisks := []*models.Disk{
@@ -925,103 +974,69 @@ var _ = Describe("UpdateInventory", func() {
 						Eligible: test.expectedDecision, NotEligibleReasons: test.expectedReasons}},
 				}
 
-				populated, err := hapi.(*Manager).populateDisksEligibility(string(testInventory))
-				Expect(err).To(BeNil())
-
-				var actualInventory models.Inventory
-				err = json.Unmarshal([]byte(populated), &actualInventory)
-				Expect(err).To(BeNil())
-
-				Expect(actualInventory.Disks).Should(Equal(expectedDisks))
-
+				hapi.(*Manager).populateDisksEligibility(&testInventory)
+				Expect(testInventory.Disks).Should(Equal(expectedDisks))
 			})
 		}
 	})
 
 	Context("Test update default installation disk", func() {
 		const (
-			diskName      = "FirstDisk"
-			otherDiskName = "SecondDisk"
+			diskName = "FirstDisk"
+			diskId   = "/dev/disk/by-id/FirstDisk"
+			diskPath = "/dev/FirstDisk"
 		)
 
-		It("Make sure UpdateInventory uses determineDefaultInstallationDisk to update the db", func() {
+		BeforeEach(func() {
 			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
 			host.Inventory = common.GenerateTestDefaultInventory()
 			host.InstallationDiskPath = ""
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
-			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(
-				[]*models.Disk{{Name: diskName}}, nil,
+
+		})
+
+		It("Make sure UpdateInventory updates the db", func() {
+			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
+				[]*models.Disk{{ID: diskId, Name: diskName}},
 			)
 
 			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
 
 			h := hostutil.GetHostFromDB(hostId, clusterId, db)
-			Expect(h.InstallationDiskPath).To(Equal(hostutil.GetDeviceFullName(diskName)))
+			Expect(h.InstallationDiskPath).To(Equal(diskPath))
+			Expect(h.InstallationDiskID).To(Equal(diskId))
 
 			// Now make sure it gets removed if the disk is no longer in the inventory
-
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
-			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(
-				[]*models.Disk{}, nil,
+			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
+				[]*models.Disk{},
 			)
-
 			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
 
 			h = hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(h.InstallationDiskPath).To(Equal(""))
+			Expect(h.InstallationDiskID).To(Equal(""))
 		})
 
-		for _, test := range []struct {
-			testName                 string
-			currentInstallationDisk  string
-			inventoryDisks           []*models.Disk
-			expectedInstallationDisk string
-		}{
-			{testName: "No previous installation disk, no disks in inventory",
-				currentInstallationDisk:  "",
-				inventoryDisks:           []*models.Disk{},
-				expectedInstallationDisk: ""},
-			{testName: "No previous installation disk, one disk in inventory",
-				currentInstallationDisk:  "",
-				inventoryDisks:           []*models.Disk{{Name: diskName}},
-				expectedInstallationDisk: hostutil.GetDeviceFullName(diskName)},
-			{testName: "No previous installation disk, two disks in inventory",
-				currentInstallationDisk:  "",
-				inventoryDisks:           []*models.Disk{{Name: diskName}, {Name: otherDiskName}},
-				expectedInstallationDisk: hostutil.GetDeviceFullName(diskName)},
-			{testName: "Previous installation disk is set, new inventory still contains that disk",
-				currentInstallationDisk:  hostutil.GetDeviceFullName(diskName),
-				inventoryDisks:           []*models.Disk{{Name: diskName}},
-				expectedInstallationDisk: hostutil.GetDeviceFullName(diskName)},
-			{testName: "Previous installation disk is set, new inventory still contains that disk, but there's another",
-				currentInstallationDisk:  hostutil.GetDeviceFullName(diskName),
-				inventoryDisks:           []*models.Disk{{Name: diskName}, {Name: otherDiskName}},
-				expectedInstallationDisk: hostutil.GetDeviceFullName(diskName)},
-			{testName: `Previous installation disk is set, new inventory still contains that disk, but there's another
-						disk with higher priority`,
-				currentInstallationDisk:  hostutil.GetDeviceFullName(diskName),
-				inventoryDisks:           []*models.Disk{{Name: otherDiskName}, {Name: diskName}},
-				expectedInstallationDisk: hostutil.GetDeviceFullName(diskName)},
-			{testName: "Previous installation disk is set, new inventory doesn't contain any disk",
-				currentInstallationDisk:  hostutil.GetDeviceFullName(diskName),
-				inventoryDisks:           []*models.Disk{},
-				expectedInstallationDisk: ""},
-			{testName: "Previous installation disk is set, new inventory only contains a different disk",
-				currentInstallationDisk:  hostutil.GetDeviceFullName(diskName),
-				inventoryDisks:           []*models.Disk{{Name: otherDiskName}},
-				expectedInstallationDisk: hostutil.GetDeviceFullName(otherDiskName)},
-		} {
-			test := test
-			It(test.testName, func() {
-				Expect(
-					determineDefaultInstallationDisk(
-						test.currentInstallationDisk,
-						test.inventoryDisks,
-					)).To(Equal(test.expectedInstallationDisk))
-			})
-		}
+		It("Upgrade installation_disk_id after getting new inventory", func() {
+			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
+				[]*models.Disk{{Name: diskName}},
+			)
+			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
+			h := hostutil.GetHostFromDB(hostId, clusterId, db)
+			Expect(h.InstallationDiskPath).To(Equal(diskPath))
+			Expect(h.InstallationDiskID).To(Equal(diskPath))
+
+			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
+				[]*models.Disk{{ID: diskId, Name: diskName}},
+			)
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
+			h = hostutil.GetHostFromDB(hostId, clusterId, db)
+			Expect(h.InstallationDiskPath).To(Equal(diskPath))
+			Expect(h.InstallationDiskID).To(Equal(diskId))
+		})
 	})
 
 	Context("enable host", func() {
@@ -1032,7 +1047,7 @@ var _ = Describe("UpdateInventory", func() {
 			// so we can make sure an update actually occurred.
 			newInventoryBytes = alternativeInventory()
 			mockValidator.EXPECT().DiskIsEligible(gomock.Any()).AnyTimes()
-			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
+			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(nil).AnyTimes()
 		})
 
 		success := func(err error) {
@@ -1119,7 +1134,6 @@ var _ = Describe("UpdateInventory", func() {
 			It(t.name, func() {
 				host = hostutil.GenerateTestHost(hostId, clusterId, t.srcState)
 				host.Inventory = common.GenerateTestDefaultInventory()
-
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				t.validation(hapi.UpdateInventory(ctx, &host, string(newInventoryBytes)))
 			})
@@ -1134,11 +1148,11 @@ var _ = Describe("Update hostname", func() {
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "update_inventory"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(common.GetTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -1249,12 +1263,12 @@ var _ = Describe("Update disk installation path", func() {
 		host              models.Host
 		ctrl              *gomock.Controller
 		mockValidator     *hardware.MockValidator
-		dbName            = "installation_path_db"
+		dbName            string
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		leader := &leader.DummyElector{}
 		mockValidator = hardware.NewMockValidator(ctrl)
 		logger := common.GetTestLog()
@@ -1271,12 +1285,14 @@ var _ = Describe("Update disk installation path", func() {
 	success := func(reply error) {
 		Expect(reply).To(BeNil())
 		h := hostutil.GetHostFromDB(hostId, clusterId, db)
-		Expect(h.InstallationDiskPath).To(Equal("/dev/test-disk"))
+		Expect(h.InstallationDiskID).To(Equal(common.TestDiskId))
+		Expect(h.InstallationDiskPath).To(Equal(common.TestDiskPath))
 	}
 
 	failure := func(reply error) {
 		Expect(reply).To(HaveOccurred())
 		h := hostutil.GetHostFromDB(hostId, clusterId, db)
+		Expect(h.InstallationDiskID).To(Equal(""))
 		Expect(h.InstallationDiskPath).To(Equal(""))
 	}
 
@@ -1285,7 +1301,7 @@ var _ = Describe("Update disk installation path", func() {
 			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusKnown)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{common.TestDefaultConfig.Disks}, nil)
-			failure(hapi.UpdateInstallationDiskPath(ctx, db, &host, "/no/such/disk"))
+			failure(hapi.UpdateInstallationDisk(ctx, db, &host, "/no/such/disk"))
 		})
 		//happy flow is validated implicitly in the next test context
 	})
@@ -1296,7 +1312,7 @@ var _ = Describe("Update disk installation path", func() {
 			expectedError := errors.New("bad inventory")
 			mockValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return([]*models.Disk{common.TestDefaultConfig.Disks}, expectedError)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			err := hapi.UpdateInstallationDiskPath(ctx, db, &host, "/no/such/disk")
+			err := hapi.UpdateInstallationDisk(ctx, db, &host, "/no/such/disk")
 			Expect(err).To(Equal(expectedError))
 			failure(err)
 		})
@@ -1380,7 +1396,7 @@ var _ = Describe("Update disk installation path", func() {
 
 				host = hostutil.GenerateTestHost(hostId, clusterId, t.srcState)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				err := hapi.UpdateInstallationDiskPath(ctx, db, &host, "/dev/test-disk")
+				err := hapi.UpdateInstallationDisk(ctx, db, &host, common.TestDiskId)
 
 				if t.validation {
 					success(err)
@@ -1401,11 +1417,11 @@ var _ = Describe("SetBootstrap", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "SetBootstrap"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1462,11 +1478,11 @@ var _ = Describe("UpdateNTP", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "UpdateNTP"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1524,11 +1540,11 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "UpdateMachineConfigPoolName"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1607,12 +1623,12 @@ var _ = Describe("update logs_info", func() {
 		hapi              API
 		host              models.Host
 		hostId, clusterId strfmt.UUID
-		dbName            = "host_update_logs_info"
+		dbName            string
 	)
 
 	BeforeEach(func() {
 		dummy := &leader.DummyElector{}
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		mockOperators := operators.NewMockAPI(ctrl)
 		hapi = NewManager(common.GetTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, mockOperators)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -1681,11 +1697,11 @@ var _ = Describe("UpdateImageStatus", func() {
 		mockMetric        *metrics.MockAPI
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "UpdateImageStatus"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -1824,11 +1840,11 @@ var _ = Describe("PrepareForInstallation", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		dbName            = "prepare_for_installation"
+		dbName            string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1893,19 +1909,21 @@ var _ = Describe("PrepareForInstallation", func() {
 
 var _ = Describe("AutoAssignRole", func() {
 	var (
-		ctx       = context.Background()
-		clusterId strfmt.UUID
-		hapi      API
-		db        *gorm.DB
-		ctrl      *gomock.Controller
-		dbName    = "host_auto_assign_role"
+		ctx             = context.Background()
+		clusterId       strfmt.UUID
+		hapi            API
+		db              *gorm.DB
+		ctrl            *gomock.Controller
+		mockHwValidator *hardware.MockValidator
+		dbName          string
 	)
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		mockHwValidator := hardware.NewMockValidator(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(
@@ -1926,8 +1944,25 @@ var _ = Describe("AutoAssignRole", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+			var details models.ClusterHostRequirementsDetails
+			if host.Role == models.HostRoleMaster {
+				details = models.ClusterHostRequirementsDetails{
+					CPUCores:   4,
+					DiskSizeGb: 120,
+					RAMMib:     16384,
+				}
+			} else {
+				details = models.ClusterHostRequirementsDetails{
+					CPUCores:   2,
+					DiskSizeGb: 120,
+					RAMMib:     8192,
+				}
+			}
+			return &models.ClusterHostRequirements{Total: &details}, nil
+		})
+
 	})
 
 	AfterEach(func() {
@@ -2019,18 +2054,19 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		clusterId strfmt.UUID
 		hapi      API
 		db        *gorm.DB
-		dbName    = "host_is_valid_master_candidate"
+		dbName    string
 		ctrl      *gomock.Controller
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		dummy := &leader.DummyElector{}
 		testLog := common.GetTestLog()
 		hwValidatorCfg := createValidatorCfg()
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
-		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg)
+		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators)
+		mockOperators.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
 		hapi = NewManager(
 			common.GetTestLog(),
 			db,
@@ -2049,8 +2085,6 @@ var _ = Describe("IsValidMasterCandidate", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -2132,7 +2166,7 @@ var _ = Describe("Validation metrics and events", func() {
 		ctrl            *gomock.Controller
 		ctx             = context.Background()
 		db              *gorm.DB
-		dbName          = "validation_metrics_and_events"
+		dbName          string
 		mockEvents      *events.MockHandler
 		mockHwValidator *hardware.MockValidator
 		mockMetric      *metrics.MockAPI
@@ -2185,7 +2219,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -2225,4 +2259,94 @@ var _ = Describe("Validation metrics and events", func() {
 		newValidationRes = generateTestValidationResult(ValidationFailure)
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
 	})
+})
+
+var _ = Describe("SetDiskSpeed", func() {
+	var (
+		ctrl            *gomock.Controller
+		ctx             = context.Background()
+		db              *gorm.DB
+		dbName          string
+		mockEvents      *events.MockHandler
+		mockHwValidator *hardware.MockValidator
+		validatorCfg    *hardware.ValidatorCfg
+		m               *Manager
+		h               *models.Host
+	)
+
+	registerTestHost := func(clusterID strfmt.UUID) *models.Host {
+
+		hostID := strfmt.UUID(uuid.New().String())
+		h := hostutil.GenerateTestHost(hostID, clusterID, models.HostStatusInsufficient)
+
+		h.Inventory = hostutil.GenerateMasterInventory()
+
+		Expect(m.RegisterHost(ctx, &h, db)).ToNot(HaveOccurred())
+
+		return &h
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		validatorCfg = createValidatorCfg()
+		m = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, nil)
+		h = registerTestHost(strfmt.UUID(uuid.New().String()))
+	})
+
+	verifyValidResult := func(h *models.Host, path string, exitCode int64, speedMs int64) {
+		diskInfo, err := common.GetDiskInfo(h.DisksInfo, path)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(diskInfo).ToNot(BeNil())
+		Expect(diskInfo.DiskSpeed).ToNot(BeNil())
+		Expect(diskInfo.DiskSpeed.Tested).To(BeTrue())
+		Expect(diskInfo.DiskSpeed.ExitCode).To(Equal(exitCode))
+		if exitCode == 0 {
+			Expect(diskInfo.DiskSpeed.SpeedMs).To(Equal(speedMs))
+		}
+	}
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("Happy flow", func() {
+		err := m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 0, nil)
+		Expect(err).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 0, 2)
+	})
+
+	It("Two disks", func() {
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 0, nil)).ToNot(HaveOccurred())
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sdb", 4, 0, nil)).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 0, 2)
+		verifyValidResult(&newHost, "/dev/sdb", 0, 4)
+	})
+
+	It("One in error", func() {
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 5, nil)).ToNot(HaveOccurred())
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sdb", 4, 0, nil)).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 5, 2)
+		verifyValidResult(&newHost, "/dev/sdb", 0, 4)
+	})
+	It("One missing", func() {
+		err := m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 0, nil)
+		Expect(err).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyValidResult(&newHost, "/dev/sda", 0, 2)
+		diskInfo, err := common.GetDiskInfo(h.DisksInfo, "/dev/sdb")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(diskInfo).To(BeNil())
+	})
+
 })

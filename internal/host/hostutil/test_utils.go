@@ -140,7 +140,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags 
 	return string(b)
 }
 
-func GenerateInventoryWithResources(cpu, memory int64, hostname string) string {
+func GenerateInventoryWithResources(cpu, memory int64, hostname string, gpus ...*models.Gpu) string {
 	inventory := models.Inventory{
 		CPU: &models.CPU{Count: cpu, Flags: []string{"vmx"}},
 		Disks: []*models.Disk{
@@ -149,6 +149,7 @@ func GenerateInventoryWithResources(cpu, memory int64, hostname string) string {
 				DriveType: "HDD",
 			},
 		},
+		Gpus: gpus,
 		Interfaces: []*models.Interface{
 			{
 				Name: "eth0",

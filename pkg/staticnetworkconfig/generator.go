@@ -11,6 +11,7 @@ import (
 
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/executer"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/ini.v1"
 	"gopkg.in/yaml.v2"
@@ -99,6 +100,9 @@ func (s *StaticNetworkConfigGenerator) createNMConnectionFiles(nmstateOutput, ho
 	if err != nil {
 		s.log.WithError(err).Errorf("Failed to unmarshal nmstate output")
 		return nil, err
+	}
+	if _, found := hostNMConnections["NetworkManager"]; !found {
+		return nil, errors.Errorf("nmstate generated an empty NetworkManager config file content")
 	}
 	filesList := []StaticNetworkConfigData{}
 	connectionsList := hostNMConnections["NetworkManager"].([]interface{})

@@ -32,16 +32,20 @@ var _ = Describe("monitor_disconnection", func() {
 		host       models.Host
 		ctrl       *gomock.Controller
 		mockEvents *events.MockHandler
-		dbName     = "monitor_disconnection"
+		dbName     string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
+			Total: &models.ClusterHostRequirementsDetails{},
+		}, nil)
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, defaultConfig, dummy, mockOperators)
@@ -59,8 +63,6 @@ var _ = Describe("monitor_disconnection", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
 
 	AfterEach(func() {
@@ -130,20 +132,24 @@ var _ = Describe("TestHostMonitoring", func() {
 		ctrl       *gomock.Controller
 		cfg        Config
 		mockEvents *events.MockHandler
-		dbName     = "host_monitor_tests"
+		dbName     string
 		clusterID  = strfmt.UUID(uuid.New().String())
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockEvents.EXPECT().
 			AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			AnyTimes()
-		Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
+			Total: &models.ClusterHostRequirementsDetails{},
+		}, nil)
+		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
 			nil, &cfg, &leader.DummyElector{}, mockOperators)
@@ -153,8 +159,6 @@ var _ = Describe("TestHostMonitoring", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
-		mockOperators.EXPECT().GetCPURequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockOperators.EXPECT().GetMemoryRequirementForRole(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
 
 	AfterEach(func() {

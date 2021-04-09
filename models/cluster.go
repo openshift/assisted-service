@@ -23,6 +23,10 @@ type Cluster struct {
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
 	AdditionalNtpSource string `json:"additional_ntp_source,omitempty"`
 
+	// Unique identifier of the AMS subscription in OCM.
+	// Format: uuid
+	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id,omitempty"`
+
 	// The virtual IP used to reach the OpenShift cluster's API.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3})|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,}))$
 	APIVip string `json:"api_vip,omitempty"`
@@ -64,6 +68,9 @@ type Cluster struct {
 	// email domain
 	EmailDomain string `json:"email_domain,omitempty"`
 
+	// hosts associated to this cluster that are not in 'disabled' state.
+	EnabledHostCount int64 `json:"enabled_host_count,omitempty" gorm:"-"`
+
 	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
 	// over multiple master nodes whereas 'None' installs a full cluster over one node.
 	//
@@ -89,6 +96,10 @@ type Cluster struct {
 	// http://\<username\>:\<pswd\>@\<ip\>:\<port\>
 	//
 	HTTPSProxy string `json:"https_proxy,omitempty" gorm:"column:https_proxy"`
+
+	// Enable/disable hyperthreading on master nodes, worker nodes, or all nodes
+	// Enum: [masters workers all none]
+	Hyperthreading string `json:"hyperthreading,omitempty"`
 
 	// Unique identifier of the object.
 	// Required: true
@@ -119,10 +130,9 @@ type Cluster struct {
 
 	// Indicates the type of this object. Will be 'Cluster' if this is a complete object,
 	// 'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
-	// 'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
 	//
 	// Required: true
-	// Enum: [Cluster AddHostsCluster AddHostsOCPCluster]
+	// Enum: [Cluster AddHostsCluster]
 	Kind *string `json:"kind"`
 
 	// The progress of log collection or empty if logs are not applicable
@@ -157,6 +167,9 @@ type Cluster struct {
 	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
 
+	// hosts associated to this cluster that are in 'known' state.
+	ReadyHostCount int64 `json:"ready_host_count,omitempty" gorm:"-"`
+
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`
@@ -176,6 +189,9 @@ type Cluster struct {
 	// The last time that the cluster status was updated.
 	// Format: date-time
 	StatusUpdatedAt strfmt.DateTime `json:"status_updated_at,omitempty" gorm:"type:timestamp with time zone"`
+
+	// All hosts associated to this cluster.
+	TotalHostCount int64 `json:"total_host_count,omitempty" gorm:"-"`
 
 	// The last time that this cluster was updated.
 	// Format: date-time
@@ -197,6 +213,10 @@ type Cluster struct {
 // Validate validates this cluster
 func (m *Cluster) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateAmsSubscriptionID(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateAPIVip(formats); err != nil {
 		res = append(res, err)
@@ -239,6 +259,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateHref(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateHyperthreading(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -309,6 +333,19 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Cluster) validateAmsSubscriptionID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.AmsSubscriptionID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("ams_subscription_id", "body", "uuid", m.AmsSubscriptionID.String(), formats); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -509,6 +546,55 @@ func (m *Cluster) validateHref(formats strfmt.Registry) error {
 	return nil
 }
 
+var clusterTypeHyperthreadingPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["masters","workers","all","none"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterTypeHyperthreadingPropEnum = append(clusterTypeHyperthreadingPropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterHyperthreadingMasters captures enum value "masters"
+	ClusterHyperthreadingMasters string = "masters"
+
+	// ClusterHyperthreadingWorkers captures enum value "workers"
+	ClusterHyperthreadingWorkers string = "workers"
+
+	// ClusterHyperthreadingAll captures enum value "all"
+	ClusterHyperthreadingAll string = "all"
+
+	// ClusterHyperthreadingNone captures enum value "none"
+	ClusterHyperthreadingNone string = "none"
+)
+
+// prop value enum
+func (m *Cluster) validateHyperthreadingEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, clusterTypeHyperthreadingPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Cluster) validateHyperthreading(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Hyperthreading) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateHyperthreadingEnum("hyperthreading", "body", m.Hyperthreading); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *Cluster) validateID(formats strfmt.Registry) error {
 
 	if err := validate.Required("id", "body", m.ID); err != nil {
@@ -583,7 +669,7 @@ var clusterTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Cluster","AddHostsCluster","AddHostsOCPCluster"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Cluster","AddHostsCluster"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -598,9 +684,6 @@ const (
 
 	// ClusterKindAddHostsCluster captures enum value "AddHostsCluster"
 	ClusterKindAddHostsCluster string = "AddHostsCluster"
-
-	// ClusterKindAddHostsOCPCluster captures enum value "AddHostsOCPCluster"
-	ClusterKindAddHostsOCPCluster string = "AddHostsOCPCluster"
 )
 
 // prop value enum

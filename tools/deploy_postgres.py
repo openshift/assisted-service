@@ -15,7 +15,7 @@ def main():
 
     deploy_postgres_secret(deploy_options)
     deploy_postgres(deploy_options)
-    if deploy_options.target != utils.OCP_TARGET:
+    if deploy_options.target != deployment_options.OCP_TARGET:
         deploy_postgres_storage(deploy_options)
 
     log.info('Completed postgres deployment')
@@ -37,7 +37,6 @@ def deploy_postgres_secret(deploy_options):
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -62,7 +61,6 @@ def deploy_postgres(deploy_options):
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 
@@ -76,7 +74,6 @@ def deploy_postgres_storage(deploy_options):
     pvc_size_utils.update_size_in_yaml_docs(
         target=deploy_options.target,
         ns=deploy_options.namespace,
-        profile=deploy_options.profile,
         name='postgres-pv-claim',
         docs=docs
     )
@@ -92,7 +89,6 @@ def deploy_postgres_storage(deploy_options):
     utils.apply(
         target=deploy_options.target,
         namespace=deploy_options.namespace,
-        profile=deploy_options.profile,
         file=dst_file
     )
 

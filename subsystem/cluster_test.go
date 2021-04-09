@@ -3,6 +3,7 @@ package subsystem
 import (
 	"archive/tar"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -22,7 +23,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
-	operatorsClient "github.com/openshift/assisted-service/client/operators"
+	"github.com/openshift/assisted-service/client/manifests"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
@@ -61,15 +62,31 @@ const (
 	validDiskSize     = int64(128849018880)
 	minSuccessesInRow = 2
 	minHosts          = 3
+	loop0Id           = "wwn-0x1111111111111111111111"
+	sdbId             = "wwn-0x2222222222222222222222"
 )
 
 var (
+	loop0 = models.Disk{
+		ID:        loop0Id,
+		ByID:      loop0Id,
+		DriveType: "SSD",
+		Name:      "loop0",
+		SizeBytes: validDiskSize,
+	}
+
+	sdb = models.Disk{
+		ID:        sdbId,
+		ByID:      sdbId,
+		DriveType: "HDD",
+		Name:      "sdb",
+		SizeBytes: validDiskSize,
+	}
+
 	validWorkerHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 2},
 		Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
-		Disks: []*models.Disk{
-			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+		Disks:  []*models.Disk{&loop0, &sdb},
 		Interfaces: []*models.Interface{
 			{IPV4Addresses: []string{"1.2.3.4/24"}},
 		},
@@ -79,9 +96,7 @@ var (
 	validHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
 		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
-		Disks: []*models.Disk{
-			{DriveType: "SSD", Name: "loop0", SizeBytes: validDiskSize},
-			{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize}},
+		Disks:  []*models.Disk{&loop0, &sdb},
 		Interfaces: []*models.Interface{
 			{
 				IPV4Addresses: []string{
@@ -404,12 +419,15 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 
 func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID) {
 	ctx := context.Background()
-	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	rep, err := client.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 
 	status := models.OperatorStatusAvailable
 
-	_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{ClusterID: clusterID, IngressCertParams: models.IngressCertParams(ingressCa)})
+	_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{
+		ClusterID:         clusterID,
+		IngressCertParams: models.IngressCertParams(ingressCa),
+	})
 	Expect(err).NotTo(HaveOccurred())
 
 	for _, operator := range rep.Payload.MonitoredOperators {
@@ -417,15 +435,7 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 			continue
 		}
 
-		_, err := client.Operators.ReportMonitoredOperatorStatus(context.Background(), &operatorsClient.ReportMonitoredOperatorStatusParams{
-			ClusterID: clusterID,
-			ReportParams: &models.OperatorMonitorReport{
-				Name:       operator.Name,
-				Status:     status,
-				StatusInfo: string(status),
-			},
-		})
-		Expect(err).NotTo(HaveOccurred())
+		reportMonitoredOperatorStatus(ctx, client, clusterID, operator.Name, status)
 	}
 }
 
@@ -1096,6 +1106,7 @@ var _ = Describe("cluster install", func() {
 				hostInDb := getHost(clusterID, *hostID)
 				Expect(*hostInDb.Status).Should(Equal(models.HostStatusInstallingInProgress))
 				Expect(*hostInDb.StatusInfo).Should(Equal(string(installProgress)))
+				Expect(hostInDb.InstallationDiskID).ShouldNot(BeEmpty())
 				Expect(hostInDb.InstallationDiskPath).ShouldNot(BeEmpty())
 				Expect(hostInDb.Inventory).ShouldNot(BeEmpty())
 			})
@@ -1512,20 +1523,21 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("Get credentials", func() {
-			By("Test getting kubeadmin password for not found cluster")
+			By("Test getting credentials for not found cluster")
 			{
 				missingClusterId := strfmt.UUID(uuid.New().String())
 				_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: missingClusterId})
 				Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsNotFound())))
 			}
-			By("Test getting kubeadmin password in wrong state")
+			By("Test getting credentials before console operator is available")
 			{
 				_, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(reflect.TypeOf(err)).To(Equal(reflect.TypeOf(installer.NewGetCredentialsConflict())))
 			}
 			By("Test happy flow")
 			{
-				installCluster(clusterID)
+				setClusterAsFinalizing(ctx, clusterID)
+				completeInstallationAndVerify(ctx, agentBMClient, clusterID, true)
 				creds, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creds.GetPayload().Username).To(Equal(bminventory.DefaultUser))
@@ -2239,6 +2251,59 @@ var _ = Describe("cluster install", func() {
 				}
 			})
 
+			It("reset cluster doesn't delete manifests", func() {
+				content := `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+  - 'loglevel=7'`
+				base64Content := base64.StdEncoding.EncodeToString([]byte(content))
+				manifest := models.Manifest{
+					FileName: "99-openshift-machineconfig-master-kargs.yaml",
+					Folder:   "openshift",
+				}
+				response, err := userBMClient.Manifests.CreateClusterManifest(ctx, &manifests.CreateClusterManifestParams{
+					ClusterID: clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &base64Content,
+						FileName: &manifest.FileName,
+						Folder:   &manifest.Folder,
+					},
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*response.Payload).Should(Equal(manifest))
+
+				c := installCluster(clusterID)
+				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalling))
+				Expect(len(c.Hosts)).Should(Equal(5))
+
+				updateProgress(*c.Hosts[0].ID, clusterID, "Installing")
+				updateProgress(*c.Hosts[1].ID, clusterID, "Done")
+
+				h1 := getHost(clusterID, *c.Hosts[0].ID)
+				Expect(*h1.Status).Should(Equal(models.HostStatusInstallingInProgress))
+				h2 := getHost(clusterID, *c.Hosts[1].ID)
+				Expect(*h2.Status).Should(Equal(models.HostStatusInstalled))
+
+				_, err = userBMClient.Installer.ResetCluster(ctx, &installer.ResetClusterParams{ClusterID: clusterID})
+				Expect(err).NotTo(HaveOccurred())
+				for _, host := range c.Hosts {
+					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusResettingPendingUserAction,
+						defaultWaitForClusterStateTimeout)
+				}
+
+				// verify manifest remains after cluster reset
+				response2, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+					ClusterID: *cluster.ID,
+				})
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(response2.Payload).Should(ContainElement(&manifest))
+			})
+
 			AfterEach(func() {
 				reply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
@@ -2251,6 +2316,8 @@ var _ = Describe("cluster install", func() {
 		clusterID := *cluster.ID
 		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, defaultWaitForClusterStateTimeout,
 			clusterPendingForInputStateInfo)
+
+		checkUpdateAtWhileStatic(ctx, clusterID)
 
 		hosts := register3nodes(ctx, clusterID)
 		h4 := &registerHost(clusterID).Host
@@ -2330,6 +2397,7 @@ var _ = Describe("cluster install", func() {
 			ClusterID: clusterID,
 		})
 		Expect(getErr).ToNot(HaveOccurred())
+
 		Expect(clusterReply.Payload.APIVip).To(Equal(apiVip))
 		Expect(clusterReply.Payload.MachineNetworkCidr).To(Equal("1.2.3.0/24"))
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
@@ -2428,9 +2496,7 @@ var _ = Describe("cluster install", func() {
 		hwInfo := &models.Inventory{
 			CPU:    &models.CPU{Count: 2},
 			Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
-			Disks: []*models.Disk{
-				{DriveType: "HDD", Name: "sdb", SizeBytes: validDiskSize},
-			},
+			Disks:  []*models.Disk{&sdb},
 			Interfaces: []*models.Interface{
 				{
 					IPV4Addresses: []string{
@@ -2732,6 +2798,21 @@ var _ = Describe("cluster install", func() {
 	})
 
 })
+
+func checkUpdateAtWhileStatic(ctx context.Context, clusterID strfmt.UUID) {
+	clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+		ClusterID: clusterID,
+	})
+	Expect(getErr).ToNot(HaveOccurred())
+	preSecondRefreshUpdatedTime := clusterReply.Payload.UpdatedAt
+	time.Sleep(30 * time.Second)
+	clusterReply, getErr = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+		ClusterID: clusterID,
+	})
+	Expect(getErr).ToNot(HaveOccurred())
+	postRefreshUpdateTime := clusterReply.Payload.UpdatedAt
+	Expect(preSecondRefreshUpdatedTime).Should(Equal(postRefreshUpdateTime))
+}
 
 func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
 	c := installCluster(clusterID)

@@ -33,6 +33,8 @@ const (
 	counterClusterHostImagePullStatus             = "assisted_installer_cluster_host_image_pull_status"
 	counterHostValidationFailed                   = "assisted_installer_host_validation_is_in_failed_status_on_cluster_deletion"
 	counterHostValidationChanged                  = "assisted_installer_host_validation_failed_after_success_before_installation"
+	counterClusterValidationFailed                = "assisted_installer_cluster_validation_is_in_failed_status_on_cluster_deletion"
+	counterClusterValidationChanged               = "assisted_installer_cluster_validation_failed_after_success_before_installation"
 )
 
 const (
@@ -52,6 +54,8 @@ const (
 	counterDescriptionClusterHostImagePullStatus             = "Histogram/sum/count of the images' pull statuses"
 	counterDescriptionHostValidationFailed                   = "Number of host validation errors"
 	counterDescriptionHostValidationChanged                  = "Number of host validations that already succeed but start to fail again"
+	counterDescriptionClusterValidationFailed                = "Number of cluster validation errors"
+	counterDescriptionClusterValidationChanged               = "Number of cluster validations that already succeed but start to fail again"
 )
 
 const (
@@ -73,6 +77,7 @@ const (
 	hwProductLabel             = "product"
 	userManagedNetworkingLabel = "userManagedNetworking"
 	hostValidationTypeLabel    = "hostValidationType"
+	clusterValidationTypeLabel = "clusterValidationType"
 	imageLabel                 = "imageName"
 )
 
@@ -80,6 +85,8 @@ type API interface {
 	ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string)
 	HostValidationFailed(clusterVersion string, emailDomain string, hostValidationType models.HostValidationID)
 	HostValidationChanged(clusterVersion string, emailDomain string, hostValidationType models.HostValidationID)
+	ClusterValidationFailed(clusterVersion string, emailDomain string, clusterValidationType models.ClusterValidationID)
+	ClusterValidationChanged(clusterVersion string, emailDomain string, clusterValidationType models.ClusterValidationID)
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string)
 	ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int)
@@ -109,6 +116,8 @@ type MetricsManager struct {
 	serviceLogicClusterHostImagePullStatus             *prometheus.HistogramVec
 	serviceLogicHostValidationFailed                   *prometheus.CounterVec
 	serviceLogicHostValidationChanged                  *prometheus.CounterVec
+	serviceLogicClusterValidationFailed                *prometheus.CounterVec
+	serviceLogicClusterValidationChanged               *prometheus.CounterVec
 }
 
 func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
@@ -235,6 +244,22 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Help:      counterDescriptionHostValidationChanged,
 			}, []string{openshiftVersionLabel, emailDomainLabel, hostValidationTypeLabel}),
 
+		serviceLogicClusterValidationFailed: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterClusterValidationFailed,
+				Help:      counterDescriptionClusterValidationFailed,
+			}, []string{openshiftVersionLabel, emailDomainLabel, clusterValidationTypeLabel}),
+
+		serviceLogicClusterValidationChanged: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Namespace: namespace,
+				Subsystem: subsystem,
+				Name:      counterClusterValidationChanged,
+				Help:      counterDescriptionClusterValidationChanged,
+			}, []string{openshiftVersionLabel, emailDomainLabel, clusterValidationTypeLabel}),
+
 		serviceLogicClusterHostImagePullStatus: prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Namespace: namespace,
 			Subsystem: subsystem,
@@ -258,6 +283,8 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 		m.serviceLogicClusterHostDiskSyncDurationMiliSeconds,
 		m.serviceLogicHostValidationFailed,
 		m.serviceLogicHostValidationChanged,
+		m.serviceLogicClusterValidationFailed,
+		m.serviceLogicClusterValidationChanged,
 		m.serviceLogicClusterHostImagePullStatus,
 	)
 	return m
@@ -273,6 +300,14 @@ func (m *MetricsManager) HostValidationFailed(clusterVersion string, emailDomain
 
 func (m *MetricsManager) HostValidationChanged(clusterVersion string, emailDomain string, hostValidationType models.HostValidationID) {
 	m.serviceLogicHostValidationChanged.WithLabelValues(clusterVersion, emailDomain, string(hostValidationType)).Inc()
+}
+
+func (m *MetricsManager) ClusterValidationFailed(clusterVersion string, emailDomain string, clusterValidationType models.ClusterValidationID) {
+	m.serviceLogicClusterValidationFailed.WithLabelValues(clusterVersion, emailDomain, string(clusterValidationType)).Inc()
+}
+
+func (m *MetricsManager) ClusterValidationChanged(clusterVersion string, emailDomain string, clusterValidationType models.ClusterValidationID) {
+	m.serviceLogicClusterValidationChanged.WithLabelValues(clusterVersion, emailDomain, string(clusterValidationType)).Inc()
 }
 
 func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string) {

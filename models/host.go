@@ -69,7 +69,10 @@ type Host struct {
 	// Array of image statuses.
 	ImagesStatus string `json:"images_status,omitempty" gorm:"type:text"`
 
-	// Host installation path.
+	// Contains the inventory disk id to install on.
+	InstallationDiskID string `json:"installation_disk_id,omitempty"`
+
+	// Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.
 	InstallationDiskPath string `json:"installation_disk_path,omitempty"`
 
 	// installer args
@@ -83,10 +86,9 @@ type Host struct {
 
 	// Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
 	// 'AddToExistingClusterHost' for host being added to existing OCP cluster, or
-	// 'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster
 	//
 	// Required: true
-	// Enum: [Host AddToExistingClusterHost AddToExistingClusterOCPHost]
+	// Enum: [Host AddToExistingClusterHost]
 	Kind *string `json:"kind"`
 
 	// logs collected at
@@ -314,7 +316,7 @@ var hostTypeKindPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["Host","AddToExistingClusterHost","AddToExistingClusterOCPHost"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["Host","AddToExistingClusterHost"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -329,9 +331,6 @@ const (
 
 	// HostKindAddToExistingClusterHost captures enum value "AddToExistingClusterHost"
 	HostKindAddToExistingClusterHost string = "AddToExistingClusterHost"
-
-	// HostKindAddToExistingClusterOCPHost captures enum value "AddToExistingClusterOCPHost"
-	HostKindAddToExistingClusterOCPHost string = "AddToExistingClusterOCPHost"
 )
 
 // prop value enum

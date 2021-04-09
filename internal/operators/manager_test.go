@@ -3,6 +3,7 @@ package operators_test
 import (
 	"context"
 	"encoding/base64"
+	"errors"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
@@ -74,38 +75,33 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create 10 manifests (OCS + LSO) using the manifest API when OCS operator is enabled", func() {
+		It("should create 10 manifests (OCS + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
+				&lso.Operator,
 			}
 
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
-			err := manager.GenerateManifests(ctx, cluster)
-
-			Expect(err).NotTo(HaveOccurred())
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 5 manifests (LSO) using the manifest API when only LSO is enabled", func() {
+		It("should create 5 manifests (LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&lso.Operator,
 			}
 
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(5)
-			err := manager.GenerateManifests(ctx, cluster)
-
-			Expect(err).NotTo(HaveOccurred())
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 10 manifests (CNV + LSO) using the manifest API when OCS operator is enabled", func() {
+		It("should create 10 manifests (CNV + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
+				&lso.Operator,
 			}
 
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
-			err := manager.GenerateManifests(ctx, cluster)
-
-			Expect(err).NotTo(HaveOccurred())
-
+			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})
 
@@ -152,6 +148,7 @@ var _ = Describe("Operators manager", func() {
 		It("should deem OCS operator cluster-invalid when it's enabled and invalid", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
+				&lso.Operator,
 			}
 
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
@@ -161,7 +158,7 @@ var _ = Describe("Operators manager", func() {
 			Expect(results).To(ContainElements(
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied), Reasons: []string{}},
 				api.ValidationResult{Status: api.Failure, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied),
-					Reasons: []string{"Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS. "}},
+					Reasons: []string{"Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS."}},
 				api.ValidationResult{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied), Reasons: []string{"cnv is disabled"}},
 			))
 		})
@@ -185,6 +182,7 @@ var _ = Describe("Operators manager", func() {
 		It("should deem operators host-valid when OCS is enabled", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
+				&lso.Operator,
 			}
 
 			results, err := manager.ValidateHost(context.TODO(), cluster, clusterHost)
@@ -199,14 +197,14 @@ var _ = Describe("Operators manager", func() {
 		})
 	})
 
-	Context("UpdateDependencies", func() {
+	Context("ResolveDependencies", func() {
 		table.DescribeTable("should resolve dependencies", func(input []*models.MonitoredOperator, expected []*models.MonitoredOperator) {
 			cluster.MonitoredOperators = input
-			err := manager.UpdateDependencies(cluster)
+			resolvedDependencies, err := manager.ResolveDependencies(cluster.MonitoredOperators)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(cluster.MonitoredOperators).To(HaveLen(len(expected)))
-			Expect(cluster.MonitoredOperators).To(ContainElements(expected))
+			Expect(resolvedDependencies).To(HaveLen(len(expected)))
+			Expect(resolvedDependencies).To(ContainElements(expected))
 		},
 			table.Entry("when only LSO is specified",
 				[]*models.MonitoredOperator{&lso.Operator},
@@ -245,4 +243,64 @@ var _ = Describe("Operators manager", func() {
 			Expect(properties).To(BeEquivalentTo(models.OperatorProperties{}))
 		})
 	})
+
+	Context("Host requirements", func() {
+		const (
+			operatorName1 = "operator-1"
+			operatorName2 = "operator-2"
+		)
+		var (
+			manager              *operators.Manager
+			operator1, operator2 *api.MockOperator
+			host                 *models.Host
+		)
+
+		BeforeEach(func() {
+			operator1 = mockOperatorBase(operatorName1)
+			operator2 = mockOperatorBase(operatorName2)
+			cluster.MonitoredOperators = models.MonitoredOperatorsList{{Name: operatorName1}, {Name: operatorName2}}
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, operator1, operator2)
+			host = &models.Host{}
+		})
+		It("should be provided for configured operators", func() {
+			host.Role = models.HostRoleMaster
+
+			requirements1 := models.ClusterHostRequirementsDetails{CPUCores: 1}
+			operator1.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(&requirements1, nil)
+			requirements2 := models.ClusterHostRequirementsDetails{CPUCores: 2}
+			operator2.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(&requirements2, nil)
+
+			reqBreakdown, err := manager.GetRequirementsBreakdownForHostInCluster(context.TODO(), cluster, host)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reqBreakdown).To(HaveLen(2))
+			Expect(reqBreakdown).To(ContainElements(
+				&models.OperatorHostRequirements{OperatorName: operatorName1, Requirements: &requirements1},
+				&models.OperatorHostRequirements{OperatorName: operatorName2, Requirements: &requirements2},
+			))
+		})
+
+		It("should return error", func() {
+			host.Role = models.HostRoleMaster
+			requirements1 := models.ClusterHostRequirementsDetails{CPUCores: 1}
+			operator1.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(&requirements1, nil)
+
+			theError := errors.New("boom")
+			operator2.EXPECT().GetHostRequirements(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(nil, theError)
+
+			_, err := manager.GetRequirementsBreakdownForHostInCluster(context.TODO(), cluster, host)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(BeEquivalentTo(theError))
+		})
+	})
 })
+
+func mockOperatorBase(operatorName string) *api.MockOperator {
+	operator1 := api.NewMockOperator(ctrl)
+	operator1.EXPECT().GetName().AnyTimes().Return(operatorName)
+	monitoredOperator1 := &models.MonitoredOperator{}
+	operator1.EXPECT().GetMonitoredOperator().Return(monitoredOperator1)
+
+	return operator1
+}

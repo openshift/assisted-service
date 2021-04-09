@@ -3,7 +3,6 @@ package s3wrapper
 import (
 	"bytes"
 	"context"
-	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
@@ -21,7 +20,6 @@ import (
 
 const minimumPartSizeBytes = 5 * 1024 * 1024    // 5MB
 const copyPartChunkSizeBytes = 64 * 1024 * 1024 // 64MB
-const coreISOMagic = "coreiso+"
 
 type ISOUploaderAPI interface {
 	UploadISO(ctx context.Context, ignitionConfig, srcObjectName, destObjectName string) error
@@ -154,7 +152,7 @@ func (u *ISOUploader) getISOInfo(baseObjectName string, log logrus.FieldLogger) 
 	return &info, &origContents, nil
 }
 
-func (u *ISOUploader) getISOHeaderInfo(log logrus.FieldLogger, baseObjectName string, baseObjectSize int64) (offset int64, length int64, err error) {
+func (u *ISOUploader) getISOHeaderInfo(log logrus.FieldLogger, baseObjectName string, baseObjectSize int64) (int64, int64, error) {
 	// Download header of the live ISO (last 24 bytes of the first 32KB)
 	getResp, err := u.s3client.GetObject(&s3.GetObjectInput{
 		Bucket: aws.String(u.publicBucket),
@@ -163,34 +161,28 @@ func (u *ISOUploader) getISOHeaderInfo(log logrus.FieldLogger, baseObjectName st
 	})
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get header of object %s from bucket %s", baseObjectName, u.publicBucket)
-		return
+		return 0, 0, err
 	}
 	headerString, err := ioutil.ReadAll(getResp.Body)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to read header of object %s from bucket %s", baseObjectName, u.publicBucket)
-		return
+		return 0, 0, err
 	}
 
-	res := bytes.Compare(headerString[0:8], []byte(coreISOMagic))
-	if res != 0 {
-		err = errors.New(fmt.Sprintf("Could not find magic string in object header (%s)", headerString[0:8]))
-		return
+	ignOffsetInfo, err := isoeditor.GetIgnitionArea(headerString)
+	if err != nil {
+		return 0, 0, err
 	}
-
-	offset = int64(binary.LittleEndian.Uint64(headerString[8:16]))
-	length = int64(binary.LittleEndian.Uint64(headerString[16:24]))
 
 	// For now we assume that the embedded area is less than 5MB, which is the minimum S3 part size
-	if length > int64(minimumPartSizeBytes) {
-		err = errors.New("ISO embedded area is larger than what is currently supported")
-		return
+	if ignOffsetInfo.Length > minimumPartSizeBytes {
+		return 0, 0, errors.New("ISO embedded area is larger than what is currently supported")
 	}
 
-	if offset+minimumPartSizeBytes > baseObjectSize {
-		err = errors.New("Embedded area is too close to the end of the file, which is currently not handled")
-		return
+	if ignOffsetInfo.Offset+minimumPartSizeBytes > uint64(baseObjectSize) {
+		return 0, 0, errors.New("Embedded area is too close to the end of the file, which is currently not handled")
 	}
-	return
+	return int64(ignOffsetInfo.Offset), int64(ignOffsetInfo.Length), nil
 }
 
 type multiUpload struct {

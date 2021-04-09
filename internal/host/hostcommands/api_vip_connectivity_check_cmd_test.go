@@ -22,10 +22,10 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	var id, clusterID strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "apivipconnectivitycheckcmd"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		apivipConnectivityCheckCmd = NewAPIVIPConnectivityCheckCmd(common.GetTestLog(), db, "quay.io/ocpmetal/assisted-installer-agent:latest", true)
 
 		id = strfmt.UUID(uuid.New().String())

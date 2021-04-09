@@ -17,7 +17,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
-	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -853,13 +853,13 @@ var _ = Describe("IgnitionBuilder", func() {
 				PullSecretSet: false,
 			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 
-			_, err := builder.FormatDiscoveryIgnitionFile(&clusterWithoutToken, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+			_, err := builder.FormatDiscoveryIgnitionFile(&clusterWithoutToken, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 			Expect(err).ShouldNot(BeNil())
 		})
 
 		It("ignition_file_contains_pull_secret_token", func() {
-			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("PULL_SECRET_TOKEN"))
@@ -867,7 +867,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	It("auth_disabled_no_pull_secret_token", func() {
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeNone)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeNone)
 
 		Expect(err).Should(BeNil())
 		Expect(text).ShouldNot(ContainSubstring("PULL_SECRET_TOKEN"))
@@ -876,7 +876,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("ignition_file_contains_url", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", serviceBaseURL)))
@@ -885,7 +885,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("ignition_file_safe_for_logging", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, true, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, true, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).ShouldNot(ContainSubstring("cloud.openshift.com"))
@@ -894,7 +894,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("enabled_cert_verification", func() {
 		config := IgnitionConfig{SkipCertVerification: false}
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("--insecure=false"))
@@ -902,14 +902,14 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("disabled_cert_verification", func() {
 		config := IgnitionConfig{SkipCertVerification: true}
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("--insecure=true"))
 	})
 
 	It("cert_verification_enabled_by_default", func() {
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("--insecure=false"))
@@ -920,14 +920,14 @@ var _ = Describe("IgnitionBuilder", func() {
 		cluster.NoProxy = "quay.io"
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
 	})
 
 	It("produces a valid ignition v3.1 spec by default", func() {
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
 		config, report, err := config_31.Parse([]byte(text))
@@ -937,7 +937,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	It("produces a valid ignition v3.1 spec with overrides", func() {
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
 		config, report, err := config_31.Parse([]byte(text))
@@ -946,7 +946,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		numOfFiles := len(config.Storage.Files)
 
 		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		text, err = builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		text, err = builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
 		config, report, err = config_31.Parse([]byte(text))
@@ -957,7 +957,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("fails when given overrides with an incompatible version", func() {
 		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		_, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{}, false, auth.TypeRHSSO)
+		_, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 		Expect(err).To(HaveOccurred())
 	})
@@ -992,7 +992,8 @@ var _ = Describe("IgnitionBuilder", func() {
 			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			cluster.ImageInfo.StaticNetworkConfig = formattedInput
-			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{ImageType: models.ImageTypeFullIso}, false, auth.TypeRHSSO)
+			cluster.ImageInfo.Type = models.ImageTypeFullIso
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
 			Expect(err).NotTo(HaveOccurred())
@@ -1009,7 +1010,8 @@ var _ = Describe("IgnitionBuilder", func() {
 			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			cluster.ImageInfo.StaticNetworkConfig = formattedInput
-			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, &models.ImageCreateParams{ImageType: models.ImageTypeMinimalIso}, false, auth.TypeRHSSO)
+			cluster.ImageInfo.Type = models.ImageTypeMinimalIso
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
 			Expect(err).NotTo(HaveOccurred())
@@ -1023,4 +1025,59 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(0))
 		})
 	})
+	Context("mirror registries config", func() {
+		mirrorRegistry1 := models.MirrorRegistry{Location: "location1", MirrorLocation: "mirror_location1", Prefix: "prefix1"}
+		mirrorRegistry2 := models.MirrorRegistry{Location: "location2", MirrorLocation: "mirror_location2", Prefix: "prefix1"}
+		mirrorRegistry3 := models.MirrorRegistry{Location: "location3", MirrorLocation: "mirror_location3", Prefix: "prefix1"}
+		mirrorRegistries := []*models.MirrorRegistry{&mirrorRegistry1, &mirrorRegistry2, &mirrorRegistry3}
+		mirrorRegistriesConfig := models.MirrorRegistriesConfig{MirrorRegistries: mirrorRegistries, UnqualifiedSearchRegistries: []string{"registry1", "registry2", "registry3"}}
+		registriesConfigInput := models.MirrorRegistriesCaConfig{CaConfig: "some certificate", MirrorRegistriesConfig: &mirrorRegistriesConfig}
+		expectedOutput := `unqualified-search-registries = ["registry1", "registry2", "registry3"]
+
+[[registry]]
+  location = "location1"
+  mirror-by-digest-only = false
+  prefix = "prefix1"
+
+  [[registry.mirror]]
+    location = "mirror_location1"
+
+[[registry]]
+  location = "location2"
+  mirror-by-digest-only = false
+  prefix = "prefix1"
+
+  [[registry.mirror]]
+    location = "mirror_location2"
+
+[[registry]]
+  location = "location3"
+  mirror-by-digest-only = false
+  prefix = "prefix1"
+
+  [[registry.mirror]]
+    location = "mirror_location3"
+`
+		It("produce ignition with nirror registries config", func() {
+			registriesFileContent, caConfig, err := FormatRegistriesConfForIgnition(&registriesConfigInput)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(registriesFileContent).Should(Equal(expectedOutput))
+			cluster.ImageInfo.CaConfig = caConfig
+			cluster.ImageInfo.MirrorRegistriesConfig = registriesFileContent
+			cluster.ImageInfo.Type = models.ImageTypeFullIso
+			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+			Expect(err).NotTo(HaveOccurred())
+			config, report, err := config_31.Parse([]byte(text))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(report.IsFatal()).To(BeFalse())
+			count := 0
+			for _, f := range config.Storage.Files {
+				if strings.HasSuffix(f.Path, "registries.conf") || strings.HasSuffix(f.Path, "domain.crt") {
+					count += 1
+				}
+			}
+			Expect(count).Should(Equal(2))
+		})
+	})
+
 })

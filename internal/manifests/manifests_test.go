@@ -2,6 +2,7 @@ package manifests_test
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -29,6 +30,29 @@ func TestValidator(t *testing.T) {
 	RunSpecs(t, "manifests_test")
 }
 
+const contentAsYAML = `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+  machineconfiguration.openshift.io/role: master
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+  - 'loglevel=7'`
+
+const contentAsJSON = `{
+  "apiVersion": "machineconfiguration.openshift.io/v1",
+  "kind": "MachineConfig",
+  "metadata": null,
+  "labels": null,
+  "machineconfiguration.openshift.io/role": "master",
+  "name": "99-openshift-machineconfig-master-kargs",
+  "spec": null,
+  "kernelArguments": [
+    "loglevel=7"
+  ]
+}`
+
 var _ = Describe("ClusterManifestTests", func() {
 	var (
 		manifestsAPI  *manifests.Manifests
@@ -36,16 +60,16 @@ var _ = Describe("ClusterManifestTests", func() {
 		ctx           = context.Background()
 		ctrl          *gomock.Controller
 		mockS3Client  *s3wrapper.MockAPI
-		dbName        = "cluster_manifest"
-		content       = "aGVsbG8gd29ybGQhCg=="
-		fileName      = "99-test.yaml"
+		dbName        string
+		fileName      = "99-openshift-machineconfig-master-kargs.yaml"
 		validFolder   = "openshift"
 		defaultFolder = "manifests"
+		content       = encodeToBase64(contentAsYAML)
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 
 		manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client)
@@ -190,6 +214,171 @@ var _ = Describe("ClusterManifestTests", func() {
 			err := response.(*common.ApiErrorResponse)
 			Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 			Expect(err.Error()).To(ContainSubstring("failed to base64-decode cluster manifest content"))
+		})
+
+		Context("File validation and format", func() {
+			It("accepts manifest in json format and .json extension", func() {
+				clusterID := registerCluster().ID
+				jsonContent := encodeToBase64(contentAsJSON)
+				fileName := "99-openshift-machineconfig-master-kargs.json"
+				mockUpload(1)
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &jsonContent,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
+				responsePayload := response.(*operations.CreateClusterManifestCreated)
+				Expect(responsePayload.Payload).ShouldNot(BeNil())
+				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+			})
+
+			It("accepts manifest with .yml extension", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-openshift-machineconfig-master-kargs.yml"
+				mockUpload(1)
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
+				responsePayload := response.(*operations.CreateClusterManifestCreated)
+				Expect(responsePayload.Payload).ShouldNot(BeNil())
+				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+			})
+
+			It("accepts manifest with .yml extension and a multi YAML content", func() {
+				clusterID := registerCluster().ID
+				fileName := "99_masters-chrony-configuration.yaml"
+				aContent := encodeToBase64(`---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: masters-chrony-configuration
+spec:
+  config:
+    ignition:
+      config: {}
+      security:
+        tls: {}
+      timeouts: {}
+      version: 2.2.0
+    networkd: {}
+    passwd: {}
+    storage:
+      files:
+      - contents:
+          source: data:text/plain;charset=utf-8;base64,c2VydmVyIGNsb2NrLnJlZGhhdC5jb20gaWJ1cnN0Cg==
+          verification: {}
+        filesystem: root
+        mode: 420
+        path: /etc/chrony.conf
+  osImageURL: ""
+---
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: masters-chrony-configuration
+spec:
+  config:
+    ignition:
+      config: {}
+      security:
+        tls: {}
+      timeouts: {}
+      version: 2.2.0
+`)
+				mockUpload(1)
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &aContent,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(operations.NewCreateClusterManifestCreated()))
+				responsePayload := response.(*operations.CreateClusterManifestCreated)
+				Expect(responsePayload.Payload).ShouldNot(BeNil())
+				Expect(responsePayload.Payload.FileName).To(Equal(fileName))
+				Expect(responsePayload.Payload.Folder).To(Equal(defaultFolder))
+			})
+
+			It("fails for manifest with invalid json format", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.json"
+				invalidJSONContent := encodeToBase64("not a valid JSON content")
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &invalidJSONContent,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("Manifest content has an illegal JSON format"))
+			})
+
+			It("fails for manifest with invalid yaml format", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.yml"
+				invalidYAMLContent := encodeToBase64("not a valid YAML content")
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &invalidYAMLContent,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("Manifest content has an invalid YAML format"))
+			})
+
+			It("fails for manifest with unsupported extension", func() {
+				clusterID := registerCluster().ID
+				fileName := "99-test.txt"
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileName,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("Unsupported manifest extension"))
+			})
+
+			It("fails for filename that contains folder in the name", func() {
+				clusterID := registerCluster().ID
+				fileNameWithFolder := "openshift/99-test.yaml"
+				response := manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
+					ClusterID: *clusterID,
+					CreateManifestParams: &models.CreateManifestParams{
+						Content:  &content,
+						FileName: &fileNameWithFolder,
+					},
+				})
+				Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+				err := response.(*common.ApiErrorResponse)
+				Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
+				Expect(err.Error()).To(ContainSubstring("should not include a directory in its name"))
+			})
 		})
 	})
 
@@ -358,4 +547,8 @@ func (VoidReadCloser) Read(p []byte) (int, error) {
 
 func (VoidReadCloser) Close() error {
 	return nil
+}
+
+func encodeToBase64(s string) string {
+	return base64.StdEncoding.EncodeToString([]byte(s))
 }

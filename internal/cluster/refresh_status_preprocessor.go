@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"sort"
 	"strings"
 
 	"github.com/go-openapi/swag"
@@ -18,6 +19,8 @@ type ValidationResult struct {
 	Status  ValidationStatus `json:"status"`
 	Message string           `json:"message"`
 }
+
+type validationsStatus map[string][]ValidationResult
 
 type stringer interface {
 	String() string
@@ -89,7 +92,17 @@ func (r *refreshPreprocessor) preprocess(ctx context.Context, c *clusterPreproce
 	for _, condition := range r.conditions {
 		stateMachineInput[condition.id.String()] = condition.fn(c)
 	}
+	for _, validationResults := range validationsOutput {
+		sortByValidationResultID(validationResults)
+	}
 	return stateMachineInput, validationsOutput, nil
+}
+
+// sortByValidationResultID sorts results by models.ClusterValidationID
+func sortByValidationResultID(validationResults []ValidationResult) {
+	sort.SliceStable(validationResults, func(i, j int) bool {
+		return validationResults[i].ID < validationResults[j].ID
+	})
 }
 
 func newValidations(log logrus.FieldLogger, api host.API) []validation {
@@ -182,6 +195,22 @@ func newConditions() []condition {
 		{
 			id: VipDhcpAllocationSet,
 			fn: isVipDhcpAllocationSet,
+		},
+		{
+			id: AllHostsPreparedSuccessfully,
+			fn: areAllHostsPreparedSuccessfully,
+		},
+		{
+			id: InsufficientHostExists,
+			fn: isInsufficientHostExists,
+		},
+		{
+			id: ClusterPreparationSucceeded,
+			fn: isClusterPreparationSucceeded,
+		},
+		{
+			id: ClusterPreparationFailed,
+			fn: isClusterPreparationFailed,
 		},
 	}
 }

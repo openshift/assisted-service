@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"path/filepath"
+	reflect "reflect"
 	"strings"
 	"time"
 
@@ -75,7 +77,7 @@ type API interface {
 	// Refresh state in case of hosts update
 	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
 	ClusterMonitoring()
-	GetCredentials(c *common.Cluster) (err error)
+	IsOperatorAvailable(c *common.Cluster, operatorName string) bool
 	UploadIngressCert(c *common.Cluster) (err error)
 	VerifyClusterUpdatability(c *common.Cluster) (err error)
 	AcceptRegistration(c *common.Cluster) (err error)
@@ -197,6 +199,10 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 			metricsErr = multierror.Append(metricsErr, err)
 		}
 	}
+	if err := m.reportValidationFailedMetrics(ctx, c, c.OpenshiftVersion, c.EmailDomain); err != nil {
+		m.log.WithError(err).Errorf("Failed to report metrics for failed validations on cluster %s", c.ID)
+		metricsErr = multierror.Append(metricsErr, err)
+	}
 	if metricsErr != nil {
 		return metricsErr
 	}
@@ -212,6 +218,81 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	return err
 }
 
+func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.Cluster, ocpVersion, emailDomain string) error {
+	log := logutil.FromContext(ctx, m.log)
+	if c.ValidationsInfo == "" {
+		log.Warnf("Cluster %s doesn't contain any validations info, cannot report metrics for that cluster", *c.ID)
+		return nil
+	}
+	var validationRes validationsStatus
+	if err := json.Unmarshal([]byte(c.ValidationsInfo), &validationRes); err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal validations info from cluster %s", *c.ID)
+		return err
+	}
+	for _, vRes := range validationRes {
+		for _, v := range vRes {
+			if v.Status == ValidationFailure {
+				m.metricAPI.ClusterValidationFailed(ocpVersion, emailDomain, models.ClusterValidationID(v.ID))
+			}
+		}
+	}
+	return nil
+}
+
+func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.Cluster,
+	newValidationRes, currentValidationRes validationsStatus) {
+	for vCategory, vRes := range newValidationRes {
+		for _, v := range vRes {
+			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
+				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
+					m.metricAPI.ClusterValidationChanged(c.OpenshiftVersion, c.EmailDomain, models.ClusterValidationID(v.ID))
+					eventMsg := fmt.Sprintf("Cluster validation '%s' that used to succeed is now failing", v.ID)
+					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, eventMsg, time.Now())
+				}
+				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+					eventMsg := fmt.Sprintf("Cluster validation '%s' is now fixed", v.ID)
+					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, eventMsg, time.Now())
+				}
+			}
+		}
+	}
+}
+
+func (m *Manager) getValidationStatus(vs validationsStatus, category string, vID ValidationID) (ValidationStatus, bool) {
+	for _, v := range vs[category] {
+		if v.ID == vID {
+			return v.Status, true
+		}
+	}
+	return ValidationStatus(""), false
+}
+
+func (m *Manager) getValidations(ctx context.Context, c *common.Cluster) (validationsStatus, error) {
+	var currentValidationRes validationsStatus
+	if c.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes); err != nil {
+			return validationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from cluster %s", *c.ID)
+		}
+	}
+	return currentValidationRes, nil
+}
+
+func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes validationsStatus) bool {
+	if len(newValidationRes) == 0 {
+		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
+		return false
+	}
+	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
+}
+
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *common.Cluster, newValidationRes validationsStatus) (*common.Cluster, error) {
+	b, err := json.Marshal(newValidationRes)
+	if err != nil {
+		return nil, err
+	}
+	return UpdateCluster(logutil.FromContext(ctx, m.log), db, *c.ID, *c.Status, "validations_info", string(b))
+}
+
 func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
 	//new transition code
 	if db == nil {
@@ -221,9 +302,23 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if err != nil {
 		return c, err
 	}
-	conditions, validationsResults, err := m.rp.preprocess(ctx, vc)
+	conditions, newValidationRes, err := m.rp.preprocess(ctx, vc)
 	if err != nil {
 		return c, err
+	}
+	currentValidationRes, err := m.getValidations(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
+		// Validation status changes are detected when new validations are different from the
+		// current validations in the DB.
+		// For changes to be detected and reported correctly, the comparison needs to be
+		// performed before the new validations are updated to the DB.
+		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+		if _, err = m.updateValidationsInDB(ctx, db, c, newValidationRes); err != nil {
+			return nil, err
+		}
 	}
 	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), &TransitionArgsRefreshCluster{
 		ctx:               ctx,
@@ -232,9 +327,10 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 		metricApi:         m.metricAPI,
 		hostApi:           m.hostAPI,
 		conditions:        conditions,
-		validationResults: validationsResults,
+		validationResults: newValidationRes,
 		clusterAPI:        m,
 		objectHandler:     m.objectHandler,
+		ocmClient:         m.ocmClient,
 	})
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
@@ -445,14 +541,21 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) GetCredentials(c *common.Cluster) (err error) {
-	clusterStatus := swag.StringValue(c.Status)
-	allowedStatuses := []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
-	if !funk.ContainsString(allowedStatuses, clusterStatus) {
-		err = errors.Errorf("Cluster %s is in %s state, credentials are available only in installing or installed state", c.ID, clusterStatus)
+func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
+	// TODO: MGMT-4458
+	// Backward-compatible solution for clusters that don't have monitored operators data
+	if len(c.MonitoredOperators) == 0 {
+		clusterStatus := swag.StringValue(c.Status)
+		allowedStatuses := []string{models.ClusterStatusInstalling, models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
+		return funk.ContainsString(allowedStatuses, clusterStatus)
 	}
 
-	return err
+	for _, o := range c.MonitoredOperators {
+		if o.Name == operatorName {
+			return o.Status == models.OperatorStatusAvailable
+		}
+	}
+	return false
 }
 
 func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {
@@ -722,7 +825,8 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	err = db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update(&common.Cluster{
+
+	err = db.Model(&common.Cluster{}).Where("id = ? and connectivity_majority_groups <> ?", clusterID.String(), string(b)).Update(&common.Cluster{
 		Cluster: models.Cluster{
 			ConnectivityMajorityGroups: string(b),
 		},
@@ -733,35 +837,10 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	return nil
 }
 
-func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folder string) error {
 	log := logutil.FromContext(ctx, m.log)
-	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
-	if err != nil {
-		return common.NewApiError(http.StatusNotFound, err)
-	}
-
-	var failedToDelete []string
-	for _, file := range files {
-		log.Debugf("Deleting cluster %s S3 log file: %s", c.ID.String(), file)
-		_, err = objectHandler.DeleteObject(ctx, file)
-		if err != nil {
-			m.log.WithError(err).Errorf("failed deleting s3 log %s", file)
-			failedToDelete = append(failedToDelete, file)
-		}
-	}
-
-	if len(failedToDelete) > 0 {
-		return common.NewApiError(
-			http.StatusInternalServerError,
-			errors.Errorf("failed to delete s3 logs: %q", failedToDelete))
-	}
-	return nil
-}
-
-func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
-	var failedToDelete []string
-	path := fmt.Sprintf("%s/", c.ID)
-	filesList, err := objectHandler.ListObjectsByPrefix(ctx, path)
+	path := filepath.Join(string(*c.ID), folder) + "/"
+	files, err := objectHandler.ListObjectsByPrefix(ctx, path)
 	if err != nil {
 		msg := fmt.Sprintf("Failed to list files in %s", path)
 		m.log.WithError(err).Errorf(msg)
@@ -769,15 +848,18 @@ func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 			http.StatusInternalServerError,
 			errors.Errorf(msg))
 	}
-	for _, fileName := range filesList {
-		//skip log deletion
-		if strings.Contains(fileName, "logs") {
+
+	var failedToDelete []string
+	for _, file := range files {
+		//skip log and manifests deletion when deleting cluster files
+		if folder == "" && (strings.Contains(file, "logs") || strings.Contains(file, "manifests")) {
 			continue
 		}
-		_, err := objectHandler.DeleteObject(ctx, fileName)
+		log.Debugf("Deleting cluster %s S3 file: %s", c.ID.String(), file)
+		_, err = objectHandler.DeleteObject(ctx, file)
 		if err != nil {
-			m.log.WithError(err).Errorf("failed deleting s3 file %s", fileName)
-			failedToDelete = append(failedToDelete, fileName)
+			m.log.WithError(err).Errorf("failed deleting s3 file: %s", file)
+			failedToDelete = append(failedToDelete, file)
 		}
 	}
 
@@ -787,6 +869,18 @@ func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 			errors.Errorf("failed to delete s3 files: %q", failedToDelete))
 	}
 	return nil
+}
+
+func (m *Manager) deleteClusterManifests(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFiles(ctx, c, objectHandler, "manifests")
+}
+
+func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFiles(ctx, c, objectHandler, "logs")
+}
+
+func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+	return m.deleteClusterFiles(ctx, c, objectHandler, "")
 }
 
 func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error {
@@ -828,7 +922,10 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 			deleteFromDB = false
 			m.log.WithError(err).Warnf("Failed deleting s3 logs of cluster %s", c.ID.String())
 		}
-
+		if err := m.deleteClusterManifests(ctx, c, objectHandler); err != nil {
+			deleteFromDB = false
+			m.log.WithError(err).Warnf("Failed deleting s3 manifests of cluster %s", c.ID.String())
+		}
 		if !deleteFromDB {
 			continue
 		}

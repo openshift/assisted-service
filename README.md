@@ -5,6 +5,27 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/openshift/assisted-service)](https://goreportcard.com/report/github.com/openshift/assisted-service)
 [![License Apache](https://img.shields.io/github/license/openshift/assisted-service)](https://opensource.org/licenses/Apache-2.0)
 
+## About
+
+This repository provides a service that installs OpenShift.  Its main benefits include a minimum amount of prerequisites from the user's infrastructure, as well as comprehensive pre-flight validations to ensure a successful installation.  The service exposes either a REST API, or it can be deployed as an Operator where it exposes a Kubernetes-native API via Custom Resources.  A [UI](https://github.com/openshift-assisted/assisted-ui) is available that uses the REST API.
+
+The Assisted Service can currently install clusters with highly-available control planes (3 hosts and above) and can also install Single-Node OpenShift (SNO).  Highly available clusters are configured to use OpenShift's `baremetal` platform (typically used in [bare metal IPI deployments](https://docs.openshift.com/container-platform/4.7/installing/installing_bare_metal_ipi/ipi-install-overview.html)), while SNO uses `none` (typically used in [UPI deployments](https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html)).
+
+The basic flow for creating a new OpenShift cluster using the Assisted Service via the UI or REST API is:
+1. Create a new Cluster resource with the minimal required properties.
+1. Generate and download a bootable image which is customized for that cluster. This image is based on RHCOS and is customized to automatically run an agent upon boot.
+1. Boot the hosts that will form the cluster with the image from the previous step. The boot method is left to the user (e.g., USB drive, virtual media, PXE, etc.).
+1. The agent running on each host contacts the Assisted Service via REST API and performs discovery (sends hardware inventory and connectivity information).
+1. The UI guides the user through the installation, with the service performing validations along the way.  Alternatively, this can be done via API.
+1. Once all validations pass, the user may initiate the installation.  Progress may be viewed via the UI or API, and logs are made available for download directly from the service.
+
+## Demos and blog posts
+
+Below are some recent demos and blog posts:
+* Blog, Jan 2021: [Using the OpenShift Assisted Installer Service to Deploy an OpenShift Cluster on Bare Metal and vSphere](https://www.openshift.com/blog/using-the-openshift-assisted-installer-service-to-deploy-an-openshift-cluster-on-metal-and-vsphere)
+* Blog and demo, Dec 2020: [Making OpenShift on Bare Metal easy](https://www.openshift.com/blog/making-openshift-on-bare-metal-easy)
+* Blog and demo, Oct 2020: [It's Inside your House! Assisted Installer on Bare Metal Demonstration](https://www.openshift.com/blog/its-inside-the-house-assisted-installer-demonstration)
+
 ## Prerequisites
 
 1. Docker

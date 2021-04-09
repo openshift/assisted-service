@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -36,7 +37,7 @@ import (
 
 func getDefaultConfig() Config {
 	var cfg Config
-	Expect(envconfig.Process("myapp", &cfg)).ShouldNot(HaveOccurred())
+	Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 	return cfg
 }
 
@@ -48,13 +49,13 @@ var _ = Describe("stateMachine", func() {
 		cluster          *common.Cluster
 		refreshedCluster *common.Cluster
 		stateErr         error
-		dbName           = "state_machine"
+		dbName           string
 		mockOperators    *operators.MockAPI
 		mockS3Client     *s3wrapper.MockAPI
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators = operators.NewMockAPI(ctrl)
@@ -116,13 +117,13 @@ var _ = Describe("TestClusterMonitoring", func() {
 		ctrl              *gomock.Controller
 		mockHostAPI       *host.MockAPI
 		mockMetric        *metrics.MockAPI
-		dbName            = "cluster_monitor"
+		dbName            string
 		mockEvents        *events.MockHandler
 		mockS3Client      *s3wrapper.MockAPI
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -300,7 +301,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			})
 
 			It("finalizing -> finalizing (s3 failure)", func() {
-				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, errors.New("error")).Times(1)
+				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, errors.New("error")).Times(2)
 				shouldHaveUpdated = false
 				expectedState = models.ClusterStatusFinalizing
 			})
@@ -521,6 +522,12 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(c.StatusUpdatedAt).Should(Equal(saveUpdatedTime))
 				Expect(c.StatusInfo).Should(Equal(saveStatusInfo))
 			}
+
+			preSecondRefreshUpdatedTime := c.UpdatedAt
+			clusterApi.ClusterMonitoring()
+			c = getClusterFromDB(id, db)
+			postRefreshUpdateTime := c.UpdatedAt
+			Expect(preSecondRefreshUpdatedTime).Should(Equal(postRefreshUpdateTime))
 		})
 	})
 
@@ -629,11 +636,11 @@ var _ = Describe("lease timeout event", func() {
 		ctrl        *gomock.Controller
 		mockHostAPI *host.MockAPI
 		mockMetric  *metrics.MockAPI
-		dbName      = "cluster_monitor"
+		dbName      string
 		mockEvents  *events.MockHandler
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -738,11 +745,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		ctrl        *gomock.Controller
 		mockHostAPI *host.MockAPI
 		mockMetric  *metrics.MockAPI
-		dbName      = "cluster_monitor"
+		dbName      string
 		mockEvents  *events.MockHandler
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1101,11 +1108,11 @@ var _ = Describe("VerifyRegisterHost", func() {
 		id          strfmt.UUID
 		clusterApi  *Manager
 		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready pending-for-input adding-hosts]"
-		dbName      = "verify_register_host"
+		dbName      string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
@@ -1155,11 +1162,11 @@ var _ = Describe("VerifyClusterUpdatability", func() {
 		id          strfmt.UUID
 		clusterApi  *Manager
 		errTemplate = "Cluster %s is in %s state, cluster can be updated only in one of [insufficient ready pending-for-input adding-hosts]"
-		dbName      = "verify_cluster_updatability"
+		dbName      string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		id = strfmt.UUID(uuid.New().String())
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
@@ -1209,11 +1216,11 @@ var _ = Describe("CancelInstallation", func() {
 		eventsHandler events.Handler
 		ctrl          *gomock.Controller
 		mockMetric    *metrics.MockAPI
-		dbName        = "cluster_cancel_installation"
+		dbName        string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -1284,11 +1291,11 @@ var _ = Describe("ResetCluster", func() {
 		state         API
 		c             common.Cluster
 		eventsHandler events.Handler
-		dbName        = "reset_cluster"
+		dbName        string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		ctrl := gomock.NewController(GinkgoT())
@@ -1504,7 +1511,7 @@ var _ = Describe("PrepareForInstallation", func() {
 		capi      API
 		db        *gorm.DB
 		clusterId strfmt.UUID
-		dbName    = "cluster_prepare_for_installation"
+		dbName    string
 		ctrl      *gomock.Controller
 
 		mockMetric *metrics.MockAPI
@@ -1513,7 +1520,7 @@ var _ = Describe("PrepareForInstallation", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		mockOperators := operators.NewMockAPI(ctrl)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, mockMetric, nil, dummy, mockOperators, nil, nil)
@@ -1602,11 +1609,11 @@ var _ = Describe("HandlePreInstallationError", func() {
 		capi      API
 		db        *gorm.DB
 		clusterId strfmt.UUID
-		dbName    = "handle_preInstallation_error"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl := gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
@@ -1688,7 +1695,7 @@ var _ = Describe("SetVipsData", func() {
 		ctrl       *gomock.Controller
 		db         *gorm.DB
 		clusterId  strfmt.UUID
-		dbName     = "set_vips"
+		dbName     string
 		apiLease   = `lease {
   interface "api";
   renew 0 2020/10/25 14:48:38;
@@ -1716,7 +1723,7 @@ var _ = Describe("SetVipsData", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1882,7 +1889,7 @@ var _ = Describe("Majority groups", func() {
 		cluster    common.Cluster
 		ctrl       *gomock.Controller
 		mockEvents *events.MockHandler
-		dbName     = "cluster_majority_groups"
+		dbName     string
 	)
 
 	AfterEach(func() {
@@ -1890,7 +1897,7 @@ var _ = Describe("Majority groups", func() {
 	})
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dbIndex++
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
@@ -1986,13 +1993,13 @@ var _ = Describe("ready_state", func() {
 		db         *gorm.DB
 		id         strfmt.UUID
 		cluster    common.Cluster
-		dbName     = "cluster_ready_state"
+		dbName     string
 		ctrl       *gomock.Controller
 		mockEvents *events.MockHandler
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -2028,9 +2035,16 @@ var _ = Describe("ready_state", func() {
 	Context("refresh_state", func() {
 		It("cluster is satisfying the install requirements", func() {
 			clusterAfterRefresh, updateErr := clusterApi.RefreshStatus(ctx, &cluster, db)
+			Expect(updateErr).Should(BeNil())
 
+			preSecondRefreshUpdatedTime := clusterAfterRefresh.UpdatedAt
+			clusterAfterRefresh, updateErr = clusterApi.RefreshStatus(ctx, clusterAfterRefresh, db)
+			postRefreshUpdateTime := clusterAfterRefresh.UpdatedAt
+
+			Expect(preSecondRefreshUpdatedTime).Should(Equal(postRefreshUpdateTime))
 			Expect(updateErr).Should(BeNil())
 			Expect(*clusterAfterRefresh.Status).Should(Equal(models.ClusterStatusReady))
+			Expect(checkValidationInfoIsSorted(clusterAfterRefresh.ValidationsInfo)).Should(BeTrue())
 		})
 
 		It("cluster is not satisfying the install requirements", func() {
@@ -2041,12 +2055,29 @@ var _ = Describe("ready_state", func() {
 
 			Expect(updateErr).Should(BeNil())
 			Expect(*clusterAfterRefresh.Status).Should(Equal(models.ClusterStatusInsufficient))
+			Expect(checkValidationInfoIsSorted(clusterAfterRefresh.ValidationsInfo)).Should(BeTrue())
 		})
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
+
+func checkValidationInfoIsSorted(validationInfo string) bool {
+	validationsOutput := make(map[string][]ValidationResult)
+	Expect(json.Unmarshal([]byte(validationInfo), &validationsOutput)).ToNot(HaveOccurred())
+
+	for _, v := range validationsOutput {
+		vRes := v
+		sortedByID := sort.SliceIsSorted(vRes, func(i, j int) bool {
+			return vRes[i].ID < vRes[j].ID
+		})
+		if !sortedByID {
+			return false
+		}
+	}
+	return true
+}
 
 var _ = Describe("insufficient_state", func() {
 	var (
@@ -2058,7 +2089,7 @@ var _ = Describe("insufficient_state", func() {
 		cluster      common.Cluster
 		ctrl         *gomock.Controller
 		mockHostAPI  *host.MockAPI
-		dbName       = "cluster_insufficient_state"
+		dbName       string
 	)
 
 	BeforeEach(func() {
@@ -2066,7 +2097,7 @@ var _ = Describe("insufficient_state", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, nil, nil, dummy, mockOperators, nil, nil)
@@ -2081,8 +2112,14 @@ var _ = Describe("insufficient_state", func() {
 			BaseDNSDomain:      "test.com",
 			PullSecretSet:      true,
 		}}
-
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("works", func() {
 		replyErr := clusterApi.RegisterCluster(ctx, &cluster)
 		Expect(replyErr).Should(BeNil())
 		Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInsufficient))
@@ -2098,14 +2135,14 @@ var _ = Describe("prepare-for-installation refresh status", func() {
 		db          *gorm.DB
 		clusterId   strfmt.UUID
 		cl          common.Cluster
-		dbName      = "cluster_prepare_for_installation"
+		dbName      string
 		ctrl        *gomock.Controller
 		mockHostAPI *host.MockAPI
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		cfg := Config{}
-		Expect(envconfig.Process("myapp", &cfg)).NotTo(HaveOccurred())
+		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).NotTo(HaveOccurred())
 		ctrl = gomock.NewController(GinkgoT())
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockEvents := events.NewMockHandler(ctrl)
@@ -2155,7 +2192,7 @@ var _ = Describe("Cluster tarred files", func() {
 		db           *gorm.DB
 		clusterId    strfmt.UUID
 		cl           common.Cluster
-		dbName       = "cluster_tar"
+		dbName       string
 		ctrl         *gomock.Controller
 		mockHostAPI  *host.MockAPI
 		mockS3Client *s3wrapper.MockAPI
@@ -2164,7 +2201,7 @@ var _ = Describe("Cluster tarred files", func() {
 		tarFile      string
 	)
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		cfg := Config{}
 		files = []string{"test", "test2"}
 		ctrl = gomock.NewController(GinkgoT())
@@ -2239,7 +2276,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		c                  common.Cluster
 		eventsHandler      events.Handler
 		mockMetric         *metrics.MockAPI
-		dbName             = "generate_additional_manifests"
+		dbName             string
 		manifestsGenerator *network.MockManifestsGeneratorAPI
 		mockOperatorMgr    *operators.MockAPI
 	)
@@ -2248,7 +2285,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		manifestsGenerator = network.NewMockManifestsGeneratorAPI(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		mockOperatorMgr = operators.NewMockAPI(ctrl)
@@ -2312,7 +2349,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 		c             common.Cluster
 		eventsHandler events.Handler
 		mockMetric    *metrics.MockAPI
-		dbName        = "deregister_inactive_clusters"
+		dbName        string
 	)
 
 	registerCluster := func() common.Cluster {
@@ -2336,7 +2373,7 @@ var _ = Describe("Deregister inactive clusters", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil)
@@ -2414,7 +2451,7 @@ var _ = Describe("Permanently delete clusters", func() {
 		c3            common.Cluster
 		eventsHandler events.Handler
 		mockMetric    *metrics.MockAPI
-		dbName        = "permanently_delete_clusters"
+		dbName        string
 		mockS3Api     *s3wrapper.MockAPI
 	)
 
@@ -2434,7 +2471,7 @@ var _ = Describe("Permanently delete clusters", func() {
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil)
@@ -2512,7 +2549,7 @@ var _ = Describe("Get cluster by Kube key", func() {
 		db               *gorm.DB
 		eventsHandler    events.Handler
 		key              types.NamespacedName
-		dbName           = "get_cluster_by_kube_key"
+		dbName           string
 		kubeKeyName      = "test-kube-name"
 		kubeKeyNamespace = "test-kube-namespace"
 	)
@@ -2520,7 +2557,7 @@ var _ = Describe("Get cluster by Kube key", func() {
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		state = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, dummy, mockOperators, nil, nil)
@@ -2563,14 +2600,14 @@ var _ = Describe("Update AMS subscription ID", func() {
 		ctrl          *gomock.Controller
 		ctx           = context.Background()
 		db            *gorm.DB
-		dbName        = "update_ams_subscription_id"
+		dbName        string
 		eventsHandler events.Handler
 		api           API
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		api = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, nil, nil, nil)
 	})
@@ -2598,4 +2635,220 @@ var _ = Describe("Update AMS subscription ID", func() {
 		c = getClusterFromDB(*c.ID, db)
 		Expect(c.AmsSubscriptionID).To(Equal(subID))
 	})
+})
+
+var _ = Describe("Validation metrics and events", func() {
+
+	const (
+		openshiftVersion = "dummyVersion"
+		emailDomain      = "dummy.com"
+	)
+
+	var (
+		ctrl       *gomock.Controller
+		ctx        = context.Background()
+		db         *gorm.DB
+		dbName     string
+		mockEvents *events.MockHandler
+		mockHost   *host.MockAPI
+		mockMetric *metrics.MockAPI
+		m          *Manager
+		c          *common.Cluster
+	)
+
+	generateTestValidationResult := func(status ValidationStatus) validationsStatus {
+		validationRes := validationsStatus{
+			"hw": {
+				{
+					ID:     SufficientMastersCount,
+					Status: status,
+				},
+			},
+		}
+		return validationRes
+	}
+
+	registerTestClusterWithValidationsAndHost := func() *common.Cluster {
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		mockEvents.EXPECT().AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+
+		c := common.Cluster{
+			Cluster: models.Cluster{
+				ID:               &clusterID,
+				OpenshiftVersion: openshiftVersion,
+				EmailDomain:      emailDomain,
+			},
+		}
+		validationRes := generateTestValidationResult(ValidationFailure)
+		bytes, err := json.Marshal(validationRes)
+		Expect(err).ShouldNot(HaveOccurred())
+		c.ValidationsInfo = string(bytes)
+		err = m.RegisterCluster(ctx, &c)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		createHost(clusterID, models.HostStatusInsufficient, db)
+
+		c = getClusterFromDB(clusterID, db)
+		return &c
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHost = host.NewMockAPI(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		m = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, mockHost, mockMetric, nil, nil, nil, nil, nil)
+		c = registerTestClusterWithValidationsAndHost()
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("Test DeregisterCluster", func() {
+
+		mockHost.EXPECT().ReportValidationFailedMetrics(ctx, gomock.Any(), openshiftVersion, emailDomain)
+		mockMetric.EXPECT().ClusterValidationFailed(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
+		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+
+		err := m.DeregisterCluster(ctx, c)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+
+	It("Test reportValidationStatusChanged", func() {
+
+		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+
+		newValidationRes := generateTestValidationResult(ValidationSuccess)
+		var currentValidationRes validationsStatus
+		err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes)
+		Expect(err).ToNot(HaveOccurred())
+		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+
+		mockMetric.EXPECT().ClusterValidationChanged(openshiftVersion, emailDomain, models.ClusterValidationIDSufficientMastersCount)
+		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, gomock.Any(), gomock.Any())
+
+		currentValidationRes = newValidationRes
+		newValidationRes = generateTestValidationResult(ValidationFailure)
+		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)
+	})
+})
+
+var _ = Describe("Console-operator's availability", func() {
+
+	var (
+		ctrl       *gomock.Controller
+		db         *gorm.DB
+		dbName     string
+		clusterApi API
+		mockEvents *events.MockHandler
+		c          common.Cluster
+	)
+
+	createCluster := func(status string, operators []*models.MonitoredOperator) common.Cluster {
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{Cluster: models.Cluster{
+			ID:                 &clusterID,
+			Status:             swag.String(status),
+			MonitoredOperators: operators,
+		}}
+		Expect(common.LoadTableFromDB(db, common.MonitoredOperatorsTable).Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+		return cluster
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB(dbName)
+		mockEvents = events.NewMockHandler(ctrl)
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	tests := []struct {
+		name          string
+		ops           []*models.MonitoredOperator
+		clusterStatus string
+		result        bool
+	}{
+		{
+			name: "Operator available",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorConsole.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusAvailable,
+				},
+			},
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        true,
+		},
+		{
+			name: "Operator can't be found",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorCVO.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusAvailable,
+				},
+			},
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        false,
+		},
+		{
+			name: "Operator progressing",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorConsole.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusProgressing,
+				},
+			},
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        false,
+		},
+		{
+			name: "Operator failed",
+			ops: []*models.MonitoredOperator{
+				{
+					Name:         operators.OperatorConsole.Name,
+					OperatorType: models.OperatorTypeBuiltin,
+					Status:       models.OperatorStatusFailed,
+				},
+			},
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        false,
+		},
+		{
+			// TODO: MGMT-4458
+			// Backward-compatible solution for clusters that don't have monitored operators data
+			name:          "No operators (Backward-compatible) - finalizing",
+			ops:           []*models.MonitoredOperator{},
+			clusterStatus: models.ClusterStatusFinalizing,
+			result:        true,
+		},
+		{
+			// TODO: MGMT-4458
+			// Backward-compatible solution for clusters that don't have monitored operators data
+			name:          "No operators (Backward-compatible) - insufficient",
+			ops:           []*models.MonitoredOperator{},
+			clusterStatus: models.ClusterStatusInsufficient,
+			result:        false,
+		},
+	}
+
+	for i := range tests {
+		test := tests[i]
+		It(test.name, func() {
+			c = createCluster(test.clusterStatus, test.ops)
+			Expect(clusterApi.IsOperatorAvailable(&c, operators.OperatorConsole.Name)).To(Equal(test.result))
+		})
+	}
 })

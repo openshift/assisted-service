@@ -136,9 +136,10 @@ type API interface {
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
-	UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error
+	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
+	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -177,26 +178,28 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 }
 
 func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	var host models.Host
-	err := db.First(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error
-	if err != nil && !gorm.IsRecordNotFoundError(err) {
-		return err
-	}
+	dbHost, err := common.GetHostFromDB(db, h.ClusterID.String(), h.ID.String())
+	var host *models.Host
+	if err != nil {
+		if !gorm.IsRecordNotFoundError(errors.Cause(err)) {
+			return err
+		}
 
-	pHost := &host
-	if err != nil && gorm.IsRecordNotFoundError(err) {
 		// Delete any previews record of the host if it was soft deleted from the cluster,
 		// no error will be returned if the host was not existed.
-		if err := db.Unscoped().Delete(&host, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
+		if err := db.Unscoped().Delete(&common.Host{}, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
 			return errors.Wrapf(
 				err,
 				"error while trying to delete previews record from db (if exists) of host %s in cluster %s",
-				host.ID.String(), host.ClusterID.String())
+				h.ID.String(), h.ClusterID.String())
 		}
-		pHost = h
+
+		host = h
+	} else {
+		host = &dbHost.Host
 	}
 
-	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(pHost), &TransitionArgsRegisterHost{
+	return m.sm.Run(TransitionTypeRegisterHost, newStateHost(host), &TransitionArgsRegisterHost{
 		ctx:                   ctx,
 		discoveryAgentVersion: h.DiscoveryAgentVersion,
 		db:                    db,
@@ -229,12 +232,7 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 // addition to agent-side checks that have already been performed. The reason that some
 // checks are performed by the agent (and not the service) is because the agent has data
 // that is not available in the service.
-func (m *Manager) populateDisksEligibility(inventoryString string) (string, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(inventoryString), &inventory); err != nil {
-		return "", err
-	}
-
+func (m *Manager) populateDisksEligibility(inventory *models.Inventory) {
 	for _, disk := range inventory.Disks {
 		if !hardware.DiskEligibilityInitialized(disk) {
 			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
@@ -248,37 +246,17 @@ func (m *Manager) populateDisksEligibility(inventoryString string) (string, erro
 
 		disk.InstallationEligibility.Eligible = len(disk.InstallationEligibility.NotEligibleReasons) == 0
 	}
-
-	result, err := json.Marshal(inventory)
-	if err != nil {
-		return "", err
-	}
-
-	return string(result), nil
 }
 
-// determineDefaultInstallationDisk considers both the previously set installation disk and the current list of valid
-// disks to determine the current required installation disk.
-//
-// Once the installation disk has been set, we usually no longer change it, even when an inventory update occurs
-// that contains new disks that might be better "fit" for installation. This is because this field can also be set by
-// the user via the API, and we don't want inventory updates to override the user's choice. However, if the disk that
-// was set is no longer part of the inventory, the new installation disk is re-evaluated because it is not longer
-// a valid choice.
-func determineDefaultInstallationDisk(previousInstallationDisk string, validDisks []*models.Disk) string {
-	if previousInstallationDisk != "" {
-		if funk.Find(validDisks, func(disk *models.Disk) bool {
-			return hostutil.GetDeviceFullName(disk.Name) == previousInstallationDisk
-		}) != nil {
-			return previousInstallationDisk
+// populateDisksId ensures that every disk has an id.
+// The id used to identify the disk and mark a disk as selected
+// This value should be equal to the host.installationDiskId
+func (m *Manager) populateDisksId(inventory *models.Inventory) {
+	for _, disk := range inventory.Disks {
+		if disk.ID == "" {
+			disk.ID = hostutil.GetDeviceIdentifier(disk)
 		}
 	}
-
-	if len(validDisks) == 0 {
-		return ""
-	}
-
-	return hostutil.GetDeviceFullName(validDisks[0].Name)
 }
 
 func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error {
@@ -295,7 +273,7 @@ func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *model
 	return err
 }
 
-func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory string) error {
+func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
 
@@ -305,47 +283,42 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 				hostStatus, allowedStatuses))
 	}
 
-	var err error
-	if h.Inventory, err = m.populateDisksEligibility(inventory); err != nil {
-		return err
-	}
-
-	validDisks, err := m.hwValidator.GetHostValidDisks(h)
+	inventory, err := hostutil.UnmarshalInventory(inventoryStr)
 	if err != nil {
 		return err
 	}
 
-	h.InstallationDiskPath = determineDefaultInstallationDisk(h.InstallationDiskPath, validDisks)
+	m.populateDisksEligibility(inventory)
+	m.populateDisksId(inventory)
+
+	h.Inventory, err = hostutil.MarshalInventory(inventory)
+	if err != nil {
+		return err
+	}
+
+	validDisks := m.hwValidator.ListEligibleDisks(inventory)
+	installationDisk := hostutil.DetermineInstallationDisk(validDisks, hostutil.GetHostInstallationPath(h))
+
+	if installationDisk == nil {
+		h.InstallationDiskPath = ""
+		h.InstallationDiskID = ""
+	} else {
+		h.InstallationDiskPath = hostutil.GetDeviceFullName(installationDisk)
+		h.InstallationDiskID = hostutil.GetDeviceIdentifier(installationDisk)
+	}
 
 	return m.db.Model(h).Update(map[string]interface{}{
 		"inventory":              h.Inventory,
 		"installation_disk_path": h.InstallationDiskPath,
+		"installation_disk_id":   h.InstallationDiskID,
 	}).Error
-}
-
-func (m *Manager) checkValidationChanged(ctx context.Context, h *models.Host, newValidationRes validationsStatus) (validationsStatus, bool, error) {
-	var currentValidationRes validationsStatus
-	if h.ValidationsInfo != "" {
-		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
-			return validationsStatus{}, false, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
-		}
-	}
-	return currentValidationRes, !reflect.DeepEqual(newValidationRes, currentValidationRes), nil
-}
-
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*models.Host, error) {
-	b, err := json.Marshal(newValidationRes)
-	if err != nil {
-		return nil, err
-	}
-	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
 	}
-	vc, err := newValidationContext(h, db)
+	vc, err := newValidationContext(h, db, m.hwValidator)
 	if err != nil {
 		return err
 	}
@@ -353,11 +326,11 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 	if err != nil {
 		return err
 	}
-	currentValidationRes, validationsChanged, err := m.checkValidationChanged(ctx, h, newValidationRes)
+	currentValidationRes, err := m.getValidations(ctx, h)
 	if err != nil {
 		return err
 	}
-	if validationsChanged {
+	if m.didValidationChanged(ctx, newValidationRes, currentValidationRes) {
 		// Validation status changes are detected when new validations are different from the
 		// current validations in the DB.
 		// For changes to be detected and reported correctly, the comparison needs to be
@@ -622,7 +595,7 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 	return cdb.Model(h).Update("requested_hostname", hostname).Error
 }
 
-func (m *Manager) UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
+func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
 	hostStatus := swag.StringValue(h.Status)
 	if !funk.ContainsString(hostStatusesBeforeInstallation[:], hostStatus) {
 		return common.NewApiError(http.StatusBadRequest,
@@ -635,20 +608,23 @@ func (m *Manager) UpdateInstallationDiskPath(ctx context.Context, db *gorm.DB, h
 		return err
 	}
 
-	matchedInstallationDisk := funk.Find(validDisks, func(disk *models.Disk) bool {
-		return hostutil.GetDeviceFullName(disk.Name) == installationDiskPath
-	})
+	matchedInstallationDisk := hostutil.GetDiskByInstallationPath(validDisks, installationDiskPath)
+
 	if matchedInstallationDisk == nil {
 		return common.NewApiError(http.StatusBadRequest,
 			errors.Errorf("Requested installation disk is not part of the host's valid disks"))
 	}
 
-	h.InstallationDiskPath = installationDiskPath
+	h.InstallationDiskPath = hostutil.GetDeviceFullName(matchedInstallationDisk)
+	h.InstallationDiskID = hostutil.GetDeviceIdentifier(matchedInstallationDisk)
 	cdb := m.db
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(h).Update("installation_disk_path", installationDiskPath).Error
+	return cdb.Model(h).Update(map[string]interface{}{
+		"installation_disk_path": h.InstallationDiskPath,
+		"installation_disk_id":   h.InstallationDiskID,
+	}).Error
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
@@ -790,16 +766,13 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
 		return
 	}
-	//get the boot disk
-	var boot *models.Disk
-	disks, err := m.hwValidator.GetHostValidDisks(h)
-	if err != nil {
-		log.WithError(err).Errorf("failed to get host valid disks %s", h.ClusterID)
-		return
-	}
 
-	if len(disks) > 0 {
-		boot = disks[0]
+	boot, err := hostutil.GetHostInstallationDisk(h)
+
+	if err != nil {
+		log.WithError(err).Errorf("host %s in cluster %s: error fetching installation disk", h.ID.String(), h.ClusterID.String())
+	} else if boot == nil {
+		log.Errorf("host %s in cluster %s has empty installation path", h.ID.String(), h.ClusterID.String())
 	}
 
 	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
@@ -807,12 +780,14 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 
 func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {
 	log := logutil.FromContext(ctx, m.log)
+	if h.ValidationsInfo == "" {
+		log.Warnf("Host %s in cluster %s doesn't contain any validations info, cannot report metrics for that host", h.ID, h.ClusterID)
+		return nil
+	}
 	var validationRes validationsStatus
-	if h.ValidationsInfo != "" {
-		if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
-			log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
-			return err
-		}
+	if err := json.Unmarshal([]byte(h.ValidationsInfo), &validationRes); err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+		return err
 	}
 	for _, vRes := range validationRes {
 		for _, v := range vRes {
@@ -826,24 +801,61 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
 	newValidationRes, currentValidationRes validationsStatus) {
-	for vCategory, vRes := range currentValidationRes {
-		for i, v := range vRes {
-			// after reboot there is no agent, therefore, the host validation for 'connected' will constantly fail.
-			// this is the expected behaviour and we don't need to generate event/metric for it.
-			if v.ID == IsConnected && funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
-				continue
-			}
-			if newValidationRes[vCategory][i].Status == ValidationFailure && v.Status == ValidationSuccess {
-				m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
-				eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
-				m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
-			}
-			if newValidationRes[vCategory][i].Status == ValidationSuccess && v.Status == ValidationFailure {
-				eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
-				m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+	for vCategory, vRes := range newValidationRes {
+		for _, v := range vRes {
+			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
+				// after reboot there is no agent, therefore, the host validation for 'connected' will constantly fail.
+				// this is the expected behaviour and we don't need to generate event/metric for it.
+				if v.ID == IsConnected && funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
+					continue
+				}
+				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
+					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
+					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
+					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, eventMsg, time.Now())
+				}
+				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
+					eventMsg := fmt.Sprintf("Host %s: validation '%s' is now fixed", hostutil.GetHostnameForMsg(h), v.ID)
+					m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventMsg, time.Now())
+				}
 			}
 		}
 	}
+}
+
+func (m *Manager) getValidationStatus(vs validationsStatus, category string, vID validationID) (ValidationStatus, bool) {
+	for _, v := range vs[category] {
+		if v.ID == vID {
+			return v.Status, true
+		}
+	}
+	return ValidationStatus(""), false
+}
+
+func (m *Manager) getValidations(ctx context.Context, h *models.Host) (validationsStatus, error) {
+	var currentValidationRes validationsStatus
+	if h.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
+			return validationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+		}
+	}
+	return currentValidationRes, nil
+}
+
+func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, currentValidationRes validationsStatus) bool {
+	if len(newValidationRes) == 0 {
+		// in order to be considered as a change, newValidationRes should not contain less data than currentValidations
+		return false
+	}
+	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
+}
+
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes validationsStatus) (*common.Host, error) {
+	b, err := json.Marshal(newValidationRes)
+	if err != nil {
+		return nil, err
+	}
+	return hostutil.UpdateHost(logutil.FromContext(ctx, m.log), db, h.ClusterID, *h.ID, *h.Status, "validations_info", string(b))
 }
 
 func (m *Manager) AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error {
@@ -895,7 +907,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 
 	if mastersCount < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
-		vc, err := newValidationContext(h, db)
+		vc, err := newValidationContext(h, db, m.hwValidator)
 		if err != nil {
 			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 			return autoSelectedRole, err
@@ -919,7 +931,7 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus
 	}
 
 	h.Role = models.HostRoleMaster
-	vc, err := newValidationContext(h, db)
+	vc, err := newValidationContext(h, db, m.hwValidator)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 		return false, err
@@ -938,8 +950,8 @@ func (m *Manager) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus
 	return false, nil
 }
 
-func (m *Manager) canBeMaster(conditions map[validationID]bool) bool {
-	if conditions[HasCPUCoresForRole] && conditions[HasMemoryForRole] {
+func (m *Manager) canBeMaster(conditions map[string]bool) bool {
+	if conditions[HasCPUCoresForRole.String()] && conditions[HasMemoryForRole.String()] {
 		return true
 	}
 	return false
@@ -951,6 +963,31 @@ func (m *Manager) GetHostRequirements(role models.HostRole) models.HostRequireme
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
 	return m.hwValidator.GetHostValidDisks(host)
+}
+
+func (m *Manager) SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, m.log)
+	if db == nil {
+		db = m.db
+	}
+	disksInfo, err := common.SetDiskSpeed(path, speedMs, exitCode, h.DisksInfo)
+	if err != nil {
+		log.WithError(err).Errorf("Could not set disk response value in %s", h.DisksInfo)
+		return err
+	}
+	if disksInfo != h.DisksInfo {
+		resultDb := db.Model(h).UpdateColumn("disks_info", disksInfo)
+		if resultDb.Error != nil {
+			log.WithError(err).Errorf("Update disk info for host %s", h.ID.String())
+			return resultDb.Error
+		}
+		if resultDb.RowsAffected == 0 {
+			err = errors.Errorf("No row updated for disk info.  Host %s", h.ID.String())
+			log.WithError(err).Error("Disks info")
+			return err
+		}
+	}
+	return nil
 }
 
 func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {

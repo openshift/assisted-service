@@ -9,6 +9,13 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
@@ -39,6 +46,32 @@ rules:
 - apiGroups:
   - adi.io.my.domain
   resources:
+  - agentserviceconfigs
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - agentserviceconfigs/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - adi.io.my.domain
+  resources:
+  - agentserviceconfigs/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - adi.io.my.domain
+  resources:
   - installenvs
   verbs:
   - create
@@ -57,6 +90,54 @@ rules:
   - patch
   - update
 - apiGroups:
+  - apps
+  resources:
+  - deployments
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - ""
+  resources:
+  - services
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - hive.openshift.io
   resources:
   - clusterdeployments
@@ -71,8 +152,36 @@ rules:
 - apiGroups:
   - hive.openshift.io
   resources:
+  - clusterdeployments/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - hive.openshift.io
+  resources:
   - clusterdeployments/status
   verbs:
   - get
   - patch
   - update
+- apiGroups:
+  - metal3.io
+  resources:
+  - baremetalhosts
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - route.openshift.io
+  resources:
+  - routes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch

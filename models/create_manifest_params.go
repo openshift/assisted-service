@@ -23,8 +23,9 @@ type CreateManifestParams struct {
 	// Required: true
 	Content *string `json:"content"`
 
-	// The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.
+	// The name of the manifest to customize the installed OCP cluster.
 	// Required: true
+	// Pattern: ^[^/]*\.(yaml|yml|json)$
 	FileName *string `json:"file_name"`
 
 	// The folder that contains the files. Manifests can be placed in 'manifests' or 'openshift' directories.
@@ -66,6 +67,10 @@ func (m *CreateManifestParams) validateContent(formats strfmt.Registry) error {
 func (m *CreateManifestParams) validateFileName(formats strfmt.Registry) error {
 
 	if err := validate.Required("file_name", "body", m.FileName); err != nil {
+		return err
+	}
+
+	if err := validate.Pattern("file_name", "body", string(*m.FileName), `^[^/]*\.(yaml|yml|json)$`); err != nil {
 		return err
 	}
 

@@ -9,6 +9,11 @@ import (
 	"github.com/pkg/errors"
 )
 
+const (
+	InstallationPreparationSucceeded = "success"
+	InstallationPreparationFailed    = "failed"
+)
+
 type Cluster struct {
 	models.Cluster
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
@@ -33,8 +38,11 @@ type Cluster struct {
 	// Namespace of the KubeAPI resource
 	KubeKeyNamespace string `json:"kube_key_namespace"`
 
-	// The ID of the subscription created in AMS
-	AmsSubscriptionID strfmt.UUID `json:"ams_subscription_id"`
+	// Indication if we updated console_url in AMS subscription
+	IsAmsSubscriptionConsoleUrlSet bool `json:"is_ams_subscription_console_url_set"`
+
+	// Indication if installation preparation succeeded or failed
+	InstallationPreparationCompletionStatus string
 
 	// ImageGenerated indicates if the discovery image was generated successfully. It will be used internally
 	// when an image needs to be generated. In case the user request to generate an image with custom parameters,
@@ -121,7 +129,10 @@ func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeD
 
 	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Take(&cluster, where...).Error
-	return &cluster, err
+	if err != nil {
+		return nil, err
+	}
+	return &cluster, nil
 }
 
 func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) ([]*Cluster, error) {
@@ -129,18 +140,37 @@ func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, include
 
 	db = prepareClusterDB(db, eagerLoading, includeDeleted)
 	err := db.Find(&clusters, where...).Error
-	return clusters, err
+	if err != nil {
+		return nil, err
+	}
+	return clusters, nil
 }
 
 func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
 	var host Host
+
 	err := db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error
 	if err != nil {
-		return nil, errors.Wrapf(err, "Failed to get host %s in cluster %s", hostId, clusterId)
+		return nil, errors.Wrapf(err, "failed to get host %s in cluster %s", hostId, clusterId)
 	}
 	return &host, nil
 }
 
 func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, value interface{}, where ...interface{}) error {
 	return db.Where("cluster_id = ?", clusterID).Delete(value, where...).Error
+}
+
+func (c *Cluster) AfterFind(db *gorm.DB) error {
+	for _, h := range c.Hosts {
+		if *h.Status == models.HostStatusKnown {
+			c.ReadyHostCount++
+			c.EnabledHostCount++
+			continue
+		}
+		if *h.Status != models.HostStatusDisabled {
+			c.EnabledHostCount++
+		}
+	}
+	c.TotalHostCount = int64(len(c.Hosts))
+	return nil
 }

@@ -24,86 +24,88 @@ import (
 
 var _ = Describe("system-test image tests", func() {
 	var (
-		ctx = context.Background()
-		// cluster   *installer.RegisterClusterCreated
-		// clusterID strfmt.UUID
+		ctx         = context.Background()
+		ocpVersions models.OpenshiftVersions
 	)
+
+	BeforeEach(func() {
+		resp, err := userBMClient.Versions.ListSupportedOpenshiftVersions(ctx, &versions.ListSupportedOpenshiftVersionsParams{})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(resp.Payload).ShouldNot(BeEmpty())
+		ocpVersions = resp.Payload
+	})
 
 	AfterEach(func() {
 		clearDB()
 	})
 
-	versions, err := userBMClient.Versions.ListSupportedOpenshiftVersions(ctx, &versions.ListSupportedOpenshiftVersionsParams{})
-	Expect(err).NotTo(HaveOccurred())
-	Expect(versions.Payload).ShouldNot(BeEmpty())
+	assertImageGenerates := func(imageType models.ImageType) {
+		It(fmt.Sprintf("[minimal-set][%s]create_and_get_image", imageType), func() {
+			for ocpVersion := range ocpVersions {
+				By(fmt.Sprintf("For version %s", ocpVersion))
+				By("Register Cluster")
 
-	for ocpVersion := range versions.Payload {
-		ocpVersion := ocpVersion
-		/*
-			for _, imageType := range []models.ImageType{models.ImageTypeFullIso, models.ImageTypeMinimalIso} {
-				imageType := imageType
-
-				It(fmt.Sprintf("[minimal-set][ocp-%s]create_and_get_image", ocpVersion), func() {
-					By("Register Cluster", func() {
-						cluster, err = userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
-							NewClusterParams: &models.ClusterCreateParams{
-								Name:             swag.String("test-cluster"),
-								OpenshiftVersion: swag.String(ocpVersion),
-								PullSecret:       swag.String(pullSecret),
-							},
-						})
-						Expect(err).NotTo(HaveOccurred())
-						clusterID = *cluster.GetPayload().ID
-					})
-
-					By("Generate ISO", func() {
-						ipConfig := models.StaticIPConfig{
-							IPV4Config: &models.StaticIPV4Config{
-
-								DNS:     "192.0.2.1",
-								Gateway: "192.0.2.1",
-								IP:      "192.0.2.155",
-								Mask:    "24",
-							},
-							Mac: "00:00:5E:00:53:EF",
-						}
-
-						_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
-							ClusterID: clusterID,
-							ImageCreateParams: &models.ImageCreateParams{
-								ImageType:       imageType,
-								StaticIpsConfig: []*models.StaticIPConfig{&ipConfig},
-							},
-						})
-						Expect(err).NotTo(HaveOccurred())
-					})
-
-					By("Download ISO", func() {
-						downloadClusterIso(ctx, clusterID)
-					})
-
-					By("Verify events", func() {
-						verifyEventExistence(clusterID, "Registered cluster")
-						verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
-					})
+				cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+					NewClusterParams: &models.ClusterCreateParams{
+						Name:             swag.String("test-cluster"),
+						OpenshiftVersion: swag.String(ocpVersion),
+						PullSecret:       swag.String(pullSecret),
+					},
 				})
-			}
-		*/
+				Expect(err).NotTo(HaveOccurred())
+				clusterID := *cluster.GetPayload().ID
 
-		It(fmt.Sprintf("[ocp-%s]create_and_download_live_iso", ocpVersion), func() {
-			By("Create ISO", func() {
+				By("Generate ISO")
+				macInterfaceMap := models.MacInterfaceMap{
+					&models.MacInterfaceMapItems0{
+						LogicalNicName: "eth0",
+						MacAddress:     "00:00:5E:00:53:EF",
+					},
+					&models.MacInterfaceMapItems0{
+						LogicalNicName: "eth0",
+						MacAddress:     "00:00:5E:00:53:EF",
+					},
+				}
+
+				config := common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.0.2.155", "192.0.2.156", "192.0.2.1", macInterfaceMap)
+
+				_, err = userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+					ClusterID: clusterID,
+					ImageCreateParams: &models.ImageCreateParams{
+						ImageType:           imageType,
+						StaticNetworkConfig: []*models.HostStaticNetworkConfig{config},
+					},
+				})
+				Expect(err).NotTo(HaveOccurred())
+
+				By("Download ISO")
+
+				downloadClusterIso(ctx, clusterID)
+
+				By("Download ISO Headers")
+				downloadClusterIsoHeaders(ctx, clusterID)
+
+				By("Verify events")
+				verifyEventExistence(clusterID, "Registered cluster")
+				verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
+			}
+		})
+
+		It(fmt.Sprintf("[%s]create_and_download_live_iso", imageType), func() {
+			for ocpVersion := range ocpVersions {
+				By(fmt.Sprintf("For version %s", ocpVersion))
+				By("Create ISO")
 				ignitionParams := models.AssistedServiceIsoCreateParams{
 					SSHPublicKey:     sshPublicKey,
 					PullSecret:       pullSecret,
 					OpenshiftVersion: ocpVersion,
 				}
-				_, err = userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
+				_, err := userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
 					AssistedServiceIsoCreateParams: &ignitionParams,
 				})
 				Expect(err).NotTo(HaveOccurred())
-			})
 
-			By("Download ISO", func() {
+				By("Download ISO")
 				file, err := ioutil.TempFile("", "tmp")
 				if err != nil {
 					log.Fatal(err)
@@ -113,8 +115,12 @@ var _ = Describe("system-test image tests", func() {
 				_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
 				Expect(err).NotTo(HaveOccurred())
 				verifyFileNotEmpty(file)
-			})
+			}
 		})
+	}
+
+	for _, imageType := range []models.ImageType{models.ImageTypeFullIso, models.ImageTypeMinimalIso} {
+		assertImageGenerates(imageType)
 	}
 })
 
@@ -164,6 +170,9 @@ var _ = Describe("image tests", func() {
 		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: clusterID}, file)
 		Expect(err).To(BeAssignableToTypeOf(installer.NewDownloadClusterISONotFound()))
 
+		_, err = userBMClient.Installer.DownloadClusterISOHeaders(ctx, &installer.DownloadClusterISOHeadersParams{ClusterID: clusterID})
+		Expect(err).To(BeAssignableToTypeOf(installer.NewDownloadClusterISOHeadersNotFound()))
+
 		// test that an event was added
 		msg := "Deleted image from backend because its ignition was updated. The image may be regenerated at any time."
 		verifyEventExistence(clusterID, msg)
@@ -171,6 +180,11 @@ var _ = Describe("image tests", func() {
 
 	It("download_non_existing_cluster", func() {
 		_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: *strToUUID(uuid.New().String())}, file)
+		Expect(err).Should(HaveOccurred())
+	})
+
+	It("download_headers_non_existing_cluster", func() {
+		_, err = userBMClient.Installer.DownloadClusterISOHeaders(ctx, &installer.DownloadClusterISOHeadersParams{ClusterID: *strToUUID(uuid.New().String())})
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -187,6 +201,20 @@ var _ = Describe("image tests", func() {
 			ClusterID: *cluster.GetPayload().ID,
 		}, file)
 		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISONotFound())))
+	})
+
+	It("download_headers_non_existing_image", func() {
+		cluster, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("test-cluster"),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:       swag.String(pullSecret),
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		_, err = userBMClient.Installer.DownloadClusterISOHeaders(ctx, &installer.DownloadClusterISOHeadersParams{
+			ClusterID: *cluster.GetPayload().ID})
+		Expect(reflect.TypeOf(err)).Should(Equal(reflect.TypeOf(installer.NewDownloadClusterISOHeadersNotFound())))
 	})
 })
 
@@ -274,7 +302,6 @@ func verifyEventExistence(ClusterID strfmt.UUID, message string) {
 	Expect(nEvents).ShouldNot(Equal(0))
 }
 
-/*
 func downloadClusterIso(ctx context.Context, clusterID strfmt.UUID) {
 	file, err := ioutil.TempFile("", "tmp")
 	if err != nil {
@@ -288,7 +315,20 @@ func downloadClusterIso(ctx context.Context, clusterID strfmt.UUID) {
 	Expect(err).NotTo(HaveOccurred())
 	verifyFileNotEmpty(file)
 }
-*/
+
+func downloadClusterIsoHeaders(ctx context.Context, clusterID strfmt.UUID) {
+	file, err := ioutil.TempFile("", "tmp")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.Remove(file.Name())
+
+	_, err = userBMClient.Installer.DownloadClusterISOHeaders(ctx, &installer.DownloadClusterISOHeadersParams{
+		ClusterID: clusterID,
+	})
+	Expect(err).NotTo(HaveOccurred())
+	verifyFileNotEmpty(file)
+}
 
 func verifyFileNotEmpty(file *os.File) {
 	s, err := file.Stat()

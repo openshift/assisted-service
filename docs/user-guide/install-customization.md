@@ -11,13 +11,14 @@ These will only take effect after the machine config operator is up and running 
 ```
 # base64 encoding of the example from https://docs.openshift.com/container-platform/4.6/installing/install_config/installing-customizing.html 
 content=YXBpVmVyc2lvbjogbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3YxCmtpbmQ6IE1hY2hpbmVDb25maWcKbWV0YWRhdGE6CiAgbGFiZWxzOgogICAgbWFjaGluZWNvbmZpZ3VyYXRpb24ub3BlbnNoaWZ0LmlvL3JvbGU6IG1hc3RlcgogIG5hbWU6IDk5LW9wZW5zaGlmdC1tYWNoaW5lY29uZmlnLW1hc3Rlci1rYXJncwpzcGVjOgogIGtlcm5lbEFyZ3VtZW50czoKICAgIC0gJ2xvZ2xldmVsPTcnCg==
-file=openshift/99-openshift-machineconfig-master-kargs.yaml
+file=99-openshift-machineconfig-master-kargs.yaml
+folder=openshift
 
 curl \
     --header "Content-Type: application/json" \
     --header "Authorization: Bearer $TOKEN" \
     --request POST \
-    --data "{\"file_name\":\"$file\", \"content\":\"$content\"}" \
+    --data "{\"file_name\":\"$file\", \"folder\":\"$folder\", \"content\":\"$content\"}" \
 "http://$ASSISTED_SERVICE_IP:$ASSISTED_SERVICE_PORT/api/assisted-install/v1/clusters/$CLUSTER_ID/manifests"
 ```
 
@@ -59,7 +60,29 @@ curl --header "Authorization: Bearer $TOKEN" "http://$ASSISTED_SERVICE_IP:$ASSIS
 ## Install Config
 
 These endpoints alter the default install config yaml used when running `openshift-install create` commands.
+Install config customization reference is available [here](https://github.com/openshift/installer/blob/master/docs/user/customization.md)
 Some of this content will be pinned to particular values, but most can be edited.
+Note, some of this content will be pinned to particular values by the assisted-installer (can't be overwritten).
+
+You can compose the install-config overrides by creating a json string with the options you wish to set.
+An example install config with disabled hyperthreading for the control plane:
+```
+apiVersion: v1
+baseDomain: example.com
+controlPlane:
+  name: master
+  hyperthreading: Disabled
+compute:
+- name: worker
+  replicas: 5
+metadata:
+  name: test-cluster
+platform: ...
+pullSecret: '{"auths": ...}'
+sshKey: ssh-ed25519 AAAA...
+```
+should look like this:
+```"{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"```
 
 ### Patch the install config
 

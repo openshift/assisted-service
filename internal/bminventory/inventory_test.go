@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"sort"
@@ -30,19 +31,19 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	amgmtv1 "github.com/openshift-online/ocm-sdk-go/accountsmgmt/v1"
-	configv1 "github.com/openshift/api/config/v1"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/installcfg"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -56,7 +57,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 )
 
@@ -77,6 +77,7 @@ var (
 	mockCRDUtils            *MockCRDUtils
 	mockAccountsMgmt        *ocm.MockOCMAccountsMgmt
 	mockOperatorManager     *operators.MockAPI
+	mockHwValidator         *hardware.MockValidator
 	mockIgnitionBuilder     *ignition.MockIgnitionBuilder
 	secondDayWorkerIgnition = []byte(`{
 		"ignition": {
@@ -157,7 +158,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		cfg            Config
 		db             *gorm.DB
 		ctx            = context.Background()
-		dbName         = "generate_cluster_iso"
+		dbName         string
 		ignitionReader = ioutil.NopCloser(strings.NewReader(`{
 				"ignition":{"version":"3.1.0"},
 				"storage":{
@@ -176,7 +177,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		cfg.ServiceBaseURL = FakeServiceBaseURL
 		bm = createInventory(db, cfg)
 
@@ -224,8 +225,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -245,8 +246,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().IsAwsS3().Return(false)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		mockUploadIso(cluster, nil)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (proxy URL is \"http://1.1.1.1:1234\", Image type "+
 			"is \"full-iso\", SSH public key is not set)", gomock.Any())
@@ -258,6 +259,43 @@ var _ = Describe("GenerateClusterISO", func() {
 		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
 		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(FakeServiceBaseURL + "/api/assisted-install/v1/clusters/" + clusterId.String() + "/downloads/image"))
 
+	})
+
+	It("sets the auth token when using local auth", func() {
+		// Use a local auth handler
+		pub, priv, err := gencrypto.ECDSAKeyPairPEM()
+		Expect(err).NotTo(HaveOccurred())
+		os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+		defer os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		bm.authHandler, err = auth.NewLocalAuthenticator(
+			&auth.Config{AuthType: auth.TypeLocal, ECPublicKeyPEM: pub},
+			common.GetTestLog().WithField("pkg", "auth"),
+			db,
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		// Success flow
+		cluster := registerCluster(true)
+		clusterId := cluster.ID
+		mockS3Client.EXPECT().IsAwsS3().Return(false)
+		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockUploadIso(cluster, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
+		bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+
+		// Check that a valid token was added to the URL
+		getReply := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		u, err := url.Parse(getReply.Payload.ImageInfo.DownloadURL)
+		Expect(err).NotTo(HaveOccurred())
+		tok := u.Query().Get("api_key")
+		_, err = bm.authHandler.AuthURLAuth(tok)
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("image already exists", func() {
@@ -281,7 +319,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo,
 			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`, cluster.ImageInfo.Type),
 			gomock.Any())
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -314,8 +352,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -334,8 +372,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -359,7 +397,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockUploadIso(cluster, errors.New("failed"))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -383,7 +421,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
 		mockUploadIso(cluster, errors.New("failed"))
 		mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityError, gomock.Any(), gomock.Any())
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -394,7 +432,7 @@ var _ = Describe("GenerateClusterISO", func() {
 	It("fails when the ignition upload fails", func() {
 		clusterId := registerCluster(true).ID
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("failed"))
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 			ClusterID:         *clusterId,
 			ImageCreateParams: &models.ImageCreateParams{},
@@ -441,8 +479,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
@@ -458,8 +496,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
@@ -474,8 +512,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo,
 				`Re-used existing image rather than generating a new one (image type is "full-iso")`,
 				gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
@@ -492,8 +530,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: staticNetworkConfig},
@@ -516,8 +554,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", clusterId))
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply = bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
 				ClusterID:         *clusterId,
 				ImageCreateParams: &models.ImageCreateParams{StaticNetworkConfig: newStaticNetworkConfig},
@@ -581,8 +619,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"minimal-iso\", SSH public key is not set)", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
@@ -598,8 +636,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			// Generate full-iso
 			mockUploadIso(cluster, nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"full-iso\", SSH public key is not set)", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 			generateReply := generateClusterISO(models.ImageTypeFullIso)
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 
@@ -615,8 +653,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, "Generated image (Image type is \"minimal-iso\", SSH public key is not set)", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
 
 			generateReply = generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
@@ -630,8 +668,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), fmt.Sprintf("%s/discovery.ign", cluster.ID))
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("", errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -645,8 +683,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().GetMinimalIsoObjectName(cluster.OpenshiftVersion).Return("rhcos-minimal.iso", nil)
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(nil, int64(0), errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -661,8 +699,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			mockS3Client.EXPECT().DownloadPublic(gomock.Any(), "rhcos-minimal.iso").Return(ioutil.NopCloser(strings.NewReader("totallyaniso")), int64(12), nil)
 			mockIsoEditorFactory.EXPECT().WithEditor(ctx, gomock.Any(), cluster.OpenshiftVersion, gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -679,8 +717,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			stubWithEditor(mockIsoEditorFactory, editor, cluster.OpenshiftVersion)
 			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return("", errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -698,8 +736,8 @@ var _ = Describe("GenerateClusterISO", func() {
 			editor.EXPECT().CreateClusterMinimalISO(gomock.Any(), "", gomock.Any()).Return(isoFilePath, nil)
 			mockS3Client.EXPECT().UploadFile(gomock.Any(), isoFilePath, fmt.Sprintf("discovery-image-%s.iso", cluster.ID)).Return(errors.New(expectedErrMsg))
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityError, "Failed to generate minimal ISO", gomock.Any())
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
-			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, gomock.Any(), true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, false, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(1)
+			mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), bm.IgnitionConfig, true, bm.authHandler.AuthType()).Return(discovery_ignition_3_1, nil).Times(0)
 
 			generateReply := generateClusterISO(models.ImageTypeMinimalIso)
 			Expect(generateReply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
@@ -725,19 +763,88 @@ func createCluster(db *gorm.DB, status string) *common.Cluster {
 	return createClusterWithAvailability(db, status, models.ClusterCreateParamsHighAvailabilityModeFull)
 }
 
+var _ = Describe("GetHost", func() {
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		hostID    strfmt.UUID
+		clusterId strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		clusterId = strfmt.UUID(uuid.New().String())
+		hostID = strfmt.UUID(uuid.New().String())
+		db, _ = common.PrepareTestDB()
+		bm = createInventory(db, cfg)
+
+		hostObj := models.Host{
+			ID:        &hostID,
+			ClusterID: clusterId,
+			Status:    swag.String("discovering"),
+		}
+		Expect(db.Create(&hostObj).Error).ShouldNot(HaveOccurred())
+	})
+
+	It("Get host failed", func() {
+		ctx := context.Background()
+		params := installer.GetHostParams{
+			ClusterID: clusterId,
+			HostID:    "no-such-host",
+		}
+
+		response := bm.GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostNotFound{}))
+	})
+
+	It("Get host succeed", func() {
+		ctx := context.Background()
+		params := installer.GetHostParams{
+			ClusterID: clusterId,
+			HostID:    hostID,
+		}
+
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		response := bm.GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostOK{}))
+	})
+
+	It("Validate customization have occurred", func() {
+		ctx := context.Background()
+
+		hostObj := models.Host{
+			ID:        &hostID,
+			ClusterID: clusterId,
+			Status:    swag.String("discovering"),
+			Bootstrap: true,
+		}
+		Expect(db.Model(&hostObj).Update("Bootstrap", true).Error).ShouldNot(HaveOccurred())
+		objectAfterUpdating, _ := common.GetHostFromDB(db, clusterId.String(), hostID.String())
+		Expect(objectAfterUpdating.ProgressStages).To(BeEmpty())
+		params := installer.GetHostParams{
+			ClusterID: clusterId,
+			HostID:    hostID,
+		}
+		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(host.BootstrapStages[:]).Times(1)
+		response := bm.GetHost(ctx, params)
+		Expect(response).Should(BeAssignableToTypeOf(&installer.GetHostOK{}))
+		Expect(response.(*installer.GetHostOK).Payload.ProgressStages).To(ConsistOf(host.BootstrapStages[:]))
+	})
+})
+
 var _ = Describe("RegisterHost", func() {
 	var (
 		bm     *bareMetalInventory
 		cfg    Config
 		db     *gorm.DB
 		ctx    = context.Background()
-		dbName = "register_host_api"
+		dbName string
 		hostID strfmt.UUID
 	)
 
 	BeforeEach(func() {
 		hostID = strfmt.UUID(uuid.New().String())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
@@ -905,13 +1012,13 @@ var _ = Describe("GetNextSteps", func() {
 		db                *gorm.DB
 		ctx               = context.Background()
 		defaultNextStepIn int64
-		dbName            = "get_next_steps"
+		dbName            string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		defaultNextStepIn = 60
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
@@ -983,12 +1090,12 @@ var _ = Describe("PostStepReply", func() {
 		cfg    Config
 		db     *gorm.DB
 		ctx    = context.Background()
-		dbName = "post_step_reply"
+		dbName string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
@@ -1337,6 +1444,61 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 	})
+	Context("Disk speed", func() {
+		var (
+			clusterId *strfmt.UUID
+			hostId    *strfmt.UUID
+		)
+
+		var makeStepReply = func(clusterID, hostID strfmt.UUID, path string, ioDuration, exitCode int64) installer.PostStepReplyParams {
+			response := models.DiskSpeedCheckResponse{
+				IoSyncDuration: ioDuration,
+				Path:           path,
+			}
+
+			b, err := json.Marshal(&response)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			return installer.PostStepReplyParams{
+				ClusterID: clusterID,
+				HostID:    hostID,
+				Reply: &models.StepReply{
+					ExitCode: exitCode,
+					Output:   string(b),
+					StepType: models.StepTypeInstallationDiskSpeedCheck,
+				},
+			}
+		}
+
+		BeforeEach(func() {
+			clusterId = strToUUID(uuid.New().String())
+			hostId = strToUUID(uuid.New().String())
+
+			host := models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("discovering"),
+			}
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("Disk speed success", func() {
+			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+
+			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+
+		It("Disk speed failure", func() {
+			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, -1)
+			reply := bm.PostStepReply(ctx, params)
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+		})
+	})
 })
 
 var _ = Describe("GetFreeAddresses", func() {
@@ -1345,12 +1507,12 @@ var _ = Describe("GetFreeAddresses", func() {
 		cfg    Config
 		db     *gorm.DB
 		ctx    = context.Background()
-		dbName = "get_free_addresses"
+		dbName string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
@@ -1485,12 +1647,12 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 		cfg    Config
 		db     *gorm.DB
 		ctx    = context.Background()
-		dbName = "update_host_install_progress"
+		dbName string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
@@ -1589,13 +1751,14 @@ var _ = Describe("cluster", func() {
 		db             *gorm.DB
 		ctx            = context.Background()
 		clusterID      strfmt.UUID
-		dbName         = "inventory_cluster"
+		dbName         string
 		ignitionReader io.ReadCloser
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		Expect(cfg.IPv6Support).Should(BeTrue())
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.ocmClient = nil
 
@@ -2064,6 +2227,35 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("Monitored Operators", func() {
+			var (
+				testOLMOperators = []*models.MonitoredOperator{
+					{
+						Name:           "0",
+						OperatorType:   models.OperatorTypeOlm,
+						TimeoutSeconds: 1000,
+					},
+					{
+						Name:           "1",
+						OperatorType:   models.OperatorTypeOlm,
+						TimeoutSeconds: 2000,
+					},
+				}
+			)
+
+			mockGetOperatorByName := func(operatorName string) {
+				testOLMOperatorIndex, err := strconv.Atoi(operatorName)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				mockOperatorManager.EXPECT().GetOperatorByName(operatorName).Return(
+					&models.MonitoredOperator{
+						Name:             testOLMOperators[testOLMOperatorIndex].Name,
+						OperatorType:     testOLMOperators[testOLMOperatorIndex].OperatorType,
+						TimeoutSeconds:   testOLMOperators[testOLMOperatorIndex].TimeoutSeconds,
+						Namespace:        testOLMOperators[testOLMOperatorIndex].Namespace,
+						SubscriptionName: testOLMOperators[testOLMOperatorIndex].SubscriptionName,
+					}, nil).Times(1)
+			}
+
 			Context("RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
@@ -2086,11 +2278,15 @@ var _ = Describe("cluster", func() {
 				})
 
 				It("OLM register non default value", func() {
-					newOperatorName := lso.Operator.Name
+					newOperatorName := testOLMOperators[0].Name
 					newProperties := "blob-info"
 
 					mockClusterRegisterSuccess(bm, true)
-					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(&lso.Operator, nil).Times(1)
+					mockGetOperatorByName(newOperatorName)
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return operators, nil
+						}).Times(1)
 
 					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 						NewClusterParams: &models.ClusterCreateParams{
@@ -2108,15 +2304,63 @@ var _ = Describe("cluster", func() {
 					expectedMonitoredOperator := models.MonitoredOperator{
 						Name:             newOperatorName,
 						Properties:       newProperties,
-						OperatorType:     lso.Operator.OperatorType,
-						TimeoutSeconds:   lso.Operator.TimeoutSeconds,
-						Namespace:        lso.Operator.Namespace,
-						SubscriptionName: lso.Operator.SubscriptionName,
+						OperatorType:     testOLMOperators[0].OperatorType,
+						TimeoutSeconds:   testOLMOperators[0].TimeoutSeconds,
+						Namespace:        testOLMOperators[0].Namespace,
+						SubscriptionName: testOLMOperators[0].SubscriptionName,
 						ClusterID:        *actual.Payload.ID,
 					}
 
 					Expect(actual.Payload.MonitoredOperators).To(ContainElement(&common.TestDefaultConfig.MonitoredOperator))
 					Expect(actual.Payload.MonitoredOperators).To(ContainElement(&expectedMonitoredOperator))
+				})
+
+				It("Resolve OLM dependencies", func() {
+					newOperatorName := testOLMOperators[1].Name
+
+					mockClusterRegisterSuccess(bm, true)
+					mockGetOperatorByName(newOperatorName)
+					mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+						DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+							return append(operators, testOLMOperators[0]), nil
+						}).Times(1)
+
+					reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+						NewClusterParams: &models.ClusterCreateParams{
+							Name:             swag.String("some-cluster-name"),
+							OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+							PullSecret:       swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+							OlmOperators: []*models.OperatorCreateParams{
+								{Name: newOperatorName},
+							},
+						},
+					})
+					Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+					actual := reply.(*installer.RegisterClusterCreated)
+
+					expectedUpdatedMonitoredOperator := models.MonitoredOperator{
+						Name:             newOperatorName,
+						OperatorType:     testOLMOperators[1].OperatorType,
+						TimeoutSeconds:   testOLMOperators[1].TimeoutSeconds,
+						Namespace:        testOLMOperators[1].Namespace,
+						SubscriptionName: testOLMOperators[1].SubscriptionName,
+						ClusterID:        *actual.Payload.ID,
+					}
+
+					expectedResolvedMonitoredOperator := models.MonitoredOperator{
+						Name:             testOLMOperators[0].Name,
+						OperatorType:     testOLMOperators[0].OperatorType,
+						TimeoutSeconds:   testOLMOperators[0].TimeoutSeconds,
+						Namespace:        testOLMOperators[0].Namespace,
+						SubscriptionName: testOLMOperators[0].SubscriptionName,
+						ClusterID:        *actual.Payload.ID,
+					}
+
+					Expect(actual.Payload.MonitoredOperators).To(ContainElements(
+						&common.TestDefaultConfig.MonitoredOperator,
+						&expectedUpdatedMonitoredOperator,
+						&expectedResolvedMonitoredOperator,
+					))
 				})
 
 				It("OLM invalid name", func() {
@@ -2143,18 +2387,6 @@ var _ = Describe("cluster", func() {
 			Context("UpdateCluster", func() {
 				var (
 					defaultProperties = "properties"
-					testOLMOperators  = []*models.MonitoredOperator{
-						{
-							Name:           "0",
-							OperatorType:   models.OperatorTypeOlm,
-							TimeoutSeconds: 1000,
-						},
-						{
-							Name:           "1",
-							OperatorType:   models.OperatorTypeOlm,
-							TimeoutSeconds: 2000,
-						},
-					}
 				)
 
 				tests := []struct {
@@ -2263,10 +2495,13 @@ var _ = Describe("cluster", func() {
 						mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 
 						for _, updateOperator := range test.updateOperators {
-							index, err := strconv.Atoi(updateOperator.Name)
-							Expect(err).ShouldNot(HaveOccurred())
-
-							mockOperatorManager.EXPECT().GetOperatorByName(updateOperator.Name).Return(testOLMOperators[index], nil).Times(1)
+							mockGetOperatorByName(updateOperator.Name)
+						}
+						if test.updateOperators != nil {
+							mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+								DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+									return operators, nil
+								}).Times(1)
 						}
 
 						reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -2281,6 +2516,62 @@ var _ = Describe("cluster", func() {
 						Expect(actual.Payload.MonitoredOperators).To(ContainElements(test.expectedOperators))
 					})
 				}
+			})
+
+			It("Resolve OLM dependencies", func() {
+				clusterID = strfmt.UUID(uuid.New().String())
+				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					ID: &clusterID,
+				}}).Error
+				Expect(err).ShouldNot(HaveOccurred())
+
+				// Update
+				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+
+				newOperatorName := testOLMOperators[1].Name
+
+				mockGetOperatorByName(newOperatorName)
+				mockOperatorManager.EXPECT().ResolveDependencies(gomock.Any()).
+					DoAndReturn(func(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+						return append(operators, testOLMOperators[0]), nil
+					}).Times(1)
+
+				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+					ClusterID: clusterID,
+					ClusterUpdateParams: &models.ClusterUpdateParams{
+						OlmOperators: []*models.OperatorCreateParams{
+							{Name: newOperatorName},
+						},
+					},
+				})
+
+				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+				actual := reply.(*installer.UpdateClusterCreated)
+
+				expectedUpdatedMonitoredOperator := models.MonitoredOperator{
+					Name:             newOperatorName,
+					OperatorType:     testOLMOperators[1].OperatorType,
+					TimeoutSeconds:   testOLMOperators[1].TimeoutSeconds,
+					Namespace:        testOLMOperators[1].Namespace,
+					SubscriptionName: testOLMOperators[1].SubscriptionName,
+					ClusterID:        *actual.Payload.ID,
+				}
+
+				expectedResolvedMonitoredOperator := models.MonitoredOperator{
+					Name:             testOLMOperators[0].Name,
+					OperatorType:     testOLMOperators[0].OperatorType,
+					TimeoutSeconds:   testOLMOperators[0].TimeoutSeconds,
+					Namespace:        testOLMOperators[0].Namespace,
+					SubscriptionName: testOLMOperators[0].SubscriptionName,
+					ClusterID:        *actual.Payload.ID,
+				}
+
+				Expect(actual.Payload.MonitoredOperators).To(ContainElements(
+					&expectedUpdatedMonitoredOperator,
+					&expectedResolvedMonitoredOperator,
+				))
 			})
 
 			It("OLM invalid name", func() {
@@ -2651,7 +2942,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("Valid selection of install disk", func() {
-				mockHostApi.EXPECT().UpdateInstallationDiskPath(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
@@ -3753,12 +4044,12 @@ var _ = Describe("KubeConfig download", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    = "kubeconfig_download"
+		dbName    string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 
 		bm = createInventory(db, cfg)
@@ -3862,12 +4153,12 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
 		kubeconfigObject    string
-		dbName              = "upload_cluster_ingress_cert"
+		dbName              string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ingressCa = "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
@@ -4040,13 +4331,13 @@ var _ = Describe("List unregistered clusters", func() {
 		openshiftClusterID = strToUUID("41940ee8-ec99-43de-8766-174381b4921d")
 		c                  common.Cluster
 		kubeconfigFile     *os.File
-		dbName             = "upload_logs"
+		dbName             string
 		host1              models.Host
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -4075,7 +4366,9 @@ var _ = Describe("List unregistered clusters", func() {
 		payload := resp.(*installer.ListClustersOK).Payload
 		Expect(len(payload)).Should(Equal(1))
 		Expect(payload[0].ID.String()).Should(Equal(clusterID.String()))
-		Expect(len(payload[0].Hosts)).Should(Equal(1))
+		Expect(payload[0].TotalHostCount).Should(Equal(int64(1)))
+		Expect(payload[0].EnabledHostCount).Should(Equal(int64(1)))
+		Expect(payload[0].ReadyHostCount).Should(Equal(int64(1)))
 		Expect(payload[0].Hosts[0].ID.String()).Should(Equal(hostID.String()))
 	})
 
@@ -4129,13 +4422,13 @@ var _ = Describe("Get unregistered clusters", func() {
 		hostID         strfmt.UUID
 		c              common.Cluster
 		kubeconfigFile *os.File
-		dbName         = "get_unregistered_clusters"
+		dbName         string
 		host1          models.Host
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		clusterID = strfmt.UUID(uuid.New().String())
 		c = common.Cluster{Cluster: models.Cluster{
@@ -4163,7 +4456,9 @@ var _ = Describe("Get unregistered clusters", func() {
 		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
 		cluster := resp.(*installer.GetClusterOK).Payload
 		Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
-		Expect(len(cluster.Hosts)).Should(Equal(1))
+		Expect(cluster.TotalHostCount).Should(Equal(int64(1)))
+		Expect(cluster.ReadyHostCount).Should(Equal(int64(1)))
+		Expect(cluster.EnabledHostCount).Should(Equal(int64(1)))
 		Expect(cluster.Hosts[0].ID.String()).Should(Equal(hostID.String()))
 	})
 
@@ -4196,7 +4491,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		hostID         strfmt.UUID
 		c              common.Cluster
 		kubeconfigFile *os.File
-		dbName         = "upload_logs"
+		dbName         string
 		request        *http.Request
 		host1          models.Host
 		hostLogsType   = string(models.LogsTypeHost)
@@ -4204,7 +4499,7 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 
 		bm = createInventory(db, cfg)
@@ -4587,11 +4882,11 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    = "get_cluster_install_config"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -4655,11 +4950,11 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    = "update_cluster_install_config"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{
@@ -4684,6 +4979,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			ClusterID:           clusterID,
 			InstallConfigParams: override,
 		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom install config was applied to the cluster", gomock.Any())
 		response := bm.UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigCreated{}))
 
@@ -4700,7 +4996,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			InstallConfigParams: override,
 		}
 		response := bm.UpdateClusterInstallConfig(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigNotFound{}))
+		verifyApiError(response, http.StatusNotFound)
 	})
 
 	It("returns bad request when provided invalid json", func() {
@@ -4710,7 +5006,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			InstallConfigParams: override,
 		}
 		response := bm.UpdateClusterInstallConfig(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+		verifyApiError(response, http.StatusBadRequest)
 	})
 
 	It("returns bad request when provided invalid options", func() {
@@ -4720,7 +5016,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			InstallConfigParams: override,
 		}
 		response := bm.UpdateClusterInstallConfig(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigBadRequest{}))
+		verifyApiError(response, http.StatusBadRequest)
 	})
 })
 
@@ -4732,11 +5028,11 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    = "get_discovery_ignition"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{
@@ -4753,7 +5049,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 	})
 
 	It("returns successfully without overrides", func() {
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(discovery_ignition_3_1, nil).Times(1)
 		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
 		response := bm.GetDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.GetDiscoveryIgnitionOK{}))
@@ -4774,7 +5070,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 
 	It("returns successfully with overrides", func() {
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(override, nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(override, nil).Times(1)
 		db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("ignition_config_overrides", override)
 
 		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
@@ -4806,11 +5102,11 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
-		dbName    = "update_discovery_ignition"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
@@ -4831,6 +5127,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		}
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
 			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(false, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", gomock.Any())
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
 
@@ -4890,6 +5187,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		}
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
 			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(false, fmt.Errorf("error"))
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", gomock.Any())
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		verifyApiError(response, http.StatusInternalServerError)
 	})
@@ -4902,6 +5200,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		}
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(),
 			fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))).Return(true, nil)
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom discovery ignition config was applied to the cluster", gomock.Any())
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Deleted image from backend because its ignition was updated. The image may be regenerated at any time.", gomock.Any())
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
@@ -4930,6 +5229,7 @@ func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, clust
 		Role:      role,
 		Inventory: inventory,
 	}
+
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	return host
 }
@@ -4973,144 +5273,13 @@ func getInventoryStrWithIPv6(hostname, bootMode string, ipv4Addresses []string, 
 	return string(ret)
 }
 
-var _ = Describe("Register OCPCluster test", func() {
-
-	var (
-		bm             *bareMetalInventory
-		configMap      v1.ConfigMap
-		pullSecret     v1.Secret
-		clusterVersion configv1.ClusterVersion
-		ips            []string
-		names          []string
-		roles          []string
-		statuses       []v1.ConditionStatus
-		nodesList      *v1.NodeList
-		archituctures  []string
-		cfg            Config
-		db             *gorm.DB
-		ctx            = context.Background()
-	)
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB("register_ocp_cluster")
-		bm = createInventory(db, cfg)
-		configMap.Data = make(map[string]string)
-		configMap.Data["install-config"] = "baseDomain: redhat.com\nnetworking:\n  machineNetwork:\n  - cidr: 192.168.126.0/24\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2\nsshKey: ssh-rsa kjfhkefkfsk"
-		pullSecret.Data = make(map[string][]byte)
-		pullSecret.Data[".dockerconfigjson"] = []byte("some kind of secret")
-		clusterVersion.Status.Desired.Version = "4.6.0-rc5"
-		names = []string{"node1", "node2"}
-		ips = []string{"192.168.6.1", "192.168.6.2"}
-		roles = []string{"node-role.kubernetes.io/master", "node-role.kubernetes.io/worker"}
-		statuses = []v1.ConditionStatus{v1.ConditionTrue, v1.ConditionTrue}
-		archituctures = []string{"x64_64", "amd64"}
-		nodesList = prepareK8NodeList(names, ips, roles, archituctures, statuses)
-	})
-
-	AfterEach(func() {
-		common.DeleteTestDB(db, "register_ocp_cluster")
-		ctrl.Finish()
-	})
-
-	It("Register OCP cluster", func() {
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).ShouldNot(HaveOccurred())
-	})
-
-	It("Register OCP cluster failer to get cluster-config-v1", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(basedomain) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "baseDoimain: 98iijhk\nplatform:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(platform) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "platfiuoiorm:\n  baremetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(baremetal) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "platform:\n  baremioihetal:\n    apiVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed wrong format(api vip) of cluster-config-v1", func() {
-		configMap.Data["install-config"] = "platform:\n  baremetal:\n    apiiefVIP: 192.168.126.141\n    bootstrapProvisioningIP: 172.22.0.2"
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failer to get cluster version", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to get pull secret", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to register", func() {
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to get node list", func() {
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		mockK8sClient.EXPECT().ListNodes().Return(nil, fmt.Errorf("some error")).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-	It("Register OCP cluster failed to register host", func() {
-		mockClusterApi.EXPECT().RegisterAddHostsOCPCluster(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		mockHostApi.EXPECT().RegisterInstalledOCPHost(gomock.Any(), gomock.Any(), gomock.Any()).Return(fmt.Errorf("some error")).Times(1)
-		mockK8sClient.EXPECT().GetConfigMap("kube-system", "cluster-config-v1").Return(&configMap, nil).Times(1)
-		mockK8sClient.EXPECT().GetClusterVersion("version").Return(&clusterVersion, nil).Times(1)
-		mockK8sClient.EXPECT().GetSecret("openshift-config", "pull-secret").Return(&pullSecret, nil).Times(1)
-		mockK8sClient.EXPECT().ListNodes().Return(nodesList, nil).Times(1)
-		err := bm.RegisterOCPCluster(ctx)
-		Expect(err).Should(HaveOccurred())
-	})
-
-})
-
 var _ = Describe("Register AddHostsCluster test", func() {
 
 	var (
 		bm            *bareMetalInventory
 		cfg           Config
 		db            *gorm.DB
+		dbName        string
 		ctx           = context.Background()
 		clusterID     strfmt.UUID
 		clusterName   string
@@ -5120,7 +5289,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB("register_add_hosts_cluster")
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		clusterName = "add-hosts-cluster"
 		apiVIPDnsname = "api-vip.redhat.com"
@@ -5130,11 +5299,14 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, "register_add_hosts_cluster")
+		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
 	It("Create AddHosts cluster", func() {
+		defaultHostNetworks := make([]*models.HostNetwork, 0)
+		defaultHosts := make([]*models.Host, 0)
+
 		params := installer.RegisterAddHostsClusterParams{
 			HTTPRequest: request,
 			NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
@@ -5148,6 +5320,10 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.OpenShiftVersion, clusterID, "Unknown").Times(1)
 		mockVersions.EXPECT().GetSupportedVersionFormat(common.TestDefaultConfig.OpenShiftVersion).Return(common.TestDefaultConfig.OpenShiftVersion, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
+		actual := res.(*installer.RegisterAddHostsClusterCreated)
+
+		Expect(actual.Payload.HostNetworks).To(Equal(defaultHostNetworks))
+		Expect(actual.Payload.Hosts).To(Equal(defaultHosts))
 		Expect(res).Should(BeAssignableToTypeOf(installer.NewRegisterAddHostsClusterCreated()))
 	})
 
@@ -5181,13 +5357,13 @@ var _ = Describe("Reset Host test", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    = "reset_host_cluster"
+		dbName    string
 		request   *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -5249,13 +5425,13 @@ var _ = Describe("Install Host test", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    = "reset_host_cluster"
+		dbName    string
 		request   *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
@@ -5353,6 +5529,64 @@ var _ = Describe("Install Host test", func() {
 	})
 })
 
+var _ = Describe("InstallSingleDay2Host test", func() {
+
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		dbName    string
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			Kind:             swag.String(models.ClusterKindAddHostsCluster),
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			Status:           swag.String(models.ClusterStatusAddingHosts),
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+
+		bm = createInventory(db, cfg)
+		mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Install Single Day2 Host", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, hostId)
+		Expect(res).Should(BeNil())
+	})
+
+	It("Install fail Single Day2 Host", func() {
+		expectedErrMsg := "some-internal-error"
+		hostId := strfmt.UUID(uuid.New().String())
+		addHost(hostId, models.HostRoleWorker, models.HostStatusKnown, models.HostKindAddToExistingClusterHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+		mockHostApi.EXPECT().AutoAssignRole(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		mockIgnitionBuilder.EXPECT().FormatSecondDayWorkerIgnitionFile(gomock.Any(), gomock.Any()).Return(secondDayWorkerIgnition, nil).Times(1)
+		res := bm.InstallSingleDay2HostInternal(ctx, clusterID, hostId)
+		Expect(res.Error()).Should(Equal(expectedErrMsg))
+	})
+})
+
 var _ = Describe("Install Hosts test", func() {
 
 	var (
@@ -5361,13 +5595,13 @@ var _ = Describe("Install Hosts test", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		dbName    = "inventory_cluster"
+		dbName    string
 		request   *http.Request
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
@@ -5447,14 +5681,14 @@ var _ = Describe("TestRegisterCluster", func() {
 		bm     *bareMetalInventory
 		cfg    Config
 		db     *gorm.DB
-		dbName = "register_cluster_api"
+		dbName string
 		ctx    = context.Background()
 	)
 
 	BeforeEach(func() {
 		cfg.DefaultNTPSource = ""
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
@@ -5663,12 +5897,12 @@ var _ = Describe("AMS subscriptions", func() {
 		cfg         = Config{}
 		bm          *bareMetalInventory
 		db          *gorm.DB
-		dbName      = "register_cluster_with_ams_subscription"
+		dbName      string
 		clusterName = "ams-cluster"
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
 		bm.ocmClient.Config.WithAMSSubscriptions = true
@@ -5789,6 +6023,37 @@ var _ = Describe("AMS subscriptions", func() {
 				},
 			})
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+		})
+
+		It("update cluster day1 with APIVipDNSName failed", func() {
+			mockOperators := operators.NewMockAPI(ctrl)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
+
+			mockClusterRegisterSuccess(bm, true)
+			mockAMSSubscription(ctx)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String(clusterName),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
+			Expect(err).ToNot(HaveOccurred())
+
+			newClusterName := "day1-cluster-new-name"
+
+			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: *c.ID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					Name:          &newClusterName,
+					APIVipDNSName: swag.String("some dns name"),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
 		})
 
 		It("update cluster name with same name", func() {
@@ -5922,13 +6187,13 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 		cfg       Config
 		db        *gorm.DB
 		ctx       = context.Background()
-		dbName    = "get_download_host_ignition"
+		dbName    string
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		// create a cluster
@@ -6060,11 +6325,11 @@ var _ = Describe("UpdateHostIgnition", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    = "update_host_ignition"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
@@ -6090,6 +6355,7 @@ var _ = Describe("UpdateHostIgnition", func() {
 			HostID:             hostID,
 			HostIgnitionParams: &models.HostIgnitionParams{Config: override},
 		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom discovery ignition config was applied", params.HostID.String()), gomock.Any())
 		response := bm.UpdateHostIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostIgnitionCreated{}))
 
@@ -6165,11 +6431,11 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    = "update_host_installer_args"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
@@ -6191,6 +6457,7 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 			HostID:              hostID,
 			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
 		}
+		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", params.HostID.String()), gomock.Any())
 		response := bm.UpdateHostInstallerArgs(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsCreated{}))
 
@@ -6247,11 +6514,11 @@ var _ = Describe("UpdateHostApproved", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    = "update_host_approved"
+		dbName    string
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
@@ -6272,6 +6539,9 @@ var _ = Describe("UpdateHostApproved", func() {
 	})
 
 	It("update approved value", func() {
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo,
+			fmt.Sprintf("Host %s: updated approved to %t", hostID.String(), true),
+			gomock.Any()).Times(1)
 		err := bm.UpdateHostApprovedInternal(ctx, string(clusterID), string(hostID), true)
 		Expect(err).ShouldNot(HaveOccurred())
 		h, err := bm.GetCommonHostInternal(ctx, string(clusterID), string(hostID))
@@ -6288,11 +6558,11 @@ var _ = Describe("Calculate host networks", func() {
 		db        *gorm.DB
 		clusterID strfmt.UUID
 		hostID    strfmt.UUID
-		dbName    = "calculate_host_networks"
+		dbName    string
 	)
 	BeforeEach(func() {
 		cfg = &Config{}
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -6346,13 +6616,13 @@ var _ = Describe("Calculate host networks", func() {
 var _ = Describe("Get Cluster by Kube Key", func() {
 	var (
 		db     *gorm.DB
-		dbName = "cluster_by_kube_api"
+		dbName string
 		bm     *bareMetalInventory
 		cfg    Config
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
@@ -6377,24 +6647,6 @@ var _ = Describe("Get Cluster by Kube Key", func() {
 	})
 })
 
-func prepareK8NodeList(names, ips, roles, archituctures []string, readyStatuses []v1.ConditionStatus) *v1.NodeList {
-	var node v1.Node
-	nodeList := &v1.NodeList{}
-	for i := range names {
-		node.Name = names[i]
-		node.Status.Conditions = make([]v1.NodeCondition, 1)
-		node.Status.Conditions[0].Type = v1.NodeReady
-		node.Status.Conditions[0].Status = readyStatuses[i]
-		node.Status.Addresses = make([]v1.NodeAddress, 1)
-		node.Status.Addresses[0].Address = ips[i]
-		node.Labels = make(map[string]string)
-		node.Labels[roles[i]] = ""
-		node.Status.NodeInfo.Architecture = archituctures[i]
-		nodeList.Items = append(nodeList.Items, node)
-	}
-	return nodeList
-}
-
 func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	ctrl = gomock.NewController(GinkgoT())
 
@@ -6413,9 +6665,150 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockCRDUtils = NewMockCRDUtils(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
-
+	mockHwValidator = hardware.NewMockValidator(ctrl)
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
-		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder)
+		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator)
 }
+
+var _ = Describe("IPv6 support disabled", func() {
+
+	const errorMsg = "IPv6 is not supported in this setup"
+
+	var (
+		bm  *bareMetalInventory
+		cfg Config
+		db  *gorm.DB
+		ctx = context.Background()
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		Expect(cfg.IPv6Support).Should(BeTrue())
+		cfg.IPv6Support = false
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	Context("Register cluster", func() {
+
+		var params installer.RegisterClusterParams
+
+		BeforeEach(func() {
+			params = installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{},
+			}
+		})
+
+		It("IPv6 cluster network rejected", func() {
+			params.NewClusterParams.ClusterNetworkCidr = swag.String("2001:db8::/64")
+			reply := bm.RegisterCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 service network rejected", func() {
+			params.NewClusterParams.ServiceNetworkCidr = swag.String("2002:db8::/120")
+			reply := bm.RegisterCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 ingress VIP rejected", func() {
+			params.NewClusterParams.IngressVip = "2001:db8::1"
+			reply := bm.RegisterCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+	})
+
+	Context("Update cluster", func() {
+
+		var params installer.UpdateClusterParams
+
+		BeforeEach(func() {
+			params = installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{},
+			}
+		})
+
+		It("IPv6 cluster network rejected", func() {
+			params.ClusterUpdateParams.ClusterNetworkCidr = swag.String("2001:db8::/64")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 service network rejected", func() {
+			params.ClusterUpdateParams.ServiceNetworkCidr = swag.String("2003:db8::/64")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 machine network rejected", func() {
+			params.ClusterUpdateParams.MachineNetworkCidr = swag.String("2001:db8::/120")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 API VIP rejected", func() {
+			params.ClusterUpdateParams.APIVip = swag.String("2003:db8::a")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+
+		It("IPv6 ingress VIP rejected", func() {
+			params.ClusterUpdateParams.IngressVip = swag.String("2002:db8::1")
+			reply := bm.UpdateCluster(ctx, params)
+			verifyApiErrorString(reply, http.StatusBadRequest, errorMsg)
+		})
+	})
+})
+
+var _ = Describe("GetCredentials", func() {
+
+	var (
+		ctx    = context.Background()
+		cfg    = Config{}
+		bm     *bareMetalInventory
+		db     *gorm.DB
+		dbName string
+		c      common.Cluster
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		c = common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterID,
+			},
+		}
+		Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("Console operator available", func() {
+
+		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(true)
+		objectName := fmt.Sprintf("%s/%s", *c.ID, "kubeadmin-password")
+		mockS3Client.EXPECT().Download(ctx, objectName).Return(ioutil.NopCloser(strings.NewReader("my_password")), int64(0), nil)
+
+		reply := bm.GetCredentials(ctx, installer.GetCredentialsParams{ClusterID: *c.ID})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewGetCredentialsOK())))
+	})
+
+	It("Console operator not available", func() {
+
+		mockClusterApi.EXPECT().IsOperatorAvailable(gomock.Any(), operators.OperatorConsole.Name).Return(false)
+
+		reply := bm.GetCredentials(ctx, installer.GetCredentialsParams{ClusterID: *c.ID})
+		verifyApiError(reply, http.StatusConflict)
+	})
+})

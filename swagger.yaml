@@ -45,6 +45,10 @@ securityDefinitions:
     type: apiKey
     in: header
     name: Authorization
+  urlAuth:
+    type: apiKey
+    in: query
+    name: api_key
 
 security:
   - userAuth: [admin, user]
@@ -343,6 +347,7 @@ paths:
       description: Downloads the OpenShift per-cluster Discovery ISO.
       security:
         - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
       operationId: DownloadClusterISO
       produces:
         # application/vnd.efi.iso is not supported
@@ -387,6 +392,55 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+    head:
+      tags:
+        - installer
+      description: Downloads the OpenShift per-cluster Discovery ISO Headers only.
+      security:
+        - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
+      operationId: DownloadClusterISOHeaders
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster whose ISO headers should be downloaded.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          headers:
+            Content-Length:
+              type: integer
+              description: Size of the ISO in bytes
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /clusters/{cluster_id}/downloads/files:
     get:
       tags:
@@ -394,6 +448,7 @@ paths:
       security:
         - userAuth: [admin, read-only-admin, user]
         - agentAuth: []
+        - urlAuth: []
       description: Downloads files relating to the installed/installing cluster.
       operationId: DownloadClusterFiles
       produces:
@@ -573,6 +628,7 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
       description: Downloads the kubeconfig file for this cluster.
       operationId: DownloadClusterKubeconfig
       produces:
@@ -785,7 +841,10 @@ paths:
         - installer
       security:
         - userAuth: [admin, read-only-admin, user]
-      description: Get the cluster discovery ignition config
+      description: |
+        Get the discovery ignition for the cluster based on its attributes and overridden ignition value before generating the discovery ISO.
+        Used to test the validity of the discovery ignition when it is being overridden.
+        For downloading the generated discovery ignition use /clusters/$CLUSTER_ID/downloads/files?file_name=discovery.ign
       operationId: GetDiscoveryIgnition
       parameters:
         - in: path
@@ -822,7 +881,7 @@ paths:
     patch:
       tags:
         - installer
-      description: Override values in the discovery ignition config
+      description: Override values in the discovery ignition config.
       operationId: UpdateDiscoveryIgnition
       parameters:
         - in: path
@@ -2128,6 +2187,7 @@ paths:
       deprecated: true
       security:
         - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
       operationId: DownloadHostLogs
       produces:
         - application/octet-stream
@@ -2451,6 +2511,7 @@ paths:
       description: Download cluster logs.
       security:
         - userAuth: [admin, read-only-admin, user]
+        - urlAuth: []
       operationId: DownloadClusterLogs
       produces:
         - 'application/octet-stream'
@@ -3238,6 +3299,21 @@ definitions:
         type: integer
         description: Required installation disk speed in ms
 
+  versioned-host-requirements:
+    type: object
+    properties:
+      version:
+        type: string
+        description: Version of the component for which requirements are defined
+      master:
+        x-go-name: MasterRequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Master node requirements
+      worker:
+        x-go-name: WorkerRequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: Worker node requirements
+
   host-requirements-role:
     type: object
     properties:
@@ -3300,6 +3376,9 @@ definitions:
       image_type:
         description: Type of image that should be generated.
         $ref: '#/definitions/image_type'
+      mirror_registries_ca_config:
+        description: configuration of the mirror registries for discovery ISO and installed nodes
+        $ref: '#/definitions/mirror_registries_ca_config'
 
   assisted-service-iso-create-params:
     type: object
@@ -3355,11 +3434,10 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Host', 'AddToExistingClusterHost', 'AddToExistingClusterOCPHost']
+        enum: ['Host', 'AddToExistingClusterHost']
         description: |
           Indicates the type of this object. Will be 'Host' if this is a complete object or 'HostLink' if it is just a link, or
           'AddToExistingClusterHost' for host being added to existing OCP cluster, or
-          'AddToExistingClusterOCPHost' for host being added to existing OCP cluster via OCP AI cluster
       id:
         type: string
         format: uuid
@@ -3464,7 +3542,11 @@ definitions:
         description: Installer version.
       installation_disk_path:
         type: string
-        description: Host installation path.
+        description: Contains the inventory disk path, This field is replaced by installation_disk_id field and used for backward compatability with the old UI.
+        example: /dev/sda
+      installation_disk_id:
+        type: string
+        description: Contains the inventory disk id to install on.
       updated_at:
         type: string
         format: date-time
@@ -3702,6 +3784,11 @@ definitions:
         description: List of OLM operators to be installed.
         items:
           $ref: '#/definitions/operator-create-params'
+      hyperthreading:
+        type: string
+        description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
+        enum: ['masters', 'workers', 'none', 'all']
+        default: 'all'
 
   cluster-update-params:
     type: object
@@ -3842,6 +3929,11 @@ definitions:
         description: List of OLM operators to be installed.
         items:
           $ref: '#/definitions/operator-create-params'
+      hyperthreading:
+        type: string
+        description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
+        enum: ['masters', 'workers', 'all', 'none']
+        x-nullable: true
 
   add-hosts-cluster-create-params:
     type: object
@@ -3877,11 +3969,10 @@ definitions:
     properties:
       kind:
         type: string
-        enum: ['Cluster', 'AddHostsCluster', 'AddHostsOCPCluster']
+        enum: ['Cluster', 'AddHostsCluster']
         description: |
           Indicates the type of this object. Will be 'Cluster' if this is a complete object,
           'AddHostsCluster' for cluster that add hosts to existing OCP cluster,
-          'AddHostsOCPCluster' for cluster running on the OCP and add hosts to it
       high_availability_mode:
         type: string
         enum: ['Full', 'None']
@@ -3996,6 +4087,22 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/host'
+      ready_host_count:
+        type: integer
+        format: int64
+        description: hosts associated to this cluster that are in 'known' state.
+        x-go-custom-tag: gorm:"-"
+      enabled_host_count:
+        type: integer
+        format: int64
+        description: hosts associated to this cluster that are not in 'disabled' state.
+        x-go-custom-tag: gorm:"-"
+      total_host_count:
+        type: integer
+        format: int64
+        description: All hosts associated to this cluster.
+        x-go-custom-tag: gorm:"-"
+
       updated_at:
         type: string
         format: date-time
@@ -4082,6 +4189,14 @@ definitions:
         items:
           type: object
           $ref: '#/definitions/monitored-operator'
+      ams_subscription_id:
+        type: string
+        format: uuid
+        description: Unique identifier of the AMS subscription in OCM.
+      hyperthreading:
+        type: string
+        enum: ['masters', 'workers', 'all', 'none']
+        description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes
 
   image_info:
     type: object
@@ -4110,6 +4225,12 @@ definitions:
         description: static network configuration string in the format expected by discovery ignition generation
       type:
         $ref: '#/definitions/image_type'
+      ca_config:
+        type: string
+        description: CA config data for mirror registries
+      mirror_registries_config:
+        type: string
+        description: registries.conf file contents in a TOML format
 
   host_static_network_config:
     type: object
@@ -4137,6 +4258,42 @@ definitions:
   image_type:
     type: string
     enum: [full-iso, minimal-iso]
+
+  mirror_registries_ca_config:
+    type: object
+    properties:
+      mirror_registries_config:
+        $ref: '#/definitions/mirror_registries_config'
+        description: configuration of registries conf
+      ca_config:
+        type: string
+        description: string containing CA or CA bundle for mirrored registries
+
+  mirror_registries_config:
+    type: object
+    properties:
+      unqualified-search-registries:
+        type: array
+        items:
+          type: string
+      mirror_registries:
+        type: array
+        items:
+          $ref: '#/definitions/mirror_registry'
+
+  mirror_registry:
+    type: object
+    properties:
+      prefix:
+        type: string
+        description: prefix for choosing this specific mirror
+      location:
+        type: string
+        description: the original registry location
+      mirror_location:
+        type: string
+        description: the mirror regsitry location
+
 
   free-addresses-list:
     type: array
@@ -4183,6 +4340,15 @@ definitions:
         type: string
       successful:
         type: boolean
+      average_rtt_ms:
+        type: number
+        format: double
+        description: Average round trip time in milliseconds.
+        x-go-name: "AverageRTTMs"
+      packet_loss_percentage:
+        type: number
+        format: double
+        description: Percentage of packets lost during connectivity check.
 
   connectivity-remote-host:
     type: object
@@ -4404,7 +4570,7 @@ definitions:
         description: by-path is the shortest physical path to the device
       by_id:
         type: string
-        description: by-id is the wwn/enve-ei which guaranteed to be unique for every storage device
+        description: by-id is the World Wide Number of the device which guaranteed to be unique for every storage device
       model:
         type: string
       wwn:
@@ -4487,6 +4653,28 @@ definitions:
       architecture:
         type: string
 
+  gpu:
+    type: object
+    properties:
+      vendor:
+        type: string
+        description: The name of the device vendor (for example "Intel Corporation")
+      vendor_id:
+        type: string
+        description: ID of the vendor (for example "8086")
+      device_id:
+        type: string
+        description: ID of the device (for example "3ea0")
+      name:
+        type: string
+        description: Product name of the device (for example "UHD Graphics 620 (Whiskey Lake)")
+      bus_info:
+        type: string
+        description: Device bus information (for example "pci@0000:00:02.0")
+      clock_hz:
+        type: integer
+        description: GPU clock frequency in Hz
+
   inventory:
     type: object
     properties:
@@ -4514,6 +4702,10 @@ definitions:
         $ref: '#/definitions/cpu'
       timestamp:
         type: integer
+      gpus:
+        type: array
+        items:
+          $ref: '#/definitions/gpu'
 
 
   free_network_addresses:
@@ -4732,7 +4924,7 @@ definitions:
       - 'container-images-available'
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'
-      - 'sufficient-installation-disk-speed'
+      - 'sufficient-or-unknown-installation-disk-speed'
       - 'cnv-requirements-satisfied'
 
   dhcp_allocation_request:
@@ -4946,8 +5138,9 @@ definitions:
         enum: [manifests,openshift]
         default: manifests
       file_name:
-        description: The name of the manifest to be stored on S3 and to be created on '{folder}/{file_name}' at ignition generation using openshift-install.
+        description: The name of the manifest to customize the installed OCP cluster.
         type: string
+        pattern: '^[^/]*\.(yaml|yml|json)$'
       content:
         description: base64 encoded manifest content.
         type: string

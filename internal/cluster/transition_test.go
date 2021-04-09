@@ -15,6 +15,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -36,14 +37,14 @@ var _ = Describe("Transition tests", func() {
 		eventsHandler    events.Handler
 		ctrl             *gomock.Controller
 		mockMetric       *metrics.MockAPI
-		dbName           = "cluster_transition_test"
+		dbName           string
 		operatorsManager *operators.MockAPI
 		mockS3Api        *s3wrapper.MockAPI
 		mockAccountsMgmt *ocm.MockOCMAccountsMgmt
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -269,6 +270,7 @@ var _ = Describe("Transition tests", func() {
 						Status:             swag.String(models.ClusterStatusFinalizing),
 						MonitoredOperators: t.operators,
 					},
+					IsAmsSubscriptionConsoleUrlSet: true,
 				}
 				Expect(common.LoadTableFromDB(db, common.MonitoredOperatorsTable).Create(&c).Error).ShouldNot(HaveOccurred())
 
@@ -329,7 +331,7 @@ var _ = Describe("Transition tests", func() {
 var _ = Describe("Cancel cluster installation", func() {
 	var (
 		ctx               = context.Background()
-		dbName            = "cancel_cluster_installation_test"
+		dbName            string
 		capi              API
 		db                *gorm.DB
 		ctrl              *gomock.Controller
@@ -338,7 +340,7 @@ var _ = Describe("Cancel cluster installation", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -401,7 +403,7 @@ var _ = Describe("Cancel cluster installation", func() {
 var _ = Describe("Reset cluster", func() {
 	var (
 		ctx               = context.Background()
-		dbName            = "reset_cluster_test"
+		dbName            string
 		capi              API
 		db                *gorm.DB
 		ctrl              *gomock.Controller
@@ -409,7 +411,7 @@ var _ = Describe("Reset cluster", func() {
 	)
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
@@ -486,13 +488,13 @@ type validationsChecker struct {
 }
 
 func (j *validationsChecker) check(validationsStr string) {
-	validationMap := make(map[string][]ValidationResult)
-	Expect(json.Unmarshal([]byte(validationsStr), &validationMap)).ToNot(HaveOccurred())
+	validationRes := make(validationsStatus)
+	Expect(json.Unmarshal([]byte(validationsStr), &validationRes)).ToNot(HaveOccurred())
 next:
 	for id, checkedResult := range j.expected {
 		category, err := id.Category()
 		Expect(err).ToNot(HaveOccurred())
-		results, ok := validationMap[category]
+		results, ok := validationRes[category]
 		Expect(ok).To(BeTrue())
 		for _, r := range results {
 			if r.ID == id {
@@ -526,7 +528,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
+		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
 	)
 
@@ -543,7 +545,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1136,6 +1138,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				if t.candidateChecker != nil {
 					t.candidateChecker()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -1146,14 +1149,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
 				} else {
-					//refresh status in installing calls to PostRefreshCluster and update the validation info
-					if t.dstState == models.ClusterStatusInstalling {
-						Expect(clusterAfterRefresh.ValidationsInfo).To(Equal("{}"))
-					} else {
-						//refresh status in PreparingForInstallation, Finalizing, Installed, Error and AddingHosts will not update the validation info
-						Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
-					}
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -1175,14 +1173,14 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_host_no_dhcp"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1582,6 +1580,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -1592,6 +1591,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -1980,6 +1982,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -1990,6 +1993,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -2011,7 +2017,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_host_with_dhcp"
+		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
 	)
 
@@ -2019,7 +2025,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2488,6 +2494,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
 
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -2498,14 +2505,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
 				} else {
-					//refresh status in installing calls to PostRefreshCluster and update the validation info
-					if t.dstState == models.ClusterStatusInstalling {
-						Expect(clusterAfterRefresh.ValidationsInfo).To(Equal("{}"))
-					} else {
-						//refresh status in PreparingForInstallation, Finalizing, Installed, Error and AddingHosts will not update the validation info
-						Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
-					}
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -2526,8 +2528,11 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
+		mockS3Api                               *s3wrapper.MockAPI
+		mockAccountsMgmt                        *ocm.MockOCMAccountsMgmt
+		operatorsManager                        *operators.Manager
 		ctrl                                    *gomock.Controller
-		dbName                                  = "cluster_transition_test_refresh_installing_cases"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -2538,14 +2543,15 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockS3Api = s3wrapper.NewMockAPI(ctrl)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{})
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api)
 
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
@@ -2568,6 +2574,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 			dstState           string
 			hosts              []models.Host
 			statusInfoChecker  statusInfoChecker
+			withOCMClient      bool
+			requiresAMSUpdate  bool
+			operators          []*models.MonitoredOperator
 		}{
 			{
 				name:               "installing to installing",
@@ -2739,6 +2748,59 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				},
 				statusInfoChecker: makeValueChecker(statusInfoError),
 			},
+			{
+				name:               "finalizing to finalizing",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
+				withOCMClient:     true,
+				requiresAMSUpdate: true,
+				operators: []*models.MonitoredOperator{
+					{
+						Name:         operators.OperatorConsole.Name,
+						OperatorType: models.OperatorTypeBuiltin,
+						Status:       models.OperatorStatusAvailable,
+					},
+				},
+			},
+			{
+				name:               "finalizing to finalizing (2)",
+				srcState:           models.ClusterStatusFinalizing,
+				srcStatusInfo:      statusInfoFinalizing,
+				dstState:           models.ClusterStatusFinalizing,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid2, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid3, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleMaster},
+					{ID: &hid4, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+					{ID: &hid5, Status: swag.String(models.HostStatusInstalled), Inventory: common.GenerateTestDefaultInventory(), Role: models.HostRoleWorker},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoFinalizing),
+				withOCMClient:     true,
+				// console URL should be updated only once in AMS
+				requiresAMSUpdate: false,
+				operators: []*models.MonitoredOperator{
+					{
+						Name:         operators.OperatorConsole.Name,
+						OperatorType: models.OperatorTypeBuiltin,
+						Status:       models.OperatorStatusAvailable,
+					},
+				},
+			},
 		}
 
 		for i := range tests {
@@ -2758,7 +2820,17 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 						ServiceNetworkCidr:       "1.2.4.0/24",
 						ClusterNetworkCidr:       "1.3.0.0/16",
 						ClusterNetworkHostPrefix: 24,
+						MonitoredOperators:       t.operators,
 					},
+				}
+				if t.withOCMClient {
+					mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
+					ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{WithAMSSubscriptions: true}}
+					clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
+						mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api)
+					if !t.requiresAMSUpdate {
+						cluster.IsAmsSubscriptionConsoleUrlSet = true
+					}
 				}
 				cluster.MachineNetworkCidrUpdatedAt = time.Now().Add(-3 * time.Minute)
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -2771,13 +2843,23 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				}
+				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate {
+					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
+				}
 				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
 				if funk.Contains(reportInstallationCompleteStatuses, t.dstState) {
 					mockMetricsAPIInstallationFinished()
 				} else if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				if t.requiresAMSUpdate {
+					subscriptionID := cluster.AmsSubscriptionID
+					consoleUrl := fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)
+					mockAccountsMgmt.EXPECT().UpdateSubscriptionConsoleUrl(ctx, subscriptionID, consoleUrl)
+				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+				Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
@@ -2801,7 +2883,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		mockHostAPI *host.MockAPI
 		mockMetric  *metrics.MockAPI
 		ctrl        *gomock.Controller
-		dbName      string = "log_refresh_cluster"
+		dbName      string
 	)
 
 	var (
@@ -2828,7 +2910,7 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 	}
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -2963,14 +3045,14 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -3286,6 +3368,7 @@ var _ = Describe("NTP refresh cluster", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -3296,6 +3379,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -3317,14 +3403,14 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
-		dbName                                  string = "cluster_transition_test_refresh_cluster_with_ntp"
+		dbName                                  string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -3641,6 +3727,7 @@ var _ = Describe("NTP refresh cluster", func() {
 				if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
 				}
+				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
 				if t.errorExpected {
 					Expect(err).To(HaveOccurred())
@@ -3651,6 +3738,9 @@ var _ = Describe("NTP refresh cluster", func() {
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(clusterAfterRefresh.ValidationsInfo)
+					Expect(clusterAfterRefresh.ValidationsInfo).ToNot(BeEmpty())
+				} else {
+					Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				}
 			})
 		}
@@ -3672,7 +3762,7 @@ var _ = Describe("Single node", func() {
 		mockHostAPI                 *host.MockAPI
 		mockMetric                  *metrics.MockAPI
 		ctrl                        *gomock.Controller
-		dbName                      string = "cluster_transition_test_refresh_cluster_with_ntp"
+		dbName                      string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -3682,7 +3772,7 @@ var _ = Describe("Single node", func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -3967,6 +4057,22 @@ var _ = Describe("Single node", func() {
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()
+	})
+})
+
+var _ = Describe("ValidationResult sort", func() {
+	It("ValidationResult sort", func() {
+		validationResults := []ValidationResult{
+			{ID: "cab", Status: "abc", Message: "abc"},
+			{ID: "bac", Status: "abc", Message: "abc"},
+			{ID: "acb", Status: "abc", Message: "abc"},
+			{ID: "abc", Status: "abc", Message: "abc"},
+		}
+		sortByValidationResultID(validationResults)
+		Expect(validationResults[0].ID.String()).Should(Equal("abc"))
+		Expect(validationResults[1].ID.String()).Should(Equal("acb"))
+		Expect(validationResults[2].ID.String()).Should(Equal("bac"))
+		Expect(validationResults[3].ID.String()).Should(Equal("cab"))
 	})
 })
 

@@ -22,7 +22,9 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
@@ -56,6 +58,7 @@ const (
 	AgentPlatformStateInfo            = "AgentPlatformStateInfo"
 	adminPasswordSecretStringTemplate = "%s-admin-password"
 	adminKubeConfigStringTemplate     = "%s-admin-kubeconfig"
+	InstallConfigOverrides            = "adi.io.my.domain/install-config-overrides"
 )
 
 const HighAvailabilityModeNone = "None"
@@ -75,6 +78,7 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/finalizers,verbs=update
 
 func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
@@ -95,7 +99,12 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
 	if gorm.IsRecordNotFoundError(err) {
-		return r.createNewCluster(ctx, req.NamespacedName, clusterDeployment)
+		if !clusterDeployment.Spec.Installed {
+			return r.createNewCluster(ctx, req.NamespacedName, clusterDeployment)
+		}
+		if !r.isSNO(clusterDeployment) {
+			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment)
+		}
 	}
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, nil, err)
@@ -113,20 +122,57 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return result, err
 	}
 
+	// check for install config overrides and update if needed
+	updated, result, err = r.updateInstallConfigOverrides(ctx, clusterDeployment, cluster)
+	if err != nil {
+		return r.updateState(ctx, clusterDeployment, cluster, err)
+	}
+
+	if updated {
+		return result, err
+	}
+
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
 		if !clusterDeployment.Spec.Installed {
 			err = r.updateClusterMetadata(ctx, clusterDeployment, cluster)
+			if err != nil {
+				return r.updateState(ctx, clusterDeployment, cluster, err)
+			}
+		}
+		// Delete Day1 Cluster
+		err = r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
+			ClusterID: *cluster.ID,
+		})
+		if err != nil {
 			return r.updateState(ctx, clusterDeployment, cluster, err)
+		}
+		if !r.isSNO(clusterDeployment) {
+			//Create Day2 cluster
+			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment)
 		}
 		return r.updateState(ctx, clusterDeployment, cluster, nil)
 	}
 
+	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
+		// Day 1
+		return r.installDay1(ctx, clusterDeployment, cluster)
+
+	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		// Day 2
+		return r.installDay2Hosts(ctx, clusterDeployment, cluster)
+	}
+
+	return r.updateState(ctx, clusterDeployment, cluster, nil)
+}
+
+func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, cluster)
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, cluster, err)
 	}
 	if ready {
+		r.Log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
 			ClusterID: *cluster.ID,
@@ -136,7 +182,24 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		}
 		return r.updateState(ctx, clusterDeployment, ic, nil)
 	}
+	return r.updateState(ctx, clusterDeployment, cluster, nil)
+}
 
+func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
+
+	for _, h := range cluster.Hosts {
+		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
+		if err != nil {
+			return r.updateState(ctx, clusterDeployment, cluster, err)
+		}
+		if r.HostApi.IsInstallable(h) && commonh.Approved {
+			r.Log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
+			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, *h.ID)
+			if err != nil {
+				return r.updateState(ctx, clusterDeployment, cluster, err)
+			}
+		}
+	}
 	return r.updateState(ctx, clusterDeployment, cluster, nil)
 }
 
@@ -284,7 +347,6 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	params := &models.ClusterUpdateParams{}
 
 	spec := clusterDeployment.Spec
-
 	updateString := func(new, old string, target **string) {
 		if new != old {
 			*target = swag.String(new)
@@ -311,16 +373,12 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	}
 
 	updateString(spec.Platform.AgentBareMetal.APIVIP, cluster.APIVip, &params.APIVip)
-	updateString(spec.Platform.AgentBareMetal.APIVIPDNSName, swag.StringValue(cluster.APIVipDNSName), &params.APIVipDNSName)
 	updateString(spec.Platform.AgentBareMetal.IngressVIP, cluster.IngressVip, &params.IngressVip)
 	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
 	if userManagedNetwork := isUserManagedNetwork(clusterDeployment); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
-
-	// TODO: handle InstallConfigOverrides
-
 	pullSecretData, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, clusterDeployment.Namespace)
 	if err != nil {
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
@@ -334,17 +392,15 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	if !update {
 		return update, ctrl.Result{}, nil
 	}
-
-	updatedCluster, err := r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
-		ClusterUpdateParams: params,
-		ClusterID:           *cluster.ID,
-	})
-	if err != nil && IsHTTP4XXError(err) {
-		return update, ctrl.Result{}, errors.Wrap(err, "failed to update clusterDeployment")
-	}
-	if err != nil {
-		return update, ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError},
-			errors.Wrap(err, "failed to update clusterDeployment")
+	var updatedCluster *common.Cluster
+	if update {
+		updatedCluster, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+			ClusterUpdateParams: params,
+			ClusterID:           *cluster.ID,
+		})
+		if err != nil {
+			return handleUpdateError(err)
+		}
 	}
 
 	installEnv, err = getInstallEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
@@ -352,7 +408,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for installEnv for clusterDeployment %s", clusterDeployment.Name))
 	}
 
-	r.Log.Infof("Updated clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
 	reply, err := r.updateState(ctx, clusterDeployment, updatedCluster, nil)
 	if err == nil && notifyInstallEnv && installEnv != nil {
 		r.Log.Infof("Notify that installEnv %s should re-generate the image for clusterDeployment %s", installEnv.Name, clusterDeployment.ClusterName)
@@ -360,14 +416,44 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	}
 	return update, reply, err
 }
+func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
+	cluster *common.Cluster) (bool, ctrl.Result, error) {
+	// handle InstallConfigOverrides
+	update := false
+	annotations := clusterDeployment.ObjectMeta.GetAnnotations()
+	installConfigOverrides := annotations[InstallConfigOverrides]
+	if cluster.InstallConfigOverrides != installConfigOverrides {
+		cluster.InstallConfigOverrides = installConfigOverrides
+		update = true
+	}
+	var updatedCluster *common.Cluster
+	var err error
+	if update {
+		updatedCluster, err = r.Installer.UpdateClusterInstallConfigInternal(ctx, installer.UpdateClusterInstallConfigParams{
+			ClusterID:           *cluster.ID,
+			InstallConfigParams: cluster.InstallConfigOverrides,
+		})
+		if err != nil {
+			return handleUpdateError(err)
+		}
+		r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+		reply, err := r.updateState(ctx, clusterDeployment, updatedCluster, nil)
+		return update, reply, err
+	}
+	return update, ctrl.Result{}, nil
+}
 
 func (r *ClusterDeploymentsReconciler) getOCPVersion(cluster *hivev1.ClusterDeployment) string {
 	// TODO: fix when HIVE-1383 is resolved, As for now single node supported only with 4.8, default version is 4.7
-	if cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
-		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0 {
+	if r.isSNO(cluster) {
 		return "4.8"
 	}
 	return "4.7"
+}
+
+func (r *ClusterDeploymentsReconciler) isSNO(cluster *hivev1.ClusterDeployment) bool {
+	return cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
+		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0
 }
 
 func (r *ClusterDeploymentsReconciler) createNewCluster(
@@ -418,6 +504,30 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	return r.updateState(ctx, clusterDeployment, c, err)
 }
 
+func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
+	ctx context.Context,
+	key types.NamespacedName,
+	clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
+
+	r.Log.Infof("Creating a new Day2 Cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	spec := clusterDeployment.Spec
+	id := strfmt.UUID(uuid.New().String())
+	apiVipDnsname := fmt.Sprintf("api.%s.%s", spec.ClusterName, spec.BaseDomain)
+	clusterParams := &models.AddHostsClusterCreateParams{
+		APIVipDnsname:    swag.String(apiVipDnsname),
+		Name:             swag.String(spec.ClusterName),
+		OpenshiftVersion: swag.String(r.getOCPVersion(clusterDeployment)),
+		ID:               &id,
+	}
+
+	c, err := r.Installer.RegisterAddHostsClusterInternal(ctx, &key, installer.RegisterAddHostsClusterParams{
+		NewAddHostsClusterParams: clusterParams,
+	})
+
+	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
+	return r.updateState(ctx, clusterDeployment, c, err)
+}
+
 func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster,
 	err error) (ctrl.Result, error) {
 
@@ -427,6 +537,7 @@ func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterD
 	}
 
 	if err != nil {
+		r.Log.WithError(err).Errorf("Updating state with error for %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		setClusterApiError(err, clusterDeployment)
 		reply.RequeueAfter = defaultRequeueAfterOnError
 	}
@@ -589,4 +700,12 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Watches(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
 		Watches(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
+}
+
+func handleUpdateError(err error) (bool, ctrl.Result, error) {
+	if IsHTTP4XXError(err) {
+		return true, ctrl.Result{}, errors.Wrap(err, "failed to update clusterDeployment")
+	}
+	return true, ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError},
+		errors.Wrap(err, "failed to update clusterDeployment")
 }

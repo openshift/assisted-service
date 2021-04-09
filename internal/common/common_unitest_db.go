@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/gomega"
@@ -77,16 +78,24 @@ func TerminateDBTest() {
 	gDbCtx.pool = nil
 }
 
-func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
+// Creates a valid postgresql db name from a random uuid
+// DB names (and all identifiers) must begin with a letter or '_'
+// Additionally using underscores rather than hyphens reduces the chance of quoting bugs
+func randomDBName() string {
+	return fmt.Sprintf("_%s", strings.ReplaceAll(uuid.New().String(), "-", "_"))
+}
+
+func PrepareTestDB(extrasSchemas ...interface{}) (*gorm.DB, string) {
+	dbName := randomDBName()
 	dbTemp, err := gorm.Open("postgres", fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
 	Expect(err).ShouldNot(HaveOccurred())
 	defer dbTemp.Close()
 
-	dbTemp = dbTemp.Exec(fmt.Sprintf("CREATE DATABASE %s;", strings.ToLower(dbName)))
+	dbTemp = dbTemp.Exec(fmt.Sprintf("CREATE DATABASE %s;", dbName))
 	Expect(dbTemp.Error).ShouldNot(HaveOccurred())
 
 	db, err := gorm.Open("postgres",
-		fmt.Sprintf("host=127.0.0.1 port=%s dbname=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort(), strings.ToLower(dbName)))
+		fmt.Sprintf("host=127.0.0.1 port=%s dbname=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort(), dbName))
 	Expect(err).ShouldNot(HaveOccurred())
 	// db = db.Debug()
 	err = AutoMigrate(db)
@@ -98,7 +107,7 @@ func PrepareTestDB(dbName string, extrasSchemas ...interface{}) *gorm.DB {
 			Expect(db.Error).ShouldNot(HaveOccurred())
 		}
 	}
-	return db
+	return db, dbName
 }
 
 func DeleteTestDB(db *gorm.DB, dbName string) {
@@ -108,7 +117,7 @@ func DeleteTestDB(db *gorm.DB, dbName string) {
 		fmt.Sprintf("host=127.0.0.1 port=%s user=admin password=admin sslmode=disable", gDbCtx.GetPort()))
 	Expect(err).ShouldNot(HaveOccurred())
 	defer db.Close()
-	db = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s;", strings.ToLower(dbName)))
+	db = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s;", dbName))
 
 	Expect(db.Error).ShouldNot(HaveOccurred())
 }

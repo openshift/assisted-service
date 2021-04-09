@@ -71,12 +71,12 @@ type InstallerConfigBaremetal struct {
 		Name string `yaml:"name"`
 	} `yaml:"metadata"`
 	Compute []struct {
-		Hyperthreading string `yaml:"hyperthreading"`
+		Hyperthreading string `yaml:"hyperthreading,omitempty"`
 		Name           string `yaml:"name"`
 		Replicas       int    `yaml:"replicas"`
 	} `yaml:"compute"`
 	ControlPlane struct {
-		Hyperthreading string `yaml:"hyperthreading"`
+		Hyperthreading string `yaml:"hyperthreading,omitempty"`
 		Name           string `yaml:"name"`
 		Replicas       int    `yaml:"replicas"`
 	} `yaml:"controlPlane"`
@@ -193,22 +193,22 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) *Ins
 			Name: cluster.Name,
 		},
 		Compute: []struct {
-			Hyperthreading string `yaml:"hyperthreading"`
+			Hyperthreading string `yaml:"hyperthreading,omitempty"`
 			Name           string `yaml:"name"`
 			Replicas       int    `yaml:"replicas"`
 		}{
 			{
-				Hyperthreading: "Enabled",
+				Hyperthreading: getHypethreadingConfiguration(cluster, "worker"),
 				Name:           string(models.HostRoleWorker),
 				Replicas:       countHostsByRole(cluster, models.HostRoleWorker),
 			},
 		},
 		ControlPlane: struct {
-			Hyperthreading string `yaml:"hyperthreading"`
+			Hyperthreading string `yaml:"hyperthreading,omitempty"`
 			Name           string `yaml:"name"`
 			Replicas       int    `yaml:"replicas"`
 		}{
-			Hyperthreading: "Enabled",
+			Hyperthreading: getHypethreadingConfiguration(cluster, "master"),
 			Name:           string(models.HostRoleMaster),
 			Replicas:       countHostsByRole(cluster, models.HostRoleMaster),
 		},
@@ -325,7 +325,7 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 		if common.IsSingleNodeCluster(cluster) {
 			bootstrap := common.GetBootstrapHost(cluster)
 			if bootstrap != nil {
-				cfg.BootstrapInPlace = bootstrapInPlace{InstallationDisk: bootstrap.InstallationDiskPath}
+				cfg.BootstrapInPlace = bootstrapInPlace{InstallationDisk: hostutil.GetHostInstallationPath(bootstrap)}
 			}
 		}
 
@@ -368,4 +368,20 @@ func ValidateInstallConfigPatch(log logrus.FieldLogger, cluster *common.Cluster,
 	}
 
 	return config.Validate()
+}
+
+func getHypethreadingConfiguration(cluster *common.Cluster, machineType string) string {
+	switch cluster.Hyperthreading {
+	case models.ClusterHyperthreadingAll:
+		return "Enabled"
+	case models.ClusterHyperthreadingMasters:
+		if machineType == "master" {
+			return "Enabled"
+		}
+	case models.ClusterHyperthreadingWorkers:
+		if machineType == "worker" {
+			return "Enabled"
+		}
+	}
+	return ""
 }

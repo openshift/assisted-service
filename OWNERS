@@ -7,6 +7,7 @@ filters:
       - romfreiman
     reviewers:
       - code-reviewers
+      - reviewers-only
   Jenkinsfile:
     approvers:
       - ci-approvers

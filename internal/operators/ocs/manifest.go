@@ -9,8 +9,11 @@ type storageInfo struct {
 	OCSDisks int64
 }
 
-func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
+func getOCSOperatorVersion() string {
+	return "4.6"
+}
 
+func generateStorageClusterManifest(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
 	// Disk counts are a multiple of 3
 	ocsDiskCounts /= 3
 
@@ -25,31 +28,37 @@ func OCSStorageCluster(StorageClusterManifest string, ocsDiskCounts int64) ([]by
 	if err != nil {
 		return nil, err
 	}
-	return buf.Bytes(), nil
+
+	if getOCSOperatorVersion() == "4.6" {
+		return buf.Bytes(), nil
+	}
+
+	return []byte{}, nil
 
 }
 
-func Manifests(ocsMinDeploy bool, ocsDiskCounts int64, totalHosts int) (map[string][]byte, error) {
+func Manifests(ocsConfig *Config) (map[string][]byte, error) {
 	manifests := make(map[string][]byte)
-	if totalHosts == 3 { // for 3 hosts use the same CR as for Min Deployment
-		ocsSC, err := OCSStorageCluster(ocsMinDeploySC, ocsDiskCounts)
+	var ocsSC []byte
+	var err error
+
+	if ocsConfig.OCSDeploymentType == compactMode {
+		ocsSC, err = generateStorageClusterManifest(ocsMinDeploySC, ocsConfig.OCSDisksAvailable)
 		if err != nil {
 			return nil, err
 		}
-		manifests["99_openshift-ocssc.yaml"] = ocsSC
-	} else if ocsMinDeploy { // use separate manifest for minimum deployment of OCS
-		ocsSC, err := OCSStorageCluster(ocsMinDeploySC, ocsDiskCounts)
+	} else if ocsConfig.OCSDeploymentType == minimalMode { // use separate manifest for minimum deployment of OCS
+		ocsSC, err = generateStorageClusterManifest(ocsMinDeploySC, ocsConfig.OCSDisksAvailable)
 		if err != nil {
 			return nil, err
 		}
-		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	} else { // use the OCS CR with labelsector to deploy OCS on only worker nodes
-		ocsSC, err := OCSStorageCluster(ocsSc, ocsDiskCounts)
+		ocsSC, err = generateStorageClusterManifest(ocsSc, ocsConfig.OCSDisksAvailable)
 		if err != nil {
 			return nil, err
 		}
-		manifests["99_openshift-ocssc.yaml"] = ocsSC
 	}
+	manifests["99_openshift-ocssc.yaml"] = ocsSC
 	manifests["99_openshift-ocssc_crd.yaml"] = []byte(ocsCRD)
 	manifests["99_openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
 	ocsSubscription, err := ocsSubscription()
@@ -3473,7 +3482,42 @@ spec:
           storageClassName: 'localblock-sc'
           volumeMode: Block
       name: ocs-deviceset
-      placement: {}
+      placement:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: Exists
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - rook-ceph-osd
+              topologyKey: kubernetes.io/hostname
+            weight: 100
+      preparePlacement:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: node-role.kubernetes.io/worker
+                operator: Exists
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - rook-ceph-osd-prepare
+              topologyKey: kubernetes.io/hostname
+            weight: 100
       portable: false
       replica: 3
       resources:
@@ -3504,6 +3548,7 @@ spec:
         values:
         - ""
 
+  manageNodes: false
   monDataDirHostPath: /var/lib/rook
 
   storageDeviceSets:
@@ -3530,7 +3575,42 @@ spec:
 
     name: ocs-deviceset
 
-    placement: {}
+    placement:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: Exists
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rook-ceph-osd
+            topologyKey: kubernetes.io/hostname
+          weight: 100
+    preparePlacement:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: node-role.kubernetes.io/worker
+              operator: Exists
+      podAntiAffinity:
+        preferredDuringSchedulingIgnoredDuringExecution:
+        - podAffinityTerm:
+            labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - rook-ceph-osd-prepare
+            topologyKey: kubernetes.io/hostname
+          weight: 100
 
     portable: false
 

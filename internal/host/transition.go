@@ -2,7 +2,6 @@ package host
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sort"
@@ -53,29 +52,29 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 		return errors.New("PostRegisterHost invalid argument")
 	}
 
-	host := models.Host{}
 	log := logutil.FromContext(params.ctx, th.log)
 
+	hostParam := sHost.host
+
 	// If host already exists
-	if err := params.db.First(&host, "id = ? and cluster_id = ?", sHost.host.ID, sHost.host.ClusterID).Error; err == nil {
+	if _, err := common.GetHostFromDB(params.db, hostParam.ClusterID.String(), hostParam.ID.String()); err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
-
 		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion)
-
-		if host, err := hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState,
-			swag.StringValue(sHost.host.Status), statusInfoDiscovering, sHost.host.Progress.CurrentStage, "", "", extra...); err != nil {
+		var dbHost *common.Host
+		if dbHost, err = hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, hostParam.ClusterID, *hostParam.ID, sHost.srcState,
+			swag.StringValue(hostParam.Status), statusInfoDiscovering, hostParam.Progress.CurrentStage, "", "", extra...); err != nil {
 			return err
 		} else {
-			sHost.host = host
+			sHost.host = &dbHost.Host
 			return nil
 		}
 	}
 
-	sHost.host.StatusUpdatedAt = strfmt.DateTime(time.Now())
-	sHost.host.StatusInfo = swag.String(statusInfoDiscovering)
-	log.Infof("Register new host %s cluster %s", sHost.host.ID.String(), sHost.host.ClusterID)
-	return params.db.Create(sHost.host).Error
+	hostParam.StatusUpdatedAt = strfmt.DateTime(time.Now())
+	hostParam.StatusInfo = swag.String(statusInfoDiscovering)
+	log.Infof("Register new host %s cluster %s", hostParam.ID.String(), hostParam.ClusterID)
+	return params.db.Create(hostParam).Error
 }
 
 func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
@@ -106,46 +105,42 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 	if !ok {
 		return errors.New("PostRegisterDuringReboot incompatible type of StateSwitch")
 	}
+
+	host := sHost.host
+	hostInstallationPath := hostutil.GetHostInstallationPath(host)
+
 	if swag.StringValue(&sHost.srcState) == models.HostStatusInstallingPendingUserAction {
-		return common.NewApiError(http.StatusForbidden, errors.Errorf("Host is required to be booted from disk %s", sHost.host.InstallationDiskPath))
+		return common.NewApiError(http.StatusForbidden, errors.Errorf("Host is required to be booted from disk %s", hostInstallationPath))
 	}
 	params, ok := args.(*TransitionArgsRegisterHost)
 	if !ok {
 		return errors.New("PostRegisterDuringReboot invalid argument")
 	}
 
-	if sHost.host.InstallationDiskPath == "" || sHost.host.Inventory == "" {
-		return errors.New(fmt.Sprintf("PostRegisterDuringReboot host %s doesn't have installation_disk_path or inventory", *sHost.host.ID))
+	if hostInstallationPath == "" || host.Inventory == "" {
+		return errors.New(fmt.Sprintf("PostRegisterDuringReboot host %s doesn't have installation_disk_path or inventory", host.ID))
 	}
-
-	var installationDisk *models.Disk = nil
-
-	var inventory models.Inventory
-	err := json.Unmarshal([]byte(sHost.host.Inventory), &inventory)
+	installationDisk, err := hostutil.GetHostInstallationDisk(host)
 	if err != nil {
-		return errors.New(fmt.Sprintf("PostRegisterDuringReboot Could not parse inventory of host %s", *sHost.host.ID))
+		return errors.New(fmt.Sprintf("PostRegisterDuringReboot Could not parse inventory of host %s", host.ID.String()))
 	}
-
-	for _, disk := range inventory.Disks {
-		if hostutil.GetDeviceFullName(disk.Name) == sHost.host.InstallationDiskPath {
-			installationDisk = disk
-			break
-		}
-	}
-
 	if installationDisk == nil {
 		return errors.New(fmt.Sprintf("PostRegisterDuringReboot Could not find installation disk %s for host %s",
-			sHost.host.InstallationDiskPath, *sHost.host.ID))
+			hostInstallationPath, host.ID.String()))
 	}
 
-	statusInfo := fmt.Sprintf("Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot order to boot from disk %s",
-		sHost.host.InstallationDiskPath)
+	messages := make([]string, 0, 4)
+	messages = append(messages, "Expected the host to boot from disk, but it booted the installation image - please reboot and fix boot order to boot from disk")
 
-	if installationDisk != nil && installationDisk.Serial != "" {
-		statusInfo += fmt.Sprintf(" (%s)", installationDisk.Serial)
+	if installationDisk.Model != "" {
+		messages = append(messages, installationDisk.Model)
+	}
+	if installationDisk.Serial != "" {
+		messages = append(messages, installationDisk.Serial)
 	}
 
-	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, statusInfo)
+	messages = append(messages, fmt.Sprintf("(%s)", hostutil.GetDeviceIdentifier(installationDisk)))
+	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, strings.Join(messages, " "))
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -377,7 +372,7 @@ func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logru
 		swag.StringValue(state.host.Status), statusInfo, extra...); err != nil {
 		return err
 	} else {
-		state.host = host
+		state.host = &host.Host
 		return nil
 	}
 }
@@ -389,18 +384,18 @@ func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logru
 type TransitionArgsRefreshHost struct {
 	ctx               context.Context
 	eventHandler      events.Handler
-	conditions        map[validationID]bool
+	conditions        map[string]bool
 	validationResults validationsStatus
 	db                *gorm.DB
 }
 
-func If(id validationID) stateswitch.Condition {
+func If(id stringer) stateswitch.Condition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 		params, ok := args.(*TransitionArgsRefreshHost)
 		if !ok {
 			return false, errors.Errorf("If(%s) invalid argument", id.String())
 		}
-		b, ok := params.conditions[id]
+		b, ok := params.conditions[id.String()]
 		if !ok {
 			return false, errors.Errorf("If(%s) no such condition", id.String())
 		}

@@ -1,0 +1,35 @@
+apiVersion: hive.openshift.io/v1
+kind: ClusterDeployment
+metadata:
+  name: single-node
+  namespace: assisted-installer
+spec:
+  baseDomain: redhat.com
+  clusterName: test-infra-cluster-assisted-installer
+  platform:
+    agentBareMetal:
+      apiVIP: ""
+      ingressVIP: ""
+      agentSelector:
+        matchLabels:
+          bla: aaa
+  provisioning:
+    imageSetRef:
+      name: openshift-v4.8.0
+    installConfigSecretRef:
+      name: mycluster-install-config
+    sshPrivateKeySecretRef:
+      name: mycluster-ssh-key
+    installStrategy:
+      agent:
+        sshPublicKey: 'your_pub_key_here'
+        networking:
+          clusterNetwork:
+            - cidr: 10.128.0.0/14
+              hostPrefix: 23
+          serviceNetwork:
+            - 172.30.0.0/16
+        provisionRequirements:
+          controlPlaneAgents: 1
+  pullSecretRef:
+    name: pull-secret

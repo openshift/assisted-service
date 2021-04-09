@@ -15,7 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
-	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/pkg/apis/metal3/v1alpha1"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/bootfiles"
@@ -91,6 +91,7 @@ var Options struct {
 	HWValidatorConfig           hardware.ValidatorCfg
 	JobConfig                   job.Config
 	InstructionConfig           hostcommands.InstructionConfig
+	OperatorsConfig             operators.Options
 	GCConfig                    garbagecollector.Config
 	ClusterStateMonitorInterval time.Duration `envconfig:"CLUSTER_MONITOR_INTERVAL" default:"10s"`
 	S3Config                    s3wrapper.Config
@@ -144,7 +145,7 @@ func InitLogs() *logrus.Entry {
 }
 
 func main() {
-	err := envconfig.Process("myapp", &Options)
+	err := envconfig.Process(common.EnvConfigPrefix, &Options)
 	log := InitLogs()
 
 	if err != nil {
@@ -188,6 +189,8 @@ func main() {
 	ocmClient := getOCMClient(log, metricsManager)
 
 	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
+	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
+	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.JobConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 
 	var lead leader.ElectorInterface
@@ -196,12 +199,24 @@ func main() {
 	authHandler, err := auth.NewAuthenticator(&Options.Auth, ocmClient, log.WithField("pkg", "auth"), db)
 	failOnError(err, "failed to create authenticator")
 	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"))
-	releaseHandler := oc.NewRelease(&executer.CommonExecuter{})
+	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
-	eventsHandler := events.New(db, log.WithField("pkg", "events"))
-	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig)
+	crdEventsHandler := createCRDEventsHandler()
+	eventsHandler := createEventsHandler(crdEventsHandler, db, log)
+	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
+	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig)
+	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
+
+	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
+		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
+	createS3Bucket(objectHandler, log)
+
+	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
+	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig)
+	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
@@ -227,17 +242,6 @@ func main() {
 	newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
 	Options.JobConfig.S3EndpointURL = newUrl
-
-	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
-	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig)
-	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
-
-	var objectHandler s3wrapper.API = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
-		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
-	createS3Bucket(objectHandler, log)
-
-	failOnError(bmh_v1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme),
-		"Failed to add BareMetalHost to scheme")
 
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
@@ -276,8 +280,6 @@ func main() {
 
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
-	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
-	operatorsManager := operators.NewManager(log, manifestsApi, operators.Options{})
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
@@ -334,7 +336,7 @@ func main() {
 
 	bm := bminventory.NewBareMetalInventory(db, log.WithField("pkg", "Inventory"), hostApi, clusterApi, Options.BMConfig,
 		generator, eventsHandler, objectHandler, metricsManager, operatorsManager, authHandler, ocpClient, ocmClient,
-		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder)
+		lead, pullSecretValidator, versionHandler, isoEditorFactory, crdUtils, ignitionBuilder, hwValidator)
 
 	events := events.NewApi(eventsHandler, logrus.WithField("pkg", "eventsApi"))
 	expirer := imgexpirer.NewManager(objectHandler, eventsHandler, Options.BMConfig.ImageExpirationTime, lead)
@@ -357,6 +359,7 @@ func main() {
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:         authHandler.AuthAgentAuth,
 		AuthUserAuth:          authHandler.AuthUserAuth,
+		AuthURLAuth:           authHandler.AuthURLAuth,
 		APIKeyAuthenticator:   authHandler.CreateAuthenticator(),
 		Authorizer:            authzHandler.CreateAuthorizer(),
 		InstallerAPI:          bm,
@@ -386,47 +389,17 @@ func main() {
 	h = spec.WithSpecMiddleware(h)
 
 	go func() {
-		ctx, cancel := context.WithCancel(context.Background())
-		errs, _ := errgroup.WithContext(ctx)
-		//cancel the context in case this method ends
-		defer cancel()
-
-		// Checks whether latest version of minimal ISO templates already exists
-		haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(context.Background(), log, objectHandler)
-
-		switch Options.DeployTarget {
-		case deployment_type_k8s:
+		// Upload boot files with a leader lock if we're running with multiple replicas
+		if Options.DeployTarget == deployment_type_k8s {
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
 
-			for version := range openshiftVersionsMap {
-				currVresion := version
-				errs.Go(func() error {
-					return errors.Wrapf(baseISOUploadLeader.RunWithLeader(context.Background(), func() error {
-						return objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
-					}), "Failed uploading boot files for OCP version %s", currVresion)
-				})
-			}
-		case deployment_type_onprem, deployment_type_ocp:
-			for version := range openshiftVersionsMap {
-				currVresion := version
-				errs.Go(func() error {
-					return errors.Wrapf(objectHandler.UploadBootFiles(context.Background(), currVresion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate),
-						"Failed uploading boot files for OCP version %s", currVresion)
-				})
-			}
-
-			if Options.DeployTarget == deployment_type_ocp {
-				errs.Go(func() error {
-					return errors.Wrapf(bm.RegisterOCPCluster(context.Background()), "Failed to create OCP cluster")
-				})
-			}
-		}
-
-		if err = errs.Wait(); err != nil {
-			failOnError(err, "Failed to make API ready")
+			uploadFunc := func() error { return uploadBootFiles(objectHandler, openshiftVersionsMap, log) }
+			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
+		} else {
+			failOnError(uploadBootFiles(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
 		}
 
 		apiEnabler.Enable()
@@ -434,7 +407,6 @@ func main() {
 
 	go func() {
 		if Options.EnableKubeAPI {
-			crdEventsHandler := controllers.NewCRDEventsHandler()
 			failOnError((&controllers.InstallEnvReconciler{
 				Client:           ctrlMgr.GetClient(),
 				Config:           Options.InstallEnvConfig,
@@ -454,17 +426,44 @@ func main() {
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{
-				Client:    ctrlMgr.GetClient(),
-				Log:       log,
-				Scheme:    ctrlMgr.GetScheme(),
-				Installer: bm,
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				Scheme:           ctrlMgr.GetScheme(),
+				Installer:        bm,
+				CRDEventsHandler: crdEventsHandler,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
+
+			failOnError((&controllers.BMACReconciler{
+				Client: ctrlMgr.GetClient(),
+				Log:    log,
+				Scheme: ctrlMgr.GetScheme(),
+			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
 	}()
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+}
+
+func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	errs, _ := errgroup.WithContext(ctx)
+	//cancel the context in case this method ends
+	defer cancel()
+
+	// Checks whether latest version of minimal ISO templates already exists
+	// Must be done while holding the leader lock but outside of the version loop
+	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(context.Background(), log, objectHandler)
+	for version := range openshiftVersionsMap {
+		currVersion := version
+		errs.Go(func() error {
+			err := objectHandler.UploadBootFiles(context.Background(), currVersion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
+			return errors.Wrapf(err, "Failed uploading boot files for OCP version %s", currVersion)
+		})
+	}
+
+	return errs.Wait()
 }
 
 func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsApi operators.API) generator.ISOInstallConfigGenerator {
@@ -609,22 +608,35 @@ func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.D
 	})
 }
 
+func createEventsHandler(crdEventsHandler controllers.CRDEventsHandler, db *gorm.DB, log logrus.FieldLogger) events.Handler {
+	eventsHandler := events.New(db, log.WithField("pkg", "events"))
+
+	if crdEventsHandler != nil {
+		return controllers.NewControllerEventsWrapper(crdEventsHandler, eventsHandler, db, log)
+	}
+	return eventsHandler
+}
+
+func createCRDEventsHandler() controllers.CRDEventsHandler {
+	if Options.EnableKubeAPI {
+		return controllers.NewCRDEventsHandler()
+	}
+	return nil
+}
+
 func createControllerManager() (manager.Manager, error) {
 	if Options.EnableKubeAPI {
 		var schemes = runtime.NewScheme()
 		utilruntime.Must(scheme.AddToScheme(schemes))
 		utilruntime.Must(adiiov1alpha1.AddToScheme(schemes))
 		utilruntime.Must(hivev1.AddToScheme(schemes))
-
-		syncPeriod := 10 * time.Second
+		utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
 			Port:             9443,
 			LeaderElection:   true,
 			LeaderElectionID: "77190dcb.my.domain",
-			// TODO: remove it after we have backend notifications
-			SyncPeriod: &syncPeriod,
 		})
 	}
 	return nil, nil

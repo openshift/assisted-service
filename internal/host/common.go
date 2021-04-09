@@ -49,8 +49,8 @@ func refreshHostStageUpdateTime(
 	db *gorm.DB,
 	clusterId strfmt.UUID,
 	hostId strfmt.UUID,
-	srcStatus string) (*models.Host, error) {
-	var host *models.Host
+	srcStatus string) (*common.Host, error) {
+	var host *common.Host
 	var err error
 
 	now := strfmt.DateTime(time.Now())

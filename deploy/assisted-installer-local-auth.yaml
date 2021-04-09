@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: assisted-installer-local-auth-key
+  namespace: REPLACE_NAMESPACE
+type: Opaque
+data:
+  ec-private-key.pem: REPLACE_PRIVATE_KEY
+  ec-public-key.pem: REPLACE_PUBLIC_KEY

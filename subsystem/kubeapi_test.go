@@ -2,7 +2,6 @@ package subsystem
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -10,10 +9,14 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/controllers"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
@@ -74,6 +77,11 @@ func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, sp
 		},
 		Spec: *spec,
 	})
+	Expect(err).To(BeNil())
+}
+
+func updateClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, clusterDeployment *hivev1.ClusterDeployment) {
+	err := client.Update(ctx, clusterDeployment)
 	Expect(err).To(BeNil())
 }
 
@@ -143,6 +151,24 @@ func getSecret(ctx context.Context, client k8sclient.Client, key types.Namespace
 	err := client.Get(ctx, key, secret)
 	Expect(err).To(BeNil())
 	return secret
+}
+
+// configureLoclAgentClient reassigns the global agentBMClient variable to a client instance using local token auth
+func configureLocalAgentClient(clusterID string) {
+	if Options.AuthType != auth.TypeLocal {
+		Fail(fmt.Sprintf("Agent client shouldn't be configured for local auth when auth type is %s", Options.AuthType))
+	}
+
+	key := types.NamespacedName{
+		Namespace: Options.Namespace,
+		Name:      "assisted-installer-local-auth-key",
+	}
+	secret := getSecret(context.Background(), kubeClient, key)
+	privKeyPEM := secret.Data["ec-private-key.pem"]
+	tok, err := gencrypto.LocalJWTForKey(clusterID, string(privKeyPEM))
+	Expect(err).To(BeNil())
+
+	agentBMClient = client.New(clientcfg(auth.AgentAuthHeaderWriter(tok)))
 }
 
 // FindStatusClusterDeploymentCondition is a port of conditionsv1.FindStatusCondition
@@ -230,8 +256,8 @@ func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
 			Name:      clusterDeployment.ClusterName,
 			Namespace: Options.Namespace,
 		},
-		PullSecretRef:     secretRef,
-		SSHAuthorizedKeys: []string{sshPublicKey},
+		PullSecretRef:    secretRef,
+		SSHAuthorizedKey: sshPublicKey,
 	}
 }
 
@@ -239,22 +265,6 @@ func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1alpha1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-}
-
-func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses models.FreeNetworksAddresses) {
-	fa, err := json.Marshal(&freeAddresses)
-	Expect(err).NotTo(HaveOccurred())
-	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-		ClusterID: h.ClusterID,
-		HostID:    *h.ID,
-		Reply: &models.StepReply{
-			ExitCode: 0,
-			Output:   string(fa),
-			StepID:   string(models.StepTypeFreeNetworkAddresses),
-			StepType: models.StepTypeFreeNetworkAddresses,
-		},
-	})
-	Expect(err).To(BeNil())
 }
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
@@ -287,6 +297,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
@@ -299,10 +310,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				Namespace: Options.Namespace,
 				Name:      host.ID.String(),
 			}
-			agent := getAgentCRD(ctx, kubeClient, hostkey)
-			agent.Spec.Approved = true
-			err := kubeClient.Update(ctx, agent)
-			Expect(err).To(BeNil())
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
 		}
 		Eventually(func() string {
 			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, key).Status.Conditions, hivev1.UnreachableCondition)
@@ -310,37 +322,42 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				return condition.Message
 			}
 			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusPreparingForInstallation))
+		}, "2m", "2s").Should(Equal(models.ClusterStatusInstalling))
 	})
 
 	It("deploy clusterDeployment with agent and update agent", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
-		installDisk := "/dev/sdb"
 		deployClusterDeploymentCRD(ctx, kubeClient, spec)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		host := setupNewHost(ctx, "hostname1", *cluster.ID)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
-		agent := getAgentCRD(ctx, kubeClient, key)
-		agent.Spec.Hostname = "newhostname"
-		agent.Spec.Approved = true
-		agent.Spec.InstallationDiskPath = installDisk
-		err := kubeClient.Update(ctx, agent)
-		Expect(err).To(BeNil())
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Hostname = "newhostname"
+			agent.Spec.Approved = true
+			agent.Spec.InstallationDiskID = sdb.ID
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
 		Eventually(func() string {
-			return getHost(*cluster.ID, *host.ID).RequestedHostname
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			return h.RequestedHostname
 		}, "2m", "10s").Should(Equal("newhostname"))
 		Eventually(func() string {
-			return getHost(*cluster.ID, *host.ID).InstallationDiskPath
-		}, "2m", "10s").Should(Equal(installDisk))
-
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			return h.InstallationDiskID
+		}, "2m", "10s").Should(Equal(sdb.ID))
 		Eventually(func() bool {
 			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
@@ -366,6 +383,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.NoProxy).Should(Equal(""))
 		Expect(cluster.HTTPProxy).Should(Equal(""))
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
@@ -421,6 +439,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
@@ -461,6 +480,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
@@ -471,7 +491,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      installEnvName,
 		}
-
 		Eventually(func() string {
 			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
 			if condition != nil {
@@ -482,9 +501,79 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.IgnitionConfigOverrides).ShouldNot(Equal(fakeIgnitionConfigOverride))
 		Expect(cluster.ImageGenerated).Should(Equal(false))
+
 	})
 
-	It("deploy clusterDeployment full install and validate MetaData", func() {
+	It("deploy clusterDeployment with install config override", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
+
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName)
+		installConfigOverrides := `{"controlPlane": {"hyperthreading": "Enabled"}}`
+		clusterDeploymentCRD.SetAnnotations(map[string]string{controllers.InstallConfigOverrides: installConfigOverrides})
+		updateClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentCRD)
+
+		Eventually(func() string {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+			if c != nil {
+				return c.InstallConfigOverrides
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(installConfigOverrides))
+	})
+
+	It("deploy clusterDeployment with malformed install config override", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
+
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName)
+		installConfigOverrides := `{"controlPlane": "malformed json": "Enabled"}}`
+		clusterDeploymentCRD.SetAnnotations(map[string]string{controllers.InstallConfigOverrides: installConfigOverrides})
+		updateClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentCRD)
+
+		Eventually(func() string {
+			// currently all conditions have the same type, so filter by status = False
+			conditions := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions
+			for i := range conditions {
+				if conditions[i].Status == "False" {
+					return conditions[i].Message
+				}
+			}
+			return ""
+		}, "30s", "2s").Should(ContainSubstring("failed to update clusterDeployment"))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
+	})
+
+	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSNOSpec(secretRef)
@@ -494,6 +583,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      spec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
 		host := setupNewHost(ctx, "hostname1", *cluster.ID)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -525,7 +615,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
 
-		By("Wait for installed")
+		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
 		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
@@ -535,13 +625,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalled))
 
 		By("Verify Cluster Metadata")
 		Eventually(func() bool {
@@ -564,6 +647,197 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
+	})
+
+	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
+		By("Create cluster")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		hosts := make([]*models.Host, 0)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := setupNewHost(ctx, hostname, *cluster.ID)
+			hosts = append(hosts, host)
+		}
+		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+
+		By("Wait for installing")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+
+		By("Wait for finalizing")
+		for _, host := range hosts {
+			updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+		}
+
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
+
+		By("Complete Installation")
+		completeInstallation(agentBMClient, *cluster.ID)
+		isSuccess := true
+		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+			ClusterID: *cluster.ID,
+			CompletionParams: &models.CompletionParams{
+				IsSuccess: &isSuccess,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Verify Day 2 Cluster")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(models.ClusterStatusAddingHosts))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
+
+		By("Verify Cluster Metadata")
+		Eventually(func() bool {
+			return getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.Installed
+		}, "2m", "2s").Should(BeTrue())
+		passwordSecretRef := getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.ClusterMetadata.AdminPasswordSecretRef
+		Expect(passwordSecretRef).NotTo(BeNil())
+		passwordkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      passwordSecretRef.Name,
+		}
+		passwordSecret := getSecret(ctx, kubeClient, passwordkey)
+		Expect(passwordSecret.Data["password"]).NotTo(BeNil())
+		Expect(passwordSecret.Data["username"]).NotTo(BeNil())
+		configSecretRef := getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
+		Expect(passwordSecretRef).NotTo(BeNil())
+		configkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      configSecretRef.Name,
+		}
+		configSecret := getSecret(ctx, kubeClient, configkey)
+		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
+	})
+
+	It("None SNO deploy clusterDeployment full install and Day 2 new host", func() {
+		By("Create cluster")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		hosts := make([]*models.Host, 0)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := setupNewHost(ctx, hostname, *cluster.ID)
+			hosts = append(hosts, host)
+		}
+		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+
+		By("Wait for installing")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+
+		By("Wait for finalizing")
+		for _, host := range hosts {
+			updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+		}
+
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
+
+		By("Complete Installation")
+		completeInstallation(agentBMClient, *cluster.ID)
+		isSuccess := true
+		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+			ClusterID: *cluster.ID,
+			CompletionParams: &models.CompletionParams{
+				IsSuccess: &isSuccess,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Verify Day 2 Cluster")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(Equal(models.ClusterStatusAddingHosts))
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
+
+		By("Add Day 2 host and approve agent")
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostnameday2", *cluster.ID)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		generateApiVipPostStepReply(ctx, host, true)
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		//TODO check Agent status when implemented By("Wait for Day 2 host to be installing")
+
 	})
 
 })

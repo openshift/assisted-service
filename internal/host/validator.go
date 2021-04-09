@@ -49,10 +49,11 @@ func (v ValidationStatus) String() string {
 }
 
 type validationContext struct {
-	host      *models.Host
-	cluster   *common.Cluster
-	inventory *models.Inventory
-	db        *gorm.DB
+	host                    *models.Host
+	cluster                 *common.Cluster
+	inventory               *models.Inventory
+	db                      *gorm.DB
+	clusterHostRequirements *models.ClusterHostRequirements
 }
 
 type validationConditon func(context *validationContext) ValidationStatus
@@ -87,6 +88,18 @@ func (c *validationContext) loadInventory() error {
 	return nil
 }
 
+func (v *validator) getBootDeviceInfo(host *models.Host) (*models.DiskInfo, error) {
+	bootDevice, err := hardware.GetBootDevice(v.log, v.hwValidator, host)
+	if err != nil {
+		return nil, err
+	}
+	info, err := common.GetDiskInfo(host.DisksInfo, bootDevice)
+	if err != nil {
+		return nil, err
+	}
+	return info, nil
+}
+
 func (c *validationContext) validateRole() error {
 	switch c.host.Role {
 	case models.HostRoleMaster, models.HostRoleWorker, models.HostRoleAutoAssign:
@@ -104,7 +117,13 @@ func (c *validationContext) validateMachineCIDR() error {
 	return err
 }
 
-func newValidationContext(host *models.Host, db *gorm.DB) (*validationContext, error) {
+func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetClusterHostRequirements(context.TODO(), c.cluster, c.host)
+	c.clusterHostRequirements = requirements
+	return err
+}
+
+func newValidationContext(host *models.Host, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
 	ret := &validationContext{
 		host: host,
 		db:   db,
@@ -118,6 +137,9 @@ func newValidationContext(host *models.Host, db *gorm.DB) (*validationContext, e
 	}
 	if err == nil {
 		err = ret.validateMachineCIDR()
+	}
+	if err == nil {
+		err = ret.loadClusterHostRequirements(hwValidator)
 	}
 	if err != nil {
 		return nil, err
@@ -202,8 +224,8 @@ func (v *validator) printHasMinMemory(c *validationContext, status ValidationSta
 	case ValidationSuccess:
 		return "Sufficient minimum RAM"
 	case ValidationFailure:
-		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %d GiB, found only %d GiB", v.hwValidatorCfg.MinRamGib,
-			conversions.BytesToGiB(c.inventory.Memory.PhysicalBytes))
+		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %s, found only %s", conversions.BytesToString(conversions.GibToBytes(v.hwValidatorCfg.MinRamGib)),
+			conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -259,30 +281,7 @@ func (v *validator) hasCPUCoresForRole(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	if c.host.Role == models.HostRoleMaster || c.host.Role == models.HostRoleWorker || c.host.Role == models.HostRoleAutoAssign {
-		count, err := v.getCPUCountForRole(c.cluster, c.host.Role)
-		if err != nil {
-			return ValidationFailure
-		}
-		return boolValue(c.inventory.CPU.Count >= count)
-	}
-	v.log.Errorf("Unexpected role %s", c.host.Role)
-	return ValidationError
-}
-
-func (v *validator) getCPUCountForRole(cluster *common.Cluster, role models.HostRole) (int64, error) {
-	opReqs, err := v.operatorsAPI.GetCPURequirementForRole(context.TODO(), cluster, role)
-	if err != nil {
-		return 0, err
-	}
-	switch role {
-	case models.HostRoleMaster:
-		return v.hwValidatorCfg.MinCPUCoresMaster + opReqs, nil
-	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return v.hwValidatorCfg.MinCPUCoresWorker + opReqs, nil
-	default:
-		return v.hwValidatorCfg.MinCPUCores + opReqs, nil
-	}
+	return boolValue(c.inventory.CPU.Count >= c.clusterHostRequirements.Total.CPUCores)
 }
 
 func (v *validator) printHasCPUCoresForRole(c *validationContext, status ValidationStatus) string {
@@ -290,11 +289,7 @@ func (v *validator) printHasCPUCoresForRole(c *validationContext, status Validat
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient CPU cores for role %s", c.host.Role)
 	case ValidationFailure:
-		count, err := v.getCPUCountForRole(c.cluster, c.host.Role)
-		if err != nil {
-			return err.Error()
-		}
-		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d", count, c.host.Role, c.inventory.CPU.Count)
+		return fmt.Sprintf("Require at least %d CPU cores for %s role, found only %d", c.clusterHostRequirements.Total.CPUCores, c.host.Role, c.inventory.CPU.Count)
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
@@ -306,20 +301,8 @@ func (v *validator) hasMemoryForRole(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-
-	mem, err := v.getMemoryForRole(c.cluster, c.host.Role)
-	if err != nil {
-		return ValidationFailure
-	}
-	switch c.host.Role {
-	case models.HostRoleMaster:
-		return boolValue(c.inventory.Memory.UsableBytes >= mem)
-	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return boolValue(c.inventory.Memory.UsableBytes >= mem)
-	default:
-		v.log.Errorf("Unexpected role %s", c.host.Role)
-		return ValidationError
-	}
+	requiredBytes := conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)
+	return boolValue(c.inventory.Memory.PhysicalBytes >= requiredBytes)
 }
 
 func (v *validator) isValidPlatform(c *validationContext) ValidationStatus {
@@ -345,34 +328,13 @@ func (v *validator) printValidPlatform(c *validationContext, status ValidationSt
 	}
 }
 
-func (v *validator) getMemoryForRole(cluster *common.Cluster, role models.HostRole) (int64, error) {
-	opReqs, err := v.operatorsAPI.GetMemoryRequirementForRole(context.TODO(), cluster, role)
-	if err != nil {
-		v.log.Errorf("Unexpected error %s", err)
-		return 0, err
-	}
-	switch role {
-	case models.HostRoleMaster:
-		return conversions.GibToBytes(v.hwValidatorCfg.MinRamGibMaster) + opReqs, nil
-	case models.HostRoleWorker, models.HostRoleAutoAssign:
-		return conversions.GibToBytes(v.hwValidatorCfg.MinRamGibWorker) + opReqs, nil
-	default:
-		return conversions.GibToBytes(v.hwValidatorCfg.MinRamGib) + opReqs, nil
-	}
-}
-
 func (v *validator) printHasMemoryForRole(c *validationContext, status ValidationStatus) string {
-
 	switch status {
 	case ValidationSuccess:
 		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
 	case ValidationFailure:
-		mem, err := v.getMemoryForRole(c.cluster, c.host.Role)
-		if err != nil {
-			return fmt.Sprintf("Unable to determine host memory requirements: %s", err)
-		}
-		return fmt.Sprintf("Require at least %d GiB RAM role %s, found only %d GiB",
-			conversions.BytesToGiB(mem), c.host.Role, conversions.BytesToGiB(c.inventory.Memory.UsableBytes))
+		return fmt.Sprintf("Require at least %s RAM for role %s, found only %s",
+			conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), c.host.Role, conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
@@ -663,4 +625,37 @@ func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
 func isInvalidImageStatus(imageStatus *models.ContainerImageAvailability) bool {
 	return imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
 		(imageStatus.SizeBytes > 0 && imageStatus.DownloadRate < ImageStatusDownloadRateThreshold)
+}
+
+/*
+   This is a pre-install validation that checks that the boot device was either not tested for sufficient disk speed
+   or the disk speed check has been successful.  Since disk speed test is performed after installation has started,
+   in order to have result for such test, the result has to be from a previous installation attempt.
+   Since all pre-install validations have to pass before starting installation, it is mandatory that in case installation
+   on the current boot device has not been attempted yet, this validation must pass.
+*/
+func (v *validator) sufficientOrUnknownInstallationDiskSpeed(c *validationContext) ValidationStatus {
+	info, err := v.getBootDeviceInfo(c.host)
+	if err != nil {
+		return ValidationError
+	}
+
+	return boolValue(info == nil || info.DiskSpeed == nil || !info.DiskSpeed.Tested || info.DiskSpeed.ExitCode == 0)
+}
+
+func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		info, _ := v.getBootDeviceInfo(c.host)
+		if info == nil || info.DiskSpeed == nil || !info.DiskSpeed.Tested {
+			return "Speed of installation disk has not yet been measured"
+		}
+		return "Speed of installation disk is sufficient"
+	case ValidationFailure:
+		return "Insufficient disk speed or error occurred during disk speed measurement"
+	case ValidationError:
+		return "Error occured while getting boot device"
+	default:
+		return fmt.Sprintf("Unexpected status %s", status.String())
+	}
 }

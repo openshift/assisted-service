@@ -1,15 +1,10 @@
 package auth
 
 import (
-	"bytes"
 	"crypto"
-	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/rsa"
-	"crypto/x509"
 	"encoding/base32"
-	"encoding/pem"
 	"fmt"
 
 	"github.com/dgrijalva/jwt-go"
@@ -85,37 +80,4 @@ func GenJSJWKS(privKey crypto.PublicKey, pubKey crypto.PublicKey) ([]byte, []byt
 		fmt.Printf("pubJSJWKS Marshaling error: %v\n", err)
 	}
 	return pubJSJWKS, privJSJWKS, kid, nil
-}
-
-func ECDSATokenAndKey(clusterID string) (string, string, error) {
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		return "", "", err
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
-		"cluster_id": clusterID,
-	})
-	tokenString, err := token.SignedString(priv)
-	if err != nil {
-		return "", "", err
-	}
-
-	pubBytes, err := x509.MarshalPKIXPublicKey(priv.Public())
-	if err != nil {
-		return "", "", err
-	}
-
-	block := &pem.Block{
-		Type:  "EC PUBLIC KEY",
-		Bytes: pubBytes,
-	}
-
-	var out bytes.Buffer
-	err = pem.Encode(&out, block)
-	if err != nil {
-		return "", "", err
-	}
-
-	return tokenString, out.String(), nil
 }

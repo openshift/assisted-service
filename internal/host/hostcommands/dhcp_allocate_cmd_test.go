@@ -23,10 +23,10 @@ var _ = Describe("dhcpallocate", func() {
 	var id, clusterId strfmt.UUID
 	var stepReply []*models.Step
 	var stepErr error
-	dbName := "dhcpallocate_cmd"
+	var dbName string
 
 	BeforeEach(func() {
-		db = common.PrepareTestDB(dbName)
+		db, dbName = common.PrepareTestDB()
 		dCmd = NewDhcpAllocateCmd(common.GetTestLog(), "quay.io/ocpmetal/dhcp_lease_allocator:latest", db)
 
 		id = strfmt.UUID("32b4463e-5f94-4245-87cf-a6948014045c")

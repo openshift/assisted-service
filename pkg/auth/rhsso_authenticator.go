@@ -261,6 +261,10 @@ func (a *RHSSOAuthenticator) isClusterOwnedByUser(clusterID string, payload *ocm
 	return true, nil
 }
 
+func (a *RHSSOAuthenticator) AuthURLAuth(_ string) (interface{}, error) {
+	return nil, errors.Errorf("URL Authentication not allowed for rhsso auth")
+}
+
 func (a *RHSSOAuthenticator) CreateAuthenticator() func(name, in string, authenticate security.TokenAuthentication) runtime.Authenticator {
 	return func(name string, _ string, authenticate security.TokenAuthentication) runtime.Authenticator {
 		getToken := func(r *http.Request) string { return r.Header.Get(name) }

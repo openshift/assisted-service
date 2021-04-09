@@ -5,7 +5,9 @@
 package hardware
 
 import (
+	context "context"
 	gomock "github.com/golang/mock/gomock"
+	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	reflect "reflect"
 )
@@ -60,6 +62,35 @@ func (m *MockValidator) GetHostRequirements(role models.HostRole) models.HostReq
 func (mr *MockValidatorMockRecorder) GetHostRequirements(role interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements), role)
+}
+
+// GetHostInstallationPath mocks base method
+func (m *MockValidator) GetHostInstallationPath(host *models.Host) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostInstallationPath", host)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// GetHostInstallationPath indicates an expected call of GetHostInstallationPath
+func (mr *MockValidatorMockRecorder) GetHostInstallationPath(host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostInstallationPath", reflect.TypeOf((*MockValidator)(nil).GetHostInstallationPath), host)
+}
+
+// GetClusterHostRequirements mocks base method
+func (m *MockValidator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetClusterHostRequirements", ctx, cluster, host)
+	ret0, _ := ret[0].(*models.ClusterHostRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetClusterHostRequirements indicates an expected call of GetClusterHostRequirements
+func (mr *MockValidatorMockRecorder) GetClusterHostRequirements(ctx, cluster, host interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetClusterHostRequirements), ctx, cluster, host)
 }
 
 // DiskIsEligible mocks base method

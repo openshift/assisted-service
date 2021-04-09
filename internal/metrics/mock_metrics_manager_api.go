@@ -72,6 +72,30 @@ func (mr *MockAPIMockRecorder) HostValidationChanged(clusterVersion, emailDomain
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostValidationChanged", reflect.TypeOf((*MockAPI)(nil).HostValidationChanged), clusterVersion, emailDomain, hostValidationType)
 }
 
+// ClusterValidationFailed mocks base method
+func (m *MockAPI) ClusterValidationFailed(clusterVersion, emailDomain string, clusterValidationType models.ClusterValidationID) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClusterValidationFailed", clusterVersion, emailDomain, clusterValidationType)
+}
+
+// ClusterValidationFailed indicates an expected call of ClusterValidationFailed
+func (mr *MockAPIMockRecorder) ClusterValidationFailed(clusterVersion, emailDomain, clusterValidationType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterValidationFailed", reflect.TypeOf((*MockAPI)(nil).ClusterValidationFailed), clusterVersion, emailDomain, clusterValidationType)
+}
+
+// ClusterValidationChanged mocks base method
+func (m *MockAPI) ClusterValidationChanged(clusterVersion, emailDomain string, clusterValidationType models.ClusterValidationID) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "ClusterValidationChanged", clusterVersion, emailDomain, clusterValidationType)
+}
+
+// ClusterValidationChanged indicates an expected call of ClusterValidationChanged
+func (mr *MockAPIMockRecorder) ClusterValidationChanged(clusterVersion, emailDomain, clusterValidationType interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterValidationChanged", reflect.TypeOf((*MockAPI)(nil).ClusterValidationChanged), clusterVersion, emailDomain, clusterValidationType)
+}
+
 // InstallationStarted mocks base method
 func (m *MockAPI) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain, userManagedNetworking string) {
 	m.ctrl.T.Helper()
