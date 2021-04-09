@@ -82,4 +82,5 @@ require (
 replace (
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20210309203657-2c1aca867039 // Use OpenShift fork
 	k8s.io/client-go => k8s.io/client-go v0.20.0
+	k8s.io/api => k8s.io/api v0.20.0
 )
