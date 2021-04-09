@@ -12,7 +12,6 @@ import (
 
 type Config struct {
 	OCSMinimumCPUCount             int64             `envconfig:"OCS_MINIMUM_CPU_COUNT" default:"18"`
-	OCSMinimumRAMGB                int64             `envconfig:"OCS_MINIMUM_RAM_GB" default:"51"` // disable deployment if less
 	OCSRequiredDisk                int64             `envconfig:"OCS_MINIMUM_DISK" default:"3"`
 	OCSRequiredDiskCPUCount        int64             `envconfig:"OCS_REQUIRED_DISK_CPU_COUNT" default:"2"` // each disk requires 2 cpus
 	OCSRequiredDiskRAMGB           int64             `envconfig:"OCS_REQUIRED_DISK_RAM_GB" default:"5"`    // each disk requires 5GB ram
@@ -197,7 +196,7 @@ func validateRequirementsForMode(o *operator, nodeInfo *resourceInfo, mode ocsDe
 		totalRAM = o.config.OCSRequiredCompactModeRAMGB
 	} else if mode == minimalMode {
 		totalCPUs = o.config.OCSMinimumCPUCount
-		totalRAM = o.config.OCSMinimumRAMGB
+		totalRAM = o.config.OCSRequiredRAMGB
 	} else if mode == standardMode {
 		totalCPUs = o.config.OCSRequiredCPUCount
 		totalRAM = o.config.OCSRequiredRAMGB
@@ -213,7 +212,7 @@ func (o *operator) setStatusInsufficientResources(nodeInfo *resourceInfo, mode o
 		totalRAMGB = o.config.OCSRequiredCompactModeRAMGB
 	} else {
 		totalCPUs = o.config.OCSMinimumCPUCount
-		totalRAMGB = o.config.OCSMinimumRAMGB
+		totalRAMGB = o.config.OCSRequiredRAMGB
 	}
 	status := fmt.Sprint("Insufficient Resources to deploy OCS in ", string(mode), " Mode. A minimum of ")
 	if nodeInfo.cpuCount < totalCPUs {

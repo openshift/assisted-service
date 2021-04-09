@@ -884,7 +884,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Mode. A minimum of 51 RAM GB, excluding disk RAM resources is required."},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Mode. A minimum of 57 RAM GB, excluding disk RAM resources is required."},
 			}),
 			errorExpected: false,
 		},
