@@ -4,6 +4,7 @@ resources:
 - postgres-deployment.yaml
 - assisted-service.yaml
 - assisted-service-configmap.yaml
+- assisted-service-configmap-registry-ca.yaml
 - assisted-service-service.yaml
 - assisted-installer-sso.yaml
 - deploy_ui.yaml

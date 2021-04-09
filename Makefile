@@ -8,7 +8,7 @@ BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
 TARGET := $(or ${TARGET},minikube)
 PROFILE := $(or $(PROFILE),minikube)
 KUBECTL=kubectl -n $(NAMESPACE)
-INSTALL_TYPE := $(or $(INSTALL_TYPE),IPV4)
+NETWORK_TYPE := $(or $(NETWORK_TYPE),IPV4)
 
 ifeq ($(BUILD_TYPE), standalone)
     UNIT_TEST_TARGET = unit-test
@@ -220,9 +220,10 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
-	@if [ $(INSTALL_TYPE) = "IPV6" ]; then\
-		python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py --target "$(TARGET)" --namespace "$(NAMESPACE)" --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD);\
-	fi
+
+	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
+		--namespace "$(NAMESPACE)"  --apply-manifest $(APPLY_MANIFEST) --network-type $(NETWORK_TYPE)
+	
 	$(MAKE) deploy-role deploy-resources
 
 deploy-resources: generate-manifests
@@ -395,6 +396,7 @@ clean:
 	-rm config/assisted-service/postgres-deployment.yaml
 	-rm config/assisted-service/assisted-installer-sso.yaml
 	-rm config/assisted-service/assisted-service-configmap.yaml
+	-rm config/assisted-service-configmap-registry-ca.yaml
 	-rm config/assisted-service/assisted-service-service.yaml
 	-rm config/assisted-service/assisted-service.yaml
 	-rm config/assisted-service/deploy_ui.yaml
@@ -441,6 +443,7 @@ operator-bundle: create-ocp-manifests
 	cp ./build/assisted-installer/postgres-deployment.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-installer-sso.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service-configmap.yaml config/assisted-service
+	cp ./build/assisted-installer/assisted-service-configmap-registry-ca.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
 	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
 	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service

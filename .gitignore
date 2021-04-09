@@ -30,6 +30,7 @@ config/assisted-service/scality-public-secret.yaml
 config/assisted-service/postgres-deployment.yaml
 config/assisted-service/assisted-installer-sso.yaml
 config/assisted-service/assisted-service-configmap.yaml
+config/assisted-service/assisted-service-configmap-registry-ca.yaml
 config/assisted-service/assisted-service-service.yaml
 config/assisted-service/assisted-service.yaml
 config/assisted-service/deploy_ui.yaml
