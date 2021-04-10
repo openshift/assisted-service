@@ -5,6 +5,7 @@ resources:
 - bases/adi.io.my.domain_agentserviceconfigs.yaml
 - bases/adi.io.my.domain_installenvs.yaml
 - bases/adi.io.my.domain_agents.yaml
+- bases/adi.io.my.domain_nmstateconfigs.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

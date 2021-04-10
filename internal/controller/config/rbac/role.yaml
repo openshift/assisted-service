@@ -90,6 +90,14 @@ rules:
   - patch
   - update
 - apiGroups:
+  - adi.io.my.domain
+  resources:
+  - nmstateconfigs
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - apps
   resources:
   - deployments

@@ -34,13 +34,36 @@ spec:
             type: object
           spec:
             properties:
-              macAddress:
-                description: MACAddress is a MAC address for any network device on
-                  the host to which this config should be applied. This value is only
-                  used to ensure that the config is applied to the intended host.
-                type: string
-            required:
-            - macAddress
+              config:
+                description: yaml that can be processed by nmstate, using custom marshaling/unmarshaling
+                  that will allow to populate nmstate config as plain yaml.
+                type: object
+                x-kubernetes-preserve-unknown-fields: true
+              interfaces:
+                description: Interfaces is an array of interface objects containing
+                  the name and MAC address for interfaces that are referenced in the
+                  raw nmstate config YAML. Interfaces listed here will be automatically
+                  renamed in the nmstate config YAML to match the real device name
+                  that is observed to have the corresponding MAC address. At least
+                  one interface must be listed so that it can be used to identify
+                  the correct host, which is done by matching any MAC address in this
+                  list to any MAC address observed on the host.
+                items:
+                  properties:
+                    macAddress:
+                      description: mac address present on the host.
+                      pattern: ^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$
+                      type: string
+                    name:
+                      description: 'nic name used in the yaml, which relates 1:1 to
+                        the mac address. Name in REST API: logicalNICName'
+                      type: string
+                  required:
+                  - macAddress
+                  - name
+                  type: object
+                minItems: 1
+                type: array
             type: object
         type: object
     served: true

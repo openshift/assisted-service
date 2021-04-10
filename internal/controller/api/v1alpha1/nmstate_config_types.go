@@ -20,19 +20,39 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type RawConfig []byte
+type Interface struct {
+	// nic name used in the yaml, which relates 1:1 to the mac address.
+	// Name in REST API: logicalNICName
+	Name string `json:"name"`
+	// mac address present on the host.
+	// +kubebuilder:validation:Pattern=`^([0-9A-Fa-f]{2}[:]){5}([0-9A-Fa-f]{2})$`
+	MacAddress string `json:"macAddress"`
+}
+
+type RawNetConfig []byte
+
+// NetConfig contains the namestatectl yaml [1] as string instead of golang struct
+// so we don't need to be in sync with the schema.
+//
+// [1] https://github.com/nmstate/nmstate/blob/base/libnmstate/schemas/operational-state.yaml
+// +kubebuilder:validation:Type=object
+type NetConfig struct {
+	Raw RawNetConfig `json:"-"`
+}
 
 type NMStateConfigSpec struct {
-	// MACAddress is a MAC address for any network device on the host to which this config
-	// should be applied. This value is only used to ensure that the config is applied to the
-	// intended host.
-	MACAddress string `json:"macAddress"`
-
-	//Config contains the  yaml [1] as string instead of golang struct so we don't need to be in
-	//sync with the schema.
-	//
-	// [1] https://github.com/nmstate/nmstate/blob/base/libnmstate/schemas/operational-state.yaml
-	Config RawConfig `json:"-"`
+	// Interfaces is an array of interface objects containing the name and MAC
+	// address for interfaces that are referenced in the raw nmstate config YAML.
+	// Interfaces listed here will be automatically renamed in the nmstate config
+	// YAML to match the real device name that is observed to have the
+	// corresponding MAC address. At least one interface must be listed so that it
+	// can be used to identify the correct host, which is done by matching any MAC
+	// address in this list to any MAC address observed on the host.
+	// +kubebuilder:validation:MinItems=1
+	Interfaces []*Interface `json:"interfaces,omitempty"`
+	// yaml that can be processed by nmstate, using custom marshaling/unmarshaling that will allow to populate nmstate config as plain yaml.
+	// +kubebuilder:validation:XPreserveUnknownFields
+	NetConfig NetConfig `json:"config,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -58,3 +78,9 @@ type NMStateConfigList struct {
 func init() {
 	SchemeBuilder.Register(&NMStateConfig{}, &NMStateConfigList{})
 }
+
+// This override the NetConfig type [1] so we can do a custom marshalling of
+// nmstate yaml without the need to have golang code representing the nmstate schema
+
+// [1] https://github.com/kubernetes/kube-openapi/tree/master/pkg/generators
+func (_ NetConfig) OpenAPISchemaType() []string { return []string{"object"} }
