@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"strings"
 	"time"
 
@@ -487,20 +488,12 @@ func (r *BMACReconciler) findInstallationDiskID(devices []adiiov1alpha1.HostDisk
 // whose MacAddress matches the BootMACAddress set in the BMH.
 //
 // In the scenario where more than one Agent match the BootMACAdress
-// from the BMH, the following logic applies:
+// from the BMH, this function will return the newest Agent. Using the
+// CreationTimestamp is authoritative for this scenario because the
+// newest agent will be the latest agent registered, and therefore the
+// active one.
 //
-// 1. Return the agent that has been approved, if any.
-// 2. If the above fails, return the first agent found.
-//
-// Otherwise, this function will return nil.
-//
-// Eventually, this will be changed to inspect the agents status
-// instead of `Approved`. We want to reconcile only agents that
-// are in specific states (like discovering). Waiting on MGMT-4266
-//
-// Another option is to return the newest one, as the newest agent
-// should be authoritative
-// https://github.com/openshift/assisted-service/pull/1279/files#r604215906
+// `nil` will be returned if no agent matches
 func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost) *adiiov1alpha1.Agent {
 	agentList := adiiov1alpha1.AgentList{}
 	err := r.Client.List(ctx, &agentList, client.InNamespace(bmh.Namespace))
@@ -509,27 +502,23 @@ func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMe
 	}
 
 	agents := []*adiiov1alpha1.Agent{}
-
 	for i, agent := range agentList.Items {
 		for _, agentInterface := range agent.Status.Inventory.Interfaces {
 			if strings.EqualFold(bmh.Spec.BootMACAddress, agentInterface.MacAddress) {
-
-				// Short circuit if we find an agent
-				// that is Approved
-				if agent.Spec.Approved {
-					return &agent
-				}
-
 				agents = append(agents, &agentList.Items[i])
 			}
 		}
 	}
 
-	if len(agents) > 0 {
-		return agents[0]
+	if len(agents) == 0 {
+		return nil
 	}
 
-	return nil
+	sort.Slice(agents, func(i, j int) bool {
+		return agents[i].ObjectMeta.CreationTimestamp.After(agents[j].ObjectMeta.CreationTimestamp.Time)
+	})
+
+	return agents[0]
 }
 
 // Find `BareMetalHost` resources that match an agent

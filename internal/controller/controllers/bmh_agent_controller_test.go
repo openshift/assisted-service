@@ -183,10 +183,24 @@ var _ = Describe("bmac reconcile", func() {
 	Describe("Reconcile a BMH with a non-approved matching agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1alpha1.Agent
+		var staleAgent *v1alpha1.Agent
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
+			staleAgent = newAgent("stale-bmac-agent", testNamespace, v1alpha1.AgentSpec{})
+			staleAgent.ObjectMeta.CreationTimestamp.Time = time.Now()
+			staleAgent.Status.Inventory = v1alpha1.HostInventory{
+				Interfaces: []v1alpha1.HostInterface{
+					{
+						Name:       "eth0",
+						MacAddress: macStr,
+					},
+				},
+			}
+			Expect(c.Create(ctx, staleAgent)).To(BeNil())
+
 			agent = newAgent("bmac-agent", testNamespace, v1alpha1.AgentSpec{})
+			agent.ObjectMeta.CreationTimestamp.Time = time.Now().Add(time.Minute)
 			agent.Status.Inventory = v1alpha1.HostInventory{
 				Interfaces: []v1alpha1.HostInterface{
 					{
@@ -235,9 +249,22 @@ var _ = Describe("bmac reconcile", func() {
 		AfterEach(func() {
 			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
 			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, staleAgent)).ShouldNot(HaveOccurred())
 		})
 
 		Context("when an agent matches", func() {
+			It("should use the newest agent", func() {
+				result, err := bmhr.Reconcile(newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				// Check that staleAgent is *NOT* approved, since it's stale and old!
+				updatedAgent := &v1alpha1.Agent{}
+				err = c.Get(ctx, types.NamespacedName{Name: staleAgent.Name, Namespace: staleAgent.Namespace}, updatedAgent)
+				Expect(err).To(BeNil())
+				Expect(updatedAgent.Spec.Approved).To(Equal(false))
+			})
+
 			It("should not fail on missing role", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err := c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
