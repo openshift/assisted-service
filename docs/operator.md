@@ -6,7 +6,11 @@
 2. kustomize <https://github.com/kubernetes-sigs/kustomize/releases>
 3. opm <https://github.com/operator-framework/operator-registry/releases>
 
-## Building the operator
+## Building the operator bundle (optional)
+
+For development and testing purposes it may be beneficial to build the operator
+bundle and index images. If you don't __need__ to build it, just skip to
+[Deploying the Operator](#deploying-the-operator).
 
 ### Background
 
@@ -176,10 +180,6 @@ spec:
   source: assisted-service-manifests
   sourceNamespace: openshift-marketplace
   startingCSV: assisted-service-operator.v0.0.1
-  config:
-    env:
-    - name: ISO_IMAGE_TYPE
-      value: "full-iso"
 EOF
 ```
 

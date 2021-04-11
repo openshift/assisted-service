@@ -18,11 +18,9 @@ package controllers
 
 import (
 	"context"
-	"crypto/rand"
 	"fmt"
-	"math/big"
+	"net/url"
 	"strconv"
-	"strings"
 
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
@@ -31,6 +29,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -46,22 +45,12 @@ const (
 	// agentServiceConfigName is the one and only name for an AgentServiceConfig
 	// supported in the cluster. Any others will be ignored.
 	agentServiceConfigName = "agent"
-	// filesystemPVCName is the name of the PVC created for assisted-service's filesystem.
-	filesystemPVCName = "agent-filesystem"
-	// databasePVCName is the name of the PVC created for postgresql.
-	databasePVCName = "agent-database"
 
-	name                                = "assisted-service"
-	databaseName                        = "postgres"
-	databaseSecretName                  = databaseName
-	databasePort                  int32 = 5432
-	servicePort                   int32 = 8090
-	assistedServiceDeploymentName       = "assisted-service"
-
-	// assistedServiceContainerName is the Name property of the assisted-service container
-	assistedServiceContainerName string = "assisted-service"
-	// databaseContainerName is the Name property of the postgres container
-	databaseContainerName string = databaseName
+	serviceName            string = "assisted-service"
+	databaseName           string = "postgres"
+	databasePasswordLength int    = 16
+	servicePort            int32  = 8090
+	databasePort           int32  = 5432
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -131,17 +120,19 @@ func (r *AgentServiceConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		}
 	}
 
+	msg := "AgentServiceConfig reconcile completed without error."
+	r.Recorder.Event(instance, "Normal", adiiov1alpha1.ReasonReconcileSucceeded, msg)
 	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 		Type:    adiiov1alpha1.ConditionReconcileCompleted,
 		Status:  corev1.ConditionTrue,
 		Reason:  adiiov1alpha1.ReasonReconcileSucceeded,
-		Message: "AgentServiceConfig reconcile completed without error.",
+		Message: msg,
 	})
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
 }
 
 func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
-	pvc, mutateFn := r.newFilesystemPVC(instance)
+	pvc, mutateFn := r.newPVC(instance, serviceName, instance.Spec.FileSystemStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -158,7 +149,7 @@ func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Conte
 }
 
 func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
-	pvc, mutateFn := r.newDatabasePVC(instance)
+	pvc, mutateFn := r.newPVC(instance, databaseName, instance.Spec.DatabaseStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -240,7 +231,7 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
 	// must have the route in order to populate SERVICE_BASE_URL for the service
 	route := &routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: name, Namespace: r.Namespace}, route)
+	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
 	if err != nil || route.Spec.Host == "" {
 		if err == nil {
 			err = fmt.Errorf("Route's host is empty")
@@ -255,7 +246,9 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 		return err
 	}
 
-	deployment, mutateFn := r.newAssistedServiceDeployment(instance, route.Spec.Host)
+	// TODO(djzager): http won't work when the route is secured
+	serviceURL := &url.URL{Scheme: "http", Host: route.Spec.Host}
+	deployment, mutateFn := r.newAssistedServiceDeployment(instance, serviceURL)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
@@ -283,13 +276,18 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func (r *AgentServiceConfigReconciler) newFilesystemPVC(instance *adiiov1alpha1.AgentServiceConfig) (*corev1.PersistentVolumeClaim, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newPVC(instance *adiiov1alpha1.AgentServiceConfig, name string, spec corev1.PersistentVolumeClaimSpec) (*corev1.PersistentVolumeClaim, controllerutil.MutateFn) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      filesystemPVCName,
+			Name:      name,
 			Namespace: r.Namespace,
 		},
-		Spec: instance.Spec.FileSystemStorage,
+		Spec: spec,
+	}
+
+	requests := map[corev1.ResourceName]resource.Quantity{}
+	for key, value := range spec.Resources.Requests {
+		requests[key] = value
 	}
 
 	mutateFn := func() error {
@@ -297,32 +295,7 @@ func (r *AgentServiceConfigReconciler) newFilesystemPVC(instance *adiiov1alpha1.
 			return err
 		}
 		// Everything else is immutable once bound.
-		// TODO(djzager): this is a map that should be copied to avoid
-		// unexpected side effects in the cache.
-		pvc.Spec.Resources.Requests = instance.Spec.FileSystemStorage.Resources.Requests
-		return nil
-	}
-
-	return pvc, mutateFn
-}
-
-func (r *AgentServiceConfigReconciler) newDatabasePVC(instance *adiiov1alpha1.AgentServiceConfig) (*corev1.PersistentVolumeClaim, controllerutil.MutateFn) {
-	pvc := &corev1.PersistentVolumeClaim{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      databasePVCName,
-			Namespace: r.Namespace,
-		},
-		Spec: instance.Spec.DatabaseStorage,
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, pvc, r.Scheme); err != nil {
-			return err
-		}
-		// Everything else is immutable once bound.
-		// TODO(djzager): this is a map that should be copied to avoid
-		// unexpected side effects in the cache.
-		pvc.Spec.Resources.Requests = instance.Spec.DatabaseStorage.Resources.Requests
+		pvc.Spec.Resources.Requests = requests
 		return nil
 	}
 
@@ -332,7 +305,7 @@ func (r *AgentServiceConfigReconciler) newDatabasePVC(instance *adiiov1alpha1.Ag
 func (r *AgentServiceConfigReconciler) newAgentService(instance *adiiov1alpha1.AgentServiceConfig) (*corev1.Service, controllerutil.MutateFn) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      serviceName,
 			Namespace: r.Namespace,
 		},
 	}
@@ -341,17 +314,16 @@ func (r *AgentServiceConfigReconciler) newAgentService(instance *adiiov1alpha1.A
 		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
 			return err
 		}
-		addAppLabel(name, &svc.ObjectMeta)
+		addAppLabel(serviceName, &svc.ObjectMeta)
 		if len(svc.Spec.Ports) == 0 {
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
-		// For convenience targetPort, when unset, is set to the same as port
-		// https://kubernetes.io/docs/concepts/services-networking/service/#defining-a-service
-		// so we don't set it.
-		svc.Spec.Ports[0].Name = name
+		svc.Spec.Ports[0].Name = serviceName
 		svc.Spec.Ports[0].Port = servicePort
+		// since intstr.FromInt() doesn't take an int32, just use what FromInt() would return
+		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: servicePort}
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
-		svc.Spec.Selector = map[string]string{"app": name}
+		svc.Spec.Selector = map[string]string{"app": serviceName}
 		svc.Spec.Type = corev1.ServiceTypeLoadBalancer
 		return nil
 	}
@@ -363,18 +335,18 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *adiiov1alpha1.Age
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
+			Name:      serviceName,
 			Namespace: r.Namespace,
 		},
 	}
 	routeSpec := routev1.RouteSpec{
 		To: routev1.RouteTargetReference{
 			Kind:   "Service",
-			Name:   name,
+			Name:   serviceName,
 			Weight: &weight,
 		},
 		Port: &routev1.RoutePort{
-			TargetPort: intstr.FromString(name),
+			TargetPort: intstr.FromString(serviceName),
 		},
 		WildcardPolicy: routev1.WildcardPolicyNone,
 	}
@@ -391,14 +363,14 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *adiiov1alpha1.Age
 }
 
 func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *adiiov1alpha1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
-	pass, err := generatePassword()
+	pass, err := generatePassword(databasePasswordLength)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      databaseSecretName,
+			Name:      databaseName,
 			Namespace: r.Namespace,
 		},
 		StringData: map[string]string{
@@ -422,25 +394,26 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *adiiov1alpha1
 	return secret, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *adiiov1alpha1.AgentServiceConfig, host string) (*appsv1.Deployment, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *adiiov1alpha1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
 	serviceEnv := []corev1.EnvVar{
-		{Name: "SERVICE_BASE_URL", Value: host},
+		{Name: "SERVICE_BASE_URL", Value: serviceURL.String()},
 
 		// TODO: FIX ME!!!
 		{Name: "SKIP_CERT_VERIFICATION", Value: "True"},
 
 		// database
-		newSecretEnvVar("DB_HOST", "db.host", databaseSecretName),
-		newSecretEnvVar("DB_NAME", "db.name", databaseSecretName),
-		newSecretEnvVar("DB_PASS", "db.password", databaseSecretName),
-		newSecretEnvVar("DB_PORT", "db.port", databaseSecretName),
-		newSecretEnvVar("DB_USER", "db.user", databaseSecretName),
+		newSecretEnvVar("DB_HOST", "db.host", databaseName),
+		newSecretEnvVar("DB_NAME", "db.name", databaseName),
+		newSecretEnvVar("DB_PASS", "db.password", databaseName),
+		newSecretEnvVar("DB_PORT", "db.port", databaseName),
+		newSecretEnvVar("DB_USER", "db.user", databaseName),
 
 		// image overrides
 		{Name: "AGENT_DOCKER_IMAGE", Value: AgentImage()},
 		{Name: "CONTROLLER_IMAGE", Value: ControllerImage()},
 		{Name: "INSTALLER_IMAGE", Value: InstallerImage()},
 		{Name: "SELF_VERSION", Value: ServiceImage()},
+		{Name: "OPENSHIFT_VERSIONS", Value: OpenshiftVersions()},
 
 		{Name: "ISO_IMAGE_TYPE", Value: "minimal-iso"},
 		{Name: "S3_USE_SSL", Value: "false"},
@@ -448,7 +421,6 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 		{Name: "LOG_FORMAT", Value: "text"},
 		{Name: "INSTALL_RH_CA", Value: "false"},
 		{Name: "REGISTRY_CREDS", Value: ""},
-		{Name: "AWS_SHARED_CREDENTIALS_FILE", Value: "/etc/.aws/credentials"},
 		{Name: "DEPLOY_TARGET", Value: "k8s"},
 		{Name: "STORAGE", Value: "filesystem"},
 		{Name: "ISO_WORKSPACE_BASE_DIR", Value: "/data"},
@@ -461,9 +433,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 		{Name: "CREATE_S3_BUCKET", Value: "False"},
 		{Name: "ENABLE_KUBE_API", Value: "True"},
 		{Name: "ENABLE_SINGLE_NODE_DNSMASQ", Value: "True"},
-		{Name: "IPV6_SUPPORT", Value: "False"},
+		{Name: "IPV6_SUPPORT", Value: "True"},
 		{Name: "JWKS_URL", Value: "https://api.openshift.com/.well-known/jwks.json"},
-		{Name: "OPENSHIFT_VERSIONS", Value: `{"4.6":{"display_name":"4.6.16","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.2","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.0/rhcos-4.7.0-x86_64-live.x86_64.iso","rhcos_version":"47.83.202102090044-0","support_level":"production"}}`},
 		{Name: "PUBLIC_CONTAINER_REGISTRIES", Value: "quay.io,registry.svc.ci.openshift.org"},
 		{Name: "WITH_AMS_SUBSCRIPTIONS", Value: "False"},
 
@@ -478,7 +449,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 	}
 
 	serviceContainer := corev1.Container{
-		Name:  assistedServiceContainerName,
+		Name:  serviceName,
 		Image: ServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
@@ -493,7 +464,12 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 				MountPath: "/data",
 			},
 		},
-		Resources: corev1.ResourceRequirements{},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("200m"),
+				corev1.ResourceMemory: resource.MustParse("512Mi"),
+			},
+		},
 		LivenessProbe: &corev1.Probe{
 			FailureThreshold:    3,
 			SuccessThreshold:    1,
@@ -509,7 +485,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 	}
 
 	postgresContainer := corev1.Container{
-		Name:            databaseContainerName,
+		Name:            databaseName,
 		Image:           DatabaseImage(),
 		ImagePullPolicy: corev1.PullIfNotPresent,
 		Ports: []corev1.ContainerPort{
@@ -520,9 +496,9 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 			},
 		},
 		Env: []corev1.EnvVar{
-			newSecretEnvVar("POSTGRESQL_DATABASE", "db.name", databaseSecretName),
-			newSecretEnvVar("POSTGRESQL_USER", "db.user", databaseSecretName),
-			newSecretEnvVar("POSTGRESQL_PASSWORD", "db.password", databaseSecretName),
+			newSecretEnvVar("POSTGRESQL_DATABASE", "db.name", databaseName),
+			newSecretEnvVar("POSTGRESQL_USER", "db.user", databaseName),
+			newSecretEnvVar("POSTGRESQL_PASSWORD", "db.password", databaseName),
 		},
 		VolumeMounts: []corev1.VolumeMount{
 			{
@@ -530,7 +506,12 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 				MountPath: "/var/lib/pgsql/data",
 			},
 		},
-		Resources: corev1.ResourceRequirements{},
+		Resources: corev1.ResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceCPU:    resource.MustParse("100m"),
+				corev1.ResourceMemory: resource.MustParse("400Mi"),
+			},
+		},
 	}
 
 	volumes := []corev1.Volume{
@@ -538,7 +519,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 			Name: "bucket-filesystem",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: filesystemPVCName,
+					ClaimName: serviceName,
 				},
 			},
 		},
@@ -546,23 +527,25 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 			Name: "postgresdb",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: databasePVCName,
+					ClaimName: databaseName,
 				},
 			},
 		},
 	}
 
 	deploymentLabels := map[string]string{
-		"app": assistedServiceDeploymentName,
+		"app": serviceName,
 	}
 
 	deploymentStrategy := appsv1.DeploymentStrategy{
 		Type: appsv1.RecreateDeploymentStrategyType,
 	}
 
+	serviceAccountName := ServiceAccountName()
+
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      assistedServiceDeploymentName,
+			Name:      serviceName,
 			Namespace: r.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -572,7 +555,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: deploymentLabels,
-					Name:   assistedServiceDeploymentName,
+					Name:   serviceName,
 				},
 			},
 		},
@@ -587,6 +570,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ad
 		deployment.Spec.Strategy = deploymentStrategy
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
+		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
 
 		return nil
 	}
@@ -605,50 +589,4 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
-}
-
-// generatePassword generates a password of a given length out of the acceptable
-// ASCII characters suitable for a password
-// taken from https://github.com/CrunchyData/postgres-operator/blob/383dfa95991553352623f14d3d0d4c9193795855/internal/util/secrets.go#L75
-func generatePassword() (string, error) {
-	length := 16
-	password := make([]byte, length)
-
-	// passwordCharLower is the lowest ASCII character to use for generating a
-	// password, which is 40
-	passwordCharLower := int64(40)
-	// passwordCharUpper is the highest ASCII character to use for generating a
-	// password, which is 126
-	passwordCharUpper := int64(126)
-	// passwordCharExclude is a map of characters that we choose to exclude from
-	// the password to simplify usage in the shell. There is still enough entropy
-	// that exclusion of these characters is OK.
-	passwordCharExclude := "`\\"
-
-	// passwordCharSelector is a "big int" that we need to select the random ASCII
-	// character for the password. Since the random integer generator looks for
-	// values from [0,X), we need to force this to be [40,126]
-	passwordCharSelector := big.NewInt(passwordCharUpper - passwordCharLower)
-
-	i := 0
-
-	for i < length {
-		val, err := rand.Int(rand.Reader, passwordCharSelector)
-		// if there is an error generating the random integer, return
-		if err != nil {
-			return "", err
-		}
-
-		char := byte(passwordCharLower + val.Int64())
-
-		// if the character is in the exclusion list, continue
-		if idx := strings.IndexAny(string(char), passwordCharExclude); idx > -1 {
-			continue
-		}
-
-		password[i] = char
-		i++
-	}
-
-	return string(password), nil
 }
