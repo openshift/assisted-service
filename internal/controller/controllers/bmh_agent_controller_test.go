@@ -106,12 +106,12 @@ var _ = Describe("bmac reconcile", func() {
 		})
 	})
 
-	Describe("Reconcile a BMH with an installEnv label", func() {
+	Describe("Reconcile a BMH with an infraEnv label", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		BeforeEach(func() {
 			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
 			labels := make(map[string]string)
-			labels[BMH_INSTALL_ENV_LABEL] = "testInstallEnv"
+			labels[BMH_INSTALL_ENV_LABEL] = "testInfraEnv"
 			host.ObjectMeta.Labels = labels
 			Expect(c.Create(ctx, host)).To(BeNil())
 		})
@@ -120,7 +120,7 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
 		})
 
-		Context("with a non-existing installenv", func() {
+		Context("with a non-existing infraEnv", func() {
 			It("should return without failures", func() {
 				result, err := bmhr.Reconcile(newBMHRequest(host))
 				Expect(err).To(BeNil())
@@ -128,10 +128,10 @@ var _ = Describe("bmac reconcile", func() {
 			})
 		})
 
-		Context("with an existing installEnv without ISODownloadURL", func() {
+		Context("with an existing infraEnv without ISODownloadURL", func() {
 			It("should requeue the reconcile", func() {
-				installEnv := newInstallEnvImage("testInstallEnv", testNamespace, v1beta1.InstallEnvSpec{})
-				Expect(c.Create(ctx, installEnv)).To(BeNil())
+				infraEnv := newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+				Expect(c.Create(ctx, infraEnv)).To(BeNil())
 
 				result, err := bmhr.Reconcile(newBMHRequest(host))
 				Expect(err).To(BeNil())
@@ -139,19 +139,19 @@ var _ = Describe("bmac reconcile", func() {
 			})
 		})
 
-		Context("with an existing installEnv with ISODownloadURL", func() {
-			var installEnv *v1beta1.InstallEnv
+		Context("with an existing infraEnv with ISODownloadURL", func() {
+			var infraEnv *v1beta1.InfraEnv
 			var isoImageURL string
 
 			BeforeEach(func() {
 				isoImageURL = "http://buzz.lightyear.io/discovery-image.iso"
-				installEnv = newInstallEnvImage("testInstallEnv", testNamespace, v1beta1.InstallEnvSpec{})
-				installEnv.Status = v1beta1.InstallEnvStatus{ISODownloadURL: isoImageURL}
-				Expect(c.Create(ctx, installEnv)).To(BeNil())
+				infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+				infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
+				Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			})
 
 			AfterEach(func() {
-				Expect(c.Delete(ctx, installEnv)).ShouldNot(HaveOccurred())
+				Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
 			})
 
 			It("should disable the BMH hardware inspection", func() {

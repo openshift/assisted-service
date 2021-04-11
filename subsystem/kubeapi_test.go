@@ -104,10 +104,10 @@ func updateClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, cl
 	Expect(err).To(BeNil())
 }
 
-func deployInstallEnvCRD(ctx context.Context, client k8sclient.Client, name string, spec *v1beta1.InstallEnvSpec) {
-	err := client.Create(ctx, &v1beta1.InstallEnv{
+func deployInfraEnvCRD(ctx context.Context, client k8sclient.Client, name string, spec *v1beta1.InfraEnvSpec) {
+	err := client.Create(ctx, &v1beta1.InfraEnv{
 		TypeMeta: metav1.TypeMeta{
-			Kind:       "InstallEnv",
+			Kind:       "InfraEnv",
 			APIVersion: getAPIVersion(),
 		},
 		ObjectMeta: metav1.ObjectMeta{
@@ -168,11 +168,11 @@ func getClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, key t
 	return cluster
 }
 
-func getInstallEnvCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1beta1.InstallEnv {
-	installEnv := &v1beta1.InstallEnv{}
-	err := client.Get(ctx, key, installEnv)
+func getInfraEnvCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1beta1.InfraEnv {
+	infraEnv := &v1beta1.InfraEnv{}
+	err := client.Get(ctx, key, infraEnv)
 	Expect(err).To(BeNil())
-	return installEnv
+	return infraEnv
 }
 
 func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1beta1.Agent {
@@ -292,9 +292,9 @@ func getDefaultClusterDeploymentSNOSpec(secretRef *corev1.LocalObjectReference) 
 	}
 }
 
-func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
-	clusterDeployment *hivev1.ClusterDeploymentSpec) *v1beta1.InstallEnvSpec {
-	return &v1beta1.InstallEnvSpec{
+func getDefaultInfraEnvSpec(secretRef *corev1.LocalObjectReference,
+	clusterDeployment *hivev1.ClusterDeploymentSpec) *v1beta1.InfraEnvSpec {
+	return &v1beta1.InfraEnvSpec{
 		ClusterRef: &v1beta1.ClusterReference{
 			Name:      clusterDeployment.ClusterName,
 			Namespace: Options.Namespace,
@@ -326,7 +326,7 @@ func getAgentMac(agent *v1beta1.Agent) string {
 
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1beta1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
@@ -632,8 +632,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "10s").Should(Equal(0))
 	})
 
-	It("deploy clusterDeployment and installEnv and verify cluster updates", func() {
-		installEnvName := "installenv"
+	It("deploy clusterDeployment and infraEnv and verify cluster updates", func() {
+		infraEnvName := "infraenv"
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -655,21 +655,21 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
 
-		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		installEnvSpec.Proxy = &v1beta1.Proxy{
+		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		infraEnvSpec.Proxy = &v1beta1.Proxy{
 			NoProxy:    "192.168.1.1",
 			HTTPProxy:  "http://192.168.1.2",
 			HTTPSProxy: "http://192.168.1.3",
 		}
-		installEnvSpec.AdditionalNTPSources = []string{"192.168.1.4"}
-		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
-		installEnvKubeName := types.NamespacedName{
+		infraEnvSpec.AdditionalNTPSources = []string{"192.168.1.4"}
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      installEnvName,
+			Name:      infraEnvName,
 		}
-		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
@@ -684,12 +684,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		})
 		By("Validate additional NTP settings.")
 		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("192.168.1.4"))
-		By("InstallEnv image type defaults to minimal-iso.")
+		By("InfraEnv image type defaults to minimal-iso.")
 		Expect(cluster.ImageInfo.Type).Should(Equal(models.ImageTypeMinimalIso))
 	})
 
-	It("deploy clusterDeployment and installEnv with ignition override", func() {
-		installEnvName := "installenv"
+	It("deploy clusterDeployment and infraEnv with ignition override", func() {
+		infraEnvName := "infraenv"
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -708,17 +708,17 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
-		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		installEnvSpec.IgnitionConfigOverride = fakeIgnitionConfigOverride
+		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		infraEnvSpec.IgnitionConfigOverride = fakeIgnitionConfigOverride
 
-		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
-		installEnvKubeName := types.NamespacedName{
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      installEnvName,
+			Name:      infraEnvName,
 		}
-		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
@@ -729,8 +729,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.ImageGenerated).Should(Equal(true))
 	})
 
-	It("deploy clusterDeployment and installEnv and with an invalid ignition override", func() {
-		installEnvName := "installenv"
+	It("deploy clusterDeployment and infraEnv and with an invalid ignition override", func() {
+		infraEnvName := "infraenv"
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -749,16 +749,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
-		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		installEnvSpec.IgnitionConfigOverride = badIgnitionConfigOverride
+		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		infraEnvSpec.IgnitionConfigOverride = badIgnitionConfigOverride
 
-		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
-		installEnvKubeName := types.NamespacedName{
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      installEnvName,
+			Name:      infraEnvName,
 		}
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
@@ -839,7 +839,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 	})
 
-	It("deploy clusterDeployment and installEnv and with NMState config", func() {
+	It("deploy clusterDeployment and infraEnv and with NMState config", func() {
 		var (
 			NMStateLabelName  = "someName"
 			NMStateLabelValue = "someValue"
@@ -859,7 +859,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			})
 		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, hostStaticNetworkConfig.NetworkYaml)
 		deployNMStateConfigCRD(ctx, kubeClient, "nmstate1", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
-		installEnvName := "installenv"
+		infraEnvName := "infraenv"
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -874,16 +874,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
-		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		installEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
-		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
-		installEnvKubeName := types.NamespacedName{
+		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      installEnvName,
+			Name:      infraEnvName,
 		}
-		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
@@ -894,7 +894,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.ImageGenerated).Should(Equal(true))
 	})
 
-	It("deploy clusterDeployment and installEnv and with an invalid NMState config YAML", func() {
+	It("deploy clusterDeployment and infraEnv and with an invalid NMState config YAML", func() {
 		var (
 			NMStateLabelName  = "someName"
 			NMStateLabelValue = "someValue"
@@ -905,7 +905,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		)
 		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, "foo: bar")
 		deployNMStateConfigCRD(ctx, kubeClient, "nmstate2", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
-		installEnvName := "installenv"
+		infraEnvName := "infraenv"
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
@@ -920,16 +920,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
-		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		installEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
-		deployInstallEnvCRD(ctx, kubeClient, installEnvName, installEnvSpec)
-		installEnvKubeName := types.NamespacedName{
+		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
+		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      installEnvName,
+			Name:      infraEnvName,
 		}
-		// InstallEnv Reconcile takes longer, since it needs to generate the image.
+		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}

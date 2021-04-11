@@ -8,23 +8,23 @@ import (
 //go:generate mockgen -package controllers -destination mock_crd_events_handler.go . CRDEventsHandler
 type CRDEventsHandler interface {
 	NotifyClusterDeploymentUpdates(clusterDeploymentName string, clusterDeploymentNamespace string)
-	NotifyInstallEnvUpdates(installEnvName string, installEnvNamespace string)
+	NotifyInfraEnvUpdates(infraEnvName string, infraEnvNamespace string)
 	NotifyAgentUpdates(agentName string, agentNamespace string)
-	GetInstallEnvUpdates() chan event.GenericEvent
+	GetInfraEnvUpdates() chan event.GenericEvent
 	GetClusterDeploymentUpdates() chan event.GenericEvent
 	GetAgentUpdates() chan event.GenericEvent
 }
 
 type CRDEventsHandlerChannels struct {
 	clusterDeploymentUpdates chan event.GenericEvent
-	installEnvUpdates        chan event.GenericEvent
+	infraEnvUpdates          chan event.GenericEvent
 	agentUpdates             chan event.GenericEvent
 }
 
 func NewCRDEventsHandler() CRDEventsHandler {
 	return &CRDEventsHandlerChannels{
 		clusterDeploymentUpdates: make(chan event.GenericEvent),
-		installEnvUpdates:        make(chan event.GenericEvent),
+		infraEnvUpdates:          make(chan event.GenericEvent),
 		agentUpdates:             make(chan event.GenericEvent),
 	}
 }
@@ -46,12 +46,12 @@ func (h *CRDEventsHandlerChannels) NotifyAgentUpdates(agentName string, agentNam
 	h.NotifyUpdates(h.agentUpdates, agentName, agentNamespace)
 }
 
-func (h *CRDEventsHandlerChannels) NotifyInstallEnvUpdates(installEnvName string, installEnvNamespace string) {
-	h.NotifyUpdates(h.installEnvUpdates, installEnvName, installEnvNamespace)
+func (h *CRDEventsHandlerChannels) NotifyInfraEnvUpdates(infraEnvName string, infraEnvNamespace string) {
+	h.NotifyUpdates(h.infraEnvUpdates, infraEnvName, infraEnvNamespace)
 }
 
-func (h *CRDEventsHandlerChannels) GetInstallEnvUpdates() chan event.GenericEvent {
-	return h.installEnvUpdates
+func (h *CRDEventsHandlerChannels) GetInfraEnvUpdates() chan event.GenericEvent {
+	return h.infraEnvUpdates
 }
 
 func (h *CRDEventsHandlerChannels) GetClusterDeploymentUpdates() chan event.GenericEvent {

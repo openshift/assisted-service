@@ -50,7 +50,7 @@ const (
 	BMH_AGENT_ROLE                  = "bmac.agent-install.openshift.io/role"
 	BMH_AGENT_HOSTNAME              = "bmac.agent-install.openshift.io/hostname"
 	BMH_AGENT_MACHINE_CONFIG_POOL   = "bmac.agent-install.openshift.io/machine-config-pool"
-	BMH_INSTALL_ENV_LABEL           = "installenvs.agent-install.openshift.io"
+	BMH_INSTALL_ENV_LABEL           = "infraenvs.agent-install.openshift.io"
 	BMH_AGENT_INSTALLER_ARGS        = "bmac.agent-install.openshift.io/installer-args"
 	BMH_INSPECT_ANNOTATION          = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION = "inspect.metal3.io/hardwaredetails"
@@ -335,12 +335,12 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 // Reconcile the `BareMetalHost` resource
 //
 // This reconcile step sets the Image.URL value in the `BareMetalHost`
-// spec by copying it from the `InstallEnv` referenced in the resource's
+// spec by copying it from the `InfraEnv` referenced in the resource's
 // labels. If the previous action succeeds, this step will also set the
 // BMH_INSPECT_ANNOTATION to disabled on the BareMetalHost.
 //
 // The above changes will be done only if the ISODownloadURL value has already
-// been set in the `InstallEnv` resource and the Image.URL value has not been
+// been set in the `InfraEnv` resource and the Image.URL value has not been
 // set in the `BareMetalHost`
 func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
 	// No need to reconcile if the image URL has been set in
@@ -353,21 +353,21 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 
 	for ann, value := range bmh.Labels {
 
-		// Find the `BMH_INSTALL_ENV_LABEL`, get the installEnv configured in it
-		// and copy the ISO Url from the InstallEnv to the BMH resource.
+		// Find the `BMH_INSTALL_ENV_LABEL`, get the infraEnv configured in it
+		// and copy the ISO Url from the InfraEnv to the BMH resource.
 		if ann == BMH_INSTALL_ENV_LABEL {
-			installEnv := &aiv1beta1.InstallEnv{}
-			// TODO: Watch for the InstallEnv resource and do the reconcile
+			infraEnv := &aiv1beta1.InfraEnv{}
+			// TODO: Watch for the InfraEnv resource and do the reconcile
 			// when the required data is there.
 			// https://github.com/openshift/assisted-service/pull/1279/files#r604213425
-			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, installEnv); err != nil {
+			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, infraEnv); err != nil {
 				return reconcileError{client.IgnoreNotFound(err)}
 			}
 
-			if installEnv.Status.ISODownloadURL == "" {
+			if infraEnv.Status.ISODownloadURL == "" {
 				// the image has not been created yet, try later.
-				r.Log.Infof("Image URL for InstallEnv (%s/%s) not available yet. Retrying reconcile for BareMetalHost  %s/%s",
-					installEnv.Namespace, installEnv.Name, bmh.Namespace, bmh.Name)
+				r.Log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Retrying reconcile for BareMetalHost  %s/%s",
+					infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
 				return reconcileRequeue{time.Minute}
 			}
 
@@ -376,7 +376,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 			// are done at the beginning of this function.
 			bmh.Spec.Image = &bmh_v1alpha1.Image{}
 			liveIso := "live-iso"
-			bmh.Spec.Image.URL = installEnv.Status.ISODownloadURL
+			bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
 			bmh.Spec.Image.DiskFormat = &liveIso
 
 			// Let's make sure inspection is disabled for BMH resources

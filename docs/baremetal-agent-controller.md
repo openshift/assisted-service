@@ -123,8 +123,8 @@ and adding the following annotation:
 
 ```
   labels:
-    # optionally add the installenvs annotation, if needed for BMAC
-    installenvs.agent-install.openshift.io: "bmac-test"
+    # optionally add the infraenvs annotation, if needed for BMAC
+    infraenvs.agent-install.openshift.io: "bmac-test"
 
   annotations:
     # BMAC will add this annotation if not present
@@ -141,7 +141,7 @@ that will allow setting an environment variable to have inspection disabled by `
 [aspi-custom]: https://github.com/openshift/assisted-service/blob/master/config/default/assisted-service-patch-image.yaml
 
 
-Creating ClusterDeployment and InstallEnv
+Creating ClusterDeployment and InfraEnv
 ==
 
 Before deploying the ClusterDeployment, make sure you have created a secret with your pull-secret.
