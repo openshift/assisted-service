@@ -6189,13 +6189,9 @@ func init() {
     "gpu": {
       "type": "object",
       "properties": {
-        "bus_info": {
-          "description": "Device bus information (for example \"pci@0000:00:02.0\")",
+        "address": {
+          "description": "Device address (for example \"0000:00:02.0\")",
           "type": "string"
-        },
-        "clock_hz": {
-          "description": "GPU clock frequency in Hz",
-          "type": "integer"
         },
         "device_id": {
           "description": "ID of the device (for example \"3ea0\")",
@@ -13755,13 +13751,9 @@ func init() {
     "gpu": {
       "type": "object",
       "properties": {
-        "bus_info": {
-          "description": "Device bus information (for example \"pci@0000:00:02.0\")",
+        "address": {
+          "description": "Device address (for example \"0000:00:02.0\")",
           "type": "string"
-        },
-        "clock_hz": {
-          "description": "GPU clock frequency in Hz",
-          "type": "integer"
         },
         "device_id": {
           "description": "ID of the device (for example \"3ea0\")",

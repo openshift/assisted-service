@@ -15,11 +15,8 @@ import (
 // swagger:model gpu
 type Gpu struct {
 
-	// Device bus information (for example "pci@0000:00:02.0")
-	BusInfo string `json:"bus_info,omitempty"`
-
-	// GPU clock frequency in Hz
-	ClockHz int64 `json:"clock_hz,omitempty"`
+	// Device address (for example "0000:00:02.0")
+	Address string `json:"address,omitempty"`
 
 	// ID of the device (for example "3ea0")
 	DeviceID string `json:"device_id,omitempty"`
