@@ -7159,6 +7159,10 @@ func init() {
         "support_level"
       ],
       "properties": {
+        "default": {
+          "description": "Indication that the version is the recommended one.",
+          "type": "boolean"
+        },
         "display_name": {
           "description": "Name of the version to be presented to the user.",
           "type": "string"
@@ -14711,6 +14715,10 @@ func init() {
         "support_level"
       ],
       "properties": {
+        "default": {
+          "description": "Indication that the version is the recommended one.",
+          "type": "boolean"
+        },
         "display_name": {
           "description": "Name of the version to be presented to the user.",
           "type": "string"

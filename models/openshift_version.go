@@ -19,6 +19,9 @@ import (
 // swagger:model openshift-version
 type OpenshiftVersion struct {
 
+	// Indication that the version is the recommended one.
+	Default bool `json:"default,omitempty"`
+
 	// Name of the version to be presented to the user.
 	// Required: true
 	DisplayName *string `json:"display_name"`

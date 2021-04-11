@@ -2,6 +2,7 @@ package versions
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"testing"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	operations "github.com/openshift/assisted-service/restapi/operations/versions"
 	"github.com/sirupsen/logrus"
+	"gopkg.in/square/go-jose.v2/json"
 )
 
 func TestHandler_ListComponentVersions(t *testing.T) {
@@ -95,8 +97,16 @@ var _ = Describe("list versions", func() {
 			Expect(val.Payload).Should(BeEmpty())
 		})
 
+		readDefaultOpenshiftVersions := func() {
+			bytes, err := ioutil.ReadFile("../../default_ocp_versions.json")
+			Expect(err).ShouldNot(HaveOccurred())
+			err = json.Unmarshal(bytes, openshiftVersions)
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+
 		It("get_defaults", func() {
-			openshiftVersions = &defaultOpenShiftVersions
+			readDefaultOpenshiftVersions()
+			CURRENT_DEFAULT_VERSION := "4.7" //keep align with default_ocp_versions.json
 
 			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
@@ -108,6 +118,7 @@ var _ = Describe("list versions", func() {
 			for key, version := range val.Payload {
 				Expect(version).Should(Equal((*openshiftVersions)[key]))
 			}
+			Expect((*openshiftVersions)[CURRENT_DEFAULT_VERSION].Default).To(BeTrue())
 		})
 	})
 
