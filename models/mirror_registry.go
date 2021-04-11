@@ -18,7 +18,7 @@ type MirrorRegistry struct {
 	// the original registry location
 	Location string `json:"location,omitempty"`
 
-	// the mirror regsitry location
+	// the mirror registry location
 	MirrorLocation string `json:"mirror_location,omitempty"`
 
 	// prefix for choosing this specific mirror

@@ -39,7 +39,6 @@ import (
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
-	"github.com/pelletier/go-toml"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/vincent-petithory/dataurl"
@@ -1383,43 +1382,4 @@ func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, er
 		return "", err
 	}
 	return buf.String(), nil
-}
-
-// builds an /etc/containers/registries.conf file contents in TOML format based on the input.
-// for format details see man containers-registries.conf
-func FormatRegistriesConfForIgnition(mirrorRegistriesCaConfig *models.MirrorRegistriesCaConfig) (string, string, error) {
-	if mirrorRegistriesCaConfig == nil {
-		return "", "", nil
-	}
-	caConfig := mirrorRegistriesCaConfig.CaConfig
-	mirrorRegistriesConfig := mirrorRegistriesCaConfig.MirrorRegistriesConfig
-
-	// create a map that represents TOML tree
-	treeMap := make(map[string]interface{})
-	registryEntryList := []map[string]interface{}{}
-	// loop over mirror registries data and for each create its own map
-	for _, mirrorRegistryConfig := range mirrorRegistriesConfig.MirrorRegistries {
-		registryMap := make(map[string]interface{})
-		registryMap["prefix"] = mirrorRegistryConfig.Prefix
-		registryMap["location"] = mirrorRegistryConfig.Location
-		registryMap["mirror-by-digest-only"] = false
-		mirrorMap := make(map[string]interface{})
-		mirrorMap["location"] = mirrorRegistryConfig.MirrorLocation
-		// mirror is also an  TOML array, so it must be a list of maps
-		registryMap["mirror"] = []interface{}{mirrorMap}
-		registryEntryList = append(registryEntryList, registryMap)
-	}
-
-	treeMap["unqualified-search-registries"] = mirrorRegistriesConfig.UnqualifiedSearchRegistries
-	treeMap["registry"] = registryEntryList
-
-	tomlTree, err := toml.TreeFromMap(treeMap)
-	if err != nil {
-		return "", "", err
-	}
-	tomlString, err := tomlTree.ToTomlString()
-	if err != nil {
-		return "", "", err
-	}
-	return tomlString, caConfig, nil
 }

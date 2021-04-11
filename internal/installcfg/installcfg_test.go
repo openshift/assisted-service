@@ -38,6 +38,7 @@ var _ = Describe("installcfg", func() {
 			APIVip:                 "102.345.34.34",
 			IngressVip:             "376.5.56.6",
 			InstallConfigOverrides: `{"networking":{"networkType": "OVNKubernetes"},"fips":true}`,
+			ImageInfo:              &models.ImageInfo{},
 		}}
 		id := strfmt.UUID(uuid.New().String())
 		host1 = models.Host{
@@ -312,19 +313,23 @@ var _ = Describe("installcfg", func() {
 
 	It("Hyperthreading config", func() {
 		cluster.Hyperthreading = "none"
-		data := getBasicInstallConfig(logrus.New(), &cluster)
+		data, err := getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal(""))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal(""))
 		cluster.Hyperthreading = "all"
-		data = getBasicInstallConfig(logrus.New(), &cluster)
+		data, err = getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "workers"
-		data = getBasicInstallConfig(logrus.New(), &cluster)
+		data, err = getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal(""))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "masters"
-		data = getBasicInstallConfig(logrus.New(), &cluster)
+		data, err = getBasicInstallConfig(logrus.New(), &cluster)
+		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal(""))
 	})
@@ -347,6 +352,7 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 			BaseDNSDomain:    "example.com",
 			APIVip:           "102.345.34.34",
 			IngressVip:       "376.5.56.6",
+			ImageInfo:        &models.ImageInfo{},
 		}}
 	})
 
