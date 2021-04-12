@@ -66,6 +66,10 @@ spec:
                 description: InstallationDiskID defines the installation destination
                   disk (must be equal to the inventory disk id).
                 type: string
+              installerArgs:
+                description: Json formatted string containing the user overrides for
+                  the host's coreos installer args
+                type: string
               machineConfigPool:
                 type: string
               role:
