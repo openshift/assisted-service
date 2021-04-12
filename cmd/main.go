@@ -118,6 +118,9 @@ var Options struct {
 	DeregisterWorkerInterval    time.Duration `envconfig:"DEREGISTER_WORKER_INTERVAL" default:"1h"`
 	EnableDeletedUnregisteredGC bool          `envconfig:"ENABLE_DELETE_UNREGISTER_GC" default:"true"`
 	EnableDeregisterInactiveGC  bool          `envconfig:"ENABLE_DEREGISTER_INACTIVE_GC" default:"true"`
+	ServeHTTPS                  bool          `envconfig:"SERVE_HTTPS" default:"false"`
+	HTTPSKeyFile                string        `envconfig:"HTTPS_KEY_FILE" default:""`
+	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
 }
 
 func InitLogs() *logrus.Entry {
@@ -443,7 +446,12 @@ func main() {
 		}
 	}()
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", swag.StringValue(port)), h))
+	address := fmt.Sprintf(":%s", swag.StringValue(port))
+	if Options.ServeHTTPS {
+		log.Fatal(http.ListenAndServeTLS(address, Options.HTTPSCertFile, Options.HTTPSKeyFile, h))
+	} else {
+		log.Fatal(http.ListenAndServe(address, h))
+	}
 }
 
 func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
