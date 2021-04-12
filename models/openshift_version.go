@@ -30,6 +30,10 @@ type OpenshiftVersion struct {
 	// Required: true
 	ReleaseImage *string `json:"release_image"`
 
+	// OCP version from the release metadata.
+	// Required: true
+	ReleaseVersion *string `json:"release_version"`
+
 	// The base RHCOS image used for the discovery iso.
 	// Required: true
 	RhcosImage *string `json:"rhcos_image"`
@@ -40,7 +44,7 @@ type OpenshiftVersion struct {
 
 	// Level of support of the version.
 	// Required: true
-	// Enum: [beta production]
+	// Enum: [beta production custom]
 	SupportLevel *string `json:"support_level"`
 }
 
@@ -53,6 +57,10 @@ func (m *OpenshiftVersion) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateReleaseImage(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateReleaseVersion(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -92,6 +100,15 @@ func (m *OpenshiftVersion) validateReleaseImage(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *OpenshiftVersion) validateReleaseVersion(formats strfmt.Registry) error {
+
+	if err := validate.Required("release_version", "body", m.ReleaseVersion); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (m *OpenshiftVersion) validateRhcosImage(formats strfmt.Registry) error {
 
 	if err := validate.Required("rhcos_image", "body", m.RhcosImage); err != nil {
@@ -114,7 +131,7 @@ var openshiftVersionTypeSupportLevelPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["beta","production"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["beta","production","custom"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -129,6 +146,9 @@ const (
 
 	// OpenshiftVersionSupportLevelProduction captures enum value "production"
 	OpenshiftVersionSupportLevelProduction string = "production"
+
+	// OpenshiftVersionSupportLevelCustom captures enum value "custom"
+	OpenshiftVersionSupportLevelCustom string = "custom"
 )
 
 // prop value enum

@@ -151,6 +151,9 @@ type Cluster struct {
 	// A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy string `json:"no_proxy,omitempty"`
 
+	// OpenShift release image URI.
+	OcpReleaseImage string `json:"ocp_release_image,omitempty"`
+
 	// Cluster ID on OCP system.
 	// Format: uuid
 	OpenshiftClusterID strfmt.UUID `json:"openshift_cluster_id,omitempty"`

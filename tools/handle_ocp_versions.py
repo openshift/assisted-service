@@ -65,6 +65,9 @@ def update_openshift_versions_hashmap(ocp_versions: dict, release_image: str, na
 
 def verify_ocp_versions(ocp_versions: dict):
     for key, metadata in ocp_versions.items():
+        if "release_image" not in metadata:
+            # in hive cluster deployment scenario, the release image is specified within an imageset
+            continue
         verify_image_version(key, metadata["release_image"])
 
 
