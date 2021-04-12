@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,10 +15,12 @@ import (
 	"github.com/google/renameio"
 	"github.com/moby/moby/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/isoeditor"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	syscall "golang.org/x/sys/unix"
 )
 
 type FSClient struct {
@@ -25,10 +28,11 @@ type FSClient struct {
 	basedir          string
 	versionsHandler  versions.Handler
 	isoEditorFactory isoeditor.Factory
+	metricsAPI       metrics.API
 }
 
-func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) *FSClient {
-	return &FSClient{log: logger, basedir: basedir, versionsHandler: versionsHandler, isoEditorFactory: isoEditorFactory}
+func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory, metricsAPI metrics.API) *FSClient {
+	return &FSClient{log: logger, basedir: basedir, versionsHandler: versionsHandler, isoEditorFactory: isoEditorFactory, metricsAPI: metricsAPI}
 }
 
 func (f *FSClient) IsAwsS3() bool {
@@ -56,6 +60,7 @@ func (f *FSClient) Upload(ctx context.Context, data []byte, objectName string) e
 		log.Error(err)
 		return err
 	}
+	f.reportFilesystemUsageMetrics()
 	log.Infof("Successfully uploaded file %s", objectName)
 	return nil
 }
@@ -85,7 +90,11 @@ func (f *FSClient) UploadISO(ctx context.Context, ignitionConfig, srcObject, des
 		return err
 	}
 
-	return isoeditor.EmbedIgnition(baseFile, resultFile, ignitionConfig)
+	err = isoeditor.EmbedIgnition(baseFile, resultFile, ignitionConfig)
+	if err == nil {
+		f.reportFilesystemUsageMetrics()
+	}
+	return err
 }
 
 func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
@@ -136,7 +145,7 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 		log.Error(err)
 		return err
 	}
-
+	f.reportFilesystemUsageMetrics()
 	log.Infof("Successfully uploaded file %s", objectName)
 	return nil
 }
@@ -200,7 +209,7 @@ func (f *FSClient) DeleteObject(ctx context.Context, objectName string) (bool, e
 		}
 		return false, errors.Wrapf(err, "Failed to delete file %s", filePath)
 	}
-
+	f.reportFilesystemUsageMetrics()
 	log.Infof("Deleted file %s", filePath)
 	return true, nil
 }
@@ -264,6 +273,7 @@ func (f *FSClient) handleFile(ctx context.Context, log logrus.FieldLogger, fileP
 		}
 		return
 	}
+	f.reportFilesystemUsageMetrics()
 	log.Infof("Deleted expired file %s", filePath)
 	callback(ctx, log, filePath)
 }
@@ -365,7 +375,7 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 			return err
 		}
 	}
-
+	f.reportFilesystemUsageMetrics()
 	return nil
 }
 
@@ -399,4 +409,17 @@ func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) (string, err
 	}
 
 	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion), nil
+}
+
+func (f *FSClient) reportFilesystemUsageMetrics() {
+	stat := syscall.Statfs_t{}
+	err := syscall.Statfs(f.basedir, &stat)
+	if err != nil {
+		f.log.WithError(err).Errorf("Failed to collect filesystem stats for %s", f.basedir)
+		return
+	}
+	percentage := (float64(stat.Blocks-stat.Bfree) / float64(stat.Blocks)) * 100
+	fixedPercentage := math.Floor(percentage*10) / 10
+	f.log.Infof("Filesystem (%s) usage is %f%", f.basedir, fixedPercentage)
+	f.metricsAPI.FileSystemUsage(fixedPercentage)
 }

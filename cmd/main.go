@@ -221,7 +221,7 @@ func main() {
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
-		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory)
+		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory, metricsManager)
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
@@ -540,7 +540,7 @@ func createS3Bucket(objectHandler s3wrapper.API, log logrus.FieldLogger) {
 }
 
 func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.Config, fsWorkDir string,
-	log logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) s3wrapper.API {
+	log logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory, metricsAPI metrics.API) s3wrapper.API {
 	var storageClient s3wrapper.API
 	if storage != "" {
 		switch storage {
@@ -550,7 +550,7 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 				log.Fatal("failed to create S3 client")
 			}
 		case storage_filesystem:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory)
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory, metricsAPI)
 			if storageClient == nil {
 				log.Fatal("failed to create filesystem client")
 			}
@@ -566,7 +566,7 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 				log.Fatal("failed to create S3 client")
 			}
 		case deployment_type_onprem, deployment_type_ocp:
-			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory)
+			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory, metricsAPI)
 			if storageClient == nil {
 				log.Fatal("failed to create S3 filesystem client")
 			}
