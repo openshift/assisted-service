@@ -52,7 +52,7 @@ const (
 	databasePasswordLength   int    = 16
 	servicePort              int32  = 8090
 	databasePort             int32  = 5432
-	agentLocalAuthSecretName        = "agent-local-auth-key" // #nosec
+	agentLocalAuthSecretName        = serviceName + "local-auth" // #nosec
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -123,8 +123,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	msg := "AgentServiceConfig reconcile completed without error."
-	r.Recorder.Event(instance, "Normal", aiv1beta1.ReasonReconcileSucceeded, msg)
-	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionReconcileCompleted,
 		Status:  corev1.ConditionTrue,
 		Reason:  aiv1beta1.ReasonReconcileSucceeded,
@@ -221,12 +220,13 @@ func (r *AgentServiceConfigReconciler) ensureAgentLocalAuthSecret(ctx context.Co
 			Message: "Failed to ensure agent local auth secret: " + err.Error(),
 		})
 		return err
-	} else if result == controllerutil.OperationResultCreated {
-		r.Log.Info("Agent local auth secret created")
-	} else if result != controllerutil.OperationResultUpdated {
-		r.Log.Info("Agent local auth secret updated")
-	} else if result != controllerutil.OperationResultNone {
-		r.Log.Info("Agent local auth secret unchanged")
+	} else {
+		switch result {
+		case controllerutil.OperationResultCreated:
+			r.Log.Info("Agent local auth secret created")
+		case controllerutil.OperationResultUpdated:
+			r.Log.Info("Agent local auth secret updated")
+		}
 	}
 	return nil
 }
@@ -387,7 +387,9 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
 			return err
 		}
-		route.Spec = routeSpec
+		route.Spec.To = routeSpec.To
+		route.Spec.Port = routeSpec.Port
+		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
 		return nil
 	}
 
@@ -395,27 +397,33 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 }
 
 func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
-	publicKey, privateKey, err := gencrypto.ECDSAKeyPairPEM()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      agentLocalAuthSecretName,
 			Namespace: r.Namespace,
 		},
-		StringData: map[string]string{
-			"ec-private-key.pem": privateKey,
-			"ec-public-key.pem":  publicKey,
-		},
 		Type: corev1.SecretTypeOpaque,
 	}
 
-	// Only setting the owner reference to prevent clobbering the generated password.
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
 			return err
+		}
+		// In unit tests, the keys are in StringData
+		_, privateKeyPresentInStringData := secret.StringData["ec-private-key.pem"]
+		_, publicKeyPresentInStringData := secret.StringData["ec-public-key.pem"]
+		// In OCP clusters, the keys are in Data
+		_, privateKeyPresentInData := secret.Data["ec-private-key.pem"]
+		_, publicKeyPresentInData := secret.Data["ec-public-key.pem"]
+		if !(privateKeyPresentInStringData || privateKeyPresentInData) && !(publicKeyPresentInStringData || publicKeyPresentInData) {
+			publicKey, privateKey, err := gencrypto.ECDSAKeyPairPEM()
+			if err != nil {
+				return err
+			}
+			secret.StringData = map[string]string{
+				"ec-private-key.pem": privateKey,
+				"ec-public-key.pem":  publicKey,
+			}
 		}
 		return nil
 	}
