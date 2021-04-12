@@ -73,6 +73,14 @@ var _ = Describe("infraEnv reconcile", func() {
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
 		backEndCluster        = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
+		ocpDisplayName        = "4.8.0"
+		openshiftVersion      = &models.OpenshiftVersion{
+			DisplayName:  &ocpDisplayName,
+			ReleaseImage: new(string),
+			RhcosImage:   new(string),
+			RhcosVersion: new(string),
+			SupportLevel: new(string),
+		}
 	)
 
 	BeforeEach(func() {
@@ -114,6 +122,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
@@ -146,6 +155,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeFullIso))
 			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
@@ -176,6 +186,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 			}).Return(nil, expectedError).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
@@ -257,6 +268,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 			}).Return(nil, expectedError).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
@@ -287,6 +299,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 			}).Return(nil, expectedError).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
@@ -353,6 +366,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			}).Return(nil, nil).Times(1)
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -377,6 +391,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			}).Return(nil).Times(1)
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -463,6 +478,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 			mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 					Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
@@ -503,6 +519,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 			expectedError := common.NewApiError(http.StatusInternalServerError, errors.New("error")) // TODO: change to http.StatusBadRequest when MGMT-4695 and MGMT-4696 get resolved.
 			mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {

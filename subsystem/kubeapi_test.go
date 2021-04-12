@@ -39,6 +39,13 @@ const (
 	badIgnitionConfigOverride  = `bad ignition config`
 )
 
+var (
+	imageSetsData = map[string]string{
+		"openshift-v4.7.0": "quay.io/openshift-release-dev/ocp-release:4.7.2-x86_64",
+		"openshift-v4.8.0": "quay.io/openshift-release-dev/ocp-release:4.8.0-fc.0-x86_64",
+	}
+)
+
 func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Client) *corev1.LocalObjectReference {
 	err := client.Get(
 		ctx,
@@ -73,6 +80,7 @@ func deployPullSecretResource(ctx context.Context, client k8sclient.Client, name
 }
 
 func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, spec *hivev1.ClusterDeploymentSpec) {
+	deployClusterImageSetCRD(ctx, client, spec.Provisioning.ImageSetRef)
 	err := client.Create(ctx, &hivev1.ClusterDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterDeployment",
@@ -108,6 +116,23 @@ func addAnnotationToClusterDeployment(ctx context.Context, client k8sclient.Clie
 		clusterDeploymentCRD.SetAnnotations(map[string]string{annotationKey: annotationValue})
 		return kubeClient.Update(ctx, clusterDeploymentCRD)
 	}, "30s", "10s").Should(BeNil())
+}
+
+func deployClusterImageSetCRD(ctx context.Context, client k8sclient.Client, imageSetRef *hivev1.ClusterImageSetReference) {
+	err := client.Create(ctx, &hivev1.ClusterImageSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterImageSet",
+			APIVersion: getAPIVersion(),
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      imageSetRef.Name,
+		},
+		Spec: hivev1.ClusterImageSetSpec{
+			ReleaseImage: imageSetsData[imageSetRef.Name],
+		},
+	})
+	Expect(err).To(BeNil())
 }
 
 func deployInfraEnvCRD(ctx context.Context, client k8sclient.Client, name string, spec *v1beta1.InfraEnvSpec) {
@@ -341,6 +366,7 @@ func getAgentMac(agent *v1beta1.Agent) string {
 
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterImageSet{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
@@ -1276,5 +1302,46 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+	})
+
+	It("deploy clusterDeployment with invalid clusterImageSet", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		clusterDeploymentSpec.Provisioning.ImageSetRef.Name = "invalid"
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
+	})
+
+	It("deploy clusterDeployment with missing clusterImageSet", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+
+		// Create ClusterDeployment
+		err := kubeClient.Create(ctx, &hivev1.ClusterDeployment{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ClusterDeployment",
+				APIVersion: getAPIVersion(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: Options.Namespace,
+				Name:      spec.ClusterName,
+			},
+			Spec: *spec,
+		})
+		Expect(err).To(BeNil())
+
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
+
+		// Create ClusterImageSet
+		deployClusterImageSetCRD(ctx, kubeClient, spec.Provisioning.ImageSetRef)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterSpecSyncedCondition, controllers.SyncedOkReason)
 	})
 })

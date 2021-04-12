@@ -11,7 +11,14 @@ import (
 )
 
 type TestConfiguration struct {
-	OpenShiftVersion  string
+	OpenShiftVersion string
+	ReleaseVersion   string
+	ReleaseImage     string
+	RhcosImage       string
+	RhcosVersion     string
+	SupportLevel     string
+	Version          *models.OpenshiftVersion
+
 	Status            string
 	StatusInfo        string
 	HostProgressStage models.HostStage
@@ -25,9 +32,28 @@ type TestConfiguration struct {
 const TestDiskId = "/dev/disk/by-id/test-disk-id"
 const TestDiskPath = "/dev/test-disk"
 
+var (
+	OpenShiftVersion string = "4.6"
+	ReleaseVersion          = "4.6.0"
+	ReleaseImage            = "quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64"
+	RhcosImage              = "rhcos_4.6.0"
+	RhcosVersion            = "version-46.123-0"
+	SupportLevel            = "beta"
+)
+
 // Defaults to be used by all testing modules
 var TestDefaultConfig = &TestConfiguration{
-	OpenShiftVersion:  "4.6",
+	OpenShiftVersion: OpenShiftVersion,
+	ReleaseVersion:   ReleaseVersion,
+	ReleaseImage:     ReleaseImage,
+	Version: &models.OpenshiftVersion{
+		DisplayName:    &OpenShiftVersion,
+		ReleaseImage:   &ReleaseImage,
+		ReleaseVersion: &ReleaseVersion,
+		RhcosImage:     &RhcosImage,
+		RhcosVersion:   &RhcosVersion,
+		SupportLevel:   &SupportLevel,
+	},
 	Status:            "status",
 	StatusInfo:        "statusInfo",
 	HostProgressStage: models.HostStage("default progress stage"),

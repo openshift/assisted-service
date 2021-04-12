@@ -74,3 +74,25 @@ func newBMHRequest(host *bmh_v1alpha1.BareMetalHost) ctrl.Request {
 	}
 	return ctrl.Request{NamespacedName: namespacedName}
 }
+
+func newImageSet(name, releaseImage string) *hivev1.ClusterImageSet {
+	imageSet := &hivev1.ClusterImageSet{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "ClusterImageSet",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: "",
+		},
+		Spec: hivev1.ClusterImageSetSpec{
+			ReleaseImage: releaseImage,
+		},
+	}
+
+	return imageSet
+}
+
+func getDefaultTestImageSet(name, releaseImage string) *hivev1.ClusterImageSet {
+	return newImageSet(name, releaseImage)
+}

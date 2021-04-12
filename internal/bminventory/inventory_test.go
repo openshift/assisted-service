@@ -109,7 +109,7 @@ var (
 
 func mockClusterRegisterSteps() {
 	mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-	mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+	mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 	mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 }
 
@@ -2417,7 +2417,7 @@ var _ = Describe("cluster", func() {
 				It("OLM invalid name", func() {
 					newOperatorName := "invalid-name"
 
-					mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+					mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 					mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator}).Times(1)
 					mockOperatorManager.EXPECT().GetOperatorByName(newOperatorName).Return(nil, errors.Errorf("error")).Times(1)
 
@@ -5157,7 +5157,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
 		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.OpenShiftVersion, clusterID, "Unknown").Times(1)
-		mockVersions.EXPECT().GetSupportedVersionFormat(common.TestDefaultConfig.OpenShiftVersion).Return(common.TestDefaultConfig.OpenShiftVersion, nil).Times(1)
+		mockVersions.EXPECT().GetKey(common.TestDefaultConfig.OpenShiftVersion).Return(common.TestDefaultConfig.OpenShiftVersion, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		actual := res.(*installer.RegisterAddHostsClusterCreated)
 
@@ -5683,7 +5683,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		mockSecretValidator.EXPECT().ValidatePullSecret(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.New("error")).Times(1)
 		mockOperatorManager.EXPECT().GetSupportedOperatorsByType(models.OperatorTypeBuiltin).Return([]*models.MonitoredOperator{}).Times(1)
-		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(true).Times(1)
+		mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -5696,7 +5696,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	It("openshift version not supported", func() {
-		mockVersions.EXPECT().IsOpenshiftVersionSupported(gomock.Any()).Return(false).Times(1)
+		mockVersions.EXPECT().GetVersion(gomock.Any()).Return(nil, errors.Errorf("OpenShift VVersion is not supported")).Times(1)
 
 		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
@@ -5706,6 +5706,21 @@ var _ = Describe("TestRegisterCluster", func() {
 			},
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
+	})
+
+	It("openshift release image and version successfully defined", func() {
+		mockClusterRegisterSuccess(bm, true)
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
+		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImage))
 	})
 })
 

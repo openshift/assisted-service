@@ -60,7 +60,6 @@ const (
 
 const HighAvailabilityModeNone = "None"
 const defaultRequeueAfterOnError = 10 * time.Second
-const defaultOCPVersion = "4.8" // TODO: remove after MGMT-4491 is resoled
 
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
@@ -444,13 +443,19 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, key.Namespace)
 	if err != nil {
 		r.Log.WithError(err).Error("failed to get pull secret")
-		return ctrl.Result{}, nil
+		return r.updateStatus(ctx, clusterDeployment, nil, err)
+	}
+
+	openshiftVersion, err := r.addOpenshiftVersion(ctx, spec, pullSecret)
+	if err != nil {
+		r.Log.WithError(err).Error("failed to add OCP version")
+		return r.updateStatus(ctx, clusterDeployment, nil, err)
 	}
 
 	clusterParams := &models.ClusterCreateParams{
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
-		OpenshiftVersion:      swag.String(defaultOCPVersion),
+		OpenshiftVersion:      swag.String(*openshiftVersion.ReleaseVersion),
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
@@ -489,10 +494,23 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	spec := clusterDeployment.Spec
 	id := strfmt.UUID(uuid.New().String())
 	apiVipDnsname := fmt.Sprintf("api.%s.%s", spec.ClusterName, spec.BaseDomain)
+
+	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, key.Namespace)
+	if err != nil {
+		r.Log.WithError(err).Error("failed to get pull secret")
+		return r.updateStatus(ctx, clusterDeployment, nil, err)
+	}
+
+	openshiftVersion, err := r.addOpenshiftVersion(ctx, spec, pullSecret)
+	if err != nil {
+		r.Log.WithError(err).Error("failed to add OCP version")
+		return r.updateStatus(ctx, clusterDeployment, nil, err)
+	}
+
 	clusterParams := &models.AddHostsClusterCreateParams{
 		APIVipDnsname:    swag.String(apiVipDnsname),
 		Name:             swag.String(spec.ClusterName),
-		OpenshiftVersion: swag.String(defaultOCPVersion),
+		OpenshiftVersion: swag.String(*openshiftVersion.ReleaseVersion),
 		ID:               &id,
 	}
 
@@ -501,6 +519,38 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	})
 
 	return r.updateStatus(ctx, clusterDeployment, c, err)
+}
+
+func (r *ClusterDeploymentsReconciler) getReleaseImage(ctx context.Context, spec hivev1.ClusterDeploymentSpec) (string, error) {
+	var releaseImage string
+	if spec.Provisioning.ReleaseImage != "" {
+		releaseImage = spec.Provisioning.ReleaseImage
+	} else {
+		var err error
+		releaseImage, err = getReleaseImage(ctx, r.Client, spec.Provisioning.ImageSetRef.Name)
+		if err != nil {
+			return "", err
+		}
+	}
+	return releaseImage, nil
+}
+
+func (r *ClusterDeploymentsReconciler) addOpenshiftVersion(
+	ctx context.Context,
+	spec hivev1.ClusterDeploymentSpec,
+	pullSecret string) (*models.OpenshiftVersion, error) {
+
+	releaseImage, err := r.getReleaseImage(ctx, spec)
+	if err != nil {
+		return nil, err
+	}
+
+	openshiftVersion, err := r.Installer.AddOpenshiftVersion(ctx, releaseImage, pullSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return openshiftVersion, nil
 }
 
 func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {

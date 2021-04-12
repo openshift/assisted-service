@@ -125,6 +125,7 @@ type InstallerInternals interface {
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
+	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -391,7 +392,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}
 
-	if !b.versionsHandler.IsOpenshiftVersionSupported(swag.StringValue(params.NewClusterParams.OpenshiftVersion)) {
+	openshiftVersion, err := b.versionsHandler.GetVersion(swag.StringValue(params.NewClusterParams.OpenshiftVersion))
+	if err != nil {
 		err = errors.Errorf("Openshift version %s is not supported",
 			swag.StringValue(params.NewClusterParams.OpenshiftVersion))
 		return nil, common.NewApiError(http.StatusBadRequest, err)
@@ -423,7 +425,8 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			ClusterNetworkHostPrefix: params.NewClusterParams.ClusterNetworkHostPrefix,
 			IngressVip:               params.NewClusterParams.IngressVip,
 			Name:                     swag.StringValue(params.NewClusterParams.Name),
-			OpenshiftVersion:         swag.StringValue(params.NewClusterParams.OpenshiftVersion),
+			OpenshiftVersion:         *openshiftVersion.ReleaseVersion,
+			OcpReleaseImage:          *openshiftVersion.ReleaseImage,
 			ServiceNetworkCidr:       swag.StringValue(params.NewClusterParams.ServiceNetworkCidr),
 			SSHPublicKey:             params.NewClusterParams.SSHPublicKey,
 			UpdatedAt:                strfmt.DateTime{},
@@ -559,7 +562,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetSupportedVersionFormat(inputOpenshiftVersion)
+	openshiftVersion, err := b.versionsHandler.GetKey(inputOpenshiftVersion)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
@@ -4291,4 +4294,24 @@ func hostRequirementsRoleFrom(requirements *models.ClusterHostRequirementsDetail
 */
 func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
 	return installer.NewResetHostValidationOK()
+}
+
+func (b *bareMetalInventory) AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error) {
+	log := logutil.FromContext(ctx, b.log)
+
+	// Create a new OpenshiftVersion and add it to versions cache
+	openshiftVersion, err := b.versionsHandler.AddOpenshiftVersion(ocpReleaseImage, pullSecret)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to add OCP version for release image: %s", ocpReleaseImage)
+		return nil, err
+	}
+
+	// Upload relevant boot files according to the specified version
+	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(ctx, b.log, b.objectHandler)
+	if err := b.objectHandler.UploadBootFiles(ctx, *openshiftVersion.DisplayName, b.Config.ServiceBaseURL, haveLatestMinimalTemplate); err != nil {
+		log.WithError(err).Errorf("Failed uploading boot files for OCP version %s", *openshiftVersion.DisplayName)
+		return nil, err
+	}
+
+	return openshiftVersion, nil
 }
