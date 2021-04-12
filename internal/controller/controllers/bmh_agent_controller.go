@@ -51,6 +51,7 @@ const (
 	BMH_AGENT_HOSTNAME              = "bmac.agent-install.openshift.io/hostname"
 	BMH_AGENT_MACHINE_CONFIG_POOL   = "bmac.agent-install.openshift.io/machine-config-pool"
 	BMH_INSTALL_ENV_LABEL           = "installenvs.agent-install.openshift.io"
+	BMH_AGENT_INSTALLER_ARGS        = "bmac.agent-install.openshift.io/installer-args"
 	BMH_INSPECT_ANNOTATION          = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION = "inspect.metal3.io/hardwaredetails"
 )
@@ -208,6 +209,10 @@ func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, age
 		agent.Spec.MachineConfigPool = val
 	}
 
+	if val, ok := annotations[BMH_AGENT_INSTALLER_ARGS]; ok {
+		agent.Spec.InstallerArgs = val
+	}
+
 	agent.Spec.Approved = true
 	if agent.ObjectMeta.Labels == nil {
 		agent.ObjectMeta.Labels = make(map[string]string)
@@ -216,7 +221,7 @@ func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, age
 	// Label the agent with the reference to this BMH
 	agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = bmh.Name
 
-	// findInstalltionDiskID will return an empty string
+	// findInstallationDiskID will return an empty string
 	// if no disk is found from the list. Should be find
 	// to "overwrite" this value everytime as the default
 	// is ""
