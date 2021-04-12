@@ -368,7 +368,7 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 		if noneHAMode {
 			return "Single-node clusters must have a single master node and no workers."
 		}
-		return fmt.Sprintf("Clusters with less than %d dedicated masters or a single worker are not supported. Please either add hosts, or disable the worker host",
+		return fmt.Sprintf("Clusters must have exactly %d dedicated masters. Please either add hosts, or disable the worker host",
 			common.MinMasterHostsNeededForInstallation)
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
