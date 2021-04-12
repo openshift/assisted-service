@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.0
   creationTimestamp: null
-  name: agents.adi.io.my.domain
+  name: agents.agent-install.openshift.io
 spec:
-  group: adi.io.my.domain
+  group: agent-install.openshift.io
   names:
     kind: Agent
     listKind: AgentList
@@ -25,7 +25,7 @@ spec:
       jsonPath: .spec.approved
       name: Approved
       type: boolean
-    name: v1alpha1
+    name: v1beta1
     schema:
       openAPIV3Schema:
         description: Agent is the Schema for the hosts API

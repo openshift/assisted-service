@@ -2,10 +2,10 @@
 # since it depends on service name and namespace that are out of this kustomize package.
 # It should be run by config/default
 resources:
-- bases/adi.io.my.domain_agentserviceconfigs.yaml
-- bases/adi.io.my.domain_installenvs.yaml
-- bases/adi.io.my.domain_agents.yaml
-- bases/adi.io.my.domain_nmstateconfigs.yaml
+- bases/agent-install.openshift.io_agentserviceconfigs.yaml
+- bases/agent-install.openshift.io_installenvs.yaml
+- bases/agent-install.openshift.io_agents.yaml
+- bases/agent-install.openshift.io_nmstateconfigs.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patchesStrategicMerge:

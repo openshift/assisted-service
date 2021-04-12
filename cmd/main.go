@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/connectivity"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/domains"
 	"github.com/openshift/assisted-service/internal/events"
@@ -628,7 +628,7 @@ func createControllerManager() (manager.Manager, error) {
 	if Options.EnableKubeAPI {
 		var schemes = runtime.NewScheme()
 		utilruntime.Must(scheme.AddToScheme(schemes))
-		utilruntime.Must(adiiov1alpha1.AddToScheme(schemes))
+		utilruntime.Must(aiv1beta1.AddToScheme(schemes))
 		utilruntime.Must(hivev1.AddToScheme(schemes))
 		utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 
@@ -636,7 +636,7 @@ func createControllerManager() (manager.Manager, error) {
 			Scheme:           schemes,
 			Port:             9443,
 			LeaderElection:   true,
-			LeaderElectionID: "77190dcb.my.domain",
+			LeaderElectionID: "77190dcb.agent-install.openshift.io",
 		})
 	}
 	return nil, nil

@@ -24,7 +24,7 @@ import (
 	"time"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
@@ -46,11 +46,11 @@ type BMACReconciler struct {
 }
 
 const (
-	AGENT_BMH_LABEL                 = "adi.openshift.io/bmh"
-	BMH_AGENT_ROLE                  = "bmac.adi.openshift.io/role"
-	BMH_AGENT_HOSTNAME              = "bmac.adi.openshift.io/hostname"
-	BMH_AGENT_MACHINE_CONFIG_POOL   = "bmac.adi.openshift.io/machine-config-pool"
-	BMH_INSTALL_ENV_LABEL           = "installenvs.adi.openshift.io"
+	AGENT_BMH_LABEL                 = "agent-install.openshift.io/bmh"
+	BMH_AGENT_ROLE                  = "bmac.agent-install.openshift.io/role"
+	BMH_AGENT_HOSTNAME              = "bmac.agent-install.openshift.io/hostname"
+	BMH_AGENT_MACHINE_CONFIG_POOL   = "bmac.agent-install.openshift.io/machine-config-pool"
+	BMH_INSTALL_ENV_LABEL           = "installenvs.agent-install.openshift.io"
 	BMH_INSPECT_ANNOTATION          = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION = "inspect.metal3.io/hardwaredetails"
 )
@@ -182,14 +182,14 @@ func (r *BMACReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 //
 // We are only interested in the following data:
 //
-// - Agent role: bmac.adi.openshift.io/role
-// - Hostname: bmac.adi.openshift.io/hostname
-// - Machine Config Pool: bmac.adi.openshift.io/machine-config-pool
+// - Agent role: bmac.agent-install.openshift.io/role
+// - Hostname: bmac.agent-install.openshift.io/hostname
+// - Machine Config Pool: bmac.agent-install.openshift.io/machine-config-pool
 //
 // Unless there are errors, the agent should be `Approved` at the end of this
 // reconcile and a label should be set on it referencing the BMH. No changes to
 // the BMH should happen in this reconcile step.
-func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, agent *adiiov1alpha1.Agent) reconcileResult {
+func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 
 	r.Log.Debugf("Started Agent Spec reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
 
@@ -238,7 +238,7 @@ func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, age
 // on every BMAC reconcile will trigger an infinite loop of reconciles between
 // BMAC and the BMH reconcile as the former will update the hardwaredetails annotation
 // while the latter will continue to update the status.
-func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost, agent *adiiov1alpha1.Agent) reconcileResult {
+func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	// This check should be updated. We should check the
 	// agent status instead.
 	if len(agent.Status.Inventory.Interfaces) == 0 {
@@ -351,7 +351,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 		// Find the `BMH_INSTALL_ENV_LABEL`, get the installEnv configured in it
 		// and copy the ISO Url from the InstallEnv to the BMH resource.
 		if ann == BMH_INSTALL_ENV_LABEL {
-			installEnv := &adiiov1alpha1.InstallEnv{}
+			installEnv := &aiv1beta1.InstallEnv{}
 			// TODO: Watch for the InstallEnv resource and do the reconcile
 			// when the required data is there.
 			// https://github.com/openshift/assisted-service/pull/1279/files#r604213425
@@ -408,7 +408,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 // which is what this function does.
 //
 // This function also filters out disks that are not elegible for installation, as we already know those cannot be used.
-func (r *BMACReconciler) findInstallationDiskID(devices []adiiov1alpha1.HostDisk, hints *bmh_v1alpha1.RootDeviceHints) string {
+func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hints *bmh_v1alpha1.RootDeviceHints) string {
 	if hints == nil {
 		return ""
 	}
@@ -494,14 +494,14 @@ func (r *BMACReconciler) findInstallationDiskID(devices []adiiov1alpha1.HostDisk
 // active one.
 //
 // `nil` will be returned if no agent matches
-func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost) *adiiov1alpha1.Agent {
-	agentList := adiiov1alpha1.AgentList{}
+func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost) *aiv1beta1.Agent {
+	agentList := aiv1beta1.AgentList{}
 	err := r.Client.List(ctx, &agentList, client.InNamespace(bmh.Namespace))
 	if err != nil {
 		return nil
 	}
 
-	agents := []*adiiov1alpha1.Agent{}
+	agents := []*aiv1beta1.Agent{}
 	for i, agent := range agentList.Items {
 		for _, agentInterface := range agent.Status.Inventory.Interfaces {
 			if strings.EqualFold(bmh.Spec.BootMACAddress, agentInterface.MacAddress) {
@@ -525,7 +525,7 @@ func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMe
 //
 // Only `BareMetalHost` resources that match one of the Agent's
 // MAC addresses will be returned.
-func (r *BMACReconciler) findBMH(ctx context.Context, agent *adiiov1alpha1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+func (r *BMACReconciler) findBMH(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
 	bmhList := bmh_v1alpha1.BareMetalHostList{}
 	err := r.Client.List(ctx, &bmhList, client.InNamespace(agent.Namespace))
 	if err != nil {
@@ -546,7 +546,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	mapAgentToClusterDeployment := handler.ToRequestsFunc(
 		func(a handler.MapObject) []reconcile.Request {
 			ctx := context.Background()
-			agent := &adiiov1alpha1.Agent{}
+			agent := &aiv1beta1.Agent{}
 
 			if err := r.Get(ctx, types.NamespacedName{Name: a.Meta.GetName(), Namespace: a.Meta.GetNamespace()}, agent); err != nil {
 				return []reconcile.Request{}
@@ -574,6 +574,6 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bmh_v1alpha1.BareMetalHost{}).
-		Watches(&source.Kind{Type: &adiiov1alpha1.Agent{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapAgentToClusterDeployment}).
+		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapAgentToClusterDeployment}).
 		Complete(r)
 }

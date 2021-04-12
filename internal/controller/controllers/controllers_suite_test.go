@@ -6,7 +6,7 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -16,7 +16,7 @@ import (
 )
 
 func init() {
-	_ = v1alpha1.AddToScheme(scheme.Scheme)
+	_ = v1beta1.AddToScheme(scheme.Scheme)
 	_ = hivev1.AddToScheme(scheme.Scheme)
 	_ = bmh_v1alpha1.AddToScheme(scheme.Scheme)
 
@@ -58,7 +58,7 @@ func newBMH(name string, spec *bmh_v1alpha1.BareMetalHostSpec) *bmh_v1alpha1.Bar
 	return &bmh_v1alpha1.BareMetalHost{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "BareMetalHost",
-			APIVersion: "metal3.io/v1alpha1",
+			APIVersion: "metal3.io/v1beta1",
 		}, ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: testNamespace,

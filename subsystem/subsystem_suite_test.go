@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
-	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/pkg/auth"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/sirupsen/logrus"
@@ -65,8 +65,8 @@ func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {
 }
 
 func setupKubeClient() {
-	if addErr := v1alpha1.AddToScheme(scheme.Scheme); addErr != nil {
-		logrus.Fatalf("Fail adding kubernetes v1alpha1 scheme: %s", addErr)
+	if addErr := v1beta1.AddToScheme(scheme.Scheme); addErr != nil {
+		logrus.Fatalf("Fail adding kubernetes v1beta1 scheme: %s", addErr)
 	}
 	if addErr := hivev1.AddToScheme(scheme.Scheme); addErr != nil {
 		logrus.Fatalf("Fail adding kubernetes hivev1 scheme: %s", addErr)

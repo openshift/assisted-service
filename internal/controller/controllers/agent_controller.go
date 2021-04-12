@@ -26,7 +26,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -52,12 +52,12 @@ type AgentReconciler struct {
 	CRDEventsHandler CRDEventsHandler
 }
 
-// +kubebuilder:rbac:groups=adi.io.my.domain,resources=agents,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=adi.io.my.domain,resources=agents/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
 
 func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	agent := &adiiov1alpha1.Agent{}
+	agent := &aiv1beta1.Agent{}
 	var Requeue bool
 	var inventoryErr error
 
@@ -122,10 +122,10 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    adiiov1alpha1.AgentSyncedCondition,
+		Type:    aiv1beta1.AgentSyncedCondition,
 		Status:  corev1.ConditionTrue,
-		Reason:  adiiov1alpha1.AgentSyncedReason,
-		Message: adiiov1alpha1.AgentStateSynced,
+		Reason:  aiv1beta1.AgentSyncedReason,
+		Message: aiv1beta1.AgentStateSynced,
 	})
 	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
 		r.Log.WithError(updateErr).Error("failed to update agent status")
@@ -134,7 +134,7 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return result, nil
 }
 
-func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha1.Agent) error {
+func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *aiv1beta1.Agent) error {
 
 	host := getHostFromCluster(c, agent.Name)
 	if host == nil {
@@ -153,13 +153,13 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 	agent.Status.Inventory.BmcAddress = inventory.BmcAddress
 	agent.Status.Inventory.BmcV6address = inventory.BmcV6address
 	if inventory.Memory != nil {
-		agent.Status.Inventory.Memory = adiiov1alpha1.HostMemory{
+		agent.Status.Inventory.Memory = aiv1beta1.HostMemory{
 			PhysicalBytes: inventory.Memory.PhysicalBytes,
 			UsableBytes:   inventory.Memory.UsableBytes,
 		}
 	}
 	if inventory.CPU != nil {
-		agent.Status.Inventory.Cpu = adiiov1alpha1.HostCPU{
+		agent.Status.Inventory.Cpu = aiv1beta1.HostCPU{
 			Count:          inventory.CPU.Count,
 			ClockMegahertz: int64(inventory.CPU.Frequency),
 			Flags:          inventory.CPU.Flags,
@@ -168,13 +168,13 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 		}
 	}
 	if inventory.Boot != nil {
-		agent.Status.Inventory.Boot = adiiov1alpha1.HostBoot{
+		agent.Status.Inventory.Boot = aiv1beta1.HostBoot{
 			CurrentBootMode: inventory.Boot.CurrentBootMode,
 			PxeInterface:    inventory.Boot.PxeInterface,
 		}
 	}
 	if inventory.SystemVendor != nil {
-		agent.Status.Inventory.SystemVendor = adiiov1alpha1.HostSystemVendor{
+		agent.Status.Inventory.SystemVendor = aiv1beta1.HostSystemVendor{
 			SerialNumber: inventory.SystemVendor.SerialNumber,
 			ProductName:  inventory.SystemVendor.ProductName,
 			Manufacturer: inventory.SystemVendor.Manufacturer,
@@ -182,7 +182,7 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 		}
 	}
 	if inventory.Interfaces != nil {
-		ifcs := make([]adiiov1alpha1.HostInterface, len(inventory.Interfaces))
+		ifcs := make([]aiv1beta1.HostInterface, len(inventory.Interfaces))
 		agent.Status.Inventory.Interfaces = ifcs
 		for i, inf := range inventory.Interfaces {
 			if inf.IPV6Addresses != nil {
@@ -212,7 +212,7 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 		}
 	}
 	if inventory.Disks != nil {
-		disks := make([]adiiov1alpha1.HostDisk, len(inventory.Disks))
+		disks := make([]aiv1beta1.HostDisk, len(inventory.Disks))
 		agent.Status.Inventory.Disks = disks
 		for i, d := range inventory.Disks {
 			disks[i].ID = d.ID
@@ -229,7 +229,7 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 			disks[i].SizeBytes = d.SizeBytes
 			disks[i].Bootable = d.Bootable
 			disks[i].Smart = d.Smart
-			disks[i].InstallationEligibility = adiiov1alpha1.HostInstallationEligibility{
+			disks[i].InstallationEligibility = aiv1beta1.HostInstallationEligibility{
 				Eligible:           d.InstallationEligibility.Eligible,
 				NotEligibleReasons: d.InstallationEligibility.NotEligibleReasons,
 			}
@@ -237,7 +237,7 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 				disks[i].InstallationEligibility.NotEligibleReasons = make([]string, 0)
 			}
 			if d.IoPerf != nil {
-				disks[i].IoPerf = adiiov1alpha1.HostIOPerf{
+				disks[i].IoPerf = aiv1beta1.HostIOPerf{
 					SyncDurationMilliseconds: d.IoPerf.SyncDuration,
 				}
 			}
@@ -246,7 +246,7 @@ func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *adiiov1alpha
 	return nil
 }
 
-func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alpha1.Agent, c *common.Cluster) (ctrl.Result, error) {
+func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.Agent, c *common.Cluster) (ctrl.Result, error) {
 	spec := agent.Spec
 	var Requeue bool
 	var inventoryErr error
@@ -346,12 +346,12 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *adiiov1alph
 	return ctrl.Result{}, nil
 }
 
-func (r *AgentReconciler) updateFailure(ctx context.Context, agent *adiiov1alpha1.Agent, err error) {
+func (r *AgentReconciler) updateFailure(ctx context.Context, agent *aiv1beta1.Agent, err error) {
 	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    adiiov1alpha1.AgentSyncedCondition,
+		Type:    aiv1beta1.AgentSyncedCondition,
 		Status:  corev1.ConditionUnknown,
-		Reason:  adiiov1alpha1.AgentSyncErrorReason,
-		Message: adiiov1alpha1.AgentStateFailedToSync + ": " + err.Error(),
+		Reason:  aiv1beta1.AgentSyncErrorReason,
+		Message: aiv1beta1.AgentStateFailedToSync + ": " + err.Error(),
 	})
 	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
 		r.Log.WithError(updateErr).Error("failed to update agent status")
@@ -371,7 +371,7 @@ func getHostFromCluster(c *common.Cluster, agentId string) *models.Host {
 
 func (r *AgentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&adiiov1alpha1.Agent{}).
+		For(&aiv1beta1.Agent{}).
 		Watches(&source.Channel{Source: r.CRDEventsHandler.GetAgentUpdates()},
 			&handler.EnqueueRequestForObject{}).
 		Complete(r)

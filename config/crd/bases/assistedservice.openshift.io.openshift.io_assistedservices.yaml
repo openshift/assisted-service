@@ -16,7 +16,7 @@ spec:
     singular: assistedservice
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         description: AssistedService is the Schema for the assistedservices API

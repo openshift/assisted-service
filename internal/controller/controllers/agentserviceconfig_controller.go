@@ -24,7 +24,7 @@ import (
 
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -64,9 +64,9 @@ type AgentServiceConfigReconciler struct {
 	Namespace string
 }
 
-// +kubebuilder:rbac:groups=adi.io.my.domain,resources=agentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=adi.io.my.domain,resources=agentserviceconfigs/status,verbs=get;update;patch
-// +kubebuilder:rbac:groups=adi.io.my.domain,resources=agentserviceconfigs/finalizers,verbs=update
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
@@ -76,7 +76,7 @@ type AgentServiceConfigReconciler struct {
 
 func (r *AgentServiceConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
-	instance := &adiiov1alpha1.AgentServiceConfig{}
+	instance := &aiv1beta1.AgentServiceConfig{}
 
 	// NOTE: ignoring the Namespace that seems to get set on request when syncing on namespaced objects
 	// when our AgentServiceConfig is ClusterScoped.
@@ -101,7 +101,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 		return reconcile.Result{}, nil
 	}
 
-	for _, f := range []func(context.Context, *adiiov1alpha1.AgentServiceConfig) error{
+	for _, f := range []func(context.Context, *aiv1beta1.AgentServiceConfig) error{
 		r.ensureFilesystemStorage,
 		r.ensureDatabaseStorage,
 		r.ensureAgentService,
@@ -121,24 +121,24 @@ func (r *AgentServiceConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	}
 
 	msg := "AgentServiceConfig reconcile completed without error."
-	r.Recorder.Event(instance, "Normal", adiiov1alpha1.ReasonReconcileSucceeded, msg)
+	r.Recorder.Event(instance, "Normal", aiv1beta1.ReasonReconcileSucceeded, msg)
 	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-		Type:    adiiov1alpha1.ConditionReconcileCompleted,
+		Type:    aiv1beta1.ConditionReconcileCompleted,
 		Status:  corev1.ConditionTrue,
-		Reason:  adiiov1alpha1.ReasonReconcileSucceeded,
+		Reason:  aiv1beta1.ReasonReconcileSucceeded,
 		Message: msg,
 	})
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
 }
 
-func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	pvc, mutateFn := r.newPVC(instance, serviceName, instance.Spec.FileSystemStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonStorageFailure,
+			Reason:  aiv1beta1.ReasonStorageFailure,
 			Message: "Failed to ensure filesystem storage: " + err.Error(),
 		})
 		return err
@@ -148,14 +148,14 @@ func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Conte
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	pvc, mutateFn := r.newPVC(instance, databaseName, instance.Spec.DatabaseStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonStorageFailure,
+			Reason:  aiv1beta1.ReasonStorageFailure,
 			Message: "Failed to ensure database storage: " + err.Error(),
 		})
 		return err
@@ -165,14 +165,14 @@ func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) ensureAgentService(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) ensureAgentService(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	svc, mutateFn := r.newAgentService(instance)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, svc, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonAgentServiceFailure,
+			Reason:  aiv1beta1.ReasonAgentServiceFailure,
 			Message: "Failed to ensure agent service: " + err.Error(),
 		})
 		return err
@@ -182,14 +182,14 @@ func (r *AgentServiceConfigReconciler) ensureAgentService(ctx context.Context, i
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	route, mutateFn := r.newAgentRoute(instance)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, route, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonAgentRouteFailure,
+			Reason:  aiv1beta1.ReasonAgentRouteFailure,
 			Message: "Failed to ensure agent route: " + err.Error(),
 		})
 		return err
@@ -199,16 +199,16 @@ func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, ins
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	// TODO(djzager): using controllerutil.CreateOrUpdate is convenient but we may
 	// want to consider simply creating the secret if we can't find instead of
 	// generating a secret every reconcile.
 	secret, mutateFn, err := r.newPostgresSecret(instance)
 	if err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonPostgresSecretFailure,
+			Reason:  aiv1beta1.ReasonPostgresSecretFailure,
 			Message: "Failed to generate database secret: " + err.Error(),
 		})
 		return err
@@ -216,9 +216,9 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonPostgresSecretFailure,
+			Reason:  aiv1beta1.ReasonPostgresSecretFailure,
 			Message: "Failed to ensure database secret: " + err.Error(),
 		})
 		return err
@@ -228,7 +228,7 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 	return nil
 }
 
-func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx context.Context, instance *adiiov1alpha1.AgentServiceConfig) error {
+func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	// must have the route in order to populate SERVICE_BASE_URL for the service
 	route := &routev1.Route{}
 	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
@@ -238,9 +238,9 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 		}
 		r.Log.Info("Failed to get route or route's host is empty")
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonDeploymentFailure,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
 			Message: "Failed to get route for assisted service: " + err.Error(),
 		})
 		return err
@@ -252,9 +252,9 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, mutateFn); err != nil {
 		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    adiiov1alpha1.ConditionReconcileCompleted,
+			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
-			Reason:  adiiov1alpha1.ReasonDeploymentFailure,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
 			Message: "Failed to ensure assisted service deployment: " + err.Error(),
 		})
 		return err
@@ -267,7 +267,7 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 // SetupWithManager sets up the controller with the Manager.
 func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&adiiov1alpha1.AgentServiceConfig{}).
+		For(&aiv1beta1.AgentServiceConfig{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
@@ -276,7 +276,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func (r *AgentServiceConfigReconciler) newPVC(instance *adiiov1alpha1.AgentServiceConfig, name string, spec corev1.PersistentVolumeClaimSpec) (*corev1.PersistentVolumeClaim, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newPVC(instance *aiv1beta1.AgentServiceConfig, name string, spec corev1.PersistentVolumeClaimSpec) (*corev1.PersistentVolumeClaim, controllerutil.MutateFn) {
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -302,7 +302,7 @@ func (r *AgentServiceConfigReconciler) newPVC(instance *adiiov1alpha1.AgentServi
 	return pvc, mutateFn
 }
 
-func (r *AgentServiceConfigReconciler) newAgentService(instance *adiiov1alpha1.AgentServiceConfig) (*corev1.Service, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newAgentService(instance *aiv1beta1.AgentServiceConfig) (*corev1.Service, controllerutil.MutateFn) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      serviceName,
@@ -331,7 +331,7 @@ func (r *AgentServiceConfigReconciler) newAgentService(instance *adiiov1alpha1.A
 	return svc, mutateFn
 }
 
-func (r *AgentServiceConfigReconciler) newAgentRoute(instance *adiiov1alpha1.AgentServiceConfig) (*routev1.Route, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentServiceConfig) (*routev1.Route, controllerutil.MutateFn) {
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
@@ -362,7 +362,7 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *adiiov1alpha1.Age
 	return route, mutateFn
 }
 
-func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *adiiov1alpha1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
+func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
 	pass, err := generatePassword(databasePasswordLength)
 	if err != nil {
 		return nil, nil, err
@@ -394,7 +394,7 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *adiiov1alpha1
 	return secret, mutateFn, nil
 }
 
-func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *adiiov1alpha1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
+func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
 	serviceEnv := []corev1.EnvVar{
 		{Name: "SERVICE_BASE_URL", Value: serviceURL.String()},
 

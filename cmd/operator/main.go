@@ -23,7 +23,7 @@ import (
 	"os"
 
 	routev1 "github.com/openshift/api/route/v1"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	controllers "github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/models"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -47,7 +47,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(adiiov1alpha1.AddToScheme(scheme))
+	utilruntime.Must(aiv1beta1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 
 	utilruntime.Must(routev1.AddToScheme(scheme))
@@ -73,7 +73,7 @@ func main() {
 		Port:                   9443,
 		HealthProbeBindAddress: probeAddr,
 		LeaderElection:         enableLeaderElection,
-		LeaderElectionID:       "86f835c3.my.domain",
+		LeaderElectionID:       "86f835c3.agent-install.openshift.io",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

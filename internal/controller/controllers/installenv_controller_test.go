@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -27,7 +27,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func newInstallEnvRequest(image *adiiov1alpha1.InstallEnv) ctrl.Request {
+func newInstallEnvRequest(image *aiv1beta1.InstallEnv) ctrl.Request {
 	namespacedName := types.NamespacedName{
 		Namespace: image.ObjectMeta.Namespace,
 		Name:      image.ObjectMeta.Name,
@@ -35,11 +35,11 @@ func newInstallEnvRequest(image *adiiov1alpha1.InstallEnv) ctrl.Request {
 	return ctrl.Request{NamespacedName: namespacedName}
 }
 
-func newInstallEnvImage(name, namespace string, spec adiiov1alpha1.InstallEnvSpec) *adiiov1alpha1.InstallEnv {
-	return &adiiov1alpha1.InstallEnv{
+func newInstallEnvImage(name, namespace string, spec aiv1beta1.InstallEnvSpec) *aiv1beta1.InstallEnv {
+	return &aiv1beta1.InstallEnv{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "InstallEnv",
-			APIVersion: fmt.Sprintf("%s/%s", adiiov1alpha1.GroupVersion.Group, adiiov1alpha1.GroupVersion.Version),
+			APIVersion: fmt.Sprintf("%s/%s", aiv1beta1.GroupVersion.Group, aiv1beta1.GroupVersion.Version),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -49,11 +49,11 @@ func newInstallEnvImage(name, namespace string, spec adiiov1alpha1.InstallEnvSpe
 	}
 }
 
-func newNMStateConfig(name, namespace, NMStateLabelName, NMStateLabelValue string, spec adiiov1alpha1.NMStateConfigSpec) *adiiov1alpha1.NMStateConfig {
-	return &adiiov1alpha1.NMStateConfig{
+func newNMStateConfig(name, namespace, NMStateLabelName, NMStateLabelValue string, spec aiv1beta1.NMStateConfigSpec) *aiv1beta1.NMStateConfig {
+	return &aiv1beta1.NMStateConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NMStateConfig",
-			APIVersion: fmt.Sprintf("%s/%s", adiiov1alpha1.GroupVersion.Group, adiiov1alpha1.GroupVersion.Version),
+			APIVersion: fmt.Sprintf("%s/%s", aiv1beta1.GroupVersion.Group, aiv1beta1.GroupVersion.Version),
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -92,10 +92,10 @@ var _ = Describe("installEnv reconcile", func() {
 	})
 
 	It("none exiting installEnv Image", func() {
-		installEnvImage := newInstallEnvImage("installEnvImage", "namespace", adiiov1alpha1.InstallEnvSpec{})
+		installEnvImage := newInstallEnvImage("installEnvImage", "namespace", aiv1beta1.InstallEnvSpec{})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
-		noneExistingImage := newInstallEnvImage("image2", "namespace", adiiov1alpha1.InstallEnvSpec{})
+		noneExistingImage := newInstallEnvImage("image2", "namespace", aiv1beta1.InstallEnvSpec{})
 
 		result, err := ir.Reconcile(newInstallEnvRequest(noneExistingImage))
 		Expect(err).To(BeNil())
@@ -114,8 +114,8 @@ var _ = Describe("installEnv reconcile", func() {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -129,9 +129,9 @@ var _ = Describe("installEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
 		Expect(installEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(adiiov1alpha1.ImageStateCreated))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreatedReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("create new installEnv full-iso image - success", func() {
@@ -146,8 +146,8 @@ var _ = Describe("installEnv reconcile", func() {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeFullIso))
 			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 		ir.Config.ImageType = models.ImageTypeFullIso
@@ -161,9 +161,9 @@ var _ = Describe("installEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
 		Expect(installEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(adiiov1alpha1.ImageStateCreated))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreatedReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("create new installEnv image - backend failure", func() {
@@ -177,8 +177,8 @@ var _ = Describe("installEnv reconcile", func() {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 			}).Return(nil, expectedError).Times(1)
 
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -191,10 +191,10 @@ var _ = Describe("installEnv reconcile", func() {
 			Name:      "installEnvImage",
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: internal error", adiiov1alpha1.ImageStateFailedToCreate)
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+		expectedState := fmt.Sprintf("%s: internal error", aiv1beta1.ImageStateFailedToCreate)
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	It("create new installEnv image - cluster not retrieved from database", func() {
@@ -203,8 +203,8 @@ var _ = Describe("installEnv reconcile", func() {
 
 		expectedError := common.NewApiError(http.StatusInternalServerError, errors.New("server error"))
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, expectedError)
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -217,18 +217,18 @@ var _ = Describe("installEnv reconcile", func() {
 			Name:      "installEnvImage",
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: server error", adiiov1alpha1.ImageStateFailedToCreate)
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s: server error", aiv1beta1.ImageStateFailedToCreate)
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("create new installEnv image - cluster not found in database", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -241,10 +241,10 @@ var _ = Describe("installEnv reconcile", func() {
 			Name:      "installEnvImage",
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: record not found", adiiov1alpha1.ImageStateFailedToCreate)
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s: record not found", aiv1beta1.ImageStateFailedToCreate)
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("create new installEnv image - while image is being created", func() {
@@ -258,8 +258,8 @@ var _ = Describe("installEnv reconcile", func() {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 			}).Return(nil, expectedError).Times(1)
 
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -272,9 +272,9 @@ var _ = Describe("installEnv reconcile", func() {
 			Name:      "installEnvImage",
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(adiiov1alpha1.ImageStateCreated))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreatedReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("create new image - client failure", func() {
@@ -287,8 +287,8 @@ var _ = Describe("installEnv reconcile", func() {
 			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 			}).Return(nil, expectedError).Times(1)
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -302,15 +302,15 @@ var _ = Describe("installEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
 
-		expectedState := fmt.Sprintf("%s: %s", adiiov1alpha1.ImageStateFailedToCreate, expectedError.Error())
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+		expectedState := fmt.Sprintf("%s: %s", aiv1beta1.ImageStateFailedToCreate, expectedError.Error())
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	It("create new image - clusterDeployment not exists", func() {
-		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
-			ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -327,10 +327,10 @@ var _ = Describe("installEnv reconcile", func() {
 		expectedState := fmt.Sprintf(
 			"%s: failed to get clusterDeployment with name clusterDeployment in namespace %s: "+
 				"clusterdeployments.hive.openshift.io \"clusterDeployment\" not found",
-			adiiov1alpha1.ImageStateFailedToCreate, testNamespace)
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+			aiv1beta1.ImageStateFailedToCreate, testNamespace)
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("create image with proxy configuration and ntp sources", func() {
@@ -338,10 +338,10 @@ var _ = Describe("installEnv reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
-			adiiov1alpha1.InstallEnvSpec{
-				Proxy:                &adiiov1alpha1.Proxy{HTTPProxy: "http://192.168.1.2"},
+			aiv1beta1.InstallEnvSpec{
+				Proxy:                &aiv1beta1.Proxy{HTTPProxy: "http://192.168.1.2"},
 				AdditionalNTPSources: []string{"foo.com", "bar.com"},
-				ClusterRef:           &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+				ClusterRef:           &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -365,8 +365,8 @@ var _ = Describe("installEnv reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
-			adiiov1alpha1.InstallEnvSpec{
-				ClusterRef:             &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			aiv1beta1.InstallEnvSpec{
+				ClusterRef:             &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 				IgnitionConfigOverride: ignitionConfigOverride,
 			})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
@@ -388,8 +388,8 @@ var _ = Describe("installEnv reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
-			adiiov1alpha1.InstallEnvSpec{
-				ClusterRef:             &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			aiv1beta1.InstallEnvSpec{
+				ClusterRef:             &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 				IgnitionConfigOverride: ignitionConfigOverride,
 			})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
@@ -407,9 +407,9 @@ var _ = Describe("installEnv reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		installEnvImage := newInstallEnvImage("installEnvImage", testNamespace,
-			adiiov1alpha1.InstallEnvSpec{
-				Proxy:      &adiiov1alpha1.Proxy{HTTPProxy: "http://192.168.1.2"},
-				ClusterRef: &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+			aiv1beta1.InstallEnvSpec{
+				Proxy:      &aiv1beta1.Proxy{HTTPProxy: "http://192.168.1.2"},
+				ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			})
 		Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 
@@ -426,8 +426,8 @@ var _ = Describe("installEnv reconcile", func() {
 			Name:      "installEnvImage",
 		}
 		Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
-		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+		Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	Context("nmstate config", func() {
@@ -452,12 +452,12 @@ var _ = Describe("installEnv reconcile", func() {
 
 		It("create new installEnv image with nmstate config - success", func() {
 			nmstateConfig := newNMStateConfig("NMStateConfig", testNamespace, NMStateLabelName, NMStateLabelValue,
-				adiiov1alpha1.NMStateConfigSpec{
-					Interfaces: []*adiiov1alpha1.Interface{
+				aiv1beta1.NMStateConfigSpec{
+					Interfaces: []*aiv1beta1.Interface{
 						{Name: nicPrimary, MacAddress: macPrimary},
 						{Name: nicSecondary, MacAddress: macSecondary},
 					},
-					NetConfig: adiiov1alpha1.NetConfig{Raw: []byte(hostStaticNetworkConfig.NetworkYaml)},
+					NetConfig: aiv1beta1.NetConfig{Raw: []byte(hostStaticNetworkConfig.NetworkYaml)},
 				})
 			Expect(c.Create(ctx, nmstateConfig)).To(BeNil())
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
@@ -470,9 +470,9 @@ var _ = Describe("installEnv reconcile", func() {
 					Expect(params.ImageCreateParams.StaticNetworkConfig).To(Equal([]*models.HostStaticNetworkConfig{hostStaticNetworkConfig}))
 
 				}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &models.ImageInfo{DownloadURL: "downloadurl"}}}, nil).Times(1)
-			installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
+			installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
 				NMStateConfigLabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}},
-				ClusterRef:                 &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+				ClusterRef:                 &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			})
 			Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 			res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
@@ -484,20 +484,20 @@ var _ = Describe("installEnv reconcile", func() {
 				Name:      "installEnvImage",
 			}
 			Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
-			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(adiiov1alpha1.ImageStateCreated))
-			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreatedReason))
-			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("create new installEnv image with an invalid nmstate config - fail", func() {
 			hostStaticNetworkConfig.NetworkYaml = "interfaces:\n    - foo: badConfig"
 			nmstateConfig := newNMStateConfig("NMStateConfig", testNamespace, NMStateLabelName, NMStateLabelValue,
-				adiiov1alpha1.NMStateConfigSpec{
-					Interfaces: []*adiiov1alpha1.Interface{
+				aiv1beta1.NMStateConfigSpec{
+					Interfaces: []*aiv1beta1.Interface{
 						{Name: nicPrimary, MacAddress: macPrimary},
 						{Name: nicSecondary, MacAddress: macSecondary},
 					},
-					NetConfig: adiiov1alpha1.NetConfig{Raw: []byte(hostStaticNetworkConfig.NetworkYaml)},
+					NetConfig: aiv1beta1.NetConfig{Raw: []byte(hostStaticNetworkConfig.NetworkYaml)},
 				})
 			Expect(c.Create(ctx, nmstateConfig)).To(BeNil())
 			clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
@@ -508,9 +508,9 @@ var _ = Describe("installEnv reconcile", func() {
 				Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 					Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 				}).Return(nil, expectedError).Times(1)
-			installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, adiiov1alpha1.InstallEnvSpec{
+			installEnvImage := newInstallEnvImage("installEnvImage", testNamespace, aiv1beta1.InstallEnvSpec{
 				NMStateConfigLabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}},
-				ClusterRef:                 &adiiov1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+				ClusterRef:                 &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			})
 			Expect(c.Create(ctx, installEnvImage)).To(BeNil())
 			res, err := ir.Reconcile(newInstallEnvRequest(installEnvImage))
@@ -522,10 +522,10 @@ var _ = Describe("installEnv reconcile", func() {
 				Name:      "installEnvImage",
 			}
 			Expect(c.Get(ctx, key, installEnvImage)).To(BeNil())
-			expectedState := fmt.Sprintf("%s: internal error", adiiov1alpha1.ImageStateFailedToCreate)
-			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Message).To(Equal(expectedState))
-			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Reason).To(Equal(adiiov1alpha1.ImageCreationErrorReason))
-			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, adiiov1alpha1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
+			expectedState := fmt.Sprintf("%s: internal error", aiv1beta1.ImageStateFailedToCreate)
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+			Expect(conditionsv1.FindStatusCondition(installEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 	})
 })

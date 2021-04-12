@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -27,7 +27,7 @@ import (
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
-func newHostRequest(host *v1alpha1.Agent) ctrl.Request {
+func newHostRequest(host *v1beta1.Agent) ctrl.Request {
 	namespacedName := types.NamespacedName{
 		Namespace: host.ObjectMeta.Namespace,
 		Name:      host.ObjectMeta.Name,
@@ -35,8 +35,8 @@ func newHostRequest(host *v1alpha1.Agent) ctrl.Request {
 	return ctrl.Request{NamespacedName: namespacedName}
 }
 
-func newAgent(name, namespace string, spec v1alpha1.AgentSpec) *v1alpha1.Agent {
-	return &v1alpha1.Agent{
+func newAgent(name, namespace string, spec v1beta1.AgentSpec) *v1beta1.Agent {
+	return &v1beta1.Agent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
@@ -75,10 +75,10 @@ var _ = Describe("agent reconcile", func() {
 	})
 
 	It("none existing agent", func() {
-		host := newAgent("host", testNamespace, v1alpha1.AgentSpec{})
+		host := newAgent("host", testNamespace, v1beta1.AgentSpec{})
 		Expect(c.Create(ctx, host)).To(BeNil())
 
-		noneExistingHost := newAgent("host2", testNamespace, v1alpha1.AgentSpec{})
+		noneExistingHost := newAgent("host2", testNamespace, v1beta1.AgentSpec{})
 
 		result, err := hr.Reconcile(newHostRequest(noneExistingHost))
 		Expect(err).To(BeNil())
@@ -86,12 +86,12 @@ var _ = Describe("agent reconcile", func() {
 	})
 
 	It("cluster deployment not set", func() {
-		host := newAgent("host", testNamespace, v1alpha1.AgentSpec{})
+		host := newAgent("host", testNamespace, v1beta1.AgentSpec{})
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{Requeue: false}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
@@ -101,26 +101,26 @@ var _ = Describe("agent reconcile", func() {
 	})
 
 	It("cluster deployment not found", func() {
-		host := newAgent("host", testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: failed to get clusterDeployment with name clusterDeployment in namespace test-namespace: clusterdeployments.hive.openshift.io \"clusterDeployment\" not found", v1alpha1.AgentStateFailedToSync)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s: failed to get clusterDeployment with name clusterDeployment in namespace test-namespace: clusterdeployments.hive.openshift.io \"clusterDeployment\" not found", v1beta1.AgentStateFailedToSync)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("cluster not found in database", func() {
-		host := newAgent("host", testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		Expect(c.Create(ctx, host)).To(BeNil())
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -128,21 +128,21 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: record not found", v1alpha1.AgentStateFailedToSync)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s: record not found", v1beta1.AgentStateFailedToSync)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("error getting cluster from database", func() {
-		host := newAgent("host", testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		Expect(c.Create(ctx, host)).To(BeNil())
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -151,21 +151,21 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{Requeue: false}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: %s", v1alpha1.AgentStateFailedToSync, errString)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s: %s", v1beta1.AgentStateFailedToSync, errString)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("host not found in cluster", func() {
-		host := newAgent("host", testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -173,17 +173,17 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: Host not found in cluster", v1alpha1.AgentStateFailedToSync)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s: Host not found in cluster", v1beta1.AgentStateFailedToSync)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("Agent update", func() {
@@ -207,7 +207,7 @@ var _ = Describe("agent reconcile", func() {
 					RequestedHostname: newHostName,
 				},
 			}}}
-		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		host.Spec.Hostname = newHostName
 		host.Spec.Role = models.HostRole(newRole)
 		host.Spec.InstallationDiskID = newInstallDiskPath
@@ -228,16 +228,16 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(v1alpha1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Agent update empty disk path", func() {
@@ -253,7 +253,7 @@ var _ = Describe("agent reconcile", func() {
 				},
 			}}}
 
-		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		host.Spec.InstallationDiskID = newInstallDiskPath
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -264,16 +264,16 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(v1alpha1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Agent update error", func() {
@@ -287,7 +287,7 @@ var _ = Describe("agent reconcile", func() {
 					ID: &hostId,
 				},
 			}}}
-		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		host.Spec.Hostname = newHostName
 		host.Spec.Role = models.HostRole(newRole)
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
@@ -300,17 +300,17 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: %s", v1alpha1.AgentStateFailedToSync, errString)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s: %s", v1beta1.AgentStateFailedToSync, errString)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
 	})
 
 	It("Agent update approved", func() {
@@ -323,7 +323,7 @@ var _ = Describe("agent reconcile", func() {
 				},
 			}}}
 
-		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		host.Spec.Approved = true
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -334,16 +334,16 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(v1alpha1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Agent inventory status", func() {
@@ -378,7 +378,7 @@ var _ = Describe("agent reconcile", func() {
 				},
 			}}}
 
-		host := newAgent(hostId.String(), testNamespace, v1alpha1.AgentSpec{ClusterDeploymentName: &v1alpha1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -387,16 +387,16 @@ var _ = Describe("agent reconcile", func() {
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
-		agent := &v1alpha1.Agent{}
+		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Message).To(Equal(v1alpha1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Reason).To(Equal(v1alpha1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1alpha1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 		Expect(agent.Status.Inventory.Interfaces[0].MacAddress).To(Equal(macAddress))
 	})
 

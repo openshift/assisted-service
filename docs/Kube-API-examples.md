@@ -14,18 +14,18 @@ In the ClusterDeployment, the user can specify requirements like Networking, num
 
 The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
 
-### [InstallEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1alpha1/installenv_types.go)
+### [InstallEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/installenv_types.go)
 The InstallEnv CRD represents the configuration needed to create the discovery ISO.
 The user can specify proxy settings, ignition overrides and specify NMState labels.
 
 When the ISO is ready, an URL will be available in the CR.
 
 
-### [NMStateConfig](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1alpha1/nmstate_config_types.go)
+### [NMStateConfig](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/nmstate_config_types.go)
 The NMStateConfig contains network configuration that will applied on the hosts. See NMState repository [here](https://github.com/nmstate/nmstate).
 
 
-### [Agent](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1alpha1/agent_types.go)
+### [Agent](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/agent_types.go)
 The Agent CRD represents a Host that boot from an ISO and registered to a cluster.
 It will be created by Assisted Service when a host registers.
 In the Agent, the user can specify the hostname, role, installation disk and more.
@@ -36,7 +36,7 @@ Note that if the Agent is not Approved, it will not be part of the installation.
 Here how to approve an Agent:
 
 ```sh
-$ kubectl -n assisted-installer patch agents.adi.io.my.domain 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge
+$ kubectl -n assisted-installer patch agents.agent-install.openshift.io 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge
 ```
 
 ## Day 2 worker
@@ -87,7 +87,7 @@ In case of failure to apply the overrides the clusterdeployment conditions will 
 Add an annotation with the desired options, the clusterdeployment controller will update the install config yaml with the annotation value.
 Note that this configuration must be applied prior to starting the installation
 ```sh
-$ kubectl annotate clusterdeployments.hive.openshift.io test-cluster -n assisted-installer adi.io.my.domain/install-config-overrides="{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"
+$ kubectl annotate clusterdeployments.hive.openshift.io test-cluster -n assisted-installer agent-install.openshift.io/install-config-overrides="{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"
 clusterdeployment.hive.openshift.io/test-cluster annotated
 ```
 
@@ -99,7 +99,7 @@ apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
   annotations:
-    adi.io.my.domain/install-config-overrides: '{"controlPlane":{"hyperthreading":"Disabled"}}'
+    agent-install.openshift.io/install-config-overrides: '{"controlPlane":{"hyperthreading":"Disabled"}}'
   creationTimestamp: "2021-04-01T07:04:49Z"
   generation: 1
   name: test-cluster

@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,7 +46,7 @@ var _ = Describe("create agent CR", func() {
 				Namespace: clusterNamespace,
 				Name:      hostId,
 			}
-			Expect(c.Get(ctx, namespacedName, &v1alpha1.Agent{})).ShouldNot(HaveOccurred())
+			Expect(c.Get(ctx, namespacedName, &v1beta1.Agent{})).ShouldNot(HaveOccurred())
 		})
 
 		It("Empty name space", func() {
@@ -57,12 +57,12 @@ var _ = Describe("create agent CR", func() {
 				Name:      hostId,
 			}
 			Expect(err).NotTo(HaveOccurred())
-			Expect(c.Get(ctx, namespacedName, &v1alpha1.Agent{})).Should(HaveOccurred())
+			Expect(c.Get(ctx, namespacedName, &v1beta1.Agent{})).Should(HaveOccurred())
 		})
 
 		It("Already existing agent", func() {
 			id := uuid.New().String()
-			agent := newAgent(id, clusterNamespace, v1alpha1.AgentSpec{})
+			agent := newAgent(id, clusterNamespace, v1beta1.AgentSpec{})
 			Expect(c.Create(ctx, agent)).ShouldNot(HaveOccurred())
 			err := crdUtils.CreateAgentCR(ctx, log, id, clusterNamespace, clusterName)
 			Expect(err).NotTo(HaveOccurred())

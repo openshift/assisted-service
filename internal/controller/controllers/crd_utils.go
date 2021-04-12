@@ -3,7 +3,7 @@ package controllers
 import (
 	"context"
 
-	adiiov1alpha1 "github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/sirupsen/logrus"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -28,7 +28,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 		return nil
 	}
 
-	host := &adiiov1alpha1.Agent{}
+	host := &aiv1beta1.Agent{}
 	namespacedName := types.NamespacedName{
 		Namespace: clusterNamespace,
 		Name:      hostId,
@@ -40,9 +40,9 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 	}
 
 	if k8serrors.IsNotFound(err) {
-		host := &adiiov1alpha1.Agent{
-			Spec: adiiov1alpha1.AgentSpec{
-				ClusterDeploymentName: &adiiov1alpha1.ClusterReference{
+		host := &aiv1beta1.Agent{
+			Spec: aiv1beta1.AgentSpec{
+				ClusterDeploymentName: &aiv1beta1.ClusterReference{
 					Name:      clusterName,
 					Namespace: clusterNamespace,
 				},

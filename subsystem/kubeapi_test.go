@@ -12,7 +12,7 @@ import (
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/internal/controller/api/v1alpha1"
+	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
@@ -85,8 +85,8 @@ func updateClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, cl
 	Expect(err).To(BeNil())
 }
 
-func deployInstallEnvCRD(ctx context.Context, client k8sclient.Client, name string, spec *v1alpha1.InstallEnvSpec) {
-	err := client.Create(ctx, &v1alpha1.InstallEnv{
+func deployInstallEnvCRD(ctx context.Context, client k8sclient.Client, name string, spec *v1beta1.InstallEnvSpec) {
+	err := client.Create(ctx, &v1beta1.InstallEnv{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "InstallEnv",
 			APIVersion: getAPIVersion(),
@@ -101,8 +101,8 @@ func deployInstallEnvCRD(ctx context.Context, client k8sclient.Client, name stri
 	Expect(err).To(BeNil())
 }
 
-func deployNMStateConfigCRD(ctx context.Context, client k8sclient.Client, name string, NMStateLabelName string, NMStateLabelValue string, spec *v1alpha1.NMStateConfigSpec) {
-	err := client.Create(ctx, &v1alpha1.NMStateConfig{
+func deployNMStateConfigCRD(ctx context.Context, client k8sclient.Client, name string, NMStateLabelName string, NMStateLabelValue string, spec *v1beta1.NMStateConfigSpec) {
+	err := client.Create(ctx, &v1beta1.NMStateConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "NMStateConfig",
 			APIVersion: getAPIVersion(),
@@ -118,7 +118,7 @@ func deployNMStateConfigCRD(ctx context.Context, client k8sclient.Client, name s
 }
 
 func getAPIVersion() string {
-	return fmt.Sprintf("%s/%s", v1alpha1.GroupVersion.Group, v1alpha1.GroupVersion.Version)
+	return fmt.Sprintf("%s/%s", v1beta1.GroupVersion.Group, v1beta1.GroupVersion.Version)
 }
 
 func getClusterFromDB(
@@ -149,15 +149,15 @@ func getClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, key t
 	return cluster
 }
 
-func getInstallEnvCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1alpha1.InstallEnv {
-	installEnv := &v1alpha1.InstallEnv{}
+func getInstallEnvCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1beta1.InstallEnv {
+	installEnv := &v1beta1.InstallEnv{}
 	err := client.Get(ctx, key, installEnv)
 	Expect(err).To(BeNil())
 	return installEnv
 }
 
-func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1alpha1.Agent {
-	agent := &v1alpha1.Agent{}
+func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *v1beta1.Agent {
+	agent := &v1beta1.Agent{}
 	err := client.Get(ctx, key, agent)
 	Expect(err).To(BeNil())
 	return agent
@@ -267,9 +267,9 @@ func getDefaultClusterDeploymentSNOSpec(secretRef *corev1.LocalObjectReference) 
 }
 
 func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
-	clusterDeployment *hivev1.ClusterDeploymentSpec) *v1alpha1.InstallEnvSpec {
-	return &v1alpha1.InstallEnvSpec{
-		ClusterRef: &v1alpha1.ClusterReference{
+	clusterDeployment *hivev1.ClusterDeploymentSpec) *v1beta1.InstallEnvSpec {
+	return &v1beta1.InstallEnvSpec{
+		ClusterRef: &v1beta1.ClusterReference{
 			Name:      clusterDeployment.ClusterName,
 			Namespace: Options.Namespace,
 		},
@@ -278,21 +278,21 @@ func getDefaultInstallEnvSpec(secretRef *corev1.LocalObjectReference,
 	}
 }
 
-func getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, networkYaml string) *v1alpha1.NMStateConfigSpec {
-	return &v1alpha1.NMStateConfigSpec{
-		Interfaces: []*v1alpha1.Interface{
+func getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, networkYaml string) *v1beta1.NMStateConfigSpec {
+	return &v1beta1.NMStateConfigSpec{
+		Interfaces: []*v1beta1.Interface{
 			{MacAddress: macPrimary, Name: nicPrimary},
 			{MacAddress: macSecondary, Name: nicSecondary},
 		},
-		NetConfig: v1alpha1.NetConfig{Raw: []byte(networkYaml)},
+		NetConfig: v1beta1.NetConfig{Raw: []byte(networkYaml)},
 	}
 }
 
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1alpha1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1alpha1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1alpha1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &v1beta1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 }
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
@@ -387,7 +387,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return h.InstallationDiskID
 		}, "2m", "10s").Should(Equal(sdb.ID))
 		Eventually(func() bool {
-			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1alpha1.AgentSyncedCondition)
+			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.AgentSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
 		Eventually(func() string {
 			return getAgentCRD(ctx, kubeClient, key).Status.Inventory.SystemVendor.Manufacturer
@@ -418,7 +418,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
 
 		installEnvSpec := getDefaultInstallEnvSpec(secretRef, clusterDeploymentSpec)
-		installEnvSpec.Proxy = &v1alpha1.Proxy{
+		installEnvSpec.Proxy = &v1beta1.Proxy{
 			NoProxy:    "192.168.1.1",
 			HTTPProxy:  "http://192.168.1.2",
 			HTTPSProxy: "http://192.168.1.3",
@@ -431,12 +431,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		// InstallEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
 			return ""
-		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
+		}, "2m", "2s").Should(Equal(v1beta1.ImageStateCreated))
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.ImageGenerated).Should(Equal(true))
 		By("Validate proxy settings.", func() {
@@ -480,12 +480,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		// InstallEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
 			return ""
-		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
+		}, "2m", "2s").Should(Equal(v1beta1.ImageStateCreated))
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(fakeIgnitionConfigOverride))
 		Expect(cluster.ImageGenerated).Should(Equal(true))
@@ -520,12 +520,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      installEnvName,
 		}
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
 			return ""
-		}, "15s", "2s").Should(Equal(v1alpha1.ImageStateFailedToCreate + ": error parsing ignition: config is not valid"))
+		}, "15s", "2s").Should(Equal(v1beta1.ImageStateFailedToCreate + ": error parsing ignition: config is not valid"))
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.IgnitionConfigOverrides).ShouldNot(Equal(fakeIgnitionConfigOverride))
 		Expect(cluster.ImageGenerated).Should(Equal(false))
@@ -645,12 +645,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		// InstallEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
 			return ""
-		}, "2m", "2s").Should(Equal(v1alpha1.ImageStateCreated))
+		}, "2m", "2s").Should(Equal(v1beta1.ImageStateCreated))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.ImageInfo.StaticNetworkConfig).Should(ContainSubstring(hostStaticNetworkConfig.NetworkYaml))
 		Expect(cluster.ImageGenerated).Should(Equal(true))
@@ -691,12 +691,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		// InstallEnv Reconcile takes longer, since it needs to generate the image.
 		Eventually(func() string {
-			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1alpha1.ImageCreatedCondition)
+			condition := conditionsv1.FindStatusCondition(getInstallEnvCRD(ctx, kubeClient, installEnvKubeName).Status.Conditions, v1beta1.ImageCreatedCondition)
 			if condition != nil {
 				return condition.Message
 			}
 			return ""
-		}, "2m", "2s").Should(Equal(fmt.Sprintf("%s: internal error", v1alpha1.ImageStateFailedToCreate)))
+		}, "2m", "2s").Should(Equal(fmt.Sprintf("%s: internal error", v1beta1.ImageStateFailedToCreate)))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.ImageGenerated).Should(Equal(false))
 	})

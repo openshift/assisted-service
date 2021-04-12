@@ -6,9 +6,9 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.0
   creationTimestamp: null
-  name: nmstateconfigs.adi.io.my.domain
+  name: nmstateconfigs.agent-install.openshift.io
 spec:
-  group: adi.io.my.domain
+  group: agent-install.openshift.io
   names:
     kind: NMStateConfig
     listKind: NMStateConfigList
@@ -16,7 +16,7 @@ spec:
     singular: nmstateconfig
   scope: Namespaced
   versions:
-  - name: v1alpha1
+  - name: v1beta1
     schema:
       openAPIV3Schema:
         properties:
