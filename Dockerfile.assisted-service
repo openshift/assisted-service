@@ -45,7 +45,7 @@ RUN dnf install -y libvirt-libs python3 && \
     dnf install -y NetworkManager-config-server && \
     dnf install -y openvswitch2.11 && \
     dnf install -y python3-openvswitch2.11 && \
-    pip3 install --user pycairo && \
+    pip3 install pycairo && \
     dnf remove -y dnf-plugins-core && \
     dnf clean all
 
