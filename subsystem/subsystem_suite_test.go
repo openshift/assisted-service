@@ -10,6 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
@@ -70,6 +71,10 @@ func setupKubeClient() {
 	}
 	if addErr := hivev1.AddToScheme(scheme.Scheme); addErr != nil {
 		logrus.Fatalf("Fail adding kubernetes hivev1 scheme: %s", addErr)
+	}
+
+	if addErr := bmh_v1alpha1.AddToScheme(scheme.Scheme); addErr != nil {
+		logrus.Fatalf("Fail adding kubernetes bmh scheme: %s", addErr)
 	}
 
 	var err error
