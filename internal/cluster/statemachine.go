@@ -26,7 +26,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusError),
 			stateswitch.State(models.ClusterStatusFinalizing),
 		},
-		DestinationState: stateswitch.State(models.ClusterStatusCancelled),
+		DestinationState: stateswitch.State(models.ClusterStatusCanceled),
 		PostTransition:   th.PostCancelInstallation,
 	})
 
@@ -37,7 +37,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.ClusterStatusInstalling),
 			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
 			stateswitch.State(models.ClusterStatusError),
-			stateswitch.State(models.ClusterStatusCancelled),
+			stateswitch.State(models.ClusterStatusCanceled),
 			stateswitch.State(models.ClusterStatusFinalizing),
 		},
 		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
@@ -278,7 +278,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	// check timeout of log collection
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.ClusterStatusError),
-		stateswitch.State(models.ClusterStatusCancelled)} {
+		stateswitch.State(models.ClusterStatusCanceled)} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefreshStatus,
 			SourceStates:     []stateswitch.State{state},
@@ -294,7 +294,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		stateswitch.State(models.ClusterStatusFinalizing),
 		stateswitch.State(models.ClusterStatusInstalled),
 		stateswitch.State(models.ClusterStatusError),
-		stateswitch.State(models.ClusterStatusCancelled),
+		stateswitch.State(models.ClusterStatusCanceled),
 		stateswitch.State(models.ClusterStatusAddingHosts)} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefreshStatus,

@@ -21,7 +21,7 @@ digraph HostStateMachine {
     "installing-pending-user-action" [color = cornsilk]
     installed [shape = doublecircle, color = chartreuse];
     error [shape = doublecircle, color = crimson];
-    cancelled [shape = doublecircle, color = slategray];
+    canceled [shape = doublecircle, color = slategray];
     subgraph cluster_level3 {
         resetting [color = aquamarine3]
         "resetting-pending-user-action" [color = yellow]
@@ -50,7 +50,7 @@ digraph HostStateMachine {
 
     "preparing-for-installation" -> installing [color=darkolivegreen3];
     "preparing-for-installation" -> error [label = "installation\nerror", color=crimson, fontcolor=crimson, ltail = cluster_level2];
-    "preparing-for-installation" -> cancelled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level2];
+    "preparing-for-installation" -> canceled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level2];
 
     installing -> "installing-in-progress" [color=darkolivegreen3];
 
@@ -59,15 +59,15 @@ digraph HostStateMachine {
 
     "installing-pending-user-action" -> installed [label = "boot from\ninstall disk", color=chartreuse4, fontcolor=chartreuse4];
 
-    cancelled -> resetting [label = "reset", color=aquamarine4, fontcolor=aquamarine4];
+    canceled -> resetting [label = "reset", color=aquamarine4, fontcolor=aquamarine4];
 
     resetting -> discovering [color=goldenrod, fontcolor=goldenrod, ltail = cluster_level3];
     resetting -> "resetting-pending-user-action" [label = "wrong boot\norder", color=yellow3, fontcolor=yellow3];
  
     installed -> error [label = "installation", color=crimson, fontcolor=crimson, ltail = cluster_level2];
-    installed-> cancelled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level2];
+    installed-> canceled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level2];
 
-    error -> cancelled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level2];
+    error -> canceled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level2];
 
     {rank=min; start}
     {rank=max; installed}

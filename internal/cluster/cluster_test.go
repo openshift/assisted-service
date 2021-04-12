@@ -514,7 +514,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(updateTime).Should(BeTemporally(">=", before))
 				Expect(updateTime).Should(BeTemporally("<=", after))
 
-				installationCompletedStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
+				installationCompletedStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCanceled}
 				if funk.ContainsString(installationCompletedStatuses, expectedState) {
 					Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
 				}
@@ -1264,7 +1264,7 @@ var _ = Describe("CancelInstallation", func() {
 
 		AfterEach(func() {
 			db.First(&c, "id = ?", c.ID)
-			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCanceled))
 		})
 	})
 

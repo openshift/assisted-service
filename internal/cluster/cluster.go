@@ -418,7 +418,7 @@ func (m *Manager) autoAssignMachineNetworkCidrs() error {
 }
 
 func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
-	notAllowedStates := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
+	notAllowedStates := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCanceled}
 	if funk.Contains(notAllowedStates, *c.Status) {
 		return false
 	}
@@ -437,7 +437,7 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	// or remote controllers reports that their log colection has been completed. Then, monitoring should be
 	// stopped to avoid excessive computation
 	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout)}
-	result := ((swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
+	result := ((swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCanceled) &&
 		funk.Contains(skipMonitoringStates, c.LogsInfo))
 	return result
 }
@@ -518,7 +518,7 @@ func CanDownloadFiles(c *common.Cluster) (err error) {
 		models.ClusterStatusInstalled,
 		models.ClusterStatusError,
 		models.ClusterStatusAddingHosts,
-		models.ClusterStatusCancelled,
+		models.ClusterStatusCanceled,
 	}
 	if !funk.Contains(allowedStatuses, clusterStatus) {
 		err = errors.Errorf("cluster %s is in %s state, files can be downloaded only when status is one of: %s",

@@ -11,7 +11,7 @@ import (
 
 func (m *Manager) SkipMonitoring(h *models.Host) bool {
 	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout), ""}
-	result := ((swag.StringValue(h.Status) == models.HostStatusError || swag.StringValue(h.Status) == models.HostStatusCancelled) &&
+	result := ((swag.StringValue(h.Status) == models.HostStatusError || swag.StringValue(h.Status) == models.HostStatusCanceled) &&
 		funk.Contains(skipMonitoringStates, h.LogsInfo))
 	return result
 }
@@ -42,8 +42,8 @@ func (m *Manager) HostMonitoring() {
 		models.HostStatusInstalled,
 		models.HostStatusInstallingPendingUserAction,
 		models.HostStatusResettingPendingUserAction,
-		models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
-		models.HostStatusError,     // for limited time, until log collection finished or timed-out
+		models.HostStatusCanceled, // for limited time, until log collection finished or timed-out
+		models.HostStatusError,    // for limited time, until log collection finished or timed-out
 	}
 	for {
 		hosts := make([]*models.Host, 0, limit)

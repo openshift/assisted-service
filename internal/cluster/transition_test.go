@@ -67,7 +67,7 @@ var _ = Describe("Transition tests", func() {
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCanceled))
 		})
 
 		It("cancel_installation_conflict", func() {
@@ -96,7 +96,7 @@ var _ = Describe("Transition tests", func() {
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
-			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCancelled))
+			Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusCanceled))
 			Expect(swag.StringValue(c.StatusInfo)).ShouldNot(Equal("original error"))
 		})
 	})
@@ -2988,8 +2988,8 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 	Context("refresh on cancel state", func() {
 
 		BeforeEach(func() {
-			srcState = models.ClusterStatusCancelled
-			srcStatusInfo = "cancelled"
+			srcState = models.ClusterStatusCanceled
+			srcStatusInfo = "canceled"
 		})
 
 		It("logs not requested when cluster enter cancel -> mark as timeout to signal that we do not wait for them", func() {

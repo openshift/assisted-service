@@ -47,7 +47,7 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 		now := strfmt.DateTime(time.Now())
 		extra = append(extra, "status_updated_at", now)
 
-		installationCompletedStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
+		installationCompletedStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCanceled}
 		if funk.ContainsString(installationCompletedStatuses, swag.StringValue(&newStatus)) {
 			extra = append(extra, "install_completed_at", now)
 		}

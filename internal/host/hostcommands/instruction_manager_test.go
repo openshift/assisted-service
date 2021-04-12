@@ -116,8 +116,8 @@ var _ = Describe("instruction_manager", func() {
 					models.StepTypeExecute,
 				})
 			})
-			It("cancelled", func() {
-				checkStep(models.HostStatusCancelled, []models.StepType{
+			It("canceled", func() {
+				checkStep(models.HostStatusCanceled, []models.StepType{
 					models.StepTypeExecute, models.StepTypeExecute,
 				})
 			})
@@ -181,8 +181,8 @@ var _ = Describe("instruction_manager", func() {
 					models.StepTypeExecute, models.StepTypeExecute,
 				})
 			})
-			It("cancelled", func() {
-				checkStep(models.HostStatusCancelled, []models.StepType{
+			It("canceled", func() {
+				checkStep(models.HostStatusCanceled, []models.StepType{
 					models.StepTypeExecute, models.StepTypeExecute,
 				})
 			})

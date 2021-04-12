@@ -85,7 +85,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusDisabled:                 {[]CommandGetter{}, defaultBackedOffInstructionInSec},
 			models.HostStatusResetting:                {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusError:                    {[]CommandGetter{logsCmd, stopCmd}, defaultBackedOffInstructionInSec},
-			models.HostStatusCancelled:                {[]CommandGetter{logsCmd, stopCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusCanceled:                 {[]CommandGetter{logsCmd, stopCmd}, defaultBackedOffInstructionInSec},
 		},
 		addHostsClusterToSteps: stateToStepsMap{
 			models.HostStatusKnown:                {[]CommandGetter{connectivityCmd, apivipConnectivityCmd, inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
@@ -98,7 +98,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 			models.HostStatusDisabled:             {[]CommandGetter{}, defaultBackedOffInstructionInSec},
 			models.HostStatusResetting:            {[]CommandGetter{resetCmd}, defaultBackedOffInstructionInSec},
 			models.HostStatusError:                {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
-			models.HostStatusCancelled:            {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
+			models.HostStatusCanceled:             {[]CommandGetter{stopCmd}, defaultBackedOffInstructionInSec},
 		},
 	}
 }

@@ -88,7 +88,7 @@ func (l *Elector) waitForLeader(ctx context.Context) error {
 	for {
 		select {
 		case <-ctx.Done(): // Done returns a channel that's closed when work done on behalf of this context is canceled
-			return errors.Errorf("cancelled while waiting for leader")
+			return errors.Errorf("canceled while waiting for leader")
 		case <-ticker.C:
 			if l.isLeader {
 				l.log.Infof("Got leader, stop waiting")
@@ -120,12 +120,12 @@ func (l *Elector) StartLeaderElection(ctx context.Context) error {
 	l.log.Infof("Attempting to acquire leader lease")
 	// Running loop cause leaderElector.Run is blocking
 	// and needs to be restarted while leader is lost
-	// will exit if context was cancelled
+	// will exit if context was canceled
 	go func() {
 		for {
 			l.log.Infof("Starting leader elections process")
 			if ctx.Err() != nil {
-				l.log.Infof("Given context was cancelled, exiting leader elector")
+				l.log.Infof("Given context was canceled, exiting leader elector")
 				return
 			}
 			leaderElector.Run(ctx)

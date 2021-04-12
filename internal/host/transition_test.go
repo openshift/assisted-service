@@ -543,7 +543,7 @@ var _ = Describe("Cancel host installation", func() {
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict, changeState: false},
-		{state: models.HostStatusCancelled, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusCanceled, success: false, statusCode: http.StatusConflict, changeState: false},
 	}
 
 	acceptNewEvents := func(times int) {
@@ -571,7 +571,7 @@ var _ = Describe("Cancel host installation", func() {
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
 
-				expectedState := models.HostStatusCancelled
+				expectedState := models.HostStatusCanceled
 				if !t.changeState {
 					expectedState = t.state
 				}
@@ -625,7 +625,7 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusError, success: true, changeState: true},
 		{state: models.HostStatusDisabled, success: true, changeState: false},
 		{state: models.HostStatusInstallingPendingUserAction, success: true, changeState: true},
-		{state: models.HostStatusCancelled, success: true, changeState: true},
+		{state: models.HostStatusCanceled, success: true, changeState: true},
 		{state: models.HostStatusAddedToExistingCluster, success: true, changeState: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict, changeState: false},

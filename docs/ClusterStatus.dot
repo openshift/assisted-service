@@ -14,7 +14,7 @@ digraph ClusterStateMachine {
     }
     installed [shape = doublecircle, color = chartreuse];
     error [shape = doublecircle, color = crimson];
-    cancelled [shape = doublecircle, color = slategray];
+    canceled [shape = doublecircle, color = slategray];
 
     start -> insufficient [label = "cluster\ncreated", color=lightpink3, fontcolor=lightpink3];
 
@@ -23,7 +23,7 @@ digraph ClusterStateMachine {
     ready -> insufficient [label = "min reqs\nnot met", color=lightpink3, fontcolor=lightpink3];
     ready -> "preparing-for-installation" [label = "installation started", color=darkolivegreen3, fontcolor=darkolivegreen4];
 
-    cancelled -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
+    canceled -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
 
     "preparing-for-installation" -> installing [color=darkolivegreen4];
 
@@ -32,11 +32,11 @@ digraph ClusterStateMachine {
     installing -> "installing-pending-user-action" [label = "hosts in wrong boot order", color=cornsilk4, fontcolor=cornsilk4];
 
     "installing-pending-user-action" -> installing [label = "fixed wrong boot order", fontcolor=darkolivegreen4, color=darkolivegreen4];
-    "installing-pending-user-action" -> cancelled [label = "cancel", color=slategray, fontcolor=slategray];
+    "installing-pending-user-action" -> canceled [label = "cancel", color=slategray, fontcolor=slategray];
     "installing-pending-user-action" -> error [label = "error\n", color=crimson, fontcolor=crimson];
 
     finalizing -> error [label = "installation\nerror\n", color=crimson, fontcolor=crimson, ltail = cluster_level1];
-    finalizing -> cancelled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level1];
+    finalizing -> canceled [label = "cancel", color=slategray, fontcolor=slategray, ltail = cluster_level1];
     finalizing -> installed [label = "installation\ncompleted", color=chartreuse4, fontcolor=chartreuse4];
 
     error -> insufficient [label = "reset", color=lightpink3, fontcolor=lightpink3];
@@ -44,5 +44,5 @@ digraph ClusterStateMachine {
     {rank=min; start}
     {rank=max; installed}
     {rank=same; start; insufficient; ready}
-    {rank=same; installed; error; cancelled}
+    {rank=same; installed; error; canceled}
 }

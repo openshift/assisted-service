@@ -143,7 +143,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
 		},
-		DestinationState: stateswitch.State(models.HostStatusCancelled),
+		DestinationState: stateswitch.State(models.HostStatusCanceled),
 		PostTransition:   th.PostCancelInstallation,
 	})
 
@@ -166,7 +166,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
-			stateswitch.State(models.HostStatusCancelled),
+			stateswitch.State(models.HostStatusCanceled),
 			stateswitch.State(models.HostStatusAddedToExistingCluster),
 		},
 		DestinationState: stateswitch.State(models.HostStatusResetting),
@@ -240,7 +240,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstallingInProgress),
 			stateswitch.State(models.HostStatusInstalled),
 			stateswitch.State(models.HostStatusError),
-			stateswitch.State(models.HostStatusCancelled),
+			stateswitch.State(models.HostStatusCanceled),
 			stateswitch.State(models.HostStatusAddedToExistingCluster),
 		},
 		DestinationState: stateswitch.State(models.HostStatusResettingPendingUserAction),
@@ -479,7 +479,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	// check timeout of log collection
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.HostStatusError),
-		stateswitch.State(models.HostStatusCancelled)} {
+		stateswitch.State(models.HostStatusCanceled)} {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefresh,
 			SourceStates:     []stateswitch.State{state},
@@ -493,7 +493,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	for _, state := range []stateswitch.State{
 		stateswitch.State(models.HostStatusDisabled),
 		stateswitch.State(models.HostStatusError),
-		stateswitch.State(models.HostStatusCancelled),
+		stateswitch.State(models.HostStatusCanceled),
 		stateswitch.State(models.HostStatusResetting),
 	} {
 		sm.AddTransition(stateswitch.TransitionRule{

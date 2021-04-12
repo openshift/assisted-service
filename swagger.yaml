@@ -3470,7 +3470,7 @@ definitions:
           - error
           - resetting
           - added-to-existing-cluster
-          - cancelled
+          - canceled
       status_info:
         type: string
         x-go-custom-tag: gorm:"type:varchar(2048)"
@@ -4069,7 +4069,7 @@ definitions:
           - finalizing
           - installed
           - adding-hosts
-          - cancelled
+          - canceled
           - installing-pending-user-action
       status_info:
         type: string

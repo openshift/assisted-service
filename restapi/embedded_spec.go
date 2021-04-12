@@ -5064,7 +5064,7 @@ func init() {
             "finalizing",
             "installed",
             "adding-hosts",
-            "cancelled",
+            "canceled",
             "installing-pending-user-action"
           ]
         },
@@ -6388,7 +6388,7 @@ func init() {
             "error",
             "resetting",
             "added-to-existing-cluster",
-            "cancelled"
+            "canceled"
           ]
         },
         "status_info": {
@@ -12706,7 +12706,7 @@ func init() {
             "finalizing",
             "installed",
             "adding-hosts",
-            "cancelled",
+            "canceled",
             "installing-pending-user-action"
           ]
         },
@@ -13954,7 +13954,7 @@ func init() {
             "error",
             "resetting",
             "added-to-existing-cluster",
-            "cancelled"
+            "canceled"
           ]
         },
         "status_info": {
