@@ -99,9 +99,12 @@ func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spe
 	Expect(err).To(BeNil())
 }
 
-func updateClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, clusterDeployment *hivev1.ClusterDeployment) {
-	err := client.Update(ctx, clusterDeployment)
-	Expect(err).To(BeNil())
+func addAnnotationToClusterDeployment(ctx context.Context, client k8sclient.Client, key types.NamespacedName, annotationKey string, annotationValue string) {
+	Eventually(func() error {
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, client, key)
+		clusterDeploymentCRD.SetAnnotations(map[string]string{annotationKey: annotationValue})
+		return kubeClient.Update(ctx, clusterDeploymentCRD)
+	}, "30s", "10s").Should(BeNil())
 }
 
 func deployInstallEnvCRD(ctx context.Context, client k8sclient.Client, name string, spec *v1beta1.InstallEnvSpec) {
@@ -788,10 +791,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
-		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName)
 		installConfigOverrides := `{"controlPlane": {"hyperthreading": "Enabled"}}`
-		clusterDeploymentCRD.SetAnnotations(map[string]string{controllers.InstallConfigOverrides: installConfigOverrides})
-		updateClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentCRD)
+		addAnnotationToClusterDeployment(ctx, kubeClient, clusterKubeName, controllers.InstallConfigOverrides, installConfigOverrides)
 
 		Eventually(func() string {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -820,10 +821,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
-		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName)
 		installConfigOverrides := `{"controlPlane": "malformed json": "Enabled"}}`
-		clusterDeploymentCRD.SetAnnotations(map[string]string{controllers.InstallConfigOverrides: installConfigOverrides})
-		updateClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentCRD)
+		addAnnotationToClusterDeployment(ctx, kubeClient, clusterKubeName, controllers.InstallConfigOverrides, installConfigOverrides)
 
 		Eventually(func() string {
 			// currently all conditions have the same type, so filter by status = False
