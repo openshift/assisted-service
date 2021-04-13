@@ -254,7 +254,7 @@ var _ = Describe("bmac reconcile", func() {
 			annotations[BMH_AGENT_HOSTNAME] = "happy-meal"
 			annotations[BMH_AGENT_MACHINE_CONFIG_POOL] = "number-8"
 			annotations[BMH_AGENT_INSTALLER_ARGS] = `["--args", "aaaa"]`
-			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDE] = "agent-ignition"
+			annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = "agent-ignition"
 			host.ObjectMeta.SetAnnotations(annotations)
 			Expect(c.Create(ctx, host)).To(BeNil())
 
@@ -330,7 +330,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(updatedAgent.Spec.Hostname).To(Equal("happy-meal"))
 				Expect(updatedAgent.Spec.MachineConfigPool).To(Equal("number-8"))
 				Expect(updatedAgent.Spec.InstallerArgs).To(Equal(`["--args", "aaaa"]`))
-				Expect(updatedAgent.Spec.IgnitionConfigOverride).To(Equal("agent-ignition"))
+				Expect(updatedAgent.Spec.IgnitionConfigOverrides).To(Equal("agent-ignition"))
 			})
 
 			It("should keep InstallationDiskID as empty string if not RootDeviceHints match", func() {

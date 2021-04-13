@@ -448,6 +448,112 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "10s").Should(Equal(validHwInfo.SystemVendor.Manufacturer))
 	})
 
+	It("deploy clusterDeployment with agent,bmh and ignition config override", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		agent := getAgentCRD(ctx, kubeClient, key)
+		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(agent)}
+		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
+
+		Eventually(func() error {
+			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_IGNITION_CONFIG_OVERRIDES: fakeIgnitionConfigOverride})
+			return kubeClient.Update(ctx, bmh)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			agent := getAgentCRD(ctx, kubeClient, key)
+
+			if agent.Spec.IgnitionConfigOverrides == "" {
+				return false
+			}
+
+			if h.IgnitionConfigOverrides == "" {
+				return false
+			}
+			return reflect.DeepEqual(h.IgnitionConfigOverrides, agent.Spec.IgnitionConfigOverrides)
+		}, "2m", "10s").Should(Equal(true))
+
+		By("Clean ignition config override ")
+		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.IgnitionConfigOverrides).NotTo(BeEmpty())
+
+		Eventually(func() error {
+			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_IGNITION_CONFIG_OVERRIDES: ""})
+			return kubeClient.Update(ctx, bmh)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Verify agent ignition config override were cleaned")
+		Eventually(func() string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Spec.IgnitionConfigOverrides
+		}, "30s", "10s").Should(BeEmpty())
+
+		By("Verify host ignition config override were cleaned")
+		Eventually(func() int {
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+
+			return len(h.IgnitionConfigOverrides)
+		}, "2m", "10s").Should(Equal(0))
+	})
+
+	It("deploy clusterDeployment with agent and invalid ignition config", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.IgnitionConfigOverrides).To(BeEmpty())
+
+		By("Invalid ignition config - invalid json")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.IgnitionConfigOverrides = badIgnitionConfigOverride
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
+			if condition != nil {
+				return strings.Contains(condition.Message, "error parsing ignition: config is not valid")
+			}
+			return false
+		}, "15s", "2s").Should(Equal(true))
+		h, err = common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.IgnitionConfigOverrides).To(BeEmpty())
+	})
+
 	It("deploy clusterDeployment with agent and update installer args", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)

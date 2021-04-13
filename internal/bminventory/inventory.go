@@ -119,6 +119,7 @@ type InstallerInternals interface {
 	GetCommonHostInternal(ctx context.Context, clusterId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
 	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
+	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
@@ -3303,27 +3304,42 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	return nil
 }
 
-func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
+func (b *bareMetalInventory) UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error) {
 	log := logutil.FromContext(ctx, b.log)
 
 	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 
-	_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
-	if err != nil {
-		log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
-		return installer.NewUpdateHostIgnitionBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	if params.HostIgnitionParams.Config != "" {
+		_, err = ignition.ParseToLatest([]byte(params.HostIgnitionParams.Config))
+		if err != nil {
+			log.WithError(err).Errorf("Failed to parse host ignition config patch %s", params.HostIgnitionParams)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
 	}
 
 	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Update("ignition_config_overrides", params.HostIgnitionParams.Config).Error
 	if err != nil {
-		return installer.NewUpdateHostIgnitionInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom discovery ignition config was applied", hostutil.GetHostnameForMsg(&h.Host)), time.Now())
 	log.Infof("Custom discovery ignition config was applied to host %s in cluster %s", params.HostID, params.ClusterID)
+	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
+	if err != nil {
+		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return &h.Host, nil
+}
+
+func (b *bareMetalInventory) UpdateHostIgnition(ctx context.Context, params installer.UpdateHostIgnitionParams) middleware.Responder {
+	_, err := b.UpdateHostIgnitionInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewUpdateHostIgnitionCreated()
 }
 
