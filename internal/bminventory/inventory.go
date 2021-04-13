@@ -855,7 +855,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	cluster, err := common.GetClusterFromDB(tx, params.ClusterID, common.SkipEagerLoading)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
-		return nil, common.NewApiError(http.StatusNotFound, err)
+		return nil, err
 	}
 
 	/* We need to ensure that the metadata in the DB matches the image that will be uploaded to S3,
@@ -944,7 +944,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
 		msg := "Failed to generate image: error fetching updated cluster metadata"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	if imageExists {
@@ -1534,11 +1534,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 	err := b.db.First(&cluster, query, params.ClusterID).Error
 	if err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, common.NewApiError(http.StatusNotFound, err)
-		} else {
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
+		return nil, err
 	}
 
 	if err = installcfg.ValidateInstallConfigPatch(log, &cluster, params.InstallConfigParams); err != nil {
@@ -1769,7 +1765,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
-		return nil, common.NewApiError(http.StatusInternalServerError, err)
+		return nil, err
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
@@ -2356,14 +2352,13 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	cluster, err := common.GetClusterFromDBWhere(b.db, common.UseEagerLoading,
 		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)), "id = ?", params.ClusterID)
 	if err != nil {
-		// TODO: check for the right error
-		return nil, common.NewApiError(http.StatusNotFound, err)
+		return nil, err
 	}
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
 		if err := b.customizeHost(host); err != nil {
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
+			return nil, err
 		}
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
@@ -2402,10 +2397,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 
 	if err := tx.First(&cluster, "id = ?", params.ClusterID.String()).Error; err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID.String())
-		if gorm.IsRecordNotFoundError(err) {
-			return common.NewApiError(http.StatusNotFound, err)
-		}
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return common.GenerateErrorResponder(err)
 	}
 
 	_, err := common.GetHostFromDB(tx, params.ClusterID.String(), params.NewHostParams.HostID.String())
@@ -3111,7 +3103,6 @@ func (b *bareMetalInventory) refreshHostAndClusterStatuses(
 				err.Error(),
 				time.Now())
 		}
-		err = common.NewApiError(http.StatusInternalServerError, err)
 	}()
 	err = b.setMajorityGroupForCluster(clusterID, db)
 	if err != nil {
@@ -3421,11 +3412,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 	db := common.LoadTableFromDB(b.db, common.MonitoredOperatorsTable)
 	if err := db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", params.ClusterID)
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, common.NewApiError(http.StatusNotFound, err)
-		} else {
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
+		return nil, err
 	}
 	if !b.clusterApi.IsOperatorAvailable(&cluster, operators.OperatorConsole.Name) {
 		err := errors.New("console-url isn't available yet, it will be once console operator is ready as part of cluster finalizing stage")
@@ -3836,9 +3823,6 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 	var cluster *common.Cluster
 	var err error
 	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
-		if gorm.IsRecordNotFoundError(errors.Cause(err)) {
-			return common.NewApiError(http.StatusNotFound, err)
-		}
 		return common.GenerateErrorResponder(err)
 	}
 
@@ -4291,11 +4275,7 @@ func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, f
 
 	if err != nil {
 		log.Error(err)
-		if gorm.IsRecordNotFoundError(err) {
-			return nil, common.NewApiError(http.StatusNotFound, err)
-		} else {
-			return nil, common.NewApiError(http.StatusInternalServerError, err)
-		}
+		return nil, err
 	}
 	return cluster, nil
 }

@@ -337,7 +337,7 @@ _test: $(REPORTS)
 	$(MAKE) _post_test
 
 _post_test: $(REPORTS)
-	for name in `find -name 'junit*.xml' -type f`; do \
+	@for name in `find '$(ROOT_DIR)' -name 'junit*.xml' -type f -not -path '$(REPORTS)/*'`; do \
 		mv -f $$name $(REPORTS)/junit_$(TEST_SCENARIO)_$$(basename $$(dirname $$name)).xml; \
 	done
 	$(MAKE) _coverage
