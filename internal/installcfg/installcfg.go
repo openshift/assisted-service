@@ -412,7 +412,7 @@ func getHypethreadingConfiguration(cluster *common.Cluster, machineType string) 
 			return "Enabled"
 		}
 	}
-	return ""
+	return "Disabled"
 }
 
 func getCAContents(cluster *common.Cluster, rhRootCA string, installRHRootCAFlag bool) string {
