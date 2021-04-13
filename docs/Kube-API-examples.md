@@ -113,7 +113,7 @@ spec:
 ### Creating host installer args overrides
 
 In order to alter the default coreos-installer arguments used when running `coreos-installer`openshift-install create command.
-List of supported args can be found here https://github.com/openshift/assisted-service/blob/master/internal/host/hostutil/host_utils.go#L165
+List of supported args can be found [here](https://github.com/openshift/assisted-service/blob/master/internal/host/hostutil/host_utils.go#L165)
 In case of failure to apply the overrides the agent conditions will reflect the error and show the relevant error message. 
 
 Add an annotation with the desired options, the bmac controller will update the agent spec with the annotation value.
