@@ -168,8 +168,8 @@ func CreateAndUploadMinimalIso(ctx context.Context, log logrus.FieldLogger,
 func HaveLatestMinimalTemplate(ctx context.Context, log logrus.FieldLogger, api API) bool {
 	versionFromBucket, err := getISOTemplatesVersion(ctx, log, api)
 	if err != nil {
-		log.WithError(err).Warning("Missing ISO templates version file")
-		// Ignoring if missing, i.e. uploading a new version
+		log.WithError(err).Warning("ISO template version metadata not found, uploading latest")
+		// Assume error is due to missing file and upload the latest
 		return false
 	}
 
@@ -187,7 +187,6 @@ func getISOTemplatesVersion(ctx context.Context, log logrus.FieldLogger, api API
 	// Fetch version file from bucket
 	reader, _, err := api.Download(ctx, minimalTemplatesVersionFileName)
 	if err != nil {
-		log.WithError(err).Error("Failed downloading ISO templates version file")
 		return nil, err
 	}
 
