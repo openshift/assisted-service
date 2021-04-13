@@ -139,7 +139,7 @@ func (th *transitionHandler) PostRegisterDuringReboot(sw stateswitch.StateSwitch
 		messages = append(messages, installationDisk.Serial)
 	}
 
-	messages = append(messages, fmt.Sprintf("(%s)", hostutil.GetDeviceIdentifier(installationDisk)))
+	messages = append(messages, fmt.Sprintf("(%s, %s)", installationDisk.Name, hostutil.GetDeviceIdentifier(installationDisk)))
 	return th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost, strings.Join(messages, " "))
 }
 
