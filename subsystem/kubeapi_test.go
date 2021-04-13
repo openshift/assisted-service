@@ -2,11 +2,15 @@ package subsystem
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
+	bmhv1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
@@ -74,6 +78,21 @@ func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, sp
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Options.Namespace,
 			Name:      spec.ClusterName,
+		},
+		Spec: *spec,
+	})
+	Expect(err).To(BeNil())
+}
+
+func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spec *bmhv1alpha1.BareMetalHostSpec) {
+	err := client.Create(ctx, &bmhv1alpha1.BareMetalHost{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "BareMetalHost",
+			APIVersion: "metal3.io/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      name,
 		},
 		Spec: *spec,
 	})
@@ -161,6 +180,13 @@ func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.Namespa
 	err := client.Get(ctx, key, agent)
 	Expect(err).To(BeNil())
 	return agent
+}
+
+func getBmhCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *bmhv1alpha1.BareMetalHost {
+	bmh := &bmhv1alpha1.BareMetalHost{}
+	err := client.Get(ctx, key, bmh)
+	Expect(err).To(BeNil())
+	return bmh
 }
 
 func getSecret(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *corev1.Secret {
@@ -288,11 +314,22 @@ func getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecond
 	}
 }
 
+func getAgentMac(agent *v1beta1.Agent) string {
+
+	for _, agentInterface := range agent.Status.Inventory.Interfaces {
+		if agentInterface.MacAddress != "" {
+			return agentInterface.MacAddress
+		}
+	}
+	return ""
+}
+
 func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.InstallEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 }
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
@@ -392,6 +429,207 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() string {
 			return getAgentCRD(ctx, kubeClient, key).Status.Inventory.SystemVendor.Manufacturer
 		}, "2m", "10s").Should(Equal(validHwInfo.SystemVendor.Manufacturer))
+	})
+
+	It("deploy clusterDeployment with agent and update installer args", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.InstallerArgs = installerArgs
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			agent := getAgentCRD(ctx, kubeClient, key)
+
+			var j, j2 interface{}
+			err = json.Unmarshal([]byte(agent.Spec.InstallerArgs), &j)
+			Expect(err).To(BeNil())
+
+			if h.InstallerArgs == "" {
+				return false
+			}
+
+			err = json.Unmarshal([]byte(h.InstallerArgs), &j2)
+			Expect(err).To(BeNil())
+			return reflect.DeepEqual(j2, j)
+		}, "2m", "10s").Should(Equal(true))
+
+		By("Clean installer args")
+		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.InstallerArgs).NotTo(BeEmpty())
+
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.InstallerArgs = ""
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() int {
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			var j []string
+			err = json.Unmarshal([]byte(h.InstallerArgs), &j)
+			Expect(err).To(BeNil())
+
+			return len(j)
+		}, "2m", "10s").Should(Equal(0))
+	})
+
+	It("deploy clusterDeployment with agent and invalid installer args", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.InstallerArgs).To(BeEmpty())
+
+		By("Invalid installer args - invalid json")
+		installerArgs := `"--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.InstallerArgs = installerArgs
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.AgentSyncedCondition)
+			if condition != nil {
+				return strings.HasPrefix(condition.Message, "Failed to sync agent: Fail to unmarshal installer args")
+			}
+			return false
+		}, "15s", "2s").Should(Equal(true))
+		h, err = common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.InstallerArgs).To(BeEmpty())
+
+		By("Invalid installer args - invalid params")
+		installerArgs = `["--wrong-param", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.InstallerArgs = installerArgs
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.AgentSyncedCondition)
+			if condition != nil {
+				return strings.HasPrefix(condition.Message, "Failed to sync agent: found unexpected flag --wrong-param")
+			}
+			return false
+		}, "15s", "2s").Should(Equal(true))
+		h, err = common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.InstallerArgs).To(BeEmpty())
+	})
+
+	It("deploy clusterDeployment with agent,bmh and installer args", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key = types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		agent := getAgentCRD(ctx, kubeClient, key)
+		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(agent)}
+		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
+
+		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
+
+		Eventually(func() error {
+			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_INSTALLER_ARGS: installerArgs})
+			return kubeClient.Update(ctx, bmh)
+		}, "30s", "10s").Should(BeNil())
+
+		Eventually(func() bool {
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+			agent := getAgentCRD(ctx, kubeClient, key)
+			if agent.Spec.InstallerArgs == "" {
+				return false
+			}
+
+			var j, j2 interface{}
+			err = json.Unmarshal([]byte(agent.Spec.InstallerArgs), &j)
+			Expect(err).To(BeNil())
+
+			if h.InstallerArgs == "" {
+				return false
+			}
+
+			err = json.Unmarshal([]byte(h.InstallerArgs), &j2)
+			Expect(err).To(BeNil())
+			return reflect.DeepEqual(j2, j)
+		}, "2m", "10s").Should(Equal(true))
+
+		By("Clean installer args")
+		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		Expect(err).To(BeNil())
+		Expect(h.InstallerArgs).NotTo(BeEmpty())
+
+		Eventually(func() error {
+			bmh := getBmhCRD(ctx, kubeClient, key)
+			bmh.SetAnnotations(map[string]string{controllers.BMH_AGENT_INSTALLER_ARGS: ""})
+			return kubeClient.Update(ctx, bmh)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Verify agent installer args were cleaned")
+		Eventually(func() string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Spec.InstallerArgs
+		}, "30s", "10s").Should(BeEmpty())
+
+		By("Verify host installer args were cleaned")
+		Eventually(func() int {
+			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			Expect(err).To(BeNil())
+
+			var j []string
+			err = json.Unmarshal([]byte(h.InstallerArgs), &j)
+			Expect(err).To(BeNil())
+
+			return len(j)
+		}, "2m", "10s").Should(Equal(0))
 	})
 
 	It("deploy clusterDeployment and installEnv and verify cluster updates", func() {

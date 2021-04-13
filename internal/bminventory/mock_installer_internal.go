@@ -260,3 +260,18 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateHostApprovedInternal(arg0, a
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostApprovedInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostApprovedInternal), arg0, arg1, arg2, arg3)
 }
+
+// UpdateHostInstallerArgsInternal mocks base method
+func (m *MockInstallerInternals) UpdateHostInstallerArgsInternal(arg0 context.Context, arg1 installer.UpdateHostInstallerArgsParams) (*models.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHostInstallerArgsInternal", arg0, arg1)
+	ret0, _ := ret[0].(*models.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateHostInstallerArgsInternal indicates an expected call of UpdateHostInstallerArgsInternal
+func (mr *MockInstallerInternalsMockRecorder) UpdateHostInstallerArgsInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostInstallerArgsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostInstallerArgsInternal), arg0, arg1)
+}

@@ -6502,7 +6502,7 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 			InstallerArgsParams: &models.InstallerArgsParams{Args: args},
 		}
 		response := bm.UpdateHostInstallerArgs(ctx, params)
-		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateHostInstallerArgsBadRequest{}))
+		verifyApiError(response, http.StatusBadRequest)
 	})
 })
 

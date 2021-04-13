@@ -117,6 +117,7 @@ type InstallerInternals interface {
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
 	GetCommonHostInternal(ctx context.Context, clusterId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
+	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
 	DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
@@ -2595,28 +2596,29 @@ func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.Lis
 	return installer.NewListHostsOK().WithPayload(hosts)
 }
 
-func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
+func (b *bareMetalInventory) UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 
 	err := hostutil.ValidateInstallerArgs(params.InstallerArgsParams.Args)
 	if err != nil {
-		return installer.NewUpdateHostInstallerArgsBadRequest().WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	h, err := b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 
 	argsBytes, err := json.Marshal(params.InstallerArgsParams.Args)
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 
 	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), params.HostID, params.ClusterID).Update("installer_args", string(argsBytes)).Error
 	if err != nil {
 		log.WithError(err).Errorf("failed to update host %s", params.HostID)
-		return installer.NewUpdateHostInstallerArgsInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo, fmt.Sprintf("Host %s: custom installer arguments were applied", hostutil.GetHostnameForMsg(&h.Host)), time.Now())
@@ -2625,10 +2627,18 @@ func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params
 	h, err = b.getHost(ctx, params.ClusterID.String(), params.HostID.String())
 	if err != nil {
 		log.WithError(err).Errorf("failed to get host %s after update", params.HostID)
-		return common.NewApiError(http.StatusInternalServerError, err)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	return installer.NewUpdateHostInstallerArgsCreated().WithPayload(&h.Host)
+	return &h.Host, nil
+}
+
+func (b *bareMetalInventory) UpdateHostInstallerArgs(ctx context.Context, params installer.UpdateHostInstallerArgsParams) middleware.Responder {
+	updatedHost, err := b.UpdateHostInstallerArgsInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewUpdateHostInstallerArgsCreated().WithPayload(updatedHost)
 }
 
 func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder {

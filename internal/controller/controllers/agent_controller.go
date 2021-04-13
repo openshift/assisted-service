@@ -134,6 +134,46 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	return result, nil
 }
 
+func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+
+	if agent.Spec.InstallerArgs == host.InstallerArgs {
+		r.Log.Debugf("Nothing to update, installer args were already set")
+		return nil
+	}
+
+	// InstallerArgs are saved in DB as string after unmarshalling of []string
+	// that operation removes all whitespaces between words
+	// in order to be able to validate that field didn't changed
+	// doing reverse operation
+	// If agent.Spec.InstallerArgs was not set but host.InstallerArgs was, we need to delete InstallerArgs
+	agentSpecInstallerArgs := models.InstallerArgsParams{Args: []string{}}
+	if agent.Spec.InstallerArgs != "" {
+		err := json.Unmarshal([]byte(agent.Spec.InstallerArgs), &agentSpecInstallerArgs.Args)
+		if err != nil {
+			msg := fmt.Sprintf("Fail to unmarshal installer args for host %s in cluster %s", agent.Name, c.Name)
+			r.Log.WithError(err).Errorf(msg)
+			return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, msg))
+		}
+	}
+
+	// as we marshalling same var or []string, there is no point to verify error on marshalling it
+	argsBytes, _ := json.Marshal(agentSpecInstallerArgs.Args)
+	// we need to validate if the equal one more after marshalling
+	if string(argsBytes) == host.InstallerArgs {
+		r.Log.Debugf("Nothing to update, installer args were already set")
+		return nil
+	}
+
+	params := installer.UpdateHostInstallerArgsParams{
+		ClusterID:           *c.ID,
+		HostID:              strfmt.UUID(agent.Name),
+		InstallerArgsParams: &agentSpecInstallerArgs,
+	}
+	_, err := r.Installer.UpdateHostInstallerArgsInternal(ctx, params)
+
+	return err
+}
+
 func (r *AgentReconciler) updateInventory(c *common.Cluster, agent *aiv1beta1.Agent) error {
 
 	host := getHostFromCluster(c, agent.Name)
@@ -280,6 +320,18 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 			}
 			return ctrl.Result{Requeue: Requeue}, inventoryErr
 		}
+	}
+
+	err = r.updateInstallerArgs(ctx, c, internalHost, agent)
+	if err != nil {
+		if gorm.IsRecordNotFoundError(err) {
+			Requeue = true
+			inventoryErr = common.NewApiError(http.StatusNotFound, err)
+		} else {
+			Requeue = false
+			inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
+		}
+		return ctrl.Result{Requeue: Requeue}, inventoryErr
 	}
 
 	clusterUpdate := false

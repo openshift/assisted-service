@@ -109,3 +109,33 @@ metadata:
   uid: 25769614-52db-448d-8366-05cb38c776fa
 spec:
 ```
+
+### Creating host installer args overrides
+
+In order to alter the default coreos-installer arguments used when running `coreos-installer`openshift-install create command.
+List of supported args can be found here https://github.com/openshift/assisted-service/blob/master/internal/host/hostutil/host_utils.go#L165
+In case of failure to apply the overrides the agent conditions will reflect the error and show the relevant error message. 
+
+Add an annotation with the desired options, the bmac controller will update the agent spec with the annotation value.
+Then agent controller will forward it to host configuration.
+Note that this configuration must be applied prior to starting the installation
+```sh
+$ kubectl annotate bmh openshift-worker-0 -n assisted-installer bmac.agent-install.openshift.io/installer-args="[\"--append-karg\", \"ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none\", \"--save-partindex\", \"1\", \"-n\"]"
+baremetalhost.metal3.io/openshift-worker-0 annotated
+```
+
+```sh
+$ oc get bmh openshift-worker-0 -n assisted-installer -o yaml
+```
+```yaml
+apiVersion: metal3.io/v1alpha1
+kind: BareMetalHost
+metadata:
+  annotations:
+    bmac.agent-install.openshift.io/installer-args: '["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]'
+  creationTimestamp: "2021-04-13T10:46:57Z"
+  generation: 1
+  name: openshift-worker-0
+  namespace: assisted-installer
+spec:
+```
