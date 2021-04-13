@@ -505,7 +505,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.AllHostsAreReadyToInstall:           {status: clust.ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
-				clust.SufficientMastersCount:              {status: clust.ValidationFailure, messagePattern: "Clusters with less than 3 dedicated masters or a single worker are not supported. Please either add hosts, or disable the worker host"},
+				clust.SufficientMastersCount:              {status: clust.ValidationFailure, messagePattern: "Clusters must have exactly 3 dedicated masters. Please either add hosts, or disable the worker host"},
 				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS."},
 			}),
 			errorExpected: false,
