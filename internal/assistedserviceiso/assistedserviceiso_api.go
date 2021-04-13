@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/imgexpirer"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -54,10 +55,9 @@ func NewAssistedServiceISOApi(objectHandler s3wrapper.API, authHandler auth.Auth
 func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, params assisted_service_iso.CreateISOAndUploadToS3Params) middleware.Responder {
 	log := logutil.FromContext(ctx, a.log)
 
-	sshPublicKey := params.AssistedServiceIsoCreateParams.SSHPublicKey
-	if sshPublicKey != "" {
-		sshPublicKey = strings.TrimSpace(sshPublicKey)
-		if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+	sshPublicKeys := params.AssistedServiceIsoCreateParams.SSHPublicKey
+	if sshPublicKeys != "" {
+		if err := validations.ValidateSSHPublicKey(sshPublicKeys); err != nil {
 			log.WithError(err).Errorf("Failed to validate SSH public key.")
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
@@ -84,7 +84,7 @@ func (a *assistedServiceISOApi) CreateISOAndUploadToS3(ctx context.Context, para
 	}
 	ignitionConfigSource := string(data)
 
-	reIgnition := strings.NewReplacer("replace-with-your-ssh-public-key", sshPublicKey,
+	reIgnition := strings.NewReplacer("replace-with-your-ssh-public-key", ignition.QuoteSshPublicKeys(sshPublicKeys),
 		"replace-with-your-urlencoded-pull-secret", url.PathEscape(pullSecret))
 
 	ignitionConfig := reIgnition.Replace(ignitionConfigSource)

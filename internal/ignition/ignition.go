@@ -1359,6 +1359,10 @@ func (ib *ignitionBuilder) FormatSecondDayWorkerIgnitionFile(address string, mac
 	return buf.Bytes(), nil
 }
 
+func QuoteSshPublicKeys(sshPublicKeys string) string {
+	return strings.ReplaceAll(sshPublicKeys, "\n", `", "`)
+}
+
 func getUserSSHKey(sshKey string) string {
 	if sshKey == "" {
 		return ""
@@ -1368,7 +1372,7 @@ func getUserSSHKey(sshKey string) string {
         "passwordHash": "!",
         "sshAuthorizedKeys": [
         "%s"],
-        "groups": [ "sudo" ]}`, sshKey)
+        "groups": [ "sudo" ]}`, QuoteSshPublicKeys(sshKey))
 }
 
 func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, error) {
