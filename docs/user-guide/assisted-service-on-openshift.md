@@ -1,5 +1,9 @@
 # How to deploy OAS on OpenShift
 
+## Deploy with Makefile
+
+### Assisted Service
+
 Besides default minikube deployment, the service support deployment to OpenShift cluster using ingress as the access point to the service.
 
 ```shell
@@ -19,7 +23,7 @@ make deploy-all TARGET=oc-ingress APPLY_NAMESPACE=False INGRESS_DOMAIN=apps.ocp.
 _**Note**: All deployment configurations are under the `deploy` directory in case more detailed configuration is required._
 
 
-## Deploying the UI
+### UI
 
 This service support optional UI deployment.
 
@@ -27,7 +31,7 @@ This service support optional UI deployment.
 make deploy-ui TARGET=oc-ingress
 ```
 
-## Deploy Monitoring 
+### Monitoring 
 
 This will allow you to deploy Prometheus and Grafana already integrated with Assisted installer:
 
@@ -38,4 +42,15 @@ make deploy-grafana TARGET=oc-ingress APPLY_NAMESPACE=false
 
 # Or just all-in
 make deploy-monitoring TARGET=oc-ingress APPLY_NAMESPACE=false
+```
+
+## Configure Bare Metal Operator
+
+When OpenShift is deployed with the `baremetal` platform, it includes the
+baremetal-operator. If you want to use the baremetal-operator and its
+BareMetalHost CRD to automatically boot hosts with the discovery ISO, you'll
+need to configure baremetal-operator to watch all namespaces.
+
+```
+oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
 ```
