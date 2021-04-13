@@ -889,6 +889,41 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(getConditionByReason(AgentPlatformError, cluster).Message).To(Equal(expectedError.Error()))
 		})
 
+		It("clear api error after successful update", func() {
+			request := newClusterDeploymentRequest(cluster)
+
+			By("set api error", func() {
+				expectedError := errors.Errorf("some internal error")
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, expectedError)
+
+				result, err := cr.Reconcile(request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+				cluster = getTestCluster()
+				Expect(getConditionByReason(AgentPlatformError, cluster).Message).To(Equal(expectedError.Error()))
+			})
+
+			By("update cluster and verify error is cleared", func() {
+				backEndCluster := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:                 &sId,
+						Name:               "different-cluster-name",
+						OpenshiftVersion:   "4.7",
+						ClusterNetworkCidr: "11.129.0.0/14",
+						Status:             swag.String(models.ClusterStatusPendingForInput),
+					},
+					PullSecret: "different-pull-secret",
+				}
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+				mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
+				result, err := cr.Reconcile(request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+				cluster = getTestCluster()
+				Expect(findConditionIndexByReason(AgentPlatformError, &cluster.Status.Conditions)).To(Equal(-1))
+			})
+		})
+
 		It("update internal error", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{

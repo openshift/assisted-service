@@ -409,6 +409,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	}
 
 	r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+	clearClusterAPIErrors(clusterDeployment)
 	reply, err := r.updateState(ctx, clusterDeployment, updatedCluster, nil)
 	if err == nil && notifyInstallEnv && installEnv != nil {
 		r.Log.Infof("Notify that installEnv %s should re-generate the image for clusterDeployment %s", installEnv.Name, clusterDeployment.ClusterName)
@@ -560,11 +561,6 @@ func setClusterApiError(err error, cluster *hivev1.ClusterDeployment) {
 			Message:            err.Error(),
 		}
 		setCondition(errorCondition, &cluster.Status.Conditions)
-	} else {
-		if index := findConditionIndexByReason(AgentPlatformError, &cluster.Status.Conditions); index >= 0 {
-			cluster.Status.Conditions = append(cluster.Status.Conditions[:index],
-				cluster.Status.Conditions[index+1:]...)
-		}
 	}
 }
 
@@ -624,6 +620,15 @@ func setCondition(condition hivev1.ClusterDeploymentCondition, conditions *[]hiv
 		(*conditions)[index] = condition
 	} else {
 		*conditions = append(*conditions, condition)
+	}
+}
+
+func clearClusterAPIErrors(clusterDeployment *hivev1.ClusterDeployment) {
+	conditions := &clusterDeployment.Status.Conditions
+	for i := len(*conditions) - 1; i >= 0; i-- {
+		if (*conditions)[i].Reason == AgentPlatformError {
+			*conditions = append((*conditions)[:i], (*conditions)[i+1:]...)
+		}
 	}
 }
 
