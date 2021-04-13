@@ -60,9 +60,10 @@ type validationConditon func(context *validationContext) ValidationStatus
 type validationStringFormatter func(context *validationContext, status ValidationStatus) string
 
 type validation struct {
-	id        validationID
-	condition validationConditon
-	formatter validationStringFormatter
+	id            validationID
+	condition     validationConditon
+	formatter     validationStringFormatter
+	skippedStates []models.HostStage
 }
 
 func (c *validationContext) loadCluster() error {

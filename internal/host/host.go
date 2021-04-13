@@ -46,7 +46,7 @@ var WorkerStages = [...]models.HostStage{
 	models.HostStageJoined, models.HostStageDone,
 }
 
-var manualRebootStages = [...]models.HostStage{
+var manualRebootStages = []models.HostStage{
 	models.HostStageRebooting,
 	models.HostStageWaitingForIgnition,
 	models.HostStageConfiguring,
@@ -797,11 +797,6 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validat
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
-				// after reboot there is no agent, therefore, the host validation for 'connected' will constantly fail.
-				// this is the expected behaviour and we don't need to generate event/metric for it.
-				if v.ID == IsConnected && funk.Contains(manualRebootStages, h.Progress.CurrentStage) {
-					continue
-				}
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
 					m.metricApi.HostValidationChanged(vc.cluster.OpenshiftVersion, vc.cluster.EmailDomain, models.HostValidationID(v.ID))
 					eventMsg := fmt.Sprintf("Host %s: validation '%s' that used to succeed is now failing", hostutil.GetHostnameForMsg(h), v.ID)
