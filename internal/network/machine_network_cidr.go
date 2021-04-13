@@ -249,7 +249,7 @@ func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLog
 	cidr := GetMachineCidrForUserManagedNetwork(cluster, log)
 	hostIp, err := getMachineCIDRObj(bootstrap, cidr, "ip")
 	if hostIp == "" || err != nil {
-		msg := "failed to get ip for bootstrap in place dnsmasq manifest"
+		msg := "failed to get ip for single node installation"
 		if err != nil {
 			msg = errors.Wrapf(err, msg).Error()
 		}

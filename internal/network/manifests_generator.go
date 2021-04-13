@@ -122,7 +122,7 @@ spec:
         enabled: true
         contents: |
          [Unit]
-         Description=Run dnsmasq to provide local dns for Singe Node OpenShift
+         Description=Run dnsmasq to provide local dns for Single Node OpenShift
          Before=kubelet.service crio.service
          After=network.target
          
