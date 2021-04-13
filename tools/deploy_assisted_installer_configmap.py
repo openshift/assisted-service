@@ -94,6 +94,7 @@ def main():
             y['data'].update(versions)
 
             y['data']['ENABLE_SINGLE_NODE_DNSMASQ'] = deploy_options.enable_sno_dnsmasq
+            y['data']['STORAGE'] = deploy_options.storage
 
             if deploy_options.installation_timeout:
                 y['data']['INSTALLATION_TIMEOUT'] = str(deploy_options.installation_timeout)

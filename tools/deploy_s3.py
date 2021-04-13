@@ -9,6 +9,9 @@ log = utils.get_logger('deploy_s3')
 def main():
     deploy_options = deployment_options.load_deployment_options()
 
+    if deploy_options.storage == 'filesystem':
+        return
+
     log.info('Starting scality deployment')
 
     utils.verify_build_directory(deploy_options.namespace)
