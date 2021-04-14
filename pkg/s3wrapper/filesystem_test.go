@@ -43,7 +43,7 @@ var _ = Describe("s3filesystem", func() {
 		mockVersions = versions.NewMockHandler(ctrl)
 		editorFactory := isoeditor.NewFactory(isoeditor.Config{ConcurrentEdits: 10}, nil)
 		mockMetricsAPI = metrics.NewMockAPI(ctrl)
-		client = &FSClient{basedir: baseDir, log: log, versionsHandler: mockVersions, isoEditorFactory: editorFactory, metricsAPI: mockMetricsAPI}
+		client = &FSClient{basedir: baseDir, log: log, versionsHandler: mockVersions, isoEditorFactory: editorFactory}
 		deleteTime, _ = time.ParseDuration("60m")
 		now, _ = time.Parse(time.RFC3339, "2020-01-01T10:00:00+00:00")
 	})
