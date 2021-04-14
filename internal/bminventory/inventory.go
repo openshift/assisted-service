@@ -4246,3 +4246,7 @@ func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, par
 
 	return installer.NewGetClusterHostRequirementsOK().WithPayload(requirementsList)
 }
+
+func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
+	return installer.NewGetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
+}

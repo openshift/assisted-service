@@ -141,6 +141,9 @@ type InstallerAPI interface {
 	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
 
+	/* GetPreflightRequirements Get preflight requirements for a cluster. */
+	GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder
+
 	/* GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files. */
 	GetPresignedForClusterFiles(ctx context.Context, params installer.GetPresignedForClusterFilesParams) middleware.Responder
 
@@ -508,6 +511,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetNextSteps(ctx, params)
+	})
+	api.InstallerGetPreflightRequirementsHandler = installer.GetPreflightRequirementsHandlerFunc(func(params installer.GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.GetPreflightRequirements(ctx, params)
 	})
 	api.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler = assisted_service_iso.GetPresignedForAssistedServiceISOHandlerFunc(func(params assisted_service_iso.GetPresignedForAssistedServiceISOParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

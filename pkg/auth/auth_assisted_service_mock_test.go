@@ -20,6 +20,10 @@ import (
 
 type fakeInventory struct{}
 
+func (f fakeInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
+	return installer.NewGetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
+}
+
 func (f fakeInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
 	return installer.NewCancelInstallationAccepted()
 }

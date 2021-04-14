@@ -146,6 +146,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
 		}),
+		InstallerGetPreflightRequirementsHandler: installer.GetPreflightRequirementsHandlerFunc(func(params installer.GetPreflightRequirementsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetPreflightRequirements has not yet been implemented")
+		}),
 		AssistedServiceIsoGetPresignedForAssistedServiceISOHandler: assisted_service_iso.GetPresignedForAssistedServiceISOHandlerFunc(func(params assisted_service_iso.GetPresignedForAssistedServiceISOParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation assisted_service_iso.GetPresignedForAssistedServiceISO has not yet been implemented")
 		}),
@@ -377,6 +380,8 @@ type AssistedInstallAPI struct {
 	InstallerGetHostRequirementsHandler installer.GetHostRequirementsHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
+	// InstallerGetPreflightRequirementsHandler sets the operation handler for the get preflight requirements operation
+	InstallerGetPreflightRequirementsHandler installer.GetPreflightRequirementsHandler
 	// AssistedServiceIsoGetPresignedForAssistedServiceISOHandler sets the operation handler for the get presigned for assisted service i s o operation
 	AssistedServiceIsoGetPresignedForAssistedServiceISOHandler assisted_service_iso.GetPresignedForAssistedServiceISOHandler
 	// InstallerGetPresignedForClusterFilesHandler sets the operation handler for the get presigned for cluster files operation
@@ -627,6 +632,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
+	}
+	if o.InstallerGetPreflightRequirementsHandler == nil {
+		unregistered = append(unregistered, "installer.GetPreflightRequirementsHandler")
 	}
 	if o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler == nil {
 		unregistered = append(unregistered, "assisted_service_iso.GetPresignedForAssistedServiceISOHandler")
@@ -960,6 +968,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/clusters/{cluster_id}/preflight-requirements"] = installer.NewGetPreflightRequirements(o.context, o.InstallerGetPreflightRequirementsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

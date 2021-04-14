@@ -2763,6 +2763,47 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /clusters/{cluster_id}/preflight-requirements:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Get preflight requirements for a cluster.
+      operationId: GetPreflightRequirements
+      parameters:
+        - in: path
+          name: cluster_id
+          description: The cluster to return preflight requrements for.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/preflight-hardware-requirements'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
   /domains:
     get:
       tags:
@@ -3195,6 +3236,54 @@ definitions:
         $ref: '#/definitions/host-requirements-role'
       worker:
         $ref: '#/definitions/host-requirements-role'
+
+  preflight-hardware-requirements:
+    type: object
+    properties:
+      operators:
+        description: Preflight operators hardware requirements
+        type: array
+        items:
+          $ref: '#/definitions/operator-hardware-requirements'
+      ocp:
+        description: Preflight OCP requirements
+        $ref: '#/definitions/host-type-hardware-requirements-wrapper'
+
+  operator-hardware-requirements:
+    type: object
+    properties:
+      operator_name:
+        description: Unique name of the operator. Corresponds to name property of the monitored-operator, i.e. "lso", "cnv", etc.
+        type: string
+      dependencies:
+        description: List of other operator unique names that are required to be installed. Corresponds to name property of the monitored-operator, i.e. "lso", "cnv", etc.
+        type: array
+        items:
+          type: string
+      requirements:
+        $ref: '#/definitions/host-type-hardware-requirements-wrapper'
+
+  host-type-hardware-requirements-wrapper:
+    type: object
+    properties:
+      worker:
+        description: Requirements towards a worker node
+        $ref: '#/definitions/host-type-hardware-requirements'
+      master:
+        description: Requirements towards a master node
+        $ref: '#/definitions/host-type-hardware-requirements'
+
+  host-type-hardware-requirements:
+    type: object
+    properties:
+      quantitative:
+        description: Host requirements that can be quantified
+        $ref: '#/definitions/cluster-host-requirements-details'
+      qualitative:
+        description: Host requirements that cannot be quantified at the time of calculation. Descriptions or formulas of requiements
+        type: array
+        items:
+          type: string
 
   cluster-host-requirements-list:
     type: array
