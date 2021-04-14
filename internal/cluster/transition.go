@@ -119,34 +119,6 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 }
 
 ////////////////////////////////////////////////////////////////////////////
-// Update installation progress
-////////////////////////////////////////////////////////////////////////////
-
-type TransitionArgsUpdateInstallationProgress struct {
-	ctx      context.Context
-	progress string
-}
-
-func (th *transitionHandler) PostUpdateInstallationProgress(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sCluster, ok := sw.(*stateCluster)
-
-	if !ok {
-		return errors.New("PostUpdateInstallationProgress incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsUpdateInstallationProgress)
-	if !ok {
-		return errors.New("PostUpdateInstallationProgress invalid argument")
-	}
-	if cluster, err := updateClusterProgress(logutil.FromContext(params.ctx, th.log), th.db, *sCluster.cluster.ID, swag.StringValue(sCluster.cluster.Status),
-		params.progress); err != nil {
-		return err
-	} else {
-		sCluster.cluster = cluster
-		return nil
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////
 // Complete installation
 ////////////////////////////////////////////////////////////////////////////
 

@@ -581,20 +581,6 @@ func (mr *MockInstallerAPIMockRecorder) UpdateClusterInstallConfig(arg0, arg1 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInstallConfig", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateClusterInstallConfig), arg0, arg1)
 }
 
-// UpdateClusterInstallProgress mocks base method
-func (m *MockInstallerAPI) UpdateClusterInstallProgress(arg0 context.Context, arg1 installer.UpdateClusterInstallProgressParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterInstallProgress", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// UpdateClusterInstallProgress indicates an expected call of UpdateClusterInstallProgress
-func (mr *MockInstallerAPIMockRecorder) UpdateClusterInstallProgress(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInstallProgress", reflect.TypeOf((*MockInstallerAPI)(nil).UpdateClusterInstallProgress), arg0, arg1)
-}
-
 // UpdateClusterLogsProgress mocks base method
 func (m *MockInstallerAPI) UpdateClusterLogsProgress(arg0 context.Context, arg1 installer.UpdateClusterLogsProgressParams) middleware.Responder {
 	m.ctrl.T.Helper()

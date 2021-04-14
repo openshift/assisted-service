@@ -9,7 +9,7 @@ const (
 	TransitionTypeCancelInstallation         = "CancelInstallation"
 	TransitionTypeResetCluster               = "ResetCluster"
 	TransitionTypePrepareForInstallation     = "PrepareForInstallation"
-	TransitionTypeUpdateInstallationProgress = "UpdateInstallationProgress"
+	TransitionTypeHandlePreInstallationError = "Handle pre-installation-error"
 	TransitionTypeRefreshStatus              = "RefreshStatus"
 )
 
@@ -285,17 +285,6 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		DestinationState: stateswitch.State(models.ClusterStatusError),
 		PostTransition:   th.PostRefreshCluster(statusInfoError),
 	})
-
-	for _, state := range []stateswitch.State{
-		stateswitch.State(models.ClusterStatusInstalling),
-		stateswitch.State(models.ClusterStatusFinalizing)} {
-		sm.AddTransition(stateswitch.TransitionRule{
-			TransitionType:   TransitionTypeUpdateInstallationProgress,
-			SourceStates:     []stateswitch.State{state},
-			DestinationState: state,
-			PostTransition:   th.PostUpdateInstallationProgress,
-		})
-	}
 
 	// check timeout of log collection
 	for _, state := range []stateswitch.State{

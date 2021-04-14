@@ -94,7 +94,6 @@ type API interface {
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
 	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
 	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
-	UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse
 	UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
@@ -617,26 +616,6 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 func (m *Manager) UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error {
 	err := updateLogsProgress(logutil.FromContext(ctx, m.log), m.db, c, swag.StringValue(c.Status), progress)
 	return err
-}
-
-func (m *Manager) UpdateInstallProgress(ctx context.Context, c *common.Cluster, progress string) *common.ApiErrorResponse {
-	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Update cluster installation progress: %s", progress)
-	defer func() {
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
-	}()
-
-	err := m.sm.Run(TransitionTypeUpdateInstallationProgress, newStateCluster(c), &TransitionArgsUpdateInstallationProgress{
-		ctx:      ctx,
-		progress: progress,
-	})
-	if err != nil {
-		eventSeverity = models.EventSeverityError
-		eventInfo = fmt.Sprintf("Failed to update cluster installation progress. Error: %s", err.Error())
-		return common.NewApiError(http.StatusConflict, err)
-	}
-
-	return nil
 }
 
 func (m *Manager) UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse {

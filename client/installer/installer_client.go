@@ -139,9 +139,6 @@ type API interface {
 	   UpdateClusterInstallConfig Override values in the install config.*/
 	UpdateClusterInstallConfig(ctx context.Context, params *UpdateClusterInstallConfigParams) (*UpdateClusterInstallConfigCreated, error)
 	/*
-	   UpdateClusterInstallProgress Update cluster installation progress.*/
-	UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressNoContent, error)
-	/*
 	   UpdateClusterLogsProgress Update log collection state and progress.*/
 	UpdateClusterLogsProgress(ctx context.Context, params *UpdateClusterLogsProgressParams) (*UpdateClusterLogsProgressNoContent, error)
 	/*
@@ -1163,31 +1160,6 @@ func (a *Client) UpdateClusterInstallConfig(ctx context.Context, params *UpdateC
 		return nil, err
 	}
 	return result.(*UpdateClusterInstallConfigCreated), nil
-
-}
-
-/*
-UpdateClusterInstallProgress Update cluster installation progress.
-*/
-func (a *Client) UpdateClusterInstallProgress(ctx context.Context, params *UpdateClusterInstallProgressParams) (*UpdateClusterInstallProgressNoContent, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "UpdateClusterInstallProgress",
-		Method:             "PUT",
-		PathPattern:        "/clusters/{cluster_id}/progress",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &UpdateClusterInstallProgressReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*UpdateClusterInstallProgressNoContent), nil
 
 }
 
