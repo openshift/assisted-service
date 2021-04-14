@@ -133,26 +133,59 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (o *operator) GetHostRequirements(ctx context.Context, _ *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	log := logutil.FromContext(ctx, o.log)
+	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
+	if err != nil {
+		log.WithError(err).Errorf("Cannot Retrieve prefligh requirements for cluster %s", cluster.ID)
+		return nil, err
+	}
+
 	switch host.Role {
 	case models.HostRoleMaster:
-		return &models.ClusterHostRequirementsDetails{
-			CPUCores: MasterCPU,
-			RAMMib:   MasterMemory,
-		}, nil
+		return preflightRequirements.Requirements.Master.Quantitative, nil
 	case models.HostRoleWorker, models.HostRoleAutoAssign:
 		overhead, err := o.getDevicesMemoryOverhead(host)
 		if err != nil {
 			log.WithError(err).WithField("inventory", host.Inventory).Errorf("Cannot parse inventory for host %v", host.ID)
 			return nil, err
 		}
+		workerBaseRequirements := preflightRequirements.Requirements.Worker.Quantitative
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: WorkerCPU,
-			RAMMib:   WorkerMemory + overhead,
+			CPUCores: workerBaseRequirements.CPUCores,
+			RAMMib:   workerBaseRequirements.RAMMib + overhead,
 		}, nil
 	}
 	return nil, fmt.Errorf("unsupported role: %s", host.Role)
+}
+
+// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
+func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+	qualitativeRequirements := []string{
+		"Additional 1GiB of RAM per each supported GPU",
+		"CPU has virtualization flag (vmx or svm)",
+	}
+	requirements := models.OperatorHardwareRequirements{
+		OperatorName: o.GetName(),
+		Dependencies: o.GetDependencies(),
+		Requirements: &models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Qualitative: qualitativeRequirements,
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: MasterCPU,
+					RAMMib:   MasterMemory,
+				},
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Qualitative: qualitativeRequirements,
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: WorkerCPU,
+					RAMMib:   WorkerMemory,
+				},
+			},
+		},
+	}
+	return &requirements, nil
 }
 
 func (o *operator) getDevicesMemoryOverhead(host *models.Host) (int64, error) {

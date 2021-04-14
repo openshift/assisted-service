@@ -135,6 +135,21 @@ func (mr *MockOperatorMockRecorder) GetName() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetName", reflect.TypeOf((*MockOperator)(nil).GetName))
 }
 
+// GetPreflightRequirements mocks base method
+func (m *MockOperator) GetPreflightRequirements(arg0 context.Context, arg1 *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPreflightRequirements", arg0, arg1)
+	ret0, _ := ret[0].(*models.OperatorHardwareRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPreflightRequirements indicates an expected call of GetPreflightRequirements
+func (mr *MockOperatorMockRecorder) GetPreflightRequirements(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightRequirements", reflect.TypeOf((*MockOperator)(nil).GetPreflightRequirements), arg0, arg1)
+}
+
 // GetProperties mocks base method
 func (m *MockOperator) GetProperties() models.OperatorProperties {
 	m.ctrl.T.Helper()
