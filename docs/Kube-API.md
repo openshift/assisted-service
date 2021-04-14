@@ -24,6 +24,15 @@ When the ISO is ready, an URL will be available in the CR.
 ### [NMStateConfig](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/nmstate_config_types.go)
 The NMStateConfig contains network configuration that will applied on the hosts. See NMState repository [here](https://github.com/nmstate/nmstate).
 
+To link between an InfraEnv to NMState (either one or more):
+
+- InfraEnv CR: add a label to nmStateConfigLabelSelector with a user defined name and value.
+- NMState CR: Specify the same label + value in Object metadata.
+
+Upon InfraEnv creation, the InfraEnv controller will search by label+value for matching NMState resources and construct a config to be sent as StaticNetworkConfig as a part of ImageCreateParams. The backend does all validations, and currently, there is no handling of configuration conflicts (e.g., two nmstate resources using the same MAC address).
+
+The InfraEnv controller will watch for NMState config creation/changes and search for corresponding InfraEnv resources to reconcile since we need to regenerate the image for those.
+
 
 ### [Agent](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/agent_types.go)
 The Agent CRD represents a Host that boot from an ISO and registered to a cluster.
@@ -37,6 +46,47 @@ Here how to approve an Agent:
 
 ```sh
 $ kubectl -n assisted-installer patch agents.agent-install.openshift.io 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge
+```
+
+The Agent reflects the Host status through Conditions.
+
+The available conditions are:
+- SpecSynced
+- Connected
+- ReadyForInstallation
+- Validated
+- Installed
+
+Here an example how to print Agent conditions:
+
+```sh
+$ kubectl get agents.agent-install.openshift.io -n assisted-installer  -o=jsonpath='{range .items[*]}{"\n"}{.spec.clusterDeploymentName.name}{"\n"}{.status.inventory.hostname}{"\n"}{range .status.conditions[*]}{.type}{"\t"}{.message}{"\n"}{end}'
+```
+
+```sh
+test-infra-cluster-assisted-installer
+test-infra-cluster-assisted-installer-master-2
+SpecSynced	The Spec has been successfully applied
+Connected	The agent's connection to the installation service is unimpaired
+ReadyForInstallation	The agent cannot begin the installation because it has already started
+Validated	The agent's validations are passing
+Installed	The installation is in progress: Configuring
+
+test-infra-cluster-assisted-installer
+test-infra-cluster-assisted-installer-master-0
+SpecSynced	The Spec has been successfully applied
+Connected	The agent's connection to the installation service is unimpaired
+ReadyForInstallation	The agent cannot begin the installation because it has already started
+Validated	The agent's validations are passing
+Installed	The installation is in progress: Configuring
+
+test-infra-cluster-assisted-installer
+test-infra-cluster-assisted-installer-master-1
+SpecSynced	The Spec has been successfully applied
+Connected	The agent's connection to the installation service is unimpaired
+ReadyForInstallation	The agent cannot begin the installation because it has already started
+Validated	The agent's validations are passing
+Installed	The installation is in progress: Waiting for control plane
 ```
 
 ## Day 2 worker
@@ -70,7 +120,7 @@ Those examples are here for reference.
 
 You will likely need to adapt those for your own needs.
 
-* [InstalllEnv](crds/infraEnv.yaml)
+* [InfraEnv](crds/infraEnv.yaml)
 * [NMState Config](crds/nmstate.yaml)
 * [Hive PullSecret Secret](crds/pullsecret.yaml)
 * [Hive ClusterDeployment](crds/clusterDeployment.yaml)
