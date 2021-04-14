@@ -25,6 +25,7 @@ type Validator interface {
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(disk *models.Disk) []string
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
+	GetInstallationDiskSpeedThresholdMs() int64
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
@@ -198,4 +199,8 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 		}
 	}
 	return total
+}
+
+func (v *validator) GetInstallationDiskSpeedThresholdMs() int64 {
+	return v.InstallationDiskSpeedThresholdMs
 }

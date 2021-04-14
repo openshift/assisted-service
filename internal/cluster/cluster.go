@@ -19,6 +19,7 @@ import (
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -85,6 +86,7 @@ type API interface {
 	ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
 	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
+	HandlePreInstallSuccess(ctx context.Context, c *common.Cluster)
 	SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
 	IsReadyForInstallation(c *common.Cluster) (bool, string)
 	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
@@ -133,11 +135,12 @@ type Manager struct {
 	prevMonitorInvokedAt  time.Time
 	ocmClient             *ocm.Client
 	objectHandler         s3wrapper.API
+	dnsApi                dns.DNSApi
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
 	hostAPI host.API, metricApi metrics.API, manifestsGeneratorAPI network.ManifestsGeneratorAPI,
-	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API) *Manager {
+	leaderElector leader.Leader, operatorsApi operators.API, ocmClient *ocm.Client, objectHandler s3wrapper.API, dnsApi dns.DNSApi) *Manager {
 	th := &transitionHandler{
 		log:           log,
 		db:            db,
@@ -159,6 +162,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		prevMonitorInvokedAt:  time.Now(),
 		ocmClient:             ocmClient,
 		objectHandler:         objectHandler,
+		dnsApi:                dnsApi,
 	}
 }
 
@@ -331,6 +335,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 		clusterAPI:        m,
 		objectHandler:     m.objectHandler,
 		ocmClient:         m.ocmClient,
+		dnsApi:            m.dnsApi,
 	})
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
@@ -677,14 +682,28 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 
 func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, installErr error) {
 	log := logutil.FromContext(ctx, m.log)
-	err := m.sm.Run(TransitionTypeHandlePreInstallationError, newStateCluster(c), &TransitionArgsHandlePreInstallationError{
-		ctx:        ctx,
-		installErr: installErr,
-	})
+	log.WithError(installErr).Warnf("Failed to prepare installation of cluster %s", c.ID.String())
+	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Update(&common.Cluster{
+		InstallationPreparationCompletionStatus: common.InstallationPreparationFailed,
+	}).Error
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())
 	} else {
 		log.Infof("Successfully handled pre-installation error, cluster %s", c.ID.String())
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "Failed to prepare cluster for installation. Please retry later", time.Now())
+	}
+}
+
+func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
+	log := logutil.FromContext(ctx, m.log)
+	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Update(&common.Cluster{
+		InstallationPreparationCompletionStatus: common.InstallationPreparationSucceeded,
+	}).Error
+	if err != nil {
+		log.WithError(err).Errorf("Failed to handle pre installation success for cluster %s", c.ID.String())
+	} else {
+		log.Infof("Successfully handled pre-installation success, cluster %s", c.ID.String())
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, "Cluster was prepared successfully for installation", time.Now())
 	}
 }
 

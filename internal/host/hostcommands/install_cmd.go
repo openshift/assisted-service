@@ -17,7 +17,6 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -66,7 +65,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	bootdevice, err := getBootDevice(i.log, i.hwValidator, host)
+	bootdevice, err := hardware.GetBootDevice(i.log, i.hwValidator, host)
 	if err != nil {
 		return nil, err
 	}
@@ -81,19 +80,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	config := FioPerfCheckConfig{
-		ServiceBaseURL:       i.instructionConfig.ServiceBaseURL,
-		ClusterID:            string(host.ClusterID),
-		HostID:               string(*host.ID),
-		UseCustomCACert:      i.hasCACert(),
-		FioPerfCheckImage:    i.instructionConfig.AgentImage,
-		SkipCertVerification: i.instructionConfig.SkipCertVerification,
-		Path:                 bootdevice,
-		DurationThresholdMs:  FioDurationThresholdMs,
-	}
-
-	fioPerfCheckCmd := NewFioPerfCheckCmd(i.log, config)
-	step.Args = []string{"-c", unbootableCmd + fioPerfCheckCmd.GetCommandString() + fullCmd}
+	step.Args = []string{"-c", unbootableCmd + fullCmd}
 
 	if _, err := hostutil.UpdateHost(i.log, i.db, host.ClusterID, *host.ID, *host.Status,
 		"installer_version", i.instructionConfig.InstallerImage); err != nil {
@@ -216,17 +203,6 @@ func (i *installCmd) getProxyArguments(clusterName, baseDNSDomain, httpProxy, ht
 
 func (i *installCmd) hasCACert() bool {
 	return i.instructionConfig.ServiceCACertPath != ""
-}
-
-func getBootDevice(log logrus.FieldLogger, hwValidator hardware.Validator, host *models.Host) (string, error) {
-	path := hwValidator.GetHostInstallationPath(host)
-
-	if path != "" {
-		return path, nil
-	}
-
-	log.Errorf("Failed to determine installation path for host with id %s", host.ID)
-	return "", errors.Errorf("host has no installation path %s", host.ID)
 }
 
 func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host) (string, error) {

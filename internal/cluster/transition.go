@@ -3,6 +3,7 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -107,8 +109,7 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 	if !ok {
 		return errors.New("PostPrepareForInstallation invalid argument")
 	}
-
-	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now())), resetLogsField...)
+	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now()), "installation_preparation_completion_status", ""), resetLogsField...)
 	err = th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
 		statusInfoPreparingForInstallation, extra...)
 	if err != nil {
@@ -302,6 +303,7 @@ type TransitionArgsRefreshCluster struct {
 	objectHandler     s3wrapper.API
 	clusterAPI        API
 	ocmClient         *ocm.Client
+	dnsApi            dns.DNSApi
 }
 
 func If(id stringer) stateswitch.Condition {
@@ -337,7 +339,7 @@ func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args state
 func (th *transitionHandler) IsInstalling(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sCluster, _ := sw.(*stateCluster)
 	installingStatuses := []string{models.HostStatusInstalling, models.HostStatusInstallingInProgress,
-		models.HostStatusInstalled, models.HostStatusInstallingPendingUserAction}
+		models.HostStatusInstalled, models.HostStatusInstallingPendingUserAction, models.HostStatusPreparingSuccessful}
 	return th.enoughMastersAndWorkers(sCluster, installingStatuses), nil
 }
 
@@ -475,6 +477,26 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		return nil
 	}
 	return ret
+}
+
+func (th *transitionHandler) InstallCluster(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("InstallCluster incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return errors.New("InstallCluster invalid argument")
+	}
+	cluster := sCluster.cluster
+	ctx := params.ctx
+	if err := params.dnsApi.ChangeDNSRecordSets(ctx, cluster, false); err != nil {
+		return err
+	}
+	// send metric and event that installation process has been started
+	params.metricApi.InstallationStarted(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain, strconv.FormatBool(swag.BoolValue(cluster.UserManagedNetworking)))
+	params.metricApi.ClusterHostInstallationCount(*cluster.ID, cluster.EmailDomain, len(cluster.Hosts), cluster.OpenshiftVersion)
+	return nil
 }
 
 func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitch.PostTransition {

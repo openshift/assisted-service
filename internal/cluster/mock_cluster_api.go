@@ -391,6 +391,18 @@ func (mr *MockAPIMockRecorder) HandlePreInstallError(ctx, c, err interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePreInstallError", reflect.TypeOf((*MockAPI)(nil).HandlePreInstallError), ctx, c, err)
 }
 
+// HandlePreInstallSuccess mocks base method
+func (m *MockAPI) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "HandlePreInstallSuccess", ctx, c)
+}
+
+// HandlePreInstallSuccess indicates an expected call of HandlePreInstallSuccess
+func (mr *MockAPIMockRecorder) HandlePreInstallSuccess(ctx, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePreInstallSuccess", reflect.TypeOf((*MockAPI)(nil).HandlePreInstallSuccess), ctx, c)
+}
+
 // SetVipsData mocks base method
 func (m *MockAPI) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
 	m.ctrl.T.Helper()

@@ -166,20 +166,6 @@ func (mr *MockAPIMockRecorder) HandleInstallationFailure(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandleInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandleInstallationFailure), arg0, arg1)
 }
 
-// HandlePrepareInstallationFailure mocks base method
-func (m *MockAPI) HandlePrepareInstallationFailure(arg0 context.Context, arg1 *models.Host, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "HandlePrepareInstallationFailure", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// HandlePrepareInstallationFailure indicates an expected call of HandlePrepareInstallationFailure
-func (mr *MockAPIMockRecorder) HandlePrepareInstallationFailure(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HandlePrepareInstallationFailure", reflect.TypeOf((*MockAPI)(nil).HandlePrepareInstallationFailure), arg0, arg1, arg2)
-}
-
 // HostMonitoring mocks base method
 func (m *MockAPI) HostMonitoring() {
 	m.ctrl.T.Helper()
@@ -261,20 +247,6 @@ func (m *MockAPI) PermanentHostsDeletion(arg0 strfmt.DateTime) error {
 func (mr *MockAPIMockRecorder) PermanentHostsDeletion(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermanentHostsDeletion", reflect.TypeOf((*MockAPI)(nil).PermanentHostsDeletion), arg0)
-}
-
-// PrepareForInstallation mocks base method
-func (m *MockAPI) PrepareForInstallation(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrepareForInstallation", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// PrepareForInstallation indicates an expected call of PrepareForInstallation
-func (mr *MockAPIMockRecorder) PrepareForInstallation(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareForInstallation", reflect.TypeOf((*MockAPI)(nil).PrepareForInstallation), arg0, arg1, arg2)
 }
 
 // RefreshStatus mocks base method

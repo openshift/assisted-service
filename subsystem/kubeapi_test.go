@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	bmhv1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -24,6 +25,7 @@ import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -346,6 +348,7 @@ func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *
 	host := registerNode(ctx, clusterID, hostname)
 	generateHWPostStepReply(ctx, host, validHwInfo, hostname)
 	generateFAPostStepReply(ctx, host, validFreeAddresses)
+	generateDiskSpeedResponses(ctx, sdbId, host)
 	return host
 }
 
@@ -1071,6 +1074,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			for _, h := range c.Hosts {
+				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+					return false
+				}
+			}
+			return true
+		}, "1m", "2s").Should(BeTrue())
 
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.AgentInstallationInProgressReason)
@@ -1173,6 +1185,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			for _, h := range c.Hosts {
+				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+					return false
+				}
+			}
+			return true
+		}, "1m", "2s").Should(BeTrue())
 
 		By("Wait for finalizing")
 		for _, host := range hosts {

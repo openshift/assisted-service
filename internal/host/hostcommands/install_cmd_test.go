@@ -350,7 +350,7 @@ var _ = Describe("installcmd arguments", func() {
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(stepReply).NotTo(BeNil())
-			verifyArgInCommand(stepReply[0].Args[1], "--url", config.ServiceBaseURL, 2)
+			verifyArgInCommand(stepReply[0].Args[1], "--url", config.ServiceBaseURL, 1)
 		})
 
 		It("verify high-availability-mode is None", func() {
@@ -509,35 +509,16 @@ func postvalidation(isstepreplynil bool, issteperrnil bool, expectedstepreply *m
 func validateInstallCommand(installCmd *installCmd, reply *models.Step, role models.HostRole, clusterId, hostId strfmt.UUID,
 	bootDevice string, bootableDisks []string, haMode string) {
 	ExpectWithOffset(1, reply.StepType).To(Equal(models.StepTypeInstall))
-	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId), 2)
-	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId), 2)
+	verifyArgInCommand(reply.Args[1], "--cluster-id", string(clusterId), 1)
+	verifyArgInCommand(reply.Args[1], "--host-id", string(hostId), 1)
 	verifyArgInCommand(reply.Args[1], "--high-availability-mode", haMode, 1)
 	verifyArgInCommand(reply.Args[1], "--openshift-version", common.TestDefaultConfig.OpenShiftVersion, 1)
 	verifyArgInCommand(reply.Args[1], "--role", string(role), 1)
 	verifyArgInCommand(reply.Args[1], "--boot-device", bootDevice, 1)
-	verifyArgInCommand(reply.Args[1], "--url", installCmd.instructionConfig.ServiceBaseURL, 2)
+	verifyArgInCommand(reply.Args[1], "--url", installCmd.instructionConfig.ServiceBaseURL, 1)
 	verifyArgInCommand(reply.Args[1], "--mco-image", defaultMCOImage, 1)
 	verifyArgInCommand(reply.Args[1], "--controller-image", installCmd.instructionConfig.ControllerImage, 1)
 	verifyArgInCommand(reply.Args[1], "--agent-image", installCmd.instructionConfig.AgentImage, 1)
 	verifyArgInCommand(reply.Args[1], "--installation-timeout", strconv.Itoa(int(installCmd.instructionConfig.InstallationTimeout)), 1)
 	verifyArgInCommand(reply.Args[1], "--must-gather-image", defaultMustGatherImage, 1)
-
-	fioPerfCheckCmd := "podman run --privileged --net=host --rm --quiet --name=assisted-installer -v /dev:/dev:rw -v /var/log:/var/log " +
-		"-v /run/systemd/journal/socket:/run/systemd/journal/socket " +
-		"--env PULL_SECRET_TOKEN --env HTTP_PROXY --env HTTPS_PROXY --env NO_PROXY --env http_proxy --env https_proxy --env no_proxy " +
-		"quay.io/ocpmetal/assisted-installer-agent:latest fio_perf_check " +
-		fmt.Sprintf("--url %s --cluster-id %s --host-id %s --agent-version quay.io/ocpmetal/assisted-installer-agent:latest ", installCmd.instructionConfig.ServiceBaseURL, string(clusterId), string(hostId)) +
-		fmt.Sprintf("\"{\\\"duration_threshold_ms\\\":10,\\\"exit_code\\\":222,\\\"path\\\":\\\"%s\\\"}\" ; ", bootDevice)
-
-	installCommandPrefix := fioPerfCheckCmd
-
-	if bootableDisks != nil {
-		formatCmds := ""
-		for _, dev := range bootableDisks {
-			formatCmds = formatCmds + fmt.Sprintf("dd if=/dev/zero of=%s bs=512 count=1 ; ", dev)
-		}
-		installCommandPrefix = formatCmds + installCommandPrefix
-	}
-
-	ExpectWithOffset(1, reply.Args[1]).To(ContainSubstring(installCommandPrefix))
 }

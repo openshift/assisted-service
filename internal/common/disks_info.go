@@ -52,15 +52,11 @@ func SetDiskSpeed(path string, speedMs int64, exitCode int64, disksInfoStr strin
 	if err != nil {
 		return "", err
 	}
-	info, ok := disksInfo[path]
-	if !ok {
-		info.Path = path
-	}
-	if exitCode == 0 || info.DiskSpeed == nil || !info.DiskSpeed.Tested {
-		info.DiskSpeed = &models.DiskSpeed{
-			ExitCode: exitCode,
-			Tested:   true,
-		}
+	info := disksInfo[path]
+	info.Path = path
+	info.DiskSpeed = &models.DiskSpeed{
+		ExitCode: exitCode,
+		Tested:   true,
 	}
 	if exitCode == 0 {
 		info.DiskSpeed.SpeedMs = speedMs

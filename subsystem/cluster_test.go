@@ -405,9 +405,15 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	Expect(err).NotTo(HaveOccurred())
 	c := reply.GetPayload()
 	Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
-
+	generateDiskSpeedResponses(ctx, sdbId, c.Hosts...)
 	waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling,
 		180*time.Second, "Installation in progress")
+
+	for _, host := range c.Hosts {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled {
+			waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInstalling, defaultWaitForHostStateTimeout)
+		}
+	}
 
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
@@ -829,6 +835,7 @@ var _ = Describe("cluster install", func() {
 		By("start installation and validate roles")
 		_, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
+		generateDiskSpeedResponses(ctx, sdbId, h1, h2, h3, h4, h5, h6)
 		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
 			3*time.Minute, IgnoreStateInfo)
 		getHostRole := func(id strfmt.UUID) models.HostRole {

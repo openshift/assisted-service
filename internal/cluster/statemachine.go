@@ -10,7 +10,6 @@ const (
 	TransitionTypeResetCluster               = "ResetCluster"
 	TransitionTypePrepareForInstallation     = "PrepareForInstallation"
 	TransitionTypeUpdateInstallationProgress = "UpdateInstallationProgress"
-	TransitionTypeHandlePreInstallationError = "Handle pre-installation-error"
 	TransitionTypeRefreshStatus              = "RefreshStatus"
 )
 
@@ -20,13 +19,21 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeCancelInstallation,
 		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusPreparingForInstallation),
 			stateswitch.State(models.ClusterStatusInstalling),
 			stateswitch.State(models.ClusterStatusInstallingPendingUserAction),
 			stateswitch.State(models.ClusterStatusError),
 			stateswitch.State(models.ClusterStatusFinalizing),
 		},
 		DestinationState: stateswitch.State(models.ClusterStatusCancelled),
+		PostTransition:   th.PostCancelInstallation,
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeCancelInstallation,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.ClusterStatusPreparingForInstallation),
+		},
+		DestinationState: stateswitch.State(models.ClusterStatusReady),
 		PostTransition:   th.PostCancelInstallation,
 	})
 
@@ -51,16 +58,6 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		DestinationState: stateswitch.State(models.ClusterStatusPreparingForInstallation),
 		PostTransition:   th.PostPrepareForInstallation,
-	})
-
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeHandlePreInstallationError,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.ClusterStatusPreparingForInstallation),
-			stateswitch.State(models.ClusterStatusError),
-		},
-		DestinationState: stateswitch.State(models.ClusterStatusError),
-		PostTransition:   th.PostHandlePreInstallationError,
 	})
 
 	var pendingConditions = stateswitch.And(If(IsMachineCidrDefined), If(isClusterCidrDefined), If(isServiceCidrDefined), If(IsDNSDomainDefined), If(IsPullSecretSet))
@@ -156,8 +153,33 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		TransitionType:   TransitionTypeRefreshStatus,
 		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusPreparingForInstallation)},
 		Condition:        th.IsPreparingTimedOut,
-		DestinationState: stateswitch.State(models.ClusterStatusError),
+		DestinationState: stateswitch.State(models.ClusterStatusReady),
 		PostTransition:   th.PostRefreshCluster(statusInfoPreparingForInstallationTimeout),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusPreparingForInstallation)},
+		Condition:        stateswitch.And(If(AllHostsPreparedSuccessfully), If(ClusterPreparationSucceeded)),
+		DestinationState: stateswitch.State(models.ClusterStatusInstalling),
+		Transition:       th.InstallCluster,
+		PostTransition:   th.PostRefreshCluster(statusInfoInstalling),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusPreparingForInstallation)},
+		Condition:        If(UnPreparingtHostsExist),
+		DestinationState: stateswitch.State(models.ClusterStatusInsufficient),
+		PostTransition:   th.PostRefreshCluster(statusInfoUnpreparingHostExists),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType:   TransitionTypeRefreshStatus,
+		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusPreparingForInstallation)},
+		Condition:        stateswitch.And(stateswitch.Not(If(UnPreparingtHostsExist)), If(ClusterPreparationFailed)),
+		DestinationState: stateswitch.State(models.ClusterStatusReady),
+		PostTransition:   th.PostRefreshCluster(statusInfoClusterFailedToPrepare),
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{

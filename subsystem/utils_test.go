@@ -286,6 +286,32 @@ func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses 
 	Expect(err).To(BeNil())
 }
 
+func generateDiskSppedChekResponse(ctx context.Context, h *models.Host, path string) {
+	result := models.DiskSpeedCheckResponse{
+		IoSyncDuration: 10,
+		Path:           path,
+	}
+	b, err := json.Marshal(&result)
+	Expect(err).ToNot(HaveOccurred())
+	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		ClusterID: h.ClusterID,
+		HostID:    *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			Output:   string(b),
+			StepID:   string(models.StepTypeInstallationDiskSpeedCheck),
+			StepType: models.StepTypeInstallationDiskSpeedCheck,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
+func generateDiskSpeedResponses(ctx context.Context, path string, hosts ...*models.Host) {
+	for _, h := range hosts {
+		generateDiskSppedChekResponse(ctx, h, path)
+	}
+}
+
 func updateVipParams(ctx context.Context, clusterID strfmt.UUID) {
 	apiVip := "1.2.3.5"
 	ingressVip := "1.2.3.6"

@@ -101,6 +101,7 @@ var _ = Describe("Host tests", func() {
 					DriveType: "HDD",
 					Name:      "sda1",
 					SizeBytes: int64(120) * (int64(1) << 30),
+					Bootable:  true,
 				},
 			},
 			Memory: &models.Memory{
@@ -126,7 +127,8 @@ var _ = Describe("Host tests", func() {
 		host := &registerHost(clusterID).Host
 		host2 := &registerHost(clusterID).Host
 		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
-			Status: swag.String(models.HostStatusInsufficient)}).Error).NotTo(HaveOccurred())
+			Status:             swag.String(models.HostStatusInsufficient),
+			InstallationDiskID: "wwn-0x1111111111111111111111"}).Error).NotTo(HaveOccurred())
 		steps := getNextSteps(clusterID, *host.ID)
 		_, ok := getStepInList(steps, models.StepTypeInventory)
 		Expect(ok).Should(Equal(true))
@@ -160,6 +162,10 @@ var _ = Describe("Host tests", func() {
 		Expect(db.Model(host).Update("status", models.HostStatusResetting).Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeResetInstallation)
+		Expect(ok).Should(Equal(true))
+		Expect(db.Model(host2).Update("status", models.HostStatusPreparingForInstallation).Error).NotTo(HaveOccurred())
+		steps = getNextSteps(clusterID, *host2.ID)
+		_, ok = getStepInList(steps, models.StepTypeInstallationDiskSpeedCheck)
 		Expect(ok).Should(Equal(true))
 	})
 

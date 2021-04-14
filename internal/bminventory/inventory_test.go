@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -1485,7 +1486,7 @@ var _ = Describe("PostStepReply", func() {
 		It("Disk speed success", func() {
 			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-
+			mockHwValidator.EXPECT().GetInstallationDiskSpeedThresholdMs().Return(int64(10)).Times(1)
 			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
 			reply := bm.PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
@@ -1809,21 +1810,11 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(errors.Errorf("error")).Times(1)
 	}
-	mockHostPrepareForInstallationSuccess := func(mockHostApi *host.MockAPI, times int) {
-		mockHostApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(times)
-	}
 	mockHostPrepareForRefresh := func(mockHostApi *host.MockAPI) {
 		mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 	mockClusterRefreshStatus := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
-	}
-	mockHostPrepareForInstallationFailure := func(mockHostApi *host.MockAPI, times int) {
-		mockHostApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(errors.Errorf("error")).Times(times)
-	}
-	setDefaultInstall := func(mockClusterApi *cluster.MockAPI) {
-		mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	}
 	setIsReadyForInstallationTrue := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").AnyTimes()
@@ -1840,27 +1831,12 @@ var _ = Describe("cluster", func() {
 	mockClusterDeleteLogsFailure := func(mockClusterApi *cluster.MockAPI) {
 		mockClusterApi.EXPECT().DeleteClusterLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
 	}
-	setDefaultHostInstall := func(mockClusterApi *cluster.MockAPI, done chan int) {
-		count := 0
-		mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3).
-			Do(func(ctx context.Context, h *models.Host, db *gorm.DB) {
-				count += 1
-				if count == 3 {
-					done <- 1
-				}
-			})
-
-	}
 	setDefaultHostSetBootstrap := func(mockClusterApi *cluster.MockAPI) {
 		mockHostApi.EXPECT().SetBootstrap(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
-	setDefaultMetricInstallationStarted := func(mockMetricApi *metrics.MockAPI) {
-		mockMetricApi.EXPECT().InstallationStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		mockMetricApi.EXPECT().ClusterHostInstallationCount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	}
-	mockHandlePreInstallationError := func(mockClusterApi *cluster.MockAPI, done chan int) {
-		mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).
-			Do(func(ctx, c, err interface{}) { done <- 1 })
+	mockHandlePreInstallationSuccess := func(mockClusterApi *cluster.MockAPI, done chan int) {
+		mockClusterApi.EXPECT().HandlePreInstallSuccess(gomock.Any(), gomock.Any()).Times(1).
+			Do(func(ctx, c interface{}) { done <- 1 })
 	}
 	setCancelInstallationSuccess := func() {
 		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
@@ -1986,7 +1962,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("happy flow", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
@@ -2011,7 +1987,7 @@ var _ = Describe("cluster", func() {
 
 		It("create non ha cluster fail", func() {
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-				db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
+				db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			insufficientOpenShiftVersionForNoneHA := "4.7"
 			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
@@ -2259,7 +2235,7 @@ var _ = Describe("cluster", func() {
 			Context("RegisterCluster", func() {
 				BeforeEach(func() {
 					bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-						db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
+						db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 				})
 
 				It("OLM register default value - only builtins", func() {
@@ -3666,15 +3642,11 @@ var _ = Describe("cluster", func() {
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-			setDefaultInstall(mockClusterApi)
+			mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
 			setDefaultGetMasterNodesIds(mockClusterApi)
 			setDefaultHostSetBootstrap(mockClusterApi)
-			setDefaultHostInstall(mockClusterApi, DoneChannel)
-			setDefaultMetricInstallationStarted(mockMetric)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockClusterRefreshStatus(mockClusterApi)
-			setIsReadyForInstallationTrue(mockClusterApi)
 			mockClusterDeleteLogsSuccess(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			mockEvents.EXPECT().
@@ -3726,27 +3698,6 @@ var _ = Describe("cluster", func() {
 			verifyApiError(reply, http.StatusInternalServerError)
 		})
 
-		It("failed to prepare host", func() {
-			mockAutoAssignSuccess(3)
-			mockClusterRefreshStatusSuccess()
-			mockClusterIsReadyForInstallationSuccess()
-			// validations
-			mockHostPrepareForRefresh(mockHostApi)
-			setDefaultGetMasterNodesIds(mockClusterApi)
-			// sync prepare for installation
-			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 2)
-			mockHostPrepareForInstallationFailure(mockHostApi, 1)
-			mockClusterRefreshStatus(mockClusterApi)
-			setIsReadyForInstallationTrue(mockClusterApi)
-			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-				ClusterID: clusterID,
-			})
-			verifyApiError(reply, http.StatusInternalServerError)
-		})
-
 		It("cluster is not ready to install", func() {
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
@@ -3762,66 +3713,11 @@ var _ = Describe("cluster", func() {
 			verifyApiError(reply, http.StatusConflict)
 		})
 
-		It("cluster failed to update", func() {
-			mockAutoAssignSuccess(3)
-			mockClusterRefreshStatusSuccess()
-			mockClusterIsReadyForInstallationSuccess()
-			mockGenerateAdditionalManifestsSuccess()
-			mockHostPrepareForRefresh(mockHostApi)
-			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-			mockHostPrepareForRefresh(mockHostApi)
-			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-			setDefaultGetMasterNodesIds(mockClusterApi)
-			mockClusterApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.Errorf("cluster has a error"))
-			mockClusterRefreshStatus(mockClusterApi)
-			setIsReadyForInstallationTrue(mockClusterApi)
-			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-			mockClusterDeleteLogsSuccess(mockClusterApi)
-			setDefaultHostSetBootstrap(mockClusterApi)
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-				ClusterID: clusterID,
-			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-			waitForDoneChannel()
-		})
-
-		It("host failed to install", func() {
-			mockAutoAssignSuccess(3)
-			mockClusterRefreshStatusSuccess()
-			mockClusterIsReadyForInstallationSuccess()
-			mockGenerateAdditionalManifestsSuccess()
-			mockHostPrepareForRefresh(mockHostApi)
-			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
-			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-			setDefaultInstall(mockClusterApi)
-			setDefaultGetMasterNodesIds(mockClusterApi)
-			setIsReadyForInstallationTrue(mockClusterApi)
-
-			mockHostApi.EXPECT().Install(gomock.Any(), gomock.Any(), gomock.Any()).
-				Return(errors.Errorf("host has a error")).AnyTimes()
-			setDefaultHostSetBootstrap(mockClusterApi)
-			mockHandlePreInstallationError(mockClusterApi, DoneChannel)
-			mockClusterRefreshStatus(mockClusterApi)
-			setIsReadyForInstallationTrue(mockClusterApi)
-			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
-			mockClusterDeleteLogsSuccess(mockClusterApi)
-
-			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
-				ClusterID: clusterID,
-			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
-			waitForDoneChannel()
-		})
-
 		It("list of masters for setting bootstrap return empty list", func() {
 			mockAutoAssignSuccess(3)
 			mockClusterRefreshStatusSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
@@ -3841,7 +3737,6 @@ var _ = Describe("cluster", func() {
 			mockClusterApi.EXPECT().GetMasterNodesIds(gomock.Any(), gomock.Any(), gomock.Any()).
 				Return([]*strfmt.UUID{&masterHostId1, &masterHostId2, &masterHostId3}, errors.Errorf("nop"))
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
@@ -3856,7 +3751,6 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatusSuccess()
 			mockHostPrepareForRefresh(mockHostApi)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
@@ -3877,16 +3771,13 @@ var _ = Describe("cluster", func() {
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)
-			mockHostPrepareForInstallationSuccess(mockHostApi, 3)
-			setDefaultInstall(mockClusterApi)
 			setDefaultGetMasterNodesIds(mockClusterApi)
 			setDefaultHostSetBootstrap(mockClusterApi)
-			setDefaultHostInstall(mockClusterApi, DoneChannel)
-			setDefaultMetricInstallationStarted(mockMetric)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockClusterRefreshStatus(mockClusterApi)
 			setIsReadyForInstallationTrue(mockClusterApi)
 			mockClusterDeleteLogsFailure(mockClusterApi)
+			mockHandlePreInstallationSuccess(mockClusterApi, DoneChannel)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
@@ -3901,31 +3792,6 @@ var _ = Describe("cluster", func() {
 
 			count := db.Model(&models.Cluster{}).Where("openshift_cluster_id <> ''").First(&models.Cluster{}).RowsAffected
 			Expect(count).To(Equal(int64(1)))
-		})
-
-		It("get DNS domain success", func() {
-			bm.Config.BaseDNSDomains = map[string]string{
-				"dns.example.com": "abc/route53",
-			}
-			dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(dnsDomain.ID).Should(Equal("abc"))
-			Expect(dnsDomain.Provider).Should(Equal("route53"))
-			Expect(dnsDomain.APIDomainName).Should(Equal("api.test-cluster.dns.example.com"))
-			Expect(dnsDomain.APIINTDomainName).Should(Equal("api-int.test-cluster.dns.example.com"))
-			Expect(dnsDomain.IngressDomainName).Should(Equal("*.apps.test-cluster.dns.example.com"))
-		})
-		It("get DNS domain invalid", func() {
-			bm.Config.BaseDNSDomains = map[string]string{
-				"dns.example.com": "abc",
-			}
-			_, err := bm.getDNSDomain("test-cluster", "dns.example.com")
-			Expect(err).To(HaveOccurred())
-		})
-		It("get DNS domain undefined", func() {
-			dnsDomain, err := bm.getDNSDomain("test-cluster", "dns.example.com")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(dnsDomain).Should(BeNil())
 		})
 
 		Context("CancelInstallation", func() {
@@ -4174,7 +4040,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		bm = createInventory(db, cfg)
 		mockOperators := operators.NewMockAPI(ctrl)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, nil, nil, nil, nil, nil, mockOperators, nil, nil)
+			db, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil)
 		c = common.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -5691,7 +5557,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
-			db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
+			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 	})
 
 	AfterEach(func() {
@@ -5904,7 +5770,7 @@ var _ = Describe("AMS subscriptions", func() {
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		bm = createInventory(db, cfg)
-		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil)
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 		bm.ocmClient.Config.WithAMSSubscriptions = true
 	})
 
@@ -5992,7 +5858,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name happy flow", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
@@ -6027,7 +5893,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster day1 with APIVipDNSName failed", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
@@ -6058,7 +5924,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster name with same name", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
@@ -6091,7 +5957,7 @@ var _ = Describe("AMS subscriptions", func() {
 
 		It("update cluster without name field", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
 
 			mockClusterRegisterSuccess(bm, true)
 			mockAMSSubscription(ctx)
@@ -6666,10 +6532,11 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
+	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
-		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator)
+		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi)
 }
 
 var _ = Describe("IPv6 support disabled", func() {

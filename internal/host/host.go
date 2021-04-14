@@ -102,7 +102,6 @@ type API interface {
 	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
-	HandlePrepareInstallationFailure(ctx context.Context, h *models.Host, reason string) error
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
 	RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error
 	SetBootstrap(ctx context.Context, h *models.Host, isbootstrap bool, db *gorm.DB) error
@@ -121,7 +120,6 @@ type API interface {
 	Install(ctx context.Context, h *models.Host, db *gorm.DB) error
 	GetStagesByRole(role models.HostRole, isbootstrap bool) []models.HostStage
 	IsInstallable(h *models.Host) bool
-	PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error
 	// auto assign host role
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
@@ -340,6 +338,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 			return err
 		}
 	}
+
 	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
 		ctx:               ctx,
 		db:                db,
@@ -748,13 +747,6 @@ func (m *Manager) GetStagesByRole(role models.HostRole, isbootstrap bool) []mode
 
 func (m *Manager) IsInstallable(h *models.Host) bool {
 	return swag.StringValue(h.Status) == models.HostStatusKnown
-}
-
-func (m *Manager) PrepareForInstallation(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	return m.sm.Run(TransitionTypePrepareForInstallation, newStateHost(h), &TransitionArgsPrepareForInstallation{
-		ctx: ctx,
-		db:  db,
-	})
 }
 
 func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host, previousProgress *models.HostProgressInfo, CurrentStage models.HostStage) {

@@ -351,20 +351,6 @@ func (th *transitionHandler) PostResettingPendingUserAction(sw stateswitch.State
 // Resetting pending user action
 ////////////////////////////////////////////////////////////////////////////
 
-type TransitionArgsPrepareForInstallation struct {
-	ctx context.Context
-	db  *gorm.DB
-}
-
-func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
-	sHost, _ := sw.(*stateHost)
-	params, _ := args.(*TransitionArgsPrepareForInstallation)
-
-	err := th.updateTransitionHost(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sHost,
-		statusInfoPreparingForInstallation, hostutil.ResetLogsField...)
-	return err
-}
-
 func (th *transitionHandler) updateTransitionHost(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateHost,
 	statusInfo string, extra ...interface{}) error {
 

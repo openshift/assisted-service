@@ -205,8 +205,16 @@ func newConditions(v *validator) []condition {
 			fn: v.isInstallationDiskSpeedCheckSuccessful,
 		},
 		{
-			id: ClusterInsufficient,
-			fn: v.isClusterInsufficient,
+			id: ClusterPreparingForInstallation,
+			fn: v.isClusterPreparingForInstallation,
+		},
+		{
+			id: ClusterInstalling,
+			fn: v.isClusterInstalling,
+		},
+		{
+			id: ValidRoleForInstallation,
+			fn: v.isValidRoleForInstallation,
 		},
 	}
 	return ret

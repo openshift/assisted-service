@@ -13,13 +13,11 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -31,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
@@ -135,6 +134,7 @@ type bareMetalInventory struct {
 	log                logrus.FieldLogger
 	hostApi            host.API
 	clusterApi         clusterPkg.API
+	dnsApi             dns.DNSApi
 	eventsHandler      events.Handler
 	objectHandler      s3wrapper.API
 	metricApi          metrics.API
@@ -185,6 +185,7 @@ func NewBareMetalInventory(
 	crdUtils CRDUtils,
 	IgnitionBuilder ignition.IgnitionBuilder,
 	hwValidator hardware.Validator,
+	dnsApi dns.DNSApi,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                 db,
@@ -192,6 +193,7 @@ func NewBareMetalInventory(
 		Config:             cfg,
 		hostApi:            hostApi,
 		clusterApi:         clusterApi,
+		dnsApi:             dnsApi,
 		generator:          generator,
 		eventsHandler:      eventsHandler,
 		objectHandler:      objectHandler,
@@ -1086,29 +1088,6 @@ func getImageName(clusterID strfmt.UUID) string {
 	return fmt.Sprintf("%s.iso", fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, clusterID.String()))
 }
 
-type clusterInstaller struct {
-	ctx    context.Context
-	b      *bareMetalInventory
-	log    logrus.FieldLogger
-	params installer.InstallClusterParams
-}
-
-func (ci *clusterInstaller) installHosts(cluster *common.Cluster, tx *gorm.DB) error {
-	success := true
-	err := errors.Errorf("Failed to install cluster <%s>", cluster.ID.String())
-	for i := range cluster.Hosts {
-		if installErr := ci.b.hostApi.Install(ci.ctx, cluster.Hosts[i], tx); installErr != nil {
-			success = false
-			// collect multiple errors
-			err = errors.Wrap(installErr, err.Error())
-		}
-	}
-	if !success {
-		return common.NewApiError(http.StatusConflict, err)
-	}
-	return nil
-}
-
 func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *common.Cluster) error {
 	err := b.setMajorityGroupForCluster(cluster.ID, b.db)
 	if err != nil {
@@ -1125,33 +1104,6 @@ func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *commo
 			return err
 		}
 	}
-	return nil
-}
-
-func (ci clusterInstaller) install(tx *gorm.DB) error {
-	var cluster *common.Cluster
-	var err error
-
-	// in case host monitor already updated the state we need to use FOR UPDATE option
-	tx = transaction.AddForUpdateQueryOption(tx)
-
-	if cluster, err = common.GetClusterFromDB(tx, ci.params.ClusterID, common.UseEagerLoading); err != nil {
-		return errors.Wrapf(err, "failed to find cluster %s", ci.params.ClusterID)
-	}
-
-	if err = ci.b.createDNSRecordSets(ci.ctx, *cluster); err != nil {
-		return errors.Wrapf(err, "failed to create DNS record sets for base domain: %s", cluster.BaseDNSDomain)
-	}
-
-	if err = ci.b.clusterApi.Install(ci.ctx, cluster, tx); err != nil {
-		return errors.Wrapf(err, "failed to install cluster %s", cluster.ID.String())
-	}
-
-	// move hosts states to installing
-	if err = ci.installHosts(cluster, tx); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -1239,11 +1191,6 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			return err
 		}
 
-		for i := range cluster.Hosts {
-			if err = b.hostApi.PrepareForInstallation(ctx, cluster.Hosts[i], tx); err != nil {
-				return err
-			}
-		}
 		if err = b.setBootstrapHost(ctx, *cluster, tx); err != nil {
 			return err
 		}
@@ -1275,6 +1222,8 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			if err != nil {
 				log.WithError(err).Warn("Cluster installation initialization failed")
 				b.clusterApi.HandlePreInstallError(asyncCtx, cluster, err)
+			} else {
+				b.clusterApi.HandlePreInstallSuccess(asyncCtx, cluster)
 			}
 		}()
 
@@ -1284,26 +1233,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		log.Infof("generated ignition for cluster %s", cluster.ID.String())
 
 		log.Infof("Storing OpenShift cluster ID of cluster %s to DB", cluster.ID.String())
-		if err = b.storeOpenshiftClusterID(ctx, cluster.ID.String()); err != nil {
-			return
-		}
-
-		cInstaller := clusterInstaller{
-			ctx:    asyncCtx, // Need a new context for async part
-			b:      b,
-			log:    log,
-			params: params,
-		}
-		if err = b.db.Transaction(cInstaller.install); err != nil {
-			return
-		}
-
-		// send metric and event that installation process has been started
-		b.metricApi.InstallationStarted(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain, strconv.FormatBool(swag.BoolValue(cluster.UserManagedNetworking)))
-		b.metricApi.ClusterHostInstallationCount(*cluster.ID, cluster.EmailDomain, len(cluster.Hosts), cluster.OpenshiftVersion)
-		b.eventsHandler.AddEvent(
-			ctx, *cluster.ID, nil, models.EventSeverityInfo,
-			fmt.Sprintf("Updated status of cluster %s to installing", cluster.Name), time.Now())
+		err = b.storeOpenshiftClusterID(ctx, cluster.ID.String())
 	}()
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())
@@ -2692,6 +2622,21 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	return installer.NewGetNextStepsOK().WithPayload(&steps)
 }
 
+func shouldHandle(params installer.PostStepReplyParams) bool {
+	switch params.Reply.StepType {
+	case models.StepTypeInstallationDiskSpeedCheck:
+		/*
+		   In case that the command sent 0 length output is should not be handled.  When disk speed check takes a long time,
+		   we don't want to run 2 such commands concurrently.  The prior running disk-speed-check, there is a verification
+		   that such command is not already running.  If it does, then the command returns immediately without running
+		   disk-speed-check.
+		   TODO Maybe do the same for other commands as well.
+		*/
+		return len(params.Reply.Output) > 0
+	}
+	return true
+}
+
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	msg := fmt.Sprintf("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
@@ -2717,24 +2662,24 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 	}
 
 	log.Infof(msg)
+	if shouldHandle(params) {
+		var stepReply string
+		stepReply, err = filterReplyByType(params)
+		if err != nil {
+			log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
+				params.Reply.StepID, params.HostID, params.ClusterID)
+			return installer.NewPostStepReplyBadRequest().
+				WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		}
 
-	var stepReply string
-	stepReply, err = filterReplyByType(params)
-	if err != nil {
-		log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
-			params.Reply.StepID, params.HostID, params.ClusterID)
-		return installer.NewPostStepReplyBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		err = handleReplyByType(params, b, ctx, host.Host, stepReply)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to update step reply for host <%s> cluster <%s> step <%s>",
+				params.HostID, params.ClusterID, params.Reply.StepID)
+			return installer.NewPostStepReplyInternalServerError().
+				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
 	}
-
-	err = handleReplyByType(params, b, ctx, host.Host, stepReply)
-	if err != nil {
-		log.WithError(err).Errorf("Failed to update step reply for host <%s> cluster <%s> step <%s>",
-			params.HostID, params.ClusterID, params.Reply.StepID)
-		return installer.NewPostStepReplyInternalServerError().
-			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
 	return installer.NewPostStepReplyNoContent()
 }
 
@@ -2849,30 +2794,6 @@ func (b *bareMetalInventory) processNtpSynchronizerResponse(ctx context.Context,
 	return b.hostApi.UpdateNTP(ctx, host, ntpSynchronizerResponse.NtpSources, b.db)
 }
 
-func (b *bareMetalInventory) processFioPerfCheckResponse(ctx context.Context, h *models.Host, fioPerfCheckResponseStr string) error {
-	var fioPerfCheckResponse models.FioPerfCheckResponse
-
-	log := logutil.FromContext(ctx, b.log)
-
-	if err := json.Unmarshal([]byte(fioPerfCheckResponseStr), &fioPerfCheckResponse); err != nil {
-		log.WithError(err).Warnf("Json unmarshal FIO perf check response from host %s", h.ID.String())
-		return err
-	}
-
-	if fioPerfCheckResponse.IoSyncDuration > hostcommands.FioDurationThresholdMs {
-		// If the 99th percentile of fdatasync durations is more than 10ms, it's not fast enough for etcd.
-		// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
-		msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
-			fioPerfCheckResponse.Path, fioPerfCheckResponse.IoSyncDuration)
-		log.Warnf(msg)
-		b.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, msg, time.Now())
-	}
-
-	b.metricApi.DiskSyncDuration(h.ClusterID, *h.ID, fioPerfCheckResponse.Path, fioPerfCheckResponse.IoSyncDuration)
-
-	return nil
-}
-
 func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, h *models.Host, diskPerfCheckResponseStr string, exitCode int64) error {
 	var diskPerfCheckResponse models.DiskSpeedCheckResponse
 
@@ -2885,6 +2806,15 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 
 	if exitCode == 0 {
 		b.metricApi.DiskSyncDuration(h.ClusterID, *h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+
+		if diskPerfCheckResponse.IoSyncDuration > b.hwValidator.GetInstallationDiskSpeedThresholdMs() {
+			// If the 99th percentile of fdatasync durations is more than 10ms, it's not fast enough for etcd.
+			// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
+			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
+				diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+			log.Warnf(msg)
+			b.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, msg, time.Now())
+		}
 	}
 
 	return b.hostApi.SetDiskSpeed(ctx, h, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration, exitCode, nil)
@@ -2924,8 +2854,6 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.processDhcpAllocationResponse(ctx, &host, stepReply)
 	case models.StepTypeNtpSynchronizer:
 		err = b.processNtpSynchronizerResponse(ctx, &host, stepReply)
-	case models.StepTypeFioPerfCheck:
-		err = b.processFioPerfCheckResponse(ctx, &host, stepReply)
 	case models.StepTypeContainerImageAvailability:
 		err = b.processImageAvailabilityResponse(ctx, &host, stepReply)
 	case models.StepTypeInstallationDiskSpeedCheck:
@@ -2952,8 +2880,6 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.DhcpAllocationResponse{}, params.Reply.Output)
 	case models.StepTypeNtpSynchronizer:
 		stepReply, err = filterReply(&models.NtpSynchronizationResponse{}, params.Reply.Output)
-	case models.StepTypeFioPerfCheck:
-		stepReply, err = filterReply(&models.FioPerfCheckResponse{}, params.Reply.Output)
 	case models.StepTypeContainerImageAvailability:
 		stepReply, err = filterReply(&models.ContainerImageAvailabilityResponse{}, params.Reply.Output)
 	case models.StepTypeInstallationDiskSpeedCheck:
@@ -3854,118 +3780,8 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 	return installer.NewCompleteInstallationAccepted().WithPayload(&cluster.Cluster)
 }
 
-func (b *bareMetalInventory) createDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
-	return b.changeDNSRecordSets(ctx, cluster, false)
-}
-
 func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
-	return b.changeDNSRecordSets(ctx, cluster, true)
-}
-
-func (b *bareMetalInventory) changeDNSRecordSets(ctx context.Context, cluster common.Cluster, delete bool) error {
-	log := logutil.FromContext(ctx, b.log)
-
-	domain, err := b.getDNSDomain(cluster.Name, cluster.BaseDNSDomain)
-	if err != nil {
-		return err
-	}
-	if domain == nil {
-		// No supported base DNS domain specified
-		return nil
-	}
-	switch domain.Provider {
-	case "route53":
-		var dnsProvider dnsproviders.Provider = dnsproviders.Route53{
-			RecordSet: dnsproviders.RecordSet{
-				RecordSetType: "A",
-				TTL:           60,
-			},
-			HostedZoneID: domain.ID,
-			SharedCreds:  true,
-		}
-
-		dnsRecordSetFunc := dnsProvider.CreateRecordSet
-		if delete {
-			dnsRecordSetFunc = dnsProvider.DeleteRecordSet
-		}
-
-		apiVip := cluster.APIVip
-		ingressVip := cluster.IngressVip
-		if common.IsSingleNodeCluster(&cluster) {
-			apiVip, err = network.GetIpForSingleNodeInstallation(&cluster, log)
-			if err != nil {
-				log.WithError(err).Errorf("failed to find ip for single node installation")
-				return err
-			}
-
-			ingressVip = apiVip
-			// Create/Delete A record for API-INT virtual IP
-			_, err := dnsRecordSetFunc(domain.APIINTDomainName, apiVip)
-			if err != nil {
-				log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
-					domain.APIINTDomainName, apiVip)
-				return err
-			}
-		}
-
-		// Create/Delete A record for API virtual IP
-		_, err := dnsRecordSetFunc(domain.APIDomainName, apiVip)
-		if err != nil {
-			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
-				domain.APIDomainName, apiVip)
-			return err
-		}
-		// Create/Delete A record for Ingress virtual IP
-		_, err = dnsRecordSetFunc(domain.IngressDomainName, ingressVip)
-		if err != nil {
-			log.WithError(err).Errorf("failed to update DNS record: (%s, %s)",
-				domain.IngressDomainName, ingressVip)
-			return err
-		}
-		log.Infof("Successfully created DNS records for base domain: %s", cluster.BaseDNSDomain)
-	}
-	return nil
-}
-
-type dnsDomain struct {
-	Name              string
-	ID                string
-	Provider          string
-	APIDomainName     string
-	APIINTDomainName  string
-	IngressDomainName string
-}
-
-func (b *bareMetalInventory) getDNSDomain(clusterName, baseDNSDomainName string) (*dnsDomain, error) {
-	var dnsDomainID string
-	var dnsProvider string
-
-	// Parse base domains from config
-	if val, ok := b.Config.BaseDNSDomains[baseDNSDomainName]; ok {
-		re := regexp.MustCompile("/")
-		if !re.MatchString(val) {
-			return nil, errors.New(fmt.Sprintf("Invalid DNS domain: %s", val))
-		}
-		s := re.Split(val, 2)
-		dnsDomainID = s[0]
-		dnsProvider = s[1]
-	} else {
-		// No base domains defined in config
-		return nil, nil
-	}
-	if dnsDomainID == "" || dnsProvider == "" {
-		// Specified domain is not defined in config
-		return nil, nil
-	}
-
-	return &dnsDomain{
-		Name:              baseDNSDomainName,
-		ID:                dnsDomainID,
-		Provider:          dnsProvider,
-		APIDomainName:     fmt.Sprintf("%s.%s.%s", "api", clusterName, baseDNSDomainName),
-		APIINTDomainName:  fmt.Sprintf("%s.%s.%s", "api-int", clusterName, baseDNSDomainName),
-		IngressDomainName: fmt.Sprintf("*.%s.%s.%s", "apps", clusterName, baseDNSDomainName),
-	}, nil
+	return b.dnsApi.ChangeDNSRecordSets(ctx, &cluster, true)
 }
 
 func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
@@ -3977,32 +3793,20 @@ func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params in
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
-	dnsDomain, err := b.getDNSDomain(clusterName, clusterBaseDomain)
+	dnsDomain, err := b.dnsApi.GetDNSDomain(clusterName, clusterBaseDomain)
 	if err == nil && dnsDomain != nil {
 		// Cluster's baseDNSDomain is defined in config (BaseDNSDomains map)
-		if err = b.validateBaseDNS(dnsDomain); err != nil {
+		if err = b.dnsApi.ValidateBaseDNS(dnsDomain); err != nil {
 			log.WithError(err).Errorf("Invalid base DNS domain: %s", clusterBaseDomain)
 			return common.NewApiError(http.StatusConflict, errors.New("Base DNS domain isn't configured properly"))
 		}
-		if err = b.validateDNSRecords(cluster, dnsDomain); err != nil {
+		if err = b.dnsApi.ValidateDNSRecords(cluster, dnsDomain); err != nil {
 			log.WithError(err).Errorf("DNS records already exist for cluster: %s", params.ClusterID)
 			return common.NewApiError(http.StatusConflict,
 				errors.New("DNS records already exist for cluster - please change 'Cluster Name'"))
 		}
 	}
 	return nil
-}
-
-func (b *bareMetalInventory) validateBaseDNS(domain *dnsDomain) error {
-	return validations.ValidateBaseDNS(domain.Name, domain.ID, domain.Provider)
-}
-
-func (b *bareMetalInventory) validateDNSRecords(cluster common.Cluster, domain *dnsDomain) error {
-	vipAddresses := []string{domain.APIDomainName, domain.IngressDomainName}
-	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
-		vipAddresses = append(vipAddresses, domain.APIINTDomainName)
-	}
-	return validations.CheckDNSRecordsExistence(vipAddresses, domain.ID, domain.Provider)
 }
 
 func ipAsUint(ipStr string, log logrus.FieldLogger) uint64 {
