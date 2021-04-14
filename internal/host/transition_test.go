@@ -1137,7 +1137,7 @@ type validationsChecker struct {
 }
 
 func (j *validationsChecker) check(validationsStr string) {
-	validationRes := make(validationsStatus)
+	validationRes := make(ValidationsStatus)
 	Expect(json.Unmarshal([]byte(validationsStr), &validationRes)).ToNot(HaveOccurred())
 	Expect(checkValidationInfoIsSorted(validationRes["operators"])).Should(BeTrue())
 next:
@@ -1158,7 +1158,7 @@ next:
 	}
 }
 
-func checkValidationInfoIsSorted(vRes validationResults) bool {
+func checkValidationInfoIsSorted(vRes ValidationResults) bool {
 	return sort.SliceIsSorted(vRes, func(i, j int) bool {
 		return vRes[i].ID < vRes[j].ID
 	})
@@ -3430,7 +3430,7 @@ var _ = Describe("Refresh Host", func() {
 
 var _ = Describe("validationResult sort", func() {
 	It("validationResult sort", func() {
-		validationResults := []validationResult{
+		validationResults := []ValidationResult{
 			{ID: "cab", Status: "abc", Message: "abc"},
 			{ID: "bac", Status: "abc", Message: "abc"},
 			{ID: "acb", Status: "abc", Message: "abc"},

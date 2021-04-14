@@ -225,6 +225,16 @@ func FindStatusClusterDeploymentCondition(conditions []hivev1.ClusterDeploymentC
 	return nil
 }
 
+func checkAgentCondition(ctx context.Context, hostId string, conditionType conditionsv1.ConditionType, reason string) {
+	hostkey := types.NamespacedName{
+		Namespace: Options.Namespace,
+		Name:      hostId,
+	}
+	Eventually(func() string {
+		return conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, hostkey).Status.Conditions, conditionType).Reason
+	}, "30s", "10s").Should(Equal(reason))
+}
+
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
 	return &hivev1.ClusterDeploymentSpec{
 		ClusterName: "test-cluster",
@@ -424,7 +434,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return h.InstallationDiskID
 		}, "2m", "10s").Should(Equal(sdb.ID))
 		Eventually(func() bool {
-			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.AgentSyncedCondition)
+			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
 		Eventually(func() string {
 			return getAgentCRD(ctx, kubeClient, key).Status.Inventory.SystemVendor.Manufacturer
@@ -523,9 +533,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.AgentSyncedCondition)
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
 			if condition != nil {
-				return strings.HasPrefix(condition.Message, "Failed to sync agent: Fail to unmarshal installer args")
+				return strings.Contains(condition.Message, "Fail to unmarshal installer args")
 			}
 			return false
 		}, "15s", "2s").Should(Equal(true))
@@ -542,9 +552,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.AgentSyncedCondition)
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
 			if condition != nil {
-				return strings.HasPrefix(condition.Message, "Failed to sync agent: found unexpected flag --wrong-param")
+				return strings.Contains(condition.Message, "found unexpected flag --wrong-param")
 			}
 			return false
 		}, "15s", "2s").Should(Equal(true))
@@ -1032,7 +1042,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			host := setupNewHost(ctx, hostname, *cluster.ID)
 			hosts = append(hosts, host)
 		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsFailingReason)
+		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsPassingReason)
+		}
+
 		By("Approve Agents")
 		for _, host := range hosts {
 			hostkey := types.NamespacedName{
@@ -1054,6 +1071,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.AgentInstallationInProgressReason)
+		}
 
 		By("Wait for finalizing")
 		for _, host := range hosts {
@@ -1202,8 +1223,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
-		//TODO check Agent status when implemented By("Wait for Day 2 host to be installing")
-
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.AgentInstallationInProgressReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.ReadyForInstallationCondition, v1beta1.AgentAlreadyInstallingReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.SyncedOkReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.ConnectedCondition, v1beta1.AgentConnectedReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsPassingReason)
 	})
 
 })

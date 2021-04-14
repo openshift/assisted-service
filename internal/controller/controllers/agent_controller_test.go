@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -90,7 +92,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: false}))
+		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
@@ -113,10 +115,11 @@ var _ = Describe("agent reconcile", func() {
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: failed to get clusterDeployment with name clusterDeployment in namespace test-namespace: clusterdeployments.hive.openshift.io \"clusterDeployment\" not found", v1beta1.AgentStateFailedToSync)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s failed to get clusterDeployment with name clusterDeployment in namespace test-namespace: clusterdeployments.hive.openshift.io \"clusterDeployment\" not found", v1beta1.InputErrorMsg)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.InputErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+
 	})
 
 	It("cluster not found in database", func() {
@@ -127,7 +130,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
@@ -135,10 +138,10 @@ var _ = Describe("agent reconcile", func() {
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: record not found", v1beta1.AgentStateFailedToSync)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s record not found", v1beta1.InputErrorMsg)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.InputErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	It("error getting cluster from database", func() {
@@ -147,10 +150,11 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		errString := "Error getting Cluster"
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, errors.New(errString)).Times(1)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
+			errors.New(errString))).Times(1)
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: false}))
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
@@ -158,10 +162,10 @@ var _ = Describe("agent reconcile", func() {
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: %s", v1beta1.AgentStateFailedToSync, errString)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s %s", v1beta1.BackendErrorMsg, errString)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.BackendErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	It("host not found in cluster", func() {
@@ -180,10 +184,10 @@ var _ = Describe("agent reconcile", func() {
 			Name:      "host",
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: Host not found in cluster", v1beta1.AgentStateFailedToSync)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s host not found in cluster", v1beta1.InputErrorMsg)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.InputErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	It("Agent update", func() {
@@ -195,8 +199,10 @@ var _ = Describe("agent reconcile", func() {
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
-					ID:        &hostId,
-					Inventory: common.GenerateTestDefaultInventory(),
+					ID:         &hostId,
+					Inventory:  common.GenerateTestDefaultInventory(),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
 				},
 			}}}
 		updateReply := &common.Cluster{Cluster: models.Cluster{
@@ -205,6 +211,8 @@ var _ = Describe("agent reconcile", func() {
 				{
 					ID:                &hostId,
 					RequestedHostname: newHostName,
+					Status:            swag.String(models.HostStatusKnown),
+					StatusInfo:        swag.String("Some status info"),
 				},
 			}}}
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
@@ -235,9 +243,9 @@ var _ = Describe("agent reconcile", func() {
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Agent update empty disk path", func() {
@@ -250,6 +258,8 @@ var _ = Describe("agent reconcile", func() {
 					ID:                 &hostId,
 					Inventory:          common.GenerateTestDefaultInventory(),
 					InstallationDiskID: "/dev/disk/by-id/wwn-0x1111111111111111111111",
+					Status:             swag.String(models.HostStatusKnown),
+					StatusInfo:         swag.String("Some status info"),
 				},
 			}}}
 
@@ -271,9 +281,9 @@ var _ = Describe("agent reconcile", func() {
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Agent update error", func() {
@@ -295,11 +305,12 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		errString := "update internal error"
-		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString))
+		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
+			errors.New(errString)))
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError}))
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		agent := &v1beta1.Agent{}
 
 		key := types.NamespacedName{
@@ -307,10 +318,16 @@ var _ = Describe("agent reconcile", func() {
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: %s", v1beta1.AgentStateFailedToSync, errString)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s %s", v1beta1.BackendErrorMsg, errString)
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.BackendErrorReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.InstalledCondition).Status).To(Equal(corev1.ConditionUnknown))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ReadyForInstallationCondition).Status).To(Equal(corev1.ConditionUnknown))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ValidatedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ConnectedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ConnectedCondition).Message).To(Equal(v1beta1.NotAvailableMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ConnectedCondition).Reason).To(Equal(v1beta1.NotAvailableReason))
 	})
 
 	It("Agent update approved", func() {
@@ -319,7 +336,9 @@ var _ = Describe("agent reconcile", func() {
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
-					ID: &hostId,
+					ID:         &hostId,
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
 				},
 			}}}
 
@@ -341,9 +360,9 @@ var _ = Describe("agent reconcile", func() {
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Agent update installer args valid cases", func() {
@@ -376,9 +395,9 @@ var _ = Describe("agent reconcile", func() {
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 
 		By("Reconcile add update installer args, validate UpdateHostInstallerArgsInternal run once")
 		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
@@ -393,9 +412,9 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		Expect(agent.Spec.InstallerArgs).To(Equal(installerArgs))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 
 		By("Reconcile with same installer args, validate UpdateHostInstallerArgsInternal didn't run")
 		var j []string
@@ -411,9 +430,9 @@ var _ = Describe("agent reconcile", func() {
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 	})
 
 	It("Agent update installer args errors", func() {
@@ -446,8 +465,8 @@ var _ = Describe("agent reconcile", func() {
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{Requeue: false}))
 		Expect(c.Get(ctx, key, host)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.InputErrorReason))
+		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 
 		By("Reconcile with installer args, UpdateHostInstallerArgsInternal returns error")
 		installerArgs = `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
@@ -458,12 +477,12 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Update(ctx, host)).To(BeNil())
 		result, err = hr.Reconcile(newHostRequest(host))
 		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{Requeue: false}))
+		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		Expect(c.Get(ctx, key, host)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: %s", v1beta1.AgentStateFailedToSync, errString)
-		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncErrorReason))
-		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionUnknown))
+		expectedState := fmt.Sprintf("%s %s", v1beta1.BackendErrorMsg, errString)
+		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(expectedState))
+		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.BackendErrorReason))
+		Expect(conditionsv1.FindStatusCondition(host.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	It("Agent inventory status", func() {
@@ -493,8 +512,10 @@ var _ = Describe("agent reconcile", func() {
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
-					ID:        &hostId,
-					Inventory: string(inv),
+					ID:         &hostId,
+					Inventory:  string(inv),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
 				},
 			}}}
 
@@ -514,10 +535,280 @@ var _ = Describe("agent reconcile", func() {
 			Name:      hostId.String(),
 		}
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Message).To(Equal(v1beta1.AgentStateSynced))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Reason).To(Equal(v1beta1.AgentSyncedReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.AgentSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Message).To(Equal(v1beta1.SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
 		Expect(agent.Status.Inventory.Interfaces[0].MacAddress).To(Equal(macAddress))
 	})
 
+})
+
+var _ = Describe("TestConditions", func() {
+	var (
+		c              client.Client
+		hr             *AgentReconciler
+		ctx            = context.Background()
+		mockCtrl       *gomock.Controller
+		backEndCluster *common.Cluster
+		hostRequest    ctrl.Request
+		agentKey       types.NamespacedName
+	)
+
+	BeforeEach(func() {
+		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
+		mockCtrl = gomock.NewController(GinkgoT())
+		mockInstallerInternal := bminventory.NewMockInstallerInternals(mockCtrl)
+		hr = &AgentReconciler{
+			Client:    c,
+			Scheme:    scheme.Scheme,
+			Log:       common.GetTestLog(),
+			Installer: mockInstallerInternal,
+		}
+		sId := strfmt.UUID(uuid.New().String())
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
+		hostId := strfmt.UUID(uuid.New().String())
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				{
+					ID: &hostId,
+				},
+			}}}
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		Expect(c.Create(ctx, host)).To(BeNil())
+		hostRequest = newHostRequest(host)
+		agentKey = types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+	})
+
+	AfterEach(func() {
+		mockCtrl.Finish()
+	})
+
+	tests := []struct {
+		name           string
+		hostStatus     string
+		statusInfo     string
+		validationInfo string
+		conditions     []conditionsv1.Condition
+	}{
+		{
+			name:           "Unsufficient",
+			hostStatus:     models.HostStatusInsufficient,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.ReadyForInstallationCondition,
+					Message: v1beta1.AgentNotReadyMsg,
+					Reason:  v1beta1.AgentNotReadyReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.AgentInstallationNotStartedMsg,
+					Reason:  v1beta1.AgentInstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsFailingMsg + " Host check1 is not OK,Host check3 is not OK",
+					Reason:  v1beta1.AgentValidationsFailingReason,
+					Status:  corev1.ConditionFalse,
+				},
+			},
+		},
+		{
+			name:           "Known",
+			hostStatus:     models.HostStatusKnown,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.ReadyForInstallationCondition,
+					Message: v1beta1.AgentReadyMsg,
+					Reason:  v1beta1.AgentReadyReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.AgentInstallationNotStartedMsg,
+					Reason:  v1beta1.AgentInstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.AgentValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "Installed",
+			hostStatus:     models.HostStatusInstalled,
+			statusInfo:     "Done",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.ReadyForInstallationCondition,
+					Message: v1beta1.AgentAlreadyInstallingMsg,
+					Reason:  v1beta1.AgentAlreadyInstallingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.AgentInstalledMsg + " Done",
+					Reason:  v1beta1.AgentInstalledReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.AgentValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "Installing",
+			hostStatus:     models.HostStatusInstalling,
+			statusInfo:     "Joined",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.ReadyForInstallationCondition,
+					Message: v1beta1.AgentAlreadyInstallingMsg,
+					Reason:  v1beta1.AgentAlreadyInstallingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.AgentInstallationInProgressMsg + " Joined",
+					Reason:  v1beta1.AgentInstallationInProgressReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.AgentValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "Error",
+			hostStatus:     models.HostStatusError,
+			statusInfo:     "Done",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.ReadyForInstallationCondition,
+					Message: v1beta1.AgentAlreadyInstallingMsg,
+					Reason:  v1beta1.AgentAlreadyInstallingReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentConnectedMsg,
+					Reason:  v1beta1.AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.AgentInstallationFailedMsg + " Done",
+					Reason:  v1beta1.AgentInstallationFailedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.AgentValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "Disconnected",
+			hostStatus:     models.HostStatusDisconnected,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    v1beta1.ReadyForInstallationCondition,
+					Message: v1beta1.AgentNotReadyMsg,
+					Reason:  v1beta1.AgentNotReadyReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ConnectedCondition,
+					Message: v1beta1.AgentDisonnectedMsg,
+					Reason:  v1beta1.AgentDisconnectedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.InstalledCondition,
+					Message: v1beta1.AgentInstallationNotStartedMsg,
+					Reason:  v1beta1.AgentInstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    v1beta1.ValidatedCondition,
+					Message: v1beta1.AgentValidationsPassingMsg,
+					Reason:  v1beta1.AgentValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			backEndCluster.Hosts[0].Status = swag.String(t.hostStatus)
+			backEndCluster.Hosts[0].StatusInfo = swag.String(t.statusInfo)
+			backEndCluster.Hosts[0].ValidationsInfo = t.validationInfo
+			result, err := hr.Reconcile(hostRequest)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			agent := &v1beta1.Agent{}
+			Expect(c.Get(ctx, agentKey, agent)).To(BeNil())
+			for _, cond := range t.conditions {
+				Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, cond.Type).Message).To(Equal(cond.Message))
+				Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
+				Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
+			}
+
+		})
+	}
 })

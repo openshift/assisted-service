@@ -2,12 +2,15 @@ package host
 
 import (
 	"context"
+	"encoding/json"
 	"sort"
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -15,15 +18,15 @@ type stringer interface {
 	String() string
 }
 
-type validationResult struct {
+type ValidationResult struct {
 	ID      validationID     `json:"id"`
 	Status  ValidationStatus `json:"status"`
 	Message string           `json:"message"`
 }
 
-type validationsStatus map[string][]validationResult
+type ValidationsStatus map[string][]ValidationResult
 
-type validationResults []validationResult
+type ValidationResults []ValidationResult
 
 type refreshPreprocessor struct {
 	log          logrus.FieldLogger
@@ -47,9 +50,9 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.Val
 	}
 }
 
-func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, validationsStatus, error) {
+func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, ValidationsStatus, error) {
 	stateMachineInput := make(map[string]bool)
-	validationsOutput := make(validationsStatus)
+	validationsOutput := make(ValidationsStatus)
 	for _, v := range r.validations {
 		st := v.condition(c)
 		stateMachineInput[v.id.String()] = st == ValidationSuccess
@@ -59,7 +62,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 			logrus.WithError(err).Warn("id.category()")
 			return nil, nil, err
 		}
-		validationsOutput[category] = append(validationsOutput[category], validationResult{
+		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
 			ID:      v.id,
 			Status:  st,
 			Message: message,
@@ -86,7 +89,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 
 		status := ValidationStatus(result.Status)
 
-		validationsOutput[category] = append(validationsOutput[category], validationResult{
+		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
 			ID:      id,
 			Status:  status,
 			Message: strings.Join(result.Reasons, "\n"),
@@ -98,7 +101,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 }
 
 // sortByValidationResultID sorts results by models.HostValidationID
-func sortByValidationResultID(validationResults []validationResult) {
+func sortByValidationResultID(validationResults []ValidationResult) {
 	sort.SliceStable(validationResults, func(i, j int) bool {
 		return validationResults[i].ID < validationResults[j].ID
 	})
@@ -207,4 +210,14 @@ func newConditions(v *validator) []condition {
 		},
 	}
 	return ret
+}
+
+func GetValidations(h *models.Host) (ValidationsStatus, error) {
+	var currentValidationRes ValidationsStatus
+	if h.ValidationsInfo != "" {
+		if err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes); err != nil {
+			return ValidationsStatus{}, errors.Wrapf(err, "Failed to unmarshal validations info from host %s in cluster %s", h.ID, h.ClusterID)
+		}
+	}
+	return currentValidationRes, nil
 }
