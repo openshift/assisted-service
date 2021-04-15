@@ -4,6 +4,9 @@ import argparse
 import deployment_options
 
 
+log = utils.get_logger('deploy-namespace')
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--deploy-namespace", type=lambda x: (str(x).lower() == 'true'), default=True)
@@ -12,7 +15,7 @@ def main():
     utils.verify_build_directory(deploy_options.namespace)
 
     if deploy_options.deploy_namespace is False:
-        print("Not deploying namespace")
+        log.info("Not deploying namespace")
         return
     src_file = os.path.join(os.getcwd(), 'deploy/namespace/namespace.yaml')
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'namespace.yaml')
@@ -20,7 +23,7 @@ def main():
         with open(dst_file, "w+") as dst:
             data = src.read()
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-            print("Deploying {}".format(dst_file))
+            log.info(f"Deploying {dst_file}")
             dst.write(data)
 
     utils.apply(

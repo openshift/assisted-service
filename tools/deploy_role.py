@@ -4,6 +4,9 @@ import utils
 import deployment_options
 
 
+log = utils.get_logger('deploy-role')
+
+
 def main():
     deploy_options = deployment_options.load_deployment_options()
 
@@ -20,7 +23,7 @@ def main():
         with open(dst_file, "w+") as dst:
             data = src.read()
             data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-            print("Deploying {}".format(dst_file))
+            log.info(f"Deploying {dst_file}")
             dst.write(data)
 
     if deploy_options.apply_manifest:
@@ -41,7 +44,7 @@ def main():
                 dst.write(data)
 
         if deploy_options.apply_manifest:
-            print("Deploying {}".format(dst_file))
+            log.info(f"Deploying {dst_file}")
             utils.apply(
                 target=deploy_options.target,
                 namespace=deploy_options.namespace,
@@ -52,7 +55,7 @@ def main():
         dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'controller_roles.yaml')
         shutil.copy(src_file, dst_file)
         if deploy_options.apply_manifest:
-            print("Deploying {}".format(dst_file))
+            log.info(f"Deploying {dst_file}")
             utils.apply(
                 target=deploy_options.target,
                 namespace=deploy_options.namespace,
