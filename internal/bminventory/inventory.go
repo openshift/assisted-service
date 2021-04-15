@@ -49,6 +49,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -2364,12 +2365,12 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 }
 
 func (b *bareMetalInventory) GetHostRequirements(_ context.Context, _ installer.GetHostRequirementsParams) middleware.Responder {
-	masterReqs := b.hostApi.GetHostRequirements(models.HostRoleMaster)
-	workerReqs := b.hostApi.GetHostRequirements(models.HostRoleWorker)
+	requirements := b.hwValidator.GetHostRequirements()
+
 	return installer.NewGetHostRequirementsOK().WithPayload(
 		&models.HostRequirements{
-			Master: &masterReqs,
-			Worker: &workerReqs,
+			Master: hostRequirementsRoleFrom(requirements.MasterRequirements),
+			Worker: hostRequirementsRoleFrom(requirements.WorkerRequirements),
 		})
 }
 
@@ -4248,5 +4249,22 @@ func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, par
 }
 
 func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
-	return installer.NewGetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
+	cluster, err := b.getCluster(ctx, params.ClusterID.String(), common.UseEagerLoading)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	requirements, err := b.hwValidator.GetPreflightHardwareRequirements(ctx, cluster)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewGetPreflightRequirementsOK().WithPayload(requirements)
+}
+
+func hostRequirementsRoleFrom(requirements *models.ClusterHostRequirementsDetails) *models.HostRequirementsRole {
+	return &models.HostRequirementsRole{
+		CPUCores:                         requirements.CPUCores,
+		DiskSizeGb:                       requirements.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: requirements.InstallationDiskSpeedThresholdMs,
+		RAMGib:                           conversions.MibToGiB(requirements.RAMMib),
+	}
 }

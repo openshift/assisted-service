@@ -125,7 +125,6 @@ type API interface {
 	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
-	GetHostRequirements(role models.HostRole) models.HostRequirementsRole
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
 	ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error
 
@@ -937,10 +936,6 @@ func (m *Manager) canBeMaster(conditions map[string]bool) bool {
 		return true
 	}
 	return false
-}
-
-func (m *Manager) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
-	return m.hwValidator.GetHostRequirements(role)
 }
 
 func (m *Manager) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {

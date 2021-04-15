@@ -27,6 +27,9 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
@@ -60,11 +63,12 @@ const (
 )
 
 const (
-	validDiskSize     = int64(128849018880)
-	minSuccessesInRow = 2
-	minHosts          = 3
-	loop0Id           = "wwn-0x1111111111111111111111"
-	sdbId             = "wwn-0x2222222222222222222222"
+	validDiskSize      = int64(128849018880)
+	minSuccessesInRow  = 2
+	minHosts           = 3
+	minHostsWithWorker = 5
+	loop0Id            = "wwn-0x1111111111111111111111"
+	sdbId              = "wwn-0x2222222222222222222222"
 )
 
 var (
@@ -2790,6 +2794,128 @@ spec:
 	})
 
 })
+
+var _ = Describe("Preflight Cluster Requirements", func() {
+	var (
+		ctx                   context.Context
+		clusterID             strfmt.UUID
+		masterOCPRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:                         4,
+			DiskSizeGb:                       120,
+			RAMMib:                           16384,
+			InstallationDiskSpeedThresholdMs: 10,
+		}
+		workerOCPRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:                         2,
+			DiskSizeGb:                       120,
+			RAMMib:                           8192,
+			InstallationDiskSpeedThresholdMs: 10,
+		}
+		workerCNVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 2,
+			RAMMib:   360,
+		}
+		masterCNVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 4,
+			RAMMib:   150,
+		}
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+		Expect(err).ToNot(HaveOccurred())
+		clusterID = cID
+		registerHostsAndSetRoles(clusterID, minHostsWithWorker)
+
+		_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("should be reported for cluster without operators", func() {
+		params := installer.GetPreflightRequirementsParams{ClusterID: clusterID}
+
+		response, err := userBMClient.Installer.GetPreflightRequirements(ctx, &params)
+
+		Expect(err).ToNot(HaveOccurred())
+		requirements := response.GetPayload()
+
+		Expect(requirements.Operators).To(BeEmpty())
+		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &masterOCPRequirements,
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &workerOCPRequirements,
+			},
+		}
+		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
+	})
+
+	It("should be reported for cluster with operators", func() {
+		_, err := updateOLMOperators(ctx, clusterID, lso.Operator.Name, cnv.Operator.Name, ocs.Operator.Name)
+		Expect(err).ToNot(HaveOccurred())
+
+		params := installer.GetPreflightRequirementsParams{ClusterID: clusterID}
+
+		response, err := userBMClient.Installer.GetPreflightRequirements(ctx, &params)
+
+		Expect(err).ToNot(HaveOccurred())
+		requirements := response.GetPayload()
+
+		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &masterOCPRequirements,
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &workerOCPRequirements,
+			},
+		}
+		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
+		Expect(requirements.Operators).To(HaveLen(3))
+		for _, op := range requirements.Operators {
+			switch op.OperatorName {
+			case lso.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+			case ocs.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+			case cnv.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterCNVRequirements))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerCNVRequirements))
+			default:
+				Fail("Unexpected operator")
+			}
+		}
+	})
+})
+
+func updateOLMOperators(ctx context.Context, clusterID strfmt.UUID, olmOperators ...string) (*models.Cluster, error) {
+	var operatorCreateParams []*models.OperatorCreateParams
+	for _, operatorName := range olmOperators {
+		operatorCreateParams = append(operatorCreateParams, &models.OperatorCreateParams{Name: operatorName})
+	}
+	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+		ClusterID:           clusterID,
+		ClusterUpdateParams: &models.ClusterUpdateParams{OlmOperators: operatorCreateParams},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	if err != nil {
+		return nil, err
+	}
+	return clusterResp.GetPayload(), nil
+}
 
 func checkUpdateAtWhileStatic(ctx context.Context, clusterID strfmt.UUID) {
 	clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{

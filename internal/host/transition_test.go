@@ -813,13 +813,6 @@ var _ = Describe("Install", func() {
 			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 			cluster.Status = swag.String(models.ClusterStatusInstalling)
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			hostRequirements := models.HostRequirementsRole{
-				CPUCores:                         2,
-				DiskSizeGb:                       80,
-				InstallationDiskSpeedThresholdMs: 10,
-				RAMGib:                           8,
-			}
-			mockHwValidator.EXPECT().GetHostRequirements(gomock.Any()).Return(hostRequirements).AnyTimes()
 			clusterRequirements := models.ClusterHostRequirements{
 				Total: &models.ClusterHostRequirementsDetails{
 					CPUCores:   1,
