@@ -294,6 +294,52 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).To(BeEquivalentTo(theError))
 		})
 	})
+
+	Context("Preflight requirements", func() {
+		const (
+			operatorName1 = "operator-1"
+			operatorName2 = "operator-2"
+		)
+		var (
+			manager              *operators.Manager
+			operator1, operator2 *api.MockOperator
+		)
+
+		BeforeEach(func() {
+			operator1 = mockOperatorBase(operatorName1)
+			operator2 = mockOperatorBase(operatorName2)
+			cluster.MonitoredOperators = models.MonitoredOperatorsList{{Name: operatorName1}, {Name: operatorName2}}
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, operator1, operator2)
+		})
+		It("should be provided for configured operators", func() {
+			requirements1 := models.OperatorHardwareRequirements{OperatorName: operatorName1}
+			operator1.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements1, nil)
+			requirements2 := models.OperatorHardwareRequirements{OperatorName: operatorName2}
+			operator2.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements2, nil)
+
+			reqBreakdown, err := manager.GetPreflightRequirementsBreakdownForCluster(context.TODO(), cluster)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(reqBreakdown).To(HaveLen(2))
+			Expect(reqBreakdown).To(ContainElements(
+				&models.OperatorHardwareRequirements{OperatorName: operatorName1},
+				&models.OperatorHardwareRequirements{OperatorName: operatorName2},
+			))
+		})
+
+		It("should return error", func() {
+			requirements1 := models.OperatorHardwareRequirements{OperatorName: operatorName1}
+			operator1.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements1, nil)
+
+			theError := errors.New("boom")
+			operator2.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(nil, theError)
+
+			_, err := manager.GetPreflightRequirementsBreakdownForCluster(context.TODO(), cluster)
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(BeEquivalentTo(theError))
+		})
+	})
 })
 
 func mockOperatorBase(operatorName string) *api.MockOperator {
