@@ -1064,9 +1064,9 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				{ID: &hid1, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 				{ID: &hid2, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
 				{ID: &hid3, Status: swag.String(models.HostStatusKnown), Inventory: defaultInventory(), Role: models.HostRoleMaster},
-				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 32000000000), Role: models.HostRoleWorker},
-				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 32000000000), Role: models.HostRoleWorker},
-				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(10, 32000000000), Role: models.HostRoleWorker},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 32000000000), Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 32000000000), Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown), Inventory: ocsInventoryWithDisks(12, 32000000000), Role: models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
