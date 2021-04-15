@@ -35,7 +35,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -58,9 +57,8 @@ const (
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
 type AgentServiceConfigReconciler struct {
 	client.Client
-	Log      logr.Logger
-	Scheme   *runtime.Scheme
-	Recorder record.EventRecorder
+	Log    logr.Logger
+	Scheme *runtime.Scheme
 
 	// Namespace the operator is running in
 	Namespace string
@@ -98,7 +96,6 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 		reason := fmt.Sprintf("Invalid name (%s)", instance.Name)
 		msg := fmt.Sprintf("Only one AgentServiceConfig supported per cluster and must be named '%s'", agentServiceConfigName)
 		r.Log.Info(fmt.Sprintf("%s: %s", reason, msg), req.NamespacedName)
-		r.Recorder.Event(instance, "Warning", reason, msg)
 		return reconcile.Result{}, nil
 	}
 
@@ -387,6 +384,11 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
 			return err
 		}
+		// Only update the route Spec's To, Port, and WildcardPolicy
+		// to match what is specified above in routeSpec.
+		// If we update the entire route.Spec with
+		// route.Spec = routeSpec
+		// it would overwrite any existing values for route.Spec.Host
 		route.Spec.To = routeSpec.To
 		route.Spec.Port = routeSpec.Port
 		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
@@ -409,21 +411,18 @@ func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(instance *aiv1bet
 		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
 			return err
 		}
-		// In unit tests, the keys are in StringData
-		_, privateKeyPresentInStringData := secret.StringData["ec-private-key.pem"]
-		_, publicKeyPresentInStringData := secret.StringData["ec-public-key.pem"]
-		// In OCP clusters, the keys are in Data
-		_, privateKeyPresentInData := secret.Data["ec-private-key.pem"]
-		_, publicKeyPresentInData := secret.Data["ec-public-key.pem"]
-		if !(privateKeyPresentInStringData || privateKeyPresentInData) && !(publicKeyPresentInStringData || publicKeyPresentInData) {
+		_, privateKeyPresent := secret.Data["ec-private-key.pem"]
+		_, publicKeyPresent := secret.Data["ec-public-key.pem"]
+		if !privateKeyPresent && !publicKeyPresent {
 			publicKey, privateKey, err := gencrypto.ECDSAKeyPairPEM()
 			if err != nil {
 				return err
 			}
-			secret.StringData = map[string]string{
-				"ec-private-key.pem": privateKey,
-				"ec-public-key.pem":  publicKey,
+			if secret.Data == nil {
+				secret.Data = map[string][]byte{}
 			}
+			secret.Data["ec-private-key.pem"] = []byte(privateKey)
+			secret.Data["ec-public-key.pem"] = []byte(publicKey)
 		}
 		return nil
 	}
