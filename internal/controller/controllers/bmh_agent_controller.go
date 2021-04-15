@@ -47,8 +47,9 @@ import (
 // BMACReconciler reconciles a Agent object
 type BMACReconciler struct {
 	client.Client
-	Log    logrus.FieldLogger
-	Scheme *runtime.Scheme
+	Log         logrus.FieldLogger
+	Scheme      *runtime.Scheme
+	spokeClient client.Client
 }
 
 const (
@@ -454,7 +455,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, bmh *bmh_v1alpha
 		return reconcileError{err}
 	}
 
-	spokeClient, err := getSpokeClient(secret)
+	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
 		r.Log.WithError(err).Errorf("failed to create spoke kubeclient")
 		return reconcileError{err}
@@ -728,6 +729,15 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 	}
 
 	return machine, mutateFn
+}
+
+func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, error) {
+	var err error
+	if r.spokeClient != nil {
+		return r.spokeClient, err
+	}
+	r.spokeClient, err = getSpokeClient(secret)
+	return r.spokeClient, err
 }
 
 func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
