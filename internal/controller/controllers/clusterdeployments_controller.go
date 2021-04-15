@@ -82,8 +82,7 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/finalizers,verbs=update
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterimagesets,verbs=get;list;watch
 
-func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	err := r.Get(ctx, req.NamespacedName, clusterDeployment)
 	if err != nil {
@@ -670,28 +669,27 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 }
 
 func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapSecretToClusterDeployment := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
-			clusterDeployments := &hivev1.ClusterDeploymentList{}
-			if err := r.List(context.Background(), clusterDeployments); err != nil {
-				return []reconcile.Request{}
+	mapSecretToClusterDeployment := func(a client.Object) []reconcile.Request {
+		clusterDeployments := &hivev1.ClusterDeploymentList{}
+		if err := r.List(context.Background(), clusterDeployments); err != nil {
+			return []reconcile.Request{}
+		}
+		reply := make([]reconcile.Request, 0, len(clusterDeployments.Items))
+		for _, clusterDeployment := range clusterDeployments.Items {
+			if clusterDeployment.Spec.PullSecretRef.Name == a.GetName() {
+				reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+					Namespace: clusterDeployment.Namespace,
+					Name:      clusterDeployment.Name,
+				}})
 			}
-			reply := make([]reconcile.Request, 0, len(clusterDeployments.Items))
-			for _, clusterDeployment := range clusterDeployments.Items {
-				if clusterDeployment.Spec.PullSecretRef.Name == a.Meta.GetName() {
-					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
-						Namespace: clusterDeployment.Namespace,
-						Name:      clusterDeployment.Name,
-					}})
-				}
-			}
-			return reply
-		})
+		}
+		return reply
+	}
 
 	clusterDeploymentUpdates := r.CRDEventsHandler.GetClusterDeploymentUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&hivev1.ClusterDeployment{}).
-		Watches(&source.Kind{Type: &corev1.Secret{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapSecretToClusterDeployment}).
+		Watches(&source.Kind{Type: &corev1.Secret{}}, handler.EnqueueRequestsFromMapFunc(mapSecretToClusterDeployment)).
 		Watches(&source.Channel{Source: clusterDeploymentUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

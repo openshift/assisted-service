@@ -120,8 +120,7 @@ func (r reconcileError) Dirty() bool {
 
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;update;patch
 
-func (r *BMACReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	bmh := &bmh_v1alpha1.BareMetalHost{}
 
 	if err := r.Get(ctx, req.NamespacedName, bmh); err != nil {
@@ -736,37 +735,36 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 }
 
 func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapAgentToClusterDeployment := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
-			ctx := context.Background()
-			agent := &aiv1beta1.Agent{}
+	mapAgentToClusterDeployment := func(a client.Object) []reconcile.Request {
+		ctx := context.Background()
+		agent := &aiv1beta1.Agent{}
 
-			if err := r.Get(ctx, types.NamespacedName{Name: a.Meta.GetName(), Namespace: a.Meta.GetNamespace()}, agent); err != nil {
-				return []reconcile.Request{}
-			}
+		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, agent); err != nil {
+			return []reconcile.Request{}
+		}
 
-			// No need to list all the `BareMetalHost` resources if the agent
-			// already has the reference to one of them.
-			if val, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]; ok {
-				return []reconcile.Request{{NamespacedName: types.NamespacedName{
-					Namespace: agent.Namespace,
-					Name:      val,
-				}}}
-			}
-
-			bmh, err := r.findBMH(ctx, agent)
-			if bmh == nil || err != nil {
-				return []reconcile.Request{}
-			}
-
+		// No need to list all the `BareMetalHost` resources if the agent
+		// already has the reference to one of them.
+		if val, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]; ok {
 			return []reconcile.Request{{NamespacedName: types.NamespacedName{
-				Namespace: bmh.Namespace,
-				Name:      bmh.Name,
+				Namespace: agent.Namespace,
+				Name:      val,
 			}}}
-		})
+		}
+
+		bmh, err := r.findBMH(ctx, agent)
+		if bmh == nil || err != nil {
+			return []reconcile.Request{}
+		}
+
+		return []reconcile.Request{{NamespacedName: types.NamespacedName{
+			Namespace: bmh.Namespace,
+			Name:      bmh.Name,
+		}}}
+	}
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bmh_v1alpha1.BareMetalHost{}).
-		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapAgentToClusterDeployment}).
+		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToClusterDeployment)).
 		Complete(r)
 }

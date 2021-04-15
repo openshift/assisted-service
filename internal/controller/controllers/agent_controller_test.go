@@ -59,7 +59,7 @@ var _ = Describe("agent reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		hr = &AgentReconciler{
@@ -82,7 +82,7 @@ var _ = Describe("agent reconcile", func() {
 
 		noneExistingHost := newAgent("host2", testNamespace, v1beta1.AgentSpec{})
 
-		result, err := hr.Reconcile(newHostRequest(noneExistingHost))
+		result, err := hr.Reconcile(ctx, newHostRequest(noneExistingHost))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
@@ -90,7 +90,7 @@ var _ = Describe("agent reconcile", func() {
 	It("cluster deployment not set", func() {
 		host := newAgent("host", testNamespace, v1beta1.AgentSpec{})
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -105,7 +105,7 @@ var _ = Describe("agent reconcile", func() {
 	It("cluster deployment not found", func() {
 		host := newAgent("host", testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -128,7 +128,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -152,7 +152,7 @@ var _ = Describe("agent reconcile", func() {
 		errString := "Error getting Cluster"
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
 			errors.New(errString))).Times(1)
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		agent := &v1beta1.Agent{}
@@ -174,7 +174,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -233,7 +233,7 @@ var _ = Describe("agent reconcile", func() {
 				Expect(param.ClusterUpdateParams.HostsRoles[0].Role).To(Equal(models.HostRoleUpdateParams(models.HostRole(newRole))))
 			}).Return(updateReply, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -271,7 +271,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -308,7 +308,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
 			errors.New(errString)))
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		agent := &v1beta1.Agent{}
@@ -350,7 +350,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
 		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -385,7 +385,7 @@ var _ = Describe("agent reconcile", func() {
 		// mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -406,7 +406,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		agent.Spec.InstallerArgs = installerArgs
 		Expect(c.Update(ctx, agent)).To(BeNil())
-		result, err = hr.Reconcile(newHostRequest(agent))
+		result, err = hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
@@ -426,7 +426,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(internalHost, nil)
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		Expect(agent.Spec.InstallerArgs).To(Equal(installerArgs))
-		result, err = hr.Reconcile(newHostRequest(agent))
+		result, err = hr.Reconcile(ctx, newHostRequest(agent))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
@@ -461,7 +461,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
 		host.Spec.InstallerArgs = installerArgs
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{Requeue: false}))
 		Expect(c.Get(ctx, key, host)).To(BeNil())
@@ -475,7 +475,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
 		host.Spec.InstallerArgs = installerArgs
 		Expect(c.Update(ctx, host)).To(BeNil())
-		result, err = hr.Reconcile(newHostRequest(host))
+		result, err = hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		Expect(c.Get(ctx, key, host)).To(BeNil())
@@ -525,7 +525,7 @@ var _ = Describe("agent reconcile", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
-		result, err := hr.Reconcile(newHostRequest(host))
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 		agent := &v1beta1.Agent{}
@@ -555,7 +555,7 @@ var _ = Describe("TestConditions", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal := bminventory.NewMockInstallerInternals(mockCtrl)
 		hr = &AgentReconciler{
@@ -798,7 +798,7 @@ var _ = Describe("TestConditions", func() {
 			backEndCluster.Hosts[0].Status = swag.String(t.hostStatus)
 			backEndCluster.Hosts[0].StatusInfo = swag.String(t.statusInfo)
 			backEndCluster.Hosts[0].ValidationsInfo = t.validationInfo
-			result, err := hr.Reconcile(hostRequest)
+			result, err := hr.Reconcile(ctx, hostRequest)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 			agent := &v1beta1.Agent{}

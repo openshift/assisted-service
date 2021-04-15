@@ -27,7 +27,7 @@ var _ = Describe("create agent CR", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		crdUtils = NewCRDUtils(c)
 		mockCtrl = gomock.NewController(GinkgoT())
 	})

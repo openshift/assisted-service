@@ -168,7 +168,7 @@ var _ = Describe("cluster reconcile", func() {
 
 	BeforeEach(func() {
 		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, pullSecretName)
-		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		mockClusterApi = cluster.NewMockAPI(mockCtrl)
@@ -212,7 +212,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			validateCreation := func(cluster *hivev1.ClusterDeployment) {
 				request := newClusterDeploymentRequest(cluster)
-				result, err := cr.Reconcile(request)
+				result, err := cr.Reconcile(ctx, request)
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -269,7 +269,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -297,7 +297,7 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
 		request := newClusterDeploymentRequest(cluster)
-		result, err := cr.Reconcile(request)
+		result, err := cr.Reconcile(ctx, request)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result).Should(Equal(ctrl.Result{}))
 	})
@@ -311,7 +311,7 @@ var _ = Describe("cluster reconcile", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, errors.Errorf(expectedErr))
 
 		request := newClusterDeploymentRequest(cluster)
-		result, err := cr.Reconcile(request)
+		result, err := cr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		cluster = getTestCluster()
@@ -345,7 +345,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(result).Should(Equal(ctrl.Result{}))
 		})
@@ -363,7 +363,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(Equal(expectedErrMsg))
 			Expect(result).Should(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
@@ -380,7 +380,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(result).Should(Equal(ctrl.Result{}))
 
@@ -391,7 +391,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
 			request = newClusterDeploymentRequest(cluster)
-			result, err = cr.Reconcile(request)
+			result, err = cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
@@ -457,7 +457,7 @@ var _ = Describe("cluster reconcile", func() {
 				Return(installClusterReply, nil)
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -491,7 +491,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(clusterReply, nil)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -528,7 +528,7 @@ var _ = Describe("cluster reconcile", func() {
 			cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents = 1
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -564,7 +564,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(expectedError).Times(1)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -594,7 +594,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, expectedError)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -615,7 +615,7 @@ var _ = Describe("cluster reconcile", func() {
 			cluster.Spec.Installed = true
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -639,7 +639,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
 			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New("internal error")).Times(1)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -660,7 +660,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.New("internal error")).Times(1)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -682,7 +682,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -697,7 +697,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -715,7 +715,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -742,7 +742,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -769,7 +769,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(expectedError)
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -837,7 +837,7 @@ var _ = Describe("cluster reconcile", func() {
 				}).Return(updateReply, nil)
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -868,7 +868,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
@@ -882,7 +882,7 @@ var _ = Describe("cluster reconcile", func() {
 				Return(nil, expectedError)
 
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 			cluster = getTestCluster()
@@ -906,7 +906,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
 				Return(nil, expectedUpdateError)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
@@ -951,7 +951,7 @@ var _ = Describe("cluster reconcile", func() {
 			cluster.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
@@ -989,7 +989,7 @@ var _ = Describe("cluster reconcile", func() {
 					Expect(param.InstallConfigParams).To(Equal(""))
 				}).Return(updateReply, nil)
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
@@ -1031,7 +1031,7 @@ var _ = Describe("cluster reconcile", func() {
 			cluster.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
-			result, err := cr.Reconcile(request)
+			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 		})

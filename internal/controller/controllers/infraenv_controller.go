@@ -62,10 +62,9 @@ type InfraEnvReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get;update;patch
 
-func (r *InfraEnvReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
+func (r *InfraEnvReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log.Debugf("InfraEnv Reconcile start for InfraEnv: %s, Namespace %s",
 		req.NamespacedName.Name, req.NamespacedName.Name)
-	ctx := context.Background()
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {
@@ -347,39 +346,38 @@ func imageBeingCreated(err error) bool {
 }
 
 func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapNMStateConfigToInfraEnv := handler.ToRequestsFunc(
-		func(a handler.MapObject) []reconcile.Request {
-			infraEnvs := &aiv1beta1.InfraEnvList{}
-			if len(a.Meta.GetLabels()) == 0 {
-				r.Log.Debugf("NMState config: %s has no labels", a.Meta.GetName())
-				return []reconcile.Request{}
-			}
-			if err := r.List(context.Background(), infraEnvs, client.InNamespace(a.Meta.GetNamespace())); err != nil {
-				r.Log.Debugf("failed to list InfraEnvs")
-				return []reconcile.Request{}
-			}
+	mapNMStateConfigToInfraEnv := func(a client.Object) []reconcile.Request {
+		infraEnvs := &aiv1beta1.InfraEnvList{}
+		if len(a.GetLabels()) == 0 {
+			r.Log.Debugf("NMState config: %s has no labels", a.GetName())
+			return []reconcile.Request{}
+		}
+		if err := r.List(context.Background(), infraEnvs, client.InNamespace(a.GetNamespace())); err != nil {
+			r.Log.Debugf("failed to list InfraEnvs")
+			return []reconcile.Request{}
+		}
 
-			reply := make([]reconcile.Request, 0, len(infraEnvs.Items))
-			for labelName, labelValue := range a.Meta.GetLabels() {
-				r.Log.Debugf("Detected NMState config with label name: %s with value %s, about to search for a matching InfraEnv",
-					labelName, labelValue)
-				for _, infraEnv := range infraEnvs.Items {
-					if infraEnv.Spec.NMStateConfigLabelSelector.MatchLabels[labelName] == labelValue {
-						r.Log.Debugf("Detected NMState config for InfraEnv: %s in namespace: %s", infraEnv.Name, infraEnv.Namespace)
-						reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
-							Namespace: infraEnv.Namespace,
-							Name:      infraEnv.Name,
-						}})
-					}
+		reply := make([]reconcile.Request, 0, len(infraEnvs.Items))
+		for labelName, labelValue := range a.GetLabels() {
+			r.Log.Debugf("Detected NMState config with label name: %s with value %s, about to search for a matching InfraEnv",
+				labelName, labelValue)
+			for _, infraEnv := range infraEnvs.Items {
+				if infraEnv.Spec.NMStateConfigLabelSelector.MatchLabels[labelName] == labelValue {
+					r.Log.Debugf("Detected NMState config for InfraEnv: %s in namespace: %s", infraEnv.Name, infraEnv.Namespace)
+					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+						Namespace: infraEnv.Namespace,
+						Name:      infraEnv.Name,
+					}})
 				}
 			}
-			return reply
-		})
+		}
+		return reply
+	}
 
 	infraEnvUpdates := r.CRDEventsHandler.GetInfraEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.InfraEnv{}).
-		Watches(&source.Kind{Type: &aiv1beta1.NMStateConfig{}}, &handler.EnqueueRequestsFromMapFunc{ToRequests: mapNMStateConfigToInfraEnv}).
+		Watches(&source.Kind{Type: &aiv1beta1.NMStateConfig{}}, handler.EnqueueRequestsFromMapFunc(mapNMStateConfigToInfraEnv)).
 		Watches(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }

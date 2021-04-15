@@ -29,7 +29,7 @@ var _ = Describe("bmac reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		bmhr = &BMACReconciler{
 			Client: c,
@@ -46,7 +46,7 @@ var _ = Describe("bmac reconcile", func() {
 		host := newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
 		Expect(c.Create(ctx, host)).To(BeNil())
 
-		result, err := bmhr.Reconcile(newBMHRequest(host))
+		result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
@@ -122,7 +122,7 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("with a non-existing infraEnv", func() {
 			It("should return without failures", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 			})
@@ -133,7 +133,7 @@ var _ = Describe("bmac reconcile", func() {
 				infraEnv := newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
 				Expect(c.Create(ctx, infraEnv)).To(BeNil())
 
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result.RequeueAfter).To(Equal(time.Minute))
 			})
@@ -155,7 +155,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should disable the BMH hardware inspection", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -168,7 +168,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should set the ISODownloadURL in the BMH", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -256,7 +256,7 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("when an agent matches", func() {
 			It("should use the newest agent", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -274,7 +274,7 @@ var _ = Describe("bmac reconcile", func() {
 				updatedHost.ObjectMeta.Annotations[BMH_AGENT_ROLE] = "without-purpose"
 				Expect(c.Update(ctx, updatedHost)).To(BeNil())
 
-				result, err := bmhr.Reconcile(newBMHRequest(updatedHost))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(updatedHost))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -285,7 +285,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should approve it", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -296,7 +296,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should add a lable referring to the bmh", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -307,7 +307,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should set the agent spec based on the BMH annotations", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -328,7 +328,7 @@ var _ = Describe("bmac reconcile", func() {
 				updatedHost.Spec.RootDeviceHints.DeviceName = "/dev/sdc"
 				Expect(c.Update(ctx, updatedHost)).To(BeNil())
 
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -339,7 +339,7 @@ var _ = Describe("bmac reconcile", func() {
 			})
 
 			It("should set the InstallationDiskID if the RootDeviceHints were provided and match", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
@@ -394,7 +394,7 @@ var _ = Describe("bmac reconcile", func() {
 
 		Context("when an agent matches", func() {
 			It("should set the metal3 hardwaredetails annotation if the Agent inventory is set", func() {
-				result, err := bmhr.Reconcile(newBMHRequest(host))
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
