@@ -112,7 +112,7 @@ var Options struct {
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
-	InstallEnvConfig            controllers.InstallEnvConfig
+	InfraEnvConfig              controllers.InfraEnvConfig
 	ISOEditorConfig             isoeditor.Config
 	CheckClusterVersion         bool          `envconfig:"CHECK_CLUSTER_VERSION" default:"false"`
 	DeletionWorkerInterval      time.Duration `envconfig:"DELETION_WORKER_INTERVAL" default:"1h"`
@@ -412,13 +412,13 @@ func main() {
 
 	go func() {
 		if Options.EnableKubeAPI {
-			failOnError((&controllers.InstallEnvReconciler{
+			failOnError((&controllers.InfraEnvReconciler{
 				Client:           ctrlMgr.GetClient(),
-				Config:           Options.InstallEnvConfig,
+				Config:           Options.InfraEnvConfig,
 				Log:              log,
 				Installer:        bm,
 				CRDEventsHandler: crdEventsHandler,
-			}).SetupWithManager(ctrlMgr), "unable to create controller InstallEnv")
+			}).SetupWithManager(ctrlMgr), "unable to create controller InfraEnv")
 
 			failOnError((&controllers.ClusterDeploymentsReconciler{
 				Client:           ctrlMgr.GetClient(),

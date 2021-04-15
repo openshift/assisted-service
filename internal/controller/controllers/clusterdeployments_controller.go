@@ -341,8 +341,8 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	cluster *common.Cluster) (bool, ctrl.Result, error) {
 
 	update := false
-	notifyInstallEnv := false
-	var installEnv *v1beta1.InstallEnv
+	notifyInfraEnv := false
+	var infraEnv *v1beta1.InfraEnv
 
 	params := &models.ClusterUpdateParams{}
 
@@ -383,11 +383,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	if err != nil {
 		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
 	}
-	// TODO: change isInstallEnvUpdate to false, once clusterDeployment pull-secret can differ from installEnv
+	// TODO: change isInfraEnvUpdate to false, once clusterDeployment pull-secret can differ from infraEnv
 	if pullSecretData != cluster.PullSecret {
 		params.PullSecret = swag.String(pullSecretData)
 		update = true
-		notifyInstallEnv = true
+		notifyInfraEnv = true
 	}
 	if !update {
 		return update, ctrl.Result{}, nil
@@ -403,16 +403,16 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		}
 	}
 
-	installEnv, err = getInstallEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
+	infraEnv, err = getInfraEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
 	if err != nil {
-		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for installEnv for clusterDeployment %s", clusterDeployment.Name))
+		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
 	}
 
 	r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
 	reply, err := r.updateState(ctx, clusterDeployment, updatedCluster, nil)
-	if err == nil && notifyInstallEnv && installEnv != nil {
-		r.Log.Infof("Notify that installEnv %s should re-generate the image for clusterDeployment %s", installEnv.Name, clusterDeployment.ClusterName)
-		r.CRDEventsHandler.NotifyInstallEnvUpdates(installEnv.Name, installEnv.Namespace)
+	if err == nil && notifyInfraEnv && infraEnv != nil {
+		r.Log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s", infraEnv.Name, clusterDeployment.ClusterName)
+		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	}
 	return update, reply, err
 }

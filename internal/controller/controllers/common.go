@@ -34,18 +34,18 @@ func getPullSecret(ctx context.Context, c client.Client, name, namespace string)
 	return string(data), nil
 }
 
-func getInstallEnvByClusterDeployment(ctx context.Context, c client.Client, clusterDeployment *hivev1.ClusterDeployment) (*aiv1beta1.InstallEnv, error) {
-	installEnvs := &aiv1beta1.InstallEnvList{}
-	if err := c.List(ctx, installEnvs); err != nil {
-		logrus.WithError(err).Errorf("failed to search for installEnv for clusterDeployment %s", clusterDeployment.Name)
+func getInfraEnvByClusterDeployment(ctx context.Context, c client.Client, clusterDeployment *hivev1.ClusterDeployment) (*aiv1beta1.InfraEnv, error) {
+	infraEnvs := &aiv1beta1.InfraEnvList{}
+	if err := c.List(ctx, infraEnvs); err != nil {
+		logrus.WithError(err).Errorf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name)
 		return nil, err
 	}
-	for _, installEnv := range installEnvs.Items {
-		if installEnv.Spec.ClusterRef.Name == clusterDeployment.Name {
-			return &installEnv, nil
+	for _, infraEnv := range infraEnvs.Items {
+		if infraEnv.Spec.ClusterRef.Name == clusterDeployment.Name {
+			return &infraEnv, nil
 		}
 	}
-	logrus.Infof("no installEnv for the clusterDeployment %s", clusterDeployment.Name)
+	logrus.Infof("no infraEnv for the clusterDeployment %s", clusterDeployment.Name)
 	return nil, nil
 }
 

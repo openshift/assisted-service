@@ -648,14 +648,14 @@ metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.4.0
   creationTimestamp: null
-  name: installenvs.agent-install.openshift.io
+  name: infraenvs.agent-install.openshift.io
 spec:
   group: agent-install.openshift.io
   names:
-    kind: InstallEnv
-    listKind: InstallEnvList
-    plural: installenvs
-    singular: installenv
+    kind: InfraEnv
+    listKind: InfraEnvList
+    plural: infraenvs
+    singular: infraenv
   scope: Namespaced
   versions:
   - name: v1beta1
@@ -678,7 +678,7 @@ spec:
                   type: string
                 type: array
               agentLabelSelector:
-                description: AgentLabelSelector specifies a label that should be applied to Agents that boot from the installation media of this InstallEnv. This is how a user would identify which agents are associated with a particular InstallEnv.
+                description: AgentLabelSelector specifies a label that should be applied to Agents that boot from the installation media of this InfraEnv. This is how a user would identify which agents are associated with a particular InfraEnv.
                 properties:
                   matchExpressions:
                     description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
@@ -710,10 +710,10 @@ spec:
               agentLabels:
                 additionalProperties:
                   type: string
-                description: AgentLabels lists labels to apply to Agents that are associated with this InstallEnv upon the creation of the Agents.
+                description: AgentLabels lists labels to apply to Agents that are associated with this InfraEnv upon the creation of the Agents.
                 type: object
               clusterRef:
-                description: ClusterRef is the reference to the single ClusterDeployment that will be installed from this InstallEnv. Future versions will allow for multiple ClusterDeployments and this reference will be removed.
+                description: ClusterRef is the reference to the single ClusterDeployment that will be installed from this InfraEnv. Future versions will allow for multiple ClusterDeployments and this reference will be removed.
                 properties:
                   name:
                     description: Name is unique within a namespace to reference a cluster resource.
@@ -756,7 +756,7 @@ spec:
                     type: object
                 type: object
               proxy:
-                description: Proxy defines the proxy settings for agents and clusters that use the InstallEnv. If unset, the agents and clusters will not be configured to use a proxy.
+                description: Proxy defines the proxy settings for agents and clusters that use the InfraEnv. If unset, the agents and clusters will not be configured to use a proxy.
                 properties:
                   httpProxy:
                     description: HTTPProxy is the URL of the proxy for HTTP requests.
@@ -810,7 +810,7 @@ spec:
                   type: object
                 type: array
               isoDownloadURL:
-                description: ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the configuration from this InstallEnv.
+                description: ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the configuration from this InfraEnv.
                 type: string
             type: object
         type: object

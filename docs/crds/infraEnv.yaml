@@ -1,7 +1,7 @@
 apiVersion: agent-install.openshift.io/v1beta1
-kind: InstallEnv
+kind: InfraEnv
 metadata:
-  name: myinstallenv
+  name: myinfraenv
 spec:
   clusterRef:
     name: single-node

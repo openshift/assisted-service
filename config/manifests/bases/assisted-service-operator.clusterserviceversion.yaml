@@ -50,8 +50,8 @@ spec:
     - kind: Agents
       name: agents.agent-install.openshift.io
       version: v1beta1
-    - kind: InstallEnv
-      name: installenvs.agent-install.openshift.io
+    - kind: InfraEnv
+      name: infraenvs.agent-install.openshift.io
       version: v1beta1
   description: |-
     Assisted Service is used to orchestrate baremetal OpenShift installations.
