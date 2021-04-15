@@ -1,12 +1,14 @@
 package common
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/swag"
+	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 )
@@ -97,6 +99,10 @@ func IsKnownError(err error) bool {
 }
 
 func GenerateErrorResponder(err error) middleware.Responder {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return NewApiError(http.StatusNotFound, err)
+	}
+
 	switch errValue := err.(type) {
 	case *ApiErrorResponse:
 		return errValue

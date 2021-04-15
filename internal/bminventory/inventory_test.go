@@ -1914,46 +1914,108 @@ var _ = Describe("cluster", func() {
 			addHost(masterHostId3, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname2", "bootMode", "1.2.3.6/24", "7.8.9.10/24"), db)
 		})
 
-		It("GetCluster", func() {
-			mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
-			mockDurationsSuccess()
-			reply := bm.GetCluster(ctx, installer.GetClusterParams{
-				ClusterID: clusterID,
-			})
-			actual, ok := reply.(*installer.GetClusterOK)
-			Expect(ok).To(BeTrue())
-			Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
-			Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
-			Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
-			expectedNetworks := sortedNetworks([]*models.HostNetwork{
-				{
-					Cidr: "1.2.3.0/24",
-					HostIds: sortedHosts([]strfmt.UUID{
-						masterHostId1,
-						masterHostId2,
-						masterHostId3,
-					}),
-				},
-				{
-					Cidr: "10.11.0.0/16",
-					HostIds: sortedHosts([]strfmt.UUID{
-						masterHostId1,
-						masterHostId2,
-					}),
-				},
-				{
-					Cidr: "7.8.9.0/24",
-					HostIds: []strfmt.UUID{
-						masterHostId3,
+		Context("GetCluster", func() {
+			It("success", func() {
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3) // Number of hosts
+				mockDurationsSuccess()
+				reply := bm.GetCluster(ctx, installer.GetClusterParams{
+					ClusterID: clusterID,
+				})
+				actual, ok := reply.(*installer.GetClusterOK)
+				Expect(ok).To(BeTrue())
+				Expect(actual.Payload.APIVip).To(BeEquivalentTo("10.11.12.13"))
+				Expect(actual.Payload.IngressVip).To(BeEquivalentTo("10.11.12.14"))
+				Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
+				expectedNetworks := sortedNetworks([]*models.HostNetwork{
+					{
+						Cidr: "1.2.3.0/24",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+							masterHostId3,
+						}),
 					},
-				},
+					{
+						Cidr: "10.11.0.0/16",
+						HostIds: sortedHosts([]strfmt.UUID{
+							masterHostId1,
+							masterHostId2,
+						}),
+					},
+					{
+						Cidr: "7.8.9.0/24",
+						HostIds: []strfmt.UUID{
+							masterHostId3,
+						},
+					},
+				})
+				actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
+				Expect(len(actualNetworks)).To(Equal(3))
+				actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
+				actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
+				actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
+				Expect(actualNetworks).To(Equal(expectedNetworks))
 			})
-			actualNetworks := sortedNetworks(actual.Payload.HostNetworks)
-			Expect(len(actualNetworks)).To(Equal(3))
-			actualNetworks[0].HostIds = sortedHosts(actualNetworks[0].HostIds)
-			actualNetworks[1].HostIds = sortedHosts(actualNetworks[1].HostIds)
-			actualNetworks[2].HostIds = sortedHosts(actualNetworks[2].HostIds)
-			Expect(actualNetworks).To(Equal(expectedNetworks))
+
+			It("Unfamilliar ID", func() {
+				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: "12345"})
+				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+			})
+
+			It("DB inaccessible", func() {
+				common.DeleteTestDB(db, dbName)
+				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID})
+				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf(""))))
+			})
+		})
+
+		Context("GetUnregisteredClusters", func() {
+			deleteCluster := func(deletePermanently bool) {
+				c, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+				Expect(err).ShouldNot(HaveOccurred())
+
+				tempDB := db
+
+				if deletePermanently {
+					tempDB = db.Unscoped()
+				}
+
+				for _, host := range c.Hosts {
+					Expect(tempDB.Delete(host).Error).ShouldNot(HaveOccurred())
+				}
+				Expect(tempDB.Delete(&c).Error).ShouldNot(HaveOccurred())
+			}
+
+			It("success", func() {
+				deleteCluster(false)
+				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
+				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+				cluster := resp.(*installer.GetClusterOK).Payload
+				Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
+				Expect(cluster.TotalHostCount).Should(Equal(int64(3)))
+				Expect(cluster.ReadyHostCount).Should(Equal(int64(3)))
+				Expect(cluster.EnabledHostCount).Should(Equal(int64(3)))
+
+				expectedMasterHostsIDs := []strfmt.UUID{masterHostId1, masterHostId2, masterHostId3}
+				for _, h := range cluster.Hosts {
+					Expect(expectedMasterHostsIDs).To(ContainElement(*h.ID))
+				}
+			})
+
+			It("failure - cluster was permanently deleted", func() {
+				deleteCluster(true)
+				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
+			})
+
+			It("failure - not an admin user", func() {
+				deleteCluster(false)
+				payload := &ocm.AuthPayload{}
+				payload.Role = ocm.UserRole
+				ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
+				Expect(resp).Should(BeAssignableToTypeOf(common.NewInfraError(http.StatusForbidden, errors.Errorf(""))))
+			})
 		})
 	})
 	Context("Create non HA cluster", func() {
@@ -4274,75 +4336,6 @@ var _ = Describe("List unregistered clusters", func() {
 			payload := resp.(*installer.ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(0))
 		})
-	})
-})
-
-var _ = Describe("Get unregistered clusters", func() {
-
-	var (
-		bm             *bareMetalInventory
-		cfg            Config
-		db             *gorm.DB
-		ctx            = context.Background()
-		clusterID      strfmt.UUID
-		hostID         strfmt.UUID
-		c              common.Cluster
-		kubeconfigFile *os.File
-		dbName         string
-		host1          models.Host
-	)
-
-	BeforeEach(func() {
-		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
-		bm = createInventory(db, cfg)
-		clusterID = strfmt.UUID(uuid.New().String())
-		c = common.Cluster{Cluster: models.Cluster{
-			ID:               &clusterID,
-			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
-			Name:             "mycluster",
-			APIVip:           "10.11.12.13",
-		}}
-		err := db.Create(&c).Error
-		Expect(err).ShouldNot(HaveOccurred())
-		hostID = strfmt.UUID(uuid.New().String())
-		host1 = addHost(hostID, models.HostRoleMaster, "known", models.HostKindHost, clusterID, "{}", db)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
-		kubeconfigFile.Close()
-	})
-
-	It("Get unregistered clusters success", func() {
-		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
-		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
-		mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-		cluster := resp.(*installer.GetClusterOK).Payload
-		Expect(cluster.ID.String()).Should(Equal(clusterID.String()))
-		Expect(cluster.TotalHostCount).Should(Equal(int64(1)))
-		Expect(cluster.ReadyHostCount).Should(Equal(int64(1)))
-		Expect(cluster.EnabledHostCount).Should(Equal(int64(1)))
-		Expect(cluster.Hosts[0].ID.String()).Should(Equal(hostID.String()))
-	})
-
-	It("Get unregistered clusters failure - cluster was permanently deleted", func() {
-		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
-		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
-		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-		Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
-	})
-
-	It("Get unregistered clusters failure - not an admin user", func() {
-		payload := &ocm.AuthPayload{}
-		payload.Role = ocm.UserRole
-		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
-		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
-		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
-		resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID, GetUnregisteredClusters: swag.Bool(true)})
-		Expect(resp).Should(BeAssignableToTypeOf(common.NewInfraError(http.StatusForbidden, errors.Errorf(""))))
 	})
 })
 
