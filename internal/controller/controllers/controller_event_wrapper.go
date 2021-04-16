@@ -33,7 +33,7 @@ func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt
 	c.log.Debugf("Pushing cluster event %s %s", cluster.KubeKeyName, cluster.KubeKeyNamespace)
 	c.crdEventsHandler.NotifyClusterDeploymentUpdates(cluster.KubeKeyName, cluster.KubeKeyNamespace)
 	if hostID != nil {
-		// TODO once host will have installenv params we need to use common.GetHostFromDB()
+		// TODO once host will have infraEnv params we need to use common.GetHostFromDB()
 		// till then we will use same namespace as cluster deployment
 		c.log.Debugf("Pushing event for host %q %s %s", hostID, cluster.KubeKeyName, cluster.KubeKeyNamespace)
 		c.crdEventsHandler.NotifyAgentUpdates(hostID.String(), cluster.KubeKeyNamespace)

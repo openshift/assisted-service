@@ -14,8 +14,8 @@ In the ClusterDeployment, the user can specify requirements like Networking, num
 
 The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
 
-### [InstallEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/installenv_types.go)
-The InstallEnv CRD represents the configuration needed to create the discovery ISO.
+### [InfraEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/infraenv_types.go)
+The InfraEnv CRD represents the configuration needed to create the discovery ISO.
 The user can specify proxy settings, ignition overrides and specify NMState labels.
 
 When the ISO is ready, an URL will be available in the CR.
@@ -53,7 +53,7 @@ Note that the user needs to approved the additional nodes in the installed clust
 In case that the Bare Metal Operator is installed, the Baremetal Agent Controller will sync between the Agent CR and the matching BareMetalHost CR:
 
 - Find the right pairs of BMH/Agent using their MAC addresses
-- Set the Image.URL in the BMH copying it from the InstallEnv's status.
+- Set the Image.URL in the BMH copying it from the InfraEnv's status.
 - Reconcile the Agent's spec by copying the following attributes from the BMH's annotations:
     - Role: master/worker
     - Hostname (optional for user to set)
@@ -70,7 +70,7 @@ Those examples are here for reference.
 
 You will likely need to adapt those for your own needs.
 
-* [InstalllEnv](crds/installEnv.yaml)
+* [InstalllEnv](crds/infraEnv.yaml)
 * [NMState Config](crds/nmstate.yaml)
 * [Hive PullSecret Secret](crds/pullsecret.yaml)
 * [Hive ClusterDeployment](crds/clusterDeployment.yaml)

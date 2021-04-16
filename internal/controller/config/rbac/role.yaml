@@ -72,7 +72,7 @@ rules:
 - apiGroups:
   - agent-install.openshift.io
   resources:
-  - installenvs
+  - infraenvs
   verbs:
   - create
   - delete
@@ -84,7 +84,7 @@ rules:
 - apiGroups:
   - agent-install.openshift.io
   resources:
-  - installenvs/status
+  - infraenvs/status
   verbs:
   - get
   - patch

@@ -19,6 +19,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
@@ -27,12 +28,17 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/sirupsen/logrus"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -50,10 +56,12 @@ const (
 	BMH_AGENT_ROLE                  = "bmac.agent-install.openshift.io/role"
 	BMH_AGENT_HOSTNAME              = "bmac.agent-install.openshift.io/hostname"
 	BMH_AGENT_MACHINE_CONFIG_POOL   = "bmac.agent-install.openshift.io/machine-config-pool"
-	BMH_INSTALL_ENV_LABEL           = "installenvs.agent-install.openshift.io"
+	BMH_INSTALL_ENV_LABEL           = "infraenvs.agent-install.openshift.io"
 	BMH_AGENT_INSTALLER_ARGS        = "bmac.agent-install.openshift.io/installer-args"
 	BMH_INSPECT_ANNOTATION          = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION = "inspect.metal3.io/hardwaredetails"
+	MACHINE_ROLE                    = "machine.openshift.io/cluster-api-machine-role"
+	MACHINE_TYPE                    = "machine.openshift.io/cluster-api-machine-type"
 )
 
 // reconcileResult is an interface that encapsulates the result of a Reconcile
@@ -168,9 +176,9 @@ func (r *BMACReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			r.Log.WithError(err).Errorf("Error updating agent")
 			return reconcileError{err}.Result()
 		}
-
-		return result.Result()
 	}
+
+	result = r.reconcileSpokeBMH(ctx, bmh, agent)
 
 	return result.Result()
 }
@@ -318,6 +326,9 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 		SerialNumber: inventory.SystemVendor.SerialNumber,
 	}
 
+	// Add hostname
+	hardwareDetails.Hostname = agent.Status.Inventory.Hostname
+
 	bytes, err := json.Marshal(hardwareDetails)
 	if err != nil {
 		return reconcileError{err}
@@ -335,12 +346,12 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 // Reconcile the `BareMetalHost` resource
 //
 // This reconcile step sets the Image.URL value in the `BareMetalHost`
-// spec by copying it from the `InstallEnv` referenced in the resource's
+// spec by copying it from the `InfraEnv` referenced in the resource's
 // labels. If the previous action succeeds, this step will also set the
 // BMH_INSPECT_ANNOTATION to disabled on the BareMetalHost.
 //
 // The above changes will be done only if the ISODownloadURL value has already
-// been set in the `InstallEnv` resource and the Image.URL value has not been
+// been set in the `InfraEnv` resource and the Image.URL value has not been
 // set in the `BareMetalHost`
 func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
 	// No need to reconcile if the image URL has been set in
@@ -353,21 +364,21 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 
 	for ann, value := range bmh.Labels {
 
-		// Find the `BMH_INSTALL_ENV_LABEL`, get the installEnv configured in it
-		// and copy the ISO Url from the InstallEnv to the BMH resource.
+		// Find the `BMH_INSTALL_ENV_LABEL`, get the infraEnv configured in it
+		// and copy the ISO Url from the InfraEnv to the BMH resource.
 		if ann == BMH_INSTALL_ENV_LABEL {
-			installEnv := &aiv1beta1.InstallEnv{}
-			// TODO: Watch for the InstallEnv resource and do the reconcile
+			infraEnv := &aiv1beta1.InfraEnv{}
+			// TODO: Watch for the InfraEnv resource and do the reconcile
 			// when the required data is there.
 			// https://github.com/openshift/assisted-service/pull/1279/files#r604213425
-			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, installEnv); err != nil {
+			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, infraEnv); err != nil {
 				return reconcileError{client.IgnoreNotFound(err)}
 			}
 
-			if installEnv.Status.ISODownloadURL == "" {
+			if infraEnv.Status.ISODownloadURL == "" {
 				// the image has not been created yet, try later.
-				r.Log.Infof("Image URL for InstallEnv (%s/%s) not available yet. Retrying reconcile for BareMetalHost  %s/%s",
-					installEnv.Namespace, installEnv.Name, bmh.Namespace, bmh.Name)
+				r.Log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Retrying reconcile for BareMetalHost  %s/%s",
+					infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
 				return reconcileRequeue{time.Minute}
 			}
 
@@ -376,7 +387,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 			// are done at the beginning of this function.
 			bmh.Spec.Image = &bmh_v1alpha1.Image{}
 			liveIso := "live-iso"
-			bmh.Spec.Image.URL = installEnv.Status.ISODownloadURL
+			bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
 			bmh.Spec.Image.DiskFormat = &liveIso
 
 			// Let's make sure inspection is disabled for BMH resources
@@ -393,6 +404,78 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 			r.Log.Infof("Image URL has been set in the BareMetalHost  %s/%s", bmh.Namespace, bmh.Name)
 			return reconcileComplete{true}
 		}
+	}
+
+	return reconcileComplete{}
+}
+
+// Reconcile the `BareMetalHost` resource on the spoke cluster
+//
+// Baremetal-operator in the hub cluster creates a host using the live-iso feature. To add this host as a worker node
+// to an existing spoke cluster, the following things need to be done:
+// - Check agent to see if day2 flow needs to be triggered.
+// - Get the kubeconfig client from secret data
+// - Creates a new Machine
+// - Create BMH with externallyProvisioned set to true and set the newly created machine as ConsumerRef
+// BMH_HARDWARE_DETAILS_ANNOTATION is needed for auto approval of the CSR.
+func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	// Only worker role is supported for day2 operation
+	if agent.Spec.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
+		r.Log.Debugf("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Spec.Role, agent.Spec.ClusterDeploymentName)
+		return reconcileComplete{}
+	}
+
+	cdKey := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+	}
+	clusterDeployment := &hivev1.ClusterDeployment{}
+	if err := r.Get(ctx, cdKey, clusterDeployment); err != nil {
+		r.Log.WithError(err).Errorf("failed to get clusterDeployment resource %s/%s", cdKey.Namespace, cdKey.Name)
+		return reconcileError{err}
+	}
+
+	// If the cluster is not installed yet, we can't get kubeconfig for the cluster yet.
+	if !clusterDeployment.Spec.Installed {
+		r.Log.Infof("ClusterDeployment %s/%s for agent %s/%s is not installed yet", clusterDeployment.Namespace, clusterDeployment.Name, agent.Namespace, agent.Name)
+		// TODO: If cluster is not Installed, wait until a reconcile is trigged by a watch event instead
+		return reconcileComplete{}
+	}
+
+	// Secret contains kubeconfig for the spoke cluster
+	secret := &corev1.Secret{}
+	name := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
+	err := r.Get(ctx, types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: name}, secret)
+	if err != nil && errors.IsNotFound(err) {
+		r.Log.WithError(err).Errorf("failed to get secret resource %s/%s", clusterDeployment.Namespace, name)
+		// TODO: If secret is not found, wait until a reconcile is trigged by a watch event instead
+		return reconcileComplete{}
+	} else if err != nil {
+		return reconcileError{err}
+	}
+
+	spokeClient, err := getSpokeClient(secret)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to create spoke kubeclient")
+		return reconcileError{err}
+	}
+
+	machine, err := r.ensureSpokeMachine(ctx, spokeClient, bmh, clusterDeployment)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to create or update spoke Machine")
+		return reconcileError{err}
+	}
+
+	_, err = r.ensureSpokeBMHSecret(ctx, spokeClient, bmh)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to create or update spoke BareMetalHost Secret")
+		return reconcileError{err}
+	}
+
+	_, err = r.ensureSpokeBMH(ctx, spokeClient, bmh, machine, agent)
+	if err != nil {
+		r.Log.WithError(err).Errorf("failed to create or update spoke BareMetalHost")
+		return reconcileError{err}
 	}
 
 	return reconcileComplete{}
@@ -545,6 +628,106 @@ func (r *BMACReconciler) findBMH(ctx context.Context, agent *aiv1beta1.Agent) (*
 		}
 	}
 	return nil, nil
+}
+
+func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+	bmhSpoke, mutateFn := r.newSpokeBMH(bmh, machine, agent)
+	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, bmhSpoke, mutateFn); err != nil {
+		return nil, err
+	} else if result != controllerutil.OperationResultNone {
+		r.Log.Info("Spoke BareMetalHost created")
+	}
+	return bmhSpoke, nil
+}
+
+func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment) (*machinev1beta1.Machine, error) {
+	machineSpoke, mutateFn := r.newSpokeMachine(bmh, clusterDeployment)
+	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, machineSpoke, mutateFn); err != nil {
+		return nil, err
+	} else if result != controllerutil.OperationResultNone {
+		r.Log.Info("Spoke Machine created")
+	}
+	return machineSpoke, nil
+}
+
+func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost) (*corev1.Secret, error) {
+	secretName := bmh.Spec.BMC.CredentialsName
+	secret := &corev1.Secret{}
+	err := r.Get(ctx, types.NamespacedName{Namespace: bmh.Namespace, Name: secretName}, secret)
+	if err != nil {
+		return secret, err
+	}
+	secretSpoke, mutateFn := r.newSpokeBMHSecret(secret, bmh)
+	if result, err := controllerutil.CreateOrUpdate(ctx, spokeClient, secretSpoke, mutateFn); err != nil {
+		return nil, err
+	} else if result != controllerutil.OperationResultNone {
+		r.Log.Info("Spoke BareMetalHost Secret created")
+	}
+	return secretSpoke, nil
+}
+
+func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, controllerutil.MutateFn) {
+	bmhSpoke := &bmh_v1alpha1.BareMetalHost{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      bmh.Name,
+			Namespace: bmh.Namespace,
+		},
+	}
+	mutateFn := func() error {
+		bmhSpoke.Spec = bmh.Spec
+		// The host is created by the baremetal operator on hub cluster. So BMH on the spoke cluster needs
+		// to be set to externally provisioned
+		bmhSpoke.Spec.ExternallyProvisioned = true
+		// If the Image field is filled in, ExternallyProvisioned is ignored. So remove the Image field from spec
+		bmhSpoke.Spec.Image = &bmh_v1alpha1.Image{}
+		bmhSpoke.Spec.ConsumerRef.Name = machine.Name
+		bmhSpoke.Spec.ConsumerRef.Namespace = machine.Namespace
+		// copy annotations. hardwaredetails annotations is needed for automatic csr approval
+		bmhSpoke.ObjectMeta.Annotations = bmh.ObjectMeta.Annotations
+		// HardwareDetails annotation needs a special case. The annotation gets removed once it's consumed by the baremetal operator
+		// and data is copied to the bmh status. So we are reconciling the annotation from the agent status inventory.
+		// If HardwareDetails annotation is already copied from hub bmh.annotation above, this won't overwrite it.
+		if _, err := r.reconcileAgentInventory(bmhSpoke, agent).Result(); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	return bmhSpoke, mutateFn
+}
+
+func (r *BMACReconciler) newSpokeBMHSecret(secret *corev1.Secret, bmh *bmh_v1alpha1.BareMetalHost) (*corev1.Secret, controllerutil.MutateFn) {
+	secretSpoke := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secret.Name,
+			Namespace: bmh.Namespace,
+		},
+	}
+	mutateFn := func() error {
+		secretSpoke.Data = secret.Data
+		return nil
+	}
+
+	return secretSpoke, mutateFn
+}
+
+func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, clusterDeployment *hivev1.ClusterDeployment) (*machinev1beta1.Machine, controllerutil.MutateFn) {
+	machineName := fmt.Sprintf("%s-%s", clusterDeployment.Name, bmh.Name)
+	machine := &machinev1beta1.Machine{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      machineName,
+			Namespace: bmh.Namespace,
+		},
+	}
+	mutateFn := func() error {
+		// Setting the same labels as the rest of the machines in the spoke cluster
+		AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
+		AddLabel(machine.Labels, MACHINE_ROLE, string(models.HostRoleWorker))
+		AddLabel(machine.Labels, MACHINE_TYPE, string(models.HostRoleWorker))
+		return nil
+	}
+
+	return machine, mutateFn
 }
 
 func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {

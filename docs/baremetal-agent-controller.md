@@ -127,7 +127,6 @@ less ocp/ostest/extra_host_manifests.yaml
 You can modify this manifest to disable inspection, and cleaning. Here's an example on what it would look like:
 
 ```
----
 apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
@@ -137,7 +136,7 @@ metadata:
     # BMAC will add this annotation if not present
     inspect.metal3.io: disabled
   labels:
-    installenvs.agent-install.openshift.io: "bmac-test"
+    infraenvs.agent-install.openshift.io: "bmac-test"
 spec:
   online: true
   bootMACAddress: 00:ec:ee:f8:5a:ba
@@ -158,7 +157,7 @@ that will allow setting an environment variable to have inspection disabled by `
 [aspi-custom]: https://github.com/openshift/assisted-service/blob/master/config/default/assisted-service-patch-image.yaml
 
 
-Creating ClusterDeployment and InstallEnv
+Creating ClusterDeployment and InfraEnv
 ==
 
 Before deploying the ClusterDeployment, make sure you have created a secret with your pull-secret.

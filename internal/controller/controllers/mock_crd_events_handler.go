@@ -62,18 +62,18 @@ func (mr *MockCRDEventsHandlerMockRecorder) GetClusterDeploymentUpdates() *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetClusterDeploymentUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).GetClusterDeploymentUpdates))
 }
 
-// GetInstallEnvUpdates mocks base method
-func (m *MockCRDEventsHandler) GetInstallEnvUpdates() chan event.GenericEvent {
+// GetInfraEnvUpdates mocks base method
+func (m *MockCRDEventsHandler) GetInfraEnvUpdates() chan event.GenericEvent {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstallEnvUpdates")
+	ret := m.ctrl.Call(m, "GetInfraEnvUpdates")
 	ret0, _ := ret[0].(chan event.GenericEvent)
 	return ret0
 }
 
-// GetInstallEnvUpdates indicates an expected call of GetInstallEnvUpdates
-func (mr *MockCRDEventsHandlerMockRecorder) GetInstallEnvUpdates() *gomock.Call {
+// GetInfraEnvUpdates indicates an expected call of GetInfraEnvUpdates
+func (mr *MockCRDEventsHandlerMockRecorder) GetInfraEnvUpdates() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallEnvUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).GetInstallEnvUpdates))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInfraEnvUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).GetInfraEnvUpdates))
 }
 
 // NotifyAgentUpdates mocks base method
@@ -100,14 +100,14 @@ func (mr *MockCRDEventsHandlerMockRecorder) NotifyClusterDeploymentUpdates(arg0,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyClusterDeploymentUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyClusterDeploymentUpdates), arg0, arg1)
 }
 
-// NotifyInstallEnvUpdates mocks base method
-func (m *MockCRDEventsHandler) NotifyInstallEnvUpdates(arg0, arg1 string) {
+// NotifyInfraEnvUpdates mocks base method
+func (m *MockCRDEventsHandler) NotifyInfraEnvUpdates(arg0, arg1 string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "NotifyInstallEnvUpdates", arg0, arg1)
+	m.ctrl.Call(m, "NotifyInfraEnvUpdates", arg0, arg1)
 }
 
-// NotifyInstallEnvUpdates indicates an expected call of NotifyInstallEnvUpdates
-func (mr *MockCRDEventsHandlerMockRecorder) NotifyInstallEnvUpdates(arg0, arg1 interface{}) *gomock.Call {
+// NotifyInfraEnvUpdates indicates an expected call of NotifyInfraEnvUpdates
+func (mr *MockCRDEventsHandlerMockRecorder) NotifyInfraEnvUpdates(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyInstallEnvUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyInstallEnvUpdates), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NotifyInfraEnvUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).NotifyInfraEnvUpdates), arg0, arg1)
 }

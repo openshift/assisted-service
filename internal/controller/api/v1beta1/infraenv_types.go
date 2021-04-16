@@ -44,8 +44,8 @@ const (
 	ImageCreatedCondition conditionsv1.ConditionType = "ImageCreated"
 )
 
-type InstallEnvSpec struct {
-	// Proxy defines the proxy settings for agents and clusters that use the InstallEnv. If
+type InfraEnvSpec struct {
+	// Proxy defines the proxy settings for agents and clusters that use the InfraEnv. If
 	// unset, the agents and clusters will not be configured to use a proxy.
 	// +optional
 	Proxy *Proxy `json:"proxy,omitempty"`
@@ -63,11 +63,11 @@ type InstallEnvSpec struct {
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef"`
 
 	// AgentLabelSelector specifies a label that should be applied to Agents that boot from the
-	// installation media of this InstallEnv. This is how a user would identify which agents are
-	// associated with a particular InstallEnv.
+	// installation media of this InfraEnv. This is how a user would identify which agents are
+	// associated with a particular InfraEnv.
 	AgentLabelSelector metav1.LabelSelector `json:"agentLabelSelector"`
 
-	// AgentLabels lists labels to apply to Agents that are associated with this InstallEnv upon
+	// AgentLabels lists labels to apply to Agents that are associated with this InfraEnv upon
 	// the creation of the Agents.
 	// +optional
 	AgentLabels map[string]string `json:"agentLabels,omitempty"`
@@ -78,7 +78,7 @@ type InstallEnvSpec struct {
 	NMStateConfigLabelSelector metav1.LabelSelector `json:"nmStateConfigLabelSelector,omitempty"`
 
 	// ClusterRef is the reference to the single ClusterDeployment that will be installed from
-	// this InstallEnv.
+	// this InfraEnv.
 	// Future versions will allow for multiple ClusterDeployments and this reference will be
 	// removed.
 	ClusterRef *ClusterReference `json:"clusterRef"`
@@ -87,7 +87,7 @@ type InstallEnvSpec struct {
 	IgnitionConfigOverride string `json:"ignitionConfigOverride,omitempty"`
 }
 
-// Proxy defines the proxy settings for agents and clusters that use the InstallEnv.
+// Proxy defines the proxy settings for agents and clusters that use the InfraEnv.
 // At least one of HTTPProxy or HTTPSProxy is required.
 type Proxy struct {
 	// HTTPProxy is the URL of the proxy for HTTP requests.
@@ -104,9 +104,9 @@ type Proxy struct {
 	NoProxy string `json:"noProxy,omitempty"`
 }
 
-type InstallEnvStatus struct {
+type InfraEnvStatus struct {
 	// ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the
-	// configuration from this InstallEnv.
+	// configuration from this InfraEnv.
 	ISODownloadURL string                   `json:"isoDownloadURL,omitempty"`
 	Conditions     []conditionsv1.Condition `json:"conditions,omitempty"`
 }
@@ -114,23 +114,23 @@ type InstallEnvStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 
-type InstallEnv struct {
+type InfraEnv struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   InstallEnvSpec   `json:"spec,omitempty"`
-	Status InstallEnvStatus `json:"status,omitempty"`
+	Spec   InfraEnvSpec   `json:"spec,omitempty"`
+	Status InfraEnvStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 
-// InstallEnvList contains a list of InstallEnvs
-type InstallEnvList struct {
+// InfraEnvList contains a list of InfraEnvs
+type InfraEnvList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []InstallEnv `json:"items"`
+	Items           []InfraEnv `json:"items"`
 }
 
 func init() {
-	SchemeBuilder.Register(&InstallEnv{}, &InstallEnvList{})
+	SchemeBuilder.Register(&InfraEnv{}, &InfraEnvList{})
 }
