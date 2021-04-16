@@ -394,6 +394,9 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 			bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
 			bmh.Spec.Image.DiskFormat = &liveIso
 
+			bmh.Spec.AutomatedCleaningMode = "disabled"
+			bmh.Spec.Online = true
+
 			// Let's make sure inspection is disabled for BMH resources
 			// that are associated with an agent-based deployment.
 			//
