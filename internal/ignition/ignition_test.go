@@ -1000,11 +1000,11 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(report.IsFatal()).To(BeFalse())
 			count := 0
 			for _, f := range config.Storage.Files {
-				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") {
+				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") || strings.HasSuffix(f.Path, "02-hostname-mode.conf") {
 					count += 1
 				}
 			}
-			Expect(count).Should(Equal(3))
+			Expect(count).Should(Equal(4))
 		})
 		It("Doesn't include static network config for minimal isos", func() {
 			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
@@ -1018,7 +1018,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(report.IsFatal()).To(BeFalse())
 			count := 0
 			for _, f := range config.Storage.Files {
-				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") {
+				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") || strings.HasSuffix(f.Path, "02-hostname-mode.conf") {
 					count += 1
 				}
 			}

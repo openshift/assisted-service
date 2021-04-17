@@ -40,6 +40,22 @@ ipv6.dhcp-duid=ll
 path=/etc/NetworkManager/system-connections-merged
 `
 
+// Configuration of the NM hostname mode in case of static network configuration
+// needed in order to prevent hostname update in bootstrap node, which may cause dns resolution
+// failure due to OCPBUGSM-26430
+const StaticNetworkHostnameConf = `
+[main]
+hostname-mode=none
+`
+
+// NM configuration to be activated (set into discovery ignition) in case we want more logging for NM debugging purposes.
+// This content needs to be set in the /etc/NetworkManager/conf.d/95-nm-debug.conf
+// In addition, the line RateLimitBurst=0 must be uncommented in the /etc/systemd/journald.conf and systemctl restart systemd-journald run.
+const NMDebugModeConf = `
+[logging]
+domains=ALL:DEBUG
+`
+
 // continueOnError is set when running as stream, error is doing nothing when it happens cause we in the middle of stream
 // and 200 was already returned
 func CreateTar(ctx context.Context, w io.Writer, files, tarredFilenames []string, client s3wrapper.API, continueOnError bool) error {
