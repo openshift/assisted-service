@@ -81,9 +81,13 @@ func init() {
 	strfmt.MarshalFormat = strfmt.RFC3339Millis
 }
 
-const deployment_type_k8s = "k8s"
-const deployment_type_onprem = "onprem"
-const deployment_type_ocp = "ocp"
+const (
+	deployment_type_k8s    = "k8s"
+	deployment_type_onprem = "onprem"
+	deployment_type_ocp    = "ocp"
+	storage_filesystem     = "filesystem"
+	storage_s3             = "s3"
+)
 
 var Options struct {
 	Auth                        auth.Config
@@ -104,7 +108,7 @@ var Options struct {
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
 	ClusterConfig               cluster.Config
 	DeployTarget                string `envconfig:"DEPLOY_TARGET" default:"k8s"`
-	Storage                     string `envconfig:"STORAGE" default:""`
+	Storage                     string `envconfig:"STORAGE" default:"s3"`
 	OCMConfig                   ocm.Config
 	HostConfig                  host.Config
 	LogConfig                   logconfig.Config
@@ -478,14 +482,14 @@ func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.Op
 
 func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsApi operators.API) generator.ISOInstallConfigGenerator {
 	var configGenerator generator.ISOInstallConfigGenerator
-	switch Options.DeployTarget {
-	case deployment_type_k8s:
+	switch Options.Storage {
+	case storage_s3:
 		kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
 		if err != nil {
 			log.WithError(err).Fatalf("failed to create controller-runtime client")
 		}
 		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, operatorsApi)
-	case deployment_type_onprem, deployment_type_ocp:
+	case storage_filesystem:
 		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, operatorsApi)
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
@@ -534,12 +538,12 @@ func createStorageClient(deployTarget string, storage string, s3cfg *s3wrapper.C
 	var storageClient s3wrapper.API
 	if storage != "" {
 		switch storage {
-		case "s3":
+		case storage_s3:
 			storageClient = s3wrapper.NewS3Client(s3cfg, log, versionsHandler, isoEditorFactory)
 			if storageClient == nil {
 				log.Fatal("failed to create S3 client")
 			}
-		case "filesystem":
+		case storage_filesystem:
 			storageClient = s3wrapper.NewFSClient(fsWorkDir, log, versionsHandler, isoEditorFactory)
 			if storageClient == nil {
 				log.Fatal("failed to create filesystem client")

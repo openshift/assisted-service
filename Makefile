@@ -45,11 +45,13 @@ TESTING_PUBLIC_CONTAINER_REGISTRIES := quay.io
 PUBLIC_CONTAINER_REGISTRIES := $(or ${PUBLIC_CONTAINER_REGISTRIES},$(TESTING_PUBLIC_CONTAINER_REGISTRIES))
 PODMAN_PULL_FLAG := $(or ${PODMAN_PULL_FLAG},--pull always)
 ENABLE_KUBE_API := $(or ${ENABLE_KUBE_API},false)
+STORAGE := $(or ${STORAGE},s3)
 GENERATE_CRD := $(or ${GENERATE_CRD},true)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
 IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, True)
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
+	STORAGE = filesystem
 endif
 
 # We decided to have an option to change replicas count only while running locally
@@ -211,7 +213,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
-		--ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
+		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
 	$(MAKE) deploy-role deploy-resources
 
 deploy-resources: generate-manifests

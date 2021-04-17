@@ -48,6 +48,13 @@ def load_deployment_options(parser=None):
         default=False
     )
 
+    parser.add_argument(
+        "--storage",
+        help='Assisted service storage',
+        type=str,
+        default="s3"
+    )
+
     parser.add_argument("--apply-manifest", type=lambda x: (str(x).lower() == 'true'), default=True)
     parser.add_argument("--persistent-storage", type=lambda x: (str(x).lower() == 'true'), default=True)
 
