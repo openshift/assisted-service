@@ -348,3 +348,12 @@ func reportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedI
 	})
 	Expect(err).NotTo(HaveOccurred())
 }
+
+func verifyUsageSet(featureUsage string, candidates ...models.Usage) {
+	usages := make(map[string]models.Usage)
+	err := json.Unmarshal([]byte(featureUsage), &usages)
+	Expect(err).NotTo(HaveOccurred())
+	for _, usage := range candidates {
+		Expect(usages[usage.Name]).To(Equal(usage))
+	}
+}

@@ -4893,6 +4893,11 @@ func init() {
           "format": "int64",
           "x-go-custom-tag": "gorm:\"-\""
         },
+        "feature_usage": {
+          "description": "JSON-formatted string containing the usage information by feature name",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text;default:'{}'\""
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -7422,6 +7427,22 @@ func init() {
         "virtual": {
           "description": "Whether the machine appears to be a virtual machine or not",
           "type": "boolean"
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "description": "additional properties of the feature",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "name": {
+          "description": "name of the feature to track",
+          "type": "string"
         }
       }
     },
@@ -12535,6 +12556,11 @@ func init() {
           "format": "int64",
           "x-go-custom-tag": "gorm:\"-\""
         },
+        "feature_usage": {
+          "description": "JSON-formatted string containing the usage information by feature name",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text;default:'{}'\""
+        },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
           "type": "string",
@@ -14978,6 +15004,22 @@ func init() {
         "virtual": {
           "description": "Whether the machine appears to be a virtual machine or not",
           "type": "boolean"
+        }
+      }
+    },
+    "usage": {
+      "type": "object",
+      "properties": {
+        "data": {
+          "description": "additional properties of the feature",
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          }
+        },
+        "name": {
+          "description": "name of the feature to track",
+          "type": "string"
         }
       }
     },
