@@ -3720,6 +3720,9 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
+      ocp_release_image:
+        type: string
+        description: OpenShift release image URI.
       base_dns_domain:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
@@ -4000,6 +4003,9 @@ definitions:
       openshift_version:
         type: string
         description: Version of the OpenShift cluster.
+      ocp_release_image:
+        type: string
+        description: OpenShift release image URI.
       openshift_cluster_id:
         type: string
         format: uuid
@@ -5155,6 +5161,7 @@ definitions:
     required:
       - display_name
       - release_image
+      - release_version
       - rhcos_image
       - rhcos_version
       - support_level
@@ -5165,6 +5172,9 @@ definitions:
       release_image:
         type: string
         description: The installation image of the OpenShift cluster.
+      release_version:
+        type: string
+        description: OCP version from the release metadata.
       rhcos_image:
         type: string
         description: The base RHCOS image used for the discovery iso.
@@ -5173,7 +5183,7 @@ definitions:
         description: Build ID of the RHCOS image.
       support_level:
         type: string
-        enum: [beta, production]
+        enum: [beta, production, custom]
         description: Level of support of the version.
       default:
         type: boolean

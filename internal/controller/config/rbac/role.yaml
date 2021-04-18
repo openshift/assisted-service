@@ -172,6 +172,14 @@ rules:
   - patch
   - update
 - apiGroups:
+  - hive.openshift.io
+  resources:
+  - clusterimagesets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - metal3.io
   resources:
   - baremetalhosts

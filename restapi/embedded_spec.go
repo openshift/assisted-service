@@ -5016,6 +5016,10 @@ func init() {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
         },
+        "ocp_release_image": {
+          "description": "OpenShift release image URI.",
+          "type": "string"
+        },
         "openshift_cluster_id": {
           "description": "Cluster ID on OCP system.",
           "type": "string",
@@ -5186,6 +5190,10 @@ func init() {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
+        },
+        "ocp_release_image": {
+          "description": "OpenShift release image URI.",
+          "type": "string"
         },
         "olm_operators": {
           "description": "List of OLM operators to be installed.",
@@ -7154,6 +7162,7 @@ func init() {
       "required": [
         "display_name",
         "release_image",
+        "release_version",
         "rhcos_image",
         "rhcos_version",
         "support_level"
@@ -7171,6 +7180,10 @@ func init() {
           "description": "The installation image of the OpenShift cluster.",
           "type": "string"
         },
+        "release_version": {
+          "description": "OCP version from the release metadata.",
+          "type": "string"
+        },
         "rhcos_image": {
           "description": "The base RHCOS image used for the discovery iso.",
           "type": "string"
@@ -7184,7 +7197,8 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production"
+            "production",
+            "custom"
           ]
         }
       }
@@ -12658,6 +12672,10 @@ func init() {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
         },
+        "ocp_release_image": {
+          "description": "OpenShift release image URI.",
+          "type": "string"
+        },
         "openshift_cluster_id": {
           "description": "Cluster ID on OCP system.",
           "type": "string",
@@ -12828,6 +12846,10 @@ func init() {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
           "x-nullable": true
+        },
+        "ocp_release_image": {
+          "description": "OpenShift release image URI.",
+          "type": "string"
         },
         "olm_operators": {
           "description": "List of OLM operators to be installed.",
@@ -14710,6 +14732,7 @@ func init() {
       "required": [
         "display_name",
         "release_image",
+        "release_version",
         "rhcos_image",
         "rhcos_version",
         "support_level"
@@ -14727,6 +14750,10 @@ func init() {
           "description": "The installation image of the OpenShift cluster.",
           "type": "string"
         },
+        "release_version": {
+          "description": "OCP version from the release metadata.",
+          "type": "string"
+        },
         "rhcos_image": {
           "description": "The base RHCOS image used for the discovery iso.",
           "type": "string"
@@ -14740,7 +14767,8 @@ func init() {
           "type": "string",
           "enum": [
             "beta",
-            "production"
+            "production",
+            "custom"
           ]
         }
       }
