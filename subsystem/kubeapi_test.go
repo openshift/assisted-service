@@ -246,7 +246,7 @@ func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hi
 		BaseDomain:  "hive.example.com",
 		Provisioning: &hivev1.Provisioning{
 			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
-			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
+			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
 			InstallStrategy: &hivev1.InstallStrategy{
 				Agent: &agentv1.InstallStrategy{
 					Networking: agentv1.Networking{
