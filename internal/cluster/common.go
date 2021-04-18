@@ -205,7 +205,7 @@ func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clu
 	var cluster common.Cluster
 	if err := db.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), clusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
 

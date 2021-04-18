@@ -81,7 +81,7 @@ func (h *Handler) GetMonitoredOperators(ctx context.Context, clusterID strfmt.UU
 	var operatorsList = models.MonitoredOperatorsList{}
 	if err := db.Find(&operatorsList, "cluster_id = ?", clusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find monitored operators")
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
 	}
@@ -98,7 +98,7 @@ func (h *Handler) FindMonitoredOperator(ctx context.Context, clusterID strfmt.UU
 	var operator models.MonitoredOperator
 	if err := db.First(&operator, "cluster_id = ? and name = ?", clusterID, operatorName).Error; err != nil {
 		log.WithError(err).Errorf("failed to find monitored operator")
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
 	}

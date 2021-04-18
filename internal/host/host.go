@@ -179,7 +179,7 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 	dbHost, err := common.GetHostFromDB(db, h.ClusterID.String(), h.ID.String())
 	var host *models.Host
 	if err != nil {
-		if !gorm.IsRecordNotFoundError(errors.Cause(err)) {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return err
 		}
 

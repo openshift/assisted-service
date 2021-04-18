@@ -6501,7 +6501,7 @@ var _ = Describe("Get Cluster by Kube Key", func() {
 		mockClusterApi.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
 		cluster, err := bm.GetClusterByKubeKey(types.NamespacedName{Name: "name", Namespace: "namespace"})
 		Expect(err).Should(HaveOccurred())
-		Expect(gorm.IsRecordNotFoundError(err)).Should(Equal(true))
+		Expect(errors.Is(err, gorm.ErrRecordNotFound)).Should(Equal(true))
 		Expect(cluster).Should(BeNil())
 	})
 })

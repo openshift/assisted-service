@@ -2533,7 +2533,7 @@ var _ = Describe("Get cluster by Kube key", func() {
 	It("cluster not exist", func() {
 		c, err := state.GetClusterByKubeKey(key)
 		Expect(err).Should(HaveOccurred())
-		Expect(gorm.IsRecordNotFoundError(err)).Should(Equal(true))
+		Expect(errors.Is(err, gorm.ErrRecordNotFound)).Should(Equal(true))
 		Expect(c).Should(BeNil())
 	})
 
