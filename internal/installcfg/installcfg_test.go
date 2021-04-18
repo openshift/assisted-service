@@ -315,8 +315,8 @@ var _ = Describe("installcfg", func() {
 		cluster.Hyperthreading = "none"
 		data, err := getBasicInstallConfig(logrus.New(), &cluster)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(data.ControlPlane.Hyperthreading).Should(Equal(""))
-		Expect(data.Compute[0].Hyperthreading).Should(Equal(""))
+		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
+		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
 		cluster.Hyperthreading = "all"
 		data, err = getBasicInstallConfig(logrus.New(), &cluster)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -325,13 +325,13 @@ var _ = Describe("installcfg", func() {
 		cluster.Hyperthreading = "workers"
 		data, err = getBasicInstallConfig(logrus.New(), &cluster)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(data.ControlPlane.Hyperthreading).Should(Equal(""))
+		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "masters"
 		data, err = getBasicInstallConfig(logrus.New(), &cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
-		Expect(data.Compute[0].Hyperthreading).Should(Equal(""))
+		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
 	})
 
 	AfterEach(func() {
