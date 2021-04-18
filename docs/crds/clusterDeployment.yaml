@@ -16,8 +16,6 @@ spec:
   provisioning:
     imageSetRef:
       name: openshift-v4.7.0
-    installConfigSecretRef:
-      name: mycluster-install-config
     sshPrivateKeySecretRef:
       name: mycluster-ssh-key
     installStrategy:
