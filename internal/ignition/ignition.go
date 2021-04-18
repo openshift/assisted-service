@@ -241,6 +241,15 @@ const discoveryIgnitionConfigFormat = `{
             "name": "root"
         },
         "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
+    },
+    {
+      "overwrite": true,
+      "path": "/etc/NetworkManager/conf.d/02-hostname-mode.conf",
+      "mode": 420,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.StaticNMHostnameMode}}" }
     }{{end}}{{range .StaticNetworkConfig}},
     {
       "path": "{{.FilePath}}",
@@ -1279,6 +1288,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		}
 		ignitionParams["StaticNetworkConfig"] = filesList
 		ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
+		ignitionParams["StaticNMHostnameMode"] = url.PathEscape(common.StaticNetworkHostnameConf)
 	}
 
 	tmpl, err := template.New("ignitionConfig").Parse(discoveryIgnitionConfigFormat)
