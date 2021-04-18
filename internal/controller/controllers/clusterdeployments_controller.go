@@ -63,6 +63,7 @@ const (
 
 const HighAvailabilityModeNone = "None"
 const defaultRequeueAfterOnError = 10 * time.Second
+const defaultOCPVersion = "4.8" // TODO: remove after MGMT-4491 is resoled
 
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
@@ -444,14 +445,6 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 	return update, ctrl.Result{}, nil
 }
 
-func (r *ClusterDeploymentsReconciler) getOCPVersion(cluster *hivev1.ClusterDeployment) string {
-	// TODO: fix when HIVE-1383 is resolved, As for now single node supported only with 4.8, default version is 4.7
-	if r.isSNO(cluster) {
-		return "4.8"
-	}
-	return "4.7"
-}
-
 func (r *ClusterDeploymentsReconciler) isSNO(cluster *hivev1.ClusterDeployment) bool {
 	return cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents == 1 &&
 		cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents == 0
@@ -474,7 +467,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterParams := &models.ClusterCreateParams{
 		BaseDNSDomain:         spec.BaseDomain,
 		Name:                  swag.String(spec.ClusterName),
-		OpenshiftVersion:      swag.String(r.getOCPVersion(clusterDeployment)),
+		OpenshiftVersion:      swag.String(defaultOCPVersion),
 		OlmOperators:          nil, // TODO: handle operators
 		PullSecret:            swag.String(pullSecret),
 		VipDhcpAllocation:     swag.Bool(false),
@@ -517,7 +510,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	clusterParams := &models.AddHostsClusterCreateParams{
 		APIVipDnsname:    swag.String(apiVipDnsname),
 		Name:             swag.String(spec.ClusterName),
-		OpenshiftVersion: swag.String(r.getOCPVersion(clusterDeployment)),
+		OpenshiftVersion: swag.String(defaultOCPVersion),
 		ID:               &id,
 	}
 

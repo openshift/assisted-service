@@ -61,7 +61,7 @@ func getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName string) hive
 		ClusterName: clusterName,
 		Provisioning: &hivev1.Provisioning{
 			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
-			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
+			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
 			InstallStrategy: &hivev1.InstallStrategy{
 				Agent: &agent.InstallStrategy{
 					Networking: agent.Networking{
@@ -94,7 +94,7 @@ func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.
 		ClusterName: clusterName,
 		Provisioning: &hivev1.Provisioning{
 			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
-			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
+			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
 			InstallStrategy: &hivev1.InstallStrategy{
 				Agent: &agent.InstallStrategy{
 					Networking: agent.Networking{
@@ -282,7 +282,7 @@ var _ = Describe("cluster reconcile", func() {
 		spec := hivev1.ClusterDeploymentSpec{
 			ClusterName: clusterName,
 			Provisioning: &hivev1.Provisioning{
-				ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.7.0"},
+				ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
 				InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
 			},
 			Platform: hivev1.Platform{
@@ -415,7 +415,7 @@ var _ = Describe("cluster reconcile", func() {
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
-					OpenshiftVersion:         "4.7",
+					OpenshiftVersion:         "4.8",
 					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
 					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusReady),
@@ -810,7 +810,7 @@ var _ = Describe("cluster reconcile", func() {
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     "different-cluster-name",
-					OpenshiftVersion:         "4.7",
+					OpenshiftVersion:         "4.8",
 					ClusterNetworkCidr:       "11.129.0.0/14",
 					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 
@@ -851,7 +851,7 @@ var _ = Describe("cluster reconcile", func() {
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
-					OpenshiftVersion:         "4.7",
+					OpenshiftVersion:         "4.8",
 					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
 					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
@@ -894,7 +894,7 @@ var _ = Describe("cluster reconcile", func() {
 				Cluster: models.Cluster{
 					ID:                 &sId,
 					Name:               "different-cluster-name",
-					OpenshiftVersion:   "4.7",
+					OpenshiftVersion:   "4.8",
 					ClusterNetworkCidr: "11.129.0.0/14",
 					Status:             swag.String(models.ClusterStatusPendingForInput),
 				},
@@ -920,7 +920,7 @@ var _ = Describe("cluster reconcile", func() {
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
-					OpenshiftVersion:         "4.7",
+					OpenshiftVersion:         "4.8",
 					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
 					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
@@ -961,7 +961,7 @@ var _ = Describe("cluster reconcile", func() {
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
-					OpenshiftVersion:         "4.7",
+					OpenshiftVersion:         "4.8",
 					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
 					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
@@ -999,7 +999,7 @@ var _ = Describe("cluster reconcile", func() {
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
-					OpenshiftVersion:         "4.7",
+					OpenshiftVersion:         "4.8",
 					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
 					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
