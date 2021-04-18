@@ -10,13 +10,15 @@
 
 For development and testing purposes it may be beneficial to build the operator
 bundle and index images. If you don't __need__ to build it, just skip to
-[Deploying the Operator](#deploying-the-operator).
+[Deploying the Operator With Hive](#deploying-the-operator-with-hive).
 
 ### Background
 
-To generate the manifests and CSV in ./bundle, "make operator-bundle" first calls the "ocp-create-manifests" target. This target in turn calls "deploy-service-on-ocp-cluster and deploy-ui-on-ocp-cluster" while setting APPLY_MANIFESTS=False and APPLY_NAMESPACE=False. This causes the resource yamls to be created in ./build/assisted-installer/ but does not apply them.
+To generate the manifests and CSV in *./bundle* run  `make operator-bundle` .
 
-The relevant resource yamls are then copied to ./config/assisted-service where additional customizations are applied using Kustomize. The resulting yaml is then piped to operator-sdk, creating the manifests and CSVs in ./bundle/manifests.
+The Makefile target first calls the `ocp-create-manifests` target. This target in turn calls `deploy-service-on-ocp-cluster` and `deploy-ui-on-ocp-cluster` while setting `APPLY_MANIFESTS=False` and `APPLY_NAMESPACE=False`. This causes the resource yamls to be created in *./build/assisted-installer/* but does not apply them.
+
+The relevant resource yamls are then copied to *./config/assisted-service* where additional customizations are applied using **Kustomize**. The resulting yaml is then piped to operator-sdk, creating the manifests and CSVs in *./bundle/manifests*.
 
 More information about bundles: <https://sdk.operatorframework.io/docs/olm-integration/generation/>
 
@@ -32,12 +34,73 @@ make operator-bundle-build
 make operator-bundle-update
 
 # Create index image
-opm index add --bundles $BUNDLE_IMAGE --tag $INDEX_IMAGE
+make operator-index-build
 # Push index image used in catalog source
 podman push $INDEX_IMAGE
 ```
 
-## Deploying the operator
+## Deploying the operator on a k8s cluster
+
+Kubernetes cluster needs to have Operator Lifecycle Manager. Latest realese can be found [here](https://github.com/operator-framework/operator-lifecycle-manager/releases)
+
+```bash
+kubectl apply -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.17.0/crds.yaml
+kubectl apply -f https://github.com/operator-framework/operator-lifecycle-manager/releases/download/v0.17.0/olm.yaml
+```
+
+The operator must be deployed to the assisted-installer namespace. Create the namespace.
+
+```bash
+cat <<EOF | kubectl create -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: assisted-installer
+  labels:
+    name: assisted-installer
+EOF
+```
+
+Create Assisted Installer Operator CRDs as they are defined on community-operators hub.
+
+```bash
+for crd in `curl https://api.github.com/repos/operator-framework/community-operators/contents/community-operators/assisted-service-operator/0.0.2 | jq '.[].download_url'`
+do
+  kubectl apply -f ${crd}
+done
+```
+
+Currently, due to a bug we have to specify the CSV namespace manually.
+
+```bash
+kubectl apply -n assisted-installer -f https://raw.githubusercontent.com/operator-framework/community-operators/master/community-operators/assisted-service-operator/0.0.2/assisted-service-operator.clusterserviceversion.yaml
+```
+
+An [OperatorGroup](https://docs.openshift.com/container-platform/4.7/rest_api/operatorhub_apis/operatorgroup-operators-coreos-com-v1.html) is mandatory for a CSV to function. We would like to generate everything in a single owned namespace named `assisted-installer`.
+
+```bash
+cat <<EOF | kubectl create -f -
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+    name: assisted-installer-group
+    namespace: assisted-installer
+spec:
+  targetNamespaces:
+    - assisted-installer
+EOF
+```
+
+Eventually, you can verify that the assisted-installer operator was deployed by running
+
+```bash
+kubectl get csv assisted-service-operator.v0.0.2 -n assisted-installer
+# NAME                               DISPLAY                     VERSION   REPLACES                           PHASE
+# assisted-service-operator.v0.0.2   Assisted Service Operator   0.0.2     assisted-service-operator.v0.0.1   Failed
+
+```
+
+## Deploying the operator with Hive
 
 The operator must be deployed to the assisted-installer namespace. Create the namespace.
 
@@ -71,6 +134,7 @@ spec:
   source: community-operators
   sourceNamespace: openshift-marketplace
   startingCSV: hive-operator.v1.0.19
+EOF
 ```
 
 Create a CatalogSource for the operator to appear in OperatorHub.
@@ -96,7 +160,7 @@ Once it is in OperatorHub, the operator can be installed through the
 console.
 
 The operator can also be installed through the command line by creating
-an OperatorGroup and Subscription.
+an [OperatorGroup](https://docs.openshift.com/container-platform/4.7/rest_api/operatorhub_apis/operatorgroup-operators-coreos-com-v1.html) and a [Subscription](https://docs.openshift.com/container-platform/4.7/rest_api/operatorhub_apis/subscription-operators-coreos-com-v1alpha1.html) that are required by OLM.
 
 ``` bash
 cat <<EOF | kubectl create -f -
