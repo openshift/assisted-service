@@ -2626,8 +2626,8 @@ var _ = Describe("Validation metrics and events", func() {
 		mockS3Client *s3wrapper.MockAPI
 	)
 
-	generateTestValidationResult := func(status ValidationStatus) validationsStatus {
-		validationRes := validationsStatus{
+	generateTestValidationResult := func(status ValidationStatus) ValidationsStatus {
+		validationRes := ValidationsStatus{
 			"hw": {
 				{
 					ID:     SufficientMastersCount,
@@ -2705,7 +2705,7 @@ var _ = Describe("Validation metrics and events", func() {
 		mockEvents.EXPECT().AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any())
 
 		newValidationRes := generateTestValidationResult(ValidationSuccess)
-		var currentValidationRes validationsStatus
+		var currentValidationRes ValidationsStatus
 		err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes)
 		Expect(err).ToNot(HaveOccurred())
 		m.reportValidationStatusChanged(ctx, c, newValidationRes, currentValidationRes)

@@ -434,11 +434,13 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 
 	status := models.OperatorStatusAvailable
 
-	_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{
-		ClusterID:         clusterID,
-		IngressCertParams: models.IngressCertParams(ingressCa),
-	})
-	Expect(err).NotTo(HaveOccurred())
+	Eventually(func() error {
+		_, err = agentBMClient.Installer.UploadClusterIngressCert(ctx, &installer.UploadClusterIngressCertParams{
+			ClusterID:         clusterID,
+			IngressCertParams: models.IngressCertParams(ingressCa),
+		})
+		return err
+	}, "10s", "2s").Should(BeNil())
 
 	for _, operator := range rep.Payload.MonitoredOperators {
 		if operator.OperatorType != models.OperatorTypeBuiltin {

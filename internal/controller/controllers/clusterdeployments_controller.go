@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -52,10 +53,6 @@ import (
 )
 
 const (
-	AgentPlatformError                = "AgentPlatformError"
-	AgentPlatformCondition            = "AgentPlatformCondition"
-	AgentPlatformState                = "AgentPlatformState"
-	AgentPlatformStateInfo            = "AgentPlatformStateInfo"
 	adminPasswordSecretStringTemplate = "%s-admin-password"
 	adminKubeConfigStringTemplate     = "%s-admin-kubeconfig"
 	InstallConfigOverrides            = v1beta1.Group + "/install-config-overrides"
@@ -112,29 +109,19 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return ctrl.Result{Requeue: false}, nil
 	}
 	if err != nil {
-		return r.updateState(ctx, clusterDeployment, nil, err)
+		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
 
-	var updated bool
-	var result ctrl.Result
 	// check for updates from user, compare spec and update if needed
-	updated, result, err = r.updateIfNeeded(ctx, clusterDeployment, cluster)
+	err = r.updateIfNeeded(ctx, clusterDeployment, cluster)
 	if err != nil {
-		return r.updateState(ctx, clusterDeployment, cluster, err)
-	}
-
-	if updated {
-		return result, err
+		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
 
 	// check for install config overrides and update if needed
-	updated, result, err = r.updateInstallConfigOverrides(ctx, clusterDeployment, cluster)
+	err = r.updateInstallConfigOverrides(ctx, clusterDeployment, cluster)
 	if err != nil {
-		return r.updateState(ctx, clusterDeployment, cluster, err)
-	}
-
-	if updated {
-		return result, err
+		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
 
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
@@ -142,7 +129,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if !clusterDeployment.Spec.Installed {
 			err = r.updateClusterMetadata(ctx, clusterDeployment, cluster)
 			if err != nil {
-				return r.updateState(ctx, clusterDeployment, cluster, err)
+				return r.updateStatus(ctx, clusterDeployment, cluster, err)
 			}
 		}
 		// Delete Day1 Cluster
@@ -150,13 +137,13 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 			ClusterID: *cluster.ID,
 		})
 		if err != nil {
-			return r.updateState(ctx, clusterDeployment, cluster, err)
+			return r.updateStatus(ctx, clusterDeployment, cluster, err)
 		}
 		if !r.isSNO(clusterDeployment) {
 			//Create Day2 cluster
 			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment)
 		}
-		return r.updateState(ctx, clusterDeployment, cluster, nil)
+		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
 
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
@@ -168,13 +155,13 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		return r.installDay2Hosts(ctx, clusterDeployment, cluster)
 	}
 
-	return r.updateState(ctx, clusterDeployment, cluster, nil)
+	return r.updateStatus(ctx, clusterDeployment, cluster, nil)
 }
 
 func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, cluster)
 	if err != nil {
-		return r.updateState(ctx, clusterDeployment, cluster, err)
+		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
 	if ready {
 		r.Log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
@@ -183,11 +170,11 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterD
 			ClusterID: *cluster.ID,
 		})
 		if err != nil {
-			return r.updateState(ctx, clusterDeployment, cluster, err)
+			return r.updateStatus(ctx, clusterDeployment, cluster, err)
 		}
-		return r.updateState(ctx, clusterDeployment, ic, nil)
+		return r.updateStatus(ctx, clusterDeployment, ic, err)
 	}
-	return r.updateState(ctx, clusterDeployment, cluster, nil)
+	return r.updateStatus(ctx, clusterDeployment, cluster, nil)
 }
 
 func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
@@ -195,17 +182,17 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clu
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
 		if err != nil {
-			return r.updateState(ctx, clusterDeployment, cluster, err)
+			return r.updateStatus(ctx, clusterDeployment, cluster, err)
 		}
 		if r.HostApi.IsInstallable(h) && commonh.Approved {
 			r.Log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
 			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, *h.ID)
 			if err != nil {
-				return r.updateState(ctx, clusterDeployment, cluster, err)
+				return r.updateStatus(ctx, clusterDeployment, cluster, err)
 			}
 		}
 	}
-	return r.updateState(ctx, clusterDeployment, cluster, nil)
+	return r.updateStatus(ctx, clusterDeployment, cluster, nil)
 }
 
 func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) error {
@@ -343,7 +330,7 @@ func isUserManagedNetwork(cluster *hivev1.ClusterDeployment) bool {
 }
 
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
-	cluster *common.Cluster) (bool, ctrl.Result, error) {
+	cluster *common.Cluster) error {
 
 	update := false
 	notifyInfraEnv := false
@@ -386,7 +373,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	}
 	pullSecretData, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, clusterDeployment.Namespace)
 	if err != nil {
-		return false, ctrl.Result{}, errors.Wrap(err, "failed to get pull secret for update")
+		return errors.Wrap(err, "failed to get pull secret for update")
 	}
 	// TODO: change isInfraEnvUpdate to false, once clusterDeployment pull-secret can differ from infraEnv
 	if pullSecretData != cluster.PullSecret {
@@ -395,34 +382,30 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 		notifyInfraEnv = true
 	}
 	if !update {
-		return update, ctrl.Result{}, nil
+		return nil
 	}
-	var updatedCluster *common.Cluster
-	if update {
-		updatedCluster, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
-			ClusterUpdateParams: params,
-			ClusterID:           *cluster.ID,
-		})
-		if err != nil {
-			return handleUpdateError(err)
-		}
+	_, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+		ClusterUpdateParams: params,
+		ClusterID:           *cluster.ID,
+	})
+	if err != nil {
+		return err
 	}
 
 	infraEnv, err = getInfraEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
 	if err != nil {
-		return false, ctrl.Result{}, errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
+		return errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
 	}
 
 	r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
-	reply, err := r.updateState(ctx, clusterDeployment, updatedCluster, nil)
-	if err == nil && notifyInfraEnv && infraEnv != nil {
+	if notifyInfraEnv && infraEnv != nil {
 		r.Log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s", infraEnv.Name, clusterDeployment.ClusterName)
 		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	}
-	return update, reply, err
+	return nil
 }
 func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
-	cluster *common.Cluster) (bool, ctrl.Result, error) {
+	cluster *common.Cluster) error {
 	// handle InstallConfigOverrides
 	update := false
 	annotations := clusterDeployment.ObjectMeta.GetAnnotations()
@@ -431,21 +414,18 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		cluster.InstallConfigOverrides = installConfigOverrides
 		update = true
 	}
-	var updatedCluster *common.Cluster
-	var err error
 	if update {
-		updatedCluster, err = r.Installer.UpdateClusterInstallConfigInternal(ctx, installer.UpdateClusterInstallConfigParams{
+		_, err := r.Installer.UpdateClusterInstallConfigInternal(ctx, installer.UpdateClusterInstallConfigParams{
 			ClusterID:           *cluster.ID,
 			InstallConfigParams: cluster.InstallConfigOverrides,
 		})
 		if err != nil {
-			return handleUpdateError(err)
+			return err
 		}
 		r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
-		reply, err := r.updateState(ctx, clusterDeployment, updatedCluster, nil)
-		return update, reply, err
+		return nil
 	}
-	return update, ctrl.Result{}, nil
+	return nil
 }
 
 func (r *ClusterDeploymentsReconciler) isSNO(cluster *hivev1.ClusterDeployment) bool {
@@ -497,8 +477,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		NewClusterParams: clusterParams,
 	})
 
-	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
-	return r.updateState(ctx, clusterDeployment, c, err)
+	return r.updateStatus(ctx, clusterDeployment, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
@@ -521,120 +500,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		NewAddHostsClusterParams: clusterParams,
 	})
 
-	// TODO: handle specific errors, 5XX retry, 4XX update status with the error
-	return r.updateState(ctx, clusterDeployment, c, err)
-}
-
-func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster,
-	err error) (ctrl.Result, error) {
-
-	reply := ctrl.Result{}
-	if cluster != nil {
-		r.syncClusterState(clusterDeployment, cluster)
-	}
-
-	if err != nil {
-		r.Log.WithError(err).Errorf("Updating state with error for %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
-		setClusterApiError(err, clusterDeployment)
-		reply.RequeueAfter = defaultRequeueAfterOnError
-	}
-
-	if err = r.Status().Update(ctx, clusterDeployment); err != nil {
-		r.Log.WithError(err).Errorf("failed set state for %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
-		return ctrl.Result{Requeue: true}, err
-	}
-	return reply, nil
-}
-
-func setClusterApiError(err error, cluster *hivev1.ClusterDeployment) {
-	if err != nil {
-		errorCondition := hivev1.ClusterDeploymentCondition{
-			Type:               hivev1.UnreachableCondition,
-			Status:             corev1.ConditionFalse,
-			LastProbeTime:      metav1.Time{Time: time.Now()},
-			LastTransitionTime: metav1.Time{Time: time.Now()},
-			Reason:             AgentPlatformError,
-			Message:            err.Error(),
-		}
-		setCondition(errorCondition, &cluster.Status.Conditions)
-	} else {
-		if index := findConditionIndexByReason(AgentPlatformError, &cluster.Status.Conditions); index >= 0 {
-			cluster.Status.Conditions = append(cluster.Status.Conditions[:index],
-				cluster.Status.Conditions[index+1:]...)
-		}
-	}
-}
-
-func (r *ClusterDeploymentsReconciler) syncClusterState(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
-	if cluster.Status.Conditions == nil {
-		cluster.Status.Conditions = []hivev1.ClusterDeploymentCondition{}
-	}
-
-	setStateAndStateInfo(cluster, c)
-
-	cluster.Status.InstallStrategy = &hivev1.InstallStrategyStatus{Agent: &agent.InstallStrategyStatus{
-		ConnectivityMajorityGroups: c.ConnectivityMajorityGroups,
-	}}
-	cluster.Status.InstallStrategy.Agent.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
-
-	// TODO: count hosts in specific states
-	//cluster.Status.InstallStrategy.Agent...
-
-	setValidations(cluster, c)
-}
-
-func setStateAndStateInfo(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
-	// TODO: find proper way to set state and state info
-	setCondition(hivev1.ClusterDeploymentCondition{
-		Type:               hivev1.UnreachableCondition,
-		Status:             corev1.ConditionUnknown,
-		LastProbeTime:      metav1.Time{Time: time.Now()},
-		LastTransitionTime: metav1.Time{Time: time.Now()},
-		Reason:             AgentPlatformState,
-		Message:            swag.StringValue(c.Status),
-	}, &cluster.Status.Conditions)
-	setCondition(hivev1.ClusterDeploymentCondition{
-		Type:               hivev1.UnreachableCondition,
-		Status:             corev1.ConditionUnknown,
-		LastProbeTime:      metav1.Time{Time: time.Now()},
-		LastTransitionTime: metav1.Time{Time: time.Now()},
-		Reason:             AgentPlatformStateInfo,
-		Message:            swag.StringValue(c.StatusInfo),
-	}, &cluster.Status.Conditions)
-}
-
-func findConditionIndexByReason(reason string, conditions *[]hivev1.ClusterDeploymentCondition) int {
-	if conditions == nil {
-		return -1
-	}
-	for cIndex, c := range *conditions {
-		if c.Reason == reason {
-			return cIndex
-		}
-	}
-	return -1
-}
-
-// Set existing or append condition by reason
-func setCondition(condition hivev1.ClusterDeploymentCondition, conditions *[]hivev1.ClusterDeploymentCondition) {
-	if index := findConditionIndexByReason(condition.Reason, conditions); index >= 0 {
-		(*conditions)[index] = condition
-	} else {
-		*conditions = append(*conditions, condition)
-	}
-}
-
-func setValidations(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
-	// TODO: translate validations into conditions, currently put all the validations as string to unknown condition.
-	validations := hivev1.ClusterDeploymentCondition{
-		Type:               hivev1.UnreachableCondition,
-		Status:             corev1.ConditionUnknown,
-		LastProbeTime:      metav1.Time{Time: time.Now()},
-		LastTransitionTime: metav1.Time{Time: time.Now()},
-		Reason:             AgentPlatformCondition,
-		Message:            c.ValidationsInfo,
-	}
-	setCondition(validations, &cluster.Status.Conditions)
+	return r.updateStatus(ctx, clusterDeployment, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
@@ -698,10 +564,236 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Complete(r)
 }
 
-func handleUpdateError(err error) (bool, ctrl.Result, error) {
-	if IsHTTP4XXError(err) {
-		return true, ctrl.Result{}, errors.Wrap(err, "failed to update clusterDeployment")
+// updateStatus is updating all the ClusterDeployment Conditions.
+// In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
+// Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
+func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster, syncErr error) (ctrl.Result, error) {
+	clusterSpecSynced(cluster, syncErr)
+	if c != nil {
+		cluster.Status.InstallStrategy = &hivev1.InstallStrategyStatus{Agent: &agent.InstallStrategyStatus{
+			ConnectivityMajorityGroups: c.ConnectivityMajorityGroups,
+		}}
+		cluster.Status.InstallStrategy.Agent.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
+		if c.Status != nil {
+			status := *c.Status
+			clusterReadyForInstallation(cluster, status)
+			clusterValidated(cluster, status, c)
+			clusterInstalled(cluster, status, swag.StringValue(c.StatusInfo))
+		}
+	} else {
+		setClusterConditionsUnknown(cluster)
 	}
-	return true, ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError},
-		errors.Wrap(err, "failed to update clusterDeployment")
+	if updateErr := r.Status().Update(ctx, cluster); updateErr != nil {
+		r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
+		return ctrl.Result{Requeue: true}, nil
+	}
+	if syncErr != nil && !IsHTTP4XXError(syncErr) {
+		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
+	}
+	return ctrl.Result{}, nil
+}
+
+// clusterSpecSynced is updating the Cluster SpecSynced Condition.
+func clusterSpecSynced(cluster *hivev1.ClusterDeployment, syncErr error) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	if syncErr == nil {
+		condStatus = corev1.ConditionTrue
+		reason = SyncedOkReason
+		msg = SyncedOkMsg
+	} else {
+		condStatus = corev1.ConditionFalse
+		if !IsHTTP4XXError(syncErr) {
+			reason = BackendErrorReason
+			msg = BackendErrorMsg + " " + syncErr.Error()
+		} else {
+			reason = InputErrorReason
+			msg = InputErrorMsg + " " + syncErr.Error()
+		}
+	}
+	setClusterCondition(&cluster.Status.Conditions, hivev1.ClusterDeploymentCondition{
+		Type:    ClusterSpecSyncedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func clusterReadyForInstallation(cluster *hivev1.ClusterDeployment, status string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.ClusterStatusReady:
+		condStatus = corev1.ConditionTrue
+		reason = ClusterReadyReason
+		msg = ClusterReadyMsg
+	case models.ClusterStatusInsufficient, models.ClusterStatusPendingForInput:
+		condStatus = corev1.ConditionFalse
+		reason = ClusterNotReadyReason
+		msg = ClusterNotReadyMsg
+	case models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalled,
+		models.ClusterStatusInstalling, models.ClusterStatusInstallingPendingUserAction,
+		models.ClusterStatusError, models.ClusterStatusAddingHosts, models.ClusterStatusFinalizing:
+		condStatus = corev1.ConditionFalse
+		reason = ClusterAlreadyInstallingReason
+		msg = ClusterAlreadyInstallingMsg
+	default:
+		condStatus = corev1.ConditionUnknown
+		reason = UnknownStatusReason
+		msg = fmt.Sprintf("%s %s", UnknownStatusMsg, status)
+	}
+	setClusterCondition(&cluster.Status.Conditions, hivev1.ClusterDeploymentCondition{
+		Type:    ClusterReadyForInstallationCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func clusterInstalled(cluster *hivev1.ClusterDeployment, status, statusInfo string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.ClusterStatusInstalled, models.ClusterStatusAddingHosts:
+		condStatus = corev1.ConditionTrue
+		reason = InstalledReason
+		msg = fmt.Sprintf("%s %s", InstalledMsg, statusInfo)
+	case models.ClusterStatusError:
+		condStatus = corev1.ConditionFalse
+		reason = InstallationFailedReason
+		msg = fmt.Sprintf("%s %s", InstallationFailedMsg, statusInfo)
+	case models.ClusterStatusInsufficient, models.ClusterStatusPendingForInput, models.ClusterStatusReady:
+		condStatus = corev1.ConditionFalse
+		reason = InstallationNotStartedReason
+		msg = InstallationNotStartedMsg
+	case models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing,
+		models.ClusterStatusInstallingPendingUserAction:
+		condStatus = corev1.ConditionFalse
+		reason = InstallationInProgressReason
+		msg = fmt.Sprintf("%s %s", InstallationInProgressMsg, statusInfo)
+	default:
+		condStatus = corev1.ConditionUnknown
+		reason = UnknownStatusReason
+		msg = fmt.Sprintf("%s %s", UnknownStatusMsg, status)
+	}
+	setClusterCondition(&cluster.Status.Conditions, hivev1.ClusterDeploymentCondition{
+		Type:    ClusterInstalledCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func clusterValidated(clusterDeployment *hivev1.ClusterDeployment, status string, c *common.Cluster) {
+	failedValidationInfo := ""
+	validationRes, err := cluster.GetValidations(c)
+	var failures []string
+	if err == nil {
+		for _, vRes := range validationRes {
+			for _, v := range vRes {
+				if v.Status == cluster.ValidationFailure {
+					failures = append(failures, v.Message)
+				}
+			}
+		}
+		failedValidationInfo = strings.Join(failures[:], ",")
+	}
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch {
+	case models.ClusterStatusInsufficient == status:
+		condStatus = corev1.ConditionFalse
+		reason = ValidationsFailingReason
+		msg = fmt.Sprintf("%s %s", ClusterValidationsFailingMsg, failedValidationInfo)
+	case models.ClusterStatusPendingForInput == status:
+		condStatus = corev1.ConditionFalse
+		reason = ValidationsFailingReason
+		msg = fmt.Sprintf("%s %s", ClusterValidationsFailingMsg, failedValidationInfo)
+	case models.ClusterStatusAddingHosts == status:
+		condStatus = corev1.ConditionTrue
+		reason = ValidationsPassingReason
+		msg = ClusterValidationsOKMsg
+	case c.ValidationsInfo == "":
+		condStatus = corev1.ConditionUnknown
+		reason = ValidationsUnknownReason
+		msg = ClusterValidationsUnknownMsg
+	default:
+		condStatus = corev1.ConditionTrue
+		reason = ValidationsPassingReason
+		msg = ClusterValidationsOKMsg
+	}
+	setClusterCondition(&clusterDeployment.Status.Conditions, hivev1.ClusterDeploymentCondition{
+		Type:    ClusterValidatedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func setClusterConditionsUnknown(clusterDeployment *hivev1.ClusterDeployment) {
+	setClusterCondition(&clusterDeployment.Status.Conditions, hivev1.ClusterDeploymentCondition{
+		Type:    ClusterValidatedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
+	})
+	setClusterCondition(&clusterDeployment.Status.Conditions, hivev1.ClusterDeploymentCondition{
+		Type:    ClusterReadyForInstallationCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
+	})
+	setClusterCondition(&clusterDeployment.Status.Conditions, hivev1.ClusterDeploymentCondition{
+		Type:    ClusterInstalledCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
+	})
+}
+
+// SetStatusCondition sets the corresponding condition in conditions to newCondition.
+func setClusterCondition(conditions *[]hivev1.ClusterDeploymentCondition, newCondition hivev1.ClusterDeploymentCondition) {
+	if conditions == nil {
+		conditions = &[]hivev1.ClusterDeploymentCondition{}
+	}
+	existingCondition := FindStatusCondition(*conditions, newCondition.Type)
+	if existingCondition == nil {
+		newCondition.LastTransitionTime = metav1.NewTime(time.Now())
+		newCondition.LastProbeTime = metav1.NewTime(time.Now())
+		*conditions = append(*conditions, newCondition)
+		return
+	}
+
+	if !isConditionEqual(*existingCondition, newCondition) {
+		existingCondition.Status = newCondition.Status
+		existingCondition.Reason = newCondition.Reason
+		existingCondition.Message = newCondition.Message
+		existingCondition.LastTransitionTime = metav1.NewTime(time.Now())
+		existingCondition.LastProbeTime = metav1.NewTime(time.Now())
+	}
+
+}
+
+func isConditionEqual(existingCond hivev1.ClusterDeploymentCondition, newCondition hivev1.ClusterDeploymentCondition) bool {
+	if existingCond.Type == newCondition.Type {
+		return existingCond.Status == newCondition.Status &&
+			existingCond.Reason == newCondition.Reason &&
+			existingCond.Message == newCondition.Message
+	}
+	return false
+}
+
+// FindStatusCondition finds the conditionType in conditions.
+func FindStatusCondition(conditions []hivev1.ClusterDeploymentCondition, conditionType hivev1.ClusterDeploymentConditionType) *hivev1.ClusterDeploymentCondition {
+	for i := range conditions {
+		if conditions[i].Type == conditionType {
+			return &conditions[i]
+		}
+	}
+
+	return nil
 }
