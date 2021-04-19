@@ -3,6 +3,7 @@ package cnv
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
@@ -197,20 +198,45 @@ func (o *operator) getDevicesMemoryOverhead(host *models.Host) (int64, error) {
 		return 0, err
 	}
 	gpuCount := o.getGPUCount(*inventory)
-	// One GPU imposes 1GiB of additional memory requirement
-	return conversions.GibToMib(gpuCount), nil
+	srIovNicCount := o.getSrIovNicCount(*inventory)
+	totalDevices := gpuCount + srIovNicCount
+
+	// One device imposes 1GiB of additional memory requirement
+	return conversions.GibToMib(totalDevices), nil
 }
 
 func (o *operator) getGPUCount(inventory models.Inventory) int64 {
 	var gpuCount int64
 	for _, gpu := range inventory.Gpus {
-		if o.config.SupportedGPUs[getDeviceKey(gpu)] {
-			gpuCount = gpuCount + 1
+		if o.config.SupportedGPUs[getDeviceKeyForGPU(gpu)] {
+			gpuCount++
 		}
 	}
 	return gpuCount
 }
 
-func getDeviceKey(gpu *models.Gpu) string {
-	return gpu.VendorID + ":" + gpu.DeviceID
+func (o *operator) getSrIovNicCount(inventory models.Inventory) int64 {
+	var srIovCount int64
+	for _, nic := range inventory.Interfaces {
+		if o.config.SupportedSRIOVNetworkIC[getDeviceKeyForInterface(nic)] {
+			srIovCount++
+		}
+	}
+	return srIovCount
+}
+
+func getDeviceKeyForGPU(gpu *models.Gpu) string {
+	return getDeviceKey(gpu.VendorID, gpu.DeviceID)
+}
+
+func getDeviceKeyForInterface(nic *models.Interface) string {
+	return getDeviceKey(sanitizeID(nic.Vendor), sanitizeID(nic.Product))
+}
+
+func sanitizeID(id string) string {
+	return strings.TrimPrefix(strings.ToLower(id), "0x")
+}
+
+func getDeviceKey(vendorID string, deviceID string) string {
+	return vendorID + ":" + deviceID
 }

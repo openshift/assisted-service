@@ -11,6 +11,36 @@ import (
 )
 
 var _ = Describe("CNV plugin configuration", func() {
+	const (
+		prefix = "test"
+	)
+	Context("for SR-IOV", func() {
+		const supportedSriovNicsKey = "TEST_CNV_SUPPORTED_SRIOV_NICS"
+		BeforeEach(func() {
+			err := os.Unsetenv(supportedSriovNicsKey)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		AfterEach(func() {
+			err := os.Unsetenv(supportedSriovNicsKey)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("should load SR-IOV defaults", func() {
+			cfg := cnv.Config{}
+			err := envconfig.Process(prefix, &cfg)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cfg.SupportedSRIOVNetworkIC).ToNot(BeNil())
+			Expect(cfg.SupportedSRIOVNetworkIC).To(HaveLen(5))
+			Expect(cfg.SupportedSRIOVNetworkIC).To(HaveKeyWithValue("8086:158b", true))
+			Expect(cfg.SupportedSRIOVNetworkIC).To(HaveKeyWithValue("15b3:1015", true))
+			Expect(cfg.SupportedSRIOVNetworkIC).To(HaveKeyWithValue("15b3:1017", true))
+			Expect(cfg.SupportedSRIOVNetworkIC).To(HaveKeyWithValue("15b3:1013", true))
+			Expect(cfg.SupportedSRIOVNetworkIC).To(HaveKeyWithValue("15b3:101b", true))
+		})
+	})
+
 	Context("for GPU", func() {
 		const (
 			prefix           = "test"
