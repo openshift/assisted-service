@@ -533,6 +533,7 @@ var _ = Describe("Cancel host installation", func() {
 		expectedState string
 	}{
 		{state: models.HostStatusPreparingForInstallation, success: true, changeState: true, expectedState: models.HostStatusKnown},
+		{state: models.HostStatusPreparingSuccessful, success: true, changeState: true, expectedState: models.HostStatusKnown},
 		{state: models.HostStatusInstalling, success: true, changeState: true},
 		{state: models.HostStatusInstallingInProgress, success: true, changeState: true},
 		{state: models.HostStatusInstalled, success: true, changeState: true},
@@ -540,7 +541,7 @@ var _ = Describe("Cancel host installation", func() {
 		{state: models.HostStatusDisabled, success: true, changeState: false},
 		{state: models.HostStatusInstallingPendingUserAction, success: true, changeState: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict, changeState: false},
-		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusKnown, success: true, changeState: false},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict, changeState: false},
@@ -559,12 +560,12 @@ var _ = Describe("Cancel host installation", func() {
 			host = hostutil.GenerateTestHost(hostId, clusterId, "")
 			host.Status = swag.String(t.state)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			eventsNum := 0
+			eventsNum := 1
 			if t.changeState {
 				eventsNum = 2
 			}
-			if !t.success {
-				eventsNum = 1
+			if t.success && t.state == models.HostStatusDisabled {
+				eventsNum = 0
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.CancelInstallation(ctx, &host, "reason", db)
@@ -633,7 +634,7 @@ var _ = Describe("Reset host", func() {
 		{state: models.HostStatusCancelled, success: true, changeState: true},
 		{state: models.HostStatusAddedToExistingCluster, success: true, changeState: true},
 		{state: models.HostStatusDiscovering, success: false, statusCode: http.StatusConflict, changeState: false},
-		{state: models.HostStatusKnown, success: false, statusCode: http.StatusConflict, changeState: false},
+		{state: models.HostStatusKnown, success: true, changeState: false},
 		{state: models.HostStatusPendingForInput, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusResettingPendingUserAction, success: false, statusCode: http.StatusConflict, changeState: false},
 		{state: models.HostStatusDisconnected, success: false, statusCode: http.StatusConflict, changeState: false},
@@ -651,12 +652,12 @@ var _ = Describe("Reset host", func() {
 			host = hostutil.GenerateTestHost(hostId, clusterId, "")
 			host.Status = swag.String(t.state)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			eventsNum := 0
+			eventsNum := 1
 			if t.changeState {
 				eventsNum = 2
 			}
-			if !t.success {
-				eventsNum = 1
+			if t.success && t.state == models.HostStatusDisabled {
+				eventsNum = 0
 			}
 			acceptNewEvents(eventsNum)
 			err := hapi.ResetHost(ctx, &host, "reason", db)

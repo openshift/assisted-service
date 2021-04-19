@@ -984,6 +984,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return ""
 		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
 
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			for _, h := range c.Hosts {
+				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+					return false
+				}
+			}
+			return true
+		}, "1m", "2s").Should(BeTrue())
+
 		By("Wait for finalizing")
 		updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
 		Eventually(func() string {

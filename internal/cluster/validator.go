@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type ValidationStatus string
@@ -375,15 +376,22 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 	}
 }
 
-func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) ValidationStatus {
-	foundNotKnownHost := false
-	for _, host := range c.cluster.Hosts {
-		if swag.StringValue(host.Status) != models.HostStatusDisabled && swag.StringValue(host.Status) != models.HostStatusKnown {
-			foundNotKnownHost = true
-			break
-		}
+func isReadyToInstall(status string) bool {
+	allowedStatuses := []string{
+		models.HostStatusDisabled,
+		models.HostStatusKnown,
+		models.HostStatusPreparingForInstallation,
+		models.HostStatusPreparingSuccessful,
 	}
-	return boolValue(!foundNotKnownHost)
+	return funk.ContainsString(allowedStatuses, status)
+}
+
+func (v *clusterValidator) allHostsAreReadyToInstall(c *clusterPreprocessContext) ValidationStatus {
+	readyToInstall := true
+	for _, host := range c.cluster.Hosts {
+		readyToInstall = readyToInstall && isReadyToInstall(swag.StringValue(host.Status))
+	}
+	return boolValue(readyToInstall)
 }
 
 func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPreprocessContext, status ValidationStatus) string {
