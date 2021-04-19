@@ -12,8 +12,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/operators"
-	hndlr "github.com/openshift/assisted-service/internal/operators/handler"
+	operatorsHandler "github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -27,7 +28,8 @@ var _ = Describe("Operators manager", func() {
 		log               = logrus.New()
 		ctrl              *gomock.Controller
 		mockApi           *operators.MockAPI
-		handler           *hndlr.Handler
+		mockEvents        *events.MockHandler
+		handler           *operatorsHandler.Handler
 		lastUpdatedTime   strfmt.DateTime
 	)
 
@@ -35,7 +37,8 @@ var _ = Describe("Operators manager", func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockApi = operators.NewMockAPI(ctrl)
-		handler = hndlr.NewHandler(mockApi, log, db)
+		mockEvents = events.NewMockHandler(ctrl)
+		handler = operatorsHandler.NewHandler(mockApi, log, db, mockEvents)
 
 		// create simple cluster #1
 		clusterID := strfmt.UUID(uuid.New().String())
@@ -45,6 +48,7 @@ var _ = Describe("Operators manager", func() {
 				MonitoredOperators: []*models.MonitoredOperator{
 					from(common.TestDefaultConfig.MonitoredOperator),
 					from(lso.Operator),
+					from(operators.OperatorCVO),
 				},
 			},
 		}
@@ -181,6 +185,16 @@ var _ = Describe("Operators manager", func() {
 			for _, operator := range operators {
 				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
 			}
+		})
+
+		It("Should create an event when CVO is reported", func() {
+			newStatus := models.OperatorStatusAvailable
+			statusInfo := common.TestDefaultConfig.StatusInfo
+
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operators.OperatorCVO.Name, newStatus, statusInfo)
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

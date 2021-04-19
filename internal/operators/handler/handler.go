@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -20,14 +22,15 @@ import (
 // Handler implements REST API interface and deals with HTTP objects and transport data model.
 type Handler struct {
 	// operatorsAPI is responsible for executing the actual logic related to the operators
-	operatorsAPI operators.API
-	db           *gorm.DB
-	log          logrus.FieldLogger
+	operatorsAPI  operators.API
+	db            *gorm.DB
+	log           logrus.FieldLogger
+	eventsHandler events.Handler
 }
 
 // NewHandler creates new handler
-func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB) *Handler {
-	return &Handler{operatorsAPI: operatorsAPI, log: log, db: db}
+func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *Handler {
+	return &Handler{operatorsAPI: operatorsAPI, log: log, db: db, eventsHandler: eventsHandler}
 }
 
 // ListOperatorProperties Lists properties for an operator name.
@@ -141,6 +144,12 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 		log.Error(err)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+
+	if operator.Name == operators.OperatorCVO.Name {
+		eventInfo := fmt.Sprintf("Cluster version status: %s message: %s", status, statusInfo)
+		h.eventsHandler.AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, eventInfo, time.Now())
+	}
+
 	txSuccess = true
 	return nil
 }

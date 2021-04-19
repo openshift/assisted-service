@@ -4325,86 +4325,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/progress": {
-      "put": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
-        "description": "Update cluster installation progress.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "UpdateClusterInstallProgress",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The cluster whose progress is being updated.",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "Cluster install progress value.",
-            "name": "cluster-progress",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Update cluster install progress."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -5037,10 +4957,6 @@ func init() {
         "org_id": {
           "type": "string"
         },
-        "progress": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
-          "$ref": "#/definitions/cluster-progress-info"
-        },
         "pull_secret_set": {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
@@ -5295,21 +5211,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
-      }
-    },
-    "cluster-progress-info": {
-      "type": "object",
-      "properties": {
-        "progress_info": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        },
-        "progress_updated_at": {
-          "description": "Time at which the cluster install progress was last updated.",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
-        }
       }
     },
     "cluster-update-params": {
@@ -11858,86 +11759,6 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/progress": {
-      "put": {
-        "security": [
-          {
-            "agentAuth": []
-          }
-        ],
-        "description": "Update cluster installation progress.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "UpdateClusterInstallProgress",
-        "parameters": [
-          {
-            "type": "string",
-            "format": "uuid",
-            "description": "The cluster whose progress is being updated.",
-            "name": "cluster_id",
-            "in": "path",
-            "required": true
-          },
-          {
-            "description": "Cluster install progress value.",
-            "name": "cluster-progress",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Update cluster install progress."
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "409": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -12714,10 +12535,6 @@ func init() {
         "org_id": {
           "type": "string"
         },
-        "progress": {
-          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:progress_\"",
-          "$ref": "#/definitions/cluster-progress-info"
-        },
         "pull_secret_set": {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
@@ -12972,21 +12789,6 @@ func init() {
       "type": "array",
       "items": {
         "$ref": "#/definitions/cluster"
-      }
-    },
-    "cluster-progress-info": {
-      "type": "object",
-      "properties": {
-        "progress_info": {
-          "type": "string",
-          "x-go-custom-tag": "gorm:\"type:varchar(2048)\""
-        },
-        "progress_updated_at": {
-          "description": "Time at which the cluster install progress was last updated.",
-          "type": "string",
-          "format": "date-time",
-          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
-        }
       }
     },
     "cluster-update-params": {

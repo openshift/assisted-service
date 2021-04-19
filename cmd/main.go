@@ -370,7 +370,7 @@ func main() {
 		}
 	}
 
-	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db)
+	operatorsHandler := handler.NewHandler(operatorsManager, log.WithField("pkg", "operators"), db, eventsHandler)
 	h, err := restapi.Handler(restapi.Config{
 		AuthAgentAuth:         authHandler.AuthAgentAuth,
 		AuthUserAuth:          authHandler.AuthUserAuth,

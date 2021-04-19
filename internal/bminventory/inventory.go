@@ -154,18 +154,6 @@ type bareMetalInventory struct {
 	hwValidator        hardware.Validator
 }
 
-func (b *bareMetalInventory) UpdateClusterInstallProgress(ctx context.Context, params installer.UpdateClusterInstallProgressParams) middleware.Responder {
-	c, err := b.getCluster(ctx, params.ClusterID.String())
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-	if err := b.clusterApi.UpdateInstallProgress(ctx, c, params.ClusterProgress); err != nil {
-		b.log.WithError(err).Error("Failed to update install progress")
-		return common.GenerateErrorResponder(err)
-	}
-	return installer.NewUpdateClusterInstallProgressNoContent()
-}
-
 func NewBareMetalInventory(
 	db *gorm.DB,
 	log logrus.FieldLogger,

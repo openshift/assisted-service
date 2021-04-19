@@ -167,9 +167,6 @@ type Cluster struct {
 	// org id
 	OrgID string `json:"org_id,omitempty"`
 
-	// progress
-	Progress *ClusterProgressInfo `json:"progress,omitempty" gorm:"embedded;embedded_prefix:progress_"`
-
 	// True if the pull secret has been added to the cluster.
 	PullSecretSet bool `json:"pull_secret_set,omitempty"`
 
@@ -309,10 +306,6 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOpenshiftClusterID(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateProgress(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -776,24 +769,6 @@ func (m *Cluster) validateOpenshiftClusterID(formats strfmt.Registry) error {
 
 	if err := validate.FormatOf("openshift_cluster_id", "body", "uuid", m.OpenshiftClusterID.String(), formats); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (m *Cluster) validateProgress(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Progress) { // not required
-		return nil
-	}
-
-	if m.Progress != nil {
-		if err := m.Progress.Validate(formats); err != nil {
-			if ve, ok := err.(*errors.Validation); ok {
-				return ve.ValidateName("progress")
-			}
-			return err
-		}
 	}
 
 	return nil
