@@ -12,6 +12,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 type stringer interface {
@@ -35,7 +36,7 @@ type refreshPreprocessor struct {
 	operatorsApi operators.API
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API, disabledHostValidations []string) *refreshPreprocessor {
 	v := &validator{
 		log:            log,
 		hwValidatorCfg: hwValidatorCfg,
@@ -44,7 +45,7 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.Val
 	}
 	return &refreshPreprocessor{
 		log:          log,
-		validations:  newValidations(v),
+		validations:  newValidations(v, disabledHostValidations),
 		conditions:   newConditions(v),
 		operatorsApi: operatorsApi,
 	}
@@ -107,8 +108,8 @@ func sortByValidationResultID(validationResults []ValidationResult) {
 	})
 }
 
-func newValidations(v *validator) []validation {
-	ret := []validation{
+func newValidations(v *validator, disabledHostValidations []string) []validation {
+	baseValidations := []validation{
 		{
 			id:        IsConnected,
 			condition: v.isConnected,
@@ -195,7 +196,31 @@ func newValidations(v *validator) []validation {
 			formatter: v.printSufficientOrUnknownInstallationDiskSpeed,
 		},
 	}
-	return ret
+	return filterHostValidations(disabledHostValidations, v.log, baseValidations)
+}
+
+func filterHostValidations(disabledHostValidations []string, log logrus.FieldLogger, validations []validation) []validation {
+	f := funk.Filter(validations, func(v validation) bool {
+		for _, id := range disabledHostValidations {
+			if string(v.id) == id {
+				return false
+			}
+		}
+		return true
+	})
+	filteredValidations := f.([]validation)
+	if len(disabledHostValidations) > 0 && len(filteredValidations) == len(validations) {
+		d := funk.FilterString(disabledHostValidations, func(id string) bool {
+			for _, v := range validations {
+				if string(v.id) == id {
+					return false
+				}
+			}
+			return true
+		})
+		log.Warnf("Unable to find host validation IDs: %s", strings.Join(d, ","))
+	}
+	return filteredValidations
 }
 
 func newConditions(v *validator) []condition {

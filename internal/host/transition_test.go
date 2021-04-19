@@ -60,7 +60,7 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -443,7 +443,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostId, clusterId, "")
@@ -487,7 +487,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostId, clusterId, "")
@@ -522,7 +522,7 @@ var _ = Describe("Cancel host installation", func() {
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
 	})
 
 	tests := []struct {
@@ -614,7 +614,7 @@ var _ = Describe("Reset host", func() {
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
 	})
 
 	tests := []struct {
@@ -708,7 +708,7 @@ var _ = Describe("Install", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -882,7 +882,7 @@ var _ = Describe("Disable", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1015,7 +1015,7 @@ var _ = Describe("Enable", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1232,6 +1232,8 @@ var _ = Describe("Refresh Host", func() {
 		ctrl              *gomock.Controller
 		dbName            string
 		mockHwValidator   *hardware.MockValidator
+		validatorCfg      *hardware.ValidatorCfg
+		operatorsManager  *operators.Manager
 	)
 
 	BeforeEach(func() {
@@ -1239,7 +1241,7 @@ var _ = Describe("Refresh Host", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
-		validatorCfg := createValidatorCfg()
+		validatorCfg = createValidatorCfg()
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).DoAndReturn(func(inventory *models.Inventory) []*models.Disk {
 			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
 			// rely on small disks to get filtered out.
@@ -1253,9 +1255,9 @@ var _ = Describe("Refresh Host", func() {
 				fmt.Sprintf("%s:%s", supportedGPU.VendorID, supportedGPU.DeviceID): true,
 			}},
 		}
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operatorsOptions)
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operatorsOptions)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -3676,6 +3678,65 @@ var _ = Describe("Refresh Host", func() {
 			}
 		}
 	})
+	Context("disabled host validations", func() {
+
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+			defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+			Expect(err).NotTo(HaveOccurred())
+			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
+			host.Inventory = hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.GibToBytes(16), "master")
+			host.Role = models.HostRoleMaster
+			host.NtpSources = string(defaultNTPSourcesInBytes)
+			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				AnyTimes()
+		})
+
+		tests := []struct {
+			name                string
+			disabledValidations []string
+			dstState            string
+		}{
+			{
+				name:                "Nominal: Host is known with disabled validations for 'Belongs to majority group' and 'Container images available'",
+				disabledValidations: []string{string(models.HostValidationIDBelongsToMajorityGroup), string(models.HostValidationIDContainerImagesAvailable)},
+				dstState:            models.HostStatusKnown,
+			},
+			{
+				name:                "KO: Host is insufficient with all validations enabled",
+				disabledValidations: []string{},
+				dstState:            models.HostStatusInsufficient,
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, t.disabledValidations)
+
+				err := hapi.RefreshStatus(ctx, &host, db)
+				Expect(err).ToNot(HaveOccurred())
+
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId, clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+				validationRes := ValidationsStatus{}
+				Expect(json.Unmarshal([]byte(resultHost.ValidationsInfo), &validationRes)).ToNot(HaveOccurred())
+				for _, id := range t.disabledValidations {
+					for _, cat := range validationRes {
+						for _, val := range cat {
+							Expect(string(val.ID)).NotTo(BeIdenticalTo(id), fmt.Sprintf("Validation [%s]%s found when it should not be", cat, id))
+						}
+					}
+				}
+			})
+		}
+	})
+
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()

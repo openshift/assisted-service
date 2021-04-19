@@ -1,8 +1,12 @@
 package host
 
 import (
+	"strings"
+
 	"github.com/filanov/stateswitch"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -18,7 +22,7 @@ const (
 	TransitionTypeRegisterInstalledHost      = "RegisterInstalledHost"
 )
 
-func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
+func NewHostStateMachine(th *transitionHandler, log logrus.FieldLogger, disabledHostValidations []string) stateswitch.StateMachine {
 	sm := stateswitch.NewStateMachine()
 
 	// Register host
@@ -477,13 +481,12 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshHost(statusInfoDiscovering),
 	})
 
-	var hasMinRequiredHardware = stateswitch.And(If(HasMinValidDisks), If(HasMinCPUCores), If(HasMinMemory), If(IsPlatformValid))
+	var hasMinRequiredHardware = stateswitch.And(filterHostStateMachine(disabledHostValidations, log, HasMinValidDisks, HasMinCPUCores, HasMinMemory, IsPlatformValid)...)
 
-	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
+	var requiredInputFieldsExist = stateswitch.And(filterHostStateMachine(disabledHostValidations, log, IsMachineCidrDefined)...)
 
-	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr),
-		If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup),
-		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(SufficientOrUnknownInstallationDiskSpeed))
+	var isSufficientForInstall = stateswitch.And(filterHostStateMachine(disabledHostValidations, log, HasMemoryForRole, HasCPUCoresForRole, BelongsToMachineCidr, IsHostnameUnique, IsHostnameValid, IsAPIVipConnected, BelongsToMajorityGroup,
+		AreOcsRequirementsSatisfied, AreLsoRequirementsSatisfied, AreCnvRequirementsSatisfied, SufficientOrUnknownInstallationDiskSpeed)...)
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
@@ -607,4 +610,32 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	})
 
 	return sm
+}
+
+func filterHostStateMachine(disabledValidations []string, log logrus.FieldLogger, validationIDs ...validationID) []stateswitch.Condition {
+	f := funk.Filter(validationIDs, func(sid validationID) bool {
+		for _, id := range disabledValidations {
+			if string(sid) == id {
+				return false
+			}
+		}
+		return true
+	})
+	filtered := f.([]validationID)
+	if len(disabledValidations) > 0 && len(filtered) == len(validationIDs) {
+		d := funk.FilterString(disabledValidations, func(id string) bool {
+			for _, vid := range validationIDs {
+				if string(vid) == id {
+					return false
+				}
+			}
+			return true
+		})
+		log.Warnf("Unable to find host validation IDs: %s", strings.Join(d, ","))
+	}
+	ret := []stateswitch.Condition{}
+	for _, sid := range filtered {
+		ret = append(ret, If(sid))
+	}
+	return ret
 }
