@@ -136,6 +136,11 @@ type API interface {
 	   ResetHost reset a failed host for day2 cluster.*/
 	ResetHost(ctx context.Context, params *ResetHostParams) (*ResetHostOK, error)
 	/*
+	   ResetHostValidation resets failed host validation
+
+	   Reset failed host validation.  It may be performed on any host validation with persistent validation result.*/
+	ResetHostValidation(ctx context.Context, params *ResetHostValidationParams) (*ResetHostValidationOK, error)
+	/*
 	   UpdateCluster Updates an OpenShift cluster definition.*/
 	UpdateCluster(ctx context.Context, params *UpdateClusterParams) (*UpdateClusterCreated, error)
 	/*
@@ -1138,6 +1143,33 @@ func (a *Client) ResetHost(ctx context.Context, params *ResetHostParams) (*Reset
 		return nil, err
 	}
 	return result.(*ResetHostOK), nil
+
+}
+
+/*
+ResetHostValidation resets failed host validation
+
+Reset failed host validation.  It may be performed on any host validation with persistent validation result.
+*/
+func (a *Client) ResetHostValidation(ctx context.Context, params *ResetHostValidationParams) (*ResetHostValidationOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ResetHostValidation",
+		Method:             "PATCH",
+		PathPattern:        "/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ResetHostValidationReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ResetHostValidationOK), nil
 
 }
 

@@ -4250,3 +4250,10 @@ func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, par
 func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, params installer.GetPreflightRequirementsParams) middleware.Responder {
 	return installer.NewGetPreflightRequirementsOK().WithPayload(&models.PreflightHardwareRequirements{})
 }
+
+/*
+  TODO Add implementation.  Needed because it is part of generated InstallerAPI
+*/
+func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
+	return installer.NewResetHostValidationOK()
+}
