@@ -100,7 +100,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 	}
 
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
-	if gorm.IsRecordNotFoundError(err) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if !clusterDeployment.Spec.Installed {
 			return r.createNewCluster(ctx, req.NamespacedName, clusterDeployment)
 		}
@@ -649,7 +649,7 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 
 	c, err := r.Installer.GetClusterByKubeKey(key)
 
-	if gorm.IsRecordNotFoundError(err) {
+	if errors.Is(err, gorm.ErrRecordNotFound) {
 		// return if from any reason cluster is already deleted from db (or never existed)
 		return buildReply(nil)
 	}

@@ -224,7 +224,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 		Namespace: clusterDeployment.Namespace,
 	})
 	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			Requeue = true
 			inventoryErr = common.NewApiError(http.StatusNotFound, err)
 		} else {

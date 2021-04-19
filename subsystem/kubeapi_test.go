@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -156,7 +157,7 @@ func getClusterFromDB(
 		if err == nil {
 			return cluster
 		}
-		if !gorm.IsRecordNotFoundError(err) {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			Expect(err).To(BeNil())
 		}
 		getClusterDeploymentCRD(ctx, client, key)

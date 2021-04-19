@@ -89,7 +89,7 @@ func (r *AgentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	cluster, err := r.Installer.GetClusterByKubeKey(kubeKey)
 	if err != nil {
 		// Update that we failed to retrieve the cluster from the database
-		return r.updateStatus(ctx, agent, nil, err, !gorm.IsRecordNotFoundError(err))
+		return r.updateStatus(ctx, agent, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
 	}
 
 	//Retrieve host from cluster
@@ -481,7 +481,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 
 	internalHost, err := r.Installer.GetCommonHostInternal(ctx, string(*c.ID), agent.Name)
 	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
 		}
 		return err
@@ -490,7 +490,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 	if internalHost.Approved != spec.Approved {
 		err = r.Installer.UpdateHostApprovedInternal(ctx, string(*c.ID), agent.Name, spec.Approved)
 		if err != nil {
-			if gorm.IsRecordNotFoundError(err) {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
 				err = common.NewApiError(http.StatusNotFound, err)
 			}
 			return err
@@ -499,7 +499,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 
 	err = r.updateInstallerArgs(ctx, c, internalHost, agent)
 	if err != nil {
-		if gorm.IsRecordNotFoundError(err) {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
 		}
 		return err
