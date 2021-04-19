@@ -274,7 +274,7 @@ func generateFAPostStepReply(ctx context.Context, h *models.Host, freeAddresses 
 	Expect(err).To(BeNil())
 }
 
-func generateDiskSppedChekResponse(ctx context.Context, h *models.Host, path string) {
+func generateDiskSpeedChekResponse(ctx context.Context, h *models.Host, path string, exitCode int64) {
 	result := models.DiskSpeedCheckResponse{
 		IoSyncDuration: 10,
 		Path:           path,
@@ -285,7 +285,7 @@ func generateDiskSppedChekResponse(ctx context.Context, h *models.Host, path str
 		ClusterID: h.ClusterID,
 		HostID:    *h.ID,
 		Reply: &models.StepReply{
-			ExitCode: 0,
+			ExitCode: exitCode,
 			Output:   string(b),
 			StepID:   string(models.StepTypeInstallationDiskSpeedCheck),
 			StepType: models.StepTypeInstallationDiskSpeedCheck,
@@ -294,9 +294,15 @@ func generateDiskSppedChekResponse(ctx context.Context, h *models.Host, path str
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func generateDiskSpeedResponses(ctx context.Context, path string, hosts ...*models.Host) {
+func generateSuccessfulDiskSpeedResponses(ctx context.Context, path string, hosts ...*models.Host) {
 	for _, h := range hosts {
-		generateDiskSppedChekResponse(ctx, h, path)
+		generateDiskSpeedChekResponse(ctx, h, path, 0)
+	}
+}
+
+func generateFailedDiskSpeedResponses(ctx context.Context, path string, hosts ...*models.Host) {
+	for _, h := range hosts {
+		generateDiskSpeedChekResponse(ctx, h, path, -1)
 	}
 }
 

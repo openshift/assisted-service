@@ -409,7 +409,7 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 	Expect(err).NotTo(HaveOccurred())
 	c := reply.GetPayload()
 	Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
-	generateDiskSpeedResponses(ctx, sdbId, c.Hosts...)
+	generateSuccessfulDiskSpeedResponses(ctx, sdbId, c.Hosts...)
 	waitForClusterState(ctx, clusterID, models.ClusterStatusInstalling,
 		180*time.Second, "Installation in progress")
 
@@ -419,6 +419,49 @@ func installCluster(clusterID strfmt.UUID) *models.Cluster {
 		}
 	}
 
+	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c = rep.GetPayload()
+	Expect(c).NotTo(BeNil())
+
+	return c
+}
+
+func tryInstallClusterWithDiskResponses(clusterID strfmt.UUID, successfulHosts, failedHosts []*models.Host) *models.Cluster {
+	Expect(len(failedHosts)).To(BeNumerically(">", 0))
+	ctx := context.Background()
+	reply, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+	Expect(err).NotTo(HaveOccurred())
+	c := reply.GetPayload()
+	Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
+	generateFailedDiskSpeedResponses(ctx, sdbId, failedHosts...)
+	generateSuccessfulDiskSpeedResponses(ctx, sdbId, successfulHosts...)
+
+	waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient,
+		180*time.Second, IgnoreStateInfo)
+
+	for _, host := range failedHosts {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled {
+			waitForHostState(ctx, clusterID, *host.ID, models.HostStatusInsufficient, defaultWaitForHostStateTimeout)
+		}
+	}
+
+	expectedKnownHosts := make([]*models.Host, 0)
+outer:
+	for _, h := range c.Hosts {
+		for _, fh := range failedHosts {
+			if h.ID.String() == fh.ID.String() {
+				continue outer
+			}
+		}
+		expectedKnownHosts = append(expectedKnownHosts, h)
+	}
+
+	for _, host := range expectedKnownHosts {
+		if swag.StringValue(host.Status) != models.HostStatusDisabled {
+			waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		}
+	}
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c = rep.GetPayload()
@@ -841,7 +884,7 @@ var _ = Describe("cluster install", func() {
 		By("start installation and validate roles")
 		_, err := userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
-		generateDiskSpeedResponses(ctx, sdbId, h1, h2, h3, h4, h5, h6)
+		generateSuccessfulDiskSpeedResponses(ctx, sdbId, h1, h2, h3, h4, h5, h6)
 		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
 			3*time.Minute, IgnoreStateInfo)
 		getHostRole := func(id strfmt.UUID) models.HostRole {
@@ -2953,6 +2996,44 @@ var _ = Describe("cluster install, with default network params", func() {
 		Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInstalled))
 		Expect(c.InstallCompletedAt).ShouldNot(Equal(startTimeInstalled))
 		Expect(c.InstallCompletedAt).Should(Equal(c.StatusUpdatedAt))
+	})
+	Context("fail disk speed", func() {
+		It("first host", func() {
+			clusterID := *cluster.ID
+			registerHostsAndSetRoles(clusterID, 5)
+			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c := rep.GetPayload()
+			startTimeInstalling := c.InstallStartedAt
+
+			c = tryInstallClusterWithDiskResponses(clusterID, c.Hosts[1:], c.Hosts[:1])
+			Expect(len(c.Hosts)).Should(Equal(5))
+			Expect(c.InstallStartedAt).ShouldNot(Equal(startTimeInstalling))
+		})
+		It("all hosts", func() {
+			clusterID := *cluster.ID
+			registerHostsAndSetRoles(clusterID, 5)
+			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c := rep.GetPayload()
+			startTimeInstalling := c.InstallStartedAt
+
+			c = tryInstallClusterWithDiskResponses(clusterID, nil, c.Hosts)
+			Expect(len(c.Hosts)).Should(Equal(5))
+			Expect(c.InstallStartedAt).ShouldNot(Equal(startTimeInstalling))
+		})
+		It("last host", func() {
+			clusterID := *cluster.ID
+			registerHostsAndSetRoles(clusterID, 5)
+			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c := rep.GetPayload()
+			startTimeInstalling := c.InstallStartedAt
+
+			c = tryInstallClusterWithDiskResponses(clusterID, nil, c.Hosts[len(c.Hosts)-1:])
+			Expect(len(c.Hosts)).Should(Equal(5))
+			Expect(c.InstallStartedAt).ShouldNot(Equal(startTimeInstalling))
+		})
 	})
 })
 
