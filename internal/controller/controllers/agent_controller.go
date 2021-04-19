@@ -139,25 +139,25 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, agent *aiv1beta1.Age
 }
 
 func setConditionsUnknown(agent *aiv1beta1.Agent) {
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.InstalledCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  aiv1beta1.NotAvailableReason,
 		Message: aiv1beta1.NotAvailableMsg,
 	})
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConnectedCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  aiv1beta1.NotAvailableReason,
 		Message: aiv1beta1.NotAvailableMsg,
 	})
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ReadyForInstallationCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  aiv1beta1.NotAvailableReason,
 		Message: aiv1beta1.NotAvailableMsg,
 	})
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ValidatedCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  aiv1beta1.NotAvailableReason,
@@ -186,7 +186,7 @@ func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
 			msg = aiv1beta1.InputErrorMsg + " " + syncErr.Error()
 		}
 	}
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.SpecSyncedCondition,
 		Status:  condStatus,
 		Reason:  reason,
@@ -263,7 +263,7 @@ func installed(agent *aiv1beta1.Agent, status, statusInfo string) {
 		reason = aiv1beta1.UnknownStatusReason
 		msg = fmt.Sprintf("%s %s", aiv1beta1.UnknownStatusMsg, status)
 	}
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.InstalledCondition,
 		Status:  condStatus,
 		Reason:  reason,
@@ -302,7 +302,7 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 		reason = aiv1beta1.AgentValidationsPassingReason
 		msg = aiv1beta1.AgentValidationsPassingMsg
 	}
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ValidatedCondition,
 		Status:  condStatus,
 		Reason:  reason,
@@ -324,7 +324,7 @@ func connected(agent *aiv1beta1.Agent, status string) {
 		reason = aiv1beta1.AgentConnectedReason
 		msg = aiv1beta1.AgentConnectedMsg
 	}
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConnectedCondition,
 		Status:  condStatus,
 		Reason:  reason,
@@ -357,7 +357,7 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 		reason = aiv1beta1.UnknownStatusReason
 		msg = fmt.Sprintf("%s %s", aiv1beta1.UnknownStatusMsg, status)
 	}
-	conditionsv1.SetStatusCondition(&agent.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ReadyForInstallationCondition,
 		Status:  condStatus,
 		Reason:  reason,

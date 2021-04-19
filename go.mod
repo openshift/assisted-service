@@ -16,7 +16,6 @@ require (
 	github.com/danielerez/go-dns-client v0.0.0-20200630114514-0b60d1703f0b
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/diskfs/go-diskfs v1.1.2-0.20210216073915-ba492710e2d8
-	github.com/docker/go-units v0.4.0
 	github.com/dustin/go-humanize v1.0.0
 	github.com/filanov/stateswitch v0.0.0-20200714113403-51a42a34c604
 	github.com/frankban/quicktest v1.11.3 // indirect
@@ -46,7 +45,7 @@ require (
 	github.com/openshift-online/ocm-sdk-go v0.1.165
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
-	github.com/openshift/custom-resource-status v0.0.0-20200602122900-c002fd1547ca
+	github.com/openshift/custom-resource-status v1.1.0
 	github.com/openshift/hive/apis v0.0.0-20210323190723-391a0f02748c
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
 	github.com/ory/dockertest/v3 v3.6.3
