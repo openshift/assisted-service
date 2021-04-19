@@ -3624,11 +3624,11 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 	}
 
 	// cancellation is made by setting the cluster and and hosts states to error.
-	if err := b.clusterApi.CancelInstallation(ctx, cluster, "Installation was canceled by user", tx); err != nil {
+	if err := b.clusterApi.CancelInstallation(ctx, cluster, "Installation was cancelled by user", tx); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	for _, h := range cluster.Hosts {
-		if err := b.hostApi.CancelInstallation(ctx, h, "Installation was canceled by user", tx); err != nil {
+		if err := b.hostApi.CancelInstallation(ctx, h, "Installation was cancelled by user", tx); err != nil {
 			return common.GenerateErrorResponder(err)
 		}
 		if err := b.customizeHost(h); err != nil {
