@@ -97,6 +97,9 @@ type API interface {
 	   GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
+	   GetPreflightRequirements Get preflight requirements for a cluster.*/
+	GetPreflightRequirements(ctx context.Context, params *GetPreflightRequirementsParams) (*GetPreflightRequirementsOK, error)
+	/*
 	   GetPresignedForClusterFiles Retrieves a pre-signed S3 URL for downloading cluster files.*/
 	GetPresignedForClusterFiles(ctx context.Context, params *GetPresignedForClusterFilesParams) (*GetPresignedForClusterFilesOK, error)
 	/*
@@ -810,6 +813,31 @@ func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (
 		return nil, err
 	}
 	return result.(*GetNextStepsOK), nil
+
+}
+
+/*
+GetPreflightRequirements Get preflight requirements for a cluster.
+*/
+func (a *Client) GetPreflightRequirements(ctx context.Context, params *GetPreflightRequirementsParams) (*GetPreflightRequirementsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetPreflightRequirements",
+		Method:             "GET",
+		PathPattern:        "/clusters/{cluster_id}/preflight-requirements",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetPreflightRequirementsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetPreflightRequirementsOK), nil
 
 }
 

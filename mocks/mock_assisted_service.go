@@ -385,6 +385,20 @@ func (mr *MockInstallerAPIMockRecorder) GetNextSteps(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetNextSteps", reflect.TypeOf((*MockInstallerAPI)(nil).GetNextSteps), arg0, arg1)
 }
 
+// GetPreflightRequirements mocks base method
+func (m *MockInstallerAPI) GetPreflightRequirements(arg0 context.Context, arg1 installer.GetPreflightRequirementsParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPreflightRequirements", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// GetPreflightRequirements indicates an expected call of GetPreflightRequirements
+func (mr *MockInstallerAPIMockRecorder) GetPreflightRequirements(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightRequirements", reflect.TypeOf((*MockInstallerAPI)(nil).GetPreflightRequirements), arg0, arg1)
+}
+
 // GetPresignedForClusterFiles mocks base method
 func (m *MockInstallerAPI) GetPresignedForClusterFiles(arg0 context.Context, arg1 installer.GetPresignedForClusterFilesParams) middleware.Responder {
 	m.ctrl.T.Helper()

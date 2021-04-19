@@ -4325,6 +4325,72 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/preflight-requirements": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get preflight requirements for a cluster.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetPreflightRequirements",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return preflight requrements for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/preflight-hardware-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -6463,6 +6529,35 @@ func init() {
         "Failed"
       ]
     },
+    "host-type-hardware-requirements": {
+      "type": "object",
+      "properties": {
+        "qualitative": {
+          "description": "Host requirements that cannot be quantified at the time of calculation. Descriptions or formulas of requiements",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "quantitative": {
+          "description": "Host requirements that can be quantified",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
+    "host-type-hardware-requirements-wrapper": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "description": "Requirements towards a master node",
+          "$ref": "#/definitions/host-type-hardware-requirements"
+        },
+        "worker": {
+          "description": "Requirements towards a worker node",
+          "$ref": "#/definitions/host-type-hardware-requirements"
+        }
+      }
+    },
     "host-validation-id": {
       "type": "string",
       "enum": [
@@ -7128,6 +7223,25 @@ func init() {
         }
       }
     },
+    "operator-hardware-requirements": {
+      "type": "object",
+      "properties": {
+        "dependencies": {
+          "description": "List of other operator unique names that are required to be installed. Corresponds to name property of the monitored-operator, i.e. \"lso\", \"cnv\", etc.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "operator_name": {
+          "description": "Unique name of the operator. Corresponds to name property of the monitored-operator, i.e. \"lso\", \"cnv\", etc.",
+          "type": "string"
+        },
+        "requirements": {
+          "$ref": "#/definitions/host-type-hardware-requirements-wrapper"
+        }
+      }
+    },
     "operator-host-requirements": {
       "type": "object",
       "properties": {
@@ -7217,6 +7331,22 @@ func init() {
         "builtin",
         "olm"
       ]
+    },
+    "preflight-hardware-requirements": {
+      "type": "object",
+      "properties": {
+        "ocp": {
+          "description": "Preflight OCP requirements",
+          "$ref": "#/definitions/host-type-hardware-requirements-wrapper"
+        },
+        "operators": {
+          "description": "Preflight operators hardware requirements",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-hardware-requirements"
+          }
+        }
+      }
     },
     "presigned": {
       "type": "object",
@@ -11759,6 +11889,72 @@ func init() {
         }
       }
     },
+    "/clusters/{cluster_id}/preflight-requirements": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Get preflight requirements for a cluster.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "GetPreflightRequirements",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The cluster to return preflight requrements for.",
+            "name": "cluster_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/preflight-hardware-requirements"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
@@ -13965,6 +14161,35 @@ func init() {
         "Failed"
       ]
     },
+    "host-type-hardware-requirements": {
+      "type": "object",
+      "properties": {
+        "qualitative": {
+          "description": "Host requirements that cannot be quantified at the time of calculation. Descriptions or formulas of requiements",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "quantitative": {
+          "description": "Host requirements that can be quantified",
+          "$ref": "#/definitions/cluster-host-requirements-details"
+        }
+      }
+    },
+    "host-type-hardware-requirements-wrapper": {
+      "type": "object",
+      "properties": {
+        "master": {
+          "description": "Requirements towards a master node",
+          "$ref": "#/definitions/host-type-hardware-requirements"
+        },
+        "worker": {
+          "description": "Requirements towards a worker node",
+          "$ref": "#/definitions/host-type-hardware-requirements"
+        }
+      }
+    },
     "host-validation-id": {
       "type": "string",
       "enum": [
@@ -14620,6 +14845,25 @@ func init() {
         }
       }
     },
+    "operator-hardware-requirements": {
+      "type": "object",
+      "properties": {
+        "dependencies": {
+          "description": "List of other operator unique names that are required to be installed. Corresponds to name property of the monitored-operator, i.e. \"lso\", \"cnv\", etc.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "operator_name": {
+          "description": "Unique name of the operator. Corresponds to name property of the monitored-operator, i.e. \"lso\", \"cnv\", etc.",
+          "type": "string"
+        },
+        "requirements": {
+          "$ref": "#/definitions/host-type-hardware-requirements-wrapper"
+        }
+      }
+    },
     "operator-host-requirements": {
       "type": "object",
       "properties": {
@@ -14709,6 +14953,22 @@ func init() {
         "builtin",
         "olm"
       ]
+    },
+    "preflight-hardware-requirements": {
+      "type": "object",
+      "properties": {
+        "ocp": {
+          "description": "Preflight OCP requirements",
+          "$ref": "#/definitions/host-type-hardware-requirements-wrapper"
+        },
+        "operators": {
+          "description": "Preflight operators hardware requirements",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/operator-hardware-requirements"
+          }
+        }
+      }
     },
     "presigned": {
       "type": "object",
