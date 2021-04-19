@@ -44,6 +44,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -138,6 +139,7 @@ type bareMetalInventory struct {
 	eventsHandler      events.Handler
 	objectHandler      s3wrapper.API
 	metricApi          metrics.API
+	usageApi           usage.API
 	operatorManagerApi operators.API
 	generator          generator.ISOInstallConfigGenerator
 	authHandler        auth.Authenticator
@@ -174,6 +176,7 @@ func NewBareMetalInventory(
 	eventsHandler events.Handler,
 	objectHandler s3wrapper.API,
 	metricApi metrics.API,
+	usageApi usage.API,
 	operatorManagerApi operators.API,
 	authHandler auth.Authenticator,
 	k8sClient k8sclient.K8SClient,
@@ -198,6 +201,7 @@ func NewBareMetalInventory(
 		eventsHandler:      eventsHandler,
 		objectHandler:      objectHandler,
 		metricApi:          metricApi,
+		usageApi:           usageApi,
 		operatorManagerApi: operatorManagerApi,
 		authHandler:        authHandler,
 		k8sClient:          k8sClient,
@@ -481,6 +485,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 		cluster.SSHPublicKey = sshPublicKey
 	}
+	b.setDefaultUsage(&cluster.Cluster)
 
 	err = b.clusterApi.RegisterCluster(ctx, &cluster)
 	if err != nil {
@@ -1654,18 +1659,24 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
-	err = b.updateClusterData(ctx, cluster, params, tx, log)
+	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+	if err != nil {
+		log.WithError(err).Errorf("failed to read feature usage from cluster %s", params.ClusterID)
+		return nil, err
+	}
+
+	err = b.updateClusterData(ctx, cluster, params, usages, tx, log)
 	if err != nil {
 		log.WithError(err).Error("updateClusterData")
 		return nil, err
 	}
 
-	err = b.updateHostsData(ctx, params, tx, log)
+	err = b.updateHostsData(ctx, params, usages, tx, log)
 	if err != nil {
 		return nil, err
 	}
 
-	err = b.updateOperatorsData(ctx, cluster, params, tx, log)
+	err = b.updateOperatorsData(ctx, cluster, params, usages, tx, log)
 	if err != nil {
 		return nil, err
 	}
@@ -1674,6 +1685,8 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	if err != nil {
 		return nil, err
 	}
+
+	b.usageApi.Save(tx, params.ClusterID, usages)
 
 	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
 	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
@@ -1789,7 +1802,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	return nil
 }
 
-func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -1800,11 +1813,13 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	optionalParam(params.ClusterUpdateParams.SSHPublicKey, "ssh_public_key", updates)
 	optionalParam(params.ClusterUpdateParams.Hyperthreading, "hyperthreading", updates)
 
-	if err = b.updateNetworkParams(params, cluster, updates, log); err != nil {
+	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
+
+	if err = b.updateNetworkParams(params, cluster, updates, usages, log); err != nil {
 		return err
 	}
 
-	if err = updateNtpSources(params, updates, log); err != nil {
+	if err = b.updateNtpSources(params, updates, usages, log); err != nil {
 		return err
 	}
 
@@ -1837,7 +1852,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
 	var err error
 	machineCidr := cluster.MachineNetworkCidr
 	serviceCidr := cluster.ServiceNetworkCidr
@@ -1879,11 +1894,10 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		updates["user_managed_networking"] = userManagedNetworking
 		machineCidr = ""
 		if userManagedNetworking {
-			err = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
+			err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
 			if err != nil {
 				return err
 			}
-			vipDhcpAllocation = false
 		}
 	}
 
@@ -1912,7 +1926,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 			log.WithError(err).Warningf("Given machine cidr %q is not valid", machineCidr)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
-		err = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
+		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
 		if err != nil {
 			return err
 		}
@@ -1925,32 +1939,39 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 	if err = validations.ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation, machineCidr); err != nil {
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
+
+	b.setUsage(vipDhcpAllocation, usage.VipDhcpAllocationUsage, nil, usages)
 	return nil
 }
 
-func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singleNodeCluster bool, machineCidr string, updates map[string]interface{}, log logrus.FieldLogger) error {
+func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singleNodeCluster bool, machineCidr string, updates map[string]interface{}, log logrus.FieldLogger) (error, bool) {
 	err := validateUserManagedNetworkConflicts(params, singleNodeCluster, log)
 	if err != nil {
-		return err
+		return err, false
 	}
 	updates["vip_dhcp_allocation"] = false
 	updates["api_vip"] = ""
 	updates["ingress_vip"] = ""
 
 	setMachineNetworkCIDRForUpdate(updates, machineCidr)
-	return nil
+	return nil, false
 }
 
-func updateNtpSources(params installer.UpdateClusterParams, updates map[string]interface{}, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateNtpSources(params installer.UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.ClusterUpdateParams.AdditionalNtpSource)
+		additionalNtpSourcesDefined := ntpSource != ""
 
-		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
+		if additionalNtpSourcesDefined && !validations.ValidateAdditionalNTPSource(ntpSource) {
 			err := errors.Errorf("Invalid NTP source: %s", ntpSource)
 			log.WithError(err)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 		updates["additional_ntp_source"] = ntpSource
+
+		//if additional ntp sources are defined by the user, report usage of this feature
+		b.setUsage(additionalNtpSourcesDefined, usage.AdditionalNtpSourceUsage, &map[string]interface{}{
+			"source_count": len(strings.Split(ntpSource, ","))}, usages)
 	}
 	return nil
 }
@@ -1985,6 +2006,57 @@ func optionalParam(data *string, field string, updates map[string]interface{}) {
 	}
 }
 
+func (b *bareMetalInventory) setUsage(enabled bool, name string, props *map[string]interface{}, usages map[string]models.Usage) {
+	if enabled {
+		b.usageApi.Add(usages, name, props)
+	} else {
+		b.usageApi.Remove(usages, name)
+	}
+}
+
+func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
+	usages := make(map[string]models.Usage)
+	b.setUsage(swag.BoolValue(cluster.VipDhcpAllocation), usage.VipDhcpAllocationUsage, nil, usages)
+	b.setUsage(cluster.AdditionalNtpSource != "", usage.AdditionalNtpSourceUsage, &map[string]interface{}{
+		"source_count": len(strings.Split(cluster.AdditionalNtpSource, ","))}, usages)
+	b.setUsage(swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone,
+		usage.HighAvailabilityModeUsage, nil, usages)
+	b.setProxyUsage(&cluster.HTTPProxy, &cluster.HTTPProxy, &cluster.NoProxy, usages)
+	b.setOperatorsUsage(cluster.MonitoredOperators, []*models.MonitoredOperator{}, usages)
+}
+
+func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string, noProxy *string, usages map[string]models.Usage) {
+	props := map[string]interface{}{}
+	enabled := false
+	if swag.StringValue(httpProxy) != "" {
+		props["http_proxy"] = 1
+		enabled = true
+	}
+	if swag.StringValue(httpsProxy) != "" {
+		props["https_proxy"] = 1
+		enabled = true
+	}
+	if swag.StringValue(noProxy) != "" {
+		props["no_proxy"] = 1
+		enabled = true
+	}
+	if enabled {
+		b.usageApi.Add(usages, usage.ProxyUsage, &props)
+	} else {
+		b.usageApi.Remove(usages, usage.ProxyUsage)
+	}
+}
+
+func (b *bareMetalInventory) setOperatorsUsage(updateOLMOperators []*models.MonitoredOperator, removedOLMOperators []*models.MonitoredOperator, usages map[string]models.Usage) {
+	for _, operator := range updateOLMOperators {
+		b.usageApi.Add(usages, operator.Name, nil)
+	}
+
+	for _, operator := range removedOLMOperators {
+		b.usageApi.Remove(usages, operator.Name)
+	}
+}
+
 func (b *bareMetalInventory) updateHostRoles(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
 	for i := range params.ClusterUpdateParams.HostsRoles {
 		hostRole := params.ClusterUpdateParams.HostsRoles[i]
@@ -2006,7 +2078,8 @@ func (b *bareMetalInventory) updateHostRoles(ctx context.Context, params install
 	return nil
 }
 
-func (b *bareMetalInventory) updateHostNames(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateHostNames(ctx context.Context, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
+	var host_count = 0
 	for i := range params.ClusterUpdateParams.HostsNames {
 		hostName := params.ClusterUpdateParams.HostsNames[i]
 		log.Infof("Update host %s to request hostname %s", hostName.ID,
@@ -2028,6 +2101,9 @@ func (b *bareMetalInventory) updateHostNames(ctx context.Context, params install
 				params.ClusterID)
 			return common.NewApiError(http.StatusConflict, err)
 		}
+		host_count = host_count + 1
+		b.setUsage(true, usage.RequestedHostnameUsage,
+			&map[string]interface{}{"host_count": host_count}, usages)
 	}
 	return nil
 }
@@ -2090,12 +2166,12 @@ func (b *bareMetalInventory) updateHostsMachineConfigPoolNames(ctx context.Conte
 	return nil
 }
 
-func (b *bareMetalInventory) updateHostsData(ctx context.Context, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateHostsData(ctx context.Context, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
 	if err := b.updateHostRoles(ctx, params, db, log); err != nil {
 		return err
 	}
 
-	if err := b.updateHostNames(ctx, params, db, log); err != nil {
+	if err := b.updateHostNames(ctx, params, usages, db, log); err != nil {
 		return err
 	}
 
@@ -2110,7 +2186,7 @@ func (b *bareMetalInventory) updateHostsData(ctx context.Context, params install
 	return nil
 }
 
-func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
 	if params.ClusterUpdateParams.OlmOperators == nil {
 		return nil
 	}
@@ -2130,12 +2206,14 @@ func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *com
 	}
 
 	// After we aligned to the new update OLM info, we need to delete the old OLMs remainders that are still connected to the cluster
+	var removedOLMOperators []*models.MonitoredOperator
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
 			continue
 		}
 
 		if !operators.IsEnabled(updateOLMOperators, clusterOperator.Name) {
+			removedOLMOperators = append(removedOLMOperators, clusterOperator)
 			if err = db.Where("name = ? and cluster_id = ?", clusterOperator.Name, params.ClusterID).Delete(&models.MonitoredOperator{}).Error; err != nil {
 				err = errors.Wrapf(err, "failed to delete operator %s of cluster %s", clusterOperator.Name, params.ClusterID)
 				log.Error(err)
@@ -2143,6 +2221,7 @@ func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *com
 			}
 		}
 	}
+	b.setOperatorsUsage(updateOLMOperators, removedOLMOperators, usages)
 
 	return nil
 }

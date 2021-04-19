@@ -27,6 +27,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -863,6 +864,56 @@ var _ = Describe("cluster install", func() {
 		}
 		Expect(mastersCount).Should(Equal(3))
 		Expect(workersCount).Should(Equal(3))
+	})
+
+	Context("usage", func() {
+		It("report usage on update cluster", func() {
+			clusterID := *cluster.ID
+			h := &registerHost(clusterID).Host
+			ntpSources := "1.1.1.1,2.2.2.2"
+			proxy := "http://1.1.1.1:8080"
+			no_proxy := "a.redhat.com"
+			_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					VipDhcpAllocation:   swag.Bool(true),
+					AdditionalNtpSource: &ntpSources,
+					HTTPProxy:           &proxy,
+					HTTPSProxy:          &proxy,
+					NoProxy:             &no_proxy,
+					HostsNames: []*models.ClusterUpdateParamsHostsNamesItems0{
+						{ID: *h.ID, Hostname: "h1"},
+					},
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			log.Infof("usage after udpate: %s\n", getReply.Payload.FeatureUsage)
+			verifyUsageSet(getReply.Payload.FeatureUsage,
+				models.Usage{Name: usage.VipDhcpAllocationUsage},
+				models.Usage{
+					Name: usage.AdditionalNtpSourceUsage,
+					Data: map[string]interface{}{
+						"source_count": 2.0,
+					},
+				},
+				models.Usage{
+					Name: usage.ProxyUsage,
+					Data: map[string]interface{}{
+						"http_proxy":  1.0,
+						"https_proxy": 1.0,
+						"no_proxy":    1.0,
+					},
+				},
+				models.Usage{
+					Name: usage.RequestedHostnameUsage,
+					Data: map[string]interface{}{
+						"host_count": 1.0,
+					},
+				},
+			)
+		})
 	})
 
 	Context("MachineNetworkCIDR auto assign", func() {

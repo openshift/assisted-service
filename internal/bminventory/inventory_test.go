@@ -45,6 +45,7 @@ import (
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -74,6 +75,7 @@ var (
 	mockGenerator           *generator.MockISOInstallConfigGenerator
 	mockVersions            *versions.MockHandler
 	mockMetric              *metrics.MockAPI
+	mockUsage               *usage.MockAPI
 	mockK8sClient           *k8sclient.MockK8SClient
 	mockCRDUtils            *MockCRDUtils
 	mockAccountsMgmt        *ocm.MockOCMAccountsMgmt
@@ -122,6 +124,12 @@ func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 
 func mockAMSSubscription(ctx context.Context) {
 	mockAccountsMgmt.EXPECT().CreateSubscription(ctx, gomock.Any(), gomock.Any()).Return(&amgmtv1.Subscription{}, nil)
+}
+
+func mockUsageReports() {
+	mockUsage.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	mockUsage.EXPECT().Remove(gomock.Any(), gomock.Any()).AnyTimes()
+	mockUsage.EXPECT().Save(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 }
 
 func TestValidator(t *testing.T) {
@@ -1778,6 +1786,7 @@ var _ = Describe("cluster", func() {
 				"systemd":{}
 		}`))
 		mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
+		mockUsageReports()
 	})
 
 	AfterEach(func() {
@@ -4825,6 +4834,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
+		mockUsageReports()
 	})
 
 	AfterEach(func() {
@@ -4971,6 +4981,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
+		mockUsageReports()
 	})
 
 	AfterEach(func() {
@@ -5551,6 +5562,7 @@ var _ = Describe("TestRegisterCluster", func() {
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
+		mockUsageReports()
 	})
 
 	AfterEach(func() {
@@ -5765,6 +5777,7 @@ var _ = Describe("AMS subscriptions", func() {
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 		bm.ocmClient.Config.WithAMSSubscriptions = true
+		mockUsageReports()
 	})
 
 	AfterEach(func() {
@@ -6515,6 +6528,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockEvents = events.NewMockHandler(ctrl)
 	mockS3Client = s3wrapper.NewMockAPI(ctrl)
 	mockMetric = metrics.NewMockAPI(ctrl)
+	mockUsage = usage.NewMockAPI(ctrl)
 	mockK8sClient = k8sclient.NewMockK8SClient(ctrl)
 	mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
 	ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{}}
@@ -6527,7 +6541,7 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
-		mockGenerator, mockEvents, mockS3Client, mockMetric, mockOperatorManager,
+		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
 		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi)
 }
@@ -6588,6 +6602,7 @@ var _ = Describe("IPv6 support disabled", func() {
 		var params installer.UpdateClusterParams
 
 		BeforeEach(func() {
+			mockUsageReports()
 			params = installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{},
 			}
