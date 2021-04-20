@@ -1,4 +1,11 @@
 apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: assisted-installer-ocm-operations
+  labels:
+    grafana_dashboard: "true"
+  annotations:
+    grafana-folder: /grafana-dashboard-definitions/AssistedInstaller
 data:
   assisted-installer.json: |-
     {
@@ -18,8 +25,8 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 121,
-      "iteration": 1602670418328,
+      "id": 9,
+      "iteration": 1618918089967,
       "links": [],
       "panels": [
         {
@@ -51,7 +58,7 @@ data:
                   },
                   {
                     "color": "red",
-                    "value": 200
+                    "value": 80
                   }
                 ]
               }
@@ -66,33 +73,10 @@ data:
           },
           "id": 2,
           "options": {
-            "fieldOptions": {
-              "calcs": [
-                "mean"
-              ],
-              "defaults": {
-                "mappings": [],
-                "thresholds": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "green",
-                      "value": null
-                    },
-                    {
-                      "color": "red",
-                      "value": 80
-                    }
-                  ]
-                }
-              },
-              "overrides": [],
-              "values": false
-            },
             "orientation": "auto",
             "reduceOptions": {
               "calcs": [
-                "lastNotNull"
+                "mean"
               ],
               "fields": "",
               "values": false
@@ -100,7 +84,7 @@ data:
             "showThresholdLabels": false,
             "showThresholdMarkers": true
           },
-          "pluginVersion": "6.6.2",
+          "pluginVersion": "7.2.1",
           "targets": [
             {
               "expr": "sum(rate(service_assisted_installer_operation_duration_miliseconds_sum{}[5m])) by (operation)/ sum(rate(service_assisted_installer_operation_duration_miliseconds_count{}[5m])) by (operation)",
@@ -123,7 +107,8 @@ data:
           "datasource": "$datasource",
           "fieldConfig": {
             "defaults": {
-              "custom": {}
+              "custom": {},
+              "links": []
             },
             "overrides": []
           },
@@ -150,11 +135,10 @@ data:
           "linewidth": 1,
           "nullPointMode": "null",
           "options": {
-            "alertThreshold": true,
-            "dataLinks": []
+            "alertThreshold": true
           },
           "percentage": false,
-          "pluginVersion": "7.2.0",
+          "pluginVersion": "7.2.1",
           "pointradius": 2,
           "points": false,
           "renderer": "flot",
@@ -164,32 +148,18 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "histogram_quantile(0.99, sum(rate(service_assisted_installer_operation_duration_miliseconds_bucket{operation='OCM-CapabilityReview'}[5m])) by (le))",
+              "expr": "sum(rate(service_assisted_installer_operation_duration_miliseconds_bucket{le!=\"+Inf\"}[5m])) by (operation)",
               "hide": false,
               "interval": "",
-              "legendFormat": "OCM-CapabilityReview",
+              "legendFormat": "{{operation}}",
               "refId": "A"
-            },
-            {
-              "expr": "histogram_quantile(0.99, sum(rate(service_assisted_installer_operation_duration_miliseconds_bucket{operation='OCM-AuthenticatePullSecret'}[5m])) by (le))",
-              "hide": false,
-              "interval": "",
-              "legendFormat": "OCM-AuthenticatePullSecret",
-              "refId": "B"
-            },
-            {
-              "expr": "histogram_quantile(0.99, sum(rate(service_assisted_installer_operation_duration_miliseconds_bucket{operation='OCM-AccessReview'}[5m])) by (le))",
-              "hide": false,
-              "interval": "",
-              "legendFormat": "OCM-OCM-AccessReview",
-              "refId": "C"
             }
           ],
           "thresholds": [],
           "timeFrom": null,
           "timeRegions": [],
           "timeShift": null,
-          "title": "OCM Operations over time",
+          "title": "OCM Operations / 1[sec]",
           "tooltip": {
             "shared": true,
             "sort": 0,
@@ -228,7 +198,7 @@ data:
         }
       ],
       "refresh": false,
-      "schemaVersion": 22,
+      "schemaVersion": 26,
       "style": "dark",
       "tags": [],
       "templating": {
@@ -275,12 +245,5 @@ data:
       "timezone": "",
       "title": "OCM Operations",
       "uid": "ocm-operations",
-      "version": 1
+      "version": 5
     }
-kind: ConfigMap
-metadata:
-  name: assisted-installer-ocm-operations
-  labels:
-    grafana_dashboard: "true"
-  annotations:
-    grafana-folder: /grafana-dashboard-definitions/AssistedInstaller
