@@ -286,6 +286,8 @@ func NewHostStateMachine(th *transitionHandler, log logrus.FieldLogger, disabled
 		DestinationState: stateswitch.State(models.HostStatusDisabled),
 	})
 
+	// Refresh host
+
 	// Prepare for installation
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
@@ -297,6 +299,25 @@ func NewHostStateMachine(th *transitionHandler, log logrus.FieldLogger, disabled
 		PostTransition:   th.PostRefreshHost(statusInfoPreparingForInstallation),
 	})
 
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingForInstallation),
+		},
+		Condition:        stateswitch.And(If(IsConnected), If(InstallationDiskSpeedCheckSuccessful), If(ClusterPreparingForInstallation)),
+		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
+		PostTransition:   th.PostRefreshHost(statusInfoHostPreparationSuccessful),
+	})
+
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusPreparingSuccessful),
+		},
+		Condition:        stateswitch.And(If(IsConnected), If(ClusterPreparingForInstallation)),
+		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
+	})
+
 	// Install host
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
@@ -306,17 +327,6 @@ func NewHostStateMachine(th *transitionHandler, log logrus.FieldLogger, disabled
 		Condition:        stateswitch.And(If(IsConnected), If(ClusterInstalling)),
 		DestinationState: stateswitch.State(models.HostStatusInstalling),
 		PostTransition:   th.PostRefreshHost(statusInfoInstalling),
-	})
-
-	// Refresh host
-	sm.AddTransition(stateswitch.TransitionRule{
-		TransitionType: TransitionTypeRefresh,
-		SourceStates: []stateswitch.State{
-			stateswitch.State(models.HostStatusPreparingForInstallation),
-		},
-		Condition:        stateswitch.And(If(IsConnected), If(InstallationDiskSpeedCheckSuccessful), If(ClusterPreparingForInstallation)),
-		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
-		PostTransition:   th.PostRefreshHost(statusInfoHostPreparationSuccessful),
 	})
 
 	installationDiskSpeedCheckFailed := stateswitch.Not(If(SufficientOrUnknownInstallationDiskSpeed))
@@ -355,7 +365,7 @@ func NewHostStateMachine(th *transitionHandler, log logrus.FieldLogger, disabled
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingSuccessful),
 		},
-		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(If(ClusterPreparingForInstallation))),
+		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(stateswitch.Or(If(ClusterPreparingForInstallation), If(ClusterInstalling)))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoClusterIsNotPreparing),
 	})
