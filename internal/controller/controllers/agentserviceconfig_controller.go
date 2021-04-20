@@ -122,7 +122,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(req ctrl.Request) (ctrl.Result,
 
 	msg := "AgentServiceConfig reconcile completed without error."
 	r.Recorder.Event(instance, "Normal", aiv1beta1.ReasonReconcileSucceeded, msg)
-	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionReconcileCompleted,
 		Status:  corev1.ConditionTrue,
 		Reason:  aiv1beta1.ReasonReconcileSucceeded,
@@ -135,7 +135,7 @@ func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Conte
 	pvc, mutateFn := r.newPVC(instance, serviceName, instance.Spec.FileSystemStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonStorageFailure,
@@ -152,7 +152,7 @@ func (r *AgentServiceConfigReconciler) ensureDatabaseStorage(ctx context.Context
 	pvc, mutateFn := r.newPVC(instance, databaseName, instance.Spec.DatabaseStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonStorageFailure,
@@ -169,7 +169,7 @@ func (r *AgentServiceConfigReconciler) ensureAgentService(ctx context.Context, i
 	svc, mutateFn := r.newAgentService(instance)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, svc, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonAgentServiceFailure,
@@ -186,7 +186,7 @@ func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, ins
 	route, mutateFn := r.newAgentRoute(instance)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, route, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonAgentRouteFailure,
@@ -205,7 +205,7 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 	// generating a secret every reconcile.
 	secret, mutateFn, err := r.newPostgresSecret(instance)
 	if err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonPostgresSecretFailure,
@@ -215,7 +215,7 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonPostgresSecretFailure,
@@ -237,7 +237,7 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 			err = fmt.Errorf("Route's host is empty")
 		}
 		r.Log.Info("Failed to get route or route's host is empty")
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonDeploymentFailure,
@@ -251,7 +251,7 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 	deployment, mutateFn := r.newAssistedServiceDeployment(instance, serviceURL)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonDeploymentFailure,

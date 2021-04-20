@@ -206,7 +206,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 		clusterDeploymentRefErr := newKubeAPIError(errors.Wrapf(err, errMsg), clientError)
 
 		// Update that we failed to retrieve the clusterDeployment
-		conditionsv1.SetStatusCondition(&infraEnv.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ImageCreatedCondition,
 			Status:  corev1.ConditionUnknown,
 			Reason:  aiv1beta1.ImageCreationErrorReason,
@@ -232,7 +232,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 			inventoryErr = common.NewApiError(http.StatusInternalServerError, err)
 		}
 		// Update that we failed to retrieve the cluster from the database
-		conditionsv1.SetStatusCondition(&infraEnv.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ImageCreatedCondition,
 			Status:  corev1.ConditionUnknown,
 			Reason:  aiv1beta1.ImageCreationErrorReason,
@@ -282,7 +282,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 
 func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 	ctx context.Context, infraEnv *aiv1beta1.InfraEnv, imageInfo *models.ImageInfo) (ctrl.Result, error) {
-	conditionsv1.SetStatusCondition(&infraEnv.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ImageCreatedCondition,
 		Status:  corev1.ConditionTrue,
 		Reason:  aiv1beta1.ImageCreatedReason,
@@ -312,7 +312,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		err = nil
 		Requeue = false
 		r.Log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.ClusterName)
-		conditionsv1.SetStatusCondition(&infraEnv.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ImageCreatedCondition,
 			Status:  corev1.ConditionTrue,
 			Reason:  aiv1beta1.ImageCreatedReason,
@@ -327,7 +327,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 			Requeue = true
 			errMsg = ": internal error"
 		}
-		conditionsv1.SetStatusCondition(&infraEnv.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ImageCreatedCondition,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ImageCreationErrorReason,
