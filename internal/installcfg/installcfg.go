@@ -376,8 +376,22 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 	return cfg, nil
 }
 
-func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
-	cfg, err := getInstallConfig(log, cluster, addRhCa, ca)
+//go:generate mockgen -source=installcfg.go -package=installcfg -destination=mock_installcfg.go
+type InstallConfigBuilder interface {
+	GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error)
+	ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error
+}
+
+type installConfigBuilder struct {
+	log logrus.FieldLogger
+}
+
+func NewInstallConfigBuilder(log logrus.FieldLogger) InstallConfigBuilder {
+	return &installConfigBuilder{log: log}
+}
+
+func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
+	cfg, err := getInstallConfig(i.log, cluster, addRhCa, ca)
 	if err != nil {
 		return nil, err
 	}
@@ -385,8 +399,8 @@ func GetInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 	return yaml.Marshal(*cfg)
 }
 
-func ValidateInstallConfigPatch(log logrus.FieldLogger, cluster *common.Cluster, patch string) error {
-	config, err := getInstallConfig(log, cluster, false, "")
+func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error {
+	config, err := getInstallConfig(i.log, cluster, false, "")
 	if err != nil {
 		return err
 	}

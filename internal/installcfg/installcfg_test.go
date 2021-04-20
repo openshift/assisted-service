@@ -21,11 +21,12 @@ const OvnKubernetes = "OVNKubernetes"
 
 var _ = Describe("installcfg", func() {
 	var (
-		host1   models.Host
-		host2   models.Host
-		host3   models.Host
-		cluster common.Cluster
-		ctrl    *gomock.Controller
+		host1                models.Host
+		host2                models.Host
+		host3                models.Host
+		cluster              common.Cluster
+		ctrl                 *gomock.Controller
+		installConfigBuilder InstallConfigBuilder
 	)
 	BeforeEach(func() {
 		clusterId := strfmt.UUID(uuid.New().String())
@@ -66,13 +67,14 @@ var _ = Describe("installcfg", func() {
 		}
 
 		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
+		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog())
 		ctrl = gomock.NewController(GinkgoT())
 
 	})
 
 	It("create_configuration_with_all_hosts", func() {
 		var result InstallerConfigBaremetal
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -82,7 +84,7 @@ var _ = Describe("installcfg", func() {
 	It("create_configuration_with_one_host_disabled", func() {
 		var result InstallerConfigBaremetal
 		host3.Status = swag.String(models.HostStatusDisabled)
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -95,7 +97,7 @@ var _ = Describe("installcfg", func() {
 		proxyURL := "http://proxyserver:3218"
 		cluster.HTTPProxy = proxyURL
 		cluster.HTTPSProxy = proxyURL
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -117,7 +119,7 @@ var _ = Describe("installcfg", func() {
 		cluster.HTTPSProxy = proxyURL
 		cluster.NoProxy = "no-proxy.com"
 		cluster.MachineNetworkCidr = ""
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -134,7 +136,7 @@ var _ = Describe("installcfg", func() {
 
 	It("correctly applies cluster overrides", func() {
 		var result InstallerConfigBaremetal
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -149,7 +151,7 @@ var _ = Describe("installcfg", func() {
 	It("doesn't fail with empty overrides", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -160,7 +162,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.MachineNetworkCidr = "1001:db8::/120"
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -171,7 +173,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.ClusterNetworkCidr = "1001:db8::/120"
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -182,7 +184,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.ServiceNetworkCidr = "1001:db8::/120"
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -195,7 +197,7 @@ var _ = Describe("installcfg", func() {
 		ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
-		data, err := GetInstallConfig(logrus.New(), &cluster, true, ca)
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, true, ca)
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -207,7 +209,7 @@ var _ = Describe("installcfg", func() {
 	It("CA AdditionalTrustBundle not added", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "CA-CERT")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "CA-CERT")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -218,7 +220,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -233,7 +235,7 @@ var _ = Describe("installcfg", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -250,7 +252,7 @@ var _ = Describe("installcfg", func() {
 		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
 		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -265,7 +267,7 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(false)
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -283,7 +285,7 @@ var _ = Describe("installcfg", func() {
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
 		cluster.MachineNetworkCidr = "10.35.20.0/24"
 
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -300,7 +302,7 @@ var _ = Describe("installcfg", func() {
 		cluster.MachineNetworkCidr = "fe80::/64"
 		host1.Bootstrap = true
 		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
-		data, err := GetInstallConfig(logrus.New(), &cluster, false, "")
+		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -342,7 +344,8 @@ var _ = Describe("installcfg", func() {
 
 var _ = Describe("ValidateInstallConfigPatch", func() {
 	var (
-		cluster *common.Cluster
+		cluster              *common.Cluster
+		installConfigBuilder InstallConfigBuilder
 	)
 	BeforeEach(func() {
 		id := strfmt.UUID(uuid.New().String())
@@ -354,23 +357,24 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 			IngressVip:       "376.5.56.6",
 			ImageInfo:        &models.ImageInfo{},
 		}}
+		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog())
 	})
 
 	It("Succeeds when provided valid json", func() {
 		s := `{"apiVersion": "v3", "baseDomain": "example.com", "metadata": {"name": "things"}}`
-		err := ValidateInstallConfigPatch(logrus.New(), cluster, s)
+		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("Fails when provided invalid json", func() {
 		s := `{"apiVersion": 3, "baseDomain": "example.com", "metadata": {"name": "things"}}`
-		err := ValidateInstallConfigPatch(logrus.New(), cluster, s)
+		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("Fails with an invalid cert", func() {
 		s := `{"additionalTrustBundle":  "-----BEGIN CERTIFICATE-----\nMIIFozCCA4ugAwIBAgIUVlT4eKQQ43HN31jQzsez+iEmpw8wDQYJKoZIhvcNAQEL\nBQAwYTELMAkGA1UEBhMCQUExFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDEdMBsGA1UEAwwUcmVnaXN0cnkuZXhhbXBs\nZS5jb20wHhcNMjAxMDI3MTI0OTEwWhcNMjExMDI3MTI0OTEwWjBhMQswCQYDVQQG\nEwJBQTEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENv\nbXBhbnkgTHRkMR0wGwYDVQQDDBRyZWdpc3RyeS5leGFtcGxlLmNvbTCCAiIwDQYJ\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKm/wEl5B6lDOwYtkOxoLHQySA5RySEU\nkEMoGxBtGewLjLRMS9zp5pgYNcRenOTfUeyx6n4vE+lLn6p4laSig6QGDK0mmPl/\nt8OVZGBNE/dOZEoGe3I+gQux0oErhzjNxrf1EGfeBRVVuSqmgQnFaeLq2mGsbb5+\nyz114seD7u0Vb6OIX5sA+ytvr+jV3HK0jf5H9AHvSnNzF0UE+S7CHTJSDqQNUPxp\n8rAtfOvWyndDJBBmA0fdnDRYNtUqKcj/YBSntuZAmSJ0Woq9NrE+H3e61kvF0AP8\nHz21FSD/GqCn97Q8Mh8uTKx8jas2XBLyWdi0OCIV+a4jTadez1zPCWT+zgD5rHAk\np5RyXgkRU3guJydNMlpRPsGur3pUM4Q3zQfArZ+OxTkU/SLZbBmAVMPDI2pwL6qE\n2F8So4JdysH1MiwtYDYVIxKChrpBtTVunIe+Jyl/w8a3xR77r++3MFauobGLpeCL\nptbSz0aFZIIIwoLw2JVaWe7BWryjk8fDYrlPkLWqgQ956lcZppqiUzvEVv3p7wC2\nmfWkXJBGZZ0CZcYUoEE7zQ5T0RHLXqf0lSMf8I1SPzBF+Wl6G2gUOaZtYT5s0LA5\nid+gSDtKqyDH1HwPGO0eQB1LGeXOCLBA3cgmxYXtIMLfds0LgcJF+vRV3868abpD\n+yVMxGQRzRZFAgMBAAGjUzBRMB0GA1UdDgQWBBTUHUuivG1L6rTHS9v8KHTtOVpL\ncjAfBgNVHSMEGDAWgBTUHUuivG1L6rTHS9v8KHTtOVpLcjAPBgNVHRMBAf8EBTAD\nAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQAFTmSriXnTJ/9cbO2lJmH7OFcrgKWdsycU\ngc9aeLSpnlYPuMjRHgXpq0X5iZzJaOXu8WKmbxTItxfd7MD/9rsaDMo7uDs6cZhC\nsdpWDVzZlP1PRcy1uT3+g12QmMmt89WBtauKEMukI3mOlx6y1VzPj9Vw5gfBKYjS\nh2NJPSVzgkLlLTOsY6bHesXVWrHVtCS5fUiE2xNkE6hXS0hZWYZlzLwn55wIrchx\nB3G++mPnNL3SbH62lXyWcrc1M/+gNl3F3jSd5WfxZQVllZ9vK1DnBKDisTUax5fR\nqK/D7vgkvHJa0USzGhcYV3DEdbgP/COgWrpbA0TTFcasWWYQdBk+2EUPcWKAh0JB\nVgql3o0pmyzfqQtuRRMC4D6Ip6y6IE2opK2c7ipXT4iEyPqr4uk4IeVFXghCYW92\nkCI+FyRJgbSu9ZuIug8AUlea7UOLTC4mxAayXvTwA6bNlGoSLmojgQHG7GlGj+E8\n57AHM2sD9Qi1VYyLuMVhJB3DzlQKtEFuvZsvi/rSIGqT8UfNbxk7OCtxceyzECqW\n2ptIv7tDhQeAGqkGqhTj1WdH+16+QZpsfmkwt5+hAaOeZfQ/nOCP7CGwbl4nYc3X\narDiqhVUXlv84/7XrOyoDJo3AVGidq902h6MYenX9T//XYbWkUK7nkvYMVoxu/Ek\nx/aT+8yOHQ==\n", "imageContentSources": [{"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release"}, {"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release-nightly"}, {"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-v4.0-art-dev"}]}`
-		err := ValidateInstallConfigPatch(logrus.New(), cluster, s)
+		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).Should(HaveOccurred())
 	})
 
@@ -379,7 +383,7 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		mode := models.ClusterHighAvailabilityModeNone
 		cluster.HighAvailabilityMode = &mode
-		err := ValidateInstallConfigPatch(logrus.New(), cluster, s)
+		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 })

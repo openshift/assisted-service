@@ -58,31 +58,31 @@ import (
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 const FakeServiceBaseURL = "http://192.168.11.22:12345"
 
 var (
-	ctrl                    *gomock.Controller
-	mockClusterApi          *cluster.MockAPI
-	mockHostApi             *host.MockAPI
-	mockEvents              *events.MockHandler
-	mockS3Client            *s3wrapper.MockAPI
-	mockSecretValidator     *validations.MockPullSecretValidator
-	mockIsoEditorFactory    *isoeditor.MockFactory
-	mockGenerator           *generator.MockISOInstallConfigGenerator
-	mockVersions            *versions.MockHandler
-	mockMetric              *metrics.MockAPI
-	mockUsage               *usage.MockAPI
-	mockK8sClient           *k8sclient.MockK8SClient
-	mockCRDUtils            *MockCRDUtils
-	mockAccountsMgmt        *ocm.MockOCMAccountsMgmt
-	mockOperatorManager     *operators.MockAPI
-	mockHwValidator         *hardware.MockValidator
-	mockIgnitionBuilder     *ignition.MockIgnitionBuilder
-	secondDayWorkerIgnition = []byte(`{
+	ctrl                     *gomock.Controller
+	mockClusterApi           *cluster.MockAPI
+	mockHostApi              *host.MockAPI
+	mockEvents               *events.MockHandler
+	mockS3Client             *s3wrapper.MockAPI
+	mockSecretValidator      *validations.MockPullSecretValidator
+	mockIsoEditorFactory     *isoeditor.MockFactory
+	mockGenerator            *generator.MockISOInstallConfigGenerator
+	mockVersions             *versions.MockHandler
+	mockMetric               *metrics.MockAPI
+	mockUsage                *usage.MockAPI
+	mockK8sClient            *k8sclient.MockK8SClient
+	mockCRDUtils             *MockCRDUtils
+	mockAccountsMgmt         *ocm.MockOCMAccountsMgmt
+	mockOperatorManager      *operators.MockAPI
+	mockHwValidator          *hardware.MockValidator
+	mockIgnitionBuilder      *ignition.MockIgnitionBuilder
+	mockInstallConfigBuilder *installcfg.MockInstallConfigBuilder
+	secondDayWorkerIgnition  = []byte(`{
 		"ignition": {
 		  "version": "3.1.0",
 		  "config": {
@@ -153,6 +153,10 @@ func mockGenerateInstallConfigSuccess(mockGenerator *generator.MockISOInstallCon
 		mockVersions.EXPECT().GetReleaseImage(gomock.Any()).Return("releaseImage", nil).Times(1)
 		mockGenerator.EXPECT().GenerateInstallConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 	}
+}
+
+func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg.MockInstallConfigBuilder) {
+	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("some string"), nil).Times(1)
 }
 
 func mockAbortInstallConfig(mockGenerator *generator.MockISOInstallConfigGenerator) {
@@ -3710,6 +3714,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
 			mockGenerateAdditionalManifestsSuccess()
+			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)
@@ -3839,6 +3844,7 @@ var _ = Describe("cluster", func() {
 			mockClusterRefreshStatusSuccess()
 			mockClusterIsReadyForInstallationSuccess()
 			mockGenerateAdditionalManifestsSuccess()
+			mockGetInstallConfigSuccess(mockInstallConfigBuilder)
 			mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
 			mockClusterPrepareForInstallationSuccess(mockClusterApi)
 			mockHostPrepareForRefresh(mockHostApi)
@@ -4772,41 +4778,12 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		ctrl.Finish()
 	})
 
-	It("returns the correct install config", func() {
+	It("check get install config flow", func() {
 		params := installer.GetClusterInstallConfigParams{ClusterID: clusterID}
+		mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), false, "").Return([]byte("some string"), nil).Times(1)
 		response := bm.GetClusterInstallConfig(ctx, params)
-		actual, ok := response.(*installer.GetClusterInstallConfigOK)
+		_, ok := response.(*installer.GetClusterInstallConfigOK)
 		Expect(ok).To(BeTrue())
-
-		config := installcfg.InstallerConfigBaremetal{}
-		err := yaml.Unmarshal([]byte(actual.Payload), &config)
-		Expect(err).NotTo(HaveOccurred())
-
-		Expect(config.ControlPlane.Hyperthreading).To(Equal("Disabled"))
-		Expect(config.APIVersion).To(Equal("v1"))
-		Expect(config.BaseDomain).To(Equal("example.com"))
-	})
-
-	It("returns the correct default config", func() {
-		params := installer.GetClusterDefaultConfigParams{}
-
-		err := envconfig.Process("default-conf", &bm.Config)
-		Expect(err).NotTo(HaveOccurred())
-
-		response := bm.GetClusterDefaultConfig(ctx, params)
-		actual, ok := response.(*installer.GetClusterDefaultConfigOK)
-		Expect(ok).To(BeTrue())
-
-		Expect(actual.Payload.ClusterNetworkCidr).To(Equal("10.128.0.0/14"))
-		Expect(actual.Payload.ServiceNetworkCidr).To(Equal("172.30.0.0/16"))
-		Expect(actual.Payload.ClusterNetworkHostPrefix).To(Equal(int64(23)))
-		Expect(actual.Payload.NtpSource).To(Equal(""))
-	})
-
-	It("returns not found with a non-existant cluster", func() {
-		params := installer.GetClusterInstallConfigParams{ClusterID: strfmt.UUID(uuid.New().String())}
-		response := bm.GetClusterInstallConfig(ctx, params)
-		verifyApiError(response, http.StatusNotFound)
 	})
 })
 
@@ -4849,6 +4826,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 			InstallConfigParams: override,
 		}
 		mockEvents.EXPECT().AddEvent(gomock.Any(), params.ClusterID, nil, models.EventSeverityInfo, "Custom install config was applied to the cluster", gomock.Any())
+		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(nil).Times(1)
 		response := bm.UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigCreated{}))
 
@@ -4868,22 +4846,13 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		verifyApiError(response, http.StatusNotFound)
 	})
 
-	It("returns bad request when provided invalid json", func() {
+	It("returns bad request when validation fails", func() {
 		override := `{"controlPlane": {"hyperthreading": "Disabled"`
 		params := installer.UpdateClusterInstallConfigParams{
 			ClusterID:           clusterID,
 			InstallConfigParams: override,
 		}
-		response := bm.UpdateClusterInstallConfig(ctx, params)
-		verifyApiError(response, http.StatusBadRequest)
-	})
-
-	It("returns bad request when provided invalid options", func() {
-		override := `{"controlPlane": "foo"}`
-		params := installer.UpdateClusterInstallConfigParams{
-			ClusterID:           clusterID,
-			InstallConfigParams: override,
-		}
+		mockInstallConfigBuilder.EXPECT().ValidateInstallConfigPatch(gomock.Any(), params.InstallConfigParams).Return(fmt.Errorf("some error")).Times(1)
 		response := bm.UpdateClusterInstallConfig(ctx, params)
 		verifyApiError(response, http.StatusBadRequest)
 	})
@@ -6538,12 +6507,13 @@ func createInventory(db *gorm.DB, cfg Config) *bareMetalInventory {
 	mockCRDUtils = NewMockCRDUtils(ctrl)
 	mockOperatorManager = operators.NewMockAPI(ctrl)
 	mockIgnitionBuilder = ignition.NewMockIgnitionBuilder(ctrl)
+	mockInstallConfigBuilder = installcfg.NewMockInstallConfigBuilder(ctrl)
 	mockHwValidator = hardware.NewMockValidator(ctrl)
 	dnsApi := dns.NewDNSHandler(cfg.BaseDNSDomains, common.GetTestLog())
 	return NewBareMetalInventory(db, common.GetTestLog(), mockHostApi, mockClusterApi, cfg,
 		mockGenerator, mockEvents, mockS3Client, mockMetric, mockUsage, mockOperatorManager,
 		getTestAuthHandler(), mockK8sClient, ocmClient, nil, mockSecretValidator, mockVersions,
-		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi)
+		mockIsoEditorFactory, mockCRDUtils, mockIgnitionBuilder, mockHwValidator, dnsApi, mockInstallConfigBuilder)
 }
 
 var _ = Describe("IPv6 support disabled", func() {
