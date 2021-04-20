@@ -83,6 +83,8 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterimagesets,verbs=get;list;watch
 
 func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	r.Log.Infof("Reconcile has been called for ClusterDeployment name=%s namespace=%s", req.Name, req.Namespace)
+
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	err := r.Get(ctx, req.NamespacedName, clusterDeployment)
 	if err != nil {
