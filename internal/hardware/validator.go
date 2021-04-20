@@ -26,6 +26,9 @@ type Validator interface {
 	DiskIsEligible(disk *models.Disk) []string
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	GetInstallationDiskSpeedThresholdMs() int64
+	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
+	// Returned information describe requirements coming from OCP and OLM operators.
+	// It should replace GetHostRequirements when its endpoint is not used anymore.
 	GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error)
 }
 
