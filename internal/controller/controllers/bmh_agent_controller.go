@@ -47,8 +47,9 @@ import (
 // BMACReconciler reconciles a Agent object
 type BMACReconciler struct {
 	client.Client
-	Log    logrus.FieldLogger
-	Scheme *runtime.Scheme
+	Log         logrus.FieldLogger
+	Scheme      *runtime.Scheme
+	spokeClient client.Client
 }
 
 const (
@@ -461,7 +462,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, bmh *bmh_v1alpha
 		return reconcileError{err}
 	}
 
-	spokeClient, err := getSpokeClient(secret)
+	spokeClient, err := r.getSpokeClient(secret)
 	if err != nil {
 		r.Log.WithError(err).Errorf("failed to create spoke kubeclient")
 		return reconcileError{err}
@@ -687,8 +688,10 @@ func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *m
 		bmhSpoke.Spec.ExternallyProvisioned = true
 		// If the Image field is filled in, ExternallyProvisioned is ignored. So remove the Image field from spec
 		bmhSpoke.Spec.Image = &bmh_v1alpha1.Image{}
-		bmhSpoke.Spec.ConsumerRef.Name = machine.Name
-		bmhSpoke.Spec.ConsumerRef.Namespace = machine.Namespace
+		bmhSpoke.Spec.ConsumerRef = &corev1.ObjectReference{
+			Name:      machine.Name,
+			Namespace: machine.Namespace,
+		}
 		// copy annotations. hardwaredetails annotations is needed for automatic csr approval
 		bmhSpoke.ObjectMeta.Annotations = bmh.ObjectMeta.Annotations
 		// HardwareDetails annotation needs a special case. The annotation gets removed once it's consumed by the baremetal operator
@@ -728,13 +731,22 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 	}
 	mutateFn := func() error {
 		// Setting the same labels as the rest of the machines in the spoke cluster
-		AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
-		AddLabel(machine.Labels, MACHINE_ROLE, string(models.HostRoleWorker))
-		AddLabel(machine.Labels, MACHINE_TYPE, string(models.HostRoleWorker))
+		machine.Labels = AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
+		machine.Labels = AddLabel(machine.Labels, MACHINE_ROLE, string(models.HostRoleWorker))
+		machine.Labels = AddLabel(machine.Labels, MACHINE_TYPE, string(models.HostRoleWorker))
 		return nil
 	}
 
 	return machine, mutateFn
+}
+
+func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, error) {
+	var err error
+	if r.spokeClient != nil {
+		return r.spokeClient, err
+	}
+	r.spokeClient, err = getSpokeClient(secret)
+	return r.spokeClient, err
 }
 
 func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
