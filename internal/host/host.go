@@ -141,20 +141,21 @@ type API interface {
 }
 
 type Manager struct {
-	log            logrus.FieldLogger
-	db             *gorm.DB
-	instructionApi hostcommands.InstructionApi
-	hwValidator    hardware.Validator
-	eventsHandler  events.Handler
-	sm             stateswitch.StateMachine
-	rp             *refreshPreprocessor
-	metricApi      metrics.API
-	Config         Config
-	leaderElector  leader.Leader
+	log                     logrus.FieldLogger
+	db                      *gorm.DB
+	instructionApi          hostcommands.InstructionApi
+	hwValidator             hardware.Validator
+	eventsHandler           events.Handler
+	sm                      stateswitch.StateMachine
+	rp                      *refreshPreprocessor
+	metricApi               metrics.API
+	Config                  Config
+	leaderElector           leader.Leader
+	disabledHostValidations []string
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, disabledHostValidations []string) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -162,16 +163,17 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		eventsHandler: eventsHandler,
 	}
 	return &Manager{
-		log:            log,
-		db:             db,
-		instructionApi: instructionApi,
-		hwValidator:    hwValidator,
-		eventsHandler:  eventsHandler,
-		sm:             NewHostStateMachine(th),
-		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi),
-		metricApi:      metricApi,
-		Config:         *config,
-		leaderElector:  leaderElector,
+		log:                     log,
+		db:                      db,
+		instructionApi:          instructionApi,
+		hwValidator:             hwValidator,
+		eventsHandler:           eventsHandler,
+		sm:                      NewHostStateMachine(th, log, disabledHostValidations),
+		rp:                      newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, disabledHostValidations),
+		metricApi:               metricApi,
+		Config:                  *config,
+		leaderElector:           leaderElector,
+		disabledHostValidations: disabledHostValidations,
 	}
 }
 
