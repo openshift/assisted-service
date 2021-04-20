@@ -6152,6 +6152,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
+        "props": {
+          "description": "Additional properties for the event in JSON format.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "request_id": {
           "description": "Unique identifier of the request that caused this event to occur.",
           "type": "string",
@@ -6163,7 +6168,8 @@ func init() {
             "info",
             "warning",
             "error",
-            "critical"
+            "critical",
+            "internal"
           ]
         }
       }
@@ -13863,6 +13869,11 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:varchar(4096)\""
         },
+        "props": {
+          "description": "Additional properties for the event in JSON format.",
+          "type": "string",
+          "x-go-custom-tag": "gorm:\"type:text\""
+        },
         "request_id": {
           "description": "Unique identifier of the request that caused this event to occur.",
           "type": "string",
@@ -13874,7 +13885,8 @@ func init() {
             "info",
             "warning",
             "error",
-            "critical"
+            "critical",
+            "internal"
           ]
         }
       }

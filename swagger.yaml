@@ -3441,7 +3441,7 @@ definitions:
         description: Unique identifier of the host this event relates to.
       severity:
         type: string
-        enum: [info, warning, error, critical]
+        enum: [info, warning, error, critical, internal]
       message:
         type: string
         x-go-custom-tag: gorm:"type:varchar(4096)"
@@ -3453,7 +3453,11 @@ definitions:
         type: string
         format: uuid
         description: Unique identifier of the request that caused this event to occur.
-
+      props:
+        type: string
+        description: Additional properties for the event in JSON format.
+        x-go-custom-tag: gorm:"type:text"
+        
   image-create-params:
     type: object
     properties:

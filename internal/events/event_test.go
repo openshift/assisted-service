@@ -2,6 +2,7 @@ package events_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -128,6 +129,37 @@ var _ = Describe("Events library", func() {
 		})
 	})
 
+	Context("additional properties", func() {
+		It("multiple properties", func() {
+			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInternal, "e1", time.Now(),
+				"p1", "abcd", "p2", 6.0)
+			evs, err := theEvents.GetEvents(cluster1, nil)
+			Expect(err).Should(BeNil())
+			Expect(len(evs)).Should(Equal(1))
+			Expect(evs[0]).Should(WithProperty("p1", "abcd"))
+			Expect(evs[0]).Should(WithProperty("p2", 6.0))
+		})
+
+		It("map properties", func() {
+			var props = map[string]interface{}{"p1": "abcd"}
+			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInternal, "e1", time.Now(),
+				props)
+			evs, err := theEvents.GetEvents(cluster1, nil)
+			Expect(err).Should(BeNil())
+			Expect(len(evs)).Should(Equal(1))
+			Expect(evs[0]).Should(WithProperty("p1", "abcd"))
+		})
+
+		It("bad properties", func() {
+			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInternal, "e1", time.Now(),
+				"p1")
+			evs, err := theEvents.GetEvents(cluster1, nil)
+			Expect(err).Should(BeNil())
+			Expect(len(evs)).Should(Equal(1))
+			Expect(evs[0].Props).Should(Equal(""))
+		})
+	})
+
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 	})
@@ -150,6 +182,14 @@ func WithSeverity(severity *string) types.GomegaMatcher {
 	return WithTransform(func(e *common.Event) *string {
 		return e.Severity
 	}, Equal(severity))
+}
+
+func WithProperty(name string, value interface{}) types.GomegaMatcher {
+	return WithTransform(func(e *common.Event) interface{} {
+		props := make(map[string]interface{})
+		_ = json.Unmarshal([]byte(e.Props), &props)
+		return props[name]
+	}, Equal(value))
 }
 
 func WithTime(t time.Time) types.GomegaMatcher {
