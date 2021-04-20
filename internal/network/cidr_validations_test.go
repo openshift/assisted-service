@@ -22,6 +22,15 @@ var _ = Describe("CIDR validations", func() {
 		It("IPv6 just enough", func() {
 			Expect(VerifyClusterCidrSize(66, "8::/64", 4)).ToNot(HaveOccurred())
 		})
+		It("single-node not enough", func() {
+			Expect(VerifyClusterCidrSize(26, "192.168.1.0/25", 1)).To(HaveOccurred())
+		})
+		It("single-node just enough", func() {
+			Expect(VerifyClusterCidrSize(25, "192.168.1.0/25", 1)).ToNot(HaveOccurred())
+		})
+		It("single-node more than enough", func() {
+			Expect(VerifyClusterCidrSize(25, "192.168.1.0/24", 1)).ToNot(HaveOccurred())
+		})
 	})
 	Context("Verify CIDRs", func() {
 		It("Machine CIDR 24 OK", func() {
