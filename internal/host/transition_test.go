@@ -1865,7 +1865,7 @@ var _ = Describe("Refresh Host", func() {
 			clusterState string
 		}{
 			{
-				name:              "No change",
+				name:              "Preparing no change",
 				validCheckInTime:  true,
 				dstState:          models.HostStatusPreparingForInstallation,
 				clusterState:      models.ClusterStatusPreparingForInstallation,
@@ -1963,6 +1963,82 @@ var _ = Describe("Refresh Host", func() {
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(resultHost.ValidationsInfo)
 				}
+			})
+		}
+	})
+
+	Context("Preparing successful", func() {
+		tests := []struct {
+			// Test parameters
+			name              string
+			statusInfoChecker statusInfoChecker
+			validCheckInTime  bool
+			errorExpected     bool
+
+			// Host fields
+			dstState  string
+			disksInfo string
+
+			// Cluster fields
+			clusterState string
+		}{
+			{
+				name:              "Preparing no change",
+				validCheckInTime:  true,
+				dstState:          models.HostStatusPreparingSuccessful,
+				clusterState:      models.ClusterStatusPreparingForInstallation,
+				statusInfoChecker: makeValueChecker(statusInfoHostPreparationSuccessful),
+			},
+			{
+				name:              "Cluster not in status",
+				validCheckInTime:  true,
+				dstState:          models.HostStatusKnown,
+				clusterState:      models.ClusterStatusInsufficient,
+				statusInfoChecker: makeValueChecker(statusInfoClusterIsNotPreparing),
+			},
+		}
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				mockDefaultClusterHostRequirements(mockHwValidator)
+
+				// Test setup - Host creation
+				hostCheckInAt := strfmt.DateTime(time.Now())
+				if !t.validCheckInTime {
+					// Timeout for checkin is 3 minutes so subtract 4 minutes from the current time
+					hostCheckInAt = strfmt.DateTime(time.Now().Add(-4 * time.Minute))
+				}
+				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusPreparingSuccessful)
+				host.StatusInfo = swag.String(statusInfoHostPreparationSuccessful)
+				host.Inventory = hostutil.GenerateMasterInventoryWithHostname("master-0")
+				host.CheckedInAt = hostCheckInAt
+				host.DisksInfo = t.disksInfo
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+
+				// Test setup - Cluster creation
+				machineCidr := "1.2.3.0/24"
+				cluster = hostutil.GenerateTestCluster(clusterId, machineCidr)
+				cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", machineCidr, hostId.String())
+				cluster.Status = swag.String(t.clusterState)
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				// Test definition
+				if t.dstState != models.HostStatusPreparingSuccessful {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, &hostId, hostutil.GetEventSeverityFromHostStatus(t.dstState),
+						gomock.Any(), gomock.Any())
+				}
+				Expect(getHost(clusterId, hostId).ValidationsInfo).To(BeEmpty())
+				err := hapi.RefreshStatus(ctx, &host, db)
+				if t.errorExpected {
+					Expect(err).To(HaveOccurred())
+				} else {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(getHost(clusterId, hostId).ValidationsInfo).ToNot(BeEmpty())
+				}
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+				t.statusInfoChecker.check(resultHost.StatusInfo)
 			})
 		}
 	})
