@@ -52,16 +52,17 @@ type BMACReconciler struct {
 }
 
 const (
-	AGENT_BMH_LABEL                 = "agent-install.openshift.io/bmh"
-	BMH_AGENT_ROLE                  = "bmac.agent-install.openshift.io/role"
-	BMH_AGENT_HOSTNAME              = "bmac.agent-install.openshift.io/hostname"
-	BMH_AGENT_MACHINE_CONFIG_POOL   = "bmac.agent-install.openshift.io/machine-config-pool"
-	BMH_INSTALL_ENV_LABEL           = "infraenvs.agent-install.openshift.io"
-	BMH_AGENT_INSTALLER_ARGS        = "bmac.agent-install.openshift.io/installer-args"
-	BMH_INSPECT_ANNOTATION          = "inspect.metal3.io"
-	BMH_HARDWARE_DETAILS_ANNOTATION = "inspect.metal3.io/hardwaredetails"
-	MACHINE_ROLE                    = "machine.openshift.io/cluster-api-machine-role"
-	MACHINE_TYPE                    = "machine.openshift.io/cluster-api-machine-type"
+	AGENT_BMH_LABEL                    = "agent-install.openshift.io/bmh"
+	BMH_AGENT_ROLE                     = "bmac.agent-install.openshift.io/role"
+	BMH_AGENT_HOSTNAME                 = "bmac.agent-install.openshift.io/hostname"
+	BMH_AGENT_MACHINE_CONFIG_POOL      = "bmac.agent-install.openshift.io/machine-config-pool"
+	BMH_INSTALL_ENV_LABEL              = "infraenvs.agent-install.openshift.io"
+	BMH_AGENT_INSTALLER_ARGS           = "bmac.agent-install.openshift.io/installer-args"
+	BMH_INSPECT_ANNOTATION             = "inspect.metal3.io"
+	BMH_HARDWARE_DETAILS_ANNOTATION    = "inspect.metal3.io/hardwaredetails"
+	BMH_AGENT_IGNITION_CONFIG_OVERRIDE = "bmac.agent-install.openshift.io/ignition-config-overrides"
+	MACHINE_ROLE                       = "machine.openshift.io/cluster-api-machine-role"
+	MACHINE_TYPE                       = "machine.openshift.io/cluster-api-machine-type"
 )
 
 // reconcileResult is an interface that encapsulates the result of a Reconcile
@@ -219,6 +220,10 @@ func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, age
 
 	if val, ok := annotations[BMH_AGENT_INSTALLER_ARGS]; ok {
 		agent.Spec.InstallerArgs = val
+	}
+
+	if val, ok := annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDE]; ok {
+		agent.Spec.IgnitionConfigOverride = val
 	}
 
 	agent.Spec.Approved = true

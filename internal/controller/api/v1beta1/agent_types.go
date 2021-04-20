@@ -171,6 +171,8 @@ type AgentSpec struct {
 	InstallationDiskID string `json:"installation_disk_id,omitempty"`
 	// Json formatted string containing the user overrides for the host's coreos installer args
 	InstallerArgs string `json:"installerArgs,omitempty"`
+	// Json formatted string containing the user overrides for the host's ignition config
+	IgnitionConfigOverride string `json:"ignitionConfigOverride,omitempty"`
 }
 
 type HardwareValidationInfo struct {
