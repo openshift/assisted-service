@@ -477,14 +477,21 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			},
 		},
 		LivenessProbe: &corev1.Probe{
-			FailureThreshold:    3,
-			SuccessThreshold:    1,
-			InitialDelaySeconds: 3,
-			PeriodSeconds:       10,
-			TimeoutSeconds:      3,
+			InitialDelaySeconds: 30,
 			Handler: corev1.Handler{
-				TCPSocket: &corev1.TCPSocketAction{
-					Port: intstr.FromInt(int(servicePort)),
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/health",
+					Port:   intstr.FromInt(int(servicePort)),
+					Scheme: corev1.URISchemeHTTPS,
+				},
+			},
+		},
+		ReadinessProbe: &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/ready",
+					Port:   intstr.FromInt(int(servicePort)),
+					Scheme: corev1.URISchemeHTTPS,
 				},
 			},
 		},
