@@ -131,27 +131,28 @@ type CRDUtils interface {
 }
 type bareMetalInventory struct {
 	Config
-	db                 *gorm.DB
-	log                logrus.FieldLogger
-	hostApi            host.API
-	clusterApi         clusterPkg.API
-	dnsApi             dns.DNSApi
-	eventsHandler      events.Handler
-	objectHandler      s3wrapper.API
-	metricApi          metrics.API
-	usageApi           usage.API
-	operatorManagerApi operators.API
-	generator          generator.ISOInstallConfigGenerator
-	authHandler        auth.Authenticator
-	k8sClient          k8sclient.K8SClient
-	ocmClient          *ocm.Client
-	leaderElector      leader.Leader
-	secretValidator    validations.PullSecretValidator
-	versionsHandler    versions.Handler
-	isoEditorFactory   isoeditor.Factory
-	crdUtils           CRDUtils
-	IgnitionBuilder    ignition.IgnitionBuilder
-	hwValidator        hardware.Validator
+	db                   *gorm.DB
+	log                  logrus.FieldLogger
+	hostApi              host.API
+	clusterApi           clusterPkg.API
+	dnsApi               dns.DNSApi
+	eventsHandler        events.Handler
+	objectHandler        s3wrapper.API
+	metricApi            metrics.API
+	usageApi             usage.API
+	operatorManagerApi   operators.API
+	generator            generator.ISOInstallConfigGenerator
+	authHandler          auth.Authenticator
+	k8sClient            k8sclient.K8SClient
+	ocmClient            *ocm.Client
+	leaderElector        leader.Leader
+	secretValidator      validations.PullSecretValidator
+	versionsHandler      versions.Handler
+	isoEditorFactory     isoeditor.Factory
+	crdUtils             CRDUtils
+	IgnitionBuilder      ignition.IgnitionBuilder
+	hwValidator          hardware.Validator
+	installConfigBuilder installcfg.InstallConfigBuilder
 }
 
 func NewBareMetalInventory(
@@ -177,30 +178,32 @@ func NewBareMetalInventory(
 	IgnitionBuilder ignition.IgnitionBuilder,
 	hwValidator hardware.Validator,
 	dnsApi dns.DNSApi,
+	installConfigBuilder installcfg.InstallConfigBuilder,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
-		db:                 db,
-		log:                log,
-		Config:             cfg,
-		hostApi:            hostApi,
-		clusterApi:         clusterApi,
-		dnsApi:             dnsApi,
-		generator:          generator,
-		eventsHandler:      eventsHandler,
-		objectHandler:      objectHandler,
-		metricApi:          metricApi,
-		usageApi:           usageApi,
-		operatorManagerApi: operatorManagerApi,
-		authHandler:        authHandler,
-		k8sClient:          k8sClient,
-		ocmClient:          ocmClient,
-		leaderElector:      leaderElector,
-		secretValidator:    pullSecretValidator,
-		versionsHandler:    versionsHandler,
-		isoEditorFactory:   isoEditorFactory,
-		crdUtils:           crdUtils,
-		IgnitionBuilder:    IgnitionBuilder,
-		hwValidator:        hwValidator,
+		db:                   db,
+		log:                  log,
+		Config:               cfg,
+		hostApi:              hostApi,
+		clusterApi:           clusterApi,
+		dnsApi:               dnsApi,
+		generator:            generator,
+		eventsHandler:        eventsHandler,
+		objectHandler:        objectHandler,
+		metricApi:            metricApi,
+		usageApi:             usageApi,
+		operatorManagerApi:   operatorManagerApi,
+		authHandler:          authHandler,
+		k8sClient:            k8sClient,
+		ocmClient:            ocmClient,
+		leaderElector:        leaderElector,
+		secretValidator:      pullSecretValidator,
+		versionsHandler:      versionsHandler,
+		isoEditorFactory:     isoEditorFactory,
+		crdUtils:             crdUtils,
+		IgnitionBuilder:      IgnitionBuilder,
+		hwValidator:          hwValidator,
+		installConfigBuilder: installConfigBuilder,
 	}
 }
 
@@ -1415,14 +1418,12 @@ func (b *bareMetalInventory) setBootstrapHost(ctx context.Context, cluster commo
 }
 
 func (b *bareMetalInventory) GetClusterInstallConfig(ctx context.Context, params installer.GetClusterInstallConfigParams) middleware.Responder {
-	log := logutil.FromContext(ctx, b.log)
-
 	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
-	cfg, err := installcfg.GetInstallConfig(log, c, false, "")
+	cfg, err := b.installConfigBuilder.GetInstallConfig(c, false, "")
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -1460,7 +1461,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 		return nil, err
 	}
 
-	if err = installcfg.ValidateInstallConfigPatch(log, &cluster, params.InstallConfigParams); err != nil {
+	if err = b.installConfigBuilder.ValidateInstallConfigPatch(&cluster, params.InstallConfigParams); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1477,7 +1478,7 @@ func (b *bareMetalInventory) UpdateClusterInstallConfigInternal(ctx context.Cont
 func (b *bareMetalInventory) generateClusterInstallConfig(ctx context.Context, cluster common.Cluster) error {
 	log := logutil.FromContext(ctx, b.log)
 
-	cfg, err := installcfg.GetInstallConfig(log, &cluster, b.Config.InstallRHCa, ignition.RedhatRootCA)
+	cfg, err := b.installConfigBuilder.GetInstallConfig(&cluster, b.Config.InstallRHCa, ignition.RedhatRootCA)
 	if err != nil {
 		log.WithError(err).Errorf("failed to get install config for cluster %s", cluster.ID)
 		return errors.Wrapf(err, "failed to get install config for cluster %s", cluster.ID)
