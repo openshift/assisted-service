@@ -36,35 +36,21 @@ func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler
 
 var _ = Describe("agentserviceconfig_controller reconcile", func() {
 	var (
-		asc             *aiv1beta1.AgentServiceConfig
-		ascr            *AgentServiceConfigReconciler
-		ctx             = context.Background()
-		mockCtrl        *gomock.Controller
-		privateKey      = "test-private-key"
-		publicKey       = "test-public-key"
-		localAuthSecret *corev1.Secret
-		route           *routev1.Route
+		asc      *aiv1beta1.AgentServiceConfig
+		ascr     *AgentServiceConfigReconciler
+		ctx      = context.Background()
+		mockCtrl *gomock.Controller
+		route    *routev1.Route
 	)
 
 	BeforeEach(func() {
 		mockCtrl = gomock.NewController(GinkgoT())
-		localAuthSecret = &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      agentLocalAuthSecretName,
-				Namespace: testNamespace,
-			},
-			StringData: map[string]string{
-				"ec-private-key.pem": privateKey,
-				"ec-public-key.pem":  publicKey,
-			},
-			Type: corev1.SecretTypeOpaque,
-		}
-
 		asc = newDefaultAgentServiceConfig()
 		ascr = newTestReconciler(asc)
-		Expect(ascr.Client.Create(ctx, localAuthSecret)).To(BeNil())
 
-		// AgentServiceConfig created route is missing Host
+		// AgentServiceConfig created route is missing Host.
+		// We create one here with a value set for Host so that
+		// reconcile does not fail.
 		route, _ = ascr.newAgentRoute(asc)
 		route.Spec.Host = "testHost"
 		Expect(ascr.Client.Create(ctx, route)).To(BeNil())
@@ -72,60 +58,95 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 
 	AfterEach(func() {
 		mockCtrl.Finish()
-		Expect(ascr.Client.Delete(ctx, asc)).ShouldNot(HaveOccurred())
-		Expect(ascr.Client.Delete(ctx, localAuthSecret)).ShouldNot(HaveOccurred())
-		Expect(ascr.Client.Delete(ctx, route)).ShouldNot(HaveOccurred())
+		Expect(ascr.Client.Delete(ctx, asc)).To(Succeed())
+		Expect(ascr.Client.Delete(ctx, route)).To(Succeed())
 	})
 
-	Describe("reconcile local auth secret", func() {
+	It("reconcile should succeed", func() {
+		result, err := ascr.Reconcile(newAgentServiceConfigRequest(asc))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+	})
+})
 
-		Context("with an existing local auth secret", func() {
-			It("should not modify existing keys", func() {
-				result, err := ascr.Reconcile(newAgentServiceConfigRequest(asc))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+var _ = Describe("ensureAgentLocalAuthSecret", func() {
+	var (
+		asc             *aiv1beta1.AgentServiceConfig
+		ascr            *AgentServiceConfigReconciler
+		ctx             = context.Background()
+		mockCtrl        *gomock.Controller
+		privateKey      = "test-private-key"
+		publicKey       = "test-public-key"
+		localAuthSecret *corev1.Secret
+	)
 
-				found := &corev1.Secret{}
-				err = ascr.Client.Get(context.TODO(), types.NamespacedName{Name: agentLocalAuthSecretName, Namespace: testNamespace}, found)
-				Expect(err).To(BeNil())
+	BeforeEach(func() {
+		mockCtrl = gomock.NewController(GinkgoT())
+		asc = newDefaultAgentServiceConfig()
+		ascr = newTestReconciler(asc)
+	})
 
-				Expect(found.StringData["ec-private-key.pem"]).To(Equal(privateKey))
-				Expect(found.StringData["ec-public-key.pem"]).To(Equal(publicKey))
-			})
+	AfterEach(func() {
+		mockCtrl.Finish()
+		Expect(ascr.Client.Delete(ctx, asc)).To(Succeed())
+	})
+
+	Context("with an existing local auth secret", func() {
+		It("should not modify existing keys", func() {
+			localAuthSecret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      agentLocalAuthSecretName,
+					Namespace: testNamespace,
+				},
+				StringData: map[string]string{
+					"ec-private-key.pem": privateKey,
+					"ec-public-key.pem":  publicKey,
+				},
+				Type: corev1.SecretTypeOpaque,
+			}
+			Expect(ascr.Client.Create(ctx, localAuthSecret)).To(Succeed())
+
+			err := ascr.ensureAgentLocalAuthSecret(ctx, asc)
+			Expect(err).To(BeNil())
+
+			found := &corev1.Secret{}
+			err = ascr.Client.Get(ctx, types.NamespacedName{Name: agentLocalAuthSecretName, Namespace: testNamespace}, found)
+			Expect(err).To(BeNil())
+
+			Expect(found.StringData["ec-private-key.pem"]).To(Equal(privateKey))
+			Expect(found.StringData["ec-public-key.pem"]).To(Equal(publicKey))
+
+			Expect(ascr.Client.Delete(ctx, localAuthSecret)).To(Succeed())
 		})
+	})
 
-		Context("with no existing local auth secret", func() {
-			It("should create new keys and not overwrite them in subsequent reconciles", func() {
-				Expect(ascr.Client.Delete(ctx, localAuthSecret)).ShouldNot(HaveOccurred())
+	Context("with no existing local auth secret", func() {
+		It("should create new keys and not overwrite them in subsequent reconciles", func() {
+			err := ascr.ensureAgentLocalAuthSecret(ctx, asc)
+			Expect(err).To(BeNil())
 
-				result, err := ascr.Reconcile(newAgentServiceConfigRequest(asc))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+			found := &corev1.Secret{}
+			err = ascr.Client.Get(ctx, types.NamespacedName{Name: agentLocalAuthSecretName,
+				Namespace: testNamespace}, found)
+			Expect(err).To(BeNil())
 
-				found := &corev1.Secret{}
-				err = ascr.Client.Get(context.TODO(), types.NamespacedName{Name: agentLocalAuthSecretName,
-					Namespace: testNamespace}, found)
-				Expect(err).To(BeNil())
+			foundPrivateKey := found.StringData["ec-private-key.pem"]
+			foundPublicKey := found.StringData["ec-public-key.pem"]
+			Expect(foundPrivateKey).ToNot(Equal(privateKey))
+			Expect(foundPrivateKey).ToNot(BeNil())
+			Expect(foundPublicKey).ToNot(Equal(publicKey))
+			Expect(foundPublicKey).ToNot(BeNil())
 
-				foundPrivateKey := found.StringData["ec-private-key.pem"]
-				foundPublicKey := found.StringData["ec-public-key.pem"]
-				Expect(foundPrivateKey).ToNot(Equal(privateKey))
-				Expect(foundPrivateKey).ToNot(BeNil())
-				Expect(foundPublicKey).ToNot(Equal(publicKey))
-				Expect(foundPublicKey).ToNot(BeNil())
+			err = ascr.ensureAgentLocalAuthSecret(ctx, asc)
+			Expect(err).To(BeNil())
 
-				result, err = ascr.Reconcile(newAgentServiceConfigRequest(asc))
-				Expect(err).To(BeNil())
-				Expect(result).To(Equal(ctrl.Result{}))
+			foundAfterNextEnsure := &corev1.Secret{}
+			err = ascr.Client.Get(ctx, types.NamespacedName{Name: agentLocalAuthSecretName,
+				Namespace: testNamespace}, foundAfterNextEnsure)
+			Expect(err).To(BeNil())
 
-				foundNextReconcile := &corev1.Secret{}
-				err = ascr.Client.Get(context.TODO(), types.NamespacedName{Name: agentLocalAuthSecretName,
-					Namespace: testNamespace}, foundNextReconcile)
-				Expect(err).To(BeNil())
-
-				Expect(foundNextReconcile.StringData["ec-private-key.pem"]).To(Equal(foundPrivateKey))
-				Expect(foundNextReconcile.StringData["ec-public-key.pem"]).To(Equal(foundPublicKey))
-			})
+			Expect(foundAfterNextEnsure.StringData["ec-private-key.pem"]).To(Equal(foundPrivateKey))
+			Expect(foundAfterNextEnsure.StringData["ec-public-key.pem"]).To(Equal(foundPublicKey))
 		})
 	})
 })
