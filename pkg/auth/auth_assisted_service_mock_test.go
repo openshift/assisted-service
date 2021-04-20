@@ -276,6 +276,10 @@ func (f fakeInventory) GetClusterHostRequirements(ctx context.Context, params in
 	return installer.NewGetClusterHostRequirementsOK().WithPayload(models.ClusterHostRequirementsList{})
 }
 
+func (f fakeInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
+	return installer.NewResetHostValidationOK()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}
