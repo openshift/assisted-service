@@ -63,12 +63,11 @@ const (
 )
 
 const (
-	validDiskSize      = int64(128849018880)
-	minSuccessesInRow  = 2
-	minHosts           = 3
-	minHostsWithWorker = 5
-	loop0Id            = "wwn-0x1111111111111111111111"
-	sdbId              = "wwn-0x2222222222222222222222"
+	validDiskSize     = int64(128849018880)
+	minSuccessesInRow = 2
+	minHosts          = 3
+	loop0Id           = "wwn-0x1111111111111111111111"
+	sdbId             = "wwn-0x2222222222222222222222"
 )
 
 var (
@@ -2825,43 +2824,15 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 		ctx = context.Background()
 		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
 		Expect(err).ToNot(HaveOccurred())
-		clusterID = cID
-		registerHostsAndSetRoles(clusterID, minHostsWithWorker)
 
-		_, err = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
-			ClusterID: clusterID,
-		})
-		Expect(err).ToNot(HaveOccurred())
+		clusterID = cID
 	})
 
 	AfterEach(func() {
 		clearDB()
 	})
 
-	It("should be reported for cluster without operators", func() {
-		params := installer.GetPreflightRequirementsParams{ClusterID: clusterID}
-
-		response, err := userBMClient.Installer.GetPreflightRequirements(ctx, &params)
-
-		Expect(err).ToNot(HaveOccurred())
-		requirements := response.GetPayload()
-
-		Expect(requirements.Operators).To(BeEmpty())
-		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
-			Master: &models.HostTypeHardwareRequirements{
-				Quantitative: &masterOCPRequirements,
-			},
-			Worker: &models.HostTypeHardwareRequirements{
-				Quantitative: &workerOCPRequirements,
-			},
-		}
-		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
-	})
-
-	It("should be reported for cluster with operators", func() {
-		_, err := updateOLMOperators(ctx, clusterID, lso.Operator.Name, cnv.Operator.Name, ocs.Operator.Name)
-		Expect(err).ToNot(HaveOccurred())
-
+	It("should be reported for cluster", func() {
 		params := installer.GetPreflightRequirementsParams{ClusterID: clusterID}
 
 		response, err := userBMClient.Installer.GetPreflightRequirements(ctx, &params)
@@ -2896,26 +2867,6 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 		}
 	})
 })
-
-func updateOLMOperators(ctx context.Context, clusterID strfmt.UUID, olmOperators ...string) (*models.Cluster, error) {
-	var operatorCreateParams []*models.OperatorCreateParams
-	for _, operatorName := range olmOperators {
-		operatorCreateParams = append(operatorCreateParams, &models.OperatorCreateParams{Name: operatorName})
-	}
-	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-		ClusterID:           clusterID,
-		ClusterUpdateParams: &models.ClusterUpdateParams{OlmOperators: operatorCreateParams},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	clusterResp, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
-	if err != nil {
-		return nil, err
-	}
-	return clusterResp.GetPayload(), nil
-}
 
 func checkUpdateAtWhileStatic(ctx context.Context, clusterID strfmt.UUID) {
 	clusterReply, getErr := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{

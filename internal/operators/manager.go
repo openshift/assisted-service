@@ -52,25 +52,21 @@ type API interface {
 	GetOperatorProperties(operatorName string) (models.OperatorProperties, error)
 	// GetRequirementsBreakdownForHostInCluster provides host requirements breakdown for each OLM operator in the cluster
 	GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error)
-	// GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each OLM operator in the cluster
+	// GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
 	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error)
 }
 
-// GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each OLM operator in the cluster
+// GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
 func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHardwareRequirements
-	for _, monitoredOperator := range cluster.MonitoredOperators {
-		operatorName := monitoredOperator.Name
-		operator := mgr.olmOperators[operatorName]
-		if operator != nil {
-			reqs, err := operator.GetPreflightRequirements(ctx, cluster)
-			if err != nil {
-				logger.WithError(err).Errorf("Cannot get preflight requirements for %s operator", operatorName)
-				return nil, err
-			}
-			requirements = append(requirements, reqs)
+	for operatorName, operator := range mgr.olmOperators {
+		reqs, err := operator.GetPreflightRequirements(ctx, cluster)
+		if err != nil {
+			logger.WithError(err).Errorf("Cannot get preflight requirements for %s operator", operatorName)
+			return nil, err
 		}
+		requirements = append(requirements, reqs)
 	}
 	return requirements, nil
 }

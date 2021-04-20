@@ -308,7 +308,6 @@ var _ = Describe("Operators manager", func() {
 		BeforeEach(func() {
 			operator1 = mockOperatorBase(operatorName1)
 			operator2 = mockOperatorBase(operatorName2)
-			cluster.MonitoredOperators = models.MonitoredOperatorsList{{Name: operatorName1}, {Name: operatorName2}}
 			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, operator1, operator2)
 		})
 		It("should be provided for configured operators", func() {
@@ -328,11 +327,9 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("should return error", func() {
-			requirements1 := models.OperatorHardwareRequirements{OperatorName: operatorName1}
-			operator1.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(&requirements1, nil)
-
 			theError := errors.New("boom")
-			operator2.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(nil, theError)
+			operator1.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(nil, theError).AnyTimes()
+			operator2.EXPECT().GetPreflightRequirements(gomock.Any(), gomock.Eq(cluster)).Return(nil, theError).AnyTimes()
 
 			_, err := manager.GetPreflightRequirementsBreakdownForCluster(context.TODO(), cluster)
 
