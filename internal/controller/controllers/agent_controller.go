@@ -59,6 +59,8 @@ type AgentReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
 
 func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	r.Log.Infof("Reconcile has been called for Agent name=%s namespace=%s", req.Name, req.Namespace)
+
 	agent := &aiv1beta1.Agent{}
 
 	err := r.Get(ctx, req.NamespacedName, agent)

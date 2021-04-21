@@ -63,8 +63,7 @@ type InfraEnvReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get;update;patch
 
 func (r *InfraEnvReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Debugf("InfraEnv Reconcile start for InfraEnv: %s, Namespace %s",
-		req.NamespacedName.Name, req.NamespacedName.Name)
+	r.Log.Infof("Reconcile has been called for InfraEnv name=%s namespace=%s", req.Name, req.Namespace)
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {
