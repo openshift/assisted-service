@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,10 +15,12 @@ import (
 	"github.com/google/renameio"
 	"github.com/moby/moby/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/isoeditor"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	syscall "golang.org/x/sys/unix"
 )
 
 type FSClient struct {
@@ -27,8 +30,17 @@ type FSClient struct {
 	isoEditorFactory isoeditor.Factory
 }
 
-func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) *FSClient {
-	return &FSClient{log: logger, basedir: basedir, versionsHandler: versionsHandler, isoEditorFactory: isoEditorFactory}
+func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory, metricsAPI metrics.API) *FSClientDecorator {
+	return &FSClientDecorator{
+		log:        logger,
+		metricsAPI: metricsAPI,
+		fsClient: FSClient{
+			log:              logger,
+			basedir:          basedir,
+			versionsHandler:  versionsHandler,
+			isoEditorFactory: isoEditorFactory,
+		},
+	}
 }
 
 func (f *FSClient) IsAwsS3() bool {
@@ -136,7 +148,6 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 		log.Error(err)
 		return err
 	}
-
 	log.Infof("Successfully uploaded file %s", objectName)
 	return nil
 }
@@ -200,7 +211,6 @@ func (f *FSClient) DeleteObject(ctx context.Context, objectName string) (bool, e
 		}
 		return false, errors.Wrapf(err, "Failed to delete file %s", filePath)
 	}
-
 	log.Infof("Deleted file %s", filePath)
 	return true, nil
 }
@@ -365,7 +375,6 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -399,4 +408,157 @@ func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) (string, err
 	}
 
 	return fmt.Sprintf(rhcosMinimalObjectTemplate, rhcosVersion), nil
+}
+
+type FSClientDecorator struct {
+	log        logrus.FieldLogger
+	fsClient   FSClient
+	metricsAPI metrics.API
+}
+
+func (d *FSClientDecorator) reportFilesystemUsageMetrics() {
+	basedir := d.fsClient.basedir
+	stat := syscall.Statfs_t{}
+	err := syscall.Statfs(basedir, &stat)
+	if err != nil {
+		d.fsClient.log.WithError(err).Errorf("Failed to collect filesystem stats for %s", basedir)
+		return
+	}
+	percentage := (float64(stat.Blocks-stat.Bfree) / float64(stat.Blocks)) * 100
+	fixedPercentage := math.Floor(percentage*10) / 10
+	d.log.Infof("Filesystem '%s' usage is %.1f%%", basedir, fixedPercentage)
+	d.metricsAPI.FileSystemUsage(fixedPercentage)
+}
+
+func (d *FSClientDecorator) IsAwsS3() bool {
+	return d.fsClient.IsAwsS3()
+}
+
+func (d *FSClientDecorator) CreateBucket() error {
+	return d.fsClient.CreateBucket()
+}
+
+func (d *FSClientDecorator) Upload(ctx context.Context, data []byte, objectName string) error {
+	err := d.fsClient.Upload(ctx, data, objectName)
+	if err == nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return err
+}
+
+func (d *FSClientDecorator) UploadStream(ctx context.Context, reader io.Reader, objectName string) error {
+	err := d.fsClient.UploadStream(ctx, reader, objectName)
+	if err == nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return err
+}
+
+func (d *FSClientDecorator) UploadFile(ctx context.Context, filePath, objectName string) error {
+	err := d.fsClient.UploadFile(ctx, filePath, objectName)
+	if err == nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return err
+}
+
+func (d *FSClientDecorator) UploadISO(ctx context.Context, ignitionConfig, srcObject, destObjectPrefix string) error {
+	err := d.fsClient.UploadISO(ctx, ignitionConfig, srcObject, destObjectPrefix)
+	if err == nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return err
+}
+
+func (d *FSClientDecorator) Download(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
+	return d.fsClient.Download(ctx, objectName)
+}
+
+func (d *FSClientDecorator) DoesObjectExist(ctx context.Context, objectName string) (bool, error) {
+	return d.fsClient.DoesObjectExist(ctx, objectName)
+}
+
+func (d *FSClientDecorator) DeleteObject(ctx context.Context, objectName string) (bool, error) {
+	exists, err := d.fsClient.DeleteObject(ctx, objectName)
+	if exists && err == nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return exists, err
+}
+
+func (d *FSClientDecorator) GetObjectSizeBytes(ctx context.Context, objectName string) (int64, error) {
+	return d.fsClient.GetObjectSizeBytes(ctx, objectName)
+}
+
+func (d *FSClientDecorator) GeneratePresignedDownloadURL(ctx context.Context, objectName string, downloadFilename string, duration time.Duration) (string, error) {
+	return d.fsClient.GeneratePresignedDownloadURL(ctx, objectName, downloadFilename, duration)
+}
+
+func (d *FSClientDecorator) UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error) {
+	return d.fsClient.UpdateObjectTimestamp(ctx, objectName)
+}
+
+func (d *FSClientDecorator) ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string)) {
+	d.fsClient.ExpireObjects(ctx, prefix, deleteTime, callback)
+	d.reportFilesystemUsageMetrics()
+}
+
+func (d *FSClientDecorator) ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error) {
+	return d.fsClient.ListObjectsByPrefix(ctx, prefix)
+}
+
+func (d *FSClientDecorator) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
+	err := d.fsClient.UploadBootFiles(ctx, openshiftVersion, serviceBaseURL, haveLatestMinimalTemplate)
+	if err != nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return err
+}
+
+func (d *FSClientDecorator) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
+	return d.fsClient.DoAllBootFilesExist(ctx, isoObjectName)
+}
+
+func (d *FSClientDecorator) DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error) {
+	return d.fsClient.DownloadBootFile(ctx, isoObjectName, fileType)
+}
+
+func (d *FSClientDecorator) GetS3BootFileURL(isoObjectName, fileType string) string {
+	return d.fsClient.GetS3BootFileURL(isoObjectName, fileType)
+}
+
+func (d *FSClientDecorator) GetBaseIsoObject(openshiftVersion string) (string, error) {
+	return d.fsClient.GetBaseIsoObject(openshiftVersion)
+}
+
+func (d *FSClientDecorator) GetMinimalIsoObjectName(openshiftVersion string) (string, error) {
+	return d.fsClient.GetMinimalIsoObjectName(openshiftVersion)
+}
+
+func (d *FSClientDecorator) CreatePublicBucket() error {
+	return d.fsClient.CreatePublicBucket()
+}
+
+func (d *FSClientDecorator) UploadStreamToPublicBucket(ctx context.Context, reader io.Reader, objectName string) error {
+	err := d.fsClient.UploadStreamToPublicBucket(ctx, reader, objectName)
+	if err == nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return err
+}
+
+func (d *FSClientDecorator) UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error {
+	err := d.fsClient.UploadFileToPublicBucket(ctx, filePath, objectName)
+	if err == nil {
+		d.reportFilesystemUsageMetrics()
+	}
+	return err
+}
+
+func (d *FSClientDecorator) DoesPublicObjectExist(ctx context.Context, objectName string) (bool, error) {
+	return d.fsClient.DoesPublicObjectExist(ctx, objectName)
+}
+
+func (d *FSClientDecorator) DownloadPublic(ctx context.Context, objectName string) (io.ReadCloser, int64, error) {
+	return d.fsClient.DownloadPublic(ctx, objectName)
 }

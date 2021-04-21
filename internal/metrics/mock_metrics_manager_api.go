@@ -191,3 +191,15 @@ func (mr *MockAPIMockRecorder) ImagePullStatus(clusterID, hostID, imageName, res
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePullStatus", reflect.TypeOf((*MockAPI)(nil).ImagePullStatus), clusterID, hostID, imageName, resultStatus, downloadRate)
 }
+
+// FileSystemUsage mocks base method
+func (m *MockAPI) FileSystemUsage(usageInPercentage float64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "FileSystemUsage", usageInPercentage)
+}
+
+// FileSystemUsage indicates an expected call of FileSystemUsage
+func (mr *MockAPIMockRecorder) FileSystemUsage(usageInPercentage interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileSystemUsage", reflect.TypeOf((*MockAPI)(nil).FileSystemUsage), usageInPercentage)
+}

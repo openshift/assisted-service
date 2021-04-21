@@ -64,6 +64,7 @@ require (
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
+	golang.org/x/sys v0.0.0-20210119212857-b64e53b001e4
 	golang.org/x/tools v0.0.0-20201118003311-bd56c0adb394 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.1.0 // indirect
 	gopkg.in/gormigrate.v1 v1.6.0
