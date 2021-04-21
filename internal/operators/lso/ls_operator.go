@@ -74,3 +74,19 @@ func (l *lsOperator) GetMonitoredOperator() *models.MonitoredOperator {
 func (l *lsOperator) GetHostRequirements(context.Context, *common.Cluster, *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	return &models.ClusterHostRequirementsDetails{}, nil
 }
+
+// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
+func (l *lsOperator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+	return &models.OperatorHardwareRequirements{
+		OperatorName: l.GetName(),
+		Dependencies: l.GetDependencies(),
+		Requirements: &models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{},
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{},
+			},
+		},
+	}, nil
+}

@@ -2,6 +2,7 @@ package ocs
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
@@ -94,4 +95,32 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 // GetHostRequirements provides operator's requirements towards the host
 func (o *operator) GetHostRequirements(context.Context, *common.Cluster, *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	return &models.ClusterHostRequirementsDetails{}, nil
+}
+
+// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
+func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+	return &models.OperatorHardwareRequirements{
+		OperatorName: o.GetName(),
+		Dependencies: o.GetDependencies(),
+		Requirements: &models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				// TODO: adjust when https://github.com/openshift/assisted-service/pull/1456 is merged
+				Quantitative: &models.ClusterHostRequirementsDetails{},
+				Qualitative: []string{
+					"At least 3 hosts in case of masters-only cluster",
+					"At least 1 non-boot disk on 3 hosts",
+				},
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				// TODO: adjust when https://github.com/openshift/assisted-service/pull/1456 is merged
+				Quantitative: &models.ClusterHostRequirementsDetails{},
+				Qualitative: []string{
+					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGB),
+					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSRequiredDiskCPUCount),
+					"At least 3 hosts in case of cluster with workers",
+					"At least 1 non-boot disk on 3 hosts",
+				},
+			},
+		},
+	}, nil
 }

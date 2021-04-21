@@ -48,4 +48,6 @@ type Operator interface {
 	GetProperties() models.OperatorProperties
 	// GetMonitoredOperator returns MonitoredOperator corresponding to the Operator implementation
 	GetMonitoredOperator() *models.MonitoredOperator
+	// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
+	GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error)
 }

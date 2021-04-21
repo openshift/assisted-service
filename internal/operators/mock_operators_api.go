@@ -108,6 +108,21 @@ func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.C
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOperatorProperties", reflect.TypeOf((*MockAPI)(nil).GetOperatorProperties), arg0)
 }
 
+// GetPreflightRequirementsBreakdownForCluster mocks base method
+func (m *MockAPI) GetPreflightRequirementsBreakdownForCluster(arg0 context.Context, arg1 *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPreflightRequirementsBreakdownForCluster", arg0, arg1)
+	ret0, _ := ret[0].([]*models.OperatorHardwareRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPreflightRequirementsBreakdownForCluster indicates an expected call of GetPreflightRequirementsBreakdownForCluster
+func (mr *MockAPIMockRecorder) GetPreflightRequirementsBreakdownForCluster(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightRequirementsBreakdownForCluster", reflect.TypeOf((*MockAPI)(nil).GetPreflightRequirementsBreakdownForCluster), arg0, arg1)
+}
+
 // GetRequirementsBreakdownForHostInCluster mocks base method
 func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]*models.OperatorHostRequirements, error) {
 	m.ctrl.T.Helper()

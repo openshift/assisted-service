@@ -384,6 +384,157 @@ var _ = Describe("Cluster host requirements", func() {
 
 })
 
+var _ = Describe("Preflight host requirements", func() {
+
+	var (
+		cfg         ValidatorCfg
+		hwvalidator Validator
+		cluster     *common.Cluster
+
+		ctrl          *gomock.Controller
+		operatorsMock *operators.MockAPI
+
+		operatorRequirements []*models.OperatorHardwareRequirements
+	)
+
+	var versionRequirements = VersionedRequirementsDecoder{
+		"4.6": {
+			Version: "4.6",
+			MasterRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:   4,
+				RAMMib:     16384,
+				DiskSizeGb: 120,
+			},
+			WorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:   2,
+				RAMMib:     8192,
+				DiskSizeGb: 120,
+			},
+		},
+		"4.7": {
+			Version: "4.7",
+			MasterRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         5,
+				RAMMib:                           17408,
+				DiskSizeGb:                       121,
+				InstallationDiskSpeedThresholdMs: 1,
+			},
+			WorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         3,
+				RAMMib:                           9216,
+				DiskSizeGb:                       122,
+				InstallationDiskSpeedThresholdMs: 2,
+			},
+		},
+	}
+
+	const (
+		openShiftVersionNotInConfig = "4.5"
+	)
+
+	BeforeEach(func() {
+		operatorName1 := "op-one"
+		operatorName2 := "op-two"
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster = &common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			OpenshiftVersion: openShiftVersionNotInConfig,
+			MonitoredOperators: []*models.MonitoredOperator{
+				{Name: operatorName1, ClusterID: clusterID},
+				{Name: operatorName2, ClusterID: clusterID},
+			},
+		}}
+		cfg.VersionedRequirements = versionRequirements
+
+		operatorRequirements = []*models.OperatorHardwareRequirements{
+			{OperatorName: operatorName1},
+			{OperatorName: operatorName2},
+		}
+
+		ctrl = gomock.NewController(GinkgoT())
+		operatorsMock = operators.NewMockAPI(ctrl)
+
+		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+	})
+
+	It("should contain correct preflight  host requirements", func() {
+		operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(cluster)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), cluster)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         cfg.MinCPUCoresMaster,
+					DiskSizeGb:                       cfg.MinDiskSizeGb,
+					RAMMib:                           cfg.MinRamGibMaster * int64(units.KiB),
+					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+				},
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         cfg.MinCPUCoresWorker,
+					DiskSizeGb:                       cfg.MinDiskSizeGb,
+					RAMMib:                           cfg.MinRamGibWorker * int64(units.KiB),
+					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+				},
+			},
+		}
+		Expect(*result.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
+		Expect(result.Operators).To(ConsistOf(operatorRequirements))
+	})
+
+	It("should fail providing on operator API error", func() {
+		failure := errors.New("boom")
+		operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(cluster)).Return(nil, failure)
+
+		_, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), cluster)
+
+		Expect(err).To(HaveOccurred())
+		Expect(err).To(Equal(failure))
+	})
+
+	It("should contain correct preflight requirements for dedicated OCP version", func() {
+		cluster.OpenshiftVersion = "4.7"
+		operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(cluster)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), cluster)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         5,
+					DiskSizeGb:                       121,
+					RAMMib:                           17 * int64(units.KiB),
+					InstallationDiskSpeedThresholdMs: 1,
+				},
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         3,
+					DiskSizeGb:                       122,
+					RAMMib:                           9 * int64(units.KiB),
+					InstallationDiskSpeedThresholdMs: 2,
+				},
+			},
+		}
+		Expect(*result.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
+		Expect(result.Operators).To(ConsistOf(operatorRequirements))
+	})
+
+})
+
 func isBlockDeviceNameInlist(disks []*models.Disk, name string) bool {
 	for _, disk := range disks {
 		// Valid disk: type=disk, not removable, not readonly and size bigger than minimum required

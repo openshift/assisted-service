@@ -51,17 +51,17 @@ func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock
 }
 
 // GetHostRequirements mocks base method
-func (m *MockValidator) GetHostRequirements(role models.HostRole) models.HostRequirementsRole {
+func (m *MockValidator) GetHostRequirements() *models.VersionedHostRequirements {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostRequirements", role)
-	ret0, _ := ret[0].(models.HostRequirementsRole)
+	ret := m.ctrl.Call(m, "GetHostRequirements")
+	ret0, _ := ret[0].(*models.VersionedHostRequirements)
 	return ret0
 }
 
 // GetHostRequirements indicates an expected call of GetHostRequirements
-func (mr *MockValidatorMockRecorder) GetHostRequirements(role interface{}) *gomock.Call {
+func (mr *MockValidatorMockRecorder) GetHostRequirements() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements), role)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements))
 }
 
 // GetHostInstallationPath mocks base method
@@ -133,4 +133,19 @@ func (m *MockValidator) GetInstallationDiskSpeedThresholdMs() int64 {
 func (mr *MockValidatorMockRecorder) GetInstallationDiskSpeedThresholdMs() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationDiskSpeedThresholdMs", reflect.TypeOf((*MockValidator)(nil).GetInstallationDiskSpeedThresholdMs))
+}
+
+// GetPreflightHardwareRequirements mocks base method
+func (m *MockValidator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPreflightHardwareRequirements", ctx, cluster)
+	ret0, _ := ret[0].(*models.PreflightHardwareRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPreflightHardwareRequirements indicates an expected call of GetPreflightHardwareRequirements
+func (mr *MockValidatorMockRecorder) GetPreflightHardwareRequirements(ctx, cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightHardwareRequirements", reflect.TypeOf((*MockValidator)(nil).GetPreflightHardwareRequirements), ctx, cluster)
 }

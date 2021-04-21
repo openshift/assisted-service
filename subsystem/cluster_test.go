@@ -27,6 +27,9 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/lso"
+	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
@@ -2789,6 +2792,80 @@ spec:
 		Expect(err).NotTo(HaveOccurred())
 	})
 
+})
+
+var _ = Describe("Preflight Cluster Requirements", func() {
+	var (
+		ctx                   context.Context
+		clusterID             strfmt.UUID
+		masterOCPRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:                         4,
+			DiskSizeGb:                       120,
+			RAMMib:                           16384,
+			InstallationDiskSpeedThresholdMs: 10,
+		}
+		workerOCPRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores:                         2,
+			DiskSizeGb:                       120,
+			RAMMib:                           8192,
+			InstallationDiskSpeedThresholdMs: 10,
+		}
+		workerCNVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 2,
+			RAMMib:   360,
+		}
+		masterCNVRequirements = models.ClusterHostRequirementsDetails{
+			CPUCores: 4,
+			RAMMib:   150,
+		}
+	)
+
+	BeforeEach(func() {
+		ctx = context.Background()
+		cID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+		Expect(err).ToNot(HaveOccurred())
+
+		clusterID = cID
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("should be reported for cluster", func() {
+		params := installer.GetPreflightRequirementsParams{ClusterID: clusterID}
+
+		response, err := userBMClient.Installer.GetPreflightRequirements(ctx, &params)
+
+		Expect(err).ToNot(HaveOccurred())
+		requirements := response.GetPayload()
+
+		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &masterOCPRequirements,
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &workerOCPRequirements,
+			},
+		}
+		Expect(*requirements.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
+		Expect(requirements.Operators).To(HaveLen(3))
+		for _, op := range requirements.Operators {
+			switch op.OperatorName {
+			case lso.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+			case ocs.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+			case cnv.Operator.Name:
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterCNVRequirements))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerCNVRequirements))
+			default:
+				Fail("Unexpected operator")
+			}
+		}
+	})
 })
 
 func checkUpdateAtWhileStatic(ctx context.Context, clusterID strfmt.UUID) {

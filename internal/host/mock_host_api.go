@@ -94,20 +94,6 @@ func (mr *MockAPIMockRecorder) EnableHost(arg0, arg1, arg2 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), arg0, arg1, arg2)
 }
 
-// GetHostRequirements mocks base method
-func (m *MockAPI) GetHostRequirements(arg0 models.HostRole) models.HostRequirementsRole {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostRequirements", arg0)
-	ret0, _ := ret[0].(models.HostRequirementsRole)
-	return ret0
-}
-
-// GetHostRequirements indicates an expected call of GetHostRequirements
-func (mr *MockAPIMockRecorder) GetHostRequirements(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockAPI)(nil).GetHostRequirements), arg0)
-}
-
 // GetHostValidDisks mocks base method
 func (m *MockAPI) GetHostValidDisks(arg0 *models.Host) ([]*models.Disk, error) {
 	m.ctrl.T.Helper()

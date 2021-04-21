@@ -9,6 +9,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -129,6 +130,24 @@ var _ = Describe("CNV operator", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(requirements).ToNot(BeNil())
 			Expect(requirements).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory+2*1024)))
+		})
+	})
+
+	Context("preflight hardware requirements", func() {
+		It("should be returned", func() {
+			requirements, err := operator.GetPreflightRequirements(context.TODO(), nil)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
+			Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
+
+			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(2))
+			Expect(requirements.Requirements.Worker.Quantitative).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)))
+
+			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(2))
+			Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(newRequirements(cnv.MasterCPU, cnv.MasterMemory)))
+
+			Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
 		})
 	})
 })
