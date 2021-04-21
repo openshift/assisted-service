@@ -462,7 +462,7 @@ func (th *transitionHandler) InstallCluster(sw stateswitch.StateSwitch, args sta
 	}
 	cluster := sCluster.cluster
 	ctx := params.ctx
-	if err := params.dnsApi.ChangeDNSRecordSets(ctx, cluster, false); err != nil {
+	if err := params.dnsApi.CreateDNSRecordSets(ctx, cluster); err != nil {
 		return err
 	}
 	// send metric and event that installation process has been started
