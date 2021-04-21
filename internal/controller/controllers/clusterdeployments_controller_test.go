@@ -777,7 +777,151 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(getConditionByReason(AgentPlatformState, cluster).Message).To(Equal(models.ClusterStatusAddingHosts))
 			Expect(getConditionByReason(AgentPlatformError, cluster).Message).To(Equal(expectedError.Error()))
 		})
+		for _, status := range installationStatuses {
+			statusVal := swag.String(status)
+			It(fmt.Sprintf("installation failure - verify conditions from status %s", status), func() {
+				backEndCluster.Status = swag.String(models.ClusterStatusReady)
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+				mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(2)
+				mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
+				mockInstallerInternal.EXPECT().GetCommonHostInternal(
+					gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
 
+				installClusterReply := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:     backEndCluster.ID,
+						Status: statusVal,
+					},
+				}
+				mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+					Return(installClusterReply, nil).AnyTimes()
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				cluster = getTestCluster()
+				Expect(getConditionByReason(AgentPlatformState, cluster).Message).
+					To(Equal(&statusVal))
+
+				backEndCluster.Status = swag.String(models.ClusterStatusError)
+				backEndCluster.StatusInfo = swag.String("error")
+
+				request = newClusterDeploymentRequest(cluster)
+				result, err = cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				cluster = getTestCluster()
+				Expect(getConditionByReason(ProvisionFailedReason, cluster).Message).
+					To(Equal("error"))
+				Expect(getConditionByReason(InstallAttemptsLimitReachedReason, cluster).Message).
+					To(Equal("Install attempts limit reached (limit: 1)"))
+			})
+		}
+		It("installation failure - verify no duplicated conditions", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(3)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(3)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(15)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(
+				gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
+
+			installClusterReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:     backEndCluster.ID,
+					Status: swag.String(models.ClusterStatusInstalling),
+				},
+			}
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+				Return(installClusterReply, nil).AnyTimes()
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+			Expect(getConditionByReason(AgentPlatformState, cluster).Message).
+				To(Equal(models.ClusterStatusInstalling))
+
+			backEndCluster.Status = swag.String(models.ClusterStatusError)
+			backEndCluster.StatusInfo = swag.String("error")
+
+			request = newClusterDeploymentRequest(cluster)
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			cluster = getTestCluster()
+
+			provisionFailedCondition := getConditionByReason(ProvisionFailedReason, cluster)
+			Expect(provisionFailedCondition.Message).To(Equal("error"))
+
+			installAttemptLimitCondition := getConditionByReason(InstallAttemptsLimitReachedReason, cluster)
+			Expect(installAttemptLimitCondition.Message).To(Equal("Install attempts limit reached (limit: 1)"))
+
+			request = newClusterDeploymentRequest(cluster)
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			Expect(getConditionByReason(ProvisionFailedReason, cluster)).To(Equal(provisionFailedCondition))
+			Expect(getConditionByReason(InstallAttemptsLimitReachedReason, cluster)).To(Equal(installAttemptLimitCondition))
+		})
+		nonInstallationStatuses := []string{
+			models.ClusterStatusReady,
+			models.ClusterStatusInsufficient,
+			models.ClusterStatusInstalled,
+			models.ClusterStatusAddingHosts,
+			models.ClusterStatusCancelled,
+			models.ClusterStatusError,
+		}
+		for _, status := range nonInstallationStatuses {
+			statusVal := swag.String(status)
+			It(fmt.Sprintf("installation failure - verify conditions are not created from status %s", status), func() {
+				backEndCluster.Status = swag.String(models.ClusterStatusReady)
+				mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+				mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(2)
+				mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
+				mockInstallerInternal.EXPECT().GetCommonHostInternal(
+					gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
+
+				installClusterReply := &common.Cluster{
+					Cluster: models.Cluster{
+						ID:     backEndCluster.ID,
+						Status: statusVal,
+					},
+				}
+				mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+					Return(installClusterReply, nil).AnyTimes()
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				cluster = getTestCluster()
+				Expect(getConditionByReason(AgentPlatformState, cluster).Message).
+					To(Equal(statusVal))
+
+				backEndCluster.Status = swag.String(models.ClusterStatusError)
+				backEndCluster.StatusInfo = swag.String("error")
+
+				request = newClusterDeploymentRequest(cluster)
+				result, err = cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				cluster = getTestCluster()
+				Expect(findConditionIndexByReason(ProvisionFailedReason, &cluster.Status.Conditions)).
+					To(Equal(-1))
+				Expect(findConditionIndexByReason(InstallAttemptsLimitReachedReason, &cluster.Status.Conditions)).
+					To(Equal(-1))
+
+			})
+		}
 	})
 
 	Context("cluster update", func() {

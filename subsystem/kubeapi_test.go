@@ -1261,4 +1261,65 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsPassingReason)
 	})
 
+	It("SNO deploy clusterDeployment install failure - validate conditions ", func() {
+		By("Create cluster")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		spec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      spec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		By("Approve Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Wait for installing")
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			for _, h := range c.Hosts {
+				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+					return false
+				}
+			}
+			return true
+		}, "1m", "2s").Should(BeTrue())
+
+		By("Fail installation")
+		updateProgress(*host.ID, *cluster.ID, models.HostStageFailed)
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.ProvisionFailedCondition)
+			if condition != nil {
+				return condition.Reason
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(controllers.ProvisionFailedReason))
+
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.ProvisionFailedCondition)
+			if condition != nil {
+				return condition.Reason
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(controllers.InstallAttemptsLimitReachedReason))
+	})
+
 })

@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -59,11 +60,20 @@ const (
 	adminPasswordSecretStringTemplate = "%s-admin-password"
 	adminKubeConfigStringTemplate     = "%s-admin-kubeconfig"
 	InstallConfigOverrides            = v1beta1.Group + "/install-config-overrides"
+	ProvisionFailedReason             = "ProvisionFailed"
+	InstallAttemptsLimitReachedReason = "InstallAttemptsLimitReached"
 )
 
 const HighAvailabilityModeNone = "None"
 const defaultRequeueAfterOnError = 10 * time.Second
 const defaultOCPVersion = "4.8" // TODO: remove after MGMT-4491 is resoled
+
+var installationStatuses = []string{
+	models.ClusterStatusPreparingForInstallation,
+	models.ClusterStatusInstallingPendingUserAction,
+	models.ClusterStatusInstalling,
+	models.ClusterStatusFinalizing,
+}
 
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
@@ -109,6 +119,10 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, nil, err)
+	}
+
+	if hasFailedToProvision(clusterDeployment, cluster) {
+		setProvisionFailureError(clusterDeployment, cluster)
 	}
 
 	var updated bool
@@ -620,6 +634,13 @@ func setCondition(condition hivev1.ClusterDeploymentCondition, conditions *[]hiv
 	}
 }
 
+func setConditionIfNotExists(condition hivev1.ClusterDeploymentCondition, conditions *[]hivev1.ClusterDeploymentCondition) {
+	if index := findConditionIndexByReason(condition.Reason, conditions); index >= 0 {
+		return
+	}
+	*conditions = append(*conditions, condition)
+}
+
 func setValidations(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
 	// TODO: translate validations into conditions, currently put all the validations as string to unknown condition.
 	validations := hivev1.ClusterDeploymentCondition{
@@ -700,4 +721,35 @@ func handleUpdateError(err error) (bool, ctrl.Result, error) {
 	}
 	return true, ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterOnError},
 		errors.Wrap(err, "failed to update clusterDeployment")
+}
+
+func hasFailedToProvision(clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) bool {
+	conditions := clusterDeployment.Status.Conditions
+	conditionIdx := findConditionIndexByReason(AgentPlatformState, &conditions)
+	if conditionIdx == -1 {
+		return false
+	} else if !funk.Contains(installationStatuses, conditions[conditionIdx].Message) {
+		return false
+	}
+	return swag.StringValue(cluster.Status) == models.ClusterStatusError
+}
+
+func setProvisionFailureError(clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) {
+	// TODO: find proper way to set state and state info
+	setConditionIfNotExists(hivev1.ClusterDeploymentCondition{
+		Type:               hivev1.ProvisionFailedCondition,
+		Status:             corev1.ConditionTrue,
+		LastProbeTime:      metav1.Time{Time: time.Now()},
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             ProvisionFailedReason,
+		Message:            swag.StringValue(cluster.StatusInfo),
+	}, &clusterDeployment.Status.Conditions)
+	setConditionIfNotExists(hivev1.ClusterDeploymentCondition{
+		Type:               hivev1.ProvisionStoppedCondition,
+		Status:             corev1.ConditionTrue,
+		LastProbeTime:      metav1.Time{Time: time.Now()},
+		LastTransitionTime: metav1.Time{Time: time.Now()},
+		Reason:             InstallAttemptsLimitReachedReason,
+		Message:            "Install attempts limit reached (limit: 1)",
+	}, &clusterDeployment.Status.Conditions)
 }
