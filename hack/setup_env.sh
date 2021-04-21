@@ -5,6 +5,9 @@ set -o pipefail
 set -o errexit
 set -o xtrace
 
+curl -L "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl" -o /tmp/kubectl && \
+    install -o root -g root -m 0755 /tmp/kubectl /usr/local/bin/kubectl && \
+    rm -f /tmp/kubectl
 yum install -y docker libvirt-clients awscli python3-pip postgresql genisoimage && \
     yum clean all
 curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | \

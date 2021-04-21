@@ -23,7 +23,7 @@ volumes:
   # config
   - $HOME/.minikube:$HOME/.minikube
   - $HOME/.docker/:$HOME/.docker
-
+  - $KUBECONFIG:$KUBECONFIG
   # cache
   - $HOME/.cache/go-build:/go/pkg/mod
   - $HOME/.cache/golangci-lint:$HOME/.cache/golangci-lint
