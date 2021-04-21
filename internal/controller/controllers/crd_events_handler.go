@@ -31,9 +31,11 @@ func NewCRDEventsHandler() CRDEventsHandler {
 
 func (h *CRDEventsHandlerChannels) NotifyUpdates(ch chan<- event.GenericEvent, name string, namespace string) {
 	ch <- event.GenericEvent{
-		Meta: &metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
+		Object: &metav1.PartialObjectMetadata{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+			},
 		},
 	}
 }

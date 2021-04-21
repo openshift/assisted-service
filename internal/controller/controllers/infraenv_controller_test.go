@@ -76,7 +76,7 @@ var _ = Describe("infraEnv reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		c = fakeclient.NewFakeClientWithScheme(scheme.Scheme)
+		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		ir = &InfraEnvReconciler{
@@ -97,7 +97,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		noneExistingImage := newInfraEnvImage("image2", "namespace", aiv1beta1.InfraEnvSpec{})
 
-		result, err := ir.Reconcile(newInfraEnvRequest(noneExistingImage))
+		result, err := ir.Reconcile(ctx, newInfraEnvRequest(noneExistingImage))
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{}))
 	})
@@ -119,7 +119,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
 
@@ -151,7 +151,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 		ir.Config.ImageType = models.ImageTypeFullIso
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{}))
 
@@ -182,7 +182,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
@@ -208,7 +208,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 
@@ -232,7 +232,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
@@ -263,7 +263,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 
@@ -292,7 +292,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 
@@ -314,7 +314,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		})
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 
@@ -354,7 +354,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 	})
@@ -378,7 +378,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 	})
@@ -398,7 +398,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Do(func(ctx context.Context, param installer.UpdateDiscoveryIgnitionParams) {
 				Expect(swag.StringValue(&param.DiscoveryIgnitionParams.Config)).To(Equal(ignitionConfigOverride))
 			}).Return(errors.Errorf("error")).Times(1)
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 	})
@@ -417,7 +417,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
 			Return(nil, errors.Errorf("failure")).Times(1)
 
-		res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
@@ -475,7 +475,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				ClusterRef:                 &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			})
 			Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
-			res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+			res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 			Expect(err).To(BeNil())
 			Expect(res).To(Equal(ctrl.Result{}))
 
@@ -513,7 +513,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				ClusterRef:                 &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 			})
 			Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
-			res, err := ir.Reconcile(newInfraEnvRequest(infraEnvImage))
+			res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 			Expect(err).To(Equal(expectedError))
 			Expect(res).To(Equal(ctrl.Result{Requeue: true}))
 
