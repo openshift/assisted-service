@@ -330,7 +330,8 @@ func ValidateHTTPProxyFormat(proxyURL string) error {
 // Use '*' to bypass proxy for all destinations.
 func ValidateNoProxyFormat(noProxy string) error {
 	if noProxy == "*" {
-		return nil
+		// TODO: Start accepting '*' when https://bugzilla.redhat.com/show_bug.cgi?id=1947066 is fixed, return an error until then
+		return errors.Errorf("Sorry, no-proxy value '*' is not supported in this release")
 	}
 	domains := strings.Split(noProxy, ",")
 	for _, s := range domains {
@@ -348,6 +349,8 @@ func ValidateNoProxyFormat(noProxy string) error {
 		}
 		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
 			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
+			// TODO: Change this to allow '*' when https://bugzilla.redhat.com/show_bug.cgi?id=1947066 is fixed
+			// "A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations.", noProxy)
 			"A domain can be prefaced with '.' to include all subdomains of that domain.", noProxy)
 	}
 	return nil
