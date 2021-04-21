@@ -106,6 +106,10 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 			Master: &models.HostTypeHardwareRequirements{
 				// TODO: adjust when https://github.com/openshift/assisted-service/pull/1456 is merged
 				Quantitative: &models.ClusterHostRequirementsDetails{},
+				Qualitative: []string{
+					"At least 3 hosts in case of masters-only cluster",
+					"At least 1 non-boot disk on 3 hosts",
+				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
 				// TODO: adjust when https://github.com/openshift/assisted-service/pull/1456 is merged
@@ -113,6 +117,8 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 				Qualitative: []string{
 					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGB),
 					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSRequiredDiskCPUCount),
+					"At least 3 hosts in case of cluster with workers",
+					"At least 1 non-boot disk on 3 hosts",
 				},
 			},
 		},
