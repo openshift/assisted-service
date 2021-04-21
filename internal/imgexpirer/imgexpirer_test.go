@@ -39,7 +39,7 @@ var _ = Describe("imgexpirer", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		deleteTime, _ := time.ParseDuration("60m")
 		leaderMock = leader.NewMockElectorInterface(ctrl)
-		imgExp = NewManager(nil, mockEvents, deleteTime, leaderMock)
+		imgExp = NewManager(nil, mockEvents, deleteTime, leaderMock, false)
 	})
 	It("callback_valid_objname", func() {
 		clusterId := "53116787-3eb0-4211-93ac-611d5cedaa30"
