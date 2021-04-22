@@ -6,7 +6,6 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -25,7 +24,7 @@ const (
 )
 
 func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler {
-	c := fakeclient.NewFakeClientWithScheme(scheme.Scheme, initObjs...)
+	c := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 	return &AgentServiceConfigReconciler{
 		Client:    c,
 		Scheme:    scheme.Scheme,
@@ -33,41 +32,6 @@ func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler
 		Namespace: testNamespace,
 	}
 }
-
-var _ = Describe("agentserviceconfig_controller reconcile", func() {
-	var (
-		asc      *aiv1beta1.AgentServiceConfig
-		ascr     *AgentServiceConfigReconciler
-		ctx      = context.Background()
-		mockCtrl *gomock.Controller
-		route    *routev1.Route
-	)
-
-	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
-		asc = newDefaultAgentServiceConfig()
-		ascr = newTestReconciler(asc)
-
-		// AgentServiceConfig created route is missing Host.
-		// We create one here with a value set for Host so that
-		// reconcile does not fail.
-		route, _ = ascr.newAgentRoute(asc)
-		route.Spec.Host = "testHost"
-		Expect(ascr.Client.Create(ctx, route)).To(BeNil())
-	})
-
-	AfterEach(func() {
-		mockCtrl.Finish()
-		Expect(ascr.Client.Delete(ctx, asc)).To(Succeed())
-		Expect(ascr.Client.Delete(ctx, route)).To(Succeed())
-	})
-
-	It("reconcile should succeed", func() {
-		result, err := ascr.Reconcile(newAgentServiceConfigRequest(asc))
-		Expect(err).To(BeNil())
-		Expect(result).To(Equal(ctrl.Result{}))
-	})
-})
 
 var _ = Describe("ensureAgentLocalAuthSecret", func() {
 	var (
@@ -88,7 +52,6 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 
 	AfterEach(func() {
 		mockCtrl.Finish()
-		Expect(ascr.Client.Delete(ctx, asc)).To(Succeed())
 	})
 
 	Context("with an existing local auth secret", func() {
@@ -115,8 +78,6 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 
 			Expect(found.StringData["ec-private-key.pem"]).To(Equal(privateKey))
 			Expect(found.StringData["ec-public-key.pem"]).To(Equal(publicKey))
-
-			Expect(ascr.Client.Delete(ctx, localAuthSecret)).To(Succeed())
 		})
 	})
 
@@ -150,14 +111,6 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 		})
 	})
 })
-
-func newAgentServiceConfigRequest(asc *aiv1beta1.AgentServiceConfig) ctrl.Request {
-	namespacedName := types.NamespacedName{
-		Namespace: asc.ObjectMeta.Namespace,
-		Name:      asc.ObjectMeta.Name,
-	}
-	return ctrl.Request{NamespacedName: namespacedName}
-}
 
 func newDefaultAgentServiceConfig() *aiv1beta1.AgentServiceConfig {
 	return &aiv1beta1.AgentServiceConfig{

@@ -35,6 +35,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -57,8 +58,9 @@ const (
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
 type AgentServiceConfigReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log      logr.Logger
+	Scheme   *runtime.Scheme
+	Recorder record.EventRecorder
 
 	// Namespace the operator is running in
 	Namespace string
@@ -96,6 +98,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 		reason := fmt.Sprintf("Invalid name (%s)", instance.Name)
 		msg := fmt.Sprintf("Only one AgentServiceConfig supported per cluster and must be named '%s'", agentServiceConfigName)
 		r.Log.Info(fmt.Sprintf("%s: %s", reason, msg), req.NamespacedName)
+		r.Recorder.Event(instance, "Warning", reason, msg)
 		return reconcile.Result{}, nil
 	}
 
