@@ -108,6 +108,8 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if !r.isSNO(clusterDeployment) {
 			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment)
 		}
+		// cluster  is installed and SNO nothing to do
+		return ctrl.Result{Requeue: false}, nil
 	}
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, nil, err)

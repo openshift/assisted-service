@@ -780,6 +780,18 @@ var _ = Describe("cluster reconcile", func() {
 
 	})
 
+	It("reconcile on installed sno cluster should not return an error or requeue", func() {
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
+		cluster := newClusterDeployment(clusterName, testNamespace,
+			getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName))
+		cluster.Spec.Installed = true
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+		result, err := cr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+		Expect(result.Requeue).To(BeFalse())
+	})
+
 	Context("cluster update", func() {
 		var (
 			sId     strfmt.UUID
