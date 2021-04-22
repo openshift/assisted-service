@@ -18,13 +18,15 @@ type controllerEventsWrapper struct {
 	log              logrus.FieldLogger
 }
 
+var _ events.Handler = &controllerEventsWrapper{}
+
 func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events *events.Events, db *gorm.DB, log logrus.FieldLogger) *controllerEventsWrapper {
 	return &controllerEventsWrapper{crdEventsHandler: crdEventsHandler,
 		events: events, db: db, log: log}
 }
 
-func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time) {
-	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime)
+func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
 	cluster, err := common.GetClusterFromDB(c.db, clusterID, common.SkipEagerLoading)
 	if err != nil {
 		return

@@ -37,13 +37,16 @@ type Event struct {
 	// Required: true
 	Message *string `json:"message" gorm:"type:varchar(4096)"`
 
+	// Additional properties for the event in JSON format.
+	Props string `json:"props,omitempty" gorm:"type:text"`
+
 	// Unique identifier of the request that caused this event to occur.
 	// Format: uuid
 	RequestID strfmt.UUID `json:"request_id,omitempty"`
 
 	// severity
 	// Required: true
-	// Enum: [info warning error critical]
+	// Enum: [info warning error critical internal]
 	Severity *string `json:"severity"`
 }
 
@@ -146,7 +149,7 @@ var eventTypeSeverityPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["info","warning","error","critical"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["info","warning","error","critical","internal"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -167,6 +170,9 @@ const (
 
 	// EventSeverityCritical captures enum value "critical"
 	EventSeverityCritical string = "critical"
+
+	// EventSeverityInternal captures enum value "internal"
+	EventSeverityInternal string = "internal"
 )
 
 // prop value enum
