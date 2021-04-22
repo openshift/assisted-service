@@ -286,7 +286,7 @@ func getDefaultClusterDeploymentSNOSpec(secretRef *corev1.LocalObjectReference) 
 			InstallStrategy: &hivev1.InstallStrategy{
 				Agent: &agentv1.InstallStrategy{
 					Networking: agentv1.Networking{
-						MachineNetwork: []agentv1.MachineNetworkEntry{},
+						MachineNetwork: []agentv1.MachineNetworkEntry{{CIDR: "1.2.3.0/24"}},
 						ClusterNetwork: []agentv1.ClusterNetworkEntry{{
 							CIDR:       "10.128.0.0/14",
 							HostPrefix: 23,
@@ -1261,4 +1261,39 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsPassingReason)
 	})
 
+	It("deploy clusterDeployment with invalid machine cidr", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		clusterDeploymentSpec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork = []agentv1.MachineNetworkEntry{{CIDR: "1.2.3.5/24"}}
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusPendingForInput))
+	})
+
+	It("deploy clusterDeployment without machine cidr", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		clusterDeploymentSpec.Provisioning.InstallStrategy.Agent.Networking.MachineNetwork = []agentv1.MachineNetworkEntry{}
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "1m", "2s").Should(Equal(models.ClusterStatusPendingForInput))
+	})
 })
