@@ -72,7 +72,7 @@ type Cluster struct {
 	EnabledHostCount int64 `json:"enabled_host_count,omitempty" gorm:"-"`
 
 	// JSON-formatted string containing the usage information by feature name
-	FeatureUsage string `json:"feature_usage,omitempty" gorm:"type:text;default:'{}'"`
+	FeatureUsage string `json:"feature_usage,omitempty" gorm:"type:text"`
 
 	// Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster
 	// over multiple master nodes whereas 'None' installs a full cluster over one node.

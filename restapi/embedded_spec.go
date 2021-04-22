@@ -4961,7 +4961,7 @@ func init() {
         "feature_usage": {
           "description": "JSON-formatted string containing the usage information by feature name",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text;default:'{}'\""
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
@@ -12754,7 +12754,7 @@ func init() {
         "feature_usage": {
           "description": "JSON-formatted string containing the usage information by feature name",
           "type": "string",
-          "x-go-custom-tag": "gorm:\"type:text;default:'{}'\""
+          "x-go-custom-tag": "gorm:\"type:text\""
         },
         "high_availability_mode": {
           "description": "Guaranteed availability of the installed cluster. 'Full' installs a Highly-Available cluster\nover multiple master nodes whereas 'None' installs a full cluster over one node.\n",
