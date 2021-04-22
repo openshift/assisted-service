@@ -28,6 +28,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/sirupsen/logrus"
@@ -59,6 +60,7 @@ const (
 	BMH_AGENT_MACHINE_CONFIG_POOL       = "bmac.agent-install.openshift.io/machine-config-pool"
 	BMH_INSTALL_ENV_LABEL               = "infraenvs.agent-install.openshift.io"
 	BMH_AGENT_INSTALLER_ARGS            = "bmac.agent-install.openshift.io/installer-args"
+	BMH_DETACHED_ANNOTATION             = "baremetalhost.metal3.io/detached"
 	BMH_INSPECT_ANNOTATION              = "inspect.metal3.io"
 	BMH_HARDWARE_DETAILS_ANNOTATION     = "inspect.metal3.io/hardwaredetails"
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
@@ -152,7 +154,6 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	// handle multiple agents matching the
 	// same BMH's Mac Address
-
 	if agent == nil {
 		return result.Result()
 	}
@@ -175,6 +176,17 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 		err := r.Client.Update(ctx, agent)
 		if err != nil {
 			r.Log.WithError(err).Errorf("Error updating agent")
+			return reconcileError{err}.Result()
+		}
+	}
+
+	// After the agent has started installation, Ironic should not manage the host.
+	// Adding the detached annotation to the BMH stops Ironic from managing it.
+	result = r.addBMHDetachedAnnotationIfAgentHasStartedInstallation(ctx, bmh, agent)
+	if result.Dirty() {
+		err := r.Client.Update(ctx, bmh)
+		if err != nil {
+			r.Log.WithError(err).Errorf("Error updating BMH detached annotation")
 			return reconcileError{err}.Result()
 		}
 	}
@@ -239,6 +251,37 @@ func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, age
 	// to "overwrite" this value everytime as the default
 	// is ""
 	agent.Spec.InstallationDiskID = r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
+
+	return reconcileComplete{true}
+}
+
+// The detached annotation is added if the installation of the agent associated with
+// the host has started.
+func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+
+	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
+	// Annotation already exists
+	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; ok {
+		return reconcileComplete{}
+	}
+
+	if agent.Status.Conditions == nil {
+		return reconcileComplete{}
+	}
+	installConditionReason := conditionsv1.FindStatusCondition(agent.Status.Conditions, InstalledCondition).Reason
+
+	// Do nothing if InstalledCondition is not in Installed, InProgress, or Failed
+	if installConditionReason != InstallationInProgressReason &&
+		installConditionReason != InstalledReason &&
+		installConditionReason != InstallationFailedReason {
+		return reconcileComplete{}
+	}
+
+	if bmh.ObjectMeta.Annotations == nil {
+		bmh.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
 
 	return reconcileComplete{true}
 }
@@ -408,6 +451,15 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 			}
 
 			bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
+
+			// This state is reached if the BMH was part of a
+			// previous cluster installation. At that point
+			// the detached annotation was added and set to true.
+			// Now the user would like to reinstall or use the BMH
+			// in another installation. The user has removed bmh.Spec.Image
+			// thus triggering this code path again. The annotation
+			// now needs to be removed so that Ironic can manage the host.
+			delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
 
 			r.Log.Infof("Image URL has been set in the BareMetalHost  %s/%s", bmh.Namespace, bmh.Name)
 			return reconcileComplete{true}

@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -544,6 +545,207 @@ var _ = Describe("bmac reconcile", func() {
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: testNamespace}, spokeSecret)
 				Expect(err).To(BeNil())
 				Expect(spokeSecret.Data).To(Equal(secret.Data))
+			})
+		})
+	})
+
+	Describe("Add detached annotation to a BMH if Agent installation is progressing or has completed", func() {
+		var host *bmh_v1alpha1.BareMetalHost
+		var agent *v1beta1.Agent
+
+		BeforeEach(func() {
+			macStr := "12-34-56-78-9A-BC"
+
+			agentSpec := v1beta1.AgentSpec{
+				Approved: true,
+			}
+			agent = newAgent("bmac-agent", testNamespace, agentSpec)
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Interfaces: []v1beta1.HostInterface{
+					{
+						MacAddress: macStr,
+					},
+				},
+			}
+			Expect(c.Create(ctx, agent)).To(BeNil())
+
+			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr})
+			Expect(c.Create(ctx, host)).To(BeNil())
+		})
+
+		AfterEach(func() {
+			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
+		})
+
+		Context("when Agent installation has started", func() {
+			It("should set the detached annotation if agent is installed", func() {
+				agent.Status.Conditions = []conditionsv1.Condition{
+					{
+						Type:   InstalledCondition,
+						Status: corev1.ConditionTrue,
+						Reason: InstalledReason,
+					},
+				}
+				Expect(c.Update(ctx, agent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+			})
+
+			It("should set the detached annotation if agent is installation is progressing", func() {
+				agent.Status.Conditions = []conditionsv1.Condition{
+					{
+						Type:   InstalledCondition,
+						Status: corev1.ConditionFalse,
+						Reason: InstallationInProgressReason,
+					},
+				}
+				Expect(c.Update(ctx, agent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+			})
+
+			It("should set the detached annotation if agent is installation has failed", func() {
+				agent.Status.Conditions = []conditionsv1.Condition{
+					{
+						Type:   InstalledCondition,
+						Status: corev1.ConditionFalse,
+						Reason: InstallationFailedReason,
+					},
+				}
+				Expect(c.Update(ctx, agent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
+			})
+		})
+
+		Context("when Agent is installation has not started", func() {
+			It("should not set the detached annotation if InstalledCondition is not set", func() {
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+			})
+
+			It("should not set the detached annotation if installation has not started", func() {
+				agent.Status.Conditions = []conditionsv1.Condition{
+					{
+						Type:   InstalledCondition,
+						Status: corev1.ConditionFalse,
+						Reason: InstallationNotStartedReason,
+					},
+				}
+				Expect(c.Update(ctx, agent)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+			})
+		})
+	})
+
+	Describe("Allow BMH to be managed by Ironic again if detached annotation exist and bmh.Spec.Image is set to nil", func() {
+		var host *bmh_v1alpha1.BareMetalHost
+		var agent *v1beta1.Agent
+		macStr := "12-34-56-78-9A-BC"
+		var infraEnv *v1beta1.InfraEnv
+		var isoImageURL string
+
+		BeforeEach(func() {
+			agentSpec := v1beta1.AgentSpec{
+				Approved: true,
+			}
+			agent = newAgent("bmac-agent", testNamespace, agentSpec)
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Interfaces: []v1beta1.HostInterface{
+					{
+						MacAddress: macStr,
+					},
+				},
+			}
+			Expect(c.Create(ctx, agent)).To(BeNil())
+
+			isoImageURL = "http://buzz.lightyear.io/discovery-image.iso"
+			infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
+			infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
+			Expect(c.Create(ctx, infraEnv)).To(BeNil())
+
+			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr})
+			host.ObjectMeta.Annotations = make(map[string]string)
+			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
+			labels := make(map[string]string)
+			labels[BMH_INSTALL_ENV_LABEL] = "testInfraEnv"
+			host.ObjectMeta.Labels = labels
+			Expect(c.Create(ctx, host)).To(BeNil())
+		})
+
+		AfterEach(func() {
+			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
+		})
+
+		Context("when bmh.Spec.Image does not exist", func() {
+			It("the detached annotation is removed", func() {
+				host.Spec.Image = nil
+				Expect(c.Update(ctx, host)).To(BeNil())
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+
+				Expect(updatedHost.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+			})
+		})
+
+		Context("when bmh.Spec.Image exists", func() {
+			It("the detached annotation is not removed", func() {
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+
+				Expect(updatedHost.Spec.Image).ToNot(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 			})
 		})
 	})
