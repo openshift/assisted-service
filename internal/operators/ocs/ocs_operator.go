@@ -183,20 +183,26 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 		Dependencies: o.GetDependencies(),
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
-				// TODO: adjust when https://github.com/openshift/assisted-service/pull/1456 is merged
-				Quantitative: &models.ClusterHostRequirementsDetails{},
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: CPUCompactMode,
+					RAMMib:   conversions.GibToMib(MemoryGiBCompactMode),
+				},
 				Qualitative: []string{
-					"At least 3 hosts in case of masters-only cluster",
+					"Requirements apply only for master-only clusters",
+					"At least 3 hosts",
 					"At least 1 non-boot disk on 3 hosts",
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
-				// TODO: adjust when https://github.com/openshift/assisted-service/pull/1456 is merged
-				Quantitative: &models.ClusterHostRequirementsDetails{},
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores: CPUMinimalMode,
+					RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode),
+				},
 				Qualitative: []string{
+					"Requirements apply only for clusters with workers",
 					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGiB),
 					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSRequiredDiskCPUCount),
-					"At least 3 workers when cluster has workers",
+					"At least 3 workers",
 					"At least 1 non-boot disk on 3 workers",
 				},
 			},

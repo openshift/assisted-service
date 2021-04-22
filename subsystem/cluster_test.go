@@ -2911,8 +2911,14 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
 			case ocs.Operator.Name:
-				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
-				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{}))
+				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{
+					CPUCores: ocs.CPUCompactMode,
+					RAMMib:   conversions.GibToMib(ocs.MemoryGiBCompactMode),
+				}))
+				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(models.ClusterHostRequirementsDetails{
+					CPUCores: ocs.CPUMinimalMode,
+					RAMMib:   conversions.GibToMib(ocs.MemoryGiBMinimalMode),
+				}))
 			case cnv.Operator.Name:
 				Expect(*op.Requirements.Master.Quantitative).To(BeEquivalentTo(masterCNVRequirements))
 				Expect(*op.Requirements.Worker.Quantitative).To(BeEquivalentTo(workerCNVRequirements))
