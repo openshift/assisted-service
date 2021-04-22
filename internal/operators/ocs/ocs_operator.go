@@ -196,8 +196,8 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 				Qualitative: []string{
 					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGiB),
 					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSRequiredDiskCPUCount),
-					"At least 3 hosts in case of cluster with workers",
-					"At least 1 non-boot disk on 3 hosts",
+					"At least 3 workers when cluster has workers",
+					"At least 1 non-boot disk on 3 workers",
 				},
 			},
 		},
