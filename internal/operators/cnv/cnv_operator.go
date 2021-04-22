@@ -164,6 +164,7 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
 	qualitativeRequirements := []string{
 		"Additional 1GiB of RAM per each supported GPU",
+		"Additional 1GiB of RAM per each supported SR-IOV NIC",
 		"CPU has virtualization flag (vmx or svm)",
 	}
 	requirements := models.OperatorHardwareRequirements{

@@ -203,10 +203,10 @@ var _ = Describe("CNV operator", func() {
 			Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
 			Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
 
-			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(2))
+			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(3))
 			Expect(requirements.Requirements.Worker.Quantitative).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)))
 
-			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(2))
+			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(3))
 			Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(newRequirements(cnv.MasterCPU, cnv.MasterMemory)))
 
 			Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
