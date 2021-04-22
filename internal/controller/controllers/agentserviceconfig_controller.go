@@ -23,10 +23,6 @@ import (
 	"strconv"
 
 	"github.com/go-logr/logr"
-	routev1 "github.com/openshift/api/route/v1"
-	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
-	"github.com/openshift/assisted-service/internal/gencrypto"
-	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -40,6 +36,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	routev1 "github.com/openshift/api/route/v1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/gencrypto"
+	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 )
 
 const (
@@ -77,6 +78,7 @@ type AgentServiceConfigReconciler struct {
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	panic("damn")
 	instance := &aiv1beta1.AgentServiceConfig{}
 
 	// NOTE: ignoring the Namespace that seems to get set on request when syncing on namespaced objects
