@@ -25,6 +25,7 @@ import (
 	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -46,11 +47,12 @@ const (
 	// supported in the cluster. Any others will be ignored.
 	agentServiceConfigName = "agent"
 
-	serviceName            string = "assisted-service"
-	databaseName           string = "postgres"
-	databasePasswordLength int    = 16
-	servicePort            int32  = 8090
-	databasePort           int32  = 5432
+	serviceName              string = "assisted-service"
+	databaseName             string = "postgres"
+	databasePasswordLength   int    = 16
+	servicePort              int32  = 8090
+	databasePort             int32  = 5432
+	agentLocalAuthSecretName        = serviceName + "local-auth" // #nosec
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -105,6 +107,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.ensureDatabaseStorage,
 		r.ensureAgentService,
 		r.ensureAgentRoute,
+		r.ensureAgentLocalAuthSecret,
 		r.ensurePostgresSecret,
 		r.ensureAssistedServiceDeployment,
 	} {
@@ -120,7 +123,6 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	msg := "AgentServiceConfig reconcile completed without error."
-	r.Recorder.Event(instance, "Normal", aiv1beta1.ReasonReconcileSucceeded, msg)
 	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionReconcileCompleted,
 		Status:  corev1.ConditionTrue,
@@ -194,6 +196,37 @@ func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, ins
 		return err
 	} else if result != controllerutil.OperationResultNone {
 		r.Log.Info("Agent route created")
+	}
+	return nil
+}
+
+func (r *AgentServiceConfigReconciler) ensureAgentLocalAuthSecret(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
+	secret, mutateFn, err := r.newAgentLocalAuthSecret(instance)
+	if err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonAgentLocalAuthSecretFailure,
+			Message: "Failed to generate agent local auth secret: " + err.Error(),
+		})
+		return err
+	}
+
+	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, mutateFn); err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonAgentLocalAuthSecretFailure,
+			Message: "Failed to ensure agent local auth secret: " + err.Error(),
+		})
+		return err
+	} else {
+		switch result {
+		case controllerutil.OperationResultCreated:
+			r.Log.Info("Agent local auth secret created")
+		case controllerutil.OperationResultUpdated:
+			r.Log.Info("Agent local auth secret updated")
+		}
 	}
 	return nil
 }
@@ -361,6 +394,38 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 	return route, mutateFn
 }
 
+func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      agentLocalAuthSecretName,
+			Namespace: r.Namespace,
+		},
+		Type: corev1.SecretTypeOpaque,
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, secret, r.Scheme); err != nil {
+			return err
+		}
+		_, privateKeyPresent := secret.Data["ec-private-key.pem"]
+		_, publicKeyPresent := secret.Data["ec-public-key.pem"]
+		if !privateKeyPresent && !publicKeyPresent {
+			publicKey, privateKey, err := gencrypto.ECDSAKeyPairPEM()
+			if err != nil {
+				return err
+			}
+			if secret.Data == nil {
+				secret.Data = map[string][]byte{}
+			}
+			secret.Data["ec-private-key.pem"] = []byte(privateKey)
+			secret.Data["ec-public-key.pem"] = []byte(publicKey)
+		}
+		return nil
+	}
+
+	return secret, mutateFn, nil
+}
+
 func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
 	pass, err := generatePassword(databasePasswordLength)
 	if err != nil {
@@ -407,6 +472,10 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		newSecretEnvVar("DB_PORT", "db.port", databaseName),
 		newSecretEnvVar("DB_USER", "db.user", databaseName),
 
+		// local auth secret
+		newSecretEnvVar("EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
+		newSecretEnvVar("EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
+
 		// image overrides
 		{Name: "AGENT_DOCKER_IMAGE", Value: AgentImage()},
 		{Name: "CONTROLLER_IMAGE", Value: ControllerImage()},
@@ -426,7 +495,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		{Name: "ISO_CACHE_DIR", Value: "/data/cache"},
 
 		// from configmap
-		{Name: "AUTH_TYPE", Value: "none"},
+		{Name: "AUTH_TYPE", Value: "local"},
 		{Name: "BASE_DNS_DOMAINS", Value: ""},
 		{Name: "CHECK_CLUSTER_VERSION", Value: "False"},
 		{Name: "CREATE_S3_BUCKET", Value: "False"},

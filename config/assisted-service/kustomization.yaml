@@ -1,3 +1,2 @@
 resources:
 - assisted-installer-sso.yaml
-- assisted-installer-local-auth.yaml

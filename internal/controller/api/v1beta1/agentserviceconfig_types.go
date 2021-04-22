@@ -56,6 +56,8 @@ const (
 	ReasonAgentServiceFailure string = "AgentServiceFailure"
 	// ReasonAgentRouteFailure when there was a failure configuring/deploying the assisted-service's route.
 	ReasonAgentRouteFailure string = "AgentRouteFailure"
+	// ReasonAgentLocalAuthSecretFailure when there was a failure generating/deploying the local auth key pair secret.
+	ReasonAgentLocalAuthSecretFailure string = "AgentLocalAuthSecretFailure" // #nosec
 	// ReasonPostgresSecretFailure when there was a failure generating/deploying the database secret.
 	ReasonPostgresSecretFailure string = "PostgresSecretFailure"
 	// ReasonDeploymentFailure when there was a failure configuring/deploying the assisted-service deployment.
