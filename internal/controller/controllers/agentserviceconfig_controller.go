@@ -123,7 +123,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	msg := "AgentServiceConfig reconcile completed without error."
-	conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+	conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ConditionReconcileCompleted,
 		Status:  corev1.ConditionTrue,
 		Reason:  aiv1beta1.ReasonReconcileSucceeded,
@@ -203,7 +203,7 @@ func (r *AgentServiceConfigReconciler) ensureAgentRoute(ctx context.Context, ins
 func (r *AgentServiceConfigReconciler) ensureAgentLocalAuthSecret(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	secret, mutateFn, err := r.newAgentLocalAuthSecret(instance)
 	if err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonAgentLocalAuthSecretFailure,
@@ -213,7 +213,7 @@ func (r *AgentServiceConfigReconciler) ensureAgentLocalAuthSecret(ctx context.Co
 	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, secret, mutateFn); err != nil {
-		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ConditionReconcileCompleted,
 			Status:  corev1.ConditionFalse,
 			Reason:  aiv1beta1.ReasonAgentLocalAuthSecretFailure,
@@ -387,14 +387,7 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 		if err := controllerutil.SetControllerReference(instance, route, r.Scheme); err != nil {
 			return err
 		}
-		// Only update the route Spec's To, Port, and WildcardPolicy
-		// to match what is specified above in routeSpec.
-		// If we update the entire route.Spec with
-		// route.Spec = routeSpec
-		// it would overwrite any existing values for route.Spec.Host
-		route.Spec.To = routeSpec.To
-		route.Spec.Port = routeSpec.Port
-		route.Spec.WildcardPolicy = routeSpec.WildcardPolicy
+		route.Spec = routeSpec
 		return nil
 	}
 
