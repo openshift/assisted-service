@@ -25,18 +25,19 @@ type ValidationResult struct {
 	Message string           `json:"message"`
 }
 
-type ValidationsStatus map[string][]ValidationResult
+type ValidationsStatus map[string]ValidationResults
 
 type ValidationResults []ValidationResult
 
 type refreshPreprocessor struct {
-	log          logrus.FieldLogger
-	validations  []validation
-	conditions   []condition
-	operatorsApi operators.API
+	log                     logrus.FieldLogger
+	validations             []validation
+	conditions              []condition
+	operatorsApi            operators.API
+	disabledHostValidations DisabledHostValidations
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API, disabledHostValidations []string) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API, disabledHostValidations DisabledHostValidations) *refreshPreprocessor {
 	v := &validator{
 		log:            log,
 		hwValidatorCfg: hwValidatorCfg,
@@ -44,26 +45,37 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.Val
 		operatorsAPI:   operatorsApi,
 	}
 	return &refreshPreprocessor{
-		log:          log,
-		validations:  newValidations(v, disabledHostValidations),
-		conditions:   newConditions(v),
-		operatorsApi: operatorsApi,
+		log:                     log,
+		validations:             newValidations(v),
+		conditions:              newConditions(v),
+		operatorsApi:            operatorsApi,
+		disabledHostValidations: disabledHostValidations,
 	}
 }
 
+const validationDisabledByConfiguration = "Validation disabled by configuration"
+
 func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, ValidationsStatus, error) {
-	stateMachineInput := make(map[string]bool)
+	conditions := make(map[string]bool)
 	validationsOutput := make(ValidationsStatus)
 	for _, v := range r.validations {
-		st := v.condition(c)
-		stateMachineInput[v.id.String()] = st == ValidationSuccess
-		message := v.formatter(c, st)
+
+		var st ValidationStatus
+		var message string
+		if r.disabledHostValidations.IsDisabled(v.id) {
+			st = ValidationDisabled
+			message = validationDisabledByConfiguration
+			conditions[v.id.String()] = true
+		} else {
+			st = v.condition(c)
+			message = v.formatter(c, st)
+			conditions[v.id.String()] = st == ValidationSuccess
+		}
 
 		// skip the validations per states
 		if funk.Contains(v.skippedStates, c.host.Progress.CurrentStage) {
 			continue
 		}
-
 		category, err := v.id.category()
 		if err != nil {
 			logrus.WithError(err).Warn("id.category()")
@@ -77,7 +89,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 	}
 
 	for _, cn := range r.conditions {
-		stateMachineInput[cn.id.String()] = cn.fn(c)
+		conditions[cn.id.String()] = cn.fn(c)
 	}
 
 	// Validate operators
@@ -87,7 +99,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 	}
 	for _, result := range results {
 		id := validationID(result.ValidationId)
-		stateMachineInput[id.String()] = result.Status == api.Success
+		conditions[id.String()] = result.Status == api.Success
 		category, err := id.category()
 		if err != nil {
 			logrus.WithError(err).Warn("id.category()")
@@ -104,7 +116,7 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 		sortByValidationResultID(validationsOutput[category])
 	}
 
-	return stateMachineInput, validationsOutput, nil
+	return conditions, validationsOutput, nil
 }
 
 // sortByValidationResultID sorts results by models.HostValidationID
@@ -114,8 +126,8 @@ func sortByValidationResultID(validationResults []ValidationResult) {
 	})
 }
 
-func newValidations(v *validator, disabledHostValidations []string) []validation {
-	baseValidations := []validation{
+func newValidations(v *validator) []validation {
+	return []validation{
 		{
 			id:            IsConnected,
 			condition:     v.isConnected,
@@ -204,31 +216,6 @@ func newValidations(v *validator, disabledHostValidations []string) []validation
 			formatter: v.printSufficientOrUnknownInstallationDiskSpeed,
 		},
 	}
-	return filterHostValidations(disabledHostValidations, v.log, baseValidations)
-}
-
-func filterHostValidations(disabledHostValidations []string, log logrus.FieldLogger, validations []validation) []validation {
-	f := funk.Filter(validations, func(v validation) bool {
-		for _, id := range disabledHostValidations {
-			if string(v.id) == id {
-				return false
-			}
-		}
-		return true
-	})
-	filteredValidations := f.([]validation)
-	if len(disabledHostValidations) > 0 && len(filteredValidations) == len(validations) {
-		d := funk.FilterString(disabledHostValidations, func(id string) bool {
-			for _, v := range validations {
-				if string(v.id) == id {
-					return false
-				}
-			}
-			return true
-		})
-		log.Warnf("Unable to find host validation IDs: %s", strings.Join(d, ","))
-	}
-	return filteredValidations
 }
 
 func newConditions(v *validator) []condition {

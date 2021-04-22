@@ -7,6 +7,7 @@ import (
 	"net/http"
 	reflect "reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/filanov/stateswitch"
@@ -90,9 +91,10 @@ type LogTimeoutConfig struct {
 
 type Config struct {
 	LogTimeoutConfig
-	EnableAutoReset  bool          `envconfig:"ENABLE_AUTO_RESET" default:"false"`
-	ResetTimeout     time.Duration `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
-	MonitorBatchSize int           `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
+	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
+	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
+	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
+	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:"container-images-available"` // Disable container image validation to fix BZ-1937293
 }
 
 //go:generate mockgen -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
@@ -140,21 +142,20 @@ type API interface {
 }
 
 type Manager struct {
-	log                     logrus.FieldLogger
-	db                      *gorm.DB
-	instructionApi          hostcommands.InstructionApi
-	hwValidator             hardware.Validator
-	eventsHandler           events.Handler
-	sm                      stateswitch.StateMachine
-	rp                      *refreshPreprocessor
-	metricApi               metrics.API
-	Config                  Config
-	leaderElector           leader.Leader
-	disabledHostValidations []string
+	log            logrus.FieldLogger
+	db             *gorm.DB
+	instructionApi hostcommands.InstructionApi
+	hwValidator    hardware.Validator
+	eventsHandler  events.Handler
+	sm             stateswitch.StateMachine
+	rp             *refreshPreprocessor
+	metricApi      metrics.API
+	Config         Config
+	leaderElector  leader.Leader
 }
 
 func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, hwValidator hardware.Validator, instructionApi hostcommands.InstructionApi,
-	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API, disabledHostValidations []string) *Manager {
+	hwValidatorCfg *hardware.ValidatorCfg, metricApi metrics.API, config *Config, leaderElector leader.ElectorInterface, operatorsApi operators.API) *Manager {
 	th := &transitionHandler{
 		db:            db,
 		log:           log,
@@ -162,17 +163,16 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		eventsHandler: eventsHandler,
 	}
 	return &Manager{
-		log:                     log,
-		db:                      db,
-		instructionApi:          instructionApi,
-		hwValidator:             hwValidator,
-		eventsHandler:           eventsHandler,
-		sm:                      NewHostStateMachine(th, log, disabledHostValidations),
-		rp:                      newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, disabledHostValidations),
-		metricApi:               metricApi,
-		Config:                  *config,
-		leaderElector:           leaderElector,
-		disabledHostValidations: disabledHostValidations,
+		log:            log,
+		db:             db,
+		instructionApi: instructionApi,
+		hwValidator:    hwValidator,
+		eventsHandler:  eventsHandler,
+		sm:             NewHostStateMachine(th),
+		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations),
+		metricApi:      metricApi,
+		Config:         *config,
+		leaderElector:  leaderElector,
 	}
 }
 
@@ -973,4 +973,23 @@ func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {
 		m.log.Debugf("Deleted %s hosts from db", reply.RowsAffected)
 	}
 	return nil
+}
+
+type DisabledHostValidations map[string]struct{}
+
+func (d *DisabledHostValidations) Decode(value string) error {
+	disabledHostValidations := DisabledHostValidations{}
+	for _, element := range strings.Split(value, ",") {
+		if len(element) == 0 {
+			return fmt.Errorf("empty host validation ID found in '%s'", value)
+		}
+		disabledHostValidations[element] = struct{}{}
+	}
+	*d = disabledHostValidations
+	return nil
+}
+
+func (d DisabledHostValidations) IsDisabled(id validationID) bool {
+	_, ok := d[id.String()]
+	return ok
 }

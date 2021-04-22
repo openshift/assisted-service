@@ -60,7 +60,7 @@ var _ = Describe("RegisterHost", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -443,7 +443,7 @@ var _ = Describe("HostInstallationFailed", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostId, clusterId, "")
@@ -487,7 +487,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), mockMetric, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostId, clusterId, "")
@@ -522,7 +522,7 @@ var _ = Describe("Cancel host installation", func() {
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 	})
 
 	tests := []struct {
@@ -614,7 +614,7 @@ var _ = Describe("Reset host", func() {
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEventsHandler, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 	})
 
 	tests := []struct {
@@ -708,7 +708,7 @@ var _ = Describe("Install", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -875,7 +875,7 @@ var _ = Describe("Disable", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1008,7 +1008,7 @@ var _ = Describe("Enable", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(), nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -1250,7 +1250,7 @@ var _ = Describe("Refresh Host", func() {
 		}
 		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operatorsOptions)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, nil)
+		hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
@@ -3814,17 +3814,17 @@ var _ = Describe("Refresh Host", func() {
 
 		tests := []struct {
 			name                string
-			disabledValidations []string
+			disabledValidations DisabledHostValidations
 			dstState            string
 		}{
 			{
 				name:                "Nominal: Host is known with disabled validations for 'Belongs to majority group' and 'Container images available'",
-				disabledValidations: []string{string(models.HostValidationIDBelongsToMajorityGroup), string(models.HostValidationIDContainerImagesAvailable)},
+				disabledValidations: DisabledHostValidations{string(models.HostValidationIDBelongsToMajorityGroup): struct{}{}, string(models.HostValidationIDContainerImagesAvailable): struct{}{}},
 				dstState:            models.HostStatusKnown,
 			},
 			{
 				name:                "KO: Host is insufficient with all validations enabled",
-				disabledValidations: []string{},
+				disabledValidations: DisabledHostValidations{},
 				dstState:            models.HostStatusInsufficient,
 			},
 		}
@@ -3832,7 +3832,8 @@ var _ = Describe("Refresh Host", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
-				hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager, t.disabledValidations)
+				defaultConfig.DisabledHostvalidations = t.disabledValidations
+				hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
 
 				err := hapi.RefreshStatus(ctx, &host, db)
 				Expect(err).ToNot(HaveOccurred())
@@ -3842,10 +3843,13 @@ var _ = Describe("Refresh Host", func() {
 				Expect(resultHost.Status).To(Equal(&t.dstState))
 				validationRes := ValidationsStatus{}
 				Expect(json.Unmarshal([]byte(resultHost.ValidationsInfo), &validationRes)).ToNot(HaveOccurred())
-				for _, id := range t.disabledValidations {
+				for id := range t.disabledValidations {
 					for _, cat := range validationRes {
 						for _, val := range cat {
-							Expect(string(val.ID)).NotTo(BeIdenticalTo(id), fmt.Sprintf("Validation [%s]%s found when it should not be", cat, id))
+							if val.ID.String() == id {
+								Expect(val.Status).To(Equal(ValidationDisabled))
+								Expect(val.Message).To(Equal(validationDisabledByConfiguration))
+							}
 						}
 					}
 				}

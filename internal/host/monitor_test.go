@@ -48,7 +48,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			nil, defaultConfig, dummy, mockOperators, nil)
+			nil, defaultConfig, dummy, mockOperators)
 		clusterID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
 		cluster := hostutil.GenerateTestCluster(clusterID, "1.1.0.0/16")
@@ -153,7 +153,7 @@ var _ = Describe("TestHostMonitoring", func() {
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			nil, &cfg, &leader.DummyElector{}, mockOperators, nil)
+			nil, &cfg, &leader.DummyElector{}, mockOperators)
 
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
