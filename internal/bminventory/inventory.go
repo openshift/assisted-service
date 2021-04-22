@@ -49,7 +49,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
-	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -2399,15 +2398,6 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	return cluster, nil
 }
 
-func (b *bareMetalInventory) GetHostRequirements(_ context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
-	requirements := b.hwValidator.GetHostRequirements(swag.BoolValue(params.SingleNode))
-	return installer.NewGetHostRequirementsOK().WithPayload(
-		&models.HostRequirements{
-			Master: hostRequirementsRoleFrom(requirements.MasterRequirements),
-			Worker: hostRequirementsRoleFrom(requirements.WorkerRequirements),
-		})
-}
-
 func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.RegisterHostParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -4307,15 +4297,6 @@ func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, param
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetPreflightRequirementsOK().WithPayload(requirements)
-}
-
-func hostRequirementsRoleFrom(requirements *models.ClusterHostRequirementsDetails) *models.HostRequirementsRole {
-	return &models.HostRequirementsRole{
-		CPUCores:                         requirements.CPUCores,
-		DiskSizeGb:                       requirements.DiskSizeGb,
-		InstallationDiskSpeedThresholdMs: requirements.InstallationDiskSpeedThresholdMs,
-		RAMGib:                           conversions.MibToGiB(requirements.RAMMib),
-	}
 }
 
 /*
