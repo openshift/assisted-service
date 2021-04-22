@@ -10,7 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -19,16 +19,16 @@ import (
 var _ = Describe("AuthAgentAuth", func() {
 	var (
 		a       *LocalAuthenticator
-		cluster *common.Cluster
+		cluster *dbc.Cluster
 		db      *gorm.DB
 		dbName  string
 		token   string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+		cluster = &dbc.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 		pubKey, privKey, err := gencrypto.ECDSAKeyPairPEM()
@@ -44,7 +44,7 @@ var _ = Describe("AuthAgentAuth", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	fakeTokenAlg := func(t string) string {

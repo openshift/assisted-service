@@ -13,6 +13,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -80,8 +81,8 @@ func getCluster(clusterID strfmt.UUID) *models.Cluster {
 	return cluster.GetPayload()
 }
 
-func getCommonCluster(ctx context.Context, clusterID strfmt.UUID) *common.Cluster {
-	var cluster common.Cluster
+func getCommonCluster(ctx context.Context, clusterID strfmt.UUID) *dbc.Cluster {
+	var cluster dbc.Cluster
 	err := db.First(&cluster, "id = ?", clusterID).Error
 	Expect(err).ShouldNot(HaveOccurred())
 	return &cluster

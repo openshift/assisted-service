@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -23,7 +24,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	var (
 		ctx           = context.Background()
 		host          models.Host
-		cluster       common.Cluster
+		cluster       dbc.Cluster
 		db            *gorm.DB
 		cmd           *imageAvailabilityCmd
 		id, clusterID strfmt.UUID
@@ -38,14 +39,14 @@ var _ = Describe("container_image_availability_cmd", func() {
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig)
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHostAddedToCluster(id, clusterID, models.HostStatusInsufficient)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion}}
+		cluster = dbc.Cluster{Cluster: models.Cluster{ID: &clusterID, OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -97,7 +98,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -105,7 +106,7 @@ var _ = Describe("get images", func() {
 	var (
 		db           *gorm.DB
 		cmd          *imageAvailabilityCmd
-		cluster      *common.Cluster
+		cluster      *dbc.Cluster
 		ctrl         *gomock.Controller
 		mockRelease  *oc.MockRelease
 		mockVersions *versions.MockHandler
@@ -116,7 +117,7 @@ var _ = Describe("get images", func() {
 		mockVersions = versions.NewMockHandler(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		db = &gorm.DB{}
-		cluster = &common.Cluster{}
+		cluster = &dbc.Cluster{}
 		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig)
 	})
 

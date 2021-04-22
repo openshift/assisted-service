@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
@@ -31,7 +32,7 @@ import (
 )
 
 var (
-	cluster             *common.Cluster
+	cluster             *dbc.Cluster
 	installerCacheDir   string
 	log                 = logrus.New()
 	workDir             string
@@ -48,7 +49,7 @@ var _ = BeforeEach(func() {
 
 	// create simple cluster
 	clusterID := strfmt.UUID(uuid.New().String())
-	cluster = &common.Cluster{
+	cluster = &dbc.Cluster{
 		Cluster: models.Cluster{
 			ID: &clusterID,
 		},
@@ -824,7 +825,7 @@ var _ = Describe("proxySettingsForIgnition", func() {
 var _ = Describe("IgnitionBuilder", func() {
 	var (
 		ctrl                    *gomock.Controller
-		cluster                 common.Cluster
+		cluster                 dbc.Cluster
 		log                     logrus.FieldLogger
 		builder                 IgnitionBuilder
 		mockStaticNetworkConfig *staticnetworkconfig.MockStaticNetworkConfig
@@ -836,7 +837,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		clusterID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
-		cluster = common.Cluster{Cluster: models.Cluster{
+		cluster = dbc.Cluster{Cluster: models.Cluster{
 			ID:            &clusterID,
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
@@ -848,7 +849,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
 			clusterID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
-			clusterWithoutToken := common.Cluster{Cluster: models.Cluster{
+			clusterWithoutToken := dbc.Cluster{Cluster: models.Cluster{
 				ID:            &clusterID,
 				PullSecretSet: false,
 			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}

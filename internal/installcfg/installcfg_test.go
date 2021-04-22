@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
@@ -24,13 +25,13 @@ var _ = Describe("installcfg", func() {
 		host1                models.Host
 		host2                models.Host
 		host3                models.Host
-		cluster              common.Cluster
+		cluster              dbc.Cluster
 		ctrl                 *gomock.Controller
 		installConfigBuilder InstallConfigBuilder
 	)
 	BeforeEach(func() {
 		clusterId := strfmt.UUID(uuid.New().String())
-		cluster = common.Cluster{Cluster: models.Cluster{
+		cluster = dbc.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterId,
 			OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
 			Name:                   "test-cluster",
@@ -344,12 +345,12 @@ var _ = Describe("installcfg", func() {
 
 var _ = Describe("ValidateInstallConfigPatch", func() {
 	var (
-		cluster              *common.Cluster
+		cluster              *dbc.Cluster
 		installConfigBuilder InstallConfigBuilder
 	)
 	BeforeEach(func() {
 		id := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID:               &id,
 			OpenshiftVersion: "4.6",
 			BaseDNSDomain:    "example.com",
@@ -409,10 +410,10 @@ func getInventoryStr(hostname, bootMode string, ipv6only bool) string {
 
 var _ = Describe("Generate NoProxy", func() {
 	var (
-		cluster *common.Cluster
+		cluster *dbc.Cluster
 	)
 	BeforeEach(func() {
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			MachineNetworkCidr: "10.35.20.0/24",
 			Name:               "proxycluster",
 			BaseDNSDomain:      "myproxy.com",

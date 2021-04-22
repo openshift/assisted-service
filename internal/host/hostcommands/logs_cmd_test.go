@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
@@ -27,7 +28,7 @@ var _ = Describe("upload_logs", func() {
 	var dbName string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		logsCmd = NewLogsCmd(common.GetTestLog(), db, DefaultInstructionConfig)
 
 		id = strfmt.UUID(uuid.New().String())
@@ -91,7 +92,7 @@ var _ = Describe("upload_logs", func() {
 		host2.Inventory = string(b)
 		host2.Role = models.HostRoleMaster
 		Expect(db.Create(&host2).Error).ToNot(HaveOccurred())
-		cluster := common.Cluster{
+		cluster := dbc.Cluster{
 			Cluster: models.Cluster{
 				ID:                    &clusterId,
 				UserManagedNetworking: swag.Bool(true),
@@ -105,7 +106,7 @@ var _ = Describe("upload_logs", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

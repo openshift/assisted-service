@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -134,8 +135,8 @@ func mockUsageReports() {
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
+	dbc.InitializeDBTest()
+	defer dbc.TerminateDBTest()
 	RunSpecs(t, "inventory_test")
 }
 
@@ -190,7 +191,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		cfg.ServiceBaseURL = FakeServiceBaseURL
 		bm = createInventory(db, cfg)
 
@@ -198,13 +199,13 @@ var _ = Describe("GenerateClusterISO", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
-	registerClusterWithHTTPProxy := func(pullSecretSet bool, httpProxy string) *common.Cluster {
+	registerClusterWithHTTPProxy := func(pullSecretSet bool, httpProxy string) *dbc.Cluster {
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{Cluster: models.Cluster{
+		cluster := dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			PullSecretSet:    pullSecretSet,
 			HTTPProxy:        httpProxy,
@@ -214,11 +215,11 @@ var _ = Describe("GenerateClusterISO", func() {
 		return &cluster
 	}
 
-	registerCluster := func(pullSecretSet bool) *common.Cluster {
+	registerCluster := func(pullSecretSet bool) *dbc.Cluster {
 		return registerClusterWithHTTPProxy(pullSecretSet, "")
 	}
 
-	mockUploadIso := func(cluster *common.Cluster, returnValue error) {
+	mockUploadIso := func(cluster *dbc.Cluster, returnValue error) {
 		srcIso := "rhcos"
 		mockS3Client.EXPECT().GetBaseIsoObject(cluster.OpenshiftVersion).Return(srcIso, nil).Times(1)
 		mockS3Client.EXPECT().UploadISO(gomock.Any(), gomock.Any(), srcIso,
@@ -229,7 +230,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		updatedTime := time.Now().Add(-11 * time.Second)
 		updates := map[string]interface{}{}
 		updates["image_created_at"] = updatedTime
-		db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(updates)
+		db.Model(&dbc.Cluster{}).Where("id = ?", clusterID).Updates(updates)
 	}
 
 	It("success", func() {
@@ -313,7 +314,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	It("image already exists", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{
+		cluster := dbc.Cluster{
 			Cluster: models.Cluster{
 				ID:            &clusterId,
 				PullSecretSet: true,
@@ -345,7 +346,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	It("image expired", func() {
 		clusterId := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{
+		cluster := dbc.Cluster{
 			Cluster: models.Cluster{
 				ID:               &clusterId,
 				PullSecretSet:    true,
@@ -554,7 +555,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			updatedTime := time.Now().Add(-11 * time.Second)
 			updates := map[string]interface{}{}
 			updates["image_created_at"] = updatedTime
-			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
+			db.Model(&dbc.Cluster{}).Where("id = ?", clusterId).Updates(updates)
 
 			newStaticNetworkConfig := []*models.HostStaticNetworkConfig{
 				common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
@@ -583,7 +584,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	Context("minimal iso", func() {
 		var (
-			cluster     *common.Cluster
+			cluster     *dbc.Cluster
 			isoFilePath string
 		)
 		BeforeEach(func() {
@@ -759,9 +760,9 @@ var _ = Describe("GenerateClusterISO", func() {
 	})
 })
 
-func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityMode string) *common.Cluster {
+func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityMode string) *dbc.Cluster {
 	clusterID := strfmt.UUID(uuid.New().String())
-	c := &common.Cluster{
+	c := &dbc.Cluster{
 		Cluster: models.Cluster{
 			ID:                   &clusterID,
 			Status:               swag.String(status),
@@ -772,7 +773,7 @@ func createClusterWithAvailability(db *gorm.DB, status string, highAvailabilityM
 	return c
 }
 
-func createCluster(db *gorm.DB, status string) *common.Cluster {
+func createCluster(db *gorm.DB, status string) *dbc.Cluster {
 	return createClusterWithAvailability(db, status, models.ClusterCreateParamsHighAvailabilityModeFull)
 }
 
@@ -788,7 +789,7 @@ var _ = Describe("GetHost", func() {
 	BeforeEach(func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
-		db, _ = common.PrepareTestDB()
+		db, _ = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		hostObj := models.Host{
@@ -832,7 +833,7 @@ var _ = Describe("GetHost", func() {
 			Bootstrap: true,
 		}
 		Expect(db.Model(&hostObj).Update("Bootstrap", true).Error).ShouldNot(HaveOccurred())
-		objectAfterUpdating, _ := common.GetHostFromDB(db, clusterId.String(), hostID.String())
+		objectAfterUpdating, _ := dbc.GetHostFromDB(db, clusterId.String(), hostID.String())
 		Expect(objectAfterUpdating.ProgressStages).To(BeEmpty())
 		params := installer.GetHostParams{
 			ClusterID: clusterId,
@@ -857,12 +858,12 @@ var _ = Describe("RegisterHost", func() {
 
 	BeforeEach(func() {
 		hostID = strfmt.UUID(uuid.New().String())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -1031,13 +1032,13 @@ var _ = Describe("GetNextSteps", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		defaultNextStepIn = 60
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("get_next_steps_unknown_host", func() {
@@ -1108,13 +1109,13 @@ var _ = Describe("PostStepReply", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("Free addresses", func() {
@@ -1216,7 +1217,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
 		It("Happy flow with leases", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
@@ -1231,7 +1232,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
 		It("API lease invalid", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
@@ -1245,7 +1246,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 		It("Happy flow", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
@@ -1260,7 +1261,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
 		It("Happy flow IPv6", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
@@ -1275,7 +1276,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
 		It("DHCP not enabled", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(false),
@@ -1289,7 +1290,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 		It("Bad ingress VIP", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
@@ -1303,7 +1304,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyInternalServerError()))
 		})
 		It("New IPs while in insufficient", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
@@ -1320,7 +1321,7 @@ var _ = Describe("PostStepReply", func() {
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
 		})
 		It("New IPs while in installing", func() {
-			cluster := common.Cluster{
+			cluster := dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 clusterId,
 					VipDhcpAllocation:  swag.Bool(true),
@@ -1525,13 +1526,13 @@ var _ = Describe("GetFreeAddresses", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	var makeHost = func(clusterId *strfmt.UUID, freeAddresses, status string) *models.Host {
@@ -1665,13 +1666,13 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("host exists", func() {
@@ -1771,7 +1772,7 @@ var _ = Describe("cluster", func() {
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
 		Expect(cfg.IPv6Support).Should(BeTrue())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.ocmClient = nil
 
@@ -1795,7 +1796,7 @@ var _ = Describe("cluster", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	addHost := func(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
@@ -1888,7 +1889,7 @@ var _ = Describe("cluster", func() {
 	}
 	mockClusterRefreshStatusSuccess := func() {
 		mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).
-			DoAndReturn(func(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+			DoAndReturn(func(ctx context.Context, c *dbc.Cluster, db *gorm.DB) (*dbc.Cluster, error) {
 				return c, nil
 			})
 	}
@@ -1913,7 +1914,7 @@ var _ = Describe("cluster", func() {
 	Context("Get", func() {
 		BeforeEach(func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                 &clusterID,
 				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 				APIVip:             "10.11.12.13",
@@ -1976,7 +1977,7 @@ var _ = Describe("cluster", func() {
 			})
 
 			It("DB inaccessible", func() {
-				common.DeleteTestDB(db, dbName)
+				dbc.DeleteTestDB(db, dbName)
 				resp := bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: clusterID})
 				Expect(resp).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusInternalServerError, errors.Errorf(""))))
 			})
@@ -1984,7 +1985,7 @@ var _ = Describe("cluster", func() {
 
 		Context("GetUnregisteredClusters", func() {
 			deleteCluster := func(deletePermanently bool) {
-				c, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+				c, err := dbc.GetClusterFromDB(db, clusterID, dbc.UseEagerLoading)
 				Expect(err).ShouldNot(HaveOccurred())
 
 				tempDB := db
@@ -2082,7 +2083,7 @@ var _ = Describe("cluster", func() {
 		})
 		It("update_cluster_while_installing", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2122,7 +2123,7 @@ var _ = Describe("cluster", func() {
 				pullSecret := "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}" // #nosec
 				pullSecretWithNewline := pullSecret + " \n"
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2141,7 +2142,7 @@ var _ = Describe("cluster", func() {
 		It("update role in none ha mode, must fail", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			noneHaMode := models.ClusterHighAvailabilityModeNone
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                   &clusterID,
 				HighAvailabilityMode: &noneHaMode,
 			}}).Error
@@ -2162,7 +2163,7 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			userManagedNetworking := true
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                    &clusterID,
 				HighAvailabilityMode:  &noneHaMode,
 				UserManagedNetworking: &userManagedNetworking,
@@ -2187,7 +2188,7 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			userManagedNetworking := true
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                    &clusterID,
 				HighAvailabilityMode:  &noneHaMode,
 				APIVip:                "1.2.3.15",
@@ -2223,7 +2224,7 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			userManagedNetworking := true
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                    &clusterID,
 				HighAvailabilityMode:  &noneHaMode,
 				UserManagedNetworking: &userManagedNetworking,
@@ -2246,7 +2247,7 @@ var _ = Describe("cluster", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
 			noneHaMode := models.ClusterHighAvailabilityModeNone
 			userManagedNetworking := true
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                    &clusterID,
 				HighAvailabilityMode:  &noneHaMode,
 				UserManagedNetworking: &userManagedNetworking,
@@ -2534,7 +2535,7 @@ var _ = Describe("cluster", func() {
 							operator.ClusterID = clusterID
 						}
 
-						err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 							ID:                 &clusterID,
 							MonitoredOperators: test.originalOperators,
 						}}).Error
@@ -2571,7 +2572,7 @@ var _ = Describe("cluster", func() {
 
 			It("Resolve OLM dependencies", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2627,7 +2628,7 @@ var _ = Describe("cluster", func() {
 
 			It("OLM invalid name", func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2650,7 +2651,7 @@ var _ = Describe("cluster", func() {
 
 		It("ssh key with newline", func() {
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2672,7 +2673,7 @@ var _ = Describe("cluster", func() {
 				},
 			})
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-			var cluster common.Cluster
+			var cluster dbc.Cluster
 			err = db.First(&cluster, "id = ?", clusterID).Error
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(cluster.SSHPublicKey).Should(Equal(sshKey))
@@ -2693,7 +2694,7 @@ var _ = Describe("cluster", func() {
 
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2714,7 +2715,7 @@ var _ = Describe("cluster", func() {
 
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                 &clusterID,
 				MachineNetworkCidr: "10.12.0.0/16",
 				APIVip:             "10.11.12.15",
@@ -2741,7 +2742,7 @@ var _ = Describe("cluster", func() {
 		It("Fail Update UserManagedNetworking with VIP DHCP", func() {
 
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2760,7 +2761,7 @@ var _ = Describe("cluster", func() {
 
 			clusterID = strfmt.UUID(uuid.New().String())
 			ingressVip := "10.35.20.10"
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2779,7 +2780,7 @@ var _ = Describe("cluster", func() {
 
 			clusterID = strfmt.UUID(uuid.New().String())
 			apiVip := "10.35.20.10"
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2798,7 +2799,7 @@ var _ = Describe("cluster", func() {
 
 			clusterID = strfmt.UUID(uuid.New().String())
 			machineNetworkCidr := "10.11.0.0/16"
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID: &clusterID,
 			}}).Error
 			Expect(err).ShouldNot(HaveOccurred())
@@ -2817,7 +2818,7 @@ var _ = Describe("cluster", func() {
 			const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{
+				err := db.Create(&dbc.Cluster{
 					Cluster: models.Cluster{
 						ID: &clusterID,
 					},
@@ -2827,7 +2828,7 @@ var _ = Describe("cluster", func() {
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
 			})
 
-			updateCluster := func(httpProxy, httpsProxy, noProxy string) *common.Cluster {
+			updateCluster := func(httpProxy, httpsProxy, noProxy string) *dbc.Cluster {
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -2838,7 +2839,7 @@ var _ = Describe("cluster", func() {
 					},
 				})
 				Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-				var cluster common.Cluster
+				var cluster dbc.Cluster
 				err := db.First(&cluster, "id = ?", clusterID).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				return &cluster
@@ -2861,7 +2862,7 @@ var _ = Describe("cluster", func() {
 		Context("Hostname", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2875,7 +2876,7 @@ var _ = Describe("cluster", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -2893,7 +2894,7 @@ var _ = Describe("cluster", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -2951,7 +2952,7 @@ var _ = Describe("cluster", func() {
 		Context("MachineConfigPoolName", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2965,7 +2966,7 @@ var _ = Describe("cluster", func() {
 				mockHostApi.EXPECT().UpdateMachineConfigPoolName(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -2984,7 +2985,7 @@ var _ = Describe("cluster", func() {
 		Context("Installation Disk Path", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				addHost(masterHostId1, models.HostRoleMaster, "known", models.HostKindHost, clusterID, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
@@ -2996,7 +2997,7 @@ var _ = Describe("cluster", func() {
 				mockHostApi.EXPECT().UpdateInstallationDisk(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -3037,7 +3038,7 @@ var _ = Describe("cluster", func() {
 		Context("Day2 api vip dnsname/ip", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID:   &clusterID,
 					Kind: swag.String(models.ClusterKindAddHostsCluster),
 				}}).Error
@@ -3045,7 +3046,7 @@ var _ = Describe("cluster", func() {
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 			})
 			It("update api vip dnsname success", func() {
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -3059,7 +3060,7 @@ var _ = Describe("cluster", func() {
 		Context("Day2 update hostname", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID:   &clusterID,
 					Kind: swag.String(models.ClusterKindAddHostsCluster),
 				}}).Error
@@ -3072,7 +3073,7 @@ var _ = Describe("cluster", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(2)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(2)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -3091,7 +3092,7 @@ var _ = Describe("cluster", func() {
 				mockHostApi.EXPECT().UpdateHostname(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(3)
 				mockHostApi.EXPECT().GetStagesByRole(gomock.Any(), gomock.Any()).Return(nil).Times(3)
-				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 				mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 				reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 					ClusterID: clusterID,
@@ -3110,7 +3111,7 @@ var _ = Describe("cluster", func() {
 		Context("Update Network", func() {
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
-				err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 					ID: &clusterID,
 				}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
@@ -3598,7 +3599,7 @@ var _ = Describe("cluster", func() {
 
 				It("Fail to set IPv6 machine CIDR and VIP DHCP true", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 						ID: &clusterID,
 					}}).Error
 					Expect(err).ShouldNot(HaveOccurred())
@@ -3617,7 +3618,7 @@ var _ = Describe("cluster", func() {
 
 				It("Fail to set IPv6 machine CIDR when VIP DHCP was true", func() {
 					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 						ID:                &clusterID,
 						VipDhcpAllocation: swag.Bool(true),
 					}}).Error
@@ -3637,7 +3638,7 @@ var _ = Describe("cluster", func() {
 					mockClusterRefreshStatusSuccess()
 					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 					clusterID = strfmt.UUID(uuid.New().String())
-					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+					err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 						ID:                 &clusterID,
 						MachineNetworkCidr: "2001:db8::/64",
 					}}).Error
@@ -3674,7 +3675,7 @@ var _ = Describe("cluster", func() {
 		BeforeEach(func() {
 			DoneChannel = make(chan int)
 			clusterID = strfmt.UUID(uuid.New().String())
-			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 				ID:                 &clusterID,
 				APIVip:             "10.11.12.13",
 				IngressVip:         "10.11.20.50",
@@ -3782,7 +3783,7 @@ var _ = Describe("cluster", func() {
 			setIsReadyForInstallationFalse(mockClusterApi)
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
 
-			Expect(db.Model(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
+			Expect(db.Model(&dbc.Cluster{Cluster: models.Cluster{ID: &clusterID}}).UpdateColumn("status", "insufficient").Error).To(Not(HaveOccurred()))
 			reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
 				ClusterID: clusterID,
 			})
@@ -3973,7 +3974,7 @@ var _ = Describe("cluster", func() {
 
 		AfterEach(func() {
 			close(DoneChannel)
-			common.DeleteTestDB(db, dbName)
+			dbc.DeleteTestDB(db, dbName)
 		})
 	})
 })
@@ -3986,17 +3987,17 @@ var _ = Describe("KubeConfig download", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		c         common.Cluster
+		c         dbc.Cluster
 		dbName    string
 	)
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 
 		bm = createInventory(db, cfg)
-		c = common.Cluster{Cluster: models.Cluster{
+		c = dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			APIVip:           "10.11.12.13",
@@ -4007,7 +4008,7 @@ var _ = Describe("KubeConfig download", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("kubeconfig presigned backend not aws", func() {
@@ -4091,7 +4092,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		db                  *gorm.DB
 		ctx                 = context.Background()
 		clusterID           strfmt.UUID
-		c                   common.Cluster
+		c                   dbc.Cluster
 		ingressCa           models.IngressCertParams
 		kubeconfigFile      *os.File
 		kubeconfigNoingress string
@@ -4101,7 +4102,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ingressCa = "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"MQswCQYDVQQHDAJkZDELMAkGA1UECgwCZGQxCzAJBgNVBAsMAmRkMQswCQYDVQQDDAJkZDERMA8GCSqGSIb3DQEJARYCZGQwHhcNMjAwNTI1MTYwNTAwWhcNMzA" +
@@ -4118,7 +4119,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, nil, nil, nil, nil, nil, mockOperators, nil, nil, nil)
-		c = common.Cluster{Cluster: models.Cluster{
+		c = dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			APIVip:           "10.11.12.13",
@@ -4134,7 +4135,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		kubeconfigFile.Close()
 	})
 
@@ -4272,7 +4273,7 @@ var _ = Describe("List unregistered clusters", func() {
 		clusterID          strfmt.UUID
 		hostID             strfmt.UUID
 		openshiftClusterID = strToUUID("41940ee8-ec99-43de-8766-174381b4921d")
-		c                  common.Cluster
+		c                  dbc.Cluster
 		kubeconfigFile     *os.File
 		dbName             string
 		host1              models.Host
@@ -4280,10 +4281,10 @@ var _ = Describe("List unregistered clusters", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		c = common.Cluster{Cluster: models.Cluster{
+		c = dbc.Cluster{Cluster: models.Cluster{
 			ID:                 &clusterID,
 			OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
 			Name:               "mycluster",
@@ -4298,7 +4299,7 @@ var _ = Describe("List unregistered clusters", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		kubeconfigFile.Close()
 	})
 
@@ -4363,7 +4364,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		ctx            = context.Background()
 		clusterID      strfmt.UUID
 		hostID         strfmt.UUID
-		c              common.Cluster
+		c              dbc.Cluster
 		kubeconfigFile *os.File
 		dbName         string
 		request        *http.Request
@@ -4373,11 +4374,11 @@ var _ = Describe("Upload and Download logs test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 
 		bm = createInventory(db, cfg)
-		c = common.Cluster{Cluster: models.Cluster{
+		c = dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			Name:             "mycluster",
@@ -4403,7 +4404,7 @@ var _ = Describe("Upload and Download logs test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		kubeconfigFile.Close()
 		ctrl.Finish()
 	})
@@ -4722,7 +4723,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		db.Save(&c)
 		dbReply := db.Delete(&host1)
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
-		dbReply = db.Where("id = ?", clusterID).Delete(&common.Cluster{})
+		dbReply = db.Where("id = ?", clusterID).Delete(&dbc.Cluster{})
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
 		r := ioutil.NopCloser(bytes.NewReader([]byte("test")))
 		fileName := bm.getLogsFullName(clusterID.String(), logsType)
@@ -4742,7 +4743,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		db.Save(&c)
 		dbReply := db.Unscoped().Delete(&host1)
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
-		dbReply = db.Unscoped().Where("id = ?", clusterID).Delete(&common.Cluster{})
+		dbReply = db.Unscoped().Where("id = ?", clusterID).Delete(&dbc.Cluster{})
 		Expect(int(dbReply.RowsAffected)).Should(Equal(1))
 		verifyApiError(bm.DownloadClusterLogs(ctx, params), http.StatusNotFound)
 	})
@@ -4755,15 +4756,15 @@ var _ = Describe("GetClusterInstallConfig", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		c         common.Cluster
+		c         dbc.Cluster
 		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		c = common.Cluster{Cluster: models.Cluster{
+		c = dbc.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterID,
 			BaseDNSDomain:          "example.com",
 			OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
@@ -4774,7 +4775,7 @@ var _ = Describe("GetClusterInstallConfig", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -4794,15 +4795,15 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		c         common.Cluster
+		c         dbc.Cluster
 		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		c = common.Cluster{
+		c = dbc.Cluster{
 			Cluster: models.Cluster{
 				ID:               &clusterID,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -4815,7 +4816,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -4830,7 +4831,7 @@ var _ = Describe("UpdateClusterInstallConfig", func() {
 		response := bm.UpdateClusterInstallConfig(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateClusterInstallConfigCreated{}))
 
-		var updated common.Cluster
+		var updated dbc.Cluster
 		err := db.First(&updated, "id = ?", clusterID).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(updated.InstallConfigOverrides).To(Equal(override))
@@ -4865,15 +4866,15 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		c         common.Cluster
+		c         dbc.Cluster
 		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		c = common.Cluster{Cluster: models.Cluster{
+		c = dbc.Cluster{Cluster: models.Cluster{
 			ID:            &clusterID,
 			PullSecretSet: true,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
@@ -4882,7 +4883,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -4909,7 +4910,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 	It("returns successfully with overrides", func() {
 		override := `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(override, nil).Times(1)
-		db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update("ignition_config_overrides", override)
+		db.Model(&dbc.Cluster{}).Where("id = ?", clusterID).Update("ignition_config_overrides", override)
 
 		params := installer.GetDiscoveryIgnitionParams{ClusterID: clusterID}
 		response := bm.GetDiscoveryIgnition(ctx, params)
@@ -4939,22 +4940,22 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		db        *gorm.DB
 		ctx       = context.Background()
 		clusterID strfmt.UUID
-		c         common.Cluster
+		c         dbc.Cluster
 		dbName    string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+		c = dbc.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		mockUsageReports()
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -4970,7 +4971,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
 
-		var updated common.Cluster
+		var updated dbc.Cluster
 		err := db.First(&updated, "id = ?", clusterID).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
@@ -5128,7 +5129,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		clusterName = "add-hosts-cluster"
 		apiVIPDnsname = "api-vip.redhat.com"
@@ -5138,7 +5139,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -5176,7 +5177,7 @@ var _ = Describe("Register AddHostsCluster test", func() {
 				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
 			},
 		}
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -5202,10 +5203,10 @@ var _ = Describe("Reset Host test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -5216,7 +5217,7 @@ var _ = Describe("Reset Host test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -5270,10 +5271,10 @@ var _ = Describe("Install Host test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		hostID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -5284,7 +5285,7 @@ var _ = Describe("Install Host test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -5381,9 +5382,9 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -5396,7 +5397,7 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -5440,9 +5441,9 @@ var _ = Describe("Install Hosts test", func() {
 
 	BeforeEach(func() {
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			Kind:             swag.String(models.ClusterKindAddHostsCluster),
 			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
@@ -5457,7 +5458,7 @@ var _ = Describe("Install Hosts test", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -5527,7 +5528,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	BeforeEach(func() {
 		cfg.DefaultNTPSource = ""
 		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
 			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
@@ -5535,7 +5536,7 @@ var _ = Describe("TestRegisterCluster", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -5742,7 +5743,7 @@ var _ = Describe("AMS subscriptions", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
 		bm.ocmClient.Config.WithAMSSubscriptions = true
@@ -5750,7 +5751,7 @@ var _ = Describe("AMS subscriptions", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -6042,13 +6043,13 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 
 		// create a cluster
 		clusterID = strfmt.UUID(uuid.New().String())
 		status := models.ClusterStatusInstalling
-		c := common.Cluster{Cluster: models.Cluster{ID: &clusterID, Status: &status}}
+		c := dbc.Cluster{Cluster: models.Cluster{ID: &clusterID, Status: &status}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
@@ -6062,7 +6063,7 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -6086,7 +6087,7 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 
 	It("return not found for a host in a different cluster", func() {
 		otherClusterID := strfmt.UUID(uuid.New().String())
-		c := common.Cluster{Cluster: models.Cluster{ID: &otherClusterID}}
+		c := dbc.Cluster{Cluster: models.Cluster{ID: &otherClusterID}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		otherHostID := strfmt.UUID(uuid.New().String())
@@ -6108,7 +6109,7 @@ var _ = Describe("GetHostIgnition and DownloadHostIgnition", func() {
 	})
 
 	It("return conflict when the cluster is in the incorrect status", func() {
-		db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("status", models.ClusterStatusInsufficient)
+		db.Model(&dbc.Cluster{}).Where("id = ?", clusterID.String()).Update("status", models.ClusterStatusInsufficient)
 
 		getParams := installer.GetHostIgnitionParams{
 			ClusterID: clusterID,
@@ -6178,10 +6179,10 @@ var _ = Describe("UpdateHostIgnition", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// add some hosts
@@ -6194,7 +6195,7 @@ var _ = Describe("UpdateHostIgnition", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("saves the given string to the host", func() {
@@ -6284,10 +6285,10 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// add a host
@@ -6296,7 +6297,7 @@ var _ = Describe("UpdateHostInstallerArgs", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("saves the given array to the host", func() {
@@ -6367,10 +6368,10 @@ var _ = Describe("UpdateHostApproved", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
 		bm = createInventory(db, cfg)
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
 		hostID = strfmt.UUID(uuid.New().String())
@@ -6378,7 +6379,7 @@ var _ = Describe("UpdateHostApproved", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("get default approved value", func() {
@@ -6411,9 +6412,9 @@ var _ = Describe("Calculate host networks", func() {
 	)
 	BeforeEach(func() {
 		cfg = &Config{}
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterID = strfmt.UUID(uuid.New().String())
-		err := db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
+		err := db.Create(&dbc.Cluster{Cluster: models.Cluster{ID: &clusterID}}).Error
 		Expect(err).ShouldNot(HaveOccurred())
 
 		// add a host
@@ -6429,12 +6430,12 @@ var _ = Describe("Calculate host networks", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 	It("Duplicates and disabled IPv6", func() {
 		cfg.IPv6Support = false
 		inventory = createInventory(db, *cfg)
-		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		cluster, err := dbc.GetClusterFromDB(db, clusterID, dbc.UseEagerLoading)
 		Expect(err).ToNot(HaveOccurred())
 		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
 		Expect(len(networks)).To(Equal(1))
@@ -6445,7 +6446,7 @@ var _ = Describe("Calculate host networks", func() {
 	It("Duplicates and enabled IPv6", func() {
 		cfg.IPv6Support = true
 		inventory = createInventory(db, *cfg)
-		cluster, err := common.GetClusterFromDB(db, clusterID, common.UseEagerLoading)
+		cluster, err := dbc.GetClusterFromDB(db, clusterID, dbc.UseEagerLoading)
 		Expect(err).ToNot(HaveOccurred())
 		networks := inventory.calculateHostNetworks(logrus.New(), cluster)
 		Expect(len(networks)).To(Equal(2))
@@ -6471,20 +6472,20 @@ var _ = Describe("Get Cluster by Kube Key", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		bm = createInventory(db, cfg)
 	})
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("get cluster by kube key success", func() {
-		mockClusterApi.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(&common.Cluster{}, nil).Times(1)
+		mockClusterApi.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(&dbc.Cluster{}, nil).Times(1)
 		cluster, err := bm.GetClusterByKubeKey(types.NamespacedName{Name: "name", Namespace: "namespace"})
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(cluster).Should(Equal(&common.Cluster{}))
+		Expect(cluster).Should(Equal(&dbc.Cluster{}))
 	})
 
 	It("get cluster by kube key failure", func() {
@@ -6626,15 +6627,15 @@ var _ = Describe("GetCredentials", func() {
 		bm     *bareMetalInventory
 		db     *gorm.DB
 		dbName string
-		c      common.Cluster
+		c      dbc.Cluster
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB(dbName)
+		db, dbName = dbc.PrepareTestDB(dbName)
 		bm = createInventory(db, cfg)
 
 		clusterID := strfmt.UUID(uuid.New().String())
-		c = common.Cluster{
+		c = dbc.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID,
 			},
@@ -6643,7 +6644,7 @@ var _ = Describe("GetCredentials", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 

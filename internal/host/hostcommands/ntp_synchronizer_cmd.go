@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -24,7 +24,7 @@ func NewNtpSyncCmd(log logrus.FieldLogger, ntpSynchronizerImage string, db *gorm
 	}
 }
 
-func (f *ntpSynchronizerCmd) prepareParam(host *models.Host, cluster *common.Cluster) (string, error) {
+func (f *ntpSynchronizerCmd) prepareParam(host *models.Host, cluster *dbc.Cluster) (string, error) {
 	request := models.NtpSynchronizationRequest{
 		NtpSource: &cluster.AdditionalNtpSource,
 	}
@@ -37,7 +37,7 @@ func (f *ntpSynchronizerCmd) prepareParam(host *models.Host, cluster *common.Clu
 }
 
 func (f *ntpSynchronizerCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	if err := f.db.Take(&cluster, "id = ?", host.ClusterID.String()).Error; err != nil {
 		return nil, err
 	}

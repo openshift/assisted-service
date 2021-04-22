@@ -8,7 +8,7 @@ import (
 	context "context"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	models "github.com/openshift/assisted-service/models"
 	installer "github.com/openshift/assisted-service/restapi/operations/installer"
 	io "io"
@@ -70,10 +70,10 @@ func (mr *MockInstallerInternalsMockRecorder) DownloadClusterKubeconfigInternal(
 }
 
 // GenerateClusterISOInternal mocks base method
-func (m *MockInstallerInternals) GenerateClusterISOInternal(arg0 context.Context, arg1 installer.GenerateClusterISOParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) GenerateClusterISOInternal(arg0 context.Context, arg1 installer.GenerateClusterISOParams) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateClusterISOInternal", arg0, arg1)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -85,10 +85,10 @@ func (mr *MockInstallerInternalsMockRecorder) GenerateClusterISOInternal(arg0, a
 }
 
 // GetClusterByKubeKey mocks base method
-func (m *MockInstallerInternals) GetClusterByKubeKey(arg0 types.NamespacedName) (*common.Cluster, error) {
+func (m *MockInstallerInternals) GetClusterByKubeKey(arg0 types.NamespacedName) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterByKubeKey", arg0)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -100,10 +100,10 @@ func (mr *MockInstallerInternalsMockRecorder) GetClusterByKubeKey(arg0 interface
 }
 
 // GetClusterInternal mocks base method
-func (m *MockInstallerInternals) GetClusterInternal(arg0 context.Context, arg1 installer.GetClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) GetClusterInternal(arg0 context.Context, arg1 installer.GetClusterParams) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterInternal", arg0, arg1)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -115,10 +115,10 @@ func (mr *MockInstallerInternalsMockRecorder) GetClusterInternal(arg0, arg1 inte
 }
 
 // GetCommonHostInternal mocks base method
-func (m *MockInstallerInternals) GetCommonHostInternal(arg0 context.Context, arg1, arg2 string) (*common.Host, error) {
+func (m *MockInstallerInternals) GetCommonHostInternal(arg0 context.Context, arg1, arg2 string) (*dbc.Host, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCommonHostInternal", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*common.Host)
+	ret0, _ := ret[0].(*dbc.Host)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -145,10 +145,10 @@ func (mr *MockInstallerInternalsMockRecorder) GetCredentialsInternal(arg0, arg1 
 }
 
 // InstallClusterInternal mocks base method
-func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.InstallClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) InstallClusterInternal(arg0 context.Context, arg1 installer.InstallClusterParams) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "InstallClusterInternal", arg0, arg1)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -174,10 +174,10 @@ func (mr *MockInstallerInternalsMockRecorder) InstallSingleDay2HostInternal(arg0
 }
 
 // RegisterAddHostsClusterInternal mocks base method
-func (m *MockInstallerInternals) RegisterAddHostsClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.RegisterAddHostsClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) RegisterAddHostsClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.RegisterAddHostsClusterParams) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterAddHostsClusterInternal", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -189,10 +189,10 @@ func (mr *MockInstallerInternalsMockRecorder) RegisterAddHostsClusterInternal(ar
 }
 
 // RegisterClusterInternal mocks base method
-func (m *MockInstallerInternals) RegisterClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.RegisterClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) RegisterClusterInternal(arg0 context.Context, arg1 *types.NamespacedName, arg2 installer.RegisterClusterParams) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterClusterInternal", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -204,10 +204,10 @@ func (mr *MockInstallerInternalsMockRecorder) RegisterClusterInternal(arg0, arg1
 }
 
 // UpdateClusterInstallConfigInternal mocks base method
-func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.UpdateClusterInstallConfigParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.UpdateClusterInstallConfigParams) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateClusterInstallConfigInternal", arg0, arg1)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -219,10 +219,10 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInstallConfigInternal
 }
 
 // UpdateClusterInternal mocks base method
-func (m *MockInstallerInternals) UpdateClusterInternal(arg0 context.Context, arg1 installer.UpdateClusterParams) (*common.Cluster, error) {
+func (m *MockInstallerInternals) UpdateClusterInternal(arg0 context.Context, arg1 installer.UpdateClusterParams) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateClusterInternal", arg0, arg1)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

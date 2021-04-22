@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -30,7 +30,7 @@ func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, ope
 }
 
 // GenerateInstallConfig creates install config and ignition files
-func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
+func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster dbc.Cluster, cfg []byte, releaseImage string) error {
 	log := logutil.FromContext(ctx, j.log)
 	workDir := filepath.Join(j.Config.WorkDir, cluster.ID.String())
 	installerCacheDir := filepath.Join(j.Config.WorkDir, "installercache")
@@ -60,7 +60,7 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 	return nil
 }
 
-func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
+func (j *localJob) AbortInstallConfig(ctx context.Context, cluster dbc.Cluster) error {
 	// no job to abort
 	return nil
 }

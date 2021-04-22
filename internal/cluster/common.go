@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -40,8 +41,8 @@ const (
 )
 
 func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
-	newStatus string, statusInfo string, extra ...interface{}) (*common.Cluster, error) {
-	var cluster *common.Cluster
+	newStatus string, statusInfo string, extra ...interface{}) (*dbc.Cluster, error) {
+	var cluster *dbc.Cluster
 	var err error
 	extra = append(append(make([]interface{}, 0), "status", newStatus, "status_info", statusInfo), extra...)
 
@@ -68,7 +69,7 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	return cluster, nil
 }
 
-func updateLogsProgress(log logrus.FieldLogger, db *gorm.DB, c *common.Cluster, srcStatus string,
+func updateLogsProgress(log logrus.FieldLogger, db *gorm.DB, c *dbc.Cluster, srcStatus string,
 	progress string) error {
 	var updates map[string]interface{}
 
@@ -101,11 +102,11 @@ func ClusterExists(db *gorm.DB, clusterId strfmt.UUID) bool {
 
 func clusterExistsInDB(db *gorm.DB, clusterId strfmt.UUID, where map[string]interface{}) bool {
 	where["id"] = clusterId.String()
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	return db.Select("id").Take(&cluster, where).Error == nil
 }
 
-func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*common.Cluster, error) {
+func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string, extra ...interface{}) (*dbc.Cluster, error) {
 	updates := make(map[string]interface{})
 
 	if len(extra)%2 != 0 {
@@ -117,20 +118,20 @@ func UpdateCluster(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, s
 
 	// Query by <cluster-id, status>
 	// Status is required as well to avoid races between different components.
-	dbReply := db.Model(&common.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
+	dbReply := db.Model(&dbc.Cluster{}).Where("id = ? and status = ?", clusterId, srcStatus).Updates(updates)
 
 	if dbReply.Error != nil || (dbReply.RowsAffected == 0 && !clusterExistsInDB(db, clusterId, updates)) {
 		return nil, errors.Errorf("failed to update cluster %s. nothing has changed", clusterId)
 	}
 
-	return common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+	return dbc.GetClusterFromDB(db, clusterId, dbc.UseEagerLoading)
 }
 
-func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
-	var cluster *common.Cluster
+func getKnownMastersNodesIds(c *dbc.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+	var cluster *dbc.Cluster
 	var err error
 	var masterNodesIds []*strfmt.UUID
-	if cluster, err = common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading); err != nil {
+	if cluster, err = dbc.GetClusterFromDB(db, *c.ID, dbc.UseEagerLoading); err != nil {
 		return nil, errors.Errorf("cluster %s not found", c.ID)
 	}
 
@@ -143,7 +144,7 @@ func getKnownMastersNodesIds(c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, er
 	return masterNodesIds, nil
 }
 
-func NumberOfWorkers(c *common.Cluster) int {
+func NumberOfWorkers(c *dbc.Cluster) int {
 	num := 0
 	for _, host := range c.Hosts {
 		if host.Role != models.HostRoleWorker || *host.Status == models.HostStatusDisabled {
@@ -154,15 +155,15 @@ func NumberOfWorkers(c *common.Cluster) int {
 	return num
 }
 
-func MapMasterHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+func MapMasterHostsByStatus(c *dbc.Cluster) map[string][]*models.Host {
 	return mapHostsByStatus(c, models.HostRoleMaster)
 }
 
-func MapWorkersHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+func MapWorkersHostsByStatus(c *dbc.Cluster) map[string][]*models.Host {
 	return mapHostsByStatus(c, models.HostRoleWorker)
 }
 
-func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*models.Host {
+func mapHostsByStatus(c *dbc.Cluster, role models.HostRole) map[string][]*models.Host {
 	hostMap := make(map[string][]*models.Host)
 	for _, host := range c.Hosts {
 		if role != "" && host.Role != role {
@@ -177,14 +178,14 @@ func mapHostsByStatus(c *common.Cluster, role models.HostRole) map[string][]*mod
 	return hostMap
 }
 
-func MapHostsByStatus(c *common.Cluster) map[string][]*models.Host {
+func MapHostsByStatus(c *dbc.Cluster) map[string][]*models.Host {
 	return mapHostsByStatus(c, "")
 }
 
 // GetCluster returns the cluster entity fetched from the DB or an error if failed to
-func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clusterID string) (*common.Cluster, *common.ApiErrorResponse) {
+func GetCluster(ctx context.Context, logger logrus.FieldLogger, db *gorm.DB, clusterID string) (*dbc.Cluster, *common.ApiErrorResponse) {
 	log := logutil.FromContext(ctx, logger)
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	if err := db.First(&cluster, identity.AddUserFilter(ctx, "id = ?"), clusterID).Error; err != nil {
 		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {

@@ -6,7 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	gormigrate "gopkg.in/gormigrate.v1"
 )
@@ -21,11 +21,11 @@ var _ = Describe("changeOverridesToText", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 
 		overrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		clusterID = strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{Cluster: models.Cluster{
+		cluster := dbc.Cluster{Cluster: models.Cluster{
 			ID:                      &clusterID,
 			IgnitionConfigOverrides: overrides,
 		}}
@@ -38,11 +38,11 @@ var _ = Describe("changeOverridesToText", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &common.Cluster{}, "install_config_overrides")
+		t, err := getColumnType(db, &dbc.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(t).To(Equal("TEXT"))
 		expectOverride(db, clusterID.String(), overrides)
@@ -50,7 +50,7 @@ var _ = Describe("changeOverridesToText", func() {
 		err = gm.RollbackMigration(changeOverridesToText())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "install_config_overrides")
+		t, err = getColumnType(db, &dbc.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(t).To(Equal("VARCHAR"))
 		expectOverride(db, clusterID.String(), overrides)
@@ -58,7 +58,7 @@ var _ = Describe("changeOverridesToText", func() {
 		err = gm.MigrateTo("20201019194303")
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "install_config_overrides")
+		t, err = getColumnType(db, &dbc.Cluster{}, "install_config_overrides")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(t).To(Equal("TEXT"))
 		expectOverride(db, clusterID.String(), overrides)
@@ -66,7 +66,7 @@ var _ = Describe("changeOverridesToText", func() {
 })
 
 func expectOverride(db *gorm.DB, clusterID string, override string) {
-	var c common.Cluster
+	var c dbc.Cluster
 	err := db.First(&c, "id = ?", clusterID).Error
 	Expect(err).ShouldNot(HaveOccurred())
 	Expect(c.IgnitionConfigOverrides).To(Equal(override))

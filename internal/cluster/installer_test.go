@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 )
@@ -20,17 +21,17 @@ var _ = Describe("installer", func() {
 		installerManager InstallationAPI
 		db               *gorm.DB
 		id               strfmt.UUID
-		cluster          common.Cluster
+		cluster          dbc.Cluster
 		hostsIds         []strfmt.UUID
 		dbName           string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		installerManager = NewInstaller(common.GetTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
-		cluster = common.Cluster{Cluster: models.Cluster{
+		cluster = dbc.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String(models.ClusterStatusReady),
 		}}
@@ -102,11 +103,11 @@ var _ = Describe("installer", func() {
 		})
 	})
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
-func updateClusterState(cluster common.Cluster, state string, db *gorm.DB) common.Cluster {
+func updateClusterState(cluster dbc.Cluster, state string, db *gorm.DB) dbc.Cluster {
 	cluster.Status = swag.String(state)
 	Expect(db.Model(&cluster).Update("status", state).Error).NotTo(HaveOccurred())
 	return cluster

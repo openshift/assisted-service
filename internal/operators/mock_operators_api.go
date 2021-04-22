@@ -7,7 +7,7 @@ package operators
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	api "github.com/openshift/assisted-service/internal/operators/api"
 	models "github.com/openshift/assisted-service/models"
 	reflect "reflect"
@@ -37,7 +37,7 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // AnyOLMOperatorEnabled mocks base method
-func (m *MockAPI) AnyOLMOperatorEnabled(arg0 *common.Cluster) bool {
+func (m *MockAPI) AnyOLMOperatorEnabled(arg0 *dbc.Cluster) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AnyOLMOperatorEnabled", arg0)
 	ret0, _ := ret[0].(bool)
@@ -51,7 +51,7 @@ func (mr *MockAPIMockRecorder) AnyOLMOperatorEnabled(arg0 interface{}) *gomock.C
 }
 
 // GenerateManifests mocks base method
-func (m *MockAPI) GenerateManifests(arg0 context.Context, arg1 *common.Cluster) error {
+func (m *MockAPI) GenerateManifests(arg0 context.Context, arg1 *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateManifests", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -109,7 +109,7 @@ func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.C
 }
 
 // GetPreflightRequirementsBreakdownForCluster mocks base method
-func (m *MockAPI) GetPreflightRequirementsBreakdownForCluster(arg0 context.Context, arg1 *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
+func (m *MockAPI) GetPreflightRequirementsBreakdownForCluster(arg0 context.Context, arg1 *dbc.Cluster) ([]*models.OperatorHardwareRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPreflightRequirementsBreakdownForCluster", arg0, arg1)
 	ret0, _ := ret[0].([]*models.OperatorHardwareRequirements)
@@ -124,7 +124,7 @@ func (mr *MockAPIMockRecorder) GetPreflightRequirementsBreakdownForCluster(arg0,
 }
 
 // GetRequirementsBreakdownForHostInCluster mocks base method
-func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]*models.OperatorHostRequirements, error) {
+func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context, arg1 *dbc.Cluster, arg2 *models.Host) ([]*models.OperatorHostRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRequirementsBreakdownForHostInCluster", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]*models.OperatorHostRequirements)
@@ -182,7 +182,7 @@ func (mr *MockAPIMockRecorder) ResolveDependencies(arg0 interface{}) *gomock.Cal
 }
 
 // ValidateCluster mocks base method
-func (m *MockAPI) ValidateCluster(arg0 context.Context, arg1 *common.Cluster) ([]api.ValidationResult, error) {
+func (m *MockAPI) ValidateCluster(arg0 context.Context, arg1 *dbc.Cluster) ([]api.ValidationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateCluster", arg0, arg1)
 	ret0, _ := ret[0].([]api.ValidationResult)
@@ -197,7 +197,7 @@ func (mr *MockAPIMockRecorder) ValidateCluster(arg0, arg1 interface{}) *gomock.C
 }
 
 // ValidateHost mocks base method
-func (m *MockAPI) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]api.ValidationResult, error) {
+func (m *MockAPI) ValidateHost(arg0 context.Context, arg1 *dbc.Cluster, arg2 *models.Host) ([]api.ValidationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateHost", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]api.ValidationResult)

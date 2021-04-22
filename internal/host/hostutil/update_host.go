@@ -8,7 +8,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -19,7 +19,7 @@ var ResetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.Da
 
 func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID,
 	srcStatus string, newStatus string, statusInfo string,
-	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*common.Host, error) {
+	srcStage models.HostStage, newStage models.HostStage, progressInfo string, extra ...interface{}) (*dbc.Host, error) {
 
 	extra = append(append(make([]interface{}, 0), "progress_current_stage", newStage, "progress_progress_info", progressInfo,
 		"progress_stage_updated_at", strfmt.DateTime(time.Now())), extra...)
@@ -31,8 +31,8 @@ func UpdateHostProgress(ctx context.Context, log logrus.FieldLogger, db *gorm.DB
 	return UpdateHostStatus(ctx, log, db, eventsHandler, clusterId, hostId, srcStatus, newStatus, statusInfo, extra...)
 }
 
-func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, _ events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID, srcStatus string, progress string, extra ...interface{}) (*common.Host, error) {
-	var host *common.Host
+func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, _ events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID, srcStatus string, progress string, extra ...interface{}) (*dbc.Host, error) {
+	var host *dbc.Host
 	var err error
 
 	switch progress {
@@ -52,8 +52,8 @@ func UpdateLogsProgress(_ context.Context, log logrus.FieldLogger, db *gorm.DB, 
 }
 
 func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterId strfmt.UUID, hostId strfmt.UUID,
-	srcStatus string, newStatus string, statusInfo string, extra ...interface{}) (*common.Host, error) {
-	var host *common.Host
+	srcStatus string, newStatus string, statusInfo string, extra ...interface{}) (*dbc.Host, error) {
+	var host *dbc.Host
 	var err error
 
 	extra = append(append(make([]interface{}, 0), "status", newStatus, "status_info", statusInfo), extra...)
@@ -81,7 +81,7 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 }
 
 func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId strfmt.UUID,
-	srcStatus string, extra ...interface{}) (*common.Host, error) {
+	srcStatus string, extra ...interface{}) (*dbc.Host, error) {
 	updates := make(map[string]interface{})
 
 	if len(extra)%2 != 0 {
@@ -101,10 +101,10 @@ func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId
 		return nil, errors.Errorf("failed to update host %s from cluster %s. nothing has changed", hostId, clusterId)
 	}
 
-	var host *common.Host
+	var host *dbc.Host
 	var err error
 
-	if host, err = common.GetHostFromDB(db, clusterId.String(), hostId.String()); err != nil {
+	if host, err = dbc.GetHostFromDB(db, clusterId.String(), hostId.String()); err != nil {
 		return nil, errors.Wrapf(err, "failed to read from host %s from cluster %s from the database after the update", hostId, clusterId)
 	}
 

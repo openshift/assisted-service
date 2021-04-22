@@ -92,6 +92,7 @@ var migrationTestTemplate = `package migrations
 
 import (
 	"github.com/openshift/assisted-service/internal/common"
+"github.com/openshift/assisted-service/internal/dbc"
 
 	"github.com/jinzhu/gorm"
 	gormigrate "gopkg.in/gormigrate.v1"
@@ -107,11 +108,11 @@ var _ = Describe("{{.FuncName}}", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates up", func() {

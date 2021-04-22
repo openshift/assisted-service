@@ -20,6 +20,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
@@ -147,13 +148,13 @@ func getAPIVersion() string {
 }
 
 func getClusterFromDB(
-	ctx context.Context, client k8sclient.Client, db *gorm.DB, key types.NamespacedName, timeout int) *common.Cluster {
+	ctx context.Context, client k8sclient.Client, db *gorm.DB, key types.NamespacedName, timeout int) *dbc.Cluster {
 
 	var err error
-	cluster := &common.Cluster{}
+	cluster := &dbc.Cluster{}
 	start := time.Now()
 	for time.Duration(timeout)*time.Second > time.Since(start) {
-		cluster, err = common.GetClusterFromDBWhere(db, common.UseEagerLoading, common.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+		cluster, err = dbc.GetClusterFromDBWhere(db, dbc.UseEagerLoading, dbc.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
 		if err == nil {
 			return cluster
 		}
@@ -431,12 +432,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() string {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 			return h.RequestedHostname
 		}, "2m", "10s").Should(Equal("newhostname"))
 		Eventually(func() string {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 			return h.InstallationDiskID
 		}, "2m", "10s").Should(Equal(sdb.ID))
@@ -475,7 +476,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 			agent := getAgentCRD(ctx, kubeClient, key)
 
@@ -490,7 +491,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "10s").Should(Equal(true))
 
 		By("Clean ignition config override ")
-		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.IgnitionConfigOverrides).NotTo(BeEmpty())
 
@@ -508,7 +509,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Verify host ignition config override were cleaned")
 		Eventually(func() int {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 
 			return len(h.IgnitionConfigOverrides)
@@ -531,7 +532,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.IgnitionConfigOverrides).To(BeEmpty())
 
@@ -549,7 +550,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return false
 		}, "15s", "2s").Should(Equal(true))
-		h, err = common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err = dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.IgnitionConfigOverrides).To(BeEmpty())
 	})
@@ -578,7 +579,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 			agent := getAgentCRD(ctx, kubeClient, key)
 
@@ -596,7 +597,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "10s").Should(Equal(true))
 
 		By("Clean installer args")
-		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.InstallerArgs).NotTo(BeEmpty())
 
@@ -607,7 +608,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() int {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 			var j []string
 			err = json.Unmarshal([]byte(h.InstallerArgs), &j)
@@ -633,7 +634,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.InstallerArgs).To(BeEmpty())
 
@@ -652,7 +653,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return false
 		}, "15s", "2s").Should(Equal(true))
-		h, err = common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err = dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.InstallerArgs).To(BeEmpty())
 
@@ -671,7 +672,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			}
 			return false
 		}, "15s", "2s").Should(Equal(true))
-		h, err = common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err = dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.InstallerArgs).To(BeEmpty())
 	})
@@ -705,7 +706,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 			agent := getAgentCRD(ctx, kubeClient, key)
 			if agent.Spec.InstallerArgs == "" {
@@ -726,7 +727,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "10s").Should(Equal(true))
 
 		By("Clean installer args")
-		h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+		h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 		Expect(err).To(BeNil())
 		Expect(h.InstallerArgs).NotTo(BeEmpty())
 
@@ -744,7 +745,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Verify host installer args were cleaned")
 		Eventually(func() int {
-			h, err := common.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
+			h, err := dbc.GetHostFromDB(db, cluster.ID.String(), host.ID.String())
 			Expect(err).To(BeNil())
 
 			var j []string

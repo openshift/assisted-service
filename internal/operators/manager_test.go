@@ -13,6 +13,7 @@ import (
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
@@ -27,7 +28,7 @@ import (
 
 var (
 	ctx          = context.Background()
-	cluster      *common.Cluster
+	cluster      *dbc.Cluster
 	clusterHost  *models.Host
 	log          = logrus.New()
 	manager      *operators.Manager
@@ -38,7 +39,7 @@ var (
 var _ = BeforeEach(func() {
 	// create simple cluster
 	clusterID := strfmt.UUID(uuid.New().String())
-	cluster = &common.Cluster{
+	cluster = &dbc.Cluster{
 		Cluster: models.Cluster{
 			ID: &clusterID,
 		},

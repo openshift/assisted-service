@@ -13,6 +13,7 @@ import (
 	opclient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
@@ -59,7 +60,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster := reply.GetPayload()
-			c := &common.Cluster{Cluster: *cluster}
+			c := &dbc.Cluster{Cluster: *cluster}
 
 			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operators.IsEnabled(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
@@ -88,7 +89,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			cluster = getClusterReply.GetPayload()
-			c := &common.Cluster{Cluster: *cluster}
+			c := &dbc.Cluster{Cluster: *cluster}
 			Expect(operators.IsEnabled(c.MonitoredOperators, newOperator)).Should(BeTrue())
 		})
 	})
@@ -122,7 +123,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				Expect(err).ToNot(HaveOccurred())
 				getReply, err2 := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
 				Expect(err2).ToNot(HaveOccurred())
-				c := &common.Cluster{Cluster: *getReply.Payload}
+				c := &dbc.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
 				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeTrue())
@@ -141,7 +142,7 @@ var _ = Describe("Operators endpoint tests", func() {
 				Expect(err).ToNot(HaveOccurred())
 				getReply, err := userBMClient.Installer.GetCluster(context.TODO(), installer.NewGetClusterParams().WithClusterID(clusterID))
 				Expect(err).ToNot(HaveOccurred())
-				c := &common.Cluster{Cluster: *getReply.Payload}
+				c := &dbc.Cluster{Cluster: *getReply.Payload}
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
 				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeFalse())

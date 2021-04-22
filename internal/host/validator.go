@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -50,7 +51,7 @@ func (v ValidationStatus) String() string {
 
 type validationContext struct {
 	host                    *models.Host
-	cluster                 *common.Cluster
+	cluster                 *dbc.Cluster
 	inventory               *models.Inventory
 	db                      *gorm.DB
 	clusterHostRequirements *models.ClusterHostRequirements
@@ -66,7 +67,7 @@ type validation struct {
 }
 
 func (c *validationContext) loadCluster() error {
-	clusterFromDB, err := common.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
+	clusterFromDB, err := dbc.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
 	if err == nil {
 		c.cluster = clusterFromDB
 	}
@@ -343,7 +344,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status Validatio
 }
 
 func (v *validator) belongsToMachineCidr(c *validationContext) ValidationStatus {
-	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || (swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)) {
+	if swag.StringValue(c.cluster.Kind) == models.ClusterKindAddHostsCluster || (swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(&c.cluster.Cluster)) {
 		return ValidationSuccess
 	}
 	if c.inventory == nil || c.cluster.MachineNetworkCidr == "" {

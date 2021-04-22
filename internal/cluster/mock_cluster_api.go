@@ -10,6 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
 	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
@@ -39,7 +40,7 @@ func (m *MockRegistrationAPI) EXPECT() *MockRegistrationAPIMockRecorder {
 }
 
 // RegisterCluster mocks base method
-func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockRegistrationAPI) RegisterCluster(ctx context.Context, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c)
 	ret0, _ := ret[0].(error)
@@ -53,7 +54,7 @@ func (mr *MockRegistrationAPIMockRecorder) RegisterCluster(ctx, c interface{}) *
 }
 
 // RegisterAddHostsCluster mocks base method
-func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockRegistrationAPI) RegisterAddHostsCluster(ctx context.Context, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c)
 	ret0, _ := ret[0].(error)
@@ -67,7 +68,7 @@ func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsCluster(ctx, c interf
 }
 
 // RegisterAddHostsOCPCluster mocks base method
-func (m *MockRegistrationAPI) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+func (m *MockRegistrationAPI) RegisterAddHostsOCPCluster(c *dbc.Cluster, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterAddHostsOCPCluster", c, db)
 	ret0, _ := ret[0].(error)
@@ -81,7 +82,7 @@ func (mr *MockRegistrationAPIMockRecorder) RegisterAddHostsOCPCluster(c, db inte
 }
 
 // DeregisterCluster mocks base method
-func (m *MockRegistrationAPI) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockRegistrationAPI) DeregisterCluster(ctx context.Context, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c)
 	ret0, _ := ret[0].(error)
@@ -118,7 +119,7 @@ func (m *MockInstallationAPI) EXPECT() *MockInstallationAPIMockRecorder {
 }
 
 // Install mocks base method
-func (m *MockInstallationAPI) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (m *MockInstallationAPI) Install(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", ctx, c, db)
 	ret0, _ := ret[0].(error)
@@ -132,7 +133,7 @@ func (mr *MockInstallationAPIMockRecorder) Install(ctx, c, db interface{}) *gomo
 }
 
 // GetMasterNodesIds mocks base method
-func (m *MockInstallationAPI) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+func (m *MockInstallationAPI) GetMasterNodesIds(ctx context.Context, c *dbc.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMasterNodesIds", ctx, c, db)
 	ret0, _ := ret[0].([]*strfmt.UUID)
@@ -170,7 +171,7 @@ func (m *MockAPI) EXPECT() *MockAPIMockRecorder {
 }
 
 // RegisterCluster mocks base method
-func (m *MockAPI) RegisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockAPI) RegisterCluster(ctx context.Context, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterCluster", ctx, c)
 	ret0, _ := ret[0].(error)
@@ -184,7 +185,7 @@ func (mr *MockAPIMockRecorder) RegisterCluster(ctx, c interface{}) *gomock.Call 
 }
 
 // RegisterAddHostsCluster mocks base method
-func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockAPI) RegisterAddHostsCluster(ctx context.Context, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterAddHostsCluster", ctx, c)
 	ret0, _ := ret[0].(error)
@@ -198,7 +199,7 @@ func (mr *MockAPIMockRecorder) RegisterAddHostsCluster(ctx, c interface{}) *gomo
 }
 
 // RegisterAddHostsOCPCluster mocks base method
-func (m *MockAPI) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+func (m *MockAPI) RegisterAddHostsOCPCluster(c *dbc.Cluster, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RegisterAddHostsOCPCluster", c, db)
 	ret0, _ := ret[0].(error)
@@ -212,7 +213,7 @@ func (mr *MockAPIMockRecorder) RegisterAddHostsOCPCluster(c, db interface{}) *go
 }
 
 // DeregisterCluster mocks base method
-func (m *MockAPI) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *MockAPI) DeregisterCluster(ctx context.Context, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeregisterCluster", ctx, c)
 	ret0, _ := ret[0].(error)
@@ -226,7 +227,7 @@ func (mr *MockAPIMockRecorder) DeregisterCluster(ctx, c interface{}) *gomock.Cal
 }
 
 // Install mocks base method
-func (m *MockAPI) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (m *MockAPI) Install(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Install", ctx, c, db)
 	ret0, _ := ret[0].(error)
@@ -240,7 +241,7 @@ func (mr *MockAPIMockRecorder) Install(ctx, c, db interface{}) *gomock.Call {
 }
 
 // GetMasterNodesIds mocks base method
-func (m *MockAPI) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+func (m *MockAPI) GetMasterNodesIds(ctx context.Context, c *dbc.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMasterNodesIds", ctx, c, db)
 	ret0, _ := ret[0].([]*strfmt.UUID)
@@ -255,10 +256,10 @@ func (mr *MockAPIMockRecorder) GetMasterNodesIds(ctx, c, db interface{}) *gomock
 }
 
 // RefreshStatus mocks base method
-func (m *MockAPI) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+func (m *MockAPI) RefreshStatus(ctx context.Context, c *dbc.Cluster, db *gorm.DB) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "RefreshStatus", ctx, c, db)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -282,7 +283,7 @@ func (mr *MockAPIMockRecorder) ClusterMonitoring() *gomock.Call {
 }
 
 // IsOperatorAvailable mocks base method
-func (m *MockAPI) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
+func (m *MockAPI) IsOperatorAvailable(c *dbc.Cluster, operatorName string) bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsOperatorAvailable", c, operatorName)
 	ret0, _ := ret[0].(bool)
@@ -296,7 +297,7 @@ func (mr *MockAPIMockRecorder) IsOperatorAvailable(c, operatorName interface{}) 
 }
 
 // UploadIngressCert mocks base method
-func (m *MockAPI) UploadIngressCert(c *common.Cluster) error {
+func (m *MockAPI) UploadIngressCert(c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UploadIngressCert", c)
 	ret0, _ := ret[0].(error)
@@ -310,7 +311,7 @@ func (mr *MockAPIMockRecorder) UploadIngressCert(c interface{}) *gomock.Call {
 }
 
 // VerifyClusterUpdatability mocks base method
-func (m *MockAPI) VerifyClusterUpdatability(c *common.Cluster) error {
+func (m *MockAPI) VerifyClusterUpdatability(c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "VerifyClusterUpdatability", c)
 	ret0, _ := ret[0].(error)
@@ -324,7 +325,7 @@ func (mr *MockAPIMockRecorder) VerifyClusterUpdatability(c interface{}) *gomock.
 }
 
 // AcceptRegistration mocks base method
-func (m *MockAPI) AcceptRegistration(c *common.Cluster) error {
+func (m *MockAPI) AcceptRegistration(c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AcceptRegistration", c)
 	ret0, _ := ret[0].(error)
@@ -338,7 +339,7 @@ func (mr *MockAPIMockRecorder) AcceptRegistration(c interface{}) *gomock.Call {
 }
 
 // CancelInstallation mocks base method
-func (m *MockAPI) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+func (m *MockAPI) CancelInstallation(ctx context.Context, c *dbc.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CancelInstallation", ctx, c, reason, db)
 	ret0, _ := ret[0].(*common.ApiErrorResponse)
@@ -352,7 +353,7 @@ func (mr *MockAPIMockRecorder) CancelInstallation(ctx, c, reason, db interface{}
 }
 
 // ResetCluster mocks base method
-func (m *MockAPI) ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+func (m *MockAPI) ResetCluster(ctx context.Context, c *dbc.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResetCluster", ctx, c, reason, db)
 	ret0, _ := ret[0].(*common.ApiErrorResponse)
@@ -366,7 +367,7 @@ func (mr *MockAPIMockRecorder) ResetCluster(ctx, c, reason, db interface{}) *gom
 }
 
 // PrepareForInstallation mocks base method
-func (m *MockAPI) PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (m *MockAPI) PrepareForInstallation(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PrepareForInstallation", ctx, c, db)
 	ret0, _ := ret[0].(error)
@@ -380,7 +381,7 @@ func (mr *MockAPIMockRecorder) PrepareForInstallation(ctx, c, db interface{}) *g
 }
 
 // HandlePreInstallError mocks base method
-func (m *MockAPI) HandlePreInstallError(ctx context.Context, c *common.Cluster, err error) {
+func (m *MockAPI) HandlePreInstallError(ctx context.Context, c *dbc.Cluster, err error) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "HandlePreInstallError", ctx, c, err)
 }
@@ -392,7 +393,7 @@ func (mr *MockAPIMockRecorder) HandlePreInstallError(ctx, c, err interface{}) *g
 }
 
 // HandlePreInstallSuccess mocks base method
-func (m *MockAPI) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
+func (m *MockAPI) HandlePreInstallSuccess(ctx context.Context, c *dbc.Cluster) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "HandlePreInstallSuccess", ctx, c)
 }
@@ -404,7 +405,7 @@ func (mr *MockAPIMockRecorder) HandlePreInstallSuccess(ctx, c interface{}) *gomo
 }
 
 // SetVipsData mocks base method
-func (m *MockAPI) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
+func (m *MockAPI) SetVipsData(ctx context.Context, c *dbc.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetVipsData", ctx, c, apiVip, ingressVip, apiVipLease, ingressVipLease, db)
 	ret0, _ := ret[0].(error)
@@ -418,7 +419,7 @@ func (mr *MockAPIMockRecorder) SetVipsData(ctx, c, apiVip, ingressVip, apiVipLea
 }
 
 // IsReadyForInstallation mocks base method
-func (m *MockAPI) IsReadyForInstallation(c *common.Cluster) (bool, string) {
+func (m *MockAPI) IsReadyForInstallation(c *dbc.Cluster) (bool, string) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsReadyForInstallation", c)
 	ret0, _ := ret[0].(bool)
@@ -433,7 +434,7 @@ func (mr *MockAPIMockRecorder) IsReadyForInstallation(c interface{}) *gomock.Cal
 }
 
 // CreateTarredClusterLogs mocks base method
-func (m *MockAPI) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+func (m *MockAPI) CreateTarredClusterLogs(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateTarredClusterLogs", ctx, c, objectHandler)
 	ret0, _ := ret[0].(string)
@@ -448,7 +449,7 @@ func (mr *MockAPIMockRecorder) CreateTarredClusterLogs(ctx, c, objectHandler int
 }
 
 // SetUploadControllerLogsAt mocks base method
-func (m *MockAPI) SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (m *MockAPI) SetUploadControllerLogsAt(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SetUploadControllerLogsAt", ctx, c, db)
 	ret0, _ := ret[0].(error)
@@ -476,7 +477,7 @@ func (mr *MockAPIMockRecorder) SetConnectivityMajorityGroupsForCluster(clusterID
 }
 
 // DeleteClusterLogs mocks base method
-func (m *MockAPI) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *MockAPI) DeleteClusterLogs(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteClusterLogs", ctx, c, objectHandler)
 	ret0, _ := ret[0].(error)
@@ -490,7 +491,7 @@ func (mr *MockAPIMockRecorder) DeleteClusterLogs(ctx, c, objectHandler interface
 }
 
 // DeleteClusterFiles mocks base method
-func (m *MockAPI) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *MockAPI) DeleteClusterFiles(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteClusterFiles", ctx, c, objectHandler)
 	ret0, _ := ret[0].(error)
@@ -504,7 +505,7 @@ func (mr *MockAPIMockRecorder) DeleteClusterFiles(ctx, c, objectHandler interfac
 }
 
 // UpdateLogsProgress mocks base method
-func (m *MockAPI) UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error {
+func (m *MockAPI) UpdateLogsProgress(ctx context.Context, c *dbc.Cluster, progress string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateLogsProgress", ctx, c, progress)
 	ret0, _ := ret[0].(error)
@@ -518,10 +519,10 @@ func (mr *MockAPIMockRecorder) UpdateLogsProgress(ctx, c, progress interface{}) 
 }
 
 // GetClusterByKubeKey mocks base method
-func (m *MockAPI) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
+func (m *MockAPI) GetClusterByKubeKey(key types.NamespacedName) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterByKubeKey", key)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -547,7 +548,7 @@ func (mr *MockAPIMockRecorder) UpdateAmsSubscriptionID(ctx, clusterID, amsSubscr
 }
 
 // GenerateAdditionalManifests mocks base method
-func (m *MockAPI) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
+func (m *MockAPI) GenerateAdditionalManifests(ctx context.Context, cluster *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateAdditionalManifests", ctx, cluster)
 	ret0, _ := ret[0].(error)
@@ -561,10 +562,10 @@ func (mr *MockAPIMockRecorder) GenerateAdditionalManifests(ctx, cluster interfac
 }
 
 // CompleteInstallation mocks base method
-func (m *MockAPI) CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error) {
+func (m *MockAPI) CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *dbc.Cluster, successfullyFinished bool, reason string) (*dbc.Cluster, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CompleteInstallation", ctx, db, cluster, successfullyFinished, reason)
-	ret0, _ := ret[0].(*common.Cluster)
+	ret0, _ := ret[0].(*dbc.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

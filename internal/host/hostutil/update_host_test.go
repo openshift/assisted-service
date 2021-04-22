@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 )
@@ -26,13 +27,13 @@ var _ = Describe("update_host_state", func() {
 		mockEvents      *events.MockHandler
 		host            models.Host
 		lastUpdatedTime strfmt.DateTime
-		returnedHost    *common.Host
+		returnedHost    *dbc.Host
 		err             error
 		dbName          string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		id := strfmt.UUID(uuid.New().String())
@@ -155,7 +156,7 @@ var _ = Describe("update_host_state", func() {
 		})
 	})
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 })

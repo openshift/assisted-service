@@ -17,6 +17,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -56,7 +57,7 @@ var _ = Describe("RegisterHost", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
@@ -418,7 +419,7 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })
@@ -437,7 +438,7 @@ var _ = Describe("HostInstallationFailed", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
@@ -463,7 +464,7 @@ var _ = Describe("HostInstallationFailed", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -481,7 +482,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
@@ -500,7 +501,7 @@ var _ = Describe("RegisterInstalledOCPHost", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -517,7 +518,7 @@ var _ = Describe("Cancel host installation", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -592,7 +593,7 @@ var _ = Describe("Cancel host installation", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -609,7 +610,7 @@ var _ = Describe("Reset host", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -684,7 +685,7 @@ var _ = Describe("Reset host", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -697,13 +698,13 @@ var _ = Describe("Install", func() {
 		mockEvents        *events.MockHandler
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		cluster           common.Cluster
+		cluster           dbc.Cluster
 		mockHwValidator   *hardware.MockValidator
 		dbName            string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
@@ -853,7 +854,7 @@ var _ = Describe("Install", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -870,7 +871,7 @@ var _ = Describe("Disable", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -986,7 +987,7 @@ var _ = Describe("Disable", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -1003,7 +1004,7 @@ var _ = Describe("Enable", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
@@ -1131,7 +1132,7 @@ var _ = Describe("Enable", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 })
 
@@ -1220,7 +1221,7 @@ var _ = Describe("Refresh Host", func() {
 		db                *gorm.DB
 		hostId, clusterId strfmt.UUID
 		host              models.Host
-		cluster           common.Cluster
+		cluster           dbc.Cluster
 		mockEvents        *events.MockHandler
 		ctrl              *gomock.Controller
 		dbName            string
@@ -1230,7 +1231,7 @@ var _ = Describe("Refresh Host", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
@@ -3807,7 +3808,7 @@ var _ = Describe("Refresh Host", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })
@@ -3829,7 +3830,7 @@ var _ = Describe("validationResult sort", func() {
 })
 
 func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator) *gomock.Call {
-	return mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+	return mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 		var details models.ClusterHostRequirementsDetails
 		if host.Role == models.HostRoleMaster {
 			details = models.ClusterHostRequirementsDetails{

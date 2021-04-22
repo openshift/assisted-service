@@ -7,7 +7,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -25,15 +25,15 @@ type registrar struct {
 	db  *gorm.DB
 }
 
-func (r *registrar) RegisterCluster(ctx context.Context, cluster *common.Cluster) error {
+func (r *registrar) RegisterCluster(ctx context.Context, cluster *dbc.Cluster) error {
 	return r.registerCluster(ctx, cluster, models.ClusterStatusInsufficient, StatusInfoInsufficient, time.Now())
 }
 
-func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *common.Cluster) error {
+func (r *registrar) RegisterAddHostsCluster(ctx context.Context, cluster *dbc.Cluster) error {
 	return r.registerCluster(ctx, cluster, models.ClusterStatusAddingHosts, statusInfoAddingHosts, time.Now())
 }
 
-func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster, status, statusInfo string, registerTime time.Time) error {
+func (r *registrar) registerCluster(ctx context.Context, cluster *dbc.Cluster, status, statusInfo string, registerTime time.Time) error {
 	cluster.Status = swag.String(status)
 	cluster.StatusInfo = swag.String(statusInfo)
 	cluster.StatusUpdatedAt = strfmt.DateTime(registerTime)
@@ -65,8 +65,8 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 		}
 	}
 
-	for _, tableName := range common.ClusterSubTables {
-		tx = common.LoadTableFromDB(tx, tableName)
+	for _, tableName := range dbc.ClusterSubTables {
+		tx = dbc.LoadTableFromDB(tx, tableName)
 	}
 
 	if err := tx.Create(cluster).Error; err != nil {
@@ -82,7 +82,7 @@ func (r *registrar) registerCluster(ctx context.Context, cluster *common.Cluster
 	return nil
 }
 
-func (r *registrar) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+func (r *registrar) RegisterAddHostsOCPCluster(c *dbc.Cluster, db *gorm.DB) error {
 	c.Status = swag.String(models.ClusterStatusAddingHosts)
 	c.StatusInfo = swag.String(StatusInfoReady)
 	err := db.Create(c).Error
@@ -93,7 +93,7 @@ func (r *registrar) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) e
 	return nil
 }
 
-func (r *registrar) DeregisterCluster(ctx context.Context, cluster *common.Cluster) error {
+func (r *registrar) DeregisterCluster(ctx context.Context, cluster *dbc.Cluster) error {
 	var txErr error
 	tx := r.db.Begin()
 

@@ -9,21 +9,21 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"gopkg.in/yaml.v2"
 )
 
 var _ = Describe("dhcp param file", func() {
 	var (
-		cluster   *common.Cluster
+		cluster   *dbc.Cluster
 		clusterId strfmt.UUID
 	)
 	BeforeEach(func() {
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
-	createTestCluster := func(clusterId strfmt.UUID, dhcpEnabled bool, apiVip, ingressVip string) *common.Cluster {
-		return &common.Cluster{
+	createTestCluster := func(clusterId strfmt.UUID, dhcpEnabled bool, apiVip, ingressVip string) *dbc.Cluster {
+		return &dbc.Cluster{
 			Cluster: models.Cluster{
 				ID:                &clusterId,
 				VipDhcpAllocation: swag.Bool(dhcpEnabled),

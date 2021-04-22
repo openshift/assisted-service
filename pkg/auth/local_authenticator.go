@@ -7,7 +7,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/security"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/pkg/ocm"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -101,6 +101,6 @@ func validateToken(token string, pub crypto.PublicKey) (*jwt.Token, error) {
 }
 
 func clusterExists(db *gorm.DB, clusterID string) bool {
-	var c common.Cluster
+	var c dbc.Cluster
 	return db.Select("id").Take(&c, map[string]interface{}{"id": clusterID}).Error == nil
 }

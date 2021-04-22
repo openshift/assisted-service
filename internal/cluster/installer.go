@@ -7,6 +7,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -25,7 +26,7 @@ type installer struct {
 	db  *gorm.DB
 }
 
-func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (i *installer) Install(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, i.log)
 
 	switch swag.StringValue(c.Status) {
@@ -61,6 +62,6 @@ func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB)
 	return nil
 }
 
-func (i *installer) GetMasterNodesIds(ctx context.Context, cluster *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+func (i *installer) GetMasterNodesIds(ctx context.Context, cluster *dbc.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	return getKnownMastersNodesIds(cluster, db)
 }

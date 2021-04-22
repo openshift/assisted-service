@@ -14,7 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/requestid"
@@ -36,7 +36,7 @@ var _ = Describe("Events library", func() {
 		host      = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 	})
 	numOfEvents := func(clusterID strfmt.UUID, hostID *strfmt.UUID) int {
@@ -161,31 +161,31 @@ var _ = Describe("Events library", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 })
 
 func WithRequestID(requestID string) types.GomegaMatcher {
-	return WithTransform(func(e *common.Event) string {
+	return WithTransform(func(e *dbc.Event) string {
 		return e.RequestID.String()
 	}, Equal(requestID))
 }
 
 func WithMessage(msg *string) types.GomegaMatcher {
-	return WithTransform(func(e *common.Event) *string {
+	return WithTransform(func(e *dbc.Event) *string {
 		return e.Message
 	}, Equal(msg))
 }
 
 func WithSeverity(severity *string) types.GomegaMatcher {
-	return WithTransform(func(e *common.Event) *string {
+	return WithTransform(func(e *dbc.Event) *string {
 		return e.Severity
 	}, Equal(severity))
 }
 
 func WithProperty(name string, value interface{}) types.GomegaMatcher {
-	return WithTransform(func(e *common.Event) interface{} {
+	return WithTransform(func(e *dbc.Event) interface{} {
 		props := make(map[string]interface{})
 		_ = json.Unmarshal([]byte(e.Props), &props)
 		return props[name]
@@ -193,14 +193,14 @@ func WithProperty(name string, value interface{}) types.GomegaMatcher {
 }
 
 func WithTime(t time.Time) types.GomegaMatcher {
-	return WithTransform(func(e *common.Event) time.Time {
+	return WithTransform(func(e *dbc.Event) time.Time {
 		return time.Time(*e.EventTime)
 	}, BeTemporally("~", t, time.Millisecond*100))
 }
 
 func TestEvents(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
+	dbc.InitializeDBTest()
+	defer dbc.TerminateDBTest()
 	RunSpecs(t, "Events test Suite")
 }

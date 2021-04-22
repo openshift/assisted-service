@@ -6,6 +6,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
@@ -67,19 +68,19 @@ func (o *operator) GetHostValidationID() string {
 }
 
 // ValidateCluster verifies whether this operator is valid for given cluster
-func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
+func (o *operator) ValidateCluster(_ context.Context, cluster *dbc.Cluster) (api.ValidationResult, error) {
 	status, message := o.validateRequirements(&cluster.Cluster)
 
 	return api.ValidationResult{Status: status, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 }
 
 // ValidateHost verifies whether this operator is valid for given host
-func (o *operator) ValidateHost(_ context.Context, _ *common.Cluster, _ *models.Host) (api.ValidationResult, error) {
+func (o *operator) ValidateHost(_ context.Context, _ *dbc.Cluster, _ *models.Host) (api.ValidationResult, error) {
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 }
 
 // GenerateManifests generates manifests for the operator
-func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, error) {
+func (o *operator) GenerateManifests(cluster *dbc.Cluster) (map[string][]byte, error) {
 	o.log.Info("No. of OCS eligible disks are ", o.config.OCSDisksAvailable)
 	return Manifests(o.config)
 }
@@ -95,7 +96,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (o *operator) GetHostRequirements(_ context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	numOfHosts := len(cluster.Hosts)
 
 	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
@@ -148,7 +149,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (o *operator) GetPreflightRequirements(context.Context, *dbc.Cluster) (*models.OperatorHardwareRequirements, error) {
 	return &models.OperatorHardwareRequirements{
 		OperatorName: o.GetName(),
 		Dependencies: o.GetDependencies(),

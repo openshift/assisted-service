@@ -8,6 +8,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
@@ -50,8 +51,8 @@ func refreshHostStageUpdateTime(
 	db *gorm.DB,
 	clusterId strfmt.UUID,
 	hostId strfmt.UUID,
-	srcStatus string) (*common.Host, error) {
-	var host *common.Host
+	srcStatus string) (*dbc.Host, error) {
+	var host *dbc.Host
 	var err error
 
 	now := strfmt.DateTime(time.Now())

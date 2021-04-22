@@ -153,7 +153,7 @@ func AllStrings(vs []string, f func(string) bool) bool {
 }
 
 // GetBootstrapHost return host that was set as bootstrap
-func GetBootstrapHost(cluster *Cluster) *models.Host {
+func GetBootstrapHost(cluster *models.Cluster) *models.Host {
 	for _, host := range cluster.Hosts {
 		if host.Bootstrap {
 			return host
@@ -163,6 +163,6 @@ func GetBootstrapHost(cluster *Cluster) *models.Host {
 }
 
 // IsSingleNodeCluster if this cluster is single-node or not
-func IsSingleNodeCluster(cluster *Cluster) bool {
+func IsSingleNodeCluster(cluster *models.Cluster) bool {
 	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 }

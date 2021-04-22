@@ -19,6 +19,7 @@ import (
 	"github.com/kennygrant/sanitize"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
@@ -56,49 +57,49 @@ var S3FileNames = []string{
 
 type RegistrationAPI interface {
 	// Register a new cluster
-	RegisterCluster(ctx context.Context, c *common.Cluster) error
+	RegisterCluster(ctx context.Context, c *dbc.Cluster) error
 	// Register a new add-host cluster
-	RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error
+	RegisterAddHostsCluster(ctx context.Context, c *dbc.Cluster) error
 	// Register a new add-host-ocp cluster
-	RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error
+	RegisterAddHostsOCPCluster(c *dbc.Cluster, db *gorm.DB) error
 	//deregister cluster
-	DeregisterCluster(ctx context.Context, c *common.Cluster) error
+	DeregisterCluster(ctx context.Context, c *dbc.Cluster) error
 }
 
 type InstallationAPI interface {
 	// Install cluster
-	Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error
+	Install(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error
 	// Get the cluster master nodes ID's
-	GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error)
+	GetMasterNodesIds(ctx context.Context, c *dbc.Cluster, db *gorm.DB) ([]*strfmt.UUID, error)
 }
 
 type API interface {
 	RegistrationAPI
 	InstallationAPI
 	// Refresh state in case of hosts update
-	RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error)
+	RefreshStatus(ctx context.Context, c *dbc.Cluster, db *gorm.DB) (*dbc.Cluster, error)
 	ClusterMonitoring()
-	IsOperatorAvailable(c *common.Cluster, operatorName string) bool
-	UploadIngressCert(c *common.Cluster) (err error)
-	VerifyClusterUpdatability(c *common.Cluster) (err error)
-	AcceptRegistration(c *common.Cluster) (err error)
-	CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
-	ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
-	PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error
-	HandlePreInstallError(ctx context.Context, c *common.Cluster, err error)
-	HandlePreInstallSuccess(ctx context.Context, c *common.Cluster)
-	SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
-	IsReadyForInstallation(c *common.Cluster) (bool, string)
-	CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error)
-	SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error
+	IsOperatorAvailable(c *dbc.Cluster, operatorName string) bool
+	UploadIngressCert(c *dbc.Cluster) (err error)
+	VerifyClusterUpdatability(c *dbc.Cluster) (err error)
+	AcceptRegistration(c *dbc.Cluster) (err error)
+	CancelInstallation(ctx context.Context, c *dbc.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
+	ResetCluster(ctx context.Context, c *dbc.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse
+	PrepareForInstallation(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error
+	HandlePreInstallError(ctx context.Context, c *dbc.Cluster, err error)
+	HandlePreInstallSuccess(ctx context.Context, c *dbc.Cluster)
+	SetVipsData(ctx context.Context, c *dbc.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error
+	IsReadyForInstallation(c *dbc.Cluster) (bool, string)
+	CreateTarredClusterLogs(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) (string, error)
+	SetUploadControllerLogsAt(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error
 	SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error
-	DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
-	DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error
-	UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error
-	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
+	DeleteClusterLogs(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) error
+	DeleteClusterFiles(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) error
+	UpdateLogsProgress(ctx context.Context, c *dbc.Cluster, progress string) error
+	GetClusterByKubeKey(key types.NamespacedName) (*dbc.Cluster, error)
 	UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse
-	GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error
-	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error)
+	GenerateAdditionalManifests(ctx context.Context, cluster *dbc.Cluster) error
+	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *dbc.Cluster, successfullyFinished bool, reason string) (*dbc.Cluster, error)
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
 }
@@ -165,7 +166,7 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 	}
 }
 
-func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *Manager) RegisterCluster(ctx context.Context, c *dbc.Cluster) error {
 	err := m.registrationAPI.RegisterCluster(ctx, c)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
@@ -177,7 +178,7 @@ func (m *Manager) RegisterCluster(ctx context.Context, c *common.Cluster) error 
 	return err
 }
 
-func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster) error {
+func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *dbc.Cluster) error {
 	err := m.registrationAPI.RegisterAddHostsCluster(ctx, c)
 	if err != nil {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityError,
@@ -189,11 +190,11 @@ func (m *Manager) RegisterAddHostsCluster(ctx context.Context, c *common.Cluster
 	return err
 }
 
-func (m *Manager) RegisterAddHostsOCPCluster(c *common.Cluster, db *gorm.DB) error {
+func (m *Manager) RegisterAddHostsOCPCluster(c *dbc.Cluster, db *gorm.DB) error {
 	return m.registrationAPI.RegisterAddHostsOCPCluster(c, db)
 }
 
-func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) error {
+func (m *Manager) DeregisterCluster(ctx context.Context, c *dbc.Cluster) error {
 
 	var metricsErr error
 	for _, h := range c.Hosts {
@@ -236,7 +237,7 @@ func (m *Manager) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 	return err
 }
 
-func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.Cluster, ocpVersion, emailDomain string) error {
+func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *dbc.Cluster, ocpVersion, emailDomain string) error {
 	log := logutil.FromContext(ctx, m.log)
 	if c.ValidationsInfo == "" {
 		log.Warnf("Cluster %s doesn't contain any validations info, cannot report metrics for that cluster", *c.ID)
@@ -257,7 +258,7 @@ func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.C
 	return nil
 }
 
-func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.Cluster,
+func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *dbc.Cluster,
 	newValidationRes, currentValidationRes validationsStatus) {
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
@@ -285,7 +286,7 @@ func (m *Manager) getValidationStatus(vs validationsStatus, category string, vID
 	return ValidationStatus(""), false
 }
 
-func (m *Manager) getValidations(ctx context.Context, c *common.Cluster) (validationsStatus, error) {
+func (m *Manager) getValidations(ctx context.Context, c *dbc.Cluster) (validationsStatus, error) {
 	var currentValidationRes validationsStatus
 	if c.ValidationsInfo != "" {
 		if err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes); err != nil {
@@ -303,7 +304,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
 }
 
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *common.Cluster, newValidationRes validationsStatus) (*common.Cluster, error) {
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *dbc.Cluster, newValidationRes validationsStatus) (*dbc.Cluster, error) {
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err
@@ -311,7 +312,7 @@ func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, c *com
 	return UpdateCluster(logutil.FromContext(ctx, m.log), db, *c.ID, *c.Status, "validations_info", string(b))
 }
 
-func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+func (m *Manager) RefreshStatus(ctx context.Context, c *dbc.Cluster, db *gorm.DB) (*dbc.Cluster, error) {
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -356,10 +357,10 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	}
 
 	//return updated cluster
-	return common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading)
+	return dbc.GetClusterFromDB(db, *c.ID, dbc.UseEagerLoading)
 }
 
-func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	err := db.Model(c).Update("controller_logs_collected_at", strfmt.DateTime(time.Now())).Error
 	if err != nil {
 		return errors.Wrapf(err, "failed to set controller_logs_collected_at to cluster %s", c.ID.String())
@@ -367,22 +368,22 @@ func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Clust
 	return nil
 }
 
-func (m *Manager) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (m *Manager) Install(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	return m.installationAPI.Install(ctx, c, db)
 }
 
-func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
+func (m *Manager) GetMasterNodesIds(ctx context.Context, c *dbc.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	return m.installationAPI.GetMasterNodesIds(ctx, c, db)
 }
 
-func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
+func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *dbc.Cluster) error {
 	networks := network.GetClusterNetworks(cluster.Hosts, m.log)
 	if len(networks) == 1 {
 		/*
 		 * Auto assign machine network CIDR is relevant if there is only single host network.  Otherwise the user
 		 * has to select the machine network CIDR
 		 */
-		return m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&common.Cluster{
+		return m.db.Model(&dbc.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&dbc.Cluster{
 			Cluster: models.Cluster{
 				MachineNetworkCidr: networks[0],
 			},
@@ -392,7 +393,7 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 	return nil
 }
 
-func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
+func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *dbc.Cluster) error {
 	machineCidr, err := network.CalculateMachineNetworkCIDR(
 		cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
 
@@ -402,21 +403,21 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 		return nil
 	}
 
-	return m.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
+	return m.db.Model(&dbc.Cluster{}).Where("id = ?", cluster.ID.String()).Update(
 		"machine_network_cidr", machineCidr,
 		"machine_network_cidr_updated_at", time.Now(),
 	).Error
 }
 
 func (m *Manager) autoAssignMachineNetworkCidrs() error {
-	var clusters []*common.Cluster
+	var clusters []*dbc.Cluster
 	/*
 	 * The aim is to get from DB only clusters that are candidates for machine network CIDR auto assign
 	 * The cluster query is for clusters that have their DHCP mode set (vip_dhcp_allocation), the machine network CIDR empty, and in status insufficient, or pending for input.
 	 * For these clusters the hosts query is all hosts that are not in status (disabled, disconnected, discovering),
 	 * since we want to calculate the host networks only from hosts wkith relevant inventory
 	 */
-	err := common.LoadTableFromDB(m.db, common.HostsTable, "status not in (?)",
+	err := dbc.LoadTableFromDB(m.db, dbc.HostsTable, "status not in (?)",
 		[]string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
 		Find(&clusters, "status in (?)", []string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}).Error
 	if err != nil {
@@ -436,7 +437,7 @@ func (m *Manager) autoAssignMachineNetworkCidrs() error {
 	return nil
 }
 
-func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
+func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *dbc.Cluster, curMonitorInvokedAt time.Time) bool {
 	notAllowedStates := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusCancelled}
 	if funk.Contains(notAllowedStates, *c.Status) {
 		return false
@@ -447,11 +448,11 @@ func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorIn
 		curMonitorInvokedAt.After(timeToCompare)
 }
 
-func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *common.Cluster) {
+func (m *Manager) triggerLeaseTimeoutEvent(ctx context.Context, c *dbc.Cluster) {
 	m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "API and Ingress VIPs lease allocation has been timed out", time.Now())
 }
 
-func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
+func (m *Manager) SkipMonitoring(c *dbc.Cluster) bool {
 	// logs required monitoring on error state until IsLogCollectionTimedOut move the logs state to timeout,
 	// or remote controllers reports that their log colection has been completed. Then, monitoring should be
 	// stopped to avoid excessive computation
@@ -470,8 +471,8 @@ func (m *Manager) ClusterMonitoring() {
 	var (
 		offset              int
 		limit               = m.MonitorBatchSize
-		clusters            []*common.Cluster
-		clusterAfterRefresh *common.Cluster
+		clusters            []*dbc.Cluster
+		clusterAfterRefresh *dbc.Cluster
 		requestID           = requestid.NewID()
 		ctx                 = requestid.ToContext(context.Background(), requestID)
 		log                 = requestid.RequestIDLogger(m.log, requestID)
@@ -492,7 +493,7 @@ func (m *Manager) ClusterMonitoring() {
 	}
 
 	for {
-		clusters = make([]*common.Cluster, 0, limit)
+		clusters = make([]*dbc.Cluster, 0, limit)
 		if err = m.db.Where("status NOT IN (?)", noNeedToMonitorInStates).
 			Offset(offset).Limit(limit).Order("id").Find(&clusters).Error; err != nil {
 			log.WithError(err).Errorf("failed to get clusters")
@@ -529,7 +530,7 @@ func (m *Manager) ClusterMonitoring() {
 	}
 }
 
-func CanDownloadFiles(c *common.Cluster) (err error) {
+func CanDownloadFiles(c *dbc.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{
 		models.ClusterStatusInstalling,
@@ -546,7 +547,7 @@ func CanDownloadFiles(c *common.Cluster) (err error) {
 	return err
 }
 
-func CanDownloadKubeconfig(c *common.Cluster) (err error) {
+func CanDownloadKubeconfig(c *dbc.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{
 		models.ClusterStatusFinalizing,
@@ -560,7 +561,7 @@ func CanDownloadKubeconfig(c *common.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bool {
+func (m *Manager) IsOperatorAvailable(c *dbc.Cluster, operatorName string) bool {
 	// TODO: MGMT-4458
 	// Backward-compatible solution for clusters that don't have monitored operators data
 	if len(c.MonitoredOperators) == 0 {
@@ -577,7 +578,7 @@ func (m *Manager) IsOperatorAvailable(c *common.Cluster, operatorName string) bo
 	return false
 }
 
-func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {
+func (m *Manager) UploadIngressCert(c *dbc.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{models.ClusterStatusFinalizing, models.ClusterStatusInstalled}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
@@ -586,7 +587,7 @@ func (m *Manager) UploadIngressCert(c *common.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
+func (m *Manager) AcceptRegistration(c *dbc.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusAddingHosts}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
@@ -595,7 +596,7 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
+func (m *Manager) VerifyClusterUpdatability(c *dbc.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusAddingHosts}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
@@ -604,7 +605,7 @@ func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 	return err
 }
 
-func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+func (m *Manager) CancelInstallation(ctx context.Context, c *dbc.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	log := logutil.FromContext(ctx, m.log)
 
 	eventSeverity := models.EventSeverityInfo
@@ -628,21 +629,21 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 	return nil
 }
 
-func (m *Manager) UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error {
+func (m *Manager) UpdateLogsProgress(ctx context.Context, c *dbc.Cluster, progress string) error {
 	err := updateLogsProgress(logutil.FromContext(ctx, m.log), m.db, c, swag.StringValue(c.Status), progress)
 	return err
 }
 
 func (m *Manager) UpdateAmsSubscriptionID(ctx context.Context, clusterID, amsSubscriptionID strfmt.UUID) *common.ApiErrorResponse {
 	log := logutil.FromContext(ctx, m.log)
-	if err := m.db.Model(&common.Cluster{}).Where("id = ?", clusterID.String()).Update("ams_subscription_id", amsSubscriptionID).Error; err != nil {
+	if err := m.db.Model(&dbc.Cluster{}).Where("id = ?", clusterID.String()).Update("ams_subscription_id", amsSubscriptionID).Error; err != nil {
 		log.WithError(err).Errorf("Failed to patch DB with AMS subscription ID for cluster %v", clusterID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 	return nil
 }
 
-func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
+func (m *Manager) ResetCluster(ctx context.Context, c *dbc.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := "Reset cluster installation"
 	defer func() {
@@ -662,7 +663,7 @@ func (m *Manager) ResetCluster(ctx context.Context, c *common.Cluster, reason st
 	return nil
 }
 
-func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
+func (m *Manager) PrepareForInstallation(ctx context.Context, c *dbc.Cluster, db *gorm.DB) error {
 	err := m.sm.Run(TransitionTypePrepareForInstallation, newStateCluster(c),
 		&TransitionArgsPrepareForInstallation{
 			ctx:                ctx,
@@ -674,11 +675,11 @@ func (m *Manager) PrepareForInstallation(ctx context.Context, c *common.Cluster,
 	return err
 }
 
-func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, installErr error) {
+func (m *Manager) HandlePreInstallError(ctx context.Context, c *dbc.Cluster, installErr error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.WithError(installErr).Warnf("Failed to prepare installation of cluster %s", c.ID.String())
-	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Update(&common.Cluster{
-		InstallationPreparationCompletionStatus: common.InstallationPreparationFailed,
+	err := m.db.Model(&dbc.Cluster{}).Where("id = ?", c.ID.String()).Update(&dbc.Cluster{
+		InstallationPreparationCompletionStatus: dbc.InstallationPreparationFailed,
 	}).Error
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())
@@ -688,10 +689,10 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 	}
 }
 
-func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster) {
+func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *dbc.Cluster) {
 	log := logutil.FromContext(ctx, m.log)
-	err := m.db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).Update(&common.Cluster{
-		InstallationPreparationCompletionStatus: common.InstallationPreparationSucceeded,
+	err := m.db.Model(&dbc.Cluster{}).Where("id = ?", c.ID.String()).Update(&dbc.Cluster{
+		InstallationPreparationCompletionStatus: dbc.InstallationPreparationSucceeded,
 	}).Error
 	if err != nil {
 		log.WithError(err).Errorf("Failed to handle pre installation success for cluster %s", c.ID.String())
@@ -701,12 +702,12 @@ func (m *Manager) HandlePreInstallSuccess(ctx context.Context, c *common.Cluster
 	}
 }
 
-func vipMismatchError(apiVip, ingressVip string, cluster *common.Cluster) error {
+func vipMismatchError(apiVip, ingressVip string, cluster *dbc.Cluster) error {
 	return errors.Errorf("Got VIPs different than those that are stored in the DB for cluster %s. APIVip = %s @db = %s, IngressVIP = %s @db = %s",
 		cluster.ID.String(), apiVip, cluster.APIVip, ingressVip, cluster.IngressVip)
 }
 
-func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
+func (m *Manager) SetVipsData(ctx context.Context, c *dbc.Cluster, apiVip, ingressVip, apiVipLease, ingressVipLease string, db *gorm.DB) error {
 	var err error
 	if db == nil {
 		db = m.db
@@ -714,7 +715,7 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	log := logutil.FromContext(ctx, m.log)
 	switch swag.StringValue(c.Status) {
 	case models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient, models.ClusterStatusReady:
-		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
+		if err = db.Model(&dbc.Cluster{}).Where("id = ?", c.ID.String()).
 			Updates(map[string]interface{}{
 				"api_vip":           apiVip,
 				"ingress_vip":       ingressVip,
@@ -744,7 +745,7 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 	return nil
 }
 
-func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) (string, error) {
+func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) (string, error) {
 	log := logutil.FromContext(ctx, m.log)
 	fileName := fmt.Sprintf("%s/logs/cluster_logs.tar", c.ID)
 	files, err := objectHandler.ListObjectsByPrefix(ctx, fmt.Sprintf("%s/logs/", c.ID))
@@ -794,7 +795,7 @@ func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster
 	return fileName, nil
 }
 
-func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
+func (m *Manager) IsReadyForInstallation(c *dbc.Cluster) (bool, string) {
 	if swag.StringValue(c.Status) != models.ClusterStatusReady {
 		return false, swag.StringValue(c.StatusInfo)
 	}
@@ -811,7 +812,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 		models.ClusterStatusInsufficient,
 		models.ClusterStatusReady,
 	}
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	if err := db.Select("id, status").Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
 		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
 	}
@@ -839,7 +840,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	err = db.Model(&common.Cluster{}).Where("id = ? and connectivity_majority_groups <> ?", clusterID.String(), string(b)).Update(&common.Cluster{
+	err = db.Model(&dbc.Cluster{}).Where("id = ? and connectivity_majority_groups <> ?", clusterID.String(), string(b)).Update(&dbc.Cluster{
 		Cluster: models.Cluster{
 			ConnectivityMajorityGroups: string(b),
 		},
@@ -850,7 +851,7 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	return nil
 }
 
-func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folder string) error {
+func (m *Manager) deleteClusterFiles(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API, folder string) error {
 	log := logutil.FromContext(ctx, m.log)
 	path := filepath.Join(string(*c.ID), folder) + "/"
 	files, err := objectHandler.ListObjectsByPrefix(ctx, path)
@@ -884,22 +885,22 @@ func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, obj
 	return nil
 }
 
-func (m *Manager) deleteClusterManifests(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *Manager) deleteClusterManifests(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) error {
 	return m.deleteClusterFiles(ctx, c, objectHandler, "manifests")
 }
 
-func (m *Manager) DeleteClusterLogs(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *Manager) DeleteClusterLogs(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) error {
 	return m.deleteClusterFiles(ctx, c, objectHandler, "logs")
 }
 
-func (m *Manager) DeleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API) error {
+func (m *Manager) DeleteClusterFiles(ctx context.Context, c *dbc.Cluster, objectHandler s3wrapper.API) error {
 	return m.deleteClusterFiles(ctx, c, objectHandler, "")
 }
 
 func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error {
 	log := logutil.FromContext(ctx, m.log)
 
-	var clusters []*common.Cluster
+	var clusters []*dbc.Cluster
 
 	if err := m.db.Limit(maxDeregisterPerInterval).Where("updated_at < ?", inactiveSince).Find(&clusters).Error; err != nil {
 		return err
@@ -917,7 +918,7 @@ func (m Manager) DeregisterInactiveCluster(ctx context.Context, maxDeregisterPer
 }
 
 func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error {
-	var clusters []*common.Cluster
+	var clusters []*dbc.Cluster
 	db := m.db.Unscoped()
 	if reply := db.Where("deleted_at < ?", olderThan).Find(&clusters); reply.Error != nil {
 		return reply.Error
@@ -950,31 +951,31 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 			m.log.Debugf("Deleted %s cluster from db", reply.RowsAffected)
 		}
 
-		if err := common.DeleteRecordsByClusterID(db, *c.ID, models.Event{}); err != nil {
+		if err := dbc.DeleteRecordsByClusterID(db, *c.ID, models.Event{}); err != nil {
 			m.log.WithError(err).Warnf("Failed deleting events from db for cluster %s", c.ID.String())
 		}
 
-		if err := common.DeleteRecordsByClusterID(db, *c.ID, models.MonitoredOperator{}); err != nil {
+		if err := dbc.DeleteRecordsByClusterID(db, *c.ID, models.MonitoredOperator{}); err != nil {
 			m.log.WithError(err).Warnf("Failed deleting operators from db for cluster %s", c.ID.String())
 		}
 	}
 	return nil
 }
 
-func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
-	c, err := common.GetClusterFromDBWhere(m.db, common.UseEagerLoading, common.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*dbc.Cluster, error) {
+	c, err := dbc.GetClusterFromDBWhere(m.db, dbc.UseEagerLoading, dbc.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
 	if err != nil {
 		return nil, err
 	}
 	return c, nil
 }
 
-func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
+func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *dbc.Cluster) error {
 	if err := m.manifestsGeneratorAPI.AddChronyManifest(ctx, logutil.FromContext(ctx, m.log), cluster); err != nil {
 		return errors.Wrap(err, "failed to add chrony manifest")
 	}
 
-	if common.IsSingleNodeCluster(cluster) && m.EnableSingleNodeDnsmasq {
+	if common.IsSingleNodeCluster(&cluster.Cluster) && m.EnableSingleNodeDnsmasq {
 		if err := m.manifestsGeneratorAPI.AddDnsmasqForSingleNode(ctx, logutil.FromContext(ctx, m.log), cluster); err != nil {
 			return errors.Wrap(err, "failed to add dnsmasq manifest")
 		}
@@ -987,7 +988,7 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 }
 
 func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
-	cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error) {
+	cluster *dbc.Cluster, successfullyFinished bool, reason string) (*dbc.Cluster, error) {
 	log := logutil.FromContext(ctx, m.log)
 	destStatus := models.ClusterStatusError
 

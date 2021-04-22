@@ -8,15 +8,15 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/pkg/errors"
 	gormigrate "gopkg.in/gormigrate.v1"
 )
 
 func TestMigrations(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
+	dbc.InitializeDBTest()
+	defer dbc.TerminateDBTest()
 	RunSpecs(t, "Migrations Suite")
 }
 

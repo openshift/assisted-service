@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/mocks"
 	"github.com/openshift/assisted-service/models"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
@@ -37,7 +38,7 @@ var _ = Describe("chrony manifest", func() {
 			hosts := make([]*models.Host, 0)
 			hosts = append(hosts, &models.Host{})
 
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+			response, err := createChronyManifestContent(&dbc.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
 			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -56,7 +57,7 @@ var _ = Describe("chrony manifest", func() {
 			hosts = append(hosts, createHost(toMarshal))
 			hosts = append(hosts, createHost(toMarshal))
 
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+			response, err := createChronyManifestContent(&dbc.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
 			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -75,7 +76,7 @@ var _ = Describe("chrony manifest", func() {
 			hosts = append(hosts, createHost(toMarshal))
 			hosts[0].Status = swag.String(models.HostStatusDisabled)
 
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+			response, err := createChronyManifestContent(&dbc.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
 			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -94,7 +95,7 @@ var _ = Describe("chrony manifest", func() {
 			hosts = append(hosts, createHost(toMarshal))
 			hosts = append(hosts, createHost([]*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
 
-			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
+			response, err := createChronyManifestContent(&dbc.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
 			}}, models.HostRoleMaster, logrus.New())
 			Expect(err).ShouldNot(HaveOccurred())
@@ -116,7 +117,7 @@ var _ = Describe("chrony manifest", func() {
 			db           *gorm.DB
 			dbName       string
 			clusterId    strfmt.UUID
-			cluster      common.Cluster
+			cluster      dbc.Cluster
 		)
 
 		BeforeEach(func() {
@@ -124,7 +125,7 @@ var _ = Describe("chrony manifest", func() {
 			ctrl = gomock.NewController(GinkgoT())
 			manifestsApi = mocks.NewMockManifestsAPI(ctrl)
 			ntpUtils = NewManifestsGenerator(manifestsApi)
-			db, dbName = common.PrepareTestDB()
+			db, dbName = dbc.PrepareTestDB()
 			clusterId = strfmt.UUID(uuid.New().String())
 
 			hosts := make([]*models.Host, 0)
@@ -134,7 +135,7 @@ var _ = Describe("chrony manifest", func() {
 			}))
 			hosts = append(hosts, createHost([]*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
 
-			cluster = common.Cluster{
+			cluster = dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:    &clusterId,
 					Hosts: hosts,
@@ -145,7 +146,7 @@ var _ = Describe("chrony manifest", func() {
 
 		AfterEach(func() {
 			ctrl.Finish()
-			common.DeleteTestDB(db, dbName)
+			dbc.DeleteTestDB(db, dbName)
 		})
 
 		It("CreateClusterManifest success", func() {

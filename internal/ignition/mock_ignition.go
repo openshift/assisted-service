@@ -7,7 +7,7 @@ package ignition
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	auth "github.com/openshift/assisted-service/pkg/auth"
 	reflect "reflect"
 )
@@ -101,7 +101,7 @@ func (m *MockIgnitionBuilder) EXPECT() *MockIgnitionBuilderMockRecorder {
 }
 
 // FormatDiscoveryIgnitionFile mocks base method
-func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
+func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(cluster *dbc.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FormatDiscoveryIgnitionFile", cluster, cfg, safeForLogs, authType)
 	ret0, _ := ret[0].(string)

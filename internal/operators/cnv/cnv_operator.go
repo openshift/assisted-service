@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/hardware/virt"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -67,13 +67,13 @@ func (o *operator) GetHostValidationID() string {
 }
 
 // ValidateCluster always return "valid" result
-func (o *operator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.ValidationResult, error) {
+func (o *operator) ValidateCluster(_ context.Context, _ *dbc.Cluster) (api.ValidationResult, error) {
 	// No need to validate cluster because it will be validate on per host basis
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
 }
 
 // ValidateHost returns validationResult based on node type requirements such as memory and cpu
-func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
+func (o *operator) ValidateHost(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (api.ValidationResult, error) {
 	if host.Inventory == "" {
 		o.log.Info("Empty Inventory of host with hostID ", host.ID)
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetClusterValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
@@ -118,7 +118,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 }
 
 // GenerateManifests generates manifests for the operator
-func (o *operator) GenerateManifests(c *common.Cluster) (map[string][]byte, error) {
+func (o *operator) GenerateManifests(c *dbc.Cluster) (map[string][]byte, error) {
 	return Manifests()
 }
 
@@ -133,7 +133,7 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (o *operator) GetHostRequirements(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	log := logutil.FromContext(ctx, o.log)
 	preflightRequirements, err := o.GetPreflightRequirements(ctx, cluster)
 	if err != nil {
@@ -160,7 +160,7 @@ func (o *operator) GetHostRequirements(ctx context.Context, cluster *common.Clus
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (o *operator) GetPreflightRequirements(context.Context, *dbc.Cluster) (*models.OperatorHardwareRequirements, error) {
 	qualitativeRequirements := []string{
 		"Additional 1GiB of RAM per each supported GPU",
 		"CPU has virtualization flag (vmx or svm)",

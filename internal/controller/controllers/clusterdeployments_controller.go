@@ -28,8 +28,8 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -171,14 +171,14 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 	return r.updateState(ctx, clusterDeployment, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *dbc.Cluster) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, cluster)
 	if err != nil {
 		return r.updateState(ctx, clusterDeployment, cluster, err)
 	}
 	if ready {
 		r.Log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
-		var ic *common.Cluster
+		var ic *dbc.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
 			ClusterID: *cluster.ID,
 		})
@@ -190,7 +190,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterD
 	return r.updateState(ctx, clusterDeployment, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *dbc.Cluster) (ctrl.Result, error) {
 
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
@@ -208,7 +208,7 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clu
 	return r.updateState(ctx, clusterDeployment, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) error {
+func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context, cluster *hivev1.ClusterDeployment, c *dbc.Cluster) error {
 
 	s, err := r.ensureAdminPasswordSecret(ctx, cluster, c)
 	if err != nil {
@@ -232,7 +232,7 @@ func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context
 	return r.Update(ctx, cluster)
 }
 
-func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *dbc.Cluster) (*corev1.Secret, error) {
 	s := &corev1.Secret{}
 	name := fmt.Sprintf(adminPasswordSecretStringTemplate, cluster.Name)
 	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
@@ -252,7 +252,7 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 	return r.createClusterCredentialSecret(ctx, cluster, c, name, data, "kubeadmincreds")
 }
 
-func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *dbc.Cluster) (*corev1.Secret, error) {
 	s := &corev1.Secret{}
 	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
 	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
@@ -276,7 +276,7 @@ func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Contex
 	return r.createClusterCredentialSecret(ctx, cluster, c, name, data, "kubeconfig")
 }
 
-func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *dbc.Cluster, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -304,7 +304,7 @@ func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context
 	return s, r.Create(ctx, s)
 }
 
-func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (bool, error) {
+func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, cluster *hivev1.ClusterDeployment, c *dbc.Cluster) (bool, error) {
 	if ready, _ := r.ClusterApi.IsReadyForInstallation(c); !ready {
 		return false, nil
 	}
@@ -343,7 +343,7 @@ func isUserManagedNetwork(cluster *hivev1.ClusterDeployment) bool {
 }
 
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
-	cluster *common.Cluster) (bool, ctrl.Result, error) {
+	cluster *dbc.Cluster) (bool, ctrl.Result, error) {
 
 	update := false
 	notifyInfraEnv := false
@@ -397,7 +397,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	if !update {
 		return update, ctrl.Result{}, nil
 	}
-	var updatedCluster *common.Cluster
+	var updatedCluster *dbc.Cluster
 	if update {
 		updatedCluster, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
 			ClusterUpdateParams: params,
@@ -422,7 +422,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	return update, reply, err
 }
 func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
-	cluster *common.Cluster) (bool, ctrl.Result, error) {
+	cluster *dbc.Cluster) (bool, ctrl.Result, error) {
 	// handle InstallConfigOverrides
 	update := false
 	annotations := clusterDeployment.ObjectMeta.GetAnnotations()
@@ -431,7 +431,7 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		cluster.InstallConfigOverrides = installConfigOverrides
 		update = true
 	}
-	var updatedCluster *common.Cluster
+	var updatedCluster *dbc.Cluster
 	var err error
 	if update {
 		updatedCluster, err = r.Installer.UpdateClusterInstallConfigInternal(ctx, installer.UpdateClusterInstallConfigParams{
@@ -525,7 +525,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	return r.updateState(ctx, clusterDeployment, c, err)
 }
 
-func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *common.Cluster,
+func (r *ClusterDeploymentsReconciler) updateState(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, cluster *dbc.Cluster,
 	err error) (ctrl.Result, error) {
 
 	reply := ctrl.Result{}
@@ -565,7 +565,7 @@ func setClusterApiError(err error, cluster *hivev1.ClusterDeployment) {
 	}
 }
 
-func (r *ClusterDeploymentsReconciler) syncClusterState(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
+func (r *ClusterDeploymentsReconciler) syncClusterState(cluster *hivev1.ClusterDeployment, c *dbc.Cluster) {
 	if cluster.Status.Conditions == nil {
 		cluster.Status.Conditions = []hivev1.ClusterDeploymentCondition{}
 	}
@@ -583,7 +583,7 @@ func (r *ClusterDeploymentsReconciler) syncClusterState(cluster *hivev1.ClusterD
 	setValidations(cluster, c)
 }
 
-func setStateAndStateInfo(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
+func setStateAndStateInfo(cluster *hivev1.ClusterDeployment, c *dbc.Cluster) {
 	// TODO: find proper way to set state and state info
 	setCondition(hivev1.ClusterDeploymentCondition{
 		Type:               hivev1.UnreachableCondition,
@@ -624,7 +624,7 @@ func setCondition(condition hivev1.ClusterDeploymentCondition, conditions *[]hiv
 	}
 }
 
-func setValidations(cluster *hivev1.ClusterDeployment, c *common.Cluster) {
+func setValidations(cluster *hivev1.ClusterDeployment, c *dbc.Cluster) {
 	// TODO: translate validations into conditions, currently put all the validations as string to unknown condition.
 	validations := hivev1.ClusterDeploymentCondition{
 		Type:               hivev1.UnreachableCondition,

@@ -5,7 +5,7 @@ import (
 	"net/url"
 
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -20,7 +20,7 @@ type vips struct {
 	IngressVip *vip `yaml:"ingress-vip"`
 }
 
-func generateOpenshiftDhcpParamFileContents(cluster *common.Cluster) ([]byte, error) {
+func generateOpenshiftDhcpParamFileContents(cluster *dbc.Cluster) ([]byte, error) {
 	if swag.BoolValue(cluster.VipDhcpAllocation) && !swag.BoolValue(cluster.UserManagedNetworking) {
 		if cluster.APIVip != "" && cluster.IngressVip != "" {
 			v := vips{
@@ -43,7 +43,7 @@ func generateOpenshiftDhcpParamFileContents(cluster *common.Cluster) ([]byte, er
 	return nil, nil
 }
 
-func GetEncodedDhcpParamFileContents(cluster *common.Cluster) (string, error) {
+func GetEncodedDhcpParamFileContents(cluster *dbc.Cluster) (string, error) {
 	b, err := generateOpenshiftDhcpParamFileContents(cluster)
 	if err != nil || b == nil {
 		return "", err

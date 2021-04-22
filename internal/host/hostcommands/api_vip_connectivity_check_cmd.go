@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -29,7 +29,7 @@ func NewAPIVIPConnectivityCheckCmd(log logrus.FieldLogger, db *gorm.DB, connecti
 }
 
 func (c *apivipConnectivityCheckCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	if err := c.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
 		c.log.WithError(err).Errorf("failed to fetch cluster %s", host.ClusterID)
 		return nil, err

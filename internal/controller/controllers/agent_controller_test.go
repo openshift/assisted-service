@@ -16,6 +16,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -55,7 +56,7 @@ var _ = Describe("agent reconcile", func() {
 		mockCtrl              *gomock.Controller
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		sId                   strfmt.UUID
-		backEndCluster        *common.Cluster
+		backEndCluster        *dbc.Cluster
 	)
 
 	BeforeEach(func() {
@@ -69,7 +70,7 @@ var _ = Describe("agent reconcile", func() {
 			Installer: mockInstallerInternal,
 		}
 		sId = strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{ID: &sId}}
 	})
 
 	AfterEach(func() {
@@ -195,7 +196,7 @@ var _ = Describe("agent reconcile", func() {
 		newRole := "worker"
 		newInstallDiskPath := "/dev/disk/by-id/wwn-0x6141877064533b0020adf3bb03167694"
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -205,7 +206,7 @@ var _ = Describe("agent reconcile", func() {
 					StatusInfo: swag.String("Some status info"),
 				},
 			}}}
-		updateReply := &common.Cluster{Cluster: models.Cluster{
+		updateReply := &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -222,7 +223,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{}, nil)
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, param installer.UpdateClusterParams) {
 				Expect(param.ClusterUpdateParams.DisksSelectedConfig[0].DisksConfig[0].ID).To(Equal(&newInstallDiskPath))
@@ -251,7 +252,7 @@ var _ = Describe("agent reconcile", func() {
 	It("Agent update empty disk path", func() {
 		newInstallDiskPath := ""
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -268,7 +269,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{}, nil)
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(nil, nil).Times(0)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -290,7 +291,7 @@ var _ = Describe("agent reconcile", func() {
 		newHostName := "hostname123"
 		newRole := "worker"
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -303,7 +304,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{}, nil)
 		errString := "update internal error"
 		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).Return(nil, common.NewApiError(http.StatusInternalServerError,
 			errors.New(errString)))
@@ -332,7 +333,7 @@ var _ = Describe("agent reconcile", func() {
 
 	It("Agent update approved", func() {
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -347,7 +348,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: false}, nil)
 		mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -367,7 +368,7 @@ var _ = Describe("agent reconcile", func() {
 
 	It("Agent update ignition override valid cases", func() {
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -381,7 +382,7 @@ var _ = Describe("agent reconcile", func() {
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: false}, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -400,7 +401,7 @@ var _ = Describe("agent reconcile", func() {
 		By("Reconcile add update ignition override, validate UpdateHostIgnitionInternal run once")
 		mockInstallerInternal.EXPECT().UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
 
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: false}, nil)
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		agent.Spec.IgnitionConfigOverrides = ignitionConfigOverrides
 		Expect(c.Update(ctx, agent)).To(BeNil())
@@ -418,7 +419,7 @@ var _ = Describe("agent reconcile", func() {
 
 	It("Agent update ignition config errors", func() {
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -438,7 +439,7 @@ var _ = Describe("agent reconcile", func() {
 
 		By("Reconcile with ignition config, UpdateHostIgnitionInternal returns error")
 		ignitionConfigOverrides := `{"ignition": "version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{}, nil)
 		errString := "update internal error"
 		mockInstallerInternal.EXPECT().UpdateHostIgnitionInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
 		host.Spec.IgnitionConfigOverrides = ignitionConfigOverrides
@@ -455,7 +456,7 @@ var _ = Describe("agent reconcile", func() {
 
 	It("Agent update installer args valid cases", func() {
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -471,7 +472,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		// mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: false}, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -490,7 +491,7 @@ var _ = Describe("agent reconcile", func() {
 		By("Reconcile add update installer args, validate UpdateHostInstallerArgsInternal run once")
 		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, nil)
 
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: false}, nil)
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
 		agent.Spec.InstallerArgs = installerArgs
 		Expect(c.Update(ctx, agent)).To(BeNil())
@@ -509,7 +510,7 @@ var _ = Describe("agent reconcile", func() {
 		err = json.Unmarshal([]byte(agent.Spec.InstallerArgs), &j)
 		Expect(err).To(BeNil())
 		arrBytes, _ := json.Marshal(j)
-		internalHost := &common.Host{}
+		internalHost := &dbc.Host{}
 		internalHost.InstallerArgs = string(arrBytes)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(internalHost, nil)
 		Expect(c.Get(ctx, key, agent)).To(BeNil())
@@ -526,7 +527,7 @@ var _ = Describe("agent reconcile", func() {
 	It("Agent update installer args errors", func() {
 
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -546,7 +547,7 @@ var _ = Describe("agent reconcile", func() {
 
 		By("Reconcile with bad json in installer args, validate UpdateHostInstallerArgsInternal didn't run")
 		installerArgs := `"--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: false}, nil)
 		host.Spec.InstallerArgs = installerArgs
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
@@ -558,7 +559,7 @@ var _ = Describe("agent reconcile", func() {
 
 		By("Reconcile with installer args, UpdateHostInstallerArgsInternal returns error")
 		installerArgs = `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{}, nil)
 		errString := "update internal error"
 		mockInstallerInternal.EXPECT().UpdateHostInstallerArgsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf(errString)).Times(1)
 		host.Spec.InstallerArgs = installerArgs
@@ -596,7 +597,7 @@ var _ = Describe("agent reconcile", func() {
 		}
 		inv, _ := json.Marshal(&inventory)
 
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -611,7 +612,7 @@ var _ = Describe("agent reconcile", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{}, nil)
 		Expect(c.Create(ctx, host)).To(BeNil())
 		result, err := hr.Reconcile(ctx, newHostRequest(host))
 		Expect(err).To(BeNil())
@@ -637,7 +638,7 @@ var _ = Describe("TestConditions", func() {
 		hr             *AgentReconciler
 		ctx            = context.Background()
 		mockCtrl       *gomock.Controller
-		backEndCluster *common.Cluster
+		backEndCluster *dbc.Cluster
 		hostRequest    ctrl.Request
 		agentKey       types.NamespacedName
 	)
@@ -653,9 +654,9 @@ var _ = Describe("TestConditions", func() {
 			Installer: mockInstallerInternal,
 		}
 		sId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{ID: &sId}}
 		hostId := strfmt.UUID(uuid.New().String())
-		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+		backEndCluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
 				{
@@ -665,7 +666,7 @@ var _ = Describe("TestConditions", func() {
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{}, nil)
 		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
 		Expect(c.Create(ctx, host)).To(BeNil())
 		hostRequest = newHostRequest(host)

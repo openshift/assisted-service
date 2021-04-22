@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -73,7 +74,7 @@ func (r *InfraEnvReconciler) Reconcile(ctx context.Context, req ctrl.Request) (c
 	return r.ensureISO(ctx, infraEnv)
 }
 
-func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
+func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, cluster *dbc.Cluster) error {
 	var (
 		params = &models.ClusterUpdateParams{}
 		update bool
@@ -116,7 +117,7 @@ func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, infraEnv
 	return nil
 }
 
-func (r *InfraEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
+func (r *InfraEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, cluster *dbc.Cluster) error {
 	var (
 		discoveryIgnitionParams = &models.DiscoveryIgnitionParams{}
 		updateClusterIgnition   bool
@@ -183,7 +184,7 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, infraEnv 
 func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) (ctrl.Result, error) {
 	var inventoryErr error
 	var Requeue bool
-	var updatedCluster *common.Cluster
+	var updatedCluster *dbc.Cluster
 
 	kubeKey := types.NamespacedName{
 		Name:      infraEnv.Spec.ClusterRef.Name,

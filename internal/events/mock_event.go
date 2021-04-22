@@ -8,7 +8,7 @@ import (
 	context "context"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	reflect "reflect"
 	time "time"
 )
@@ -54,10 +54,10 @@ func (mr *MockHandlerMockRecorder) AddEvent(ctx, clusterID, hostID, severity, ms
 }
 
 // GetEvents mocks base method
-func (m *MockHandler) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error) {
+func (m *MockHandler) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*dbc.Event, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetEvents", clusterID, hostID)
-	ret0, _ := ret[0].([]*common.Event)
+	ret0, _ := ret[0].([]*dbc.Event)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

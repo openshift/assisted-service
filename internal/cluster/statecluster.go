@@ -3,15 +3,15 @@ package cluster
 import (
 	"github.com/filanov/stateswitch"
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 )
 
 type stateCluster struct {
 	srcState string
-	cluster  *common.Cluster
+	cluster  *dbc.Cluster
 }
 
-func newStateCluster(c *common.Cluster) *stateCluster {
+func newStateCluster(c *dbc.Cluster) *stateCluster {
 	return &stateCluster{
 		srcState: swag.StringValue(c.Status),
 		cluster:  c,

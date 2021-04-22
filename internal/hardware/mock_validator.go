@@ -7,7 +7,7 @@ package hardware
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	models "github.com/openshift/assisted-service/models"
 	reflect "reflect"
 )
@@ -79,7 +79,7 @@ func (mr *MockValidatorMockRecorder) GetHostInstallationPath(host interface{}) *
 }
 
 // GetClusterHostRequirements mocks base method
-func (m *MockValidator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+func (m *MockValidator) GetClusterHostRequirements(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterHostRequirements", ctx, cluster, host)
 	ret0, _ := ret[0].(*models.ClusterHostRequirements)
@@ -136,7 +136,7 @@ func (mr *MockValidatorMockRecorder) GetInstallationDiskSpeedThresholdMs() *gomo
 }
 
 // GetPreflightHardwareRequirements mocks base method
-func (m *MockValidator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error) {
+func (m *MockValidator) GetPreflightHardwareRequirements(ctx context.Context, cluster *dbc.Cluster) (*models.PreflightHardwareRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPreflightHardwareRequirements", ctx, cluster)
 	ret0, _ := ret[0].(*models.PreflightHardwareRequirements)

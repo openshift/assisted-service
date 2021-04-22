@@ -17,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -197,11 +198,11 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		Context("successful creation", func() {
-			var clusterReply *common.Cluster
+			var clusterReply *dbc.Cluster
 
 			BeforeEach(func() {
 				id := strfmt.UUID(uuid.New().String())
-				clusterReply = &common.Cluster{
+				clusterReply = &dbc.Cluster{
 					Cluster: models.Cluster{
 						Status:     swag.String(models.ClusterStatusPendingForInput),
 						StatusInfo: swag.String("User input required"),
@@ -335,7 +336,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("cluster resource deleted - verify call to deregister cluster", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID: &sId,
 				},
@@ -351,7 +352,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("cluster deregister failed - internal error", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID: &sId,
 				},
@@ -370,7 +371,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("cluster resource deleted and created again", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID: &sId,
 				},
@@ -401,7 +402,7 @@ var _ = Describe("cluster reconcile", func() {
 		var (
 			sId            strfmt.UUID
 			cluster        *hivev1.ClusterDeployment
-			backEndCluster *common.Cluster
+			backEndCluster *dbc.Cluster
 		)
 
 		BeforeEach(func() {
@@ -411,7 +412,7 @@ var _ = Describe("cluster reconcile", func() {
 			id := uuid.New()
 			sId = strfmt.UUID(id.String())
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-			backEndCluster = &common.Cluster{
+			backEndCluster = &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
@@ -445,9 +446,9 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: true}, nil).Times(5)
 
-			installClusterReply := &common.Cluster{
+			installClusterReply := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:     backEndCluster.ID,
 					Status: swag.String(models.ClusterStatusPreparingForInstallation),
@@ -480,7 +481,7 @@ var _ = Describe("cluster reconcile", func() {
 				Username: username,
 			}
 			id := strfmt.UUID(uuid.New().String())
-			clusterReply := &common.Cluster{
+			clusterReply := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:     &id,
 					Status: swag.String(models.ClusterStatusAddingHosts),
@@ -605,7 +606,7 @@ var _ = Describe("cluster reconcile", func() {
 		It("Create day2 if day1 is already deleted none SNO", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 			id := strfmt.UUID(uuid.New().String())
-			clusterReply := &common.Cluster{
+			clusterReply := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:     &id,
 					Status: swag.String(models.ClusterStatusAddingHosts),
@@ -679,7 +680,7 @@ var _ = Describe("cluster reconcile", func() {
 				Return(nil, errors.Errorf("error"))
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: true}, nil).Times(5)
 
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
@@ -710,7 +711,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusPendingForInput)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: false}, nil).Times(5)
 
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -737,7 +738,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			backEndCluster.Hosts = []*models.Host{h}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: true}, nil).Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 
@@ -764,7 +765,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Hosts = []*models.Host{h}
 			expectedError := errors.New("internal error")
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&dbc.Host{Approved: true}, nil).Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(expectedError)
 
@@ -818,7 +819,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("update pull-secret network cidr and cluster name", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     "different-cluster-name",
@@ -832,7 +833,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 
-			updateReply := &common.Cluster{
+			updateReply := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:         &sId,
 					Status:     swag.String(models.ClusterStatusInsufficient),
@@ -859,7 +860,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("only state changed", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
@@ -902,7 +903,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("update internal error", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                 &sId,
 					Name:               "different-cluster-name",
@@ -928,7 +929,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("add install config overrides annotation", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
@@ -946,7 +947,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			installConfigOverrides := `{"controlPlane": {"hyperthreading": "Disabled"}}`
-			updateReply := &common.Cluster{
+			updateReply := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                     &sId,
 					Status:                 swag.String(models.ClusterStatusInsufficient),
@@ -969,7 +970,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("Remove existing install config overrides annotation", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
@@ -987,7 +988,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-			updateReply := &common.Cluster{
+			updateReply := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                     &sId,
 					Status:                 swag.String(models.ClusterStatusInsufficient),
@@ -1007,7 +1008,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("Update install config overrides annotation", func() {
-			backEndCluster := &common.Cluster{
+			backEndCluster := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
@@ -1026,7 +1027,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			installConfigOverrides := `{"controlPlane": {"hyperthreading": "Enabled"}}`
-			updateReply := &common.Cluster{
+			updateReply := &dbc.Cluster{
 				Cluster: models.Cluster{
 					ID:                     &sId,
 					Status:                 swag.String(models.ClusterStatusInsufficient),

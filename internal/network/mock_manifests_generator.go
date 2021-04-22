@@ -7,7 +7,7 @@ package network
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	logrus "github.com/sirupsen/logrus"
 	reflect "reflect"
 )
@@ -36,7 +36,7 @@ func (m *MockManifestsGeneratorAPI) EXPECT() *MockManifestsGeneratorAPIMockRecor
 }
 
 // AddChronyManifest mocks base method
-func (m *MockManifestsGeneratorAPI) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+func (m *MockManifestsGeneratorAPI) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddChronyManifest", ctx, log, c)
 	ret0, _ := ret[0].(error)
@@ -50,7 +50,7 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddChronyManifest(ctx, log, c i
 }
 
 // AddDnsmasqForSingleNode mocks base method
-func (m *MockManifestsGeneratorAPI) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+func (m *MockManifestsGeneratorAPI) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddDnsmasqForSingleNode", ctx, log, c)
 	ret0, _ := ret[0].(error)

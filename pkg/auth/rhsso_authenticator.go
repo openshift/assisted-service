@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/runtime/security"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	params "github.com/openshift/assisted-service/pkg/context"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -247,7 +248,7 @@ func (a *RHSSOAuthenticator) isClusterOwnedByUser(clusterID string, payload *ocm
 	}
 
 	if a.db != nil {
-		err := a.db.First(&common.Cluster{}, "id = ? and user_name = ?", clusterID, payload.Username).Error
+		err := a.db.First(&dbc.Cluster{}, "id = ? and user_name = ?", clusterID, payload.Username).Error
 		if err != nil {
 			//if user is not the owner of the cluster return false
 			if err == gorm.ErrRecordNotFound {

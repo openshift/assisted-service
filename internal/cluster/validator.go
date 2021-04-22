@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
@@ -36,7 +37,7 @@ func (v ValidationStatus) String() string {
 
 type clusterPreprocessContext struct {
 	clusterId     strfmt.UUID
-	cluster       *common.Cluster
+	cluster       *dbc.Cluster
 	db            *gorm.DB
 	calculateCidr string
 }
@@ -51,7 +52,7 @@ type validation struct {
 }
 
 func (c *clusterPreprocessContext) loadCluster() error {
-	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(c.db, c.clusterId)
+	cluster, err := dbc.GetClusterFromDBWithoutDisabledHosts(c.db, c.clusterId)
 	if err == nil {
 		c.cluster = cluster
 	}
@@ -88,7 +89,7 @@ type clusterValidator struct {
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) ValidationStatus {
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(&c.cluster.Cluster) {
 		return ValidationSuccess
 	}
 	return boolValue(c.cluster.MachineNetworkCidr != "")
@@ -99,13 +100,13 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 	case ValidationFailure:
 		if swag.BoolValue(context.cluster.VipDhcpAllocation) {
 			return "The Machine Network CIDR is undefined; setting the Machine Network CIDR initiates the VIPs DHCP lease allocation."
-		} else if common.IsSingleNodeCluster(context.cluster) {
+		} else if common.IsSingleNodeCluster(&context.cluster.Cluster) {
 			return "The Machine Network CIDR is undefined; Setting Machine Network CIDR is required for single node cluster"
 		} else {
 			return "The Machine Network CIDR is undefined; the Machine Network CIDR can be defined by setting either the API or Ingress virtual IPs."
 		}
 	case ValidationSuccess:
-		if swag.BoolValue(context.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(context.cluster) {
+		if swag.BoolValue(context.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(&context.cluster.Cluster) {
 			return "No Machine Network CIDR needed: User Managed Networking"
 		}
 		return "The Machine Network CIDR is defined."
@@ -423,7 +424,7 @@ func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessCon
 }
 
 func (v *clusterValidator) noCidrsOverlapping(c *clusterPreprocessContext) ValidationStatus {
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(&c.cluster.Cluster) {
 		if c.cluster.ClusterNetworkCidr == "" || c.cluster.ServiceNetworkCidr == "" {
 			return ValidationPending
 		}

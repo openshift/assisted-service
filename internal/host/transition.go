@@ -13,6 +13,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
@@ -57,11 +58,11 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	hostParam := sHost.host
 
 	// If host already exists
-	if _, err := common.GetHostFromDB(params.db, hostParam.ClusterID.String(), hostParam.ID.String()); err == nil {
+	if _, err := dbc.GetHostFromDB(params.db, hostParam.ClusterID.String(), hostParam.ID.String()); err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
 		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion)
-		var dbHost *common.Host
+		var dbHost *dbc.Host
 		if dbHost, err = hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, hostParam.ClusterID, *hostParam.ID, sHost.srcState,
 			swag.StringValue(hostParam.Status), statusInfoDiscovering, hostParam.Progress.CurrentStage, "", "", extra...); err != nil {
 			return err
@@ -399,7 +400,7 @@ func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, arg
 	if !ok {
 		return false, errors.New("IsPreparingTimedOut invalid argument")
 	}
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error
 	if err != nil {
 		return false, err
@@ -416,7 +417,7 @@ func (th *transitionHandler) HasClusterError(sw stateswitch.StateSwitch, args st
 	if !ok {
 		return false, errors.New("HasClusterError invalid argument")
 	}
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error
 	if err != nil {
 		return false, err
@@ -517,7 +518,7 @@ func (th *transitionHandler) ShouldIgnoreInstallingInProgressTimeout(
 }
 
 func IsClusterInstallationPendingUserAction(clusterID strfmt.UUID, db *gorm.DB) (bool, error) {
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	err := db.Select("status").Take(&cluster, "id = ?", clusterID.String()).Error
 	if err != nil {
 		return false, err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -30,14 +31,14 @@ type Manager struct {
 //go:generate mockgen -package=operators -destination=mock_operators_api.go . API
 type API interface {
 	// ValidateCluster validates cluster requirements
-	ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error)
+	ValidateCluster(ctx context.Context, cluster *dbc.Cluster) ([]api.ValidationResult, error)
 	// ValidateHost validates host requirements
-	ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error)
+	ValidateHost(ctx context.Context, cluster *dbc.Cluster, host *models.Host) ([]api.ValidationResult, error)
 	// GenerateManifests generates manifests for all enabled operators.
 	// Returns map assigning manifest content to its desired file name
-	GenerateManifests(ctx context.Context, cluster *common.Cluster) error
+	GenerateManifests(ctx context.Context, cluster *dbc.Cluster) error
 	// AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
-	AnyOLMOperatorEnabled(cluster *common.Cluster) bool
+	AnyOLMOperatorEnabled(cluster *dbc.Cluster) bool
 	// ResolveDependencies amends the list of requested additional operators with any missing dependencies
 	ResolveDependencies(operators []*models.MonitoredOperator) ([]*models.MonitoredOperator, error)
 	// GetMonitoredOperatorsList returns the monitored operators available by the manager.
@@ -51,13 +52,13 @@ type API interface {
 	// GetOperatorProperties provides description of properties of an operator
 	GetOperatorProperties(operatorName string) (models.OperatorProperties, error)
 	// GetRequirementsBreakdownForHostInCluster provides host requirements breakdown for each OLM operator in the cluster
-	GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error)
+	GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *dbc.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error)
 	// GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
-	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error)
+	GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *dbc.Cluster) ([]*models.OperatorHardwareRequirements, error)
 }
 
 // GetPreflightRequirementsBreakdownForCluster provides host requirements breakdown for each supported OLM operator
-func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
+func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Context, cluster *dbc.Cluster) ([]*models.OperatorHardwareRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHardwareRequirements
 	for operatorName, operator := range mgr.olmOperators {
@@ -72,7 +73,7 @@ func (mgr Manager) GetPreflightRequirementsBreakdownForCluster(ctx context.Conte
 }
 
 // GetRequirementsBreakdownForRoleInCluster provides host requirements breakdown for each OLM operator in the cluster
-func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error) {
+func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context, cluster *dbc.Cluster, host *models.Host) ([]*models.OperatorHostRequirements, error) {
 	logger := logutil.FromContext(ctx, mgr.log)
 	var requirements []*models.OperatorHostRequirements
 	for _, monitoredOperator := range cluster.MonitoredOperators {
@@ -96,7 +97,7 @@ func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context
 
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
-func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
+func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *dbc.Cluster) error {
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
@@ -122,7 +123,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 	return nil
 }
 
-func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
+func (mgr *Manager) createManifests(ctx context.Context, cluster *dbc.Cluster, filename string, content []byte) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
 	response := mgr.manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
@@ -143,7 +144,7 @@ func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster
 }
 
 // AnyOLMOperatorEnabled checks whether any OLM operator has been enabled for the given cluster
-func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
+func (mgr *Manager) AnyOLMOperatorEnabled(cluster *dbc.Cluster) bool {
 	for _, operator := range mgr.olmOperators {
 		if IsEnabled(cluster.MonitoredOperators, operator.GetName()) {
 			return true
@@ -153,7 +154,7 @@ func (mgr *Manager) AnyOLMOperatorEnabled(cluster *common.Cluster) bool {
 }
 
 // ValidateHost validates host requirements
-func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) ([]api.ValidationResult, error) {
+func (mgr *Manager) ValidateHost(ctx context.Context, cluster *dbc.Cluster, host *models.Host) ([]api.ValidationResult, error) {
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
 
 	// To track operators that are disabled or not present in the cluster configuration, but have to be present
@@ -194,7 +195,7 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 }
 
 // ValidateCluster validates cluster requirements
-func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *dbc.Cluster) ([]api.ValidationResult, error) {
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
 
 	pendingOperators := make(map[string]struct{})

@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -33,13 +33,13 @@ type Operator interface {
 	// GetDependencies provides a list of dependencies of the Operator
 	GetDependencies() []string
 	// ValidateCluster verifies whether this operator is valid for given cluster
-	ValidateCluster(ctx context.Context, cluster *common.Cluster) (ValidationResult, error)
+	ValidateCluster(ctx context.Context, cluster *dbc.Cluster) (ValidationResult, error)
 	// ValidateHost verifies whether this operator is valid for given host
-	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host) (ValidationResult, error)
+	ValidateHost(ctx context.Context, cluster *dbc.Cluster, hosts *models.Host) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
-	GenerateManifests(*common.Cluster) (map[string][]byte, error)
+	GenerateManifests(*dbc.Cluster) (map[string][]byte, error)
 	// GetHostRequirements provides operator's requirements towards the host
-	GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error)
+	GetHostRequirements(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error)
 	// GetClusterValidationID returns cluster validation ID for the Operator
 	GetClusterValidationID() string
 	// GetHostValidationID returns host validation ID for the Operator
@@ -49,5 +49,5 @@ type Operator interface {
 	// GetMonitoredOperator returns MonitoredOperator corresponding to the Operator implementation
 	GetMonitoredOperator() *models.MonitoredOperator
 	// GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-	GetPreflightRequirements(ctx context.Context, cluster *common.Cluster) (*models.OperatorHardwareRequirements, error)
+	GetPreflightRequirements(ctx context.Context, cluster *dbc.Cluster) (*models.OperatorHardwareRequirements, error)
 }

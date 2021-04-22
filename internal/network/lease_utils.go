@@ -7,6 +7,7 @@ import (
 	"regexp"
 
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/pkg/errors"
 )
 
@@ -34,10 +35,10 @@ func getEncoded(input string) string {
 
 }
 
-func GetEncodedApiVipLease(c *common.Cluster) string {
+func GetEncodedApiVipLease(c *dbc.Cluster) string {
 	return getEncoded(c.ApiVipLease)
 }
 
-func GetEncodedIngressVipLease(c *common.Cluster) string {
+func GetEncodedIngressVipLease(c *dbc.Cluster) string {
 	return getEncoded(c.IngressVipLease)
 }

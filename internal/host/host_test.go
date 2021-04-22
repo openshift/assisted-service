@@ -18,6 +18,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -52,14 +53,14 @@ var _ = Describe("update_role", func() {
 
 	BeforeEach(func() {
 		dummy := &leader.DummyElector{}
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		state = NewManager(common.GetTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("update role by src state", func() {
@@ -272,7 +273,7 @@ var _ = Describe("update_progress", func() {
 	}
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -284,7 +285,7 @@ var _ = Describe("update_progress", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -498,7 +499,7 @@ var _ = Describe("cancel installation", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		dummy := &leader.DummyElector{}
 		state = NewManager(common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, defaultConfig, dummy, nil, nil)
@@ -508,7 +509,7 @@ var _ = Describe("cancel installation", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("cancel installation", func() {
@@ -581,14 +582,14 @@ var _ = Describe("reset host", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		eventsHandler = events.New(db, logrus.New())
 		config = *defaultConfig
 		dummy := &leader.DummyElector{}
 		state = NewManager(common.GetTestLog(), db, eventsHandler, nil, nil, nil, nil, &config, dummy, nil, nil)
 	})
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("reset installation", func() {
@@ -705,7 +706,7 @@ var _ = Describe("register host", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		eventsHandler = events.NewMockHandler(ctrl)
 		config = *defaultConfig
@@ -739,7 +740,7 @@ var _ = Describe("register host", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 })
@@ -851,7 +852,7 @@ var _ = Describe("UpdateInventory", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
@@ -862,7 +863,7 @@ var _ = Describe("UpdateInventory", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -1152,7 +1153,7 @@ var _ = Describe("Update hostname", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(common.GetTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, nil, nil)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -1160,7 +1161,7 @@ var _ = Describe("Update hostname", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("set hostname", func() {
@@ -1268,7 +1269,7 @@ var _ = Describe("Update disk installation path", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		leader := &leader.DummyElector{}
 		mockValidator = hardware.NewMockValidator(ctrl)
 		logger := common.GetTestLog()
@@ -1278,7 +1279,7 @@ var _ = Describe("Update disk installation path", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
@@ -1421,7 +1422,7 @@ var _ = Describe("SetBootstrap", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1464,7 +1465,7 @@ var _ = Describe("SetBootstrap", func() {
 	}
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })
@@ -1482,7 +1483,7 @@ var _ = Describe("UpdateNTP", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1526,7 +1527,7 @@ var _ = Describe("UpdateNTP", func() {
 	}
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })
@@ -1544,7 +1545,7 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
@@ -1610,7 +1611,7 @@ var _ = Describe("UpdateMachineConfigPoolName", func() {
 	}
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })
@@ -1628,7 +1629,7 @@ var _ = Describe("update logs_info", func() {
 
 	BeforeEach(func() {
 		dummy := &leader.DummyElector{}
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		mockOperators := operators.NewMockAPI(ctrl)
 		hapi = NewManager(common.GetTestLog(), db, nil, nil, nil, createValidatorCfg(), nil, defaultConfig, dummy, mockOperators, nil)
 		hostId = strfmt.UUID(uuid.New().String())
@@ -1638,7 +1639,7 @@ var _ = Describe("update logs_info", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	validateLogsStartedAt := func(h *models.Host) {
@@ -1701,7 +1702,7 @@ var _ = Describe("UpdateImageStatus", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -1826,7 +1827,7 @@ var _ = Describe("UpdateImageStatus", func() {
 	}
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 })
@@ -1847,7 +1848,7 @@ var _ = Describe("AutoAssignRole", func() {
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		dummy := &leader.DummyElector{}
 		hapi = NewManager(
@@ -1863,14 +1864,14 @@ var _ = Describe("AutoAssignRole", func() {
 			mockOperators,
 			nil,
 		)
-		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
+		Expect(db.Create(&dbc.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
 
-		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 			var details models.ClusterHostRequirementsDetails
 			if host.Role == models.HostRoleMaster {
 				details = models.ClusterHostRequirementsDetails{
@@ -1891,7 +1892,7 @@ var _ = Describe("AutoAssignRole", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		db.Close()
 		ctrl.Finish()
 	})
@@ -1983,7 +1984,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		ctrl      *gomock.Controller
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		clusterId = strfmt.UUID(uuid.New().String())
 		dummy := &leader.DummyElector{}
 		testLog := common.GetTestLog()
@@ -2005,7 +2006,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 			mockOperators,
 			nil,
 		)
-		Expect(db.Create(&common.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
+		Expect(db.Create(&dbc.Cluster{Cluster: models.Cluster{ID: &clusterId}}).Error).ShouldNot(HaveOccurred())
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
@@ -2014,7 +2015,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		db.Close()
 		ctrl.Finish()
 	})
@@ -2133,7 +2134,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	generateValidationCtx := func() *validationContext {
 		vc := validationContext{
-			cluster: &common.Cluster{
+			cluster: &dbc.Cluster{
 				Cluster: models.Cluster{
 					OpenshiftVersion: openshiftVersion,
 					EmailDomain:      emailDomain,
@@ -2145,7 +2146,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
@@ -2156,7 +2157,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("Test ReportValidationFailedMetrics", func() {
@@ -2214,7 +2215,7 @@ var _ = Describe("SetDiskSpeed", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHwValidator = hardware.NewMockValidator(ctrl)
 		validatorCfg = createValidatorCfg()
@@ -2236,7 +2237,7 @@ var _ = Describe("SetDiskSpeed", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("Happy flow", func() {

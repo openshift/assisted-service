@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
@@ -25,8 +26,8 @@ import (
 
 func TestValidator(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
+	dbc.InitializeDBTest()
+	defer dbc.TerminateDBTest()
 	RunSpecs(t, "manifests_test")
 }
 
@@ -69,7 +70,7 @@ var _ = Describe("ClusterManifestTests", func() {
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 
 		manifestsAPI = manifests.NewManifestsAPI(db, common.GetTestLog(), mockS3Client)
@@ -77,12 +78,12 @@ var _ = Describe("ClusterManifestTests", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
-	registerCluster := func() *common.Cluster {
+	registerCluster := func() *dbc.Cluster {
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{
+		cluster := dbc.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID,
 			},

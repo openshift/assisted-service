@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostcommands"
@@ -177,7 +178,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 }
 
 func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	dbHost, err := common.GetHostFromDB(db, h.ClusterID.String(), h.ID.String())
+	dbHost, err := dbc.GetHostFromDB(db, h.ClusterID.String(), h.ID.String())
 	var host *models.Host
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -186,7 +187,7 @@ func (m *Manager) RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB)
 
 		// Delete any previews record of the host if it was soft deleted from the cluster,
 		// no error will be returned if the host was not existed.
-		if err := db.Unscoped().Delete(&common.Host{}, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
+		if err := db.Unscoped().Delete(&dbc.Host{}, "id = ? and cluster_id = ?", *h.ID, h.ClusterID).Error; err != nil {
 			return errors.Wrapf(
 				err,
 				"error while trying to delete previews record from db (if exists) of host %s in cluster %s",
@@ -753,7 +754,7 @@ func (m *Manager) IsInstallable(h *models.Host) bool {
 func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host, previousProgress *models.HostProgressInfo, CurrentStage models.HostStage) {
 	log := logutil.FromContext(ctx, m.log)
 	//get openshift version from cluster
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	err := m.db.First(&cluster, "id = ?", h.ClusterID).Error
 	if err != nil {
 		log.WithError(err).Errorf("not reporting installation metrics - failed to find cluster %s", h.ClusterID)
@@ -833,7 +834,7 @@ func (m *Manager) didValidationChanged(ctx context.Context, newValidationRes, cu
 	return !reflect.DeepEqual(newValidationRes, currentValidationRes)
 }
 
-func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*common.Host, error) {
+func (m *Manager) updateValidationsInDB(ctx context.Context, db *gorm.DB, h *models.Host, newValidationRes ValidationsStatus) (*dbc.Host, error) {
 	b, err := json.Marshal(newValidationRes)
 	if err != nil {
 		return nil, err

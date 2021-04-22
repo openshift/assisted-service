@@ -7,7 +7,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -32,7 +32,7 @@ func asMAC(macStr string) *strfmt.MAC {
 	return &mac
 }
 
-func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluster) (string, error) {
+func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *dbc.Cluster) (string, error) {
 	nic, err := network.GetMachineCIDRInterface(host, cluster)
 	if err != nil {
 		return "", err
@@ -55,7 +55,7 @@ func (f *dhcpAllocateCmd) prepareParam(host *models.Host, cluster *common.Cluste
 }
 
 func (f *dhcpAllocateCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	if err := f.db.Take(&cluster, "id = ?", host.ClusterID.String()).Error; err != nil {
 		return nil, err
 	}

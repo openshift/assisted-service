@@ -6,7 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	gormigrate "gopkg.in/gormigrate.v1"
 )
@@ -22,12 +22,12 @@ var _ = Describe("changeOverridesToText", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
 
 		// create cluster in order to get rows from DB
 		clusterID = strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{Cluster: models.Cluster{
+		cluster := dbc.Cluster{Cluster: models.Cluster{
 			ID: &clusterID,
 			ImageInfo: &models.ImageInfo{
 				SSHPublicKey: sshKey,
@@ -41,29 +41,29 @@ var _ = Describe("changeOverridesToText", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {
-		t, err := getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
+		t, err := getColumnType(db, &dbc.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(t).To(Equal("TEXT"))
 
 		err = gm.RollbackMigration(changeImageSSHKeyToText())
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
+		t, err = getColumnType(db, &dbc.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(t).To(Equal("VARCHAR"))
 
 		err = gm.MigrateTo("20201202140700")
 		Expect(err).ToNot(HaveOccurred())
 
-		t, err = getColumnType(db, &common.Cluster{}, "image_ssh_public_key")
+		t, err = getColumnType(db, &dbc.Cluster{}, "image_ssh_public_key")
 		Expect(err).ToNot(HaveOccurred())
 		Expect(t).To(Equal("TEXT"))
 
-		cluster := &common.Cluster{}
+		cluster := &dbc.Cluster{}
 		Expect(db.First(cluster).Error).ShouldNot(HaveOccurred())
 		Expect(cluster.ImageInfo.SSHPublicKey).Should(Equal(sshKey))
 	})

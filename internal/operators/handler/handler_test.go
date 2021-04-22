@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/operators"
 	operatorsHandler "github.com/openshift/assisted-service/internal/operators/handler"
@@ -24,7 +25,7 @@ var _ = Describe("Operators manager", func() {
 	var (
 		db                *gorm.DB
 		dbName            string
-		cluster, cluster2 *common.Cluster
+		cluster, cluster2 *dbc.Cluster
 		log               = logrus.New()
 		ctrl              *gomock.Controller
 		mockApi           *operators.MockAPI
@@ -34,7 +35,7 @@ var _ = Describe("Operators manager", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockApi = operators.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
@@ -42,7 +43,7 @@ var _ = Describe("Operators manager", func() {
 
 		// create simple cluster #1
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{
+		cluster = &dbc.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID,
 				MonitoredOperators: []*models.MonitoredOperator{
@@ -57,7 +58,7 @@ var _ = Describe("Operators manager", func() {
 
 		// create simple cluster #2
 		clusterID2 := strfmt.UUID(uuid.New().String())
-		cluster2 = &common.Cluster{
+		cluster2 = &dbc.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID2,
 				MonitoredOperators: []*models.MonitoredOperator{
@@ -72,7 +73,7 @@ var _ = Describe("Operators manager", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("FindMonitoredOperator", func() {

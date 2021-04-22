@@ -7,7 +7,7 @@ package generator
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	reflect "reflect"
 )
 
@@ -35,7 +35,7 @@ func (m *MockISOInstallConfigGenerator) EXPECT() *MockISOInstallConfigGeneratorM
 }
 
 // AbortInstallConfig mocks base method
-func (m *MockISOInstallConfigGenerator) AbortInstallConfig(arg0 context.Context, arg1 common.Cluster) error {
+func (m *MockISOInstallConfigGenerator) AbortInstallConfig(arg0 context.Context, arg1 dbc.Cluster) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AbortInstallConfig", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -49,7 +49,7 @@ func (mr *MockISOInstallConfigGeneratorMockRecorder) AbortInstallConfig(arg0, ar
 }
 
 // GenerateInstallConfig mocks base method
-func (m *MockISOInstallConfigGenerator) GenerateInstallConfig(arg0 context.Context, arg1 common.Cluster, arg2 []byte, arg3 string) error {
+func (m *MockISOInstallConfigGenerator) GenerateInstallConfig(arg0 context.Context, arg1 dbc.Cluster, arg2 []byte, arg3 string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateInstallConfig", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)

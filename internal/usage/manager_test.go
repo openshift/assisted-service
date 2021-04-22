@@ -9,15 +9,15 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 
 func TestUsageEvents(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
+	dbc.InitializeDBTest()
+	defer dbc.TerminateDBTest()
 	RunSpecs(t, "Usage test Suite")
 }
 
@@ -30,10 +30,10 @@ var _ = Describe("Feature Usage", func() {
 	)
 
 	var _ = BeforeSuite(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		manager = NewManager(logrus.WithField("pkg", "usage"))
 		clusterID = strfmt.UUID(uuid.New().String())
-		cluster := common.Cluster{Cluster: models.Cluster{
+		cluster := dbc.Cluster{Cluster: models.Cluster{
 			ID: &clusterID,
 		},
 		}
@@ -41,11 +41,11 @@ var _ = Describe("Feature Usage", func() {
 	})
 
 	var _ = AfterSuite(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	readUsages := func() map[string]models.Usage {
-		var cluster common.Cluster
+		var cluster dbc.Cluster
 		db.First(&cluster, "id = ?", clusterID)
 		result, err := Unmarshal(cluster.Cluster.FeatureUsage)
 		Expect(err).ShouldNot(HaveOccurred())

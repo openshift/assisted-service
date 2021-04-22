@@ -7,7 +7,7 @@ import (
 
 	"github.com/alessio/shellescape"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
@@ -43,7 +43,7 @@ func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.R
 	}
 }
 
-func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) (Images, error) {
+func (cmd *imageAvailabilityCmd) getImages(cluster *dbc.Cluster) (Images, error) {
 
 	images := Images{}
 	releaseImage, err := cmd.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
@@ -67,7 +67,7 @@ func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) (Images, err
 }
 
 func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error) {
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	if err := cmd.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
 		cmd.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return "", err

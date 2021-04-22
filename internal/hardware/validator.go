@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/dustin/go-humanize"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
@@ -22,14 +22,14 @@ type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostRequirements() *models.VersionedHostRequirements
 	GetHostInstallationPath(host *models.Host) string
-	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
+	GetClusterHostRequirements(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(disk *models.Disk) []string
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	GetInstallationDiskSpeedThresholdMs() int64
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
 	// It should replace GetHostRequirements when its endpoint is not used anymore.
-	GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error)
+	GetPreflightHardwareRequirements(ctx context.Context, cluster *dbc.Cluster) (*models.PreflightHardwareRequirements, error)
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
@@ -145,7 +145,7 @@ func (v *validator) GetHostRequirements() *models.VersionedHostRequirements {
 	}
 }
 
-func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *dbc.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 	operatorsRequirements, err := v.operatorsAPI.GetRequirementsBreakdownForHostInCluster(ctx, cluster, host)
 	if err != nil {
 		return nil, err
@@ -161,7 +161,7 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 	}, nil
 }
 
-func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error) {
+func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluster *dbc.Cluster) (*models.PreflightHardwareRequirements, error) {
 	operatorsRequirements, err := v.operatorsAPI.GetPreflightRequirementsBreakdownForCluster(ctx, cluster)
 	if err != nil {
 		return nil, err
@@ -207,7 +207,7 @@ func (v *validator) getOCPHostRoleRequirementsForVersion(role models.HostRole, o
 	return *requirements.WorkerRequirements
 }
 
-func (v *validator) getPreflightOCPRequirements(cluster *common.Cluster) (*models.HostTypeHardwareRequirementsWrapper, error) {
+func (v *validator) getPreflightOCPRequirements(cluster *dbc.Cluster) (*models.HostTypeHardwareRequirementsWrapper, error) {
 	requirements := v.getOCPRequirementsForVersion(cluster.OpenshiftVersion)
 	return &models.HostTypeHardwareRequirementsWrapper{
 		Master: &models.HostTypeHardwareRequirements{

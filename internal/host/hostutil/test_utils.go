@@ -9,6 +9,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
@@ -19,8 +20,8 @@ func GetHostFromDB(hostId, clusterId strfmt.UUID, db *gorm.DB) *models.Host {
 	return &host
 }
 
-func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) common.Cluster {
-	return common.Cluster{
+func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) dbc.Cluster {
+	return dbc.Cluster{
 		Cluster: models.Cluster{
 			ID:                 &clusterID,
 			MachineNetworkCidr: machineNetworkCidr,

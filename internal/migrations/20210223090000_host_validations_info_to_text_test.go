@@ -6,7 +6,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"gopkg.in/gormigrate.v1"
 )
@@ -22,7 +22,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		hostID = strfmt.UUID(uuid.New().String())
 		clusterID := strfmt.UUID(uuid.New().String())
 		host := models.Host{
@@ -39,7 +39,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	It("Migrates down and up", func() {

@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
@@ -24,7 +25,7 @@ var _ = Describe("reset", func() {
 	var dbName string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		rstCmd = NewResetInstallationCmd(common.GetTestLog())
 
 		id = strfmt.UUID(uuid.New().String())
@@ -41,7 +42,7 @@ var _ = Describe("reset", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

@@ -3,7 +3,7 @@ package network
 import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 )
 
 const apiLease = `lease {
@@ -85,7 +85,7 @@ var _ = Describe("dhcp param file", func() {
 		})
 	})
 	It("Encoded", func() {
-		cluster := &common.Cluster{
+		cluster := &dbc.Cluster{
 			ApiVipLease:     apiLease,
 			IngressVipLease: ingressLease,
 		}

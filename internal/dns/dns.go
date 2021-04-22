@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -26,10 +27,10 @@ type DNSDomain struct {
 }
 
 type DNSApi interface {
-	ChangeDNSRecordSets(ctx context.Context, cluster *common.Cluster, delete bool) error
+	ChangeDNSRecordSets(ctx context.Context, cluster *dbc.Cluster, delete bool) error
 	GetDNSDomain(clusterName, baseDNSDomainName string) (*DNSDomain, error)
 	ValidateBaseDNS(domain *DNSDomain) error
-	ValidateDNSRecords(cluster common.Cluster, domain *DNSDomain) error
+	ValidateDNSRecords(cluster dbc.Cluster, domain *DNSDomain) error
 }
 
 type handler struct {
@@ -44,7 +45,7 @@ func NewDNSHandler(baseDNSDomains map[string]string, log logrus.FieldLogger) DNS
 	}
 }
 
-func (h *handler) ChangeDNSRecordSets(ctx context.Context, cluster *common.Cluster, delete bool) error {
+func (h *handler) ChangeDNSRecordSets(ctx context.Context, cluster *dbc.Cluster, delete bool) error {
 	log := logutil.FromContext(ctx, h.log)
 
 	domain, err := h.GetDNSDomain(cluster.Name, cluster.BaseDNSDomain)
@@ -73,7 +74,7 @@ func (h *handler) ChangeDNSRecordSets(ctx context.Context, cluster *common.Clust
 
 		apiVip := cluster.APIVip
 		ingressVip := cluster.IngressVip
-		if common.IsSingleNodeCluster(cluster) {
+		if common.IsSingleNodeCluster(&cluster.Cluster) {
 			apiVip, err = network.GetIpForSingleNodeInstallation(cluster, log)
 			if err != nil {
 				log.WithError(err).Errorf("failed to find ip for single node installation")
@@ -145,7 +146,7 @@ func (h *handler) ValidateBaseDNS(domain *DNSDomain) error {
 	return validations.ValidateBaseDNS(domain.Name, domain.ID, domain.Provider)
 }
 
-func (b *handler) ValidateDNSRecords(cluster common.Cluster, domain *DNSDomain) error {
+func (b *handler) ValidateDNSRecords(cluster dbc.Cluster, domain *DNSDomain) error {
 	vipAddresses := []string{domain.APIDomainName, domain.IngressDomainName}
 	if swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		vipAddresses = append(vipAddresses, domain.APIINTDomainName)

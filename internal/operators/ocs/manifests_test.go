@@ -4,6 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"sigs.k8s.io/yaml"
 )
@@ -11,7 +12,7 @@ import (
 var _ = Describe("OCS manifest generation", func() {
 	operator := NewOcsOperator(common.GetTestLog())
 	operator.config.OCSDeploymentType = "Compact"
-	cluster := common.Cluster{Cluster: models.Cluster{
+	cluster := dbc.Cluster{Cluster: models.Cluster{
 		OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 	}}
 

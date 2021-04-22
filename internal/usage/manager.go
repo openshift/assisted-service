@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -49,7 +49,7 @@ func (m *UsageManager) Remove(usages FeatureUsage, name string) {
 func (m *UsageManager) Save(db *gorm.DB, clusterId strfmt.UUID, usages FeatureUsage) {
 	b, err := json.Marshal(usages)
 	if err == nil {
-		err = db.Model(&common.Cluster{}).Where("id = ?", clusterId).Update("feature_usage", string(b)).Error
+		err = db.Model(&dbc.Cluster{}).Where("id = ?", clusterId).Update("feature_usage", string(b)).Error
 	}
 	if err != nil {
 		m.log.WithError(err).Errorf("Failed to update usages %v", usages)

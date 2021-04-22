@@ -3,7 +3,7 @@ package lso
 import (
 	"context"
 
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 )
@@ -46,17 +46,17 @@ func (l *lsOperator) GetHostValidationID() string {
 }
 
 // ValidateCluster always return "valid" result
-func (l *lsOperator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.ValidationResult, error) {
+func (l *lsOperator) ValidateCluster(_ context.Context, _ *dbc.Cluster) (api.ValidationResult, error) {
 	return api.ValidationResult{Status: api.Success, ValidationId: l.GetClusterValidationID(), Reasons: []string{}}, nil
 }
 
 // ValidateHost always return "valid" result
-func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *models.Host) (api.ValidationResult, error) {
+func (l *lsOperator) ValidateHost(_ context.Context, _ *dbc.Cluster, _ *models.Host) (api.ValidationResult, error) {
 	return api.ValidationResult{Status: api.Success, ValidationId: l.GetHostValidationID(), Reasons: []string{}}, nil
 }
 
 // GenerateManifests generates manifests for the operator
-func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, error) {
+func (l *lsOperator) GenerateManifests(c *dbc.Cluster) (map[string][]byte, error) {
 	return Manifests(c.Cluster.OpenshiftVersion)
 }
 
@@ -71,12 +71,12 @@ func (l *lsOperator) GetMonitoredOperator() *models.MonitoredOperator {
 }
 
 // GetHostRequirements provides operator's requirements towards the host
-func (l *lsOperator) GetHostRequirements(context.Context, *common.Cluster, *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (l *lsOperator) GetHostRequirements(context.Context, *dbc.Cluster, *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	return &models.ClusterHostRequirementsDetails{}, nil
 }
 
 // GetPreflightRequirements returns operator hardware requirements that can be determined with cluster data only
-func (l *lsOperator) GetPreflightRequirements(context.Context, *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (l *lsOperator) GetPreflightRequirements(context.Context, *dbc.Cluster) (*models.OperatorHardwareRequirements, error) {
 	return &models.OperatorHardwareRequirements{
 		OperatorName: l.GetName(),
 		Dependencies: l.GetDependencies(),

@@ -11,8 +11,8 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
@@ -145,7 +145,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 	}
 }
 
-func createClusterCompletionStatusInfo(log logrus.FieldLogger, cluster *common.Cluster) string {
+func createClusterCompletionStatusInfo(log logrus.FieldLogger, cluster *dbc.Cluster) string {
 	_, statuses := getClusterMonitoringOperatorsStatus(cluster)
 	log.Infof("Cluster %s Monitoring status: %s", *cluster.ID, statuses)
 
@@ -191,7 +191,7 @@ func (th *transitionHandler) hasClusterCompleteInstallation(sw stateswitch.State
 	return isComplete, nil
 }
 
-func getClusterMonitoringOperatorsStatus(cluster *common.Cluster) (bool, MonitoredOperatorStatuses) {
+func getClusterMonitoringOperatorsStatus(cluster *dbc.Cluster) (bool, MonitoredOperatorStatuses) {
 	operatorsStatuses := MonitoredOperatorStatuses{
 		models.OperatorTypeOlm: {
 			models.OperatorStatusAvailable:   {},
@@ -422,7 +422,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 
 		var (
 			err            error
-			updatedCluster *common.Cluster
+			updatedCluster *dbc.Cluster
 		)
 		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
 			updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
@@ -513,7 +513,7 @@ func (th *transitionHandler) IsLogCollectionTimedOut(sw stateswitch.StateSwitch,
 	return false, nil
 }
 
-func setPendingUserResetIfNeeded(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, hostApi host.API, c *common.Cluster) {
+func setPendingUserResetIfNeeded(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, hostApi host.API, c *dbc.Cluster) {
 	if swag.StringValue(c.Status) == models.ClusterStatusInsufficient {
 		if isPendingUserResetRequired(hostApi, c) {
 			log.Infof("Setting cluster: %s hosts to status: %s",
@@ -526,7 +526,7 @@ func setPendingUserResetIfNeeded(ctx context.Context, log logrus.FieldLogger, db
 	}
 }
 
-func isPendingUserResetRequired(hostAPI host.API, c *common.Cluster) bool {
+func isPendingUserResetRequired(hostAPI host.API, c *dbc.Cluster) bool {
 	for _, h := range c.Hosts {
 		if hostAPI.IsRequireUserActionReset(h) {
 			return true
@@ -535,7 +535,7 @@ func isPendingUserResetRequired(hostAPI host.API, c *common.Cluster) bool {
 	return false
 }
 
-func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, hostAPI host.API) error {
+func setPendingUserReset(ctx context.Context, c *dbc.Cluster, db *gorm.DB, hostAPI host.API) error {
 	txSuccess := false
 	tx := db.Begin()
 	defer func() {

@@ -13,7 +13,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -107,7 +107,7 @@ func createUploadLogsCmd(host *models.Host, baseURL, agentImage, mastersIPs stri
 }
 
 func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, host *models.Host) ([]string, error) {
-	cluster, err := common.GetClusterFromDB(i.db, host.ClusterID, common.UseEagerLoading)
+	cluster, err := dbc.GetClusterFromDB(i.db, host.ClusterID, dbc.UseEagerLoading)
 	if err != nil {
 		i.log.WithError(err).Errorf("failed to get cluster for host %s", host.ID)
 		return nil, err
@@ -119,7 +119,7 @@ func (i *logsCmd) getNonBootstrapMastersIPsInHostCluster(ctx context.Context, ho
 	return i.getHostsIpsfromMachineCIDR(*cluster)
 }
 
-func (i *logsCmd) getHostsIpsfromMachineCIDR(cluster common.Cluster) ([]string, error) {
+func (i *logsCmd) getHostsIpsfromMachineCIDR(cluster dbc.Cluster) ([]string, error) {
 	var ips []string
 	for _, h := range cluster.Hosts {
 		if h.Bootstrap || h.Role == models.HostRoleWorker {
@@ -135,7 +135,7 @@ func (i *logsCmd) getHostsIpsfromMachineCIDR(cluster common.Cluster) ([]string, 
 	return ips, nil
 }
 
-func (i *logsCmd) getHostsIps(cluster common.Cluster) ([]string, error) {
+func (i *logsCmd) getHostsIps(cluster dbc.Cluster) ([]string, error) {
 	var ips []string
 	for _, h := range cluster.Hosts {
 		if h.Bootstrap || h.Role == models.HostRoleWorker {

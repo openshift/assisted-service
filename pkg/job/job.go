@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/internal/operators"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -164,7 +164,7 @@ func (k *kubeJob) delete(ctx context.Context, name, namespace string, force bool
 }
 
 // GenerateInstallConfig creates install config and ignition files
-func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
+func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster dbc.Cluster, cfg []byte, releaseImage string) error {
 	log := logutil.FromContext(ctx, k.log)
 	workDir := filepath.Join(k.Config.WorkDir, cluster.ID.String())
 	installerCacheDir := filepath.Join(k.Config.WorkDir, "installercache")
@@ -218,7 +218,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 
 // abort installation files generation job
 // TODO check if this is needed
-func (k *kubeJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
+func (k *kubeJob) AbortInstallConfig(ctx context.Context, cluster dbc.Cluster) error {
 	log := logutil.FromContext(ctx, k.log)
 
 	ctime := time.Time(cluster.CreatedAt)

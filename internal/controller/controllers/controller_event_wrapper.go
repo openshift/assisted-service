@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/sirupsen/logrus"
 )
@@ -27,7 +27,7 @@ func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events *event
 
 func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
-	cluster, err := common.GetClusterFromDB(c.db, clusterID, common.SkipEagerLoading)
+	cluster, err := dbc.GetClusterFromDB(c.db, clusterID, dbc.SkipEagerLoading)
 	if err != nil {
 		return
 	}
@@ -35,13 +35,13 @@ func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt
 	c.log.Debugf("Pushing cluster event %s %s", cluster.KubeKeyName, cluster.KubeKeyNamespace)
 	c.crdEventsHandler.NotifyClusterDeploymentUpdates(cluster.KubeKeyName, cluster.KubeKeyNamespace)
 	if hostID != nil {
-		// TODO once host will have infraEnv params we need to use common.GetHostFromDB()
+		// TODO once host will have infraEnv params we need to use dbc.GetHostFromDB()
 		// till then we will use same namespace as cluster deployment
 		c.log.Debugf("Pushing event for host %q %s %s", hostID, cluster.KubeKeyName, cluster.KubeKeyNamespace)
 		c.crdEventsHandler.NotifyAgentUpdates(hostID.String(), cluster.KubeKeyNamespace)
 	}
 }
 
-func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error) {
+func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*dbc.Event, error) {
 	return c.events.GetEvents(clusterID, hostID)
 }

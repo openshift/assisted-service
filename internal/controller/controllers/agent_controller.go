@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
@@ -195,7 +196,7 @@ func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
 	})
 }
 
-func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *dbc.Cluster, host *dbc.Host, agent *aiv1beta1.Agent) error {
 
 	if agent.Spec.InstallerArgs == host.InstallerArgs {
 		r.Log.Debugf("Nothing to update, installer args were already set")
@@ -472,7 +473,7 @@ func (r *AgentReconciler) updateInventory(host *models.Host, agent *aiv1beta1.Ag
 	return nil
 }
 
-func (r *AgentReconciler) updateHostIgnition(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateHostIgnition(ctx context.Context, c *dbc.Cluster, host *dbc.Host, agent *aiv1beta1.Agent) error {
 	if agent.Spec.IgnitionConfigOverrides == host.IgnitionConfigOverrides {
 		r.Log.Debugf("Nothing to update, ignition config override was already set")
 		return nil
@@ -491,7 +492,7 @@ func (r *AgentReconciler) updateHostIgnition(ctx context.Context, c *common.Clus
 	return err
 }
 
-func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.Agent, c *common.Cluster) error {
+func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.Agent, c *dbc.Cluster) error {
 	spec := agent.Spec
 	host := getHostFromCluster(c, agent.Name)
 	if host == nil {
@@ -594,7 +595,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 	return nil
 }
 
-func getHostFromCluster(c *common.Cluster, agentId string) *models.Host {
+func getHostFromCluster(c *dbc.Cluster, agentId string) *models.Host {
 	var host *models.Host
 	for _, h := range c.Hosts {
 		if (*h.ID).String() == agentId {

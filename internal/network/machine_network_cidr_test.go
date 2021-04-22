@@ -7,7 +7,7 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
@@ -37,8 +37,8 @@ func createHosts(inventories ...string) []*models.Host {
 	return ret
 }
 
-func createCluster(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
-	return &common.Cluster{Cluster: models.Cluster{
+func createCluster(apiVip string, machineCidr string, inventories ...string) *dbc.Cluster {
+	return &dbc.Cluster{Cluster: models.Cluster{
 		APIVip:             apiVip,
 		MachineNetworkCidr: machineCidr,
 		Hosts:              createHosts(inventories...),
@@ -56,8 +56,8 @@ var _ = Describe("inventory", func() {
 		return ret
 	}
 
-	createDisabledCluster := func(apiVip string, machineCidr string, inventories ...string) *common.Cluster {
-		return &common.Cluster{Cluster: models.Cluster{
+	createDisabledCluster := func(apiVip string, machineCidr string, inventories ...string) *dbc.Cluster {
+		return &dbc.Cluster{Cluster: models.Cluster{
 			APIVip:             apiVip,
 			MachineNetworkCidr: machineCidr,
 			Hosts:              createDisabledHosts(inventories...),

@@ -11,6 +11,7 @@ import (
 	"github.com/alessio/shellescape"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -60,7 +61,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	step.Command = "bash"
 
 	//get openshift version and HighAvailabilityMode
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	if err := i.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
 		i.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return nil, err
@@ -91,7 +92,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	return []*models.Step{step}, nil
 }
 
-func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *models.Host, bootdevice string) (string, error) {
+func (i *installCmd) getFullInstallerCommand(cluster *dbc.Cluster, host *models.Host, bootdevice string) (string, error) {
 	role := host.Role
 	if host.Bootstrap {
 		role = models.HostRoleBootstrap
@@ -248,7 +249,7 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 	set --copy-network, function will set only one such argument. It also append an arg that
 	controls DHCP depending on the IP stack being used.
 */
-func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host) (string, error) {
+func constructHostInstallerArgs(cluster *dbc.Cluster, host *models.Host) (string, error) {
 
 	var installerArgs []string
 	if host.InstallerArgs != "" {

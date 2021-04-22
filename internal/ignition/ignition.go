@@ -30,6 +30,7 @@ import (
 	clusterPkg "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/constants"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/installercache"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -296,14 +297,14 @@ type Generator interface {
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
-	FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
+	FormatDiscoveryIgnitionFile(cluster *dbc.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
 	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error)
 }
 
 type installerGenerator struct {
 	log                      logrus.FieldLogger
 	workDir                  string
-	cluster                  *common.Cluster
+	cluster                  *dbc.Cluster
 	releaseImage             string
 	releaseImageMirror       string
 	installerDir             string
@@ -339,7 +340,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 }
 
 // NewGenerator returns a generator that can generate ignition files
-func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
+func NewGenerator(workDir string, installerDir string, cluster *dbc.Cluster, releaseImage string, releaseImageMirror string,
 	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API) Generator {
 	return &installerGenerator{
 		cluster:                  cluster,
@@ -919,7 +920,7 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 }
 
 // UploadToS3 uploads the generated files to S3
-func uploadToS3(ctx context.Context, workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
+func uploadToS3(ctx context.Context, workDir string, cluster *dbc.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) error {
 	toUpload := fileNames[:]
 	for _, host := range cluster.Hosts {
 		if swag.StringValue(host.Status) != models.HostStatusDisabled {
@@ -1226,7 +1227,7 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
-func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
+func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *dbc.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	pullSecretToken, err := clusterPkg.AgentToken(cluster, authType)
 	if err != nil {
 		return "", err
@@ -1312,7 +1313,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 	return res, nil
 }
 
-func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(cluster *common.Cluster) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
+func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(cluster *dbc.Cluster) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
 	filesList, err := ib.staticNetworkConfig.GenerateStaticNetworkConfigData(cluster.ImageInfo.StaticNetworkConfig)
 	if err != nil {
 		ib.log.WithError(err).Errorf("staticNetworkGenerator failed to produce the static network connection files for cluster %s", cluster.ID)

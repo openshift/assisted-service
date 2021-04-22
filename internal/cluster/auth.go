@@ -2,13 +2,13 @@ package cluster
 
 import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/pkg/errors"
 )
 
-func AgentToken(c *common.Cluster, authType auth.AuthType) (token string, err error) {
+func AgentToken(c *dbc.Cluster, authType auth.AuthType) (token string, err error) {
 	switch authType {
 	case auth.TypeRHSSO:
 		token, err = cloudPullSecretToken(c.PullSecret)

@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
@@ -21,8 +22,8 @@ import (
 //go:generate mockgen -source=manifests_generator.go -package=network -destination=mock_manifests_generator.go
 
 type ManifestsGeneratorAPI interface {
-	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
-	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *dbc.Cluster) error
+	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *dbc.Cluster) error
 }
 
 type ManifestsGenerator struct {
@@ -133,7 +134,7 @@ spec:
          WantedBy=multi-user.target
 `
 
-func createChronyManifestContent(c *common.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
+func createChronyManifestContent(c *dbc.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
 	sources := make([]string, 0)
 
 	for _, host := range c.Hosts {
@@ -172,7 +173,7 @@ func createChronyManifestContent(c *common.Cluster, role models.HostRole, log lo
 	return fillTemplate(manifestParams, ntpMachineConfigManifest, log)
 }
 
-func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
+func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.FieldLogger, cluster *dbc.Cluster) error {
 	for _, role := range []models.HostRole{models.HostRoleMaster, models.HostRoleWorker} {
 		content, err := createChronyManifestContent(cluster, role, log)
 
@@ -190,7 +191,7 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 	return nil
 }
 
-func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
+func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *dbc.Cluster, filename string, content []byte) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
 	response := m.manifestsApi.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
@@ -210,7 +211,7 @@ func (m *ManifestsGenerator) createManifests(ctx context.Context, cluster *commo
 	return nil
 }
 
-func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
+func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, cluster *dbc.Cluster) error {
 	filename := "dnsmasq-bootstrap-in-place.yaml"
 
 	content, err := createDnsmasqForSingleNode(log, cluster)
@@ -222,7 +223,7 @@ func (m *ManifestsGenerator) AddDnsmasqForSingleNode(ctx context.Context, log lo
 	return m.createManifests(ctx, cluster, filename, content)
 }
 
-func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster) ([]byte, error) {
+func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *dbc.Cluster) ([]byte, error) {
 	hostIp, err := GetIpForSingleNodeInstallation(cluster, log)
 	if err != nil {
 		return nil, err

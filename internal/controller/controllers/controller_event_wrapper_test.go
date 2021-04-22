@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/types"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -22,8 +22,8 @@ import (
 var _ = Describe("Controller events wrapper", func() {
 	var (
 		db                   *gorm.DB
-		cluster1             *common.Cluster
-		cluster2             *common.Cluster
+		cluster1             *dbc.Cluster
+		cluster2             *dbc.Cluster
 		theEvents            *events.Events
 		cEventsWrapper       *controllerEventsWrapper
 		mockCtrl             *gomock.Controller
@@ -32,14 +32,14 @@ var _ = Describe("Controller events wrapper", func() {
 		host                 = strfmt.UUID("1e45d128-4a69-4e71-9b50-a0c627217f3e")
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		mockCtrl = gomock.NewController(GinkgoT())
 		theEvents = events.New(db, logrus.WithField("pkg", "events"))
 		mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
 		cEventsWrapper = NewControllerEventsWrapper(mockCRDEventsHandler, theEvents, db, logrus.New())
 		// create simple cluster
 		clusterID1 := strfmt.UUID(uuid.New().String())
-		cluster1 = &common.Cluster{
+		cluster1 = &dbc.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID1,
 			},
@@ -50,7 +50,7 @@ var _ = Describe("Controller events wrapper", func() {
 		err := db.Create(&cluster1).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		clusterID2 := strfmt.UUID(uuid.New().String())
-		cluster2 = &common.Cluster{
+		cluster2 = &dbc.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID2,
 			},
@@ -106,20 +106,20 @@ var _ = Describe("Controller events wrapper", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		mockCtrl.Finish()
 	})
 
 })
 
 func WithMessage(msg *string) types.GomegaMatcher {
-	return WithTransform(func(e *common.Event) *string {
+	return WithTransform(func(e *dbc.Event) *string {
 		return e.Message
 	}, Equal(msg))
 }
 
 func WithSeverity(severity *string) types.GomegaMatcher {
-	return WithTransform(func(e *common.Event) *string {
+	return WithTransform(func(e *dbc.Event) *string {
 		return e.Severity
 	}, Equal(severity))
 }

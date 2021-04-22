@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	clust "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
@@ -82,7 +83,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		ctx                                           = context.Background()
 		db                                            *gorm.DB
 		clusterId, hid1, hid2, hid3, hid4, hid5, hid6 strfmt.UUID
-		cluster                                       common.Cluster
+		cluster                                       dbc.Cluster
 		clusterApi                                    *clust.Manager
 		mockEvents                                    *events.MockHandler
 		mockHostAPI                                   *host.MockAPI
@@ -99,7 +100,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
@@ -1227,7 +1228,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				&ocs.Operator,
 			}
 
-			cluster = common.Cluster{
+			cluster = dbc.Cluster{
 				Cluster: models.Cluster{
 					APIVip:                   t.apiVip,
 					ID:                       &clusterId,
@@ -1274,14 +1275,14 @@ var _ = Describe("Ocs Operator use-cases", func() {
 	}
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 	})
 
 })
 
-func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
-	c, err := common.GetClusterFromDB(db, clusterId, common.UseEagerLoading)
+func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) dbc.Cluster {
+	c, err := dbc.GetClusterFromDB(db, clusterId, dbc.UseEagerLoading)
 	Expect(err).ShouldNot(HaveOccurred())
 	return *c
 }

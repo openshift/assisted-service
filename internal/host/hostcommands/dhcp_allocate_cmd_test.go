@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
@@ -17,7 +18,7 @@ import (
 var _ = Describe("dhcpallocate", func() {
 	ctx := context.Background()
 	var host models.Host
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	var db *gorm.DB
 	var dCmd *dhcpAllocateCmd
 	var id, clusterId strfmt.UUID
@@ -26,7 +27,7 @@ var _ = Describe("dhcpallocate", func() {
 	var dbName string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		dCmd = NewDhcpAllocateCmd(common.GetTestLog(), "quay.io/ocpmetal/dhcp_lease_allocator:latest", db)
 
 		id = strfmt.UUID("32b4463e-5f94-4245-87cf-a6948014045c")
@@ -112,7 +113,7 @@ var _ = Describe("dhcpallocate", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

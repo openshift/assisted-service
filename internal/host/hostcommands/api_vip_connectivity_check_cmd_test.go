@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
@@ -16,7 +17,7 @@ import (
 var _ = Describe("apivipconnectivitycheckcmd", func() {
 	ctx := context.Background()
 	var host models.Host
-	var cluster common.Cluster
+	var cluster dbc.Cluster
 	var db *gorm.DB
 	var apivipConnectivityCheckCmd *apivipConnectivityCheckCmd
 	var id, clusterID strfmt.UUID
@@ -25,7 +26,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	var dbName string
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		apivipConnectivityCheckCmd = NewAPIVIPConnectivityCheckCmd(common.GetTestLog(), db, "quay.io/ocpmetal/assisted-installer-agent:latest", true)
 
 		id = strfmt.UUID(uuid.New().String())
@@ -33,7 +34,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 		host = hostutil.GenerateTestHostAddedToCluster(id, clusterID, models.HostStatusInsufficient)
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		apiVipDNSName := "test.com"
-		cluster = common.Cluster{Cluster: models.Cluster{ID: &clusterID, APIVipDNSName: &apiVipDNSName}}
+		cluster = dbc.Cluster{Cluster: models.Cluster{ID: &clusterID, APIVipDNSName: &apiVipDNSName}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	})
 
@@ -52,7 +53,7 @@ var _ = Describe("apivipconnectivitycheckcmd", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		stepReply = nil
 		stepErr = nil
 	})

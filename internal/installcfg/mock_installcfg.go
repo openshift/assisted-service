@@ -6,7 +6,7 @@ package installcfg
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	common "github.com/openshift/assisted-service/internal/common"
+	dbc "github.com/openshift/assisted-service/internal/dbc"
 	reflect "reflect"
 )
 
@@ -34,7 +34,7 @@ func (m *MockInstallConfigBuilder) EXPECT() *MockInstallConfigBuilderMockRecorde
 }
 
 // GetInstallConfig mocks base method
-func (m *MockInstallConfigBuilder) GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
+func (m *MockInstallConfigBuilder) GetInstallConfig(cluster *dbc.Cluster, addRhCa bool, ca string) ([]byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetInstallConfig", cluster, addRhCa, ca)
 	ret0, _ := ret[0].([]byte)
@@ -49,7 +49,7 @@ func (mr *MockInstallConfigBuilderMockRecorder) GetInstallConfig(cluster, addRhC
 }
 
 // ValidateInstallConfigPatch mocks base method
-func (m *MockInstallConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error {
+func (m *MockInstallConfigBuilder) ValidateInstallConfigPatch(cluster *dbc.Cluster, patch string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateInstallConfigPatch", cluster, patch)
 	ret0, _ := ret[0].(error)

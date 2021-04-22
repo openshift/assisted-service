@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -20,17 +21,17 @@ var _ = Describe("registrar", func() {
 		db              *gorm.DB
 		id              strfmt.UUID
 		updateErr       error
-		cluster         common.Cluster
+		cluster         dbc.Cluster
 		host            models.Host
 		dbName          string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		registerManager = NewRegistrar(common.GetTestLog(), db)
 
 		id = strfmt.UUID(uuid.New().String())
-		cluster = common.Cluster{Cluster: models.Cluster{
+		cluster = dbc.Cluster{Cluster: models.Cluster{
 			ID:     &id,
 			Status: swag.String(models.ClusterStatusInsufficient),
 		}}
@@ -63,8 +64,8 @@ var _ = Describe("registrar", func() {
 
 			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
 			Expect(updateErr).ShouldNot(HaveOccurred())
-			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(0)))
-			Expect(db.Unscoped().First(&common.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(1)))
+			Expect(db.First(&dbc.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(0)))
+			Expect(db.Unscoped().First(&dbc.Cluster{}, "id = ?", cluster.ID).RowsAffected).Should(Equal(int64(1)))
 
 			updateErr = registerManager.RegisterCluster(ctx, &cluster)
 			Expect(updateErr).ShouldNot(HaveOccurred())
@@ -79,10 +80,10 @@ var _ = Describe("registrar", func() {
 			updateErr = registerManager.DeregisterCluster(ctx, &cluster)
 			Expect(updateErr).Should(BeNil())
 
-			_, err := common.GetClusterFromDB(db, *cluster.ID, common.UseEagerLoading)
+			_, err := dbc.GetClusterFromDB(db, *cluster.ID, dbc.UseEagerLoading)
 			Expect(err).Should(HaveOccurred())
 
-			Expect(db.First(&common.Cluster{}, "id = ?", cluster.ID).Error).Should(HaveOccurred())
+			Expect(db.First(&dbc.Cluster{}, "id = ?", cluster.ID).Error).Should(HaveOccurred())
 			Expect(db.First(&host, "cluster_id = ?", cluster.ID).Error).Should(HaveOccurred())
 
 		})
@@ -102,7 +103,7 @@ var _ = Describe("registrar", func() {
 	})
 
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		updateErr = nil
 	})
 })

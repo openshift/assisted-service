@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -17,12 +17,12 @@ import (
 type dummyGenerator struct {
 	log      logrus.FieldLogger
 	workDir  string
-	cluster  *common.Cluster
+	cluster  *dbc.Cluster
 	s3Client s3wrapper.API
 }
 
 // NewDummyGenerator returns a Generator that creates the expected files but with nonsense content
-func NewDummyGenerator(workDir string, cluster *common.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
+func NewDummyGenerator(workDir string, cluster *dbc.Cluster, s3Client s3wrapper.API, log logrus.FieldLogger) Generator {
 	return &dummyGenerator{
 		workDir:  workDir,
 		log:      log,

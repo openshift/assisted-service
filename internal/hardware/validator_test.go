@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -83,7 +84,7 @@ var _ = Describe("hardware_validator", func() {
 		host2         *models.Host
 		host3         *models.Host
 		inventory     *models.Inventory
-		cluster       *common.Cluster
+		cluster       *dbc.Cluster
 		validDiskSize = int64(128849018880)
 		status        = models.HostStatusKnown
 	)
@@ -113,7 +114,7 @@ var _ = Describe("hardware_validator", func() {
 				{DriveType: "HDD", Name: "sdb"},
 			},
 		}
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID:                 &clusterID,
 			MachineNetworkCidr: "1.2.3.0/24",
 		}}
@@ -188,7 +189,7 @@ var _ = Describe("Cluster host requirements", func() {
 	var (
 		cfg         ValidatorCfg
 		hwvalidator Validator
-		cluster     *common.Cluster
+		cluster     *dbc.Cluster
 		host        *models.Host
 
 		ctrl          *gomock.Controller
@@ -239,7 +240,7 @@ var _ = Describe("Cluster host requirements", func() {
 		operatorName2 := "op-two"
 
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: openShiftVersionNotInJSON,
 			MonitoredOperators: []*models.MonitoredOperator{
@@ -389,7 +390,7 @@ var _ = Describe("Preflight host requirements", func() {
 	var (
 		cfg         ValidatorCfg
 		hwvalidator Validator
-		cluster     *common.Cluster
+		cluster     *dbc.Cluster
 
 		ctrl          *gomock.Controller
 		operatorsMock *operators.MockAPI
@@ -437,7 +438,7 @@ var _ = Describe("Preflight host requirements", func() {
 		operatorName2 := "op-two"
 
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID:               &clusterID,
 			OpenshiftVersion: openShiftVersionNotInConfig,
 			MonitoredOperators: []*models.MonitoredOperator{

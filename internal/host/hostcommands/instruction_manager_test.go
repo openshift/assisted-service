@@ -14,6 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/connectivity"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -43,7 +44,7 @@ var _ = Describe("instruction_manager", func() {
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockVersions = versions.NewMockHandler(ctrl)
@@ -67,7 +68,7 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("No DHCP", func() {
 		BeforeEach(func() {
-			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(false), MachineNetworkCidr: "1.2.3.0/24"}}
+			cluster := dbc.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(false), MachineNetworkCidr: "1.2.3.0/24"}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
@@ -136,7 +137,7 @@ var _ = Describe("instruction_manager", func() {
 
 	Context("With DHCP", func() {
 		BeforeEach(func() {
-			cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24"}}
+			cluster := dbc.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24"}}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		})
 		Context("get_next_steps", func() {
@@ -206,7 +207,7 @@ var _ = Describe("instruction_manager", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 		stepsReply = models.Steps{}
 		stepsErr = nil
@@ -258,7 +259,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 
 func TestHostCommands(t *testing.T) {
 	RegisterFailHandler(Fail)
-	common.InitializeDBTest()
-	defer common.TerminateDBTest()
+	dbc.InitializeDBTest()
+	defer dbc.TerminateDBTest()
 	RunSpecs(t, "Host commands test Suite")
 }

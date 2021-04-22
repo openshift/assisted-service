@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/connectivity"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/domains"
 	"github.com/openshift/assisted-service/internal/events"
@@ -612,7 +613,7 @@ func (a *ApiEnabler) Enable() {
 func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.DB, log logrus.FieldLogger) error {
 	return migrationLeader.RunWithLeader(context.Background(), func() error {
 		log.Infof("Start automigration")
-		err := common.AutoMigrate(db)
+		err := dbc.AutoMigrate(db)
 		if err != nil {
 			log.WithError(err).Fatal("Failed auto migration process")
 			return err

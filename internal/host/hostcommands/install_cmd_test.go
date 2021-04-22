@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -45,7 +46,7 @@ var _ = Describe("installcmd", func() {
 	var (
 		ctx               = context.Background()
 		host              models.Host
-		cluster           common.Cluster
+		cluster           dbc.Cluster
 		db                *gorm.DB
 		installCmd        *installCmd
 		clusterId         strfmt.UUID
@@ -60,7 +61,7 @@ var _ = Describe("installcmd", func() {
 		mockVersions      *versions.MockHandler
 	)
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockValidator = hardware.NewMockValidator(ctrl)
 		instructionConfig = DefaultInstructionConfig
@@ -233,7 +234,7 @@ var _ = Describe("installcmd", func() {
 
 	AfterEach(func() {
 		// cleanup
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 		ctrl.Finish()
 		stepReply = nil
 		stepErr = nil
@@ -244,7 +245,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	var (
 		ctx          = context.Background()
-		cluster      common.Cluster
+		cluster      dbc.Cluster
 		host         models.Host
 		db           *gorm.DB
 		validator    *hardware.MockValidator
@@ -261,7 +262,7 @@ var _ = Describe("installcmd arguments", func() {
 	}
 
 	BeforeSuite(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		cluster = createClusterInDb(db, models.ClusterHighAvailabilityModeNone)
 		host = createHostInDb(db, *cluster.ID, models.HostRoleMaster, false, "")
 		ctrl = gomock.NewController(GinkgoT())
@@ -276,7 +277,7 @@ var _ = Describe("installcmd arguments", func() {
 
 	AfterSuite(func() {
 		ctrl.Finish()
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 	Context("configuration_params", func() {
@@ -498,11 +499,11 @@ var _ = Describe("installcmd arguments", func() {
 
 var _ = Describe("construct host install arguments", func() {
 	var (
-		cluster *common.Cluster
+		cluster *dbc.Cluster
 		host    *models.Host
 	)
 	BeforeEach(func() {
-		cluster = &common.Cluster{
+		cluster = &dbc.Cluster{
 			Cluster: models.Cluster{
 				ImageInfo: &models.ImageInfo{},
 			},
@@ -626,9 +627,9 @@ func verifyArgInCommand(command, key, value string, count int) {
 	Expect(strings.TrimSpace(match[0][1])).To(Equal(value))
 }
 
-func createClusterInDb(db *gorm.DB, haMode string) common.Cluster {
+func createClusterInDb(db *gorm.DB, haMode string) dbc.Cluster {
 	clusterId := strfmt.UUID(uuid.New().String())
-	cluster := common.Cluster{Cluster: models.Cluster{
+	cluster := dbc.Cluster{Cluster: models.Cluster{
 		ID:                   &clusterId,
 		OpenshiftVersion:     common.TestDefaultConfig.OpenShiftVersion,
 		HighAvailabilityMode: &haMode,

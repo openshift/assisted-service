@@ -8,6 +8,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -17,17 +18,17 @@ var newStatusInfo = "newStatusInfo"
 var _ = Describe("update_cluster_state", func() {
 	var (
 		db              *gorm.DB
-		cluster         *common.Cluster
+		cluster         *dbc.Cluster
 		lastUpdatedTime strfmt.DateTime
 		err             error
 		dbName          string
 	)
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 
 		id := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID:         &id,
 			Status:     &common.TestDefaultConfig.Status,
 			StatusInfo: &common.TestDefaultConfig.StatusInfo,
@@ -73,7 +74,7 @@ var _ = Describe("update_cluster_state", func() {
 		})
 	})
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 })
@@ -88,7 +89,7 @@ const (
 var _ = Describe("host count with 1 cluster", func() {
 	var (
 		db      *gorm.DB
-		cluster *common.Cluster
+		cluster *dbc.Cluster
 		dbName  string
 	)
 
@@ -105,9 +106,9 @@ var _ = Describe("host count with 1 cluster", func() {
 	}
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
+		db, dbName = dbc.PrepareTestDB()
 		id := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID:         &id,
 			Status:     &common.TestDefaultConfig.Status,
 			StatusInfo: &common.TestDefaultConfig.StatusInfo,
@@ -173,14 +174,14 @@ var _ = Describe("host count with 1 cluster", func() {
 		createHost(*cluster.ID, models.HostStatusKnown, db)
 		createHost(*cluster.ID, models.HostStatusDiscovering, db)
 		createHost(*cluster.ID, models.HostStatusDisabled, db)
-		c, err := common.GetClusterFromDBWithoutDisabledHosts(db, *cluster.ID)
+		c, err := dbc.GetClusterFromDBWithoutDisabledHosts(db, *cluster.ID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(c.Cluster.TotalHostCount).Should(Equal(two))
 		Expect(c.Cluster.ReadyHostCount).Should(Equal(one))
 		Expect(c.Cluster.EnabledHostCount).Should(Equal(two))
 	})
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 })
@@ -206,14 +207,14 @@ var _ = Describe("host count with 2 cluster", func() {
 	}
 
 	BeforeEach(func() {
-		db, dbName = common.PrepareTestDB()
-		cluster := &common.Cluster{Cluster: models.Cluster{
+		db, dbName = dbc.PrepareTestDB()
+		cluster := &dbc.Cluster{Cluster: models.Cluster{
 			ID:         &id1,
 			Status:     &common.TestDefaultConfig.Status,
 			StatusInfo: &common.TestDefaultConfig.StatusInfo,
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-		cluster = &common.Cluster{Cluster: models.Cluster{
+		cluster = &dbc.Cluster{Cluster: models.Cluster{
 			ID:         &id2,
 			Status:     &common.TestDefaultConfig.Status,
 			StatusInfo: &common.TestDefaultConfig.StatusInfo,
@@ -229,7 +230,7 @@ var _ = Describe("host count with 2 cluster", func() {
 		createHost(id2, models.HostStatusKnown, db)
 		createHost(id2, models.HostStatusDisabled, db)
 
-		clusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading, true, "")
+		clusters, err := dbc.GetClustersFromDBWhere(db, dbc.UseEagerLoading, true, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(clusters)).To(Equal(2))
 		Expect(clusters[0].TotalHostCount).To(Equal(three))
@@ -247,7 +248,7 @@ var _ = Describe("host count with 2 cluster", func() {
 		createHost(id2, models.HostStatusDisabled, db)
 		createHost(id2, models.HostStatusDisabled, db)
 
-		clusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading, true, "")
+		clusters, err := dbc.GetClustersFromDBWhere(db, dbc.UseEagerLoading, true, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(clusters)).To(Equal(2))
 		Expect(clusters[0].TotalHostCount).To(Equal(three))
@@ -265,7 +266,7 @@ var _ = Describe("host count with 2 cluster", func() {
 		createHost(id2, models.HostStatusDisabled, db)
 		createHost(id2, models.HostStatusDisabled, db)
 
-		clusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading, true, "")
+		clusters, err := dbc.GetClustersFromDBWhere(db, dbc.UseEagerLoading, true, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(clusters)).To(Equal(2))
 		Expect(clusters[0].TotalHostCount).To(Equal(three))
@@ -283,7 +284,7 @@ var _ = Describe("host count with 2 cluster", func() {
 		createHost(id2, models.HostStatusDisabled, db)
 		createHost(id2, models.HostStatusDisabled, db)
 
-		clusters, err := common.GetClustersFromDBWhere(db, common.SkipEagerLoading, true, "")
+		clusters, err := dbc.GetClustersFromDBWhere(db, dbc.SkipEagerLoading, true, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(clusters)).To(Equal(2))
 		Expect(clusters[0].TotalHostCount).To(Equal(zero))
@@ -294,7 +295,7 @@ var _ = Describe("host count with 2 cluster", func() {
 		Expect(clusters[1].EnabledHostCount).To(Equal(zero))
 	})
 	AfterEach(func() {
-		common.DeleteTestDB(db, dbName)
+		dbc.DeleteTestDB(db, dbName)
 	})
 
 })

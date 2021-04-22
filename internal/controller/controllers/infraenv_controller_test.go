@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/dbc"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -72,7 +73,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		mockInstallerInternal *bminventory.MockInstallerInternals
 		ctx                   = context.Background()
 		sId                   strfmt.UUID
-		backEndCluster        = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
+		backEndCluster        = &dbc.Cluster{Cluster: models.Cluster{ID: &sId}}
 	)
 
 	BeforeEach(func() {
@@ -113,7 +114,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
-			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+			}).Return(&dbc.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
@@ -145,7 +146,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
 				Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeFullIso))
-			}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+			}).Return(&dbc.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
 		})
@@ -352,7 +353,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				Expect(swag.StringValue(param.ClusterUpdateParams.AdditionalNtpSource)).To(Equal("foo.com,bar.com"))
 			}).Return(nil, nil).Times(1)
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
-			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+			Return(&dbc.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -376,7 +377,7 @@ var _ = Describe("infraEnv reconcile", func() {
 				Expect(swag.StringValue(&param.DiscoveryIgnitionParams.Config)).To(Equal(ignitionConfigOverride))
 			}).Return(nil).Times(1)
 		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
-			Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
+			Return(&dbc.Cluster{Cluster: models.Cluster{ImageInfo: &imageInfo}}, nil).Times(1)
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
@@ -469,7 +470,7 @@ var _ = Describe("infraEnv reconcile", func() {
 					Expect(params.ImageCreateParams.ImageType).To(Equal(models.ImageTypeMinimalIso))
 					Expect(params.ImageCreateParams.StaticNetworkConfig).To(Equal([]*models.HostStaticNetworkConfig{hostStaticNetworkConfig}))
 
-				}).Return(&common.Cluster{Cluster: models.Cluster{ImageInfo: &models.ImageInfo{DownloadURL: "downloadurl"}}}, nil).Times(1)
+				}).Return(&dbc.Cluster{Cluster: models.Cluster{ImageInfo: &models.ImageInfo{DownloadURL: "downloadurl"}}}, nil).Times(1)
 			infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
 				NMStateConfigLabelSelector: metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}},
 				ClusterRef:                 &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
