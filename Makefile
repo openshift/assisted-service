@@ -49,6 +49,9 @@ STORAGE := $(or ${STORAGE},s3)
 GENERATE_CRD := $(or ${GENERATE_CRD},true)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
 IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, True)
+MIRROR_REG_CA_FILE = mirror_ca.crt
+REGISTRIES_FILE_PATH = registries.conf
+MIRROR_REGISTRY_SUPPORT := $(or ${MIRROR_REGISTRY_SUPPORT},False)
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 	STORAGE = filesystem
@@ -214,6 +217,10 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ)
+ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
+	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
+		--namespace "$(NAMESPACE)"  --apply-manifest $(APPLY_MANIFEST) --ca-file-path $(MIRROR_REG_CA_FILE) --registries-file-path $(REGISTRIES_FILE_PATH)
+endif
 	$(MAKE) deploy-role deploy-resources
 
 deploy-resources: generate-manifests

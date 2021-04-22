@@ -154,8 +154,31 @@ spec:
             - name: route53-creds
               mountPath: "/etc/.aws"
               readOnly: true
+            - name: mirror-registry-ca
+              mountPath: "/etc/pki/ca-trust/extracted/pem/mirror_ca.pem"
+              readOnly: true
+              subPath: mirror_ca.pem
+            - name: mirror-registry-conf
+              mountPath: "/etc/containers"
+              readOnly: true
       volumes:
         - name: route53-creds
           secret:
             secretName: route53-creds
             optional: true
+        - name: mirror-registry-ca
+          configMap:
+            name: mirror-registry-ca
+            defaultMode: 420
+            optional: true
+            items:
+              - key: ca-bundle.crt
+                path: mirror_ca.pem
+        - name: mirror-registry-conf
+          configMap:
+            name: mirror-registry-ca
+            defaultMode: 420
+            optional: true
+            items:
+              - key: registries.conf
+                path: registries.conf
