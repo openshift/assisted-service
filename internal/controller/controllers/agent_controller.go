@@ -472,6 +472,25 @@ func (r *AgentReconciler) updateInventory(host *models.Host, agent *aiv1beta1.Ag
 	return nil
 }
 
+func (r *AgentReconciler) updateHostIgnition(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+	if agent.Spec.IgnitionConfigOverrides == host.IgnitionConfigOverrides {
+		r.Log.Debugf("Nothing to update, ignition config override was already set")
+		return nil
+	}
+	agentHostIgnitionParams := models.HostIgnitionParams{Config: ""}
+	if agent.Spec.IgnitionConfigOverrides != "" {
+		agentHostIgnitionParams.Config = agent.Spec.IgnitionConfigOverrides
+	}
+	params := installer.UpdateHostIgnitionParams{
+		ClusterID:          *c.ID,
+		HostID:             strfmt.UUID(agent.Name),
+		HostIgnitionParams: &agentHostIgnitionParams,
+	}
+	_, err := r.Installer.UpdateHostIgnitionInternal(ctx, params)
+
+	return err
+}
+
 func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.Agent, c *common.Cluster) error {
 	spec := agent.Spec
 	host := getHostFromCluster(c, agent.Name)
@@ -499,6 +518,14 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 	}
 
 	err = r.updateInstallerArgs(ctx, c, internalHost, agent)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			err = common.NewApiError(http.StatusNotFound, err)
+		}
+		return err
+	}
+
+	err = r.updateHostIgnition(ctx, c, internalHost, agent)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)

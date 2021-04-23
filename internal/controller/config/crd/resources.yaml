@@ -53,7 +53,7 @@ spec:
                 type: object
               hostname:
                 type: string
-              ignitionConfigOverride:
+              ignitionConfigOverrides:
                 description: Json formatted string containing the user overrides for the host's ignition config
                 type: string
               installation_disk_id:
