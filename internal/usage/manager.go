@@ -57,7 +57,10 @@ func (m *UsageManager) Save(db *gorm.DB, clusterId strfmt.UUID, usages FeatureUs
 }
 
 func Unmarshal(str string) (FeatureUsage, error) {
-	var result FeatureUsage
+	var result FeatureUsage = make(map[string]models.Usage)
+	if str == "" {
+		return result, nil
+	}
 	err := json.Unmarshal([]byte(str), &result)
 	return result, err
 }
