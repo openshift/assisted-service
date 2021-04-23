@@ -278,8 +278,7 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 		return err
 	}
 
-	// TODO(djzager): http won't work when the route is secured
-	serviceURL := &url.URL{Scheme: "http", Host: route.Spec.Host}
+	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
 	deployment, mutateFn := r.newAssistedServiceDeployment(instance, serviceURL)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, mutateFn); err != nil {
@@ -347,6 +346,10 @@ func (r *AgentServiceConfigReconciler) newAgentService(instance *aiv1beta1.Agent
 			return err
 		}
 		addAppLabel(serviceName, &svc.ObjectMeta)
+		if svc.ObjectMeta.Annotations == nil {
+			svc.ObjectMeta.Annotations = make(map[string]string)
+		}
+		svc.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = serviceName
 		if len(svc.Spec.Ports) == 0 {
 			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
 		}
@@ -381,6 +384,7 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 			TargetPort: intstr.FromString(serviceName),
 		},
 		WildcardPolicy: routev1.WildcardPolicyNone,
+		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
 	}
 
 	mutateFn := func() error {
@@ -514,6 +518,11 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 				},
 			},
 		},
+
+		// enable https
+		{Name: "SERVE_HTTPS", Value: "True"},
+		{Name: "HTTPS_CERT_FILE", Value: "/etc/assisted-tls-config/tls.crt"},
+		{Name: "HTTPS_KEY_FILE", Value: "/etc/assisted-tls-config/tls.key"},
 	}
 
 	serviceContainer := corev1.Container{
@@ -527,10 +536,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		},
 		Env: serviceEnv,
 		VolumeMounts: []corev1.VolumeMount{
-			{
-				Name:      "bucket-filesystem",
-				MountPath: "/data",
-			},
+			{Name: "bucket-filesystem", MountPath: "/data"},
+			{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -539,14 +546,21 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			},
 		},
 		LivenessProbe: &corev1.Probe{
-			FailureThreshold:    3,
-			SuccessThreshold:    1,
-			InitialDelaySeconds: 3,
-			PeriodSeconds:       10,
-			TimeoutSeconds:      3,
+			InitialDelaySeconds: 30,
 			Handler: corev1.Handler{
-				TCPSocket: &corev1.TCPSocketAction{
-					Port: intstr.FromInt(int(servicePort)),
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/health",
+					Port:   intstr.FromInt(int(servicePort)),
+					Scheme: corev1.URISchemeHTTPS,
+				},
+			},
+		},
+		ReadinessProbe: &corev1.Probe{
+			Handler: corev1.Handler{
+				HTTPGet: &corev1.HTTPGetAction{
+					Path:   "/ready",
+					Port:   intstr.FromInt(int(servicePort)),
+					Scheme: corev1.URISchemeHTTPS,
 				},
 			},
 		},
@@ -596,6 +610,14 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 					ClaimName: databaseName,
+				},
+			},
+		},
+		{
+			Name: "tls-certs",
+			VolumeSource: corev1.VolumeSource{
+				Secret: &corev1.SecretVolumeSource{
+					SecretName: serviceName,
 				},
 			},
 		},
