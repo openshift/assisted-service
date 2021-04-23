@@ -23,7 +23,7 @@ type Validator interface {
 	GetHostRequirements() *models.VersionedHostRequirements
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
-	DiskIsEligible(disk *models.Disk) []string
+	DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	GetInstallationDiskSpeedThresholdMs() int64
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
@@ -84,10 +84,14 @@ func isNvme(name string) bool {
 // it against a list of predicates. Returns all the reasons the disk
 // was found to be not eligible, or an empty slice if it was found to
 // be eligible
-func (v *validator) DiskIsEligible(disk *models.Disk) []string {
+func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error) {
 	var notEligibleReasons []string
-
-	if minSizeBytes := conversions.GbToBytes(v.MinDiskSizeGb); disk.SizeBytes < minSizeBytes {
+	requirements, err := v.GetClusterHostRequirements(ctx, cluster, host)
+	if err != nil {
+		return nil, err
+	}
+	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
+	if disk.SizeBytes < minSizeBytes {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
 				"Disk is too small (disk only has %s, but %s are required)",
@@ -100,7 +104,7 @@ func (v *validator) DiskIsEligible(disk *models.Disk) []string {
 				disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
 	}
 
-	return notEligibleReasons
+	return notEligibleReasons, nil
 }
 
 func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {

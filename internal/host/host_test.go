@@ -863,6 +863,8 @@ var _ = Describe("UpdateInventory", func() {
 			nil, createValidatorCfg(), nil, defaultConfig, dummy, nil)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
+		cluster := hostutil.GenerateTestCluster(clusterId, "10.0.0.1/24")
+		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
@@ -902,7 +904,7 @@ var _ = Describe("UpdateInventory", func() {
 			It(test.testName, func() {
 				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-				mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 				mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(test.inventory.Disks)
 				inventoryStr, err := hostutil.MarshalInventory(&test.inventory)
 				Expect(err).ToNot(HaveOccurred())
@@ -962,7 +964,7 @@ var _ = Describe("UpdateInventory", func() {
 		} {
 			test := test
 			It(test.testName, func() {
-				mockValidator.EXPECT().DiskIsEligible(gomock.Any()).Return(test.serviceReasons)
+				mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(test.serviceReasons, nil)
 
 				testInventory := models.Inventory{Disks: []*models.Disk{
 					{InstallationEligibility: models.DiskInstallationEligibility{
@@ -978,7 +980,7 @@ var _ = Describe("UpdateInventory", func() {
 						Eligible: test.expectedDecision, NotEligibleReasons: test.expectedReasons}},
 				}
 
-				hapi.(*Manager).populateDisksEligibility(&testInventory)
+				Expect(hapi.(*Manager).populateDisksEligibility(ctx, &testInventory, nil, nil)).ShouldNot(HaveOccurred())
 				Expect(testInventory.Disks).Should(Equal(expectedDisks))
 			})
 		}
@@ -996,7 +998,7 @@ var _ = Describe("UpdateInventory", func() {
 			host.Inventory = common.GenerateTestDefaultInventory()
 			host.InstallationDiskPath = ""
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 
 		})
 
@@ -1012,7 +1014,7 @@ var _ = Describe("UpdateInventory", func() {
 			Expect(h.InstallationDiskID).To(Equal(diskId))
 
 			// Now make sure it gets removed if the disk is no longer in the inventory
-			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
 				[]*models.Disk{},
 			)
@@ -1035,7 +1037,7 @@ var _ = Describe("UpdateInventory", func() {
 			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
 				[]*models.Disk{{ID: diskId, Name: diskName}},
 			)
-			mockValidator.EXPECT().DiskIsEligible(gomock.Any())
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
 			h = hostutil.GetHostFromDB(hostId, clusterId, db)
 			Expect(h.InstallationDiskPath).To(Equal(diskPath))
@@ -1050,7 +1052,7 @@ var _ = Describe("UpdateInventory", func() {
 			// Create an inventory that is slightly arbitrarily different than the default one
 			// so we can make sure an update actually occurred.
 			newInventoryBytes = alternativeInventory()
-			mockValidator.EXPECT().DiskIsEligible(gomock.Any()).AnyTimes()
+			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(nil).AnyTimes()
 		})
 

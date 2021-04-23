@@ -1213,6 +1213,9 @@ func makeJsonChecker(expected map[validationID]validationCheckResult) *validatio
 }
 
 var _ = Describe("Refresh Host", func() {
+	const (
+		minDiskSizeGb = 120
+	)
 	var (
 		supportedGPU      = models.Gpu{VendorID: "10de", DeviceID: "1db6"}
 		ctx               = context.Background()
@@ -1239,7 +1242,7 @@ var _ = Describe("Refresh Host", func() {
 			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
 			// rely on small disks to get filtered out.
 			return funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-				return disk.SizeBytes >= conversions.GibToBytes(validatorCfg.MinDiskSizeGb)
+				return disk.SizeBytes >= conversions.GibToBytes(minDiskSizeGb)
 			}).([]*models.Disk)
 		}).AnyTimes()
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()

@@ -231,20 +231,24 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 // addition to agent-side checks that have already been performed. The reason that some
 // checks are performed by the agent (and not the service) is because the agent has data
 // that is not available in the service.
-func (m *Manager) populateDisksEligibility(inventory *models.Inventory) {
+func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *models.Inventory, cluster *common.Cluster, host *models.Host) error {
 	for _, disk := range inventory.Disks {
 		if !hardware.DiskEligibilityInitialized(disk) {
-			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
+			// for backwards compatibility, pretend that the agent has decided that this disk is reasons
 			disk.InstallationEligibility.Eligible = true
 			disk.InstallationEligibility.NotEligibleReasons = make([]string, 0)
 		}
 
 		// Append to the existing reasons already filled in by the agent
-		disk.InstallationEligibility.NotEligibleReasons = append(disk.InstallationEligibility.NotEligibleReasons,
-			m.hwValidator.DiskIsEligible(disk)...)
+		reasons, err := m.hwValidator.DiskIsEligible(ctx, disk, cluster, host)
+		if err != nil {
+			return err
+		}
+		disk.InstallationEligibility.NotEligibleReasons = append(disk.InstallationEligibility.NotEligibleReasons, reasons...)
 
 		disk.InstallationEligibility.Eligible = len(disk.InstallationEligibility.NotEligibleReasons) == 0
 	}
+	return nil
 }
 
 // populateDisksId ensures that every disk has an id.
@@ -273,6 +277,8 @@ func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *model
 }
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
+	log := logutil.FromContext(ctx, m.log)
+
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
 
@@ -287,7 +293,18 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 		return err
 	}
 
-	m.populateDisksEligibility(inventory)
+	var cluster common.Cluster
+	err = m.db.First(&cluster, "id = ?", h.ClusterID).Error
+	if err != nil {
+		log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+
+	err = m.populateDisksEligibility(ctx, inventory, &cluster, h)
+	if err != nil {
+		log.WithError(err).Errorf("not updating inventory - failed to check disks eligibility for host %s", h.ID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
 	m.populateDisksId(inventory)
 
 	h.Inventory, err = hostutil.MarshalInventory(inventory)

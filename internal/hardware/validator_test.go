@@ -16,6 +16,7 @@ import (
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -27,52 +28,97 @@ func TestValidator(t *testing.T) {
 	RunSpecs(t, "Hardware Validator tests Suite")
 }
 
+const (
+	minDiskSizeGb = 120
+)
+
 var _ = Describe("Disk eligibility", func() {
 	var (
 		hwvalidator   Validator
 		testDisk      models.Disk
 		bigEnoughSize int64
 		tooSmallSize  int64
+		ctx           context.Context
+		ctrl          *gomock.Controller
+		operatorsMock *operators.MockAPI
+		cluster       common.Cluster
+		host          models.Host
 	)
 
 	BeforeEach(func() {
+
+		clusterID := strfmt.UUID(uuid.New().String())
+		cluster = hostutil.GenerateTestCluster(clusterID, "10.0.0.1/24")
+		hostID := strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHost(hostID, clusterID, models.HostStatusDiscovering)
+
 		var cfg ValidatorCfg
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
-		hwvalidator = NewValidator(logrus.New(), cfg, nil)
 
-		bigEnoughSize = conversions.GbToBytes(cfg.MinDiskSizeGb) + 1
-		tooSmallSize = conversions.GbToBytes(cfg.MinDiskSizeGb) - 1
+		ctrl = gomock.NewController(GinkgoT())
+		operatorsMock = operators.NewMockAPI(ctrl)
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
+
+		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
+
+		bigEnoughSize = conversions.GbToBytes(minDiskSizeGb) + 1
+		tooSmallSize = conversions.GbToBytes(minDiskSizeGb) - 1
 
 		// Start off with an eligible default
 		testDisk = models.Disk{
 			DriveType: "SSD",
 			SizeBytes: bigEnoughSize,
 		}
+		ctx = context.TODO()
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
 	})
 
 	It("Check if SSD is eligible", func() {
 		testDisk.DriveType = "SSD"
-		Expect(hwvalidator.DiskIsEligible(&testDisk)).To(BeEmpty())
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
 	})
 
 	It("Check if HDD is eligible", func() {
 		testDisk.DriveType = "HDD"
-		Expect(hwvalidator.DiskIsEligible(&testDisk)).To(BeEmpty())
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
 	})
 
 	It("Check that ODD is not eligible", func() {
 		testDisk.DriveType = "ODD"
-		Expect(hwvalidator.DiskIsEligible(&testDisk)).ToNot(BeEmpty())
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).ToNot(BeEmpty())
 	})
 
 	It("Check that a big enough size is eligible", func() {
 		testDisk.SizeBytes = bigEnoughSize
-		Expect(hwvalidator.DiskIsEligible(&testDisk)).To(BeEmpty())
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(BeEmpty())
 	})
 
 	It("Check that a small size is not eligible", func() {
 		testDisk.SizeBytes = tooSmallSize
-		Expect(hwvalidator.DiskIsEligible(&testDisk)).ToNot(BeEmpty())
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).ToNot(BeEmpty())
 	})
 })
 
@@ -293,14 +339,14 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).ToNot(BeNil())
 
-		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(minDiskSizeGb))
 		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresMaster))
 		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibMaster * int64(units.KiB)))
 		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
-		Expect(result.Total.DiskSizeGb).To(Equal(cfg.MinDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.DiskSizeGb).To(Equal(minDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
 		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresMaster + details1.CPUCores + details2.CPUCores))
 		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibMaster*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
@@ -318,14 +364,14 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).ToNot(BeNil())
 
-		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(minDiskSizeGb))
 		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresWorker))
 		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibWorker * int64(units.KiB)))
 		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
-		Expect(result.Total.DiskSizeGb).To(Equal(cfg.MinDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.DiskSizeGb).To(Equal(minDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
 		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresWorker + details1.CPUCores + details2.CPUCores))
 		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibWorker*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
@@ -462,7 +508,7 @@ var _ = Describe("Preflight host requirements", func() {
 		ctrl.Finish()
 	})
 
-	It("should contain correct preflight  host requirements", func() {
+	It("should contain correct preflight host requirements", func() {
 		operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(cluster)).Return(operatorRequirements, nil)
 
 		result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), cluster)
