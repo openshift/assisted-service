@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/golang/mock/gomock"
@@ -12,6 +13,9 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
+	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -19,6 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
+
+var BASIC_KUBECONFIG = `test`
 
 var _ = Describe("bmac reconcile", func() {
 	var (
@@ -29,12 +35,15 @@ var _ = Describe("bmac reconcile", func() {
 	)
 
 	BeforeEach(func() {
+		err := machinev1beta1.AddToScheme(scheme.Scheme)
+		Expect(err).To(BeNil())
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		bmhr = &BMACReconciler{
-			Client: c,
-			Scheme: scheme.Scheme,
-			Log:    common.GetTestLog(),
+			Client:      c,
+			Scheme:      scheme.Scheme,
+			Log:         common.GetTestLog(),
+			spokeClient: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
 		}
 	})
 
@@ -423,6 +432,118 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(hDetails.RAMMebibytes).To(BeEquivalentTo(agent.Status.Inventory.Memory.PhysicalBytes / (1024 * 1024)))
 				Expect(hDetails.CPU.Arch).To(Equal(agent.Status.Inventory.Cpu.Architecture))
 				Expect(hDetails.CPU.Model).To(Equal(agent.Status.Inventory.Cpu.ModelName))
+			})
+		})
+	})
+
+	Describe("Reconcile a Spoke BMH", func() {
+		var host *bmh_v1alpha1.BareMetalHost
+		var agent *v1beta1.Agent
+		var cluster *hivev1.ClusterDeployment
+		var secret *corev1.Secret
+
+		BeforeEach(func() {
+			macStr := "12-34-56-78-9A-BC"
+			agent = newAgent("bmac-agent", testNamespace, v1beta1.AgentSpec{Approved: true})
+			agent.Status.Inventory = v1beta1.HostInventory{
+				Memory: v1beta1.HostMemory{
+					PhysicalBytes: 2,
+				},
+				Interfaces: []v1beta1.HostInterface{
+					{
+						Name: "eth0",
+						IPV4Addresses: []string{
+							"1.2.3.4",
+						},
+						IPV6Addresses: []string{
+							"1001:db8::10/120",
+						},
+						MacAddress: macStr,
+					},
+				},
+				Disks: []v1beta1.HostDisk{
+					{Path: "/dev/sda", Bootable: true},
+					{Path: "/dev/sdb", Bootable: false},
+				},
+			}
+			clusterName := "test-cluster"
+			pullSecretName := "pull-secret"
+
+			agent.Spec.Role = models.HostRoleWorker
+			agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: clusterName, Namespace: testNamespace}
+			Expect(c.Create(ctx, agent)).To(BeNil())
+
+			image := &bmh_v1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr, BMC: bmh_v1alpha1.BMCDetails{CredentialsName: fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)}})
+			Expect(c.Create(ctx, host)).To(BeNil())
+
+			defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, pullSecretName)
+			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			cluster.Spec.Installed = true
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			secretName := fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)
+			secret = &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      secretName,
+					Namespace: cluster.Namespace,
+				},
+				Data: map[string][]byte{
+					"kubeconfig": []byte(BASIC_KUBECONFIG),
+				},
+			}
+			Expect(c.Create(ctx, secret)).ShouldNot(HaveOccurred())
+
+			spokeMachine := &machinev1beta1.Machine{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-cluster-bmh-reconcile",
+					Namespace: "test-namespace",
+					Labels: map[string]string{
+						machinev1beta1.MachineClusterIDLabel: clusterName,
+						MACHINE_ROLE:                         string(models.HostRoleWorker),
+						MACHINE_TYPE:                         string(models.HostRoleWorker),
+					},
+				},
+			}
+			Expect(c.Create(ctx, spokeMachine)).To(BeNil())
+		})
+
+		AfterEach(func() {
+			Expect(c.Delete(ctx, host)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
+			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
+		})
+
+		Context("when agent role worker and cluster deployment is set", func() {
+			It("should set spoke BMH", func() {
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+
+				spokeBMH := &bmh_v1alpha1.BareMetalHost{}
+				spokeClient := bmhr.spokeClient
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, spokeBMH)
+				Expect(err).To(BeNil())
+				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
+				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
+
+				spokeMachine := &machinev1beta1.Machine{}
+				machineName := fmt.Sprintf("%s-%s", cluster.Name, spokeBMH.Name)
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: machineName, Namespace: testNamespace}, spokeMachine)
+				Expect(err).To(BeNil())
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(machinev1beta1.MachineClusterIDLabel))
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_ROLE))
+				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
+
+				spokeSecret := &corev1.Secret{}
+				err = spokeClient.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: testNamespace}, spokeSecret)
+				Expect(err).To(BeNil())
+				Expect(spokeSecret.Data).To(Equal(secret.Data))
 			})
 		})
 	})
