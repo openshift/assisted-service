@@ -2,6 +2,7 @@ package common
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -10,8 +11,13 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/pkg/s3wrapper"
 )
+
+type NotFound string
+
+func (f NotFound) Error() string {
+	return fmt.Sprintf("object %s was not found", string(f))
+}
 
 func GenerateError(id int32, err error) *models.Error {
 	return &models.Error{
@@ -108,7 +114,7 @@ func GenerateErrorResponder(err error) middleware.Responder {
 		return errValue
 	case *InfraErrorResponse:
 		return errValue
-	case s3wrapper.NotFound:
+	case NotFound:
 		return NewApiError(http.StatusNotFound, err)
 	default:
 		return NewApiError(http.StatusInternalServerError, err)

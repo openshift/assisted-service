@@ -4527,7 +4527,7 @@ var _ = Describe("Upload and Download logs test", func() {
 		host1.LogsCollectedAt = strfmt.DateTime(time.Now())
 		db.Save(&host1)
 		fileName := bm.getLogsFullName(clusterID.String(), hostID.String())
-		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), s3wrapper.NotFound(fileName))
+		mockS3Client.EXPECT().Download(ctx, fileName).Return(nil, int64(0), common.NotFound(fileName))
 		verifyApiError(bm.DownloadHostLogs(ctx, params), http.StatusNotFound)
 	})
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/google/renameio"
 	"github.com/moby/moby/pkg/ioutils"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/versions"
@@ -162,7 +163,7 @@ func (f *FSClient) Download(ctx context.Context, objectName string) (io.ReadClos
 	fp, err := os.Open(filePath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, 0, NotFound(objectName)
+			return nil, 0, common.NotFound(objectName)
 		}
 		err = errors.Wrapf(err, "Unable to open file %s", filePath)
 		log.Error(err)

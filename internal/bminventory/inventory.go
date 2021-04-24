@@ -4069,7 +4069,7 @@ func (b *bareMetalInventory) DownloadClusterLogs(ctx context.Context, params ins
 	}
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
 	if err != nil {
-		if _, ok := err.(s3wrapper.NotFound); ok {
+		if _, ok := err.(common.NotFound); ok {
 			log.WithError(err).Warnf("File not found %s", fileName)
 			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs of type %s for cluster %s "+
 				"were not found", swag.StringValue(params.LogsType), params.ClusterID))
@@ -4099,7 +4099,7 @@ func (b *bareMetalInventory) DownloadHostLogs(ctx context.Context, params instal
 
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fileName)
 	if err != nil {
-		if _, ok := err.(s3wrapper.NotFound); ok {
+		if _, ok := err.(common.NotFound); ok {
 			log.WithError(err).Warnf("File not found %s", fileName)
 			return common.NewApiError(http.StatusNotFound, errors.Errorf("Logs for host %s were not found", params.HostID))
 		}

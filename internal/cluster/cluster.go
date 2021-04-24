@@ -786,7 +786,7 @@ func (m *Manager) CreateTarredClusterLogs(ctx context.Context, c *common.Cluster
 	}
 
 	log.Debugf("List of files to include into %s is %s", fileName, files)
-	err = common.TarAwsFiles(ctx, fileName, files, tarredFilenames, objectHandler, log)
+	err = s3wrapper.TarAwsFiles(ctx, fileName, files, tarredFilenames, objectHandler, log)
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s", fileName)
 		return "", common.NewApiError(http.StatusInternalServerError, err)
