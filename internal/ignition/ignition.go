@@ -37,6 +37,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/pkg/errors"
@@ -326,14 +327,16 @@ type IgnitionConfig struct {
 }
 
 type ignitionBuilder struct {
-	log                 logrus.FieldLogger
-	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
+	log                     logrus.FieldLogger
+	staticNetworkConfig     staticnetworkconfig.StaticNetworkConfig
+	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
 }
 
-func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig) IgnitionBuilder {
+func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) IgnitionBuilder {
 	builder := &ignitionBuilder{
-		log:                 log,
-		staticNetworkConfig: staticNetworkConfig,
+		log:                     log,
+		staticNetworkConfig:     staticNetworkConfig,
+		mirrorRegistriesBuilder: mirrorRegistriesBuilder,
 	}
 	return builder
 }
@@ -1275,11 +1278,6 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}
 
-	if cluster.ImageInfo.MirrorRegistriesConfig != "" {
-		ignitionParams["MirrorRegistriesConfig"] = base64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.MirrorRegistriesConfig))
-		ignitionParams["MirrorRegistriesCAConfig"] = base64.StdEncoding.EncodeToString([]byte(cluster.ImageInfo.CaConfig))
-	}
-
 	if cluster.ImageInfo.StaticNetworkConfig != "" && cluster.ImageInfo.Type == models.ImageTypeFullIso {
 		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(cluster)
 		if newErr != nil {
@@ -1289,6 +1287,21 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		ignitionParams["StaticNetworkConfig"] = filesList
 		ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
 		ignitionParams["StaticNMHostnameMode"] = url.PathEscape(common.StaticNetworkHostnameConf)
+	}
+
+	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		caContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorCA()
+		if mirrorsErr != nil {
+			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries CA contents")
+			return "", mirrorsErr
+		}
+		registriesContents, mirrorsErr := ib.mirrorRegistriesBuilder.GetMirrorRegistries()
+		if mirrorsErr != nil {
+			ib.log.WithError(mirrorsErr).Errorf("Failed to get the mirror registries config contents")
+			return "", mirrorsErr
+		}
+		ignitionParams["MirrorRegistriesConfig"] = base64.StdEncoding.EncodeToString(registriesContents)
+		ignitionParams["MirrorRegistriesCAConfig"] = base64.StdEncoding.EncodeToString(caContents)
 	}
 
 	tmpl, err := template.New("ignitionConfig").Parse(discoveryIgnitionConfigFormat)

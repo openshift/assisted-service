@@ -6733,10 +6733,6 @@ func init() {
           "description": "Type of image that should be generated.",
           "$ref": "#/definitions/image_type"
         },
-        "mirror_registries_ca_config": {
-          "description": "configuration of the mirror registries for discovery ISO and installed nodes",
-          "$ref": "#/definitions/mirror_registries_ca_config"
-        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -6752,10 +6748,6 @@ func init() {
     "image_info": {
       "type": "object",
       "properties": {
-        "ca_config": {
-          "description": "CA config data for mirror registries",
-          "type": "string"
-        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -6771,10 +6763,6 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version.",
-          "type": "string"
-        },
-        "mirror_registries_config": {
-          "description": "registries.conf file contents in a TOML format",
           "type": "string"
         },
         "size_bytes": {
@@ -7103,53 +7091,6 @@ func init() {
         },
         "usable_bytes": {
           "type": "integer"
-        }
-      }
-    },
-    "mirror_registries_ca_config": {
-      "type": "object",
-      "properties": {
-        "ca_config": {
-          "description": "string containing CA or CA bundle for mirrored registries",
-          "type": "string"
-        },
-        "mirror_registries_config": {
-          "description": "configuration of registries conf",
-          "$ref": "#/definitions/mirror_registries_config"
-        }
-      }
-    },
-    "mirror_registries_config": {
-      "type": "object",
-      "properties": {
-        "mirror_registries": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/mirror_registry"
-          }
-        },
-        "unqualified-search-registries": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "mirror_registry": {
-      "type": "object",
-      "properties": {
-        "location": {
-          "description": "the original registry location",
-          "type": "string"
-        },
-        "mirror_location": {
-          "description": "the mirror registry location",
-          "type": "string"
-        },
-        "prefix": {
-          "description": "prefix for choosing this specific mirror",
-          "type": "string"
         }
       }
     },
@@ -14450,10 +14391,6 @@ func init() {
           "description": "Type of image that should be generated.",
           "$ref": "#/definitions/image_type"
         },
-        "mirror_registries_ca_config": {
-          "description": "configuration of the mirror registries for discovery ISO and installed nodes",
-          "$ref": "#/definitions/mirror_registries_ca_config"
-        },
         "ssh_public_key": {
           "description": "SSH public key for debugging the installation.",
           "type": "string"
@@ -14469,10 +14406,6 @@ func init() {
     "image_info": {
       "type": "object",
       "properties": {
-        "ca_config": {
-          "description": "CA config data for mirror registries",
-          "type": "string"
-        },
         "created_at": {
           "type": "string",
           "format": "date-time",
@@ -14488,10 +14421,6 @@ func init() {
         },
         "generator_version": {
           "description": "Image generator version.",
-          "type": "string"
-        },
-        "mirror_registries_config": {
-          "description": "registries.conf file contents in a TOML format",
           "type": "string"
         },
         "size_bytes": {
@@ -14810,53 +14739,6 @@ func init() {
         },
         "usable_bytes": {
           "type": "integer"
-        }
-      }
-    },
-    "mirror_registries_ca_config": {
-      "type": "object",
-      "properties": {
-        "ca_config": {
-          "description": "string containing CA or CA bundle for mirrored registries",
-          "type": "string"
-        },
-        "mirror_registries_config": {
-          "description": "configuration of registries conf",
-          "$ref": "#/definitions/mirror_registries_config"
-        }
-      }
-    },
-    "mirror_registries_config": {
-      "type": "object",
-      "properties": {
-        "mirror_registries": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/mirror_registry"
-          }
-        },
-        "unqualified-search-registries": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "mirror_registry": {
-      "type": "object",
-      "properties": {
-        "location": {
-          "description": "the original registry location",
-          "type": "string"
-        },
-        "mirror_location": {
-          "description": "the mirror registry location",
-          "type": "string"
-        },
-        "prefix": {
-          "description": "prefix for choosing this specific mirror",
-          "type": "string"
         }
       }
     },

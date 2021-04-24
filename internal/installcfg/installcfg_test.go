@@ -2,6 +2,7 @@ package installcfg
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -13,7 +14,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
-	"github.com/sirupsen/logrus"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"gopkg.in/yaml.v2"
 )
 
@@ -21,14 +22,16 @@ const OvnKubernetes = "OVNKubernetes"
 
 var _ = Describe("installcfg", func() {
 	var (
-		host1                models.Host
-		host2                models.Host
-		host3                models.Host
-		cluster              common.Cluster
-		ctrl                 *gomock.Controller
-		installConfigBuilder InstallConfigBuilder
+		host1                             models.Host
+		host2                             models.Host
+		host3                             models.Host
+		cluster                           common.Cluster
+		ctrl                              *gomock.Controller
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		installConfig                     *installConfigBuilder
 	)
 	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
 		clusterId := strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:                     &clusterId,
@@ -67,14 +70,16 @@ var _ = Describe("installcfg", func() {
 		}
 
 		cluster.Hosts = []*models.Host{&host1, &host2, &host3}
-		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog())
-		ctrl = gomock.NewController(GinkgoT())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		installConfig = &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
 
 	})
 
 	It("create_configuration_with_all_hosts", func() {
 		var result InstallerConfigBaremetal
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -84,7 +89,9 @@ var _ = Describe("installcfg", func() {
 	It("create_configuration_with_one_host_disabled", func() {
 		var result InstallerConfigBaremetal
 		host3.Status = swag.String(models.HostStatusDisabled)
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -97,7 +104,9 @@ var _ = Describe("installcfg", func() {
 		proxyURL := "http://proxyserver:3218"
 		cluster.HTTPProxy = proxyURL
 		cluster.HTTPSProxy = proxyURL
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -119,7 +128,9 @@ var _ = Describe("installcfg", func() {
 		cluster.HTTPSProxy = proxyURL
 		cluster.NoProxy = "no-proxy.com"
 		cluster.MachineNetworkCidr = ""
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -136,7 +147,9 @@ var _ = Describe("installcfg", func() {
 
 	It("correctly applies cluster overrides", func() {
 		var result InstallerConfigBaremetal
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -151,7 +164,9 @@ var _ = Describe("installcfg", func() {
 	It("doesn't fail with empty overrides", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -162,7 +177,9 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.MachineNetworkCidr = "1001:db8::/120"
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -173,7 +190,9 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.ClusterNetworkCidr = "1001:db8::/120"
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -184,7 +203,9 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.ServiceNetworkCidr = "1001:db8::/120"
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -197,7 +218,9 @@ var _ = Describe("installcfg", func() {
 		ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, true, ca)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, true, ca)
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -209,7 +232,9 @@ var _ = Describe("installcfg", func() {
 	It("CA AdditionalTrustBundle not added", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "CA-CERT")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "CA-CERT")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -220,7 +245,9 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(true)
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -235,7 +262,9 @@ var _ = Describe("installcfg", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -252,7 +281,9 @@ var _ = Describe("installcfg", func() {
 		cluster.MachineNetworkCidr = ""
 		host1.Bootstrap = true
 		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -267,7 +298,9 @@ var _ = Describe("installcfg", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
 		cluster.UserManagedNetworking = swag.Bool(false)
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -284,8 +317,10 @@ var _ = Describe("installcfg", func() {
 		cluster.Hosts[0].Bootstrap = true
 		cluster.Hosts[0].InstallationDiskPath = "/dev/test"
 		cluster.MachineNetworkCidr = "10.35.20.0/24"
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
 
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -302,7 +337,9 @@ var _ = Describe("installcfg", func() {
 		cluster.MachineNetworkCidr = "fe80::/64"
 		host1.Bootstrap = true
 		host1.Inventory = getInventoryStr("hostname0", "bootMode", true)
-		data, err := installConfigBuilder.GetInstallConfig(&cluster, false, "")
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -315,22 +352,26 @@ var _ = Describe("installcfg", func() {
 
 	It("Hyperthreading config", func() {
 		cluster.Hyperthreading = "none"
-		data, err := getBasicInstallConfig(logrus.New(), &cluster)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		data, err := installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
 		cluster.Hyperthreading = "all"
-		data, err = getBasicInstallConfig(logrus.New(), &cluster)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "workers"
-		data, err = getBasicInstallConfig(logrus.New(), &cluster)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Disabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Enabled"))
 		cluster.Hyperthreading = "masters"
-		data, err = getBasicInstallConfig(logrus.New(), &cluster)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		data, err = installConfig.getBasicInstallConfig(&cluster)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(data.ControlPlane.Hyperthreading).Should(Equal("Enabled"))
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
@@ -344,10 +385,13 @@ var _ = Describe("installcfg", func() {
 
 var _ = Describe("ValidateInstallConfigPatch", func() {
 	var (
-		cluster              *common.Cluster
-		installConfigBuilder InstallConfigBuilder
+		ctrl                              *gomock.Controller
+		cluster                           *common.Cluster
+		installConfigBuilder              InstallConfigBuilder
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
 	)
 	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
 		id := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:               &id,
@@ -357,23 +401,30 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 			IngressVip:       "376.5.56.6",
 			ImageInfo:        &models.ImageInfo{},
 		}}
-		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog())
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog(), mockMirrorRegistriesConfigBuilder)
 	})
 
 	It("Succeeds when provided valid json", func() {
 		s := `{"apiVersion": "v3", "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
 		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
 	It("Fails when provided invalid json", func() {
 		s := `{"apiVersion": 3, "baseDomain": "example.com", "metadata": {"name": "things"}}`
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
 		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).Should(HaveOccurred())
 	})
 
 	It("Fails with an invalid cert", func() {
 		s := `{"additionalTrustBundle":  "-----BEGIN CERTIFICATE-----\nMIIFozCCA4ugAwIBAgIUVlT4eKQQ43HN31jQzsez+iEmpw8wDQYJKoZIhvcNAQEL\nBQAwYTELMAkGA1UEBhMCQUExFTATBgNVBAcMDERlZmF1bHQgQ2l0eTEcMBoGA1UE\nCgwTRGVmYXVsdCBDb21wYW55IEx0ZDEdMBsGA1UEAwwUcmVnaXN0cnkuZXhhbXBs\nZS5jb20wHhcNMjAxMDI3MTI0OTEwWhcNMjExMDI3MTI0OTEwWjBhMQswCQYDVQQG\nEwJBQTEVMBMGA1UEBwwMRGVmYXVsdCBDaXR5MRwwGgYDVQQKDBNEZWZhdWx0IENv\nbXBhbnkgTHRkMR0wGwYDVQQDDBRyZWdpc3RyeS5leGFtcGxlLmNvbTCCAiIwDQYJ\nKoZIhvcNAQEBBQADggIPADCCAgoCggIBAKm/wEl5B6lDOwYtkOxoLHQySA5RySEU\nkEMoGxBtGewLjLRMS9zp5pgYNcRenOTfUeyx6n4vE+lLn6p4laSig6QGDK0mmPl/\nt8OVZGBNE/dOZEoGe3I+gQux0oErhzjNxrf1EGfeBRVVuSqmgQnFaeLq2mGsbb5+\nyz114seD7u0Vb6OIX5sA+ytvr+jV3HK0jf5H9AHvSnNzF0UE+S7CHTJSDqQNUPxp\n8rAtfOvWyndDJBBmA0fdnDRYNtUqKcj/YBSntuZAmSJ0Woq9NrE+H3e61kvF0AP8\nHz21FSD/GqCn97Q8Mh8uTKx8jas2XBLyWdi0OCIV+a4jTadez1zPCWT+zgD5rHAk\np5RyXgkRU3guJydNMlpRPsGur3pUM4Q3zQfArZ+OxTkU/SLZbBmAVMPDI2pwL6qE\n2F8So4JdysH1MiwtYDYVIxKChrpBtTVunIe+Jyl/w8a3xR77r++3MFauobGLpeCL\nptbSz0aFZIIIwoLw2JVaWe7BWryjk8fDYrlPkLWqgQ956lcZppqiUzvEVv3p7wC2\nmfWkXJBGZZ0CZcYUoEE7zQ5T0RHLXqf0lSMf8I1SPzBF+Wl6G2gUOaZtYT5s0LA5\nid+gSDtKqyDH1HwPGO0eQB1LGeXOCLBA3cgmxYXtIMLfds0LgcJF+vRV3868abpD\n+yVMxGQRzRZFAgMBAAGjUzBRMB0GA1UdDgQWBBTUHUuivG1L6rTHS9v8KHTtOVpL\ncjAfBgNVHSMEGDAWgBTUHUuivG1L6rTHS9v8KHTtOVpLcjAPBgNVHRMBAf8EBTAD\nAQH/MA0GCSqGSIb3DQEBCwUAA4ICAQAFTmSriXnTJ/9cbO2lJmH7OFcrgKWdsycU\ngc9aeLSpnlYPuMjRHgXpq0X5iZzJaOXu8WKmbxTItxfd7MD/9rsaDMo7uDs6cZhC\nsdpWDVzZlP1PRcy1uT3+g12QmMmt89WBtauKEMukI3mOlx6y1VzPj9Vw5gfBKYjS\nh2NJPSVzgkLlLTOsY6bHesXVWrHVtCS5fUiE2xNkE6hXS0hZWYZlzLwn55wIrchx\nB3G++mPnNL3SbH62lXyWcrc1M/+gNl3F3jSd5WfxZQVllZ9vK1DnBKDisTUax5fR\nqK/D7vgkvHJa0USzGhcYV3DEdbgP/COgWrpbA0TTFcasWWYQdBk+2EUPcWKAh0JB\nVgql3o0pmyzfqQtuRRMC4D6Ip6y6IE2opK2c7ipXT4iEyPqr4uk4IeVFXghCYW92\nkCI+FyRJgbSu9ZuIug8AUlea7UOLTC4mxAayXvTwA6bNlGoSLmojgQHG7GlGj+E8\n57AHM2sD9Qi1VYyLuMVhJB3DzlQKtEFuvZsvi/rSIGqT8UfNbxk7OCtxceyzECqW\n2ptIv7tDhQeAGqkGqhTj1WdH+16+QZpsfmkwt5+hAaOeZfQ/nOCP7CGwbl4nYc3X\narDiqhVUXlv84/7XrOyoDJo3AVGidq902h6MYenX9T//XYbWkUK7nkvYMVoxu/Ek\nx/aT+8yOHQ==\n", "imageContentSources": [{"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release"}, {"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-release-nightly"}, {"mirrors": ["registry.example.com:5000/ocp4"], "source": "quay.io/openshift-release-dev/ocp-v4.0-art-dev"}]}`
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
 		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).Should(HaveOccurred())
 	})
@@ -383,6 +434,8 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 		cluster.UserManagedNetworking = swag.Bool(true)
 		mode := models.ClusterHighAvailabilityModeNone
 		cluster.HighAvailabilityMode = &mode
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return(nil, fmt.Errorf("file not present")).Times(1)
 		err := installConfigBuilder.ValidateInstallConfigPatch(cluster, s)
 		Expect(err).ShouldNot(HaveOccurred())
 	})
@@ -409,9 +462,13 @@ func getInventoryStr(hostname, bootMode string, ipv6only bool) string {
 
 var _ = Describe("Generate NoProxy", func() {
 	var (
-		cluster *common.Cluster
+		ctrl                              *gomock.Controller
+		cluster                           *common.Cluster
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		installConfig                     *installConfigBuilder
 	)
 	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			MachineNetworkCidr: "10.35.20.0/24",
 			Name:               "proxycluster",
@@ -419,24 +476,26 @@ var _ = Describe("Generate NoProxy", func() {
 			ClusterNetworkCidr: "192.168.1.0/24",
 			ServiceNetworkCidr: "fe80::1/64",
 		}}
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		installConfig = &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
 	})
 	It("Default NoProxy", func() {
-		noProxy := generateNoProxy(cluster)
+		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal("10.35.20.0/24,.proxycluster.myproxy.com,192.168.1.0/24,fe80::1/64"))
 	})
 	It("Update NoProxy", func() {
 		cluster.NoProxy = "domain.org,127.0.0.2"
-		noProxy := generateNoProxy(cluster)
+		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal("domain.org,127.0.0.2,10.35.20.0/24,.proxycluster.myproxy.com,192.168.1.0/24,fe80::1/64"))
 	})
 	It("All-excluded NoProxy", func() {
 		cluster.NoProxy = "*"
-		noProxy := generateNoProxy(cluster)
+		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal("*"))
 	})
 	It("All-excluded NoProxy with spaces", func() {
 		cluster.NoProxy = " * "
-		noProxy := generateNoProxy(cluster)
+		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal("*"))
 	})
 })

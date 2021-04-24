@@ -1,13 +1,12 @@
 package mirrorregistries
 
 import (
-
-	//"fmt"
+	"fmt"
+	"io/ioutil"
 	"testing"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/models"
 )
 
 func TestMirrorRegistriesConfig(t *testing.T) {
@@ -18,14 +17,8 @@ func TestMirrorRegistriesConfig(t *testing.T) {
 var _ = Describe("MirrorRegistriesConfig", func() {
 
 	var (
-		mirrorRegistry1        = models.MirrorRegistry{Location: "location1", MirrorLocation: "mirror_location1", Prefix: "prefix1"}
-		mirrorRegistry2        = models.MirrorRegistry{Location: "location2", MirrorLocation: "mirror_location2", Prefix: "prefix1"}
-		mirrorRegistry3        = models.MirrorRegistry{Location: "location3", MirrorLocation: "mirror_location3", Prefix: "prefix1"}
-		mirrorRegistries       = []*models.MirrorRegistry{&mirrorRegistry1, &mirrorRegistry2, &mirrorRegistry3}
-		mirrorRegistriesConfig = models.MirrorRegistriesConfig{MirrorRegistries: mirrorRegistries, UnqualifiedSearchRegistries: []string{"registry1", "registry2", "registry3"}}
-		registriesConfigInput  = models.MirrorRegistriesCaConfig{CaConfig: "some certificate", MirrorRegistriesConfig: &mirrorRegistriesConfig}
-		expectedExtractList    = []RegistriesConf{{"location1", "mirror_location1"}, {"location2", "mirror_location2"}, {"location3", "mirror_location3"}}
-		expectedFormatOutput   = `unqualified-search-registries = ["registry1", "registry2", "registry3"]
+		expectedExtractList  = []RegistriesConf{{"location1", "mirror_location1"}, {"location2", "mirror_location2"}, {"location3", "mirror_location3"}}
+		expectedFormatOutput = `unqualified-search-registries = ["registry1", "registry2", "registry3"]
 
 [[registry]]
   location = "location1"
@@ -53,16 +46,20 @@ var _ = Describe("MirrorRegistriesConfig", func() {
 `
 	)
 
-	It("produce mirror registries config", func() {
-		registriesFileContent, caConfig, err := FormatRegistriesConfForIgnition(&registriesConfigInput)
-		Expect(err).NotTo(HaveOccurred())
-		Expect(registriesFileContent).Should(Equal(expectedFormatOutput))
-		Expect(caConfig).Should(Equal("some certificate"))
-	})
-
 	It("extract data from registries config", func() {
-		dataList, err := ExtractLocationMirrorDataFromRegistries(expectedFormatOutput)
+		dataList, err := extractLocationMirrorDataFromRegistries(expectedFormatOutput)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(dataList).Should(Equal(expectedExtractList))
+	})
+
+	It("test get CA contents", func() {
+		file, err := ioutil.TempFile("", "ca.crt")
+		Expect(err).NotTo(HaveOccurred())
+		fmt.Printf("YEV - file is %s\n", file.Name())
+		_, err = file.WriteString("some ca data")
+		Expect(err).NotTo(HaveOccurred())
+		contents, err := readFile(file.Name())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(string(contents)).Should(Equal("some ca data"))
 	})
 })

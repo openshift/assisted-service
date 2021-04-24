@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/sirupsen/logrus"
@@ -823,12 +824,13 @@ var _ = Describe("proxySettingsForIgnition", func() {
 
 var _ = Describe("IgnitionBuilder", func() {
 	var (
-		ctrl                    *gomock.Controller
-		cluster                 common.Cluster
-		log                     logrus.FieldLogger
-		builder                 IgnitionBuilder
-		mockStaticNetworkConfig *staticnetworkconfig.MockStaticNetworkConfig
-		clusterID               strfmt.UUID
+		ctrl                              *gomock.Controller
+		cluster                           common.Cluster
+		log                               logrus.FieldLogger
+		builder                           IgnitionBuilder
+		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		clusterID                         strfmt.UUID
 	)
 
 	BeforeEach(func() {
@@ -836,12 +838,13 @@ var _ = Describe("IgnitionBuilder", func() {
 		clusterID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:            &clusterID,
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		cluster.ImageInfo = &models.ImageInfo{}
-		builder = NewBuilder(log, mockStaticNetworkConfig)
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
 	})
 
 	Context("with auth enabled", func() {
@@ -859,6 +862,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		})
 
 		It("ignition_file_contains_pull_secret_token", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 			Expect(err).Should(BeNil())
@@ -867,6 +871,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	It("auth_disabled_no_pull_secret_token", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeNone)
 
 		Expect(err).Should(BeNil())
@@ -876,6 +881,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("ignition_file_contains_url", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -885,6 +891,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("ignition_file_safe_for_logging", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, true, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -894,6 +901,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("enabled_cert_verification", func() {
 		config := IgnitionConfig{SkipCertVerification: false}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -902,6 +910,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("disabled_cert_verification", func() {
 		config := IgnitionConfig{SkipCertVerification: true}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -909,6 +918,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	It("cert_verification_enabled_by_default", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -920,6 +930,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		cluster.NoProxy = "quay.io"
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -931,6 +942,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		cluster.NoProxy = "*"
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
@@ -938,6 +950,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	It("produces a valid ignition v3.1 spec by default", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -948,6 +961,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	It("produces a valid ignition v3.1 spec with overrides", func() {
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -957,6 +971,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		numOfFiles := len(config.Storage.Files)
 
 		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		text, err = builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -968,6 +983,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("fails when given overrides with an incompatible version", func() {
 		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 		_, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 		Expect(err).To(HaveOccurred())
@@ -1004,6 +1020,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			cluster.ImageInfo.StaticNetworkConfig = formattedInput
 			cluster.ImageInfo.Type = models.ImageTypeFullIso
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
@@ -1022,6 +1039,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			cluster.ImageInfo.StaticNetworkConfig = formattedInput
 			cluster.ImageInfo.Type = models.ImageTypeMinimalIso
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
@@ -1039,10 +1057,10 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	Context("mirror registries config", func() {
 
-		It("produce ignition with nirror registries config", func() {
-			cluster.ImageInfo.CaConfig = "some ca config"
-			cluster.ImageInfo.MirrorRegistriesConfig = "some mirror registries config"
-			cluster.ImageInfo.Type = models.ImageTypeFullIso
+		It("produce ignition with mirror registries config", func() {
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some ca config"), nil).Times(1)
+			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("some mirror registries config"), nil).Times(1)
 			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))

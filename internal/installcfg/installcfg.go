@@ -118,7 +118,22 @@ func (c *InstallerConfigBaremetal) Validate() error {
 	return nil
 }
 
-func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
+//go:generate mockgen -source=installcfg.go -package=installcfg -destination=mock_installcfg.go
+type InstallConfigBuilder interface {
+	GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error)
+	ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error
+}
+
+type installConfigBuilder struct {
+	log                     logrus.FieldLogger
+	mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder
+}
+
+func NewInstallConfigBuilder(log logrus.FieldLogger, mirrorRegistriesBuilder mirrorregistries.MirrorRegistriesConfigBuilder) InstallConfigBuilder {
+	return &installConfigBuilder{log: log, mirrorRegistriesBuilder: mirrorRegistriesBuilder}
+}
+
+func (i *installConfigBuilder) countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
 	var count int
 	for _, host := range cluster.Hosts {
 		if swag.StringValue(host.Status) != models.HostStatusDisabled && host.Role == role {
@@ -128,7 +143,7 @@ func countHostsByRole(cluster *common.Cluster, role models.HostRole) int {
 	return count
 }
 
-func getBMHName(host *models.Host, masterIdx, workerIdx *int) string {
+func (i *installConfigBuilder) getBMHName(host *models.Host, masterIdx, workerIdx *int) string {
 	prefix := "openshift-master-"
 	index := masterIdx
 	if host.Role == models.HostRoleWorker {
@@ -140,7 +155,7 @@ func getBMHName(host *models.Host, masterIdx, workerIdx *int) string {
 	return name
 }
 
-func getNetworkType(cluster *common.Cluster) string {
+func (i *installConfigBuilder) getNetworkType(cluster *common.Cluster) string {
 	networkType := "OpenShiftSDN"
 	if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) || network.IsIPv6CIDR(cluster.MachineNetworkCidr) || network.IsIPv6CIDR(cluster.ServiceNetworkCidr) {
 		networkType = "OVNKubernetes"
@@ -148,7 +163,7 @@ func getNetworkType(cluster *common.Cluster) string {
 	return networkType
 }
 
-func generateNoProxy(cluster *common.Cluster) string {
+func (i *installConfigBuilder) generateNoProxy(cluster *common.Cluster) string {
 	noProxy := strings.TrimSpace(cluster.NoProxy)
 	if noProxy == "*" {
 		return noProxy
@@ -163,9 +178,9 @@ func generateNoProxy(cluster *common.Cluster) string {
 	return strings.Join(append(splitNoProxy, internalDnsDomain, cluster.ClusterNetworkCidr, cluster.ServiceNetworkCidr), ",")
 }
 
-func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) (*InstallerConfigBaremetal, error) {
-	networkType := getNetworkType(cluster)
-	log.Infof("Selected network type %s for cluster %s", networkType, cluster.ID.String())
+func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*InstallerConfigBaremetal, error) {
+	networkType := i.getNetworkType(cluster)
+	i.log.Infof("Selected network type %s for cluster %s", networkType, cluster.ID.String())
 	cfg := &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
@@ -205,9 +220,9 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) (*In
 			Replicas       int    `yaml:"replicas"`
 		}{
 			{
-				Hyperthreading: getHypethreadingConfiguration(cluster, "worker"),
+				Hyperthreading: i.getHypethreadingConfiguration(cluster, "worker"),
 				Name:           string(models.HostRoleWorker),
-				Replicas:       countHostsByRole(cluster, models.HostRoleWorker),
+				Replicas:       i.countHostsByRole(cluster, models.HostRoleWorker),
 			},
 		},
 		ControlPlane: struct {
@@ -215,9 +230,9 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) (*In
 			Name           string `yaml:"name"`
 			Replicas       int    `yaml:"replicas"`
 		}{
-			Hyperthreading: getHypethreadingConfiguration(cluster, "master"),
+			Hyperthreading: i.getHypethreadingConfiguration(cluster, "master"),
 			Name:           string(models.HostRoleMaster),
-			Replicas:       countHostsByRole(cluster, models.HostRoleMaster),
+			Replicas:       i.countHostsByRole(cluster, models.HostRoleMaster),
 		},
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
@@ -227,23 +242,32 @@ func getBasicInstallConfig(log logrus.FieldLogger, cluster *common.Cluster) (*In
 		cfg.Proxy = &proxy{
 			HTTPProxy:  cluster.HTTPProxy,
 			HTTPSProxy: cluster.HTTPSProxy,
-			NoProxy:    generateNoProxy(cluster),
+			NoProxy:    i.generateNoProxy(cluster),
 		}
 	}
 
-	if cluster.ImageInfo.MirrorRegistriesConfig != "" {
-		err := setImageContentSources(log, cluster.ImageInfo.MirrorRegistriesConfig, cfg)
+	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		err := i.setImageContentSources(cfg)
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	/*
+		if cluster.ImageInfo.MirrorRegistriesConfig != "" {
+			err := i.setImageContentSources(cluster.ImageInfo.MirrorRegistriesConfig, cfg)
+			if err != nil {
+				return nil, err
+			}
+		}
+	*/
 	return cfg, nil
 }
 
-func setImageContentSources(log logrus.FieldLogger, mirrorRegistriesConf string, cfg *InstallerConfigBaremetal) error {
-	mirrorRegistriesConfigs, err := mirrorregistries.ExtractLocationMirrorDataFromRegistries(mirrorRegistriesConf)
+func (i *installConfigBuilder) setImageContentSources(cfg *InstallerConfigBaremetal) error {
+	mirrorRegistriesConfigs, err := i.mirrorRegistriesBuilder.ExtractLocationMirrorDataFromRegistries()
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageContentSources")
+		i.log.WithError(err).Errorf("Failed to get the mirror registries conf need for ImageContentSources")
 		return err
 	}
 	imageContentSourceList := make([]imageContentSource, len(mirrorRegistriesConfigs))
@@ -254,10 +278,10 @@ func setImageContentSources(log logrus.FieldLogger, mirrorRegistriesConf string,
 	return nil
 }
 
-func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster, cfg *InstallerConfigBaremetal) error {
+func (i *installConfigBuilder) setBMPlatformInstallconfig(cluster *common.Cluster, cfg *InstallerConfigBaremetal) error {
 	// set hosts
-	numMasters := countHostsByRole(cluster, models.HostRoleMaster)
-	numWorkers := countHostsByRole(cluster, models.HostRoleWorker)
+	numMasters := i.countHostsByRole(cluster, models.HostRoleMaster)
+	numWorkers := i.countHostsByRole(cluster, models.HostRoleWorker)
 	hosts := make([]host, numWorkers+numMasters)
 
 	yamlHostIdx := 0
@@ -276,14 +300,14 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 		if swag.StringValue(host.Status) == models.HostStatusDisabled {
 			continue
 		}
-		log.Infof("host name is %s", hostutil.GetHostnameForMsg(host))
-		hosts[yamlHostIdx].Name = getBMHName(host, &masterIdx, &workerIdx)
+		i.log.Infof("host name is %s", hostutil.GetHostnameForMsg(host))
+		hosts[yamlHostIdx].Name = i.getBMHName(host, &masterIdx, &workerIdx)
 		hosts[yamlHostIdx].Role = string(host.Role)
 
 		var inventory models.Inventory
 		err := json.Unmarshal([]byte(host.Inventory), &inventory)
 		if err != nil {
-			log.Warnf("Failed to unmarshall host %s inventory", hostutil.GetHostnameForMsg(host))
+			i.log.Warnf("Failed to unmarshall host %s inventory", hostutil.GetHostnameForMsg(host))
 			return err
 		}
 		hosts[yamlHostIdx].BootMACAddress = inventory.Interfaces[0].MacAddress
@@ -302,7 +326,7 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 	if enableMetal3Provisioning {
 		provNetwork = "Disabled"
 	}
-	log.Infof("setting Baremetal.ProvisioningNetwork to %s", provNetwork)
+	i.log.Infof("setting Baremetal.ProvisioningNetwork to %s", provNetwork)
 
 	cfg.Platform = platform{
 		Baremetal: &baremetal{
@@ -316,7 +340,7 @@ func setBMPlatformInstallconfig(log logrus.FieldLogger, cluster *common.Cluster,
 	return nil
 }
 
-func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error {
+func (i *installConfigBuilder) applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error {
 	if overrides == "" {
 		return nil
 	}
@@ -327,8 +351,8 @@ func applyConfigOverrides(overrides string, cfg *InstallerConfigBaremetal) error
 	return nil
 }
 
-func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa bool, ca string) (*InstallerConfigBaremetal, error) {
-	cfg, err := getBasicInstallConfig(log, cluster)
+func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) (*InstallerConfigBaremetal, error) {
+	cfg, err := i.getBasicInstallConfig(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -339,16 +363,16 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 			None:      &platformNone{},
 		}
 
-		bootstrapCidr := network.GetMachineCidrForUserManagedNetwork(cluster, log)
+		bootstrapCidr := network.GetMachineCidrForUserManagedNetwork(cluster, i.log)
 		if bootstrapCidr != "" {
-			log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
+			i.log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
 			cfg.Networking.MachineNetwork = []struct {
 				Cidr string `yaml:"cidr"`
 			}{
 				{Cidr: bootstrapCidr},
 			}
 			cluster.MachineNetworkCidr = bootstrapCidr
-			cfg.Networking.NetworkType = getNetworkType(cluster)
+			cfg.Networking.NetworkType = i.getNetworkType(cluster)
 
 		} else {
 			cfg.Networking.MachineNetwork = nil
@@ -362,17 +386,17 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 		}
 
 	} else {
-		err = setBMPlatformInstallconfig(log, cluster, cfg)
+		err = i.setBMPlatformInstallconfig(cluster, cfg)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	err = applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
+	err = i.applyConfigOverrides(cluster.InstallConfigOverrides, cfg)
 	if err != nil {
 		return nil, err
 	}
-	caContent := getCAContents(cluster, ca, addRhCa)
+	caContent := i.getCAContents(cluster, ca, addRhCa)
 	if caContent != "" {
 		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, ca)
 	}
@@ -380,22 +404,8 @@ func getInstallConfig(log logrus.FieldLogger, cluster *common.Cluster, addRhCa b
 	return cfg, nil
 }
 
-//go:generate mockgen -source=installcfg.go -package=installcfg -destination=mock_installcfg.go
-type InstallConfigBuilder interface {
-	GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error)
-	ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error
-}
-
-type installConfigBuilder struct {
-	log logrus.FieldLogger
-}
-
-func NewInstallConfigBuilder(log logrus.FieldLogger) InstallConfigBuilder {
-	return &installConfigBuilder{log: log}
-}
-
 func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, addRhCa bool, ca string) ([]byte, error) {
-	cfg, err := getInstallConfig(i.log, cluster, addRhCa, ca)
+	cfg, err := i.getInstallConfig(cluster, addRhCa, ca)
 	if err != nil {
 		return nil, err
 	}
@@ -404,12 +414,12 @@ func (i *installConfigBuilder) GetInstallConfig(cluster *common.Cluster, addRhCa
 }
 
 func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluster, patch string) error {
-	config, err := getInstallConfig(i.log, cluster, false, "")
+	config, err := i.getInstallConfig(cluster, false, "")
 	if err != nil {
 		return err
 	}
 
-	err = applyConfigOverrides(patch, config)
+	err = i.applyConfigOverrides(patch, config)
 	if err != nil {
 		return err
 	}
@@ -417,7 +427,7 @@ func (i *installConfigBuilder) ValidateInstallConfigPatch(cluster *common.Cluste
 	return config.Validate()
 }
 
-func getHypethreadingConfiguration(cluster *common.Cluster, machineType string) string {
+func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Cluster, machineType string) string {
 	switch cluster.Hyperthreading {
 	case models.ClusterHyperthreadingAll:
 		return "Enabled"
@@ -433,10 +443,11 @@ func getHypethreadingConfiguration(cluster *common.Cluster, machineType string) 
 	return "Disabled"
 }
 
-func getCAContents(cluster *common.Cluster, rhRootCA string, installRHRootCAFlag bool) string {
+func (i *installConfigBuilder) getCAContents(cluster *common.Cluster, rhRootCA string, installRHRootCAFlag bool) string {
 	// CA for mirror registries and RH CA are mutually exclusive
-	if cluster.ImageInfo.CaConfig != "" {
-		return "\n" + cluster.ImageInfo.CaConfig
+	caContents, err := i.mirrorRegistriesBuilder.GetMirrorCA()
+	if err == nil {
+		return "\n" + string(caContents)
 	}
 	if installRHRootCAFlag {
 		return rhRootCA
