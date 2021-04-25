@@ -27,6 +27,8 @@ spec:
               hostPrefix: 23
           serviceNetwork:
             - 172.30.0.0/16
+          machineNetwork:
+            - cidr: 192.168.126.0/24
         provisionRequirements:
           controlPlaneAgents: 1
   pullSecretRef:
