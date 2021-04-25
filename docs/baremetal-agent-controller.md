@@ -24,7 +24,7 @@ Dev Scripts
 
 ```bash
 # Giving Master nodes some extra CPU since we won't be
-# depoloying any workers
+# deploying any workers
 export MASTER_VCPU=4
 export MASTER_MEMORY=20000
 
@@ -44,7 +44,7 @@ export BAREMETAL_OPERATOR_LOCAL_IMAGE=/path/to/your/local/clone
 ```
 
 The config above should provide you with an environment that is ready to be used for the operator,
-assited installer, and BMAC tests. Here are a few tips that would help simplifying the environment
+assisted installer, and BMAC tests. Here are a few tips that would help simplifying the environment
 and the steps required:
 
 - Clone [baremetal-operator][bmo] somewhere and set the BAREMETAL_OPERATOR_LOCAL_IMAGE in your config.
@@ -81,14 +81,14 @@ run [local-bmo][local-bmo] and move on. This script will tail the logs so do it 
 so that it can be kept running.
 
 ```bash
-# Notee variable is different from the one in your dev-script
-# config file. You can set it to the same path, tho.
+# Note variable is different from the one in your dev-script
+# config file. You can set it to the same path, though.
 export BAREMETAL_OPERATOR_PATH=/path/to/your/local/clone
 ./metal3-dev/local-bmo.sh
 
 ```
 
-Assited Installer Operator
+Assisted Installer Operator
 ===
 
 Once the dev-script environment is up-and-running, and the [bmo][bmo] has been deployed, you can
@@ -96,10 +96,10 @@ proceed to deploying the Assisted Installer Operator following [this documentati
 At the end of this process you will have the assisted-service running under the `assisted-installer`
 namespace.
 
-Take notice of the [assisted-service-patch-image][aspi-custom] kustomization if you are testing a local
+Take notice of the [assisted-service-patch-image][aspi-custom] customization if you are testing a local
 assisted-service image. More on this in the operator docs. Another, more hacky option, is to
 manually modify the image for the `assisted-service` deployment after it's been deployed. Favor the
-kustomization way over this.
+customization way over this.
 
 
 ```
@@ -117,7 +117,7 @@ Creating BareMetalHost resources
 
 The [baremetal operator][bmo] creates the `BareMetalHost` resources for the existing nodes
 automatically. For scenarios using extra worker nodes (like SNO), it will be necessary to create
-`BareMetalHost` resources manually. Lucklily enough, `dev-scripts` is one step ahead and it has
+`BareMetalHost` resources manually. Luckily enough, `dev-scripts` is one step ahead and it has
 prepared the manifest for us already.
 
 ```
