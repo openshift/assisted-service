@@ -156,7 +156,7 @@ func (i *installCmd) getFullInstallerCommand(cluster *common.Cluster, host *mode
 		installerCmd = append(installerCmd, "--installation-timeout", strconv.Itoa(int(i.instructionConfig.InstallationTimeout)))
 	}
 
-	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host)
+	hostInstallerArgs, err := constructHostInstallerArgs(cluster, host, i.log)
 	if err != nil {
 		return "", err
 	}
@@ -248,7 +248,7 @@ func (i *installCmd) getDiskUnbootableCmd(ctx context.Context, host models.Host)
 	set --copy-network, function will set only one such argument. It also append an arg that
 	controls DHCP depending on the IP stack being used.
 */
-func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host) (string, error) {
+func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log logrus.FieldLogger) (string, error) {
 
 	var installerArgs []string
 	if host.InstallerArgs != "" {
@@ -258,10 +258,11 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host) (str
 		}
 	}
 
-	if cluster.MachineNetworkCidr != "" && !hasUserConfiguredIP(installerArgs) {
-		if network.IsIPv6CIDR(cluster.MachineNetworkCidr) {
+	if !hasUserConfiguredIP(installerArgs) {
+		machineNetworkCIDR := network.GetMachineCidrForUserManagedNetwork(cluster, log)
+		if network.IsIPv6CIDR(machineNetworkCIDR) {
 			installerArgs = append(installerArgs, "--append-karg", "ip=dhcp6")
-		} else {
+		} else if machineNetworkCIDR != "" {
 			installerArgs = append(installerArgs, "--append-karg", "ip=dhcp")
 		}
 	}
