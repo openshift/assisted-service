@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"path/filepath"
 	reflect "reflect"
+	"sort"
 	"strings"
 	"time"
 
@@ -316,11 +317,26 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 	if db == nil {
 		db = m.db
 	}
-	vc, err := newClusterValidationContext(*c.ID, db)
+	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(db, *c.ID)
 	if err != nil {
-		return c, err
+		return nil, err
 	}
-	conditions, newValidationRes, err := m.rp.preprocess(ctx, vc)
+	return m.refreshStatusInternal(ctx, cluster, db)
+}
+
+func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	//new transition code
+	if db == nil {
+		db = m.db
+	}
+	var (
+		vc               *clusterPreprocessContext
+		err              error
+		conditions       map[string]bool
+		newValidationRes map[string][]ValidationResult
+	)
+	vc = newClusterValidationContext(c, db)
+	conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
 	if err != nil {
 		return c, err
 	}
@@ -338,7 +354,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 			return nil, err
 		}
 	}
-	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), &TransitionArgsRefreshCluster{
+	args := &TransitionArgsRefreshCluster{
 		ctx:               ctx,
 		db:                db,
 		eventHandler:      m.eventsHandler,
@@ -350,13 +366,18 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 		objectHandler:     m.objectHandler,
 		ocmClient:         m.ocmClient,
 		dnsApi:            m.dnsApi,
-	})
+	}
+
+	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
 
-	//return updated cluster
-	return common.GetClusterFromDB(db, *c.ID, common.UseEagerLoading)
+	ret := args.updatedCluster
+	if ret == nil {
+		ret = c
+	}
+	return ret, err
 }
 
 func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
@@ -493,8 +514,8 @@ func (m *Manager) ClusterMonitoring() {
 
 	for {
 		clusters = make([]*common.Cluster, 0, limit)
-		if err = m.db.Where("status NOT IN (?)", noNeedToMonitorInStates).
-			Offset(offset).Limit(limit).Order("id").Find(&clusters).Error; err != nil {
+		if err = m.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Preload(common.MonitoredOperatorsTable).
+			Offset(offset).Limit(limit).Order("id").Find(&clusters, "status NOT IN (?)", noNeedToMonitorInStates).Error; err != nil {
 			log.WithError(err).Errorf("failed to get clusters")
 			return
 		}
@@ -507,10 +528,12 @@ func (m *Manager) ClusterMonitoring() {
 				return
 			}
 			if !m.SkipMonitoring(cluster) {
-				if err = m.SetConnectivityMajorityGroupsForCluster(*cluster.ID, m.db); err != nil {
-					log.WithError(err).Errorf("failed to set majority group for cluster %s", cluster.ID.String())
+
+				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
+					log.WithError(err).Error("failed to set majority group for clusters")
 				}
-				if clusterAfterRefresh, err = m.RefreshStatus(ctx, cluster, m.db); err != nil {
+				clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db)
+				if err != nil {
 					log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
 					continue
 				}
@@ -801,7 +824,7 @@ func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 	return true, ""
 }
 
-func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {
+func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *common.Cluster, db *gorm.DB) error {
 	if db == nil {
 		db = m.db
 	}
@@ -811,20 +834,14 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 		models.ClusterStatusInsufficient,
 		models.ClusterStatusReady,
 	}
-	var cluster common.Cluster
-	if err := db.Select("id, status").Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
-		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
-	}
-
 	if !funk.ContainsString(allowedStates, swag.StringValue(cluster.Status)) {
 		return nil
 	}
 
-	var hosts []*models.Host
-	if err := db.Order("id").Select("id, connectivity, inventory").Find(&hosts, "cluster_id = ? and status <> ?", clusterID.String(), models.HostStatusDisabled).Error; err != nil {
-		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Getting hosts for cluster %s", clusterID.String()))
-	}
-
+	hosts := cluster.Hosts
+	sort.Slice(hosts, func(i, j int) bool {
+		return hosts[i].ID.String() < hosts[j].ID.String()
+	})
 	majorityGroups := make(map[string][]strfmt.UUID)
 	for _, cidr := range network.GetClusterNetworks(hosts, m.log) {
 		majorityGroup, err := network.CreateMajorityGroup(cidr, hosts)
@@ -839,15 +856,30 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	err = db.Model(&common.Cluster{}).Where("id = ? and connectivity_majority_groups <> ?", clusterID.String(), string(b)).Update(&common.Cluster{
-		Cluster: models.Cluster{
-			ConnectivityMajorityGroups: string(b),
-		},
-	}).Error
-	if err != nil {
-		return common.NewApiError(http.StatusInternalServerError, err)
+	marshalledMajorityGroups := string(b)
+	if marshalledMajorityGroups != cluster.ConnectivityMajorityGroups {
+		err = db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Update(&common.Cluster{
+			Cluster: models.Cluster{
+				ConnectivityMajorityGroups: marshalledMajorityGroups,
+			},
+		}).Error
+		if err != nil {
+			return common.NewApiError(http.StatusInternalServerError, err)
+		}
 	}
 	return nil
+}
+
+func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID, db *gorm.DB) error {
+	if db == nil {
+		db = m.db
+	}
+	// We want to calculate majority groups only when in pre-install states since it is needed for pre-install validations
+	var cluster common.Cluster
+	if err := db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
+		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
+	}
+	return m.setConnectivityMajorityGroupsForClusterInternal(&cluster, db)
 }
 
 func (m *Manager) deleteClusterFiles(ctx context.Context, c *common.Cluster, objectHandler s3wrapper.API, folder string) error {

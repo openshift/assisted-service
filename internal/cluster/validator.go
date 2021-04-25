@@ -50,24 +50,12 @@ type validation struct {
 	formatter validationStringFormatter
 }
 
-func (c *clusterPreprocessContext) loadCluster() error {
-	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(c.db, c.clusterId)
-	if err == nil {
-		c.cluster = cluster
-	}
-	return err
-}
-
-func newClusterValidationContext(clusterId strfmt.UUID, db *gorm.DB) (*clusterPreprocessContext, error) {
-	ret := &clusterPreprocessContext{
-		clusterId: clusterId,
+func newClusterValidationContext(c *common.Cluster, db *gorm.DB) *clusterPreprocessContext {
+	return &clusterPreprocessContext{
+		clusterId: *c.ID,
+		cluster:   c,
 		db:        db,
 	}
-	err := ret.loadCluster()
-	if err != nil {
-		return nil, err
-	}
-	return ret, nil
 }
 
 func isDhcpLeaseAllocationTimedOut(c *clusterPreprocessContext) bool {
