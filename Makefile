@@ -23,6 +23,11 @@ ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
+
+ifdef DEBUG
+    DEBUG_ARGS=-gcflags "all=-N -l"
+endif
+
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
 
 # RHCOS_VERSION should be consistent with BaseObjectName in pkg/s3wrapper/client.go
@@ -111,19 +116,35 @@ generate-%: ${BUILD_FOLDER}
 ##################
 
 .PHONY: build docs
-build: lint unit-test build-minimal
+
+validate: lint unit-test
+
+build: validate build-minimal
 
 build-all: build-in-docker
 
 build-in-docker:
 	skipper make build-image operator-bundle-build
 
-build-minimal: $(BUILD_FOLDER)
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service cmd/main.go
-	CGO_ENABLED=0 go build -o $(BUILD_FOLDER)/assisted-service-operator cmd/operator/main.go
+build-assisted-service:
+	CGO_ENABLED=0 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
-build-image: build
+build-assisted-service-operator:
+	CGO_ENABLED=0 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator cmd/operator/main.go
+
+build-minimal: $(BUILD_FOLDER)
+	$(MAKE) -j build-assisted-service build-assisted-service-operator
+
+update-minimal:
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+
+update-debug-minimal:
+	export DEBUG=True && $(MAKE) build-minimal
+	mkdir -p build/debug-image && cp Dockerfile.assisted-service-debug $(BUILD_FOLDER)/assisted-service $(BUILD_FOLDER)/assisted-service-operator build/debug-image
+	docker build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
+	rm -r build/debug-image
+
+build-image: validate update-minimal
 
 update-service: build-in-docker
 	docker push $(SERVICE)
@@ -131,10 +152,9 @@ update-service: build-in-docker
 update: build-all
 	docker push $(SERVICE)
 
-update-minimal:
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
-
-_update-local-image: build-minimal
+_update-local-image:
+	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
+	# Should be replaced after installing a local registry
 	./hack/update_local_image.sh
 
 define publish_image
