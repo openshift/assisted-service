@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -23,6 +24,7 @@ import (
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"gopkg.in/yaml.v2"
 )
 
@@ -30,6 +32,13 @@ var _ restapi.ManifestsAPI = &Manifests{}
 
 // ManifestFolder represents the manifests folder on s3 per cluster
 const ManifestFolder = "manifests"
+
+//go:generate mockgen -package manifests -destination mock_manifests_internal.go . ClusterManifestsInternals
+type ClusterManifestsInternals interface {
+	CreateClusterManifestInternal(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error)
+	ListClusterManifestsInternal(ctx context.Context, params operations.ListClusterManifestsParams) (models.ListManifests, error)
+	DeleteClusterManifestInternal(ctx context.Context, params operations.DeleteClusterManifestParams) error
+}
 
 // NewManifestsAPI returns manifests API
 func NewManifestsAPI(db *gorm.DB, log logrus.FieldLogger, objectHandler s3wrapper.API) *Manifests {
@@ -48,6 +57,14 @@ type Manifests struct {
 }
 
 func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
+	manifest, err := m.CreateClusterManifestInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return operations.NewCreateClusterManifestCreated().WithPayload(manifest)
+}
+
+func (m *Manifests) CreateClusterManifestInternal(ctx context.Context, params operations.CreateClusterManifestParams) (*models.Manifest, error) {
 	log := logutil.FromContext(ctx, m.log)
 	log.Infof("Creating manifest in cluster %s", params.ClusterID)
 
@@ -58,58 +75,66 @@ func (m *Manifests) CreateClusterManifest(ctx context.Context, params operations
 
 	cluster, apierr := cluster.GetCluster(ctx, m.log, m.db, params.ClusterID.String())
 	if apierr != nil {
-		return common.GenerateErrorResponder(apierr)
+		return nil, apierr
 	}
 
 	if strings.ContainsRune(*params.CreateManifestParams.FileName, os.PathSeparator) {
 		log.Errorf("Cluster manifest %s for cluster %s should not include a directory in its name.", *params.CreateManifestParams.FileName, cluster.ID)
-		return common.GenerateErrorResponderWithDefault(errors.New("Manifest should not include a directory in its name"), http.StatusBadRequest)
+		return nil, common.NewApiError(http.StatusBadRequest, errors.New("Manifest should not include a directory in its name"))
 	}
 	fileName := filepath.Join(*params.CreateManifestParams.Folder, *params.CreateManifestParams.FileName)
 	manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
 	if err != nil {
 		log.WithError(err).Errorf("Cluster manifest %s for cluster %s failed to base64 decode: [%s]",
 			fileName, cluster.ID, *params.CreateManifestParams.Content)
-		return common.GenerateErrorResponderWithDefault(errors.New("failed to base64-decode cluster manifest content"), http.StatusBadRequest)
+		return nil, common.NewApiError(http.StatusBadRequest, errors.New("failed to base64-decode cluster manifest content"))
 	}
 	extension := filepath.Ext(fileName)
 	if extension == ".yaml" || extension == ".yml" {
 		var s map[interface{}]interface{}
 		if yaml.Unmarshal(manifestContent, &s) != nil {
-			return common.GenerateErrorResponderWithDefault(errors.New("Manifest content has an invalid YAML format"), http.StatusBadRequest)
+			return nil, common.NewApiError(http.StatusBadRequest, errors.New("Manifest content has an invalid YAML format"))
 		}
 	} else if extension == ".json" {
 		if !json.Valid(manifestContent) {
-			return common.GenerateErrorResponderWithDefault(errors.New("Manifest content has an illegal JSON format"), http.StatusBadRequest)
+			return nil, common.NewApiError(http.StatusBadRequest, errors.New("Manifest content has an illegal JSON format"))
 		}
 	} else {
-		return common.GenerateErrorResponderWithDefault(errors.New("Unsupported manifest extension. Only json, yaml and yml extensions are supported"), http.StatusBadRequest)
+		return nil, common.NewApiError(http.StatusBadRequest, errors.New("Unsupported manifest extension. Only json, yaml and yml extensions are supported"))
 	}
 
 	objectName := GetManifestObjectName(*cluster.ID, fileName)
 	if err := m.objectHandler.Upload(ctx, manifestContent, objectName); err != nil {
 		log.WithError(err).Errorf("Failed to upload %s", objectName)
-		return common.GenerateErrorResponder(errors.Errorf("failed to upload %s to s3", objectName))
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("failed to upload %s", objectName))
 	}
 
 	log.Infof("Done creating manifest %s for cluster %s", fileName, cluster.ID)
 	manifest := models.Manifest{FileName: *params.CreateManifestParams.FileName, Folder: *params.CreateManifestParams.Folder}
-	return operations.NewCreateClusterManifestCreated().WithPayload(&manifest)
+	return &manifest, nil
 }
 
 func (m *Manifests) ListClusterManifests(ctx context.Context, params operations.ListClusterManifestsParams) middleware.Responder {
+	manifests, err := m.ListClusterManifestsInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return operations.NewListClusterManifestsOK().WithPayload(manifests)
+}
+
+func (m *Manifests) ListClusterManifestsInternal(ctx context.Context, params operations.ListClusterManifestsParams) (models.ListManifests, error) {
 	log := logutil.FromContext(ctx, m.log)
-	log.Infof("Listing manifests in cluster %s", params.ClusterID)
+	log.Debugf("Listing manifests in cluster %s", params.ClusterID)
 
 	cluster, apierr := cluster.GetCluster(ctx, m.log, m.db, params.ClusterID.String())
 	if apierr != nil {
-		return apierr
+		return nil, apierr
 	}
 
 	objectName := filepath.Join(cluster.ID.String(), ManifestFolder)
 	files, err := m.objectHandler.ListObjectsByPrefix(ctx, objectName)
 	if err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	manifests := models.ListManifests{}
@@ -118,20 +143,39 @@ func (m *Manifests) ListClusterManifests(ctx context.Context, params operations.
 		if len(parts) > 2 {
 			manifests = append(manifests, &models.Manifest{FileName: filepath.Join(parts[3:]...), Folder: parts[2]})
 		} else {
-			return common.GenerateErrorResponder(errors.Errorf("Cannot list file %s in cluster %s", file, cluster.ID))
+			return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Cannot list file %s in cluster %s", file, cluster.ID))
 		}
 	}
 
-	return operations.NewListClusterManifestsOK().WithPayload(manifests)
+	return manifests, nil
 }
 
 func (m *Manifests) DeleteClusterManifest(ctx context.Context, params operations.DeleteClusterManifestParams) middleware.Responder {
+	err := m.DeleteClusterManifestInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return operations.NewDeleteClusterManifestOK()
+}
+
+func (m *Manifests) DeleteClusterManifestInternal(ctx context.Context, params operations.DeleteClusterManifestParams) error {
 	log := logutil.FromContext(ctx, m.log)
 	log.Infof("Deleting manifest from cluster %s", params.ClusterID)
 
 	cluster, apierr := cluster.GetCluster(ctx, m.log, m.db, params.ClusterID.String())
 	if apierr != nil {
-		return common.GenerateErrorResponder(apierr)
+		return apierr
+	}
+
+	preInstallationStates := []string{
+		models.ClusterStatusPendingForInput,
+		models.ClusterStatusInsufficient,
+		models.ClusterStatusReady,
+	}
+	if !funk.ContainsString(preInstallationStates, swag.StringValue(cluster.Status)) {
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("cluster %s is not in pre-installation states, "+
+			"can't remove manifests after installation has been started",
+			cluster.ID))
 	}
 
 	if params.Folder == nil {
@@ -142,22 +186,22 @@ func (m *Manifests) DeleteClusterManifest(ctx context.Context, params operations
 	objectName := GetManifestObjectName(*cluster.ID, fileName)
 	exists, err := m.objectHandler.DoesObjectExist(ctx, objectName)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to delete cluster manifest %s from s3", objectName)
-		return common.GenerateErrorResponder(err)
+		log.WithError(err).Errorf("Failed to delete cluster manifest %s", objectName)
+		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	if !exists {
-		log.Infof("Cluster manifest %s doesn't exists in s3 for cluster %s", fileName, cluster.ID)
-		return operations.NewDeleteClusterManifestOK()
+		log.Infof("Cluster manifest %s doesn't exists for cluster %s", fileName, cluster.ID)
+		return nil
 	}
 
 	_, err = m.objectHandler.DeleteObject(ctx, objectName)
 	if err != nil {
-		return common.GenerateErrorResponder(errors.Errorf("failed to delete %s from s3", objectName))
+		return common.NewApiError(http.StatusInternalServerError, errors.Errorf("failed to delete %s from s3", objectName))
 	}
 
 	log.Infof("Done deleting cluster manifest %s for cluster %s", fileName, cluster.ID)
-	return operations.NewDeleteClusterManifestOK()
+	return nil
 }
 
 func (m *Manifests) DownloadClusterManifest(ctx context.Context, params operations.DownloadClusterManifestParams) middleware.Responder {
