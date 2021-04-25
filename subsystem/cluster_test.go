@@ -1538,8 +1538,7 @@ var _ = Describe("cluster install", func() {
 				creds, err := userBMClient.Installer.GetCredentials(ctx, &installer.GetCredentialsParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())
 				Expect(creds.GetPayload().Username).To(Equal(bminventory.DefaultUser))
-				Expect(creds.GetPayload().ConsoleURL).To(Equal(
-					fmt.Sprintf("%s.%s.%s", bminventory.ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)))
+				Expect(creds.GetPayload().ConsoleURL).To(Equal(common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain)))
 				Expect(len(creds.GetPayload().Password)).NotTo(Equal(0))
 			}
 		})

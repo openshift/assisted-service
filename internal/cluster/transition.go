@@ -27,10 +27,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-const (
-	consoleUrlPrefix = "https://console-openshift-console.apps"
-)
-
 var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
 
 type transitionHandler struct {
@@ -356,7 +352,7 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 	}
 	log := logutil.FromContext(params.ctx, th.log)
 	subscriptionID := sCluster.cluster.AmsSubscriptionID
-	consoleUrl := fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, sCluster.cluster.Name, sCluster.cluster.BaseDNSDomain)
+	consoleUrl := common.GetConsoleUrl(sCluster.cluster.Name, sCluster.cluster.BaseDNSDomain)
 	if err := params.ocmClient.AccountsMgmt.UpdateSubscriptionConsoleUrl(params.ctx, subscriptionID, consoleUrl); err != nil {
 		log.WithError(err).Error("Failed to updated console-url in OCM")
 		return err

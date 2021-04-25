@@ -3143,7 +3143,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				}
 				if t.requiresAMSUpdate {
 					subscriptionID := cluster.AmsSubscriptionID
-					consoleUrl := fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain)
+					consoleUrl := common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain)
 					mockAccountsMgmt.EXPECT().UpdateSubscriptionConsoleUrl(ctx, subscriptionID, consoleUrl)
 				}
 				Expect(cluster.ValidationsInfo).To(BeEmpty())
