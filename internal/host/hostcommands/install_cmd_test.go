@@ -511,20 +511,40 @@ var _ = Describe("construct host install arguments", func() {
 	})
 	It("ip=dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworkCidr = "2001:db8::/120"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
 	})
 	It("ip=dhcp added when machine CIDR is IPv4", func() {
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\"]"))
+	})
+	It("ip=dhcp6 added when there's no machine CIDR and bootstrap is IPv6", func() {
+		cluster.Hosts = make([]*models.Host, 1)
+		cluster.Hosts[0] = &models.Host{
+			Bootstrap: true,
+			Inventory: "{\"interfaces\":[{\"ipv4_addresses\":[\"2002:db8::a/64\"]}]}",
+		}
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
+	})
+	It("ip=dhcp added when there's no machine CIDR and bootstrap is IPv4", func() {
+		cluster.Hosts = make([]*models.Host, 1)
+		cluster.Hosts[0] = &models.Host{
+			Bootstrap: true,
+			Inventory: "{\"interfaces\":[{\"ipv4_addresses\":[\"192.186.10.12/24\"]}]}",
+		}
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\"]"))
 	})
 	It("ip=dhcp and copy-network added with static config", func() {
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\",\"--copy-network\"]"))
 	})
@@ -532,27 +552,27 @@ var _ = Describe("construct host install arguments", func() {
 		host.InstallerArgs = "[\"--copy-network\"]"
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal("[\"--copy-network\",\"--append-karg\",\"ip=dhcp\"]"))
 	})
 	It("ip=dhcp added when copy-network set by the user without static config", func() {
 		host.InstallerArgs = "[\"--copy-network\"]"
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal("[\"--copy-network\",\"--append-karg\",\"ip=dhcp\"]"))
 	})
 	It("existing args updated with ip=dhcp when machine CIDR is IPv4", func() {
 		cluster.MachineNetworkCidr = "2001:db8::/120"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
 	})
 	It("existing args updated with ip=dhcp6 when machine CIDR is IPv6", func() {
 		host.InstallerArgs = "[\"--append-karg\",\"rd.break=cmdline\"]"
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal("[\"--append-karg\",\"rd.break=cmdline\",\"--append-karg\",\"ip=dhcp\"]"))
 	})
@@ -560,7 +580,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := "[\"--append-karg\",\"ip=dhcp\"]"
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "2001:db8::/120"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -568,7 +588,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := "[\"--append-karg\",\"ip=dhcp6\"]"
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -576,7 +596,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := "[\"--append-karg\",\"ip=eth0:any\"]"
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -584,7 +604,7 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := "[\"--delete-karg\",\"ip=dhcp\"]"
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "2001:db8::/120"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
@@ -592,12 +612,12 @@ var _ = Describe("construct host install arguments", func() {
 		kargs := "[\"--delete-karg\",\"ip=dhcp6\"]"
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(kargs))
 	})
 	It("leave default ip if machine CIDR not known", func() {
-		args, err := constructHostInstallerArgs(cluster, host)
+		args, err := constructHostInstallerArgs(cluster, host, common.GetTestLog())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
 	})
