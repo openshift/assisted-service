@@ -141,28 +141,28 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, agent *aiv1beta1.Age
 
 func setConditionsUnknown(agent *aiv1beta1.Agent) {
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.InstalledCondition,
+		Type:    InstalledCondition,
 		Status:  corev1.ConditionUnknown,
-		Reason:  aiv1beta1.NotAvailableReason,
-		Message: aiv1beta1.NotAvailableMsg,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
 	})
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ConnectedCondition,
+		Type:    ConnectedCondition,
 		Status:  corev1.ConditionUnknown,
-		Reason:  aiv1beta1.NotAvailableReason,
-		Message: aiv1beta1.NotAvailableMsg,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
 	})
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ReadyForInstallationCondition,
+		Type:    ReadyForInstallationCondition,
 		Status:  corev1.ConditionUnknown,
-		Reason:  aiv1beta1.NotAvailableReason,
-		Message: aiv1beta1.NotAvailableMsg,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
 	})
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ValidatedCondition,
+		Type:    ValidatedCondition,
 		Status:  corev1.ConditionUnknown,
-		Reason:  aiv1beta1.NotAvailableReason,
-		Message: aiv1beta1.NotAvailableMsg,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
 	})
 }
 
@@ -175,20 +175,20 @@ func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
 	var msg string
 	if syncErr == nil {
 		condStatus = corev1.ConditionTrue
-		reason = aiv1beta1.SyncedOkReason
-		msg = aiv1beta1.SyncedOkMsg
+		reason = SyncedOkReason
+		msg = SyncedOkMsg
 	} else {
 		condStatus = corev1.ConditionFalse
 		if internal {
-			reason = aiv1beta1.BackendErrorReason
-			msg = aiv1beta1.BackendErrorMsg + " " + syncErr.Error()
+			reason = BackendErrorReason
+			msg = BackendErrorMsg + " " + syncErr.Error()
 		} else {
-			reason = aiv1beta1.InputErrorReason
-			msg = aiv1beta1.InputErrorMsg + " " + syncErr.Error()
+			reason = InputErrorReason
+			msg = InputErrorMsg + " " + syncErr.Error()
 		}
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.SpecSyncedCondition,
+		Type:    SpecSyncedCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,
@@ -242,30 +242,30 @@ func installed(agent *aiv1beta1.Agent, status, statusInfo string) {
 	switch status {
 	case models.HostStatusInstalled:
 		condStatus = corev1.ConditionTrue
-		reason = aiv1beta1.AgentInstalledReason
-		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentInstalledMsg, statusInfo)
+		reason = InstalledReason
+		msg = fmt.Sprintf("%s %s", InstalledMsg, statusInfo)
 	case models.HostStatusError:
 		condStatus = corev1.ConditionFalse
-		reason = aiv1beta1.AgentInstallationFailedReason
-		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentInstallationFailedMsg, statusInfo)
+		reason = InstallationFailedReason
+		msg = fmt.Sprintf("%s %s", InstallationFailedMsg, statusInfo)
 	case models.HostStatusInsufficient, models.HostStatusDisconnected, models.HostStatusDiscovering,
 		models.HostStatusPendingForInput, models.HostStatusKnown:
 		condStatus = corev1.ConditionFalse
-		reason = aiv1beta1.AgentInstallationNotStartedReason
-		msg = aiv1beta1.AgentInstallationNotStartedMsg
+		reason = InstallationNotStartedReason
+		msg = InstallationNotStartedMsg
 	case models.HostStatusPreparingForInstallation, models.HostStatusPreparingSuccessful,
 		models.HostStatusInstalling, models.HostStatusInstallingInProgress,
 		models.HostStatusInstallingPendingUserAction:
 		condStatus = corev1.ConditionFalse
-		reason = aiv1beta1.AgentInstallationInProgressReason
-		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentInstallationInProgressMsg, statusInfo)
+		reason = InstallationInProgressReason
+		msg = fmt.Sprintf("%s %s", InstallationInProgressMsg, statusInfo)
 	default:
 		condStatus = corev1.ConditionUnknown
-		reason = aiv1beta1.UnknownStatusReason
-		msg = fmt.Sprintf("%s %s", aiv1beta1.UnknownStatusMsg, status)
+		reason = UnknownStatusReason
+		msg = fmt.Sprintf("%s %s", UnknownStatusMsg, status)
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.InstalledCondition,
+		Type:    InstalledCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,
@@ -292,19 +292,19 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 	switch {
 	case models.HostStatusInsufficient == status:
 		condStatus = corev1.ConditionFalse
-		reason = aiv1beta1.AgentValidationsFailingReason
-		msg = fmt.Sprintf("%s %s", aiv1beta1.AgentValidationsFailingMsg, failedValidationInfo)
+		reason = ValidationsFailingReason
+		msg = fmt.Sprintf("%s %s", AgentValidationsFailingMsg, failedValidationInfo)
 	case h.ValidationsInfo == "":
 		condStatus = corev1.ConditionUnknown
-		reason = aiv1beta1.AgentValidationsUnknownReason
-		msg = aiv1beta1.AgentValidationsUnknownMsg
+		reason = ValidationsUnknownReason
+		msg = AgentValidationsUnknownMsg
 	default:
 		condStatus = corev1.ConditionTrue
-		reason = aiv1beta1.AgentValidationsPassingReason
-		msg = aiv1beta1.AgentValidationsPassingMsg
+		reason = ValidationsPassingReason
+		msg = AgentValidationsPassingMsg
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ValidatedCondition,
+		Type:    ValidatedCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,
@@ -318,15 +318,15 @@ func connected(agent *aiv1beta1.Agent, status string) {
 	switch status {
 	case models.HostStatusDisconnected:
 		condStatus = corev1.ConditionFalse
-		reason = aiv1beta1.AgentDisconnectedReason
-		msg = aiv1beta1.AgentDisonnectedMsg
+		reason = AgentDisconnectedReason
+		msg = AgentDisonnectedMsg
 	default:
 		condStatus = corev1.ConditionTrue
-		reason = aiv1beta1.AgentConnectedReason
-		msg = aiv1beta1.AgentConnectedMsg
+		reason = AgentConnectedReason
+		msg = AgentConnectedMsg
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ConnectedCondition,
+		Type:    ConnectedCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,
@@ -340,26 +340,26 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 	switch status {
 	case models.HostStatusKnown:
 		condStatus = corev1.ConditionTrue
-		reason = aiv1beta1.AgentReadyReason
-		msg = aiv1beta1.AgentReadyMsg
+		reason = AgentReadyReason
+		msg = AgentReadyMsg
 	case models.HostStatusInsufficient, models.HostStatusDisconnected,
 		models.HostStatusDiscovering, models.HostStatusPendingForInput:
 		condStatus = corev1.ConditionFalse
-		reason = aiv1beta1.AgentNotReadyReason
-		msg = aiv1beta1.AgentNotReadyMsg
+		reason = AgentNotReadyReason
+		msg = AgentNotReadyMsg
 	case models.HostStatusPreparingForInstallation, models.HostStatusPreparingSuccessful, models.HostStatusInstalled,
 		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
 		models.HostStatusError:
 		condStatus = corev1.ConditionFalse
-		reason = aiv1beta1.AgentAlreadyInstallingReason
-		msg = aiv1beta1.AgentAlreadyInstallingMsg
+		reason = AgentAlreadyInstallingReason
+		msg = AgentAlreadyInstallingMsg
 	default:
 		condStatus = corev1.ConditionUnknown
-		reason = aiv1beta1.UnknownStatusReason
-		msg = fmt.Sprintf("%s %s", aiv1beta1.UnknownStatusMsg, status)
+		reason = UnknownStatusReason
+		msg = fmt.Sprintf("%s %s", UnknownStatusMsg, status)
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ReadyForInstallationCondition,
+		Type:    ReadyForInstallationCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,

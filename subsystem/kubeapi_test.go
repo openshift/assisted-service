@@ -220,17 +220,6 @@ func configureLocalAgentClient(clusterID string) {
 	agentBMClient = client.New(clientcfg(auth.AgentAuthHeaderWriter(tok)))
 }
 
-// FindStatusClusterDeploymentCondition is a port of conditionsv1.FindStatusCondition
-func FindStatusClusterDeploymentCondition(conditions []hivev1.ClusterDeploymentCondition,
-	conditionType hivev1.ClusterDeploymentConditionType) *hivev1.ClusterDeploymentCondition {
-	for i := range conditions {
-		if conditions[i].Type == conditionType {
-			return &conditions[i]
-		}
-	}
-	return nil
-}
-
 func checkAgentCondition(ctx context.Context, hostId string, conditionType conditionsv1.ConditionType, reason string) {
 	hostkey := types.NamespacedName{
 		Namespace: Options.Namespace,
@@ -239,6 +228,16 @@ func checkAgentCondition(ctx context.Context, hostId string, conditionType condi
 	Eventually(func() string {
 		return conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, hostkey).Status.Conditions, conditionType).Reason
 	}, "30s", "10s").Should(Equal(reason))
+}
+
+func checkClusterCondition(ctx context.Context, key types.NamespacedName, conditionType hivev1.ClusterDeploymentConditionType, reason string) {
+	Eventually(func() string {
+		condition := controllers.FindStatusCondition(getClusterDeploymentCRD(ctx, kubeClient, key).Status.Conditions, conditionType)
+		if condition != nil {
+			return condition.Reason
+		}
+		return ""
+	}, "2m", "2s").Should(Equal(reason))
 }
 
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
@@ -398,13 +397,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				return kubeClient.Update(ctx, agent)
 			}, "30s", "10s").Should(BeNil())
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, key).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "2m", "2s").Should(Equal(models.ClusterStatusInstalling))
+		checkClusterCondition(ctx, key, controllers.ClusterReadyForInstallationCondition, controllers.ClusterAlreadyInstallingReason)
 	})
 
 	It("deploy clusterDeployment with agent and update agent", func() {
@@ -441,7 +434,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return h.InstallationDiskID
 		}, "2m", "10s").Should(Equal(sdb.ID))
 		Eventually(func() bool {
-			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
+			return conditionsv1.IsStatusConditionTrue(getAgentCRD(ctx, kubeClient, key).Status.Conditions, controllers.SpecSyncedCondition)
 		}, "2m", "10s").Should(Equal(true))
 		Eventually(func() string {
 			return getAgentCRD(ctx, kubeClient, key).Status.Inventory.SystemVendor.Manufacturer
@@ -543,7 +536,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, controllers.SpecSyncedCondition)
 			if condition != nil {
 				return strings.Contains(condition.Message, "error parsing ignition: config is not valid")
 			}
@@ -646,7 +639,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, controllers.SpecSyncedCondition)
 			if condition != nil {
 				return strings.Contains(condition.Message, "Fail to unmarshal installer args")
 			}
@@ -665,7 +658,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		Eventually(func() bool {
-			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, v1beta1.SpecSyncedCondition)
+			condition := conditionsv1.FindStatusCondition(getAgentCRD(ctx, kubeClient, key).Status.Conditions, controllers.SpecSyncedCondition)
 			if condition != nil {
 				return strings.Contains(condition.Message, "found unexpected flag --wrong-param")
 			}
@@ -764,13 +757,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.NoProxy).Should(Equal(""))
@@ -820,13 +807,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
@@ -861,13 +843,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
@@ -901,13 +877,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
@@ -931,29 +901,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
 		installConfigOverrides := `{"controlPlane": "malformed json": "Enabled"}}`
 		addAnnotationToClusterDeployment(ctx, kubeClient, clusterKubeName, controllers.InstallConfigOverrides, installConfigOverrides)
-
-		Eventually(func() string {
-			// currently all conditions have the same type, so filter by status = False
-			conditions := getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions
-			for i := range conditions {
-				if conditions[i].Status == "False" {
-					return conditions[i].Message
-				}
-			}
-			return ""
-		}, "30s", "2s").Should(ContainSubstring("failed to update clusterDeployment"))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterSpecSyncedCondition, controllers.InputErrorReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 	})
@@ -986,13 +940,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
@@ -1033,13 +981,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInsufficient))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
@@ -1054,7 +996,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				return condition.Message
 			}
 			return ""
-		}, "2m", "2s").Should(Equal(fmt.Sprintf("%s: internal error", v1beta1.ImageStateFailedToCreate)))
+		}, "2m", "1s").Should(Equal(fmt.Sprintf("%s: internal error", v1beta1.ImageStateFailedToCreate)))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.ImageGenerated).Should(Equal(false))
 	})
@@ -1083,13 +1025,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		By("Wait for installing")
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstallationInProgressReason)
 
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
@@ -1101,15 +1037,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
-		By("Wait for finalizing")
 		updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
@@ -1163,11 +1091,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
-			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsFailingReason)
+			checkAgentCondition(ctx, host.ID.String(), controllers.ValidatedCondition, controllers.ValidationsFailingReason)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
 		for _, host := range hosts {
-			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsPassingReason)
+			checkAgentCondition(ctx, host.ID.String(), controllers.ValidatedCondition, controllers.ValidationsPassingReason)
 		}
 
 		By("Approve Agents")
@@ -1184,13 +1112,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		By("Wait for installing")
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
@@ -1202,21 +1124,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "1m", "2s").Should(BeTrue())
 
 		for _, host := range hosts {
-			checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.AgentInstallationInProgressReason)
+			checkAgentCondition(ctx, host.ID.String(), controllers.InstalledCondition, controllers.InstallationInProgressReason)
 		}
 
-		By("Wait for finalizing")
 		for _, host := range hosts {
 			updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
 		}
-
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
@@ -1230,13 +1143,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verify Day 2 Cluster")
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "2m", "2s").Should(Equal(models.ClusterStatusAddingHosts))
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstalledReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
@@ -1295,13 +1202,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		By("Wait for installing")
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusInstalling))
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
@@ -1312,18 +1213,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
-		By("Wait for finalizing")
 		for _, host := range hosts {
 			updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
 		}
-
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusFinalizing))
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
@@ -1337,13 +1229,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verify Day 2 Cluster")
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "2m", "2s").Should(Equal(models.ClusterStatusAddingHosts))
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstalledReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
@@ -1361,11 +1247,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
 
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.AgentInstallationInProgressReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.ReadyForInstallationCondition, v1beta1.AgentAlreadyInstallingReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.SyncedOkReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.ConnectedCondition, v1beta1.AgentConnectedReason)
-		checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.AgentValidationsPassingReason)
+		checkAgentCondition(ctx, host.ID.String(), controllers.InstalledCondition, controllers.InstallationInProgressReason)
+		checkAgentCondition(ctx, host.ID.String(), controllers.ReadyForInstallationCondition, controllers.AgentAlreadyInstallingReason)
+		checkAgentCondition(ctx, host.ID.String(), controllers.SpecSyncedCondition, controllers.SyncedOkReason)
+		checkAgentCondition(ctx, host.ID.String(), controllers.ConnectedCondition, controllers.AgentConnectedReason)
+		checkAgentCondition(ctx, host.ID.String(), controllers.ValidatedCondition, controllers.ValidationsPassingReason)
 	})
 
 	It("deploy clusterDeployment with invalid machine cidr", func() {
@@ -1377,13 +1263,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusPendingForInput))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 	})
 
 	It("deploy clusterDeployment without machine cidr", func() {
@@ -1395,12 +1275,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		Eventually(func() string {
-			condition := FindStatusClusterDeploymentCondition(getClusterDeploymentCRD(ctx, kubeClient, clusterKubeName).Status.Conditions, hivev1.UnreachableCondition)
-			if condition != nil {
-				return condition.Message
-			}
-			return ""
-		}, "1m", "2s").Should(Equal(models.ClusterStatusPendingForInput))
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
 	})
 })

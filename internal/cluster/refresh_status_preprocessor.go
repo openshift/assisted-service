@@ -20,7 +20,7 @@ type ValidationResult struct {
 	Message string           `json:"message"`
 }
 
-type validationsStatus map[string][]ValidationResult
+type ValidationsStatus map[string][]ValidationResult
 
 type stringer interface {
 	String() string

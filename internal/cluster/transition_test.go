@@ -489,7 +489,7 @@ type validationsChecker struct {
 }
 
 func (j *validationsChecker) check(validationsStr string) {
-	validationRes := make(validationsStatus)
+	validationRes := make(ValidationsStatus)
 	Expect(json.Unmarshal([]byte(validationsStr), &validationRes)).ToNot(HaveOccurred())
 next:
 	for id, checkedResult := range j.expected {
