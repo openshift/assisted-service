@@ -14,11 +14,19 @@ In the ClusterDeployment, the user can specify requirements like Networking, num
 
 The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
 
+The ClusterDeployment reflects the Cluster/Installation status through Conditions.
+
+More details on conditions is available [here](kube-api-conditions.md)
+
 ### [InfraEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/infraenv_types.go)
 The InfraEnv CRD represents the configuration needed to create the discovery ISO.
 The user can specify proxy settings, ignition overrides and specify NMState labels.
 
 When the ISO is ready, an URL will be available in the CR.
+
+The InfraEnv reflects the image creation status through Conditions.
+
+More details on conditions is available [here](kube-api-conditions.md)
 
 
 ### [NMStateConfig](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/nmstate_config_types.go)
@@ -50,12 +58,7 @@ $ kubectl -n assisted-installer patch agents.agent-install.openshift.io 120af504
 
 The Agent reflects the Host status through Conditions.
 
-The available conditions are:
-- SpecSynced
-- Connected
-- ReadyForInstallation
-- Validated
-- Installed
+More details on conditions is available [here](kube-api-conditions.md)
 
 Here an example how to print Agent conditions:
 
