@@ -329,7 +329,7 @@ var _ = Describe("Metrics tests", func() {
 				},
 			}).Error
 			Expect(err).NotTo(HaveOccurred())
-			waitForHostValidationStatus(clusterID, *h.ID, "failure", models.HostValidationIDConnected)
+			waitForHostValidationStatus(clusterID, *h.ID, "success", models.HostValidationIDConnected)
 
 			// check no generated events
 			assertNoValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDConnected)

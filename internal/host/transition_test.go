@@ -1377,6 +1377,54 @@ var _ = Describe("Refresh Host", func() {
 				Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))
 			})
 		}
+
+		postRebootingStages := []models.HostStage{
+			models.HostStageRebooting,
+			models.HostStageWaitingForIgnition,
+			models.HostStageConfiguring,
+			models.HostStageJoined,
+			models.HostStageDone,
+		}
+
+		for j := range postRebootingStages {
+			stage := postRebootingStages[j]
+			name := fmt.Sprintf("disconnection while host  %s", stage)
+			It(name, func() {
+				srcState = models.HostStatusInstalled
+				host = hostutil.GenerateTestHost(hostId, clusterId, srcState)
+				host.Inventory = hostutil.GenerateMasterInventory()
+				host.Role = models.HostRoleWorker
+				host.CheckedInAt = strfmt.DateTime(time.Now().Add(-MaxHostDisconnectionTime - time.Minute))
+
+				progress := models.HostProgressInfo{
+					CurrentStage:   models.HostStageDone,
+					StageStartedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+					StageUpdatedAt: strfmt.DateTime(time.Now().Add(-90 * time.Minute)),
+				}
+
+				host.Progress = &progress
+
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+				err := hapi.RefreshStatus(ctx, &host, db)
+
+				Expect(err).ToNot(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
+
+				validationRes := make(ValidationsStatus)
+				Expect(json.Unmarshal([]byte(resultHost.ValidationsInfo), &validationRes)).ToNot(HaveOccurred())
+				for vCategory, vRes := range validationRes {
+					fmt.Println(vCategory)
+					for _, v := range vRes {
+						Expect(v.ID).ToNot(Equal(IsConnected))
+						Expect(v.ID).ToNot(Equal(IsNTPSynced))
+					}
+				}
+			})
+		}
 	})
 
 	Context("host disconnected & preparing for installation", func() {
@@ -1412,7 +1460,6 @@ var _ = Describe("Refresh Host", func() {
 			Expect(err).ToNot(HaveOccurred())
 			var resultHost models.Host
 			Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hostId.String(), clusterId.String()).Error).ToNot(HaveOccurred())
-
 			Expect(swag.StringValue(resultHost.Status)).To(Equal(models.HostStatusDisconnected))
 			info := statusInfoConnectionTimedOut
 			Expect(swag.StringValue(resultHost.StatusInfo)).To(MatchRegexp(info))

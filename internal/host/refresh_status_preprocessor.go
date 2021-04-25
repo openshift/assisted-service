@@ -58,6 +58,12 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 		st := v.condition(c)
 		stateMachineInput[v.id.String()] = st == ValidationSuccess
 		message := v.formatter(c, st)
+
+		// skip the validations per states
+		if funk.Contains(v.skippedStates, c.host.Progress.CurrentStage) {
+			continue
+		}
+
 		category, err := v.id.category()
 		if err != nil {
 			logrus.WithError(err).Warn("id.category()")
@@ -111,9 +117,10 @@ func sortByValidationResultID(validationResults []ValidationResult) {
 func newValidations(v *validator, disabledHostValidations []string) []validation {
 	baseValidations := []validation{
 		{
-			id:        IsConnected,
-			condition: v.isConnected,
-			formatter: v.printConnected,
+			id:            IsConnected,
+			condition:     v.isConnected,
+			formatter:     v.printConnected,
+			skippedStates: manualRebootStages,
 		},
 		{
 			id:        HasInventory,
@@ -181,9 +188,10 @@ func newValidations(v *validator, disabledHostValidations []string) []validation
 			formatter: v.printValidPlatform,
 		},
 		{
-			id:        IsNTPSynced,
-			condition: v.isNTPSynced,
-			formatter: v.printNTPSynced,
+			id:            IsNTPSynced,
+			condition:     v.isNTPSynced,
+			formatter:     v.printNTPSynced,
+			skippedStates: manualRebootStages,
 		},
 		{
 			id:        AreContainerImagesAvailable,
