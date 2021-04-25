@@ -23,6 +23,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/isoeditor"
 	"github.com/openshift/assisted-service/internal/versions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -403,7 +404,7 @@ func (c *S3Client) GeneratePresignedDownloadURL(ctx context.Context, objectName 
 func (c S3Client) transformErrorIfNeeded(err error, objectName string) (bool, error) {
 	if aerr, ok := err.(awserr.Error); ok {
 		if aerr.Code() == s3.ErrCodeNoSuchKey || aerr.Code() == "NotFound" {
-			return true, NotFound(objectName)
+			return true, common.NotFound(objectName)
 		}
 	}
 	return false, err
