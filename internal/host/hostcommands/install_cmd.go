@@ -281,7 +281,7 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []
 		return installerArgs, nil
 	}
 
-	machineNetworkCIDR := network.GetMachineCidrForUserManagedNetwork(cluster, log)
+	machineNetworkCIDR := network.GetMachineCidrForUserManagedNetwork(cluster, log, network.Any)
 	if machineNetworkCIDR != "" {
 		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
 		log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, ipv6)

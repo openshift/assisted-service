@@ -218,7 +218,7 @@ func GetMachineCIDRHosts(log logrus.FieldLogger, cluster *common.Cluster) ([]*mo
 }
 
 // GetMachineCidrForUserManagedNetwork used to get machine cidr in case of none platform and sno
-func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger) string {
+func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.FieldLogger, family AddressFamily) string {
 	if cluster.MachineNetworkCidr != "" {
 		return cluster.MachineNetworkCidr
 	}
@@ -231,13 +231,15 @@ func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.Fie
 
 	networks := GetClusterNetworks([]*models.Host{bootstrap}, log)
 	if len(networks) > 0 {
-		// if there is ipv4 network, return it or return the first one
+		// in case of Any, prefer IPv4
 		for _, network := range networks {
-			if IsIPV4CIDR(network) {
+			if family != IPv6 && IsIPV4CIDR(network) {
 				return network
 			}
 		}
-		return networks[0]
+		if family != IPv4 {
+			return networks[0]
+		}
 	}
 	return ""
 }
@@ -247,7 +249,11 @@ func GetIpForSingleNodeInstallation(cluster *common.Cluster, log logrus.FieldLog
 	if bootstrap == nil {
 		return "", errors.Errorf("no bootstrap host were found in cluster")
 	}
-	cidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+	cidr := GetMachineCidrForUserManagedNetwork(cluster, log, Any)
+	if cidr == "" {
+		return "", errors.Errorf("cannot find machine network for the requested IP family")
+	}
+
 	hostIp, err := getMachineCIDRObj(bootstrap, cidr, "ip")
 	if hostIp == "" || err != nil {
 		msg := "failed to get ip for single node installation"

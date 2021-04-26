@@ -5,6 +5,14 @@ import (
 	"strings"
 )
 
+type AddressFamily int
+
+const (
+	IPv4 AddressFamily = iota
+	IPv6
+	Any
+)
+
 func IsIPv4Addr(ip string) bool {
 	return strings.Contains(ip, ".") && net.ParseIP(ip) != nil
 }

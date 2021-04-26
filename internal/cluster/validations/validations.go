@@ -377,17 +377,29 @@ func ValidateVipDHCPAllocationWithIPv6(vipDhcpAllocation bool, machineNetworkCID
 }
 
 //ValidateIPAddressFamily returns an error if the argument contains an IP address
-// or CIDR of IPv6 family, and IPv6 support is turned off
+// or CIDR of IPv6 family when IPv6 support is turned off, or if there is a prohibited
+// mix of IPv4 and IPv6 addresses
 func ValidateIPAddressFamily(ipV6Supported bool, elements ...*string) error {
-	if ipV6Supported {
-		return nil
-	}
+
+	addresses := make([]string, 0)
+	ipV4 := false
+	ipV6 := false
 	for _, e := range elements {
 		if e == nil {
 			continue
 		}
 		if strings.Contains(*e, ":") {
-			return errors.Errorf("IPv6 is not supported in this setup")
+			ipV6 = true
+		} else {
+			ipV4 = true
+		}
+		if !ipV6Supported && ipV6 {
+			return errors.Errorf("IPv6 is not supported in this setup: %s", *e)
+		}
+
+		addresses = append(addresses, *e)
+		if ipV4 && ipV6 {
+			return errors.Errorf("IPv6/IPv4 address families cannot be mixed: %s", strings.Join(addresses, ", "))
 		}
 	}
 	return nil

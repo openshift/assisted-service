@@ -339,7 +339,7 @@ var _ = Describe("inventory", func() {
 			cluster := createCluster("", "",
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
-			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log, Any)
 			Expect(machineCidr).To(BeEmpty())
 		})
 
@@ -349,7 +349,7 @@ var _ = Describe("inventory", func() {
 				createInventory(addIPv6Addresses(createInterface("10.2.3.20/24"), "fe80:5054::4/120")))
 			cluster.Hosts[0].Bootstrap = true
 
-			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log, Any)
 			Expect(true).To(Equal(machineCidr == "1.2.3.0/28" || machineCidr == "2001:db8::/120"))
 		})
 
@@ -358,7 +358,7 @@ var _ = Describe("inventory", func() {
 				createInventory(createInterface("3.3.3.3/16"), createInterface("8.8.8.8/8", "1.2.5.7/23")),
 				createInventory(createInterface("127.0.0.1/17")))
 			cluster.MachineNetworkCidr = "1.2.5.0/23"
-			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log)
+			machineCidr := GetMachineCidrForUserManagedNetwork(cluster, log, Any)
 			Expect(machineCidr).To(Equal(cluster.MachineNetworkCidr))
 		})
 

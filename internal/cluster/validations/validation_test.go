@@ -649,10 +649,15 @@ var _ = Describe("IPv6 support", func() {
 			element:       []*string{swag.String("10.56.20.70"), swag.String("10.56.20.0/24")},
 			valid:         true,
 		},
+		{
+			ipV6Supported: true,
+			element:       []*string{swag.String("10.56.20.70"), swag.String("1001:db8::1")},
+			valid:         false,
+		},
 	}
 	for _, t := range tests {
 		t := t
-		It(fmt.Sprintf("IPv6 support validation. Supported: %t, IP addresses/CIDRs: %v", t.ipV6Supported, t.element), func() {
+		It(fmt.Sprintf("IP address family validation. IPv6 supported: %t, IP addresses/CIDRs: %v", t.ipV6Supported, t.element), func() {
 			if t.valid {
 				Expect(ValidateIPAddressFamily(t.ipV6Supported, t.element...)).ToNot(HaveOccurred())
 			} else {

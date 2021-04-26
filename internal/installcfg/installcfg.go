@@ -355,7 +355,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 			None:      &platformNone{},
 		}
 
-		bootstrapCidr := network.GetMachineCidrForUserManagedNetwork(cluster, i.log)
+		bootstrapCidr := network.GetMachineCidrForUserManagedNetwork(cluster, i.log, network.Any)
 		if bootstrapCidr != "" {
 			i.log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
 			cfg.Networking.MachineNetwork = []struct {
