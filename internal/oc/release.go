@@ -126,7 +126,6 @@ func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, release
 	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
 	image, err := r.execute(log, pullSecret, cmd)
 	if err != nil {
-		log.WithError(err).Errorf("error running \"oc adm release info\" for release %s", releaseImage)
 		return "", err
 	}
 	return image, nil
@@ -136,7 +135,6 @@ func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, release
 	cmd := fmt.Sprintf(templateGetVersion, insecure, releaseImage)
 	version, err := r.execute(log, pullSecret, cmd)
 	if err != nil {
-		log.WithError(err).Errorf("error running \"oc adm release info\" for release %s", releaseImage)
 		return "", err
 	}
 	return version, nil
@@ -180,13 +178,11 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	cmd := fmt.Sprintf(templateExtract, workdir, insecure, releaseImage)
 	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, r.execute, log, pullSecret, cmd)
 	if err != nil {
-		log.WithError(err).Errorf("error running \"oc adm release extract\" for release %s", releaseImage)
 		return "", err
 	}
-
 	// set path
 	path := filepath.Join(workdir, "openshift-baremetal-install")
-
+	log.Info("Successfully extracted openshift-baremetal-install binary from the release to: $s", path)
 	return path, nil
 }
 
@@ -214,6 +210,8 @@ func (r *release) execute(log logrus.FieldLogger, pullSecret string, command str
 	if exitCode == 0 {
 		return strings.TrimSpace(stdout), nil
 	} else {
-		return "", fmt.Errorf("command %s exited with non-zero exit code %d: %s\n%s", command, exitCode, stdout, stderr)
+		err = fmt.Errorf("command %s exited with non-zero exit code %d: %s\n%s", command, exitCode, stdout, stderr)
+		log.WithError(err).Errorf("error running \"%s\"", command)
+		return "", err
 	}
 }
