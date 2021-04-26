@@ -234,7 +234,7 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *models.Inventory, cluster *common.Cluster, host *models.Host) error {
 	for _, disk := range inventory.Disks {
 		if !hardware.DiskEligibilityInitialized(disk) {
-			// for backwards compatibility, pretend that the agent has decided that this disk is reasons
+			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
 			disk.InstallationEligibility.Eligible = true
 			disk.InstallationEligibility.NotEligibleReasons = make([]string, 0)
 		}
