@@ -1034,6 +1034,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() bool {
 			return getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.Installed
 		}, "1m", "2s").Should(BeTrue())
+		Expect(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.APIURL).Should(Equal("https://api.test-cluster-sno.hive.example.com:6443"))
+		Expect(getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Status.WebConsoleURL).Should(Equal("https://console-openshift-console.apps.test-cluster-sno.hive.example.com"))
 		passwordSecretRef := getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.ClusterMetadata.AdminPasswordSecretRef
 		Expect(passwordSecretRef).NotTo(BeNil())
 		passwordkey := types.NamespacedName{

@@ -58,6 +58,7 @@ func newClusterDeployment(name, namespace string, spec hivev1.ClusterDeploymentS
 func getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.ClusterDeploymentSpec {
 	return hivev1.ClusterDeploymentSpec{
 		ClusterName: clusterName,
+		BaseDomain:  "hive.example.com",
 		Provisioning: &hivev1.Provisioning{
 			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
 			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
@@ -90,6 +91,7 @@ func getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName string) hive
 
 func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.ClusterDeploymentSpec {
 	return hivev1.ClusterDeploymentSpec{
+		BaseDomain:  "hive.example.com",
 		ClusterName: clusterName,
 		Provisioning: &hivev1.Provisioning{
 			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
@@ -501,7 +503,6 @@ var _ = Describe("cluster reconcile", func() {
 			cluster = getTestCluster()
 			Expect(cluster.Spec.Installed).To(BeTrue())
 			Expect(cluster.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
-			Expect(cluster.Spec.ClusterMetadata.InfraID).To(Equal(backEndCluster.ID.String()))
 			secretAdmin := getSecret(cluster.Namespace, cluster.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
 			Expect(string(secretAdmin.Data["password"])).To(Equal(password))
 			Expect(string(secretAdmin.Data["username"])).To(Equal(username))
@@ -528,6 +529,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents = 0
 			cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents = 1
+			cluster.Spec.BaseDomain = "hive.example.com"
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
@@ -542,7 +544,8 @@ var _ = Describe("cluster reconcile", func() {
 
 			Expect(cluster.Spec.Installed).To(BeTrue())
 			Expect(cluster.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
-			Expect(cluster.Spec.ClusterMetadata.InfraID).To(Equal(backEndCluster.ID.String()))
+			Expect(cluster.Status.WebConsoleURL).To(Equal("https://console-openshift-console.apps.test-cluster.hive.example.com"))
+			Expect(cluster.Status.APIURL).To(Equal("https://api.test-cluster.hive.example.com:6443"))
 			secretAdmin := getSecret(cluster.Namespace, cluster.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
 			Expect(string(secretAdmin.Data["password"])).To(Equal(password))
 			Expect(string(secretAdmin.Data["username"])).To(Equal(username))

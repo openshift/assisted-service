@@ -70,7 +70,6 @@ import (
 )
 
 const DefaultUser = "kubeadmin"
-const ConsoleUrlPrefix = "https://console-openshift-console.apps"
 
 // 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
 const ContainerAlreadyRunningExitCode = 125
@@ -3445,7 +3444,7 @@ func (b *bareMetalInventory) GetCredentialsInternal(ctx context.Context, params 
 	return &models.Credentials{
 		Username:   DefaultUser,
 		Password:   string(password),
-		ConsoleURL: fmt.Sprintf("%s.%s.%s", ConsoleUrlPrefix, cluster.Name, cluster.BaseDNSDomain),
+		ConsoleURL: common.GetConsoleUrl(cluster.Name, cluster.BaseDNSDomain),
 	}, nil
 }
 

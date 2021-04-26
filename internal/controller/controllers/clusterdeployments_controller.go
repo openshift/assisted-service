@@ -208,7 +208,6 @@ func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context
 	cluster.Spec.Installed = true
 	cluster.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
 		ClusterID: c.OpenshiftClusterID.String(),
-		InfraID:   c.ID.String(),
 		AdminPasswordSecretRef: corev1.LocalObjectReference{
 			Name: s.Name,
 		},
@@ -583,6 +582,12 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 	} else {
 		setClusterConditionsUnknown(cluster)
 	}
+
+	if cluster.Spec.Installed {
+		cluster.Status.APIURL = fmt.Sprintf("https://api.%s.%s:6443", cluster.Spec.ClusterName, cluster.Spec.BaseDomain)
+		cluster.Status.WebConsoleURL = common.GetConsoleUrl(cluster.Spec.ClusterName, cluster.Spec.BaseDomain)
+	}
+
 	if updateErr := r.Status().Update(ctx, cluster); updateErr != nil {
 		r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
 		return ctrl.Result{Requeue: true}, nil

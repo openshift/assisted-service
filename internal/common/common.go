@@ -1,6 +1,8 @@
 package common
 
 import (
+	"fmt"
+
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
 )
@@ -13,6 +15,8 @@ const AllowedNumberOfWorkersInNoneHaMode = 0
 const IllegalWorkerHostsCount = 1
 
 const HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
+
+const consoleUrlPrefix = "https://console-openshift-console.apps"
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
 // after reboot.  This will cause the DHCP server to provide the same IP address after reboot.
@@ -69,4 +73,8 @@ func GetBootstrapHost(cluster *Cluster) *models.Host {
 // IsSingleNodeCluster if this cluster is single-node or not
 func IsSingleNodeCluster(cluster *Cluster) bool {
 	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
+}
+
+func GetConsoleUrl(clusterName, baseDomain string) string {
+	return fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, clusterName, baseDomain)
 }
