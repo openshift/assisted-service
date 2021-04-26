@@ -46,7 +46,7 @@ require (
 	github.com/openshift/api v3.9.1-0.20191111211345-a27ff30ebf09+incompatible
 	github.com/openshift/client-go v0.0.0-20201020074620-f8fd44879f7c
 	github.com/openshift/custom-resource-status v1.1.0
-	github.com/openshift/hive/apis v0.0.0-20210415080537-ea6f0a2dd76c
+	github.com/openshift/hive/apis v0.0.0-20210426191512-e906999ec6ed
 	github.com/openshift/machine-api-operator v0.2.1-0.20201002104344-6abfb5440597
 	github.com/ory/dockertest/v3 v3.6.3
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -84,8 +84,10 @@ require (
 
 replace (
 	github.com/metal3-io/baremetal-operator => github.com/openshift/baremetal-operator v0.0.0-20210409032903-31b989a197eb // Use OpenShift fork
+	github.com/openshift/hive/apis => github.com/dgoodwin/hive/apis v0.0.0-20210426140401-97292266a297
 	k8s.io/api => k8s.io/api v0.20.0
 	k8s.io/client-go => k8s.io/client-go v0.20.0
 	sigs.k8s.io/cluster-api-provider-aws => github.com/openshift/cluster-api-provider-aws v0.2.1-0.20201022175424-d30c7a274820
 	sigs.k8s.io/cluster-api-provider-azure => github.com/openshift/cluster-api-provider-azure v0.1.0-alpha.3.0.20201016155852-4090a6970205
+
 )

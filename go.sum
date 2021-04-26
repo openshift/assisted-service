@@ -321,6 +321,10 @@ github.com/denis-tingajkin/go-header v0.3.1/go.mod h1:sq/2IxMhaZX+RRcgHfCRx/m0M5
 github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
 github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd h1:83Wprp6ROGeiHFAP8WJdI2RoxALQYgdllERc3N5N2DM=
 github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd/go.mod h1:xbL0rPBG9cCiLr28tMa8zpbdarY27NDyej4t/EjAShU=
+github.com/dgoodwin/hive/apis v0.0.0-20210426122437-fb669912d03a h1:48+s+2vQpHUPink/i3ix7V0Yw/gDCwTfTAfqPdk8gco=
+github.com/dgoodwin/hive/apis v0.0.0-20210426122437-fb669912d03a/go.mod h1:Ujw9ImzSYvo9VlUX6Gjy7zPFP7xYUAU50tdf1wPpN6c=
+github.com/dgoodwin/hive/apis v0.0.0-20210426140401-97292266a297 h1:sNV683xs4A3DBQRdInwevaO6VUR5debstXnhQAcuEBs=
+github.com/dgoodwin/hive/apis v0.0.0-20210426140401-97292266a297/go.mod h1:Ujw9ImzSYvo9VlUX6Gjy7zPFP7xYUAU50tdf1wPpN6c=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954 h1:RMLoZVzv4GliuWafOuPuQDKSm1SJph7uCRnnS61JAn4=
