@@ -53,6 +53,20 @@ func (mr *MockInstallerInternalsMockRecorder) DeregisterClusterInternal(arg0, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterClusterInternal), arg0, arg1)
 }
 
+// DeregisterHostInternal mocks base method
+func (m *MockInstallerInternals) DeregisterHostInternal(arg0 context.Context, arg1 installer.DeregisterHostParams) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeregisterHostInternal", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeregisterHostInternal indicates an expected call of DeregisterHostInternal
+func (mr *MockInstallerInternalsMockRecorder) DeregisterHostInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterHostInternal", reflect.TypeOf((*MockInstallerInternals)(nil).DeregisterHostInternal), arg0, arg1)
+}
+
 // DownloadClusterKubeconfigInternal mocks base method
 func (m *MockInstallerInternals) DownloadClusterKubeconfigInternal(arg0 context.Context, arg1 installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
@@ -142,6 +156,21 @@ func (m *MockInstallerInternals) GetCredentialsInternal(arg0 context.Context, ar
 func (mr *MockInstallerInternalsMockRecorder) GetCredentialsInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCredentialsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).GetCredentialsInternal), arg0, arg1)
+}
+
+// GetHostByKubeKey mocks base method
+func (m *MockInstallerInternals) GetHostByKubeKey(arg0 types.NamespacedName) (*common.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostByKubeKey", arg0)
+	ret0, _ := ret[0].(*common.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostByKubeKey indicates an expected call of GetHostByKubeKey
+func (mr *MockInstallerInternalsMockRecorder) GetHostByKubeKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostByKubeKey", reflect.TypeOf((*MockInstallerInternals)(nil).GetHostByKubeKey), arg0)
 }
 
 // InstallClusterInternal mocks base method
@@ -289,4 +318,18 @@ func (m *MockInstallerInternals) UpdateHostInstallerArgsInternal(arg0 context.Co
 func (mr *MockInstallerInternalsMockRecorder) UpdateHostInstallerArgsInternal(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostInstallerArgsInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostInstallerArgsInternal), arg0, arg1)
+}
+
+// UpdateHostKubeKeyInternal mocks base method
+func (m *MockInstallerInternals) UpdateHostKubeKeyInternal(arg0 context.Context, arg1, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateHostKubeKeyInternal", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateHostKubeKeyInternal indicates an expected call of UpdateHostKubeKeyInternal
+func (mr *MockInstallerInternalsMockRecorder) UpdateHostKubeKeyInternal(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateHostKubeKeyInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateHostKubeKeyInternal), arg0, arg1, arg2, arg3)
 }

@@ -114,10 +114,13 @@ type InstallerInternals interface {
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
+	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
+	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
 	GetCommonHostInternal(ctx context.Context, clusterId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
+	UpdateHostKubeKeyInternal(ctx context.Context, clusterId, kubeKeyName string, KubeKeyNamespace string) error
 	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
 	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
@@ -2536,19 +2539,25 @@ func isRegisterHostForbiddenDueWrongBootOrder(err error) bool {
 }
 
 func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {
+	if err := b.DeregisterHostInternal(ctx, params); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewDeregisterHostNoContent()
+}
+
+func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Deregister host: %s cluster %s", params.HostID, params.ClusterID)
 
 	if err := b.db.Where("id = ? and cluster_id = ?", params.HostID, params.ClusterID).Delete(&common.Host{}).Error; err != nil {
 		// TODO: check error type
-		return installer.NewDeregisterHostBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s: deregistered from cluster", params.HostID.String()), time.Now())
-	return installer.NewDeregisterHostNoContent()
+	return nil
 }
 
 func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHostParams) middleware.Responder {
@@ -4154,6 +4163,25 @@ func (b *bareMetalInventory) UpdateHostApprovedInternal(ctx context.Context, clu
 	return nil
 }
 
+func (b *bareMetalInventory) UpdateHostKubeKeyInternal(ctx context.Context, clusterId, kubeKeyName string, KubeKeyNamespace string) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating Host %s Cluster %s KubeKey name=%s namespace=%s", kubeKeyName, clusterId, kubeKeyName, KubeKeyNamespace)
+	dbHost, err := b.GetCommonHostInternal(ctx, clusterId, kubeKeyName)
+	if err != nil {
+		return err
+	}
+
+	err = b.db.Model(&common.Host{}).Where(identity.AddUserFilter(ctx, "id = ? and cluster_id = ?"), kubeKeyName, clusterId).Update(
+		"kube_key_name", kubeKeyName, "kube_key_namespace", KubeKeyNamespace).Error
+	if err != nil {
+		log.WithError(err).Errorf("failed to update 'kube_key_name' and 'kube_key_namespace' in host: %s", kubeKeyName)
+		return err
+	}
+	b.eventsHandler.AddEvent(ctx, strfmt.UUID(clusterId), dbHost.ID, models.EventSeverityInfo,
+		fmt.Sprintf("Host %s: updated kubekey to name=%s namespace=%s", hostutil.GetHostnameForMsg(&dbHost.Host), kubeKeyName, KubeKeyNamespace), time.Now())
+	return nil
+}
+
 func (b *bareMetalInventory) getCluster(ctx context.Context, clusterID string, flags ...interface{}) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 
@@ -4245,6 +4273,10 @@ func secretValidationToUserError(err error) error {
 
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
 	return b.clusterApi.GetClusterByKubeKey(key)
+}
+
+func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
+	return b.hostApi.GetHostByKubeKey(key)
 }
 
 func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {

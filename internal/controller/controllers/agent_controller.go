@@ -38,6 +38,7 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -65,6 +66,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	err := r.Get(ctx, req.NamespacedName, agent)
 	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return r.deregisterHostIfNeeded(ctx, req.NamespacedName)
+		}
 		r.Log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
@@ -80,6 +84,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// Retrieve clusterDeployment
 	if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return r.deleteAgent(ctx, req.NamespacedName)
+		}
 		errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 		// Update that we failed to retrieve the clusterDeployment
@@ -89,6 +96,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	// Retrieve cluster for ClusterDeploymentName from the database
 	cluster, err := r.Installer.GetClusterByKubeKey(kubeKey)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return r.deleteAgent(ctx, req.NamespacedName)
+		}
 		// Update that we failed to retrieve the cluster from the database
 		return r.updateStatus(ctx, agent, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
 	}
@@ -96,7 +106,8 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	//Retrieve host from cluster
 	host := getHostFromCluster(cluster, agent.Name)
 	if host == nil {
-		return r.updateStatus(ctx, agent, nil, errors.New("host not found in cluster"), false)
+		// Host is not a part of the cluster, which may happen with newly created day2 clusters.
+		return r.deleteAgent(ctx, req.NamespacedName)
 	}
 
 	// check for updates from user, compare spec and update if needed
@@ -111,6 +122,56 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	return r.updateStatus(ctx, agent, host, nil, false)
+}
+
+func (r *AgentReconciler) deleteAgent(ctx context.Context, agent types.NamespacedName) (ctrl.Result, error) {
+	agentToDelete := &aiv1beta1.Agent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      agent.Name,
+			Namespace: agent.Namespace,
+		},
+	}
+	if delErr := r.Client.Delete(ctx, agentToDelete); delErr != nil {
+		r.Log.WithError(delErr).Errorf("Failed to get delete resource %s %s", agent.Name, agent.Namespace)
+		return ctrl.Result{Requeue: true}, delErr
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
+
+	buildReply := func(err error) (ctrl.Result, error) {
+		reply := ctrl.Result{}
+		if err == nil {
+			return reply, nil
+		}
+		reply.RequeueAfter = defaultRequeueAfterOnError
+		err = errors.Wrapf(err, "failed to deregister host: %s", key.Name)
+		r.Log.Error(err)
+		return reply, err
+	}
+
+	h, err := r.Installer.GetHostByKubeKey(key)
+
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// return if from any reason host is already deleted from db (or never existed)
+		return buildReply(nil)
+	}
+
+	if err != nil {
+		return buildReply(err)
+	}
+
+	if err = r.Installer.DeregisterHostInternal(ctx, installer.DeregisterHostParams{
+		ClusterID: h.ClusterID,
+		HostID:    *h.ID,
+	}); err != nil {
+		return buildReply(err)
+	}
+
+	r.Log.Infof("Host resource deleted, Unregistered host: %s", h.ID.String())
+
+	return buildReply(nil)
 }
 
 // updateStatus is updating all the Agent Conditions.
@@ -509,6 +570,16 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 
 	if internalHost.Approved != spec.Approved {
 		err = r.Installer.UpdateHostApprovedInternal(ctx, string(*c.ID), agent.Name, spec.Approved)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				err = common.NewApiError(http.StatusNotFound, err)
+			}
+			return err
+		}
+	}
+
+	if internalHost.KubeKeyName != agent.Name || internalHost.KubeKeyNamespace != agent.Namespace {
+		err = r.Installer.UpdateHostKubeKeyInternal(ctx, string(*c.ID), agent.Name, agent.Namespace)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				err = common.NewApiError(http.StatusNotFound, err)

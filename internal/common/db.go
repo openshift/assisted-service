@@ -63,6 +63,10 @@ func AutoMigrate(db *gorm.DB) error {
 type Host struct {
 	models.Host
 	Approved bool `json:"approved"`
+	// Name of the KubeAPI resource
+	KubeKeyName string `json:"kube_key_name"`
+	// Namespace of the KubeAPI resource
+	KubeKeyNamespace string `json:"kube_key_namespace"`
 }
 
 type EagerLoadingState bool
@@ -120,7 +124,21 @@ func prepareClusterDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDelete
 			})
 		}
 	}
+	return db
+}
 
+func prepareHostDB(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState) *gorm.DB {
+	if includeDeleted {
+		db = db.Unscoped()
+	}
+	if eagerLoading {
+		db = LoadTableFromDB(db, HostsTable, func(db *gorm.DB) *gorm.DB {
+			if includeDeleted {
+				return db.Unscoped()
+			}
+			return db
+		})
+	}
 	return db
 }
 
@@ -138,12 +156,23 @@ func GetClusterFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeD
 func GetClustersFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) ([]*Cluster, error) {
 	var clusters []*Cluster
 
-	db = prepareClusterDB(db, eagerLoading, includeDeleted)
+	db = prepareHostDB(db, eagerLoading, includeDeleted)
 	err := db.Find(&clusters, where...).Error
 	if err != nil {
 		return nil, err
 	}
 	return clusters, nil
+}
+
+func GetHostFromDBWhere(db *gorm.DB, eagerLoading EagerLoadingState, includeDeleted DeleteRecordsState, where ...interface{}) (*Host, error) {
+	var host Host
+
+	db = prepareHostDB(db, eagerLoading, includeDeleted)
+	err := db.Take(&host, where...).Error
+	if err != nil {
+		return nil, err
+	}
+	return &host, nil
 }
 
 func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {

@@ -26,6 +26,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var BootstrapStages = [...]models.HostStage{
@@ -135,6 +136,7 @@ type API interface {
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
+	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
 }
@@ -978,4 +980,12 @@ func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {
 		m.log.Debugf("Deleted %s hosts from db", reply.RowsAffected)
 	}
 	return nil
+}
+
+func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
+	h, err := common.GetHostFromDBWhere(m.db, common.UseEagerLoading, common.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+	if err != nil {
+		return nil, err
+	}
+	return h, nil
 }
