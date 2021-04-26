@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"net/http"
 	"os"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-openapi/strfmt"
-	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
@@ -126,6 +124,8 @@ var Options struct {
 	DeregisterWorkerInterval    time.Duration `envconfig:"DEREGISTER_WORKER_INTERVAL" default:"1h"`
 	EnableDeletedUnregisteredGC bool          `envconfig:"ENABLE_DELETE_UNREGISTER_GC" default:"true"`
 	EnableDeregisterInactiveGC  bool          `envconfig:"ENABLE_DEREGISTER_INACTIVE_GC" default:"true"`
+	HTTPPort                    int           `envconfig:"HTTP_PORT" default:"8090"`
+	HTTPSPort                   int           `envconfig:"HTTPS_PORT" default:"8091"`
 	ServeHTTPS                  bool          `envconfig:"SERVE_HTTPS" default:"false"`
 	HTTPSKeyFile                string        `envconfig:"HTTPS_KEY_FILE" default:""`
 	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
@@ -169,9 +169,6 @@ func main() {
 			log.WithError(err).Fatalf(msg, args...)
 		}
 	}
-
-	port := flag.String("port", "8090", "define port that the service will listen to")
-	flag.Parse()
 
 	log.Println("Starting bm service")
 
@@ -464,12 +461,18 @@ func main() {
 		}
 	}()
 
-	address := fmt.Sprintf(":%s", swag.StringValue(port))
 	if Options.ServeHTTPS {
-		log.Fatal(http.ListenAndServeTLS(address, Options.HTTPSCertFile, Options.HTTPSKeyFile, h))
-	} else {
-		log.Fatal(http.ListenAndServe(address, h))
+		log.Infof("Serving https on port %d", Options.HTTPSPort)
+		address := fmt.Sprintf(":%d", Options.HTTPSPort)
+		httpsHandler := h
+		go func() {
+			log.Fatal(http.ListenAndServeTLS(address, Options.HTTPSCertFile, Options.HTTPSKeyFile, httpsHandler))
+		}()
 	}
+
+	log.Infof("Serving http on port %d", Options.HTTPPort)
+	address := fmt.Sprintf(":%d", Options.HTTPPort)
+	log.Fatal(http.ListenAndServe(address, h))
 }
 
 func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {

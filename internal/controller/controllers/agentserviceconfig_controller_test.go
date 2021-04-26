@@ -13,6 +13,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -115,7 +116,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		ctx   = context.Background()
 		route = &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      serviceName,
+				Name:      appName,
 				Namespace: testNamespace,
 			},
 			Spec: routev1.RouteSpec{
@@ -131,7 +132,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			Expect(ascr.ensureAssistedServiceDeployment(ctx, asc)).To(Succeed())
 
 			found := &appsv1.Deployment{}
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: appName, Namespace: testNamespace}, found)).To(Succeed())
 			Expect(len(found.Spec.Template.Spec.Containers[0].EnvFrom)).To(Equal(0))
 		})
 	})
@@ -142,7 +143,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			ascr = newTestReconciler(asc, route)
 			Expect(ascr.ensureAssistedServiceDeployment(ctx, asc)).To(Succeed())
 			found := &appsv1.Deployment{}
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: appName, Namespace: testNamespace}, found)).To(Succeed())
 			Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal([]corev1.EnvFromSource{
 				{
 					ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -153,6 +154,45 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				},
 			}))
 		})
+	})
+})
+
+var _ = Describe("ensureAgentService", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ctx  = context.Background()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+	})
+
+	validatePorts := func(ports []corev1.ServicePort) {
+		Expect(ports).NotTo(BeNil())
+
+		for _, port := range ports {
+			if port.Name == httpServiceName {
+				Expect(port.Port).To(Equal(serviceHTTPPort))
+				Expect(port.TargetPort).To(Equal(intstr.IntOrString{Type: intstr.Int, IntVal: serviceHTTPPort}))
+				Expect(port.Protocol).To(Equal(corev1.ProtocolTCP))
+			} else if port.Name == httpsServiceName {
+				Expect(port.Port).To(Equal(serviceHTTPSPort))
+				Expect(port.TargetPort).To(Equal(intstr.IntOrString{Type: intstr.Int, IntVal: serviceHTTPSPort}))
+				Expect(port.Protocol).To(Equal(corev1.ProtocolTCP))
+			}
+		}
+	}
+
+	It("creates a new service", func() {
+		Expect(ascr.ensureAgentService(ctx, asc)).To(Succeed())
+
+		key := types.NamespacedName{Name: appName, Namespace: testNamespace}
+		found := &corev1.Service{}
+		Expect(ascr.Client.Get(ctx, key, found)).To(Succeed())
+
+		validatePorts(found.Spec.Ports)
 	})
 })
 

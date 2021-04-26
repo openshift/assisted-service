@@ -52,12 +52,15 @@ const (
 	// supported in the cluster. Any others will be ignored.
 	agentServiceConfigName = "agent"
 
-	serviceName              string = "assisted-service"
+	appName                         = "assisted-service"
+	httpServiceName          string = appName + "-http"
+	httpsServiceName         string = appName + "-https"
 	databaseName             string = "postgres"
 	databasePasswordLength   int    = 16
-	servicePort              int32  = 8090
+	serviceHTTPPort          int32  = 8090
+	serviceHTTPSPort         int32  = 8091
 	databasePort             int32  = 5432
-	agentLocalAuthSecretName        = serviceName + "local-auth" // #nosec
+	agentLocalAuthSecretName        = appName + "local-auth" // #nosec
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
@@ -144,7 +147,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
-	pvc, mutateFn := r.newPVC(instance, serviceName, instance.Spec.FileSystemStorage)
+	pvc, mutateFn := r.newPVC(instance, appName, instance.Spec.FileSystemStorage)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, pvc, mutateFn); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -274,7 +277,7 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
 	// must have the route in order to populate SERVICE_BASE_URL for the service
 	route := &routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
+	err := r.Get(ctx, types.NamespacedName{Name: appName, Namespace: r.Namespace}, route)
 	if err != nil || route.Spec.Host == "" {
 		if err == nil {
 			err = fmt.Errorf("Route's host is empty")
@@ -394,29 +397,62 @@ func (r *AgentServiceConfigReconciler) newPVC(instance *aiv1beta1.AgentServiceCo
 func (r *AgentServiceConfigReconciler) newAgentService(instance *aiv1beta1.AgentServiceConfig) (*corev1.Service, controllerutil.MutateFn) {
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
+			Name:      appName,
 			Namespace: r.Namespace,
 		},
+	}
+
+	httpPort := corev1.ServicePort{
+		Name:       httpServiceName,
+		Port:       serviceHTTPPort,
+		TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: serviceHTTPPort},
+		Protocol:   corev1.ProtocolTCP,
+	}
+
+	httpsPort := corev1.ServicePort{
+		Name:       httpsServiceName,
+		Port:       serviceHTTPSPort,
+		TargetPort: intstr.IntOrString{Type: intstr.Int, IntVal: serviceHTTPSPort},
+		Protocol:   corev1.ProtocolTCP,
 	}
 
 	mutateFn := func() error {
 		if err := controllerutil.SetControllerReference(instance, svc, r.Scheme); err != nil {
 			return err
 		}
-		addAppLabel(serviceName, &svc.ObjectMeta)
+		addAppLabel(appName, &svc.ObjectMeta)
 		if svc.ObjectMeta.Annotations == nil {
 			svc.ObjectMeta.Annotations = make(map[string]string)
 		}
-		svc.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = serviceName
-		if len(svc.Spec.Ports) == 0 {
-			svc.Spec.Ports = append(svc.Spec.Ports, corev1.ServicePort{})
+		svc.ObjectMeta.Annotations["service.beta.openshift.io/serving-cert-secret-name"] = appName
+
+		if svc.Spec.Ports == nil {
+			svc.Spec.Ports = []corev1.ServicePort{httpPort, httpsPort}
+		} else {
+			var foundHTTP, foundHTTPS bool
+			for _, port := range svc.Spec.Ports {
+				if port.Name == httpServiceName {
+					foundHTTP = true
+					port.Port = httpPort.Port
+					port.TargetPort = httpPort.TargetPort
+					port.Protocol = httpPort.Protocol
+				} else if port.Name == httpsServiceName {
+					foundHTTPS = true
+					port.Port = httpsPort.Port
+					port.TargetPort = httpsPort.TargetPort
+					port.Protocol = httpsPort.Protocol
+				}
+			}
+
+			if !foundHTTP {
+				svc.Spec.Ports = append(svc.Spec.Ports, httpPort)
+			}
+			if !foundHTTPS {
+				svc.Spec.Ports = append(svc.Spec.Ports, httpsPort)
+			}
 		}
-		svc.Spec.Ports[0].Name = serviceName
-		svc.Spec.Ports[0].Port = servicePort
-		// since intstr.FromInt() doesn't take an int32, just use what FromInt() would return
-		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: servicePort}
-		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
-		svc.Spec.Selector = map[string]string{"app": serviceName}
+
+		svc.Spec.Selector = map[string]string{"app": appName}
 		svc.Spec.Type = corev1.ServiceTypeLoadBalancer
 		return nil
 	}
@@ -428,18 +464,18 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 	weight := int32(100)
 	route := &routev1.Route{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
+			Name:      appName,
 			Namespace: r.Namespace,
 		},
 	}
 	routeSpec := routev1.RouteSpec{
 		To: routev1.RouteTargetReference{
 			Kind:   "Service",
-			Name:   serviceName,
+			Name:   appName,
 			Weight: &weight,
 		},
 		Port: &routev1.RoutePort{
-			TargetPort: intstr.FromString(serviceName),
+			TargetPort: intstr.FromInt(int(serviceHTTPSPort)),
 		},
 		WildcardPolicy: routev1.WildcardPolicyNone,
 		TLS:            &routev1.TLSConfig{Termination: routev1.TLSTerminationReencrypt},
@@ -594,6 +630,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 
 		// enable https
 		{Name: "SERVE_HTTPS", Value: "True"},
+		{Name: "HTTP_PORT", Value: strconv.Itoa(int(serviceHTTPPort))},
+		{Name: "HTTPS_PORT", Value: strconv.Itoa(int(serviceHTTPSPort))},
 		{Name: "HTTPS_CERT_FILE", Value: "/etc/assisted-tls-config/tls.crt"},
 		{Name: "HTTPS_KEY_FILE", Value: "/etc/assisted-tls-config/tls.key"},
 		{Name: "SERVICE_CA_CERT_PATH", Value: "/etc/assisted-ingress-cert/ca-bundle.crt"},
@@ -601,11 +639,15 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 	}
 
 	serviceContainer := corev1.Container{
-		Name:  serviceName,
+		Name:  appName,
 		Image: ServiceImage(),
 		Ports: []corev1.ContainerPort{
 			{
-				ContainerPort: servicePort,
+				ContainerPort: serviceHTTPPort,
+				Protocol:      corev1.ProtocolTCP,
+			},
+			{
+				ContainerPort: serviceHTTPSPort,
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
@@ -627,7 +669,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/health",
-					Port:   intstr.FromInt(int(servicePort)),
+					Port:   intstr.FromInt(int(serviceHTTPSPort)),
 					Scheme: corev1.URISchemeHTTPS,
 				},
 			},
@@ -636,7 +678,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			Handler: corev1.Handler{
 				HTTPGet: &corev1.HTTPGetAction{
 					Path:   "/ready",
-					Port:   intstr.FromInt(int(servicePort)),
+					Port:   intstr.FromInt(int(serviceHTTPSPort)),
 					Scheme: corev1.URISchemeHTTPS,
 				},
 			},
@@ -678,7 +720,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			Name: "bucket-filesystem",
 			VolumeSource: corev1.VolumeSource{
 				PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
-					ClaimName: serviceName,
+					ClaimName: appName,
 				},
 			},
 		},
@@ -694,7 +736,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			Name: "tls-certs",
 			VolumeSource: corev1.VolumeSource{
 				Secret: &corev1.SecretVolumeSource{
-					SecretName: serviceName,
+					SecretName: appName,
 				},
 			},
 		},
@@ -711,7 +753,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 	}
 
 	deploymentLabels := map[string]string{
-		"app": serviceName,
+		"app": appName,
 	}
 
 	deploymentStrategy := appsv1.DeploymentStrategy{
@@ -722,7 +764,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      serviceName,
+			Name:      appName,
 			Namespace: r.Namespace,
 		},
 		Spec: appsv1.DeploymentSpec{
@@ -732,7 +774,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			Template: corev1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: deploymentLabels,
-					Name:   serviceName,
+					Name:   appName,
 				},
 			},
 		},
