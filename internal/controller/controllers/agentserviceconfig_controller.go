@@ -464,7 +464,7 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.Age
 
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
 	serviceEnv := []corev1.EnvVar{
-		{Name: "SERVICE_BASE_URL", Value: serviceURL.String()},
+		{Name: "SERVICE_BASE_URL", Value: getEnvVar("SERVICE_BASE_URL", serviceURL.String())},
 
 		// TODO: FIX ME!!!
 		{Name: "SKIP_CERT_VERIFICATION", Value: "True"},
