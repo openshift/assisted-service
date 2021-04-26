@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
@@ -232,8 +233,20 @@ func (a RHSSOAuthenticator) getRole(payload *ocm.AuthPayload) (ocm.RoleType, err
 }
 
 func (a *RHSSOAuthenticator) isReadOnlyAdmin(username string) (bool, error) {
-	return a.client.Authorization.CapabilityReview(
-		context.Background(), fmt.Sprint(username), ocm.CapabilityName, ocm.CapabilityType)
+	cacheKey := fmt.Sprintf("%s-%s-%s", username, ocm.CapabilityName, ocm.CapabilityType)
+	if cacheData, existInCache := a.client.Cache.Get(cacheKey); existInCache {
+		isAllowed, ok := cacheData.(bool)
+		if !ok {
+			return false, errors.New("Expected from cache data to be from bool kind")
+		}
+		return isAllowed, nil
+	}
+
+	isAllowed, err := a.client.Authorization.CapabilityReview(context.Background(), fmt.Sprint(username), ocm.CapabilityName, ocm.CapabilityType)
+	if shouldStorePayloadInCache(err) {
+		a.client.Cache.Set(cacheKey, isAllowed, 1*time.Minute)
+	}
+	return isAllowed, err
 }
 
 func (a *RHSSOAuthenticator) isClusterOwnedByUser(clusterID string, payload *ocm.AuthPayload) (bool, error) {
