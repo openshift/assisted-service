@@ -31,5 +31,6 @@ env_file:
   - skipper.env
 env:
   GOCACHE: "/go/pkg/mod"
+  SKIPPER_PLATFORM: "darwin"
   DOCKER_CONFIG: $DOCKER_CONFIG
   KUBECONFIG: $CONTAINER_KUBE_CONFIG

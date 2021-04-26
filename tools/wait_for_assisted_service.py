@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
+import os
 
 import waiting
 import requests
 
 import utils
 import deployment_options
+from urllib.parse import urlparse, urlunsplit, urlsplit
 
 SERVICE = "assisted-service"
 TIMEOUT = 60 * 30
@@ -31,6 +33,13 @@ def main():
     service_url = utils.get_service_url(service=SERVICE, target=deploy_options.target, domain=deploy_options.domain,
                                         namespace=deploy_options.namespace, disable_tls=deploy_options.disable_tls)
     health_url = f'{service_url}/ready'
+
+    if os.getenv("SKIPPER_PLATFORM") == 'darwin':
+        url = urlsplit(health_url)
+
+        if url.hostname == "127.0.0.1":
+            url = url._replace(netloc=f"host.docker.internal:{url.port}")
+            health_url = urlunsplit(url)
 
     print(f'Wait for {health_url}')
     waiting.wait(lambda: wait_for_request(health_url),
