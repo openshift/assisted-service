@@ -20,12 +20,14 @@ endif
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
+DEBUG_PORT := $(or ${DEBUG_PORT},40000)
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 
 ifdef DEBUG
     DEBUG_ARGS=-gcflags "all=-N -l"
+    DEBUG_PORT_ARGS= --port ${DEBUG_PORT} debug-port --image-pull-policy IfNotPresent
 endif
 
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
@@ -141,7 +143,7 @@ update-minimal:
 update-debug-minimal:
 	export DEBUG=True && $(MAKE) build-minimal
 	mkdir -p build/debug-image && cp Dockerfile.assisted-service-debug $(BUILD_FOLDER)/assisted-service $(BUILD_FOLDER)/assisted-service-operator build/debug-image
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
+	docker build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_PORT=$(DEBUG_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
 	rm -r build/debug-image
 
 build-image: validate update-minimal
@@ -223,7 +225,7 @@ deploy-ocm-secret: deploy-namespace
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
-		--apply-manifest $(APPLY_MANIFEST)
+		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_ARGS)
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
@@ -243,7 +245,7 @@ deploy-resources: generate-manifests
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		$(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
-		--apply-manifest $(APPLY_MANIFEST)
+		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_ARGS)
 	$(MAKE) wait-for-service
 
 wait-for-service:
