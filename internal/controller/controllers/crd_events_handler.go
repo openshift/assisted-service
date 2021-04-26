@@ -12,13 +12,15 @@ type CRDEventsHandler interface {
 	NotifyAgentUpdates(agentName string, agentNamespace string)
 	GetInfraEnvUpdates() chan event.GenericEvent
 	GetClusterDeploymentUpdates() chan event.GenericEvent
+	GetAgentClusterInstallUpdates() chan event.GenericEvent
 	GetAgentUpdates() chan event.GenericEvent
 }
 
 type CRDEventsHandlerChannels struct {
-	clusterDeploymentUpdates chan event.GenericEvent
-	infraEnvUpdates          chan event.GenericEvent
-	agentUpdates             chan event.GenericEvent
+	clusterDeploymentUpdates   chan event.GenericEvent
+	agentClusterInstallUpdates chan event.GenericEvent
+	infraEnvUpdates            chan event.GenericEvent
+	agentUpdates               chan event.GenericEvent
 }
 
 func NewCRDEventsHandler() CRDEventsHandler {
@@ -58,6 +60,10 @@ func (h *CRDEventsHandlerChannels) GetInfraEnvUpdates() chan event.GenericEvent 
 
 func (h *CRDEventsHandlerChannels) GetClusterDeploymentUpdates() chan event.GenericEvent {
 	return h.clusterDeploymentUpdates
+}
+
+func (h *CRDEventsHandlerChannels) GetAgentClusterInstallUpdates() chan event.GenericEvent {
+	return h.agentClusterInstallUpdates
 }
 
 func (h *CRDEventsHandlerChannels) GetAgentUpdates() chan event.GenericEvent {

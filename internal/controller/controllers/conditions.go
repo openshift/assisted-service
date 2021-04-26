@@ -18,7 +18,6 @@ package controllers
 
 import (
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
-	hivev1 "github.com/openshift/hive/apis/hive/v1"
 )
 
 const (
@@ -49,23 +48,24 @@ const (
 	UnknownStatusReason          string = "UnknownStatus"
 	UnknownStatusMsg             string = "The installation status is currently not recognized:"
 
-	//ClusterDeployment Conditions
-	ClusterSpecSyncedCondition hivev1.ClusterDeploymentConditionType = "SpecSynced"
+	// ClusterInstall Conditions
+	ClusterSpecSyncedCondition string = "SpecSynced"
 
-	ClusterInstalledCondition hivev1.ClusterDeploymentConditionType = "Installed"
+	// TODO: Switch to use Completed condition in hive
+	ClusterInstalledCondition string = "Installed"
 
-	ClusterReadyForInstallationCondition hivev1.ClusterDeploymentConditionType = "ReadyForInstallation"
-	ClusterReadyReason                   string                                = "ClusterIsReady"
-	ClusterReadyMsg                      string                                = "The cluster is ready to begin the installation"
-	ClusterNotReadyReason                string                                = "ClusterNotReady"
-	ClusterNotReadyMsg                   string                                = "The cluster is not ready to begin the installation"
-	ClusterAlreadyInstallingReason       string                                = "ClusterAlreadyInstalling"
-	ClusterAlreadyInstallingMsg          string                                = "The cluster cannot begin the installation because it has already started"
+	ClusterReadyForInstallationCondition string = "ReadyForInstallation"
+	ClusterReadyReason                   string = "ClusterIsReady"
+	ClusterReadyMsg                      string = "The cluster is ready to begin the installation"
+	ClusterNotReadyReason                string = "ClusterNotReady"
+	ClusterNotReadyMsg                   string = "The cluster is not ready to begin the installation"
+	ClusterAlreadyInstallingReason       string = "ClusterAlreadyInstalling"
+	ClusterAlreadyInstallingMsg          string = "The cluster cannot begin the installation because it has already started"
 
-	ClusterValidatedCondition    hivev1.ClusterDeploymentConditionType = "Validated"
-	ClusterValidationsOKMsg      string                                = "The cluster's validations are passing"
-	ClusterValidationsUnknownMsg string                                = "The cluster's validations have not yet been calculated"
-	ClusterValidationsFailingMsg string                                = "The cluster's validations are failing:"
+	ClusterValidatedCondition    string = "Validated"
+	ClusterValidationsOKMsg      string = "The cluster's validations are passing"
+	ClusterValidationsUnknownMsg string = "The cluster's validations have not yet been calculated"
+	ClusterValidationsFailingMsg string = "The cluster's validations are failing:"
 
 	//Agent Conditions
 	SpecSyncedCondition conditionsv1.ConditionType = "SpecSynced"
