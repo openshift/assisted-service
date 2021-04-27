@@ -161,6 +161,7 @@ spec:
             - name: mirror-registry-conf
               mountPath: "/etc/containers"
               readOnly: true
+      serviceAccountName: assisted-service
       volumes:
         - name: route53-creds
           secret:

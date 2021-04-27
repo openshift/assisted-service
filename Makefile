@@ -433,18 +433,6 @@ clear-all: clean subsystem-clean clear-deployment clear-images clean-onprem
 
 clean:
 	-rm -rf $(BUILD_FOLDER) $(REPORTS)
-	-rm config/rbac/ocp_role.yaml
-	-rm config/rbac/kube_api_roles.yaml
-	-rm config/rbac/controller_roles.yaml
-	-rm config/assisted-service/scality-secret.yaml
-	-rm config/assisted-service/scality-public-secret.yaml
-	-rm config/assisted-service/postgres-deployment.yaml
-	-rm config/assisted-service/assisted-installer-sso.yaml
-	-rm config/assisted-service/assisted-service-configmap.yaml
-	-rm config/assisted-service/assisted-service-service.yaml
-	-rm config/assisted-service/assisted-service.yaml
-	-rm config/assisted-service/deploy_ui.yaml
-	-rm config/assisted-service/assisted-installer-local-auth.yaml
 	-rm -rf bundle*
 
 subsystem-clean:
@@ -465,34 +453,18 @@ clean-onprem:
 ############
 
 # Current Operator version
-OPERATOR_VERSION ?= 0.0.1
-BUNDLE_OUTPUT_DIR := $(or ${BUNDLE_OUTPUT_DIR},$(BUILD_FOLDER)/bundle)
+OPERATOR_VERSION ?= 0.0.3
+BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog/$(OPERATOR_VERSION)
+BUNDLE_METADATA_OPTS ?= --channels=alpha,ocm-2.3 --default-channel=alpha
 
-# Generate bundle manifests and metadata, then validate generated files.
 .PHONY: operator-bundle
-operator-bundle: create-ocp-manifests
-	set -eux
-	cp ./build/assisted-installer/ocp_role.yaml config/rbac
-	cp ./build/assisted-installer/kube_api_roles.yaml config/rbac
-	cp ./build/assisted-installer/controller_roles.yaml config/rbac
-	cp ./build/assisted-installer/scality-secret.yaml config/assisted-service
-	cp ./build/assisted-installer/scality-public-secret.yaml config/assisted-service
-	cp ./build/assisted-installer/postgres-deployment.yaml config/assisted-service
-	cp ./build/assisted-installer/assisted-installer-sso.yaml config/assisted-service
-	cp ./build/assisted-installer/assisted-service-configmap.yaml config/assisted-service
-	cp ./build/assisted-installer/assisted-service-service.yaml config/assisted-service
-	cp ./build/assisted-installer/assisted-service.yaml config/assisted-service
-	cp ./build/assisted-installer/deploy_ui.yaml config/assisted-service
-	cp ./build/assisted-installer/assisted-installer-local-auth.yaml config/assisted-service
-	# To use --output-dir, needed to break manifests and metadata generation into two steps
-	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp1
-	mkdir -p $(BUNDLE_OUTPUT_DIR)/temp2
-	kustomize build config/manifests | operator-sdk generate bundle --version $(OPERATOR_VERSION) --manifests --output-dir $(BUNDLE_OUTPUT_DIR)/temp1
-	operator-sdk generate bundle --version $(OPERATOR_VERSION) --metadata --input-dir $(BUNDLE_OUTPUT_DIR)/temp1 --output-dir $(BUNDLE_OUTPUT_DIR)/temp2
-	mv $(BUNDLE_OUTPUT_DIR)/temp1/* $(BUNDLE_OUTPUT_DIR)
-	mv $(BUNDLE_OUTPUT_DIR)/temp2/metadata $(BUNDLE_OUTPUT_DIR)
-	rm -rf $(BUNDLE_OUTPUT_DIR)/temp1
-	rm -rf $(BUNDLE_OUTPUT_DIR)/temp2
+operator-bundle:
+	operator-sdk generate kustomize manifests -q
+	# TODO(djzager) use this line to pin images in the future
+	# cd config/manager && kustomize edit set image controller=$(SERVICE)
+	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) --output-dir $(BUNDLE_OUTPUT_DIR) $(BUNDLE_METADATA_OPTS)
+	# TODO(djzager) structure config/rbac in such a way to avoid need for this
+	rm $(BUNDLE_OUTPUT_DIR)/manifests/assisted-service_v1_serviceaccount.yaml
 	operator-sdk bundle validate $(BUNDLE_OUTPUT_DIR)
 
 # Build the bundle and index images.

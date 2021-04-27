@@ -150,6 +150,9 @@ def apply(target, namespace, file):
     kubectl_cmd = get_kubectl_command(target, namespace)
     print(check_output(f'{kubectl_cmd} apply -f {file}'))
 
+def apply_kustomize(target, namespace, file):
+    kubectl_cmd = get_kubectl_command(target, namespace)
+    print(check_output(f'kustomize build {file} | {kubectl_cmd} apply -f -'))
 
 def get_domain(domain="", target=None, namespace='assisted-installer'):
     if domain:

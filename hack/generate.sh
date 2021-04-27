@@ -77,7 +77,7 @@ function generate_manifests() {
 
     local crd_options=${CRD_OPTIONS:-"crd:trivialVersions=true"}
     local controller_path=${__root}/internal/controller
-    local controller_config_path=${controller_path}/config
+    local controller_config_path=${__root}/config
     local controller_crd_path=${controller_config_path}/crd
     local controller_rbac_path=${controller_config_path}/rbac
 

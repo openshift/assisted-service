@@ -3,7 +3,15 @@ layout: go.kubebuilder.io/v3
 projectName: assisted-service-operator
 repo: github.com/openshift/assisted-service
 resources:
-version: 3-alpha
+- api:
+    crdVersion: v1beta1
+  controller: true
+  domain: openshift.io
+  group: agent-install
+  kind: AgentServiceConfig
+  path: github.com/openshift/assisted-service/internal/controller/api/v1beta1
+  version: v1beta1
+version: "3"
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}

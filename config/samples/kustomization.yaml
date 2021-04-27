@@ -1,0 +1,2 @@
+resources:
+- agent-install.openshift.io_v1beta1_agentserviceconfig.yaml

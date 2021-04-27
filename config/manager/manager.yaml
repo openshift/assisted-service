@@ -3,13 +3,13 @@ kind: Namespace
 metadata:
   labels:
     control-plane: assisted-service-operator
-  name: system
+  name: assisted-installer
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: assisted-service-operator
-  namespace: system
+  namespace: assisted-installer
   labels:
     control-plane: assisted-service-operator
 spec:
@@ -68,4 +68,5 @@ spec:
           requests:
             cpu: 100m
             memory: 200Mi
+      serviceAccountName: assisted-service
       terminationGracePeriodSeconds: 10
