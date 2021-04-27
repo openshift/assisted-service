@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/alessio/shellescape"
+	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
@@ -18,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/versions"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
@@ -59,9 +61,8 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 	step.StepType = models.StepTypeInstall
 	step.Command = "bash"
 
-	//get openshift version and HighAvailabilityMode
-	var cluster common.Cluster
-	if err := i.db.First(&cluster, "id = ?", host.ClusterID).Error; err != nil {
+	cluster, err := common.GetClusterFromDBWithoutDisabledHosts(i.db, host.ClusterID)
+	if err != nil {
 		i.log.Errorf("failed to get cluster %s", host.ClusterID)
 		return nil, err
 	}
@@ -71,7 +72,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	fullCmd, err := i.getFullInstallerCommand(&cluster, host, bootdevice)
+	fullCmd, err := i.getFullInstallerCommand(cluster, host, bootdevice)
 	if err != nil {
 		return nil, err
 	}
@@ -258,13 +259,9 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log 
 		}
 	}
 
-	if !hasUserConfiguredIP(installerArgs) {
-		machineNetworkCIDR := network.GetMachineCidrForUserManagedNetwork(cluster, log)
-		if network.IsIPv6CIDR(machineNetworkCIDR) {
-			installerArgs = append(installerArgs, "--append-karg", "ip=dhcp6")
-		} else if machineNetworkCIDR != "" {
-			installerArgs = append(installerArgs, "--append-karg", "ip=dhcp")
-		}
+	installerArgs, err := appendDHCPArgs(cluster, installerArgs, log)
+	if err != nil {
+		return "", err
 	}
 
 	if cluster.ImageInfo.StaticNetworkConfig != "" && !funk.Contains(installerArgs, "--copy-network") {
@@ -276,8 +273,29 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log 
 	return toJSONString(installerArgs)
 }
 
+func appendDHCPArgs(cluster *common.Cluster, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
+
+	if hasUserConfiguredIP(installerArgs) {
+		return installerArgs, nil
+	}
+
+	machineNetworkCIDR := network.GetMachineCidrForUserManagedNetwork(cluster, log)
+	log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, network.IsIPv6CIDR(machineNetworkCIDR))
+	if network.IsIPv6CIDR(machineNetworkCIDR) {
+		return append(installerArgs, "--append-karg", "ip=dhcp6"), nil
+	}
+	if machineNetworkCIDR != "" {
+		return append(installerArgs, "--append-karg", "ip=dhcp"), nil
+	}
+
+	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
+		return installerArgs, nil
+	}
+	return installerArgs, errors.Errorf("cannot determine machine network address family")
+}
+
 func hasUserConfiguredIP(args []string) bool {
-	// check if the user has configured ip manually
+	// check if the user has configured any ip arguments manually
 	// https://man7.org/linux/man-pages/man7/dracut.cmdline.7.html
 	_, result := funk.FindString(args, func(s string) bool {
 		return strings.HasPrefix(s, "ip=")
