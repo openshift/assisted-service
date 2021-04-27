@@ -1104,11 +1104,12 @@ var _ = Describe("Auto assign machine CIDR", func() {
 
 var _ = Describe("VerifyRegisterHost", func() {
 	var (
-		db          *gorm.DB
-		id          strfmt.UUID
-		clusterApi  *Manager
-		errTemplate = "Cluster %s is in %s state, host can register only in one of [insufficient ready pending-for-input adding-hosts]"
-		dbName      string
+		db                 *gorm.DB
+		id                 strfmt.UUID
+		clusterApi         *Manager
+		preInstalledError  string = "Host can register only in one of the following states: [insufficient ready pending-for-input adding-hosts]"
+		postInstalledError string = "Cannot add host to a cluster that is already installed, please use the day2 cluster option"
+		dbName             string
 	)
 
 	BeforeEach(func() {
@@ -1121,35 +1122,35 @@ var _ = Describe("VerifyRegisterHost", func() {
 			nil, nil, nil, nil, dummy, mockOperators, nil, nil, nil)
 	})
 
-	checkVerifyRegisterHost := func(clusterStatus string, expectErr bool) {
+	checkVerifyRegisterHost := func(clusterStatus string, expectErr bool, errTemplate string) {
 		cluster := common.Cluster{Cluster: models.Cluster{ID: &id, Status: swag.String(clusterStatus)}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		cluster = getClusterFromDB(id, db)
 		err := clusterApi.AcceptRegistration(&cluster)
 		if expectErr {
-			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate, id, clusterStatus).Error()))
+			Expect(err.Error()).Should(Equal(errors.Errorf(errTemplate).Error()))
 		} else {
 			Expect(err).Should(BeNil())
 		}
 	}
 	It("Register host while cluster in ready state", func() {
-		checkVerifyRegisterHost(models.ClusterStatusReady, false)
+		checkVerifyRegisterHost(models.ClusterStatusReady, false, preInstalledError)
 	})
 	It("Register host while cluster in insufficient state", func() {
-		checkVerifyRegisterHost(models.ClusterStatusInsufficient, false)
+		checkVerifyRegisterHost(models.ClusterStatusInsufficient, false, preInstalledError)
 	})
 	It("Register host while cluster in installing state", func() {
-		checkVerifyRegisterHost(models.ClusterStatusInstalling, true)
+		checkVerifyRegisterHost(models.ClusterStatusInstalling, true, preInstalledError)
 	})
-	It("Register host while cluster in installing state", func() {
-		checkVerifyRegisterHost(models.ClusterStatusFinalizing, true)
+	It("Register host while cluster in finallizing state", func() {
+		checkVerifyRegisterHost(models.ClusterStatusFinalizing, true, preInstalledError)
 	})
 	It("Register host while cluster in error state", func() {
-		checkVerifyRegisterHost(models.ClusterStatusError, true)
+		checkVerifyRegisterHost(models.ClusterStatusError, true, preInstalledError)
 	})
 
 	It("Register host while cluster in installed state", func() {
-		checkVerifyRegisterHost(models.ClusterStatusInstalled, true)
+		checkVerifyRegisterHost(models.ClusterStatusInstalled, true, postInstalledError)
 	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
