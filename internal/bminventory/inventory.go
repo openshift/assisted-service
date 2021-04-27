@@ -495,7 +495,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	}
 
 	success = true
-	b.metricApi.ClusterRegistered(swag.StringValue(params.NewClusterParams.OpenshiftVersion), *cluster.ID, cluster.EmailDomain)
+	b.metricApi.ClusterRegistered(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain)
 	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
 }
 
@@ -561,7 +561,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("AddHostsCluster for AI cluster %s already exists", id))
 	}
 
-	openshiftVersion, err := b.versionsHandler.GetKey(inputOpenshiftVersion)
+	openshiftVersion, err := b.versionsHandler.GetVersion(inputOpenshiftVersion)
 	if err != nil {
 		log.WithError(err).Errorf("Failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion)
 		return nil, common.NewApiError(http.StatusBadRequest, fmt.Errorf("failed to get opnshift version supported by versions map from version %s", inputOpenshiftVersion))
@@ -576,7 +576,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		Href:             swag.String(url.String()),
 		Kind:             swag.String(models.ClusterKindAddHostsCluster),
 		Name:             clusterName,
-		OpenshiftVersion: openshiftVersion,
+		OpenshiftVersion: *openshiftVersion.ReleaseVersion,
 		UserName:         ocm.UserNameFromContext(ctx),
 		OrgID:            ocm.OrgIDFromContext(ctx),
 		EmailDomain:      ocm.EmailDomainFromContext(ctx),
@@ -601,7 +601,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	b.metricApi.ClusterRegistered(openshiftVersion, *newCluster.ID, newCluster.EmailDomain)
+	b.metricApi.ClusterRegistered(newCluster.OpenshiftVersion, *newCluster.ID, newCluster.EmailDomain)
 	return &newCluster, nil
 }
 

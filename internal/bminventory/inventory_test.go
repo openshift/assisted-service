@@ -115,7 +115,7 @@ func mockClusterRegisterSteps() {
 
 func mockClusterRegisterSuccess(bm *bareMetalInventory, withEvents bool) {
 	mockClusterRegisterSteps()
-	mockMetric.EXPECT().ClusterRegistered(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+	mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, gomock.Any(), gomock.Any()).Times(1)
 
 	if withEvents {
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(2)
@@ -5156,8 +5156,8 @@ var _ = Describe("Register AddHostsCluster test", func() {
 			},
 		}
 		mockClusterApi.EXPECT().RegisterAddHostsCluster(ctx, gomock.Any()).Return(nil).Times(1)
-		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.OpenShiftVersion, clusterID, "Unknown").Times(1)
-		mockVersions.EXPECT().GetKey(common.TestDefaultConfig.OpenShiftVersion).Return(common.TestDefaultConfig.OpenShiftVersion, nil).Times(1)
+		mockMetric.EXPECT().ClusterRegistered(common.TestDefaultConfig.ReleaseVersion, clusterID, "Unknown").Times(1)
+		mockVersions.EXPECT().GetVersion(gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
 		res := bm.RegisterAddHostsCluster(ctx, params)
 		actual := res.(*installer.RegisterAddHostsClusterCreated)
 
