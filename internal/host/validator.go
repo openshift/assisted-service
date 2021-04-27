@@ -26,10 +26,11 @@ import (
 type ValidationStatus string
 
 const (
-	ValidationSuccess ValidationStatus = "success"
-	ValidationFailure ValidationStatus = "failure"
-	ValidationPending ValidationStatus = "pending"
-	ValidationError   ValidationStatus = "error"
+	ValidationSuccess  ValidationStatus = "success"
+	ValidationFailure  ValidationStatus = "failure"
+	ValidationPending  ValidationStatus = "pending"
+	ValidationError    ValidationStatus = "error"
+	ValidationDisabled ValidationStatus = "disabled"
 )
 
 var (
@@ -56,12 +57,12 @@ type validationContext struct {
 	clusterHostRequirements *models.ClusterHostRequirements
 }
 
-type validationConditon func(context *validationContext) ValidationStatus
+type validationCondition func(context *validationContext) ValidationStatus
 type validationStringFormatter func(context *validationContext, status ValidationStatus) string
 
 type validation struct {
 	id            validationID
-	condition     validationConditon
+	condition     validationCondition
 	formatter     validationStringFormatter
 	skippedStates []models.HostStage
 }

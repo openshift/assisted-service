@@ -128,7 +128,6 @@ var Options struct {
 	ServeHTTPS                  bool          `envconfig:"SERVE_HTTPS" default:"false"`
 	HTTPSKeyFile                string        `envconfig:"HTTPS_KEY_FILE" default:""`
 	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
-	DisabledHostValidations     []string      `envconfig:"DISABLED_HOST_VALIDATIONS" default:""`
 }
 
 func InitLogs() *logrus.Entry {
@@ -298,7 +297,7 @@ func main() {
 	failOnError(autoMigrationWithLeader(autoMigrationLeader, db, log), "Failed auto migration process")
 
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
-		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager, Options.DisabledHostValidations)
+		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
