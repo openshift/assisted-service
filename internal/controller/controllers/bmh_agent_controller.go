@@ -134,9 +134,10 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// Let's reconcile the BMH
 	result := r.reconcileBMH(ctx, bmh)
 	if result.Dirty() {
+		r.Log.Debugf("Updating dirty BMH %v", bmh)
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
-			r.Log.WithError(err).Errorf("Error updating hardwaredetails")
+			r.Log.WithError(err).Errorf("Error updating after BMH reconcile")
 			return reconcileError{err}.Result()
 		}
 
@@ -366,8 +367,10 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 	}
 
 	r.Log.Debugf("Started BMH reconcile for %s/%s", bmh.Namespace, bmh.Name)
+	r.Log.Debugf("BMH value %v", bmh)
 
 	for ann, value := range bmh.Labels {
+		r.Log.Debugf("BMH label %s value %s", ann, value)
 
 		// Find the `BMH_INSTALL_ENV_LABEL`, get the infraEnv configured in it
 		// and copy the ISO Url from the InfraEnv to the BMH resource.
@@ -376,7 +379,10 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 			// TODO: Watch for the InfraEnv resource and do the reconcile
 			// when the required data is there.
 			// https://github.com/openshift/assisted-service/pull/1279/files#r604213425
+
+			r.Log.Debugf("Loading InfraEnv %s", value)
 			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, infraEnv); err != nil {
+				r.Log.WithError(err).Errorf("failed to get infraEnv resource %s/%s", bmh.Namespace, value)
 				return reconcileError{client.IgnoreNotFound(err)}
 			}
 
@@ -387,6 +393,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 				return reconcileRequeue{time.Minute}
 			}
 
+			r.Log.Debugf("Setting attributes in BMH")
 			// We'll just overwrite this at this point
 			// since the nullness and emptyness checks
 			// are done at the beginning of this function.
