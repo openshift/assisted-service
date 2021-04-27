@@ -325,7 +325,7 @@ func main() {
 	} else {
 		crdUtils = controllers.NewDummyCRDUtils()
 	}
-	if Options.EnableDeregisterInactiveGC || Options.EnableDeletedUnregisteredGC {
+	if !Options.EnableKubeAPI && (Options.EnableDeregisterInactiveGC || Options.EnableDeletedUnregisteredGC) {
 		gc := garbagecollector.NewGarbageCollectors(Options.GCConfig, db, log.WithField("pkg", "garbage_collector"), hostApi, clusterApi, objectHandler, lead)
 
 		if Options.EnableDeregisterInactiveGC {
