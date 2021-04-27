@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/mocks"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
@@ -35,6 +36,7 @@ var (
 	manager      *operators.Manager
 	ctrl         *gomock.Controller
 	manifestsAPI *mocks.MockManifestsAPI
+	mockS3Api    *s3wrapper.MockAPI
 )
 
 var _ = BeforeEach(func() {
@@ -57,7 +59,8 @@ var _ = BeforeEach(func() {
 
 	ctrl = gomock.NewController(GinkgoT())
 	manifestsAPI = mocks.NewMockManifestsAPI(ctrl)
-	manager = operators.NewManager(log, manifestsAPI, operators.Options{})
+	mockS3Api = s3wrapper.NewMockAPI(ctrl)
+	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockS3Api)
 })
 
 var _ = AfterEach(func() {
@@ -69,6 +72,7 @@ var _ = Describe("Operators manager", func() {
 		It("Check YAMLs of all supported OLM operators", func() {
 			cluster.MonitoredOperators = manager.GetSupportedOperatorsByType(models.OperatorTypeOlm)
 
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).DoAndReturn(
 				func(ctx context.Context, params operations.CreateClusterManifestParams) middleware.Responder {
 					manifestContent, err := base64.StdEncoding.DecodeString(*params.CreateManifestParams.Content)
@@ -84,32 +88,35 @@ var _ = Describe("Operators manager", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		It("should create 10 manifests (OCS + LSO) using the manifest API", func() {
+		It("should create 8 manifests (OCS + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&ocs.Operator,
 				&lso.Operator,
 			}
 
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 5 manifests (LSO) using the manifest API", func() {
+		It("should create 4 manifests (LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&lso.Operator,
 			}
 
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(5)
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(3)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 
-		It("should create 10 manifests (CNV + LSO) using the manifest API", func() {
+		It("should create 8 manifests (CNV + LSO) using the manifest API", func() {
 			cluster.MonitoredOperators = []*models.MonitoredOperator{
 				&cnv.Operator,
 				&lso.Operator,
 			}
 
-			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(10)
+			mockS3Api.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsAPI.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(6)
 			Expect(manager.GenerateManifests(ctx, cluster)).ShouldNot(HaveOccurred())
 		})
 	})
@@ -268,7 +275,7 @@ var _ = Describe("Operators manager", func() {
 			operator1 = mockOperatorBase(operatorName1)
 			operator2 = mockOperatorBase(operatorName2)
 			cluster.MonitoredOperators = models.MonitoredOperatorsList{{Name: operatorName1}, {Name: operatorName2}}
-			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, operator1, operator2)
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, operator1, operator2)
 			host = &models.Host{}
 		})
 		It("should be provided for configured operators", func() {
@@ -317,7 +324,7 @@ var _ = Describe("Operators manager", func() {
 		BeforeEach(func() {
 			operator1 = mockOperatorBase(operatorName1)
 			operator2 = mockOperatorBase(operatorName2)
-			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, operator1, operator2)
+			manager = operators.NewManagerWithOperators(log, manifestsAPI, operators.Options{}, nil, operator1, operator2)
 		})
 		It("should be provided for configured operators", func() {
 			requirements1 := models.OperatorHardwareRequirements{OperatorName: operatorName1}

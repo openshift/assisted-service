@@ -5,12 +5,14 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"path"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/pkg/errors"
@@ -18,12 +20,15 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const customManifestFile = "custom_manifests.yaml"
+
 // Manager is responsible for performing operations against additional operators
 type Manager struct {
 	log                logrus.FieldLogger
 	olmOperators       map[string]api.Operator
 	monitoredOperators map[string]*models.MonitoredOperator
 	manifestsAPI       restapi.ManifestsAPI
+	objectHandler      s3wrapper.API
 }
 
 // API defines Operator management operation
@@ -97,6 +102,7 @@ func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
 func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
+	customManifest := ""
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
@@ -105,31 +111,53 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 
 		operator := mgr.olmOperators[clusterOperator.Name]
 		if operator != nil {
-			manifests, err := operator.GenerateManifests(cluster)
+			openshiftManifests, manifests, err := operator.GenerateManifests(cluster)
 			if err != nil {
 				mgr.log.Error(fmt.Sprintf("Cannot generate %s manifests due to ", clusterOperator.Name), err)
 				return err
 			}
-			for k, v := range manifests {
-				err = mgr.createManifests(ctx, cluster, k, v)
+			for k, v := range openshiftManifests {
+				err = mgr.createManifests(ctx, cluster, k, v, models.ManifestFolderOpenshift)
 				if err != nil {
 					return err
 				}
 			}
+
+			for _, v := range manifests {
+				customManifest = fmt.Sprintf("%s---\n%s\n", customManifest, v)
+			}
+
+		}
+	}
+
+	if customManifest != "" {
+		if err := mgr.createCustomManifest(ctx, cluster, customManifest); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte) error {
+// createCustomManifest create a file called custom_manifests.yaml, which is later obtained by the
+// assisted-installer-controller, which apply this manifest file after the OLM is deployed,
+// so user can provide here even CRs provisioned by the OLM.
+func (mgr *Manager) createCustomManifest(ctx context.Context, cluster *common.Cluster, content string) error {
+	objectFileName := path.Join(string(*cluster.ID), customManifestFile)
+	if err := mgr.objectHandler.Upload(ctx, []byte(content), objectFileName); err != nil {
+		return errors.Errorf("Failed to upload custom manifests for cluster %s", cluster.ID)
+	}
+	return nil
+}
+
+func (mgr *Manager) createManifests(ctx context.Context, cluster *common.Cluster, filename string, content []byte, folder string) error {
 	// all relevant logs of creating manifest will be inside CreateClusterManifest
 	response := mgr.manifestsAPI.CreateClusterManifest(ctx, operations.CreateClusterManifestParams{
 		ClusterID: *cluster.ID,
 		CreateManifestParams: &models.CreateManifestParams{
 			Content:  swag.String(base64.StdEncoding.EncodeToString(content)),
 			FileName: &filename,
-			Folder:   swag.String(models.ManifestFolderOpenshift),
+			Folder:   swag.String(folder),
 		},
 	})
 

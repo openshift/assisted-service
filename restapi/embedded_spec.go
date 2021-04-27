@@ -1319,7 +1319,8 @@ func init() {
               "kubeconfig",
               "kubeconfig-noingress",
               "install-config.yaml",
-              "discovery.ign"
+              "discovery.ign",
+              "custom_manifests.yaml"
             ],
             "type": "string",
             "description": "The file to be downloaded.",
@@ -9087,7 +9088,8 @@ func init() {
               "kubeconfig",
               "kubeconfig-noingress",
               "install-config.yaml",
-              "discovery.ign"
+              "discovery.ign",
+              "custom_manifests.yaml"
             ],
             "type": "string",
             "description": "The file to be downloaded.",

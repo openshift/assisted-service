@@ -96,10 +96,11 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 	const inventory1 = `{"bmc_address":"0.0.0.0","bmc_v6address":"::/0","boot":{"current_boot_mode":"bios"},"cpu":{"architecture":"x86_64","count":4,"flags":["fpu","vme","de","pse","tsc","msr","pae","mce","cx8","apic","sep","mtrr","pge","mca","cmov","pat","pse36","clflush","mmx","fxsr","sse","sse2","ss","syscall","nx","pdpe1gb","rdtscp","lm","constant_tsc","arch_perfmon","rep_good","nopl","xtopology","cpuid","tsc_known_freq","pni","pclmulqdq","vmx","ssse3","fma","cx16","pcid","sse4_1","sse4_2","x2apic","movbe","popcnt","tsc_deadline_timer","aes","xsave","avx","f16c","rdrand","hypervisor","lahf_lm","abm","3dnowprefetch","cpuid_fault","invpcid_single","pti","ssbd","ibrs","ibpb","stibp","tpr_shadow","vnmi","flexpriority","ept","vpid","ept_ad","fsgsbase","tsc_adjust","bmi1","hle","avx2","smep","bmi2","erms","invpcid","rtm","mpx","avx512f","avx512dq","rdseed","adx","smap","clflushopt","clwb","avx512cd","avx512bw","avx512vl","xsaveopt","xsavec","xgetbv1","xsaves","arat","umip","pku","ospke","md_clear","arch_capabilities"],"frequency":2095.076,"model_name":"Intel(R) Xeon(R) Gold 6152 CPU @ 2.10GHz"},"disks":[{"by_path":"/dev/disk/by-path/pci-0000:00:06.0","drive_type":"HDD","model":"unknown","name":"vda","path":"/dev/vda","serial":"unknown","size_bytes":21474836480,"vendor":"0x1af4","wwn":"unknown"}],"hostname":"test-infra-cluster-master-1.redhat.com","interfaces":[{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.126.11/24"],"ipv6_addresses":["fe80::5054:ff:fe42:1e8d/64"],"mac_address":"52:54:00:42:1e:8d","mtu":1500,"name":"eth0","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"},{"flags":["up","broadcast","multicast"],"has_carrier":true,"ipv4_addresses":["192.168.140.133/24"],"ipv6_addresses":["fe80::5054:ff:feca:7b16/64"],"mac_address":"52:54:00:ca:7b:16","mtu":1500,"name":"eth1","product":"0x0001","speed_mbps":-1,"vendor":"0x1af4"}],"memory":{"physical_bytes":17809014784,"usable_bytes":17378611200},"system_vendor":{"manufacturer":"Red Hat","product_name":"KVM"}}`
 
 	var (
-		err         error
-		examplePath string
-		bmh         *bmh_v1alpha1.BareMetalHost
-		config      config_32_types.Config
+		err          error
+		examplePath  string
+		bmh          *bmh_v1alpha1.BareMetalHost
+		config       config_32_types.Config
+		mockS3Client *s3wrapper.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -107,6 +108,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		examplePath = filepath.Join(workDir, "example1.ign")
 		err1 = ioutil.WriteFile(examplePath, []byte(bootstrap1), 0600)
 		Expect(err1).NotTo(HaveOccurred())
+		mockS3Client = s3wrapper.NewMockAPI(ctrl)
 
 		cluster.Hosts = []*models.Host{
 			{
@@ -115,7 +117,7 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 				Role:              models.HostRoleMaster,
 			},
 		}
-		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", nil, log, mockOperatorManager).(*installerGenerator)
+		g := NewGenerator(workDir, installerCacheDir, cluster, "", "", "", "", mockS3Client, log, mockOperatorManager).(*installerGenerator)
 		err = g.updateBootstrap(examplePath)
 
 		bootstrapBytes, _ := ioutil.ReadFile(examplePath)
