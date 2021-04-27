@@ -195,13 +195,13 @@ spec:
 
 ### Creating host ignition config overrides
 
-In case of failure to apply the overrides the agent conditions will reflect the error and show the relevant error message. 
+In case of failure to apply the overrides, the agent conditions will reflect the error and show the relevant error message. 
 
 Add an annotation with the desired options, the bmac controller will update the agent spec with the annotation value.
 Then agent controller will forward it to host configuration.
 Note that this configuration must be applied prior to starting the installation
 ```sh
-$ kubectl annotate bmh openshift-worker-0 -n assisted-installer bmac.adi.openshift.io/ignition-config-overrides="{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
+$ kubectl annotate bmh openshift-worker-0 -n assisted-installer bmac.agent-install.openshift.io/ignition-config-overrides="{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
 baremetalhost.metal3.io/openshift-worker-0 annotated
 ```
 
@@ -213,7 +213,7 @@ apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
   annotations:
-    bmac.adi.openshift.io/ignition-config-overrides: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
+    bmac.agent-install.openshift.io/ignition-config-overrides: '{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}'
   creationTimestamp: "2021-04-14T10:46:57Z"
   generation: 1
   name: openshift-worker-0
