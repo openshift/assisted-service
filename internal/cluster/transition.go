@@ -137,6 +137,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 		return err
 	} else {
 		sCluster.cluster = cluster
+		params.updatedCluster = cluster
 		return nil
 	}
 }
@@ -272,6 +273,7 @@ type TransitionArgsRefreshCluster struct {
 	clusterAPI        API
 	ocmClient         *ocm.Client
 	dnsApi            dns.DNSApi
+	updatedCluster    *common.Cluster
 }
 
 func If(id stringer) stateswitch.Condition {
@@ -358,10 +360,15 @@ func (th *transitionHandler) PostUpdateFinalizingAMSConsoleUrl(sw stateswitch.St
 		return err
 	}
 	isAmsSubscriptionConsoleUrlSetField := "is_ams_subscription_console_url_set"
-	if _, err := UpdateCluster(log, th.db, *sCluster.cluster.ID, sCluster.srcState, isAmsSubscriptionConsoleUrlSetField, true); err != nil {
+	var (
+		updatedCluster *common.Cluster
+		err            error
+	)
+	if updatedCluster, err = UpdateCluster(log, th.db, *sCluster.cluster.ID, sCluster.srcState, isAmsSubscriptionConsoleUrlSetField, true); err != nil {
 		log.WithError(err).Errorf("Failed to update %s in cluster DB", isAmsSubscriptionConsoleUrlSetField)
 		return err
 	}
+	params.updatedCluster = updatedCluster
 	log.Infof("Updated console-url in AMS subscription with id %s", subscriptionID)
 	return nil
 }
@@ -429,6 +436,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		cluster := sCluster.cluster
 		if updatedCluster != nil {
 			cluster = updatedCluster
+			params.updatedCluster = updatedCluster
 		}
 		setPendingUserResetIfNeeded(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, params.hostApi, cluster)
 
