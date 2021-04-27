@@ -31,7 +31,7 @@ type FSClient struct {
 	isoEditorFactory isoeditor.Factory
 }
 
-func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory, metricsAPI metrics.API) *FSClientDecorator {
+func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory, metricsAPI metrics.API, fsThreshold int) *FSClientDecorator {
 	return &FSClientDecorator{
 		log:        logger,
 		metricsAPI: metricsAPI,
@@ -41,6 +41,10 @@ func NewFSClient(basedir string, logger logrus.FieldLogger, versionsHandler vers
 			versionsHandler:  versionsHandler,
 			isoEditorFactory: isoEditorFactory,
 		},
+		fsUsageThreshold:              fsThreshold,
+		timeFSUsageLog:                time.Now().Add(-1 * time.Hour),
+		loggingIntervalBelowThreshold: 1 * int64(time.Hour),
+		loggingIntervalAboveThreshold: 5 * int64(time.Minute),
 	}
 }
 
@@ -412,9 +416,37 @@ func (f *FSClient) GetMinimalIsoObjectName(openshiftVersion string) (string, err
 }
 
 type FSClientDecorator struct {
-	log        logrus.FieldLogger
-	fsClient   FSClient
-	metricsAPI metrics.API
+	log                           logrus.FieldLogger
+	fsClient                      FSClient
+	metricsAPI                    metrics.API
+	fsUsageThreshold              int
+	lastFSUsage                   float64
+	timeFSUsageLog                time.Time
+	loggingIntervalBelowThreshold int64
+	loggingIntervalAboveThreshold int64
+}
+
+func (d *FSClientDecorator) shouldLog() bool {
+	var pauseBetweenLogs int64
+	if d.fsUsageThreshold < int(d.lastFSUsage) {
+		pauseBetweenLogs = d.loggingIntervalAboveThreshold
+	} else {
+		pauseBetweenLogs = d.loggingIntervalBelowThreshold
+	}
+	return int64(time.Since(d.timeFSUsageLog)) > pauseBetweenLogs
+}
+
+func (d *FSClientDecorator) conditionalLog(msg string, logLevel logrus.Level, fixedPercentage float64) {
+	if d.lastFSUsage != fixedPercentage && d.shouldLog() {
+		switch logLevel {
+		case logrus.WarnLevel:
+			d.log.Warn(msg)
+		default:
+			d.log.Info(msg)
+		}
+		d.lastFSUsage = fixedPercentage
+		d.timeFSUsageLog = time.Now()
+	}
 }
 
 func (d *FSClientDecorator) reportFilesystemUsageMetrics() {
@@ -427,7 +459,13 @@ func (d *FSClientDecorator) reportFilesystemUsageMetrics() {
 	}
 	percentage := (float64(stat.Blocks-stat.Bfree) / float64(stat.Blocks)) * 100
 	fixedPercentage := math.Floor(percentage*10) / 10
-	d.log.Infof("Filesystem '%s' usage is %.1f%%", basedir, fixedPercentage)
+	if fixedPercentage >= float64(d.fsUsageThreshold) {
+		msg := fmt.Sprintf("Filesystem '%s' usage is %.1f%% which exceeds threshold %d%%", basedir, fixedPercentage, d.fsUsageThreshold)
+		d.conditionalLog(msg, logrus.WarnLevel, fixedPercentage)
+	} else {
+		msg := fmt.Sprintf("Filesystem '%s' usage is %.1f%%", basedir, fixedPercentage)
+		d.conditionalLog(msg, logrus.InfoLevel, fixedPercentage)
+	}
 	d.metricsAPI.FileSystemUsage(fixedPercentage)
 }
 
