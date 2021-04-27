@@ -379,10 +379,31 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		return reply
 	}
 
+	mapClusterDeploymentToInfraEnv := func(clusterDeployment client.Object) []reconcile.Request {
+		infraEnvs := &aiv1beta1.InfraEnvList{}
+		if err := r.List(context.Background(), infraEnvs, client.InNamespace(clusterDeployment.GetNamespace())); err != nil {
+			r.Log.Debugf("failed to list InfraEnvs")
+			return []reconcile.Request{}
+		}
+
+		reply := make([]reconcile.Request, 0, len(infraEnvs.Items))
+		for _, infraEnv := range infraEnvs.Items {
+			if infraEnv.Spec.ClusterRef.Name == clusterDeployment.GetName() &&
+				infraEnv.Spec.ClusterRef.Namespace == clusterDeployment.GetNamespace() {
+				reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
+					Namespace: infraEnv.Namespace,
+					Name:      infraEnv.Name,
+				}})
+			}
+		}
+		return reply
+	}
+
 	infraEnvUpdates := r.CRDEventsHandler.GetInfraEnvUpdates()
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.InfraEnv{}).
 		Watches(&source.Kind{Type: &aiv1beta1.NMStateConfig{}}, handler.EnqueueRequestsFromMapFunc(mapNMStateConfigToInfraEnv)).
+		Watches(&source.Kind{Type: &hivev1.ClusterDeployment{}}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToInfraEnv)).
 		Watches(&source.Channel{Source: infraEnvUpdates}, &handler.EnqueueRequestForObject{}).
 		Complete(r)
 }
