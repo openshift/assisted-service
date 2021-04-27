@@ -607,7 +607,7 @@ func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMe
 	agents := []*aiv1beta1.Agent{}
 	for i, agent := range agentList.Items {
 		for _, agentInterface := range agent.Status.Inventory.Interfaces {
-			if strings.EqualFold(bmh.Spec.BootMACAddress, agentInterface.MacAddress) {
+			if agentInterface.MacAddress != "" && strings.EqualFold(bmh.Spec.BootMACAddress, agentInterface.MacAddress) {
 				agents = append(agents, &agentList.Items[i])
 			}
 		}
@@ -637,7 +637,7 @@ func (r *BMACReconciler) findBMH(ctx context.Context, agent *aiv1beta1.Agent) (*
 
 	for _, bmh := range bmhList.Items {
 		for _, agentInterface := range agent.Status.Inventory.Interfaces {
-			if strings.EqualFold(bmh.Spec.BootMACAddress, agentInterface.MacAddress) {
+			if agentInterface.MacAddress != "" && strings.EqualFold(bmh.Spec.BootMACAddress, agentInterface.MacAddress) {
 				return &bmh, nil
 			}
 		}
