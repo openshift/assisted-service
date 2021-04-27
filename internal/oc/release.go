@@ -137,7 +137,8 @@ func (r *release) getOpenshiftVersionFromRelease(log logrus.FieldLogger, release
 	if err != nil {
 		return "", err
 	}
-	return version, nil
+	// Trimming as output is retrieved wrapped with single quotes.
+	return strings.Trim(version, "'"), nil
 }
 
 // Extract openshift-baremetal-install binary from releaseImageMirror if provided.

@@ -268,6 +268,12 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 		isoParams.ImageCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
+	// Add openshift version to ensure it isn't missing in versions cache
+	_, err = r.Installer.AddOpenshiftVersion(ctx, cluster.OcpReleaseImage, cluster.PullSecret)
+	if err != nil {
+		return r.handleEnsureISOErrors(ctx, infraEnv, err)
+	}
+
 	// GenerateClusterISOInternal will generate an ISO only if there it was not generated before,
 	// or something has changed in isoParams.
 	updatedCluster, inventoryErr = r.Installer.GenerateClusterISOInternal(ctx, isoParams)

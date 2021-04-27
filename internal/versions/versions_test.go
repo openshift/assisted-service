@@ -2,6 +2,8 @@ package versions
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -33,6 +35,23 @@ var defaultOpenShiftVersions = models.OpenshiftVersions{
 		DisplayName: swag.String("4.6-candidate"), ReleaseImage: swag.String("release_4.6"),
 		RhcosImage: swag.String("rhcos_4.6"), RhcosVersion: swag.String("version-46.123-0"),
 		SupportLevel: swag.String("newbie"),
+	},
+}
+
+var customOpenShiftVersions = models.OpenshiftVersions{
+	"4.7": models.OpenshiftVersion{
+		RhcosImage:     swag.String("rhcos_4.7.0"),
+		RhcosVersion:   swag.String("version-47.123-0"),
+		ReleaseVersion: nil, DisplayName: nil, ReleaseImage: nil, SupportLevel: nil,
+	},
+}
+
+var supportedCustomOpenShiftVersions = models.OpenshiftVersions{
+	"4.8": models.OpenshiftVersion{
+		DisplayName:  swag.String("4.8.0"),
+		ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8.0"),
+		RhcosImage: swag.String("rhcos_4.8"), RhcosVersion: swag.String("version-48.123-0"),
+		SupportLevel: swag.String(models.OpenshiftVersionSupportLevelCustom),
 	},
 }
 
@@ -200,18 +219,184 @@ var _ = Describe("list versions", func() {
 		})
 	})
 
-	Context("IsOpenshiftVersionSupported", func() {
-		It("positive", func() {
-			h := NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+	Context("GetReleaseVersion", func() {
+		var (
+			releaseVersion string
+			ocpSemVer      string
+			err            error
+		)
 
+		BeforeEach(func() {
+			openshiftVersions = &defaultOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+		})
+
+		It("default", func() {
+			for key := range *openshiftVersions {
+				releaseVersion, err = h.GetReleaseVersion(key)
+				Expect(err).ShouldNot(HaveOccurred())
+				ocpSemVer, err = h.GetOCPSemVer(key)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(releaseVersion).Should(Equal(ocpSemVer))
+			}
+		})
+
+		It("unsupported_key", func() {
+			releaseVersion, err = h.GetReleaseVersion("unsupported")
+			Expect(err).Should(HaveOccurred())
+			Expect(releaseVersion).Should(BeEmpty())
+		})
+
+		It("release version exists", func() {
+			openshiftVersions = &supportedCustomOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			for key := range *openshiftVersions {
+				releaseVersion, err = h.GetReleaseVersion(key)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(releaseVersion).Should(Equal(*(*openshiftVersions)[key].ReleaseVersion))
+			}
+		})
+	})
+
+	Context("GetVersion", func() {
+		var (
+			version *models.OpenshiftVersion
+			err     error
+		)
+
+		BeforeEach(func() {
+			openshiftVersions = &supportedCustomOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+		})
+
+		It("default", func() {
+			for key := range *openshiftVersions {
+				version, err = h.GetVersion(key)
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(*version).Should(Equal((*openshiftVersions)[key]))
+			}
+		})
+
+		It("unsupported_key", func() {
+			version, err = h.GetVersion("unsupported")
+			Expect(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("GetOCPSemVer", func() {
+		BeforeEach(func() {
+			openshiftVersions = &defaultOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+		})
+
+		It("positive", func() {
+			for key := range *openshiftVersions {
+				Expect(h.GetOCPSemVer(key)).Should(Equal(key + ".0"))
+			}
+		})
+
+		It("negative", func() {
+			_, err := h.GetOCPSemVer("unknown")
+			Expect(err).Should(HaveOccurred())
+		})
+	})
+
+	Context("IsOpenshiftVersionSupported", func() {
+		BeforeEach(func() {
+			openshiftVersions = &defaultOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+		})
+
+		It("positive", func() {
 			for key := range *openshiftVersions {
 				Expect(h.IsOpenshiftVersionSupported(key)).Should(BeTrue())
 			}
 		})
 
 		It("negative", func() {
-			h := NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
 			Expect(h.IsOpenshiftVersionSupported("unknown")).Should(BeFalse())
+		})
+	})
+
+	Context("AddOpenshiftVersion", func() {
+		var (
+			pullSecret       = "test_pull_secret"
+			releaseImage     = "releaseImage"
+			ocpVersion       = "4.7.0"
+			keyVersion       = "4.7"
+			customOcpVersion = "4.8.0"
+		)
+
+		It("added version successfully", func() {
+			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, "")
+			mockRelease.EXPECT().GetOpenshiftVersion(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
+
+			version, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			versionKey, err := h.GetKey(ocpVersion)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			versionFromCache := h.openshiftVersions[versionKey]
+			Expect(*version.DisplayName).Should(Equal(ocpVersion))
+			Expect(h.GetReleaseVersion(keyVersion)).Should(Equal(ocpVersion))
+			Expect(h.GetReleaseImage(keyVersion)).Should(Equal(releaseImage))
+			Expect(h.GetRHCOSImage(keyVersion)).Should(Equal(*versionFromCache.RhcosImage))
+			Expect(h.GetRHCOSVersion(keyVersion)).Should(Equal(*versionFromCache.RhcosVersion))
+			Expect(*version.SupportLevel).Should(Equal(models.OpenshiftVersionSupportLevelCustom))
+		})
+
+		It("override version successfully", func() {
+			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, "")
+			mockRelease.EXPECT().GetOpenshiftVersion(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
+
+			_, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(h.GetReleaseImage(keyVersion)).Should(Equal(releaseImage))
+
+			// Override version with a new release image
+			releaseImage = "newReleaseImage"
+			_, err = h.AddOpenshiftVersion(releaseImage, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(h.GetReleaseImage(keyVersion)).Should(Equal(releaseImage))
+		})
+
+		It("keep support level from cache", func() {
+			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, "")
+			mockRelease.EXPECT().GetOpenshiftVersion(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
+
+			version, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			versionKey, err := h.GetKey(customOcpVersion)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			versionFromCache := h.openshiftVersions[versionKey]
+			Expect(*version.SupportLevel).Should(Equal(*versionFromCache.SupportLevel))
+		})
+
+		It("failed getting version from release", func() {
+			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, "")
+			mockRelease.EXPECT().GetOpenshiftVersion(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("invalid")).AnyTimes()
+
+			_, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			Expect(err).Should(HaveOccurred())
+		})
+
+		It("missing from OPENSHIFT_VERSIONS", func() {
+			h := NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, "")
+			mockRelease.EXPECT().GetOpenshiftVersion(
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
+
+			_, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			Expect(err).Should(HaveOccurred())
+
+			versionKey, _ := h.GetKey(ocpVersion)
+			Expect(err.Error()).Should(Equal(fmt.Sprintf("OCP version is not specified in OPENSHIFT_VERSIONS: %s", versionKey)))
 		})
 	})
 })
@@ -232,21 +417,21 @@ var _ = Describe("list versions", func() {
 	})
 
 	It("positive", func() {
-		res, err := h.GetSupportedVersionFormat("4.6")
+		res, err := h.GetKey("4.6")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(res).Should(Equal("4.6"))
 
-		res, err = h.GetSupportedVersionFormat("4.6.9")
+		res, err = h.GetKey("4.6.9")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(res).Should(Equal("4.6"))
 
-		res, err = h.GetSupportedVersionFormat("4.6.9-beta")
+		res, err = h.GetKey("4.6.9-beta")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(res).Should(Equal("4.6"))
 	})
 
 	It("negative", func() {
-		res, err := h.GetSupportedVersionFormat("ere.654.45")
+		res, err := h.GetKey("ere.654.45")
 		Expect(err).Should(HaveOccurred())
 		Expect(res).Should(Equal(""))
 	})

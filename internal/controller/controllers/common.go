@@ -100,3 +100,16 @@ func generatePassword(length int) (string, error) {
 
 	return string(password), nil
 }
+
+func getReleaseImage(ctx context.Context, c client.Client, imageSetName string) (string, error) {
+	clusterImageSet := &hivev1.ClusterImageSet{}
+	key := types.NamespacedName{
+		Namespace: "",
+		Name:      imageSetName,
+	}
+	if err := c.Get(ctx, key, clusterImageSet); err != nil {
+		return "", errors.Wrapf(err, "failed to get cluster image set %s", key)
+	}
+
+	return clusterImageSet.Spec.ReleaseImage, nil
+}
