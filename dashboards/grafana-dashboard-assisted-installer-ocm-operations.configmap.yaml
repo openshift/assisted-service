@@ -25,8 +25,8 @@ data:
       "editable": true,
       "gnetId": null,
       "graphTooltip": 0,
-      "id": 9,
-      "iteration": 1618918089967,
+      "id": 10,
+      "iteration": 1619521850436,
       "links": [],
       "panels": [
         {
@@ -90,7 +90,7 @@ data:
               "expr": "sum(rate(service_assisted_installer_operation_duration_miliseconds_sum{}[5m])) by (operation)/ sum(rate(service_assisted_installer_operation_duration_miliseconds_count{}[5m])) by (operation)",
               "hide": false,
               "interval": "",
-              "legendFormat": "{{operation}}",
+              "legendFormat": "{operation}}",
               "refId": "D"
             }
           ],
@@ -148,10 +148,10 @@ data:
           "steppedLine": false,
           "targets": [
             {
-              "expr": "sum(rate(service_assisted_installer_operation_duration_miliseconds_bucket{le!=\"+Inf\"}[5m])) by (operation)",
+              "expr": "sum(rate(service_assisted_installer_operation_duration_miliseconds_count[$__rate_interval])) by (operation)",
               "hide": false,
               "interval": "",
-              "legendFormat": "{{operation}}",
+              "legendFormat": "{operation}}",
               "refId": "A"
             }
           ],
@@ -245,5 +245,5 @@ data:
       "timezone": "",
       "title": "OCM Operations",
       "uid": "ocm-operations",
-      "version": 5
+      "version": 4
     }
