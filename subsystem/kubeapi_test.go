@@ -1492,7 +1492,7 @@ var _ = Describe("bmac reconcile flow", func() {
 	Context("sno reconcile flow", func() {
 		It("reconciles the infraenv", func() {
 			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-			bmh.SetLabels(map[string]string{controllers.BMH_INSTALL_ENV_LABEL: infraNsName.Name})
+			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
 
 			Eventually(func() bool {
@@ -1509,7 +1509,7 @@ var _ = Describe("bmac reconcile flow", func() {
 			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
 			agent := getAgentCRD(ctx, kubeClient, agentNsName)
 			bmh.Spec.BootMACAddress = getAgentMac(agent)
-			bmh.SetLabels(map[string]string{controllers.BMH_INSTALL_ENV_LABEL: infraNsName.Name})
+			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
 
 			Eventually(func() bool {
