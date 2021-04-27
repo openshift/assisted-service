@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -28,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -306,6 +308,9 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 
 	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
 	deployment, mutateFn := r.newAssistedServiceDeployment(instance, serviceURL)
+	if err != nil {
+		return err
+	}
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, mutateFn); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -561,6 +566,7 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.Age
 }
 
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
+	openshiftVersions := r.getOpenshiftVersions(instance)
 
 	// User is responsible for knowing to restart assisted-service
 	var envFrom []corev1.EnvFromSource
@@ -598,7 +604,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		{Name: "CONTROLLER_IMAGE", Value: ControllerImage()},
 		{Name: "INSTALLER_IMAGE", Value: InstallerImage()},
 		{Name: "SELF_VERSION", Value: ServiceImage()},
-		{Name: "OPENSHIFT_VERSIONS", Value: OpenshiftVersions()},
+		{Name: "OPENSHIFT_VERSIONS", Value: openshiftVersions},
 
 		{Name: "ISO_IMAGE_TYPE", Value: "minimal-iso"},
 		{Name: "S3_USE_SSL", Value: "false"},
@@ -835,6 +841,30 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		return nil
 	}
 	return deployment, mutateFn
+}
+
+func (r *AgentServiceConfigReconciler) getOpenshiftVersions(instance *aiv1beta1.AgentServiceConfig) (string) {
+	if instance.Spec.OSImages == nil {
+		return OpenshiftVersions()
+	}
+
+	versions := make(models.OpenshiftVersions)
+	for _, image := range instance.Spec.OSImages {
+		version := models.OpenshiftVersion{
+			RhcosVersion: &image.Version,
+			RhcosImage:   &image.Url,
+		}
+		// The last entry for a particular OpenShift version takes precedence.
+		versions[image.OpenshiftVersion] = version
+	}
+
+	encodedVersions, err := json.Marshal(versions)
+	if err != nil {
+		r.Log.Info("Problem marshaling versions (%v) to string, returning default %v", versions, OpenshiftVersions())
+		return OpenshiftVersions()
+	}
+
+	return string(encodedVersions)
 }
 
 func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {

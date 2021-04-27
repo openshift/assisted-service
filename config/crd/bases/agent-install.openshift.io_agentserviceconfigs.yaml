@@ -303,6 +303,32 @@ spec:
                       TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
+              osImages:
+                description: OSImages defines a collection of Operating System images
+                  (ie. RHCOS images) that the assisted-service should use as the base
+                  when generating discovery ISOs.
+                items:
+                  description: OSImage defines an Operating System image and the OpenShift
+                    version it is associated with.
+                  properties:
+                    openshiftVersion:
+                      description: OpenshiftVersion is the Major.Minor version of
+                        OpenShift that this image is to be associated with.
+                      type: string
+                    url:
+                      description: Url specifies the path to the Operating System
+                        image.
+                      type: string
+                    version:
+                      description: Version is the Operating System version of the
+                        image.
+                      type: string
+                  required:
+                  - openshiftVersion
+                  - url
+                  - version
+                  type: object
+                type: array
             required:
             - databaseStorage
             - filesystemStorage

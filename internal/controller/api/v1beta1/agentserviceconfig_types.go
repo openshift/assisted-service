@@ -22,6 +22,18 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// OSImage defines an Operating System image and the OpenShift version it
+// is associated with.
+type OSImage struct {
+	// OpenshiftVersion is the Major.Minor version of OpenShift that this image
+	// is to be associated with.
+	OpenshiftVersion string `json:"openshiftVersion"`
+	// Version is the Operating System version of the image.
+	Version string `json:"version"`
+	// Url specifies the path to the Operating System image.
+	Url string `json:"url"`
+}
+
 // AgentServiceConfigSpec defines the desired state of AgentServiceConfig
 type AgentServiceConfigSpec struct {
 	// FileSystemStorage defines the spec of the PersistentVolumeClaim to be
@@ -47,6 +59,11 @@ type AgentServiceConfigSpec struct {
 	// +optional
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Mirror Registry and Certificate ConfigMap Name"
 	MirrorRegistryRef *corev1.LocalObjectReference `json:"mirrorRegistryRef,omitempty"`
+
+	// OSImages defines a collection of Operating System images (ie. RHCOS images)
+	// that the assisted-service should use as the base when generating discovery ISOs.
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Operating System Images"
+	OSImages []OSImage `json:"osImages,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons
