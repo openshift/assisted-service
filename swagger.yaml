@@ -2648,6 +2648,13 @@ paths:
           type: string
           format: uuid
           required: false
+        - in: query
+          name: categories
+          description: A comma-separated list of event categories.
+          type: array
+          items:
+            type: string
+          required: false
       responses:
         "200":
           description: Success.
@@ -3441,7 +3448,11 @@ definitions:
         description: Unique identifier of the host this event relates to.
       severity:
         type: string
-        enum: [info, warning, error, critical, internal]
+        enum: [info, warning, error, critical]
+      category:
+        type: string
+        enum: ['user', 'metrics']
+        x-go-custom-tag: gorm:"default:'user'"
       message:
         type: string
         x-go-custom-tag: gorm:"type:varchar(4096)"

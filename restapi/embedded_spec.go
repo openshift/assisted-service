@@ -1845,6 +1845,15 @@ func init() {
             "description": "A host in the specified cluster to return events for.",
             "name": "host_id",
             "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A comma-separated list of event categories.",
+            "name": "categories",
+            "in": "query"
           }
         ],
         "responses": {
@@ -6132,6 +6141,14 @@ func init() {
         "event_time"
       ],
       "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "user",
+            "metrics"
+          ],
+          "x-go-custom-tag": "gorm:\"default:'user'\""
+        },
         "cluster_id": {
           "description": "Unique identifier of the cluster this event relates to.",
           "type": "string",
@@ -6168,8 +6185,7 @@ func init() {
             "info",
             "warning",
             "error",
-            "critical",
-            "internal"
+            "critical"
           ]
         }
       }
@@ -9434,6 +9450,15 @@ func init() {
             "format": "uuid",
             "description": "A host in the specified cluster to return events for.",
             "name": "host_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "A comma-separated list of event categories.",
+            "name": "categories",
             "in": "query"
           }
         ],
@@ -13790,6 +13815,14 @@ func init() {
         "event_time"
       ],
       "properties": {
+        "category": {
+          "type": "string",
+          "enum": [
+            "user",
+            "metrics"
+          ],
+          "x-go-custom-tag": "gorm:\"default:'user'\""
+        },
         "cluster_id": {
           "description": "Unique identifier of the cluster this event relates to.",
           "type": "string",
@@ -13826,8 +13859,7 @@ func init() {
             "info",
             "warning",
             "error",
-            "critical",
-            "internal"
+            "critical"
           ]
         }
       }

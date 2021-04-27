@@ -19,6 +19,10 @@ import (
 // swagger:model event
 type Event struct {
 
+	// category
+	// Enum: [user metrics]
+	Category string `json:"category,omitempty" gorm:"default:'user'"`
+
 	// Unique identifier of the cluster this event relates to.
 	// Required: true
 	// Format: uuid
@@ -46,13 +50,17 @@ type Event struct {
 
 	// severity
 	// Required: true
-	// Enum: [info warning error critical internal]
+	// Enum: [info warning error critical]
 	Severity *string `json:"severity"`
 }
 
 // Validate validates this event
 func (m *Event) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateCategory(formats); err != nil {
+		res = append(res, err)
+	}
 
 	if err := m.validateClusterID(formats); err != nil {
 		res = append(res, err)
@@ -81,6 +89,49 @@ func (m *Event) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+var eventTypeCategoryPropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["user","metrics"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		eventTypeCategoryPropEnum = append(eventTypeCategoryPropEnum, v)
+	}
+}
+
+const (
+
+	// EventCategoryUser captures enum value "user"
+	EventCategoryUser string = "user"
+
+	// EventCategoryMetrics captures enum value "metrics"
+	EventCategoryMetrics string = "metrics"
+)
+
+// prop value enum
+func (m *Event) validateCategoryEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, eventTypeCategoryPropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *Event) validateCategory(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Category) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateCategoryEnum("category", "body", m.Category); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -149,7 +200,7 @@ var eventTypeSeverityPropEnum []interface{}
 
 func init() {
 	var res []string
-	if err := json.Unmarshal([]byte(`["info","warning","error","critical","internal"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["info","warning","error","critical"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
@@ -170,9 +221,6 @@ const (
 
 	// EventSeverityCritical captures enum value "critical"
 	EventSeverityCritical string = "critical"
-
-	// EventSeverityInternal captures enum value "internal"
-	EventSeverityInternal string = "internal"
 )
 
 // prop value enum

@@ -12,6 +12,7 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/go-openapi/validate"
 )
 
@@ -31,6 +32,10 @@ type ListEventsParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*A comma-separated list of event categories.
+	  In: query
+	*/
+	Categories []string
 	/*The cluster to return events for.
 	  Required: true
 	  In: path
@@ -53,6 +58,11 @@ func (o *ListEventsParams) BindRequest(r *http.Request, route *middleware.Matche
 
 	qs := runtime.Values(r.URL.Query())
 
+	qCategories, qhkCategories, _ := qs.GetOK("categories")
+	if err := o.bindCategories(qCategories, qhkCategories, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	rClusterID, rhkClusterID, _ := route.Params.GetOK("cluster_id")
 	if err := o.bindClusterID(rClusterID, rhkClusterID, route.Formats); err != nil {
 		res = append(res, err)
@@ -66,6 +76,34 @@ func (o *ListEventsParams) BindRequest(r *http.Request, route *middleware.Matche
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindCategories binds and validates array parameter Categories from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *ListEventsParams) bindCategories(rawData []string, hasKey bool, formats strfmt.Registry) error {
+
+	var qvCategories string
+	if len(rawData) > 0 {
+		qvCategories = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	categoriesIC := swag.SplitByFormat(qvCategories, "")
+	if len(categoriesIC) == 0 {
+		return nil
+	}
+
+	var categoriesIR []string
+	for _, categoriesIV := range categoriesIC {
+		categoriesI := categoriesIV
+
+		categoriesIR = append(categoriesIR, categoriesI)
+	}
+
+	o.Categories = categoriesIR
+
 	return nil
 }
 

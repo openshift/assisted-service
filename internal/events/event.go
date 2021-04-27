@@ -17,16 +17,21 @@ import (
 //go:generate mockgen -source=event.go -package=events -destination=mock_event.go
 
 type Handler interface {
-	// AddEvents and an event for and entityID.
-	// Since events, might relate to multiple entities, for example:
-	//     host added to cluster, we have the host-id as the main entityID and
-	//     the cluster-id as another ID that this event should be related to
-	// otherEntities arguments provides for specifying mor IDs that are relevant for this event
+	//Add event record to the event table. Use the prop field to add list of arbitrary key value pairs
+	//when additional information is needed (for example: "vendor": "RedHat")
 	AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
-	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error)
+	//Add metric-related event. These events are hidden from the user and has 'metrics' Category field
+	AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{})
+	//Get a list of events. Events can be filtered by category. if no filter is specified,
+	//events with the default category are returned
+	GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error)
 }
 
 var _ Handler = &Events{}
+
+var DefaultEventCategories = []string{
+	models.EventCategoryUser,
+}
 
 type Events struct {
 	db  *gorm.DB
@@ -40,7 +45,7 @@ func New(db *gorm.DB, log logrus.FieldLogger) *Events {
 	}
 }
 
-func (e *Events) saveEvent(ctx context.Context, tx *gorm.DB, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, message string, t time.Time, requestID string, props ...interface{}) error {
+func (e *Events) saveEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, category string, severity string, message string, t time.Time, requestID string, props ...interface{}) error {
 	log := logutil.FromContext(ctx, e.log)
 	tt := strfmt.DateTime(t)
 	uid := clusterID
@@ -56,6 +61,7 @@ func (e *Events) saveEvent(ctx context.Context, tx *gorm.DB, clusterID strfmt.UU
 			EventTime: &tt,
 			ClusterID: &uid,
 			Severity:  &severity,
+			Category:  category,
 			Message:   &message,
 			RequestID: rid,
 			Props:     additionalProps,
@@ -65,47 +71,61 @@ func (e *Events) saveEvent(ctx context.Context, tx *gorm.DB, clusterID strfmt.UU
 		event.HostID = *hostID
 	}
 
-	if err := tx.Create(&event).Error; err != nil {
-		log.WithError(err).Error("Error adding event")
-	}
-	return nil
-}
-
-func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
-	log := logutil.FromContext(ctx, e.log)
-	requestID := requestid.FromContext(ctx)
-	var isSuccess bool = false
-
 	//each event is saved in its own embedded transaction
+	var dberr error
 	tx := e.db.Begin()
 	defer func() {
-		if !isSuccess {
-			log.Warnf("Rolling back event transaction on event=%s cluster_id=%s", msg, clusterID)
+		if dberr != nil {
+			log.Warnf("Rolling back transaction on event=%s", message)
 			tx.Rollback()
 		} else {
 			tx.Commit()
 		}
 	}()
-
-	if err := e.saveEvent(ctx, tx, clusterID, hostID, severity, msg, eventTime, requestID, props...); err != nil {
-		return
+	if dberr = tx.Create(&event).Error; err != nil {
+		log.WithError(err).Error("Error adding event")
 	}
-	isSuccess = true
+	return dberr
 }
 
-func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error) {
-	var evs []*common.Event
+func (e *Events) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	requestID := requestid.FromContext(ctx)
+	_ = e.saveEvent(ctx, clusterID, hostID, models.EventCategoryUser, severity, msg, eventTime, requestID, props...)
+}
+
+func (e *Events) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	requestID := requestid.FromContext(ctx)
+	_ = e.saveEvent(ctx, clusterID, hostID, models.EventCategoryMetrics, severity, msg, eventTime, requestID, props...)
+}
+
+func (e Events) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
 	var err error
-	if hostID == nil {
-		err = e.db.Order("event_time").Find(&evs, "cluster_id = ?", clusterID.String()).Error
+	var events []*common.Event
+
+	//initialize the selectedCategories either from the filter, if exists, or from the default values
+	selectedCategories := make([]string, 0)
+	if len(categories) > 0 {
+		selectedCategories = categories[:]
 	} else {
-		err = e.db.Order("event_time").Find(&evs, "cluster_id = ? AND host_id = ?", clusterID.String(), (*hostID).String()).Error
-	}
-	if err != nil {
-		return nil, err
+		selectedCategories = append(selectedCategories, DefaultEventCategories...)
 	}
 
-	return evs, nil
+	if hostID == nil {
+		err = e.clusterEventsQuery(&events, selectedCategories, clusterID).Error
+	} else {
+		err = e.hostEventsQuery(&events, selectedCategories, clusterID, hostID).Error
+	}
+	return events, err
+}
+
+func (e Events) clusterEventsQuery(events *[]*common.Event, selectedCategories []string, clusterID strfmt.UUID) *gorm.DB {
+	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
+		Find(events, "cluster_id = ?", clusterID.String())
+}
+
+func (e Events) hostEventsQuery(events *[]*common.Event, selectedCategories []string, clusterID strfmt.UUID, hostID *strfmt.UUID) *gorm.DB {
+	return e.db.Where("category IN (?)", selectedCategories).Order("event_time").
+		Find(events, "cluster_id = ? AND host_id = ?", clusterID.String(), (*hostID).String())
 }
 
 func toProps(attrs ...interface{}) (result string, err error) {
