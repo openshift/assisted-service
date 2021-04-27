@@ -113,6 +113,32 @@ func GenerateTestDefaultInventory() string {
 	return string(b)
 }
 
+func GenerateTestDefaultVmwareInventory() string {
+	inventory := &models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		Disks: []*models.Disk{
+			TestDefaultConfig.Disks,
+		},
+		SystemVendor: &models.SystemVendor{
+			Manufacturer: "vmware",
+		},
+	}
+
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func GenerateTestDefaultInventoryIPv4Only() string {
 	defaultInventory := GenerateTestDefaultInventory()
 	var inventory models.Inventory
