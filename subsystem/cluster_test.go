@@ -27,11 +27,13 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
 // #nosec
@@ -3041,6 +3043,67 @@ var _ = Describe("cluster install, with default network params", func() {
 			Expect(len(c.Hosts)).Should(Equal(5))
 			Expect(c.InstallStartedAt).ShouldNot(Equal(startTimeInstalling))
 		})
+	})
+})
+var _ = Describe("Update cluster with OLM operators", func() {
+	var (
+		clusterID strfmt.UUID
+		hosts     []*models.Host
+	)
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	BeforeEach(func() {
+		ctx := context.Background()
+		clstrID, err := registerCluster(ctx, userBMClient, "test-cluster", pullSecret)
+		Expect(err).NotTo(HaveOccurred())
+		clusterID = clstrID
+		hosts = registerHostsAndSetRolesDHCP(clusterID, 3)
+		inventory := *validHwInfo
+		for _, disk := range inventory.Disks {
+			disk.SizeBytes = conversions.GbToBytes(120)
+		}
+		for i, host := range hosts {
+			generateHWPostStepReply(ctx, host, &inventory, fmt.Sprintf("host-%v", i))
+		}
+
+	})
+
+	It("should change disk eligibility", func() {
+		By("sanity check: having eligible disks")
+		cluster := getCluster(clusterID)
+		for _, host := range cluster.Hosts {
+			inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			for _, disk := range inventory.Disks {
+				Expect(disk.InstallationEligibility.Eligible).To(BeTrue())
+				Expect(disk.InstallationEligibility.NotEligibleReasons).To(BeEmpty())
+			}
+		}
+
+		By("enabling OCS operator - increasing disk requirements")
+		_, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				OlmOperators: []*models.OperatorCreateParams{
+					{Name: ocs.Operator.Name},
+				},
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		By("having ineligible disks")
+		cluster = getCluster(clusterID)
+		for _, host := range cluster.Hosts {
+			inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+			Expect(err).ToNot(HaveOccurred())
+			for _, disk := range inventory.Disks {
+				Expect(disk.InstallationEligibility.Eligible).To(BeFalse())
+				Expect(disk.InstallationEligibility.NotEligibleReasons).To(ContainElement(ContainSubstring("Disk is too small")))
+			}
+		}
 	})
 })
 

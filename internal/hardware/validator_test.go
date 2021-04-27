@@ -120,6 +120,29 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(eligible).ToNot(BeEmpty())
 	})
+
+	It("Check that existing non-eligibility reasons are preserved", func() {
+		existingReasons := []string{"Reason 1", "Reason 2"}
+		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ConsistOf(existingReasons))
+	})
+
+	It("Check that a small size reason is added to existing reasons", func() {
+		existingReasons := []string{"Reason 1", "Reason 2"}
+		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
+
+		testDisk.SizeBytes = tooSmallSize
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ContainElements(existingReasons))
+		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+	})
 })
 
 var _ = Describe("hardware_validator", func() {

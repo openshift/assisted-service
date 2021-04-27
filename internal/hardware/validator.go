@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -16,6 +17,31 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 )
+
+const (
+	tooSmallDiskTemplate   = "Disk is too small (disk only has %s, but %s are required)"
+	wrongDriveTypeTemplate = "Drive type is %s, it must be one of %s."
+)
+
+var (
+	diskEligibilityMatchers []*regexp.Regexp
+)
+
+func init() {
+	tmp := compile(tooSmallDiskTemplate, ".*", ".*")
+	diskEligibilityMatchers = append(diskEligibilityMatchers, tmp)
+
+	tmp = compile(wrongDriveTypeTemplate, ".*", ".*")
+	diskEligibilityMatchers = append(diskEligibilityMatchers, tmp)
+}
+
+func compile(template string, wildcards ...string) *regexp.Regexp {
+	tmp, err := regexp.Compile(fmt.Sprintf(regexp.QuoteMeta(template), wildcards))
+	if err != nil {
+		panic(err)
+	}
+	return tmp
+}
 
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
@@ -85,26 +111,44 @@ func isNvme(name string) bool {
 // was found to be not eligible, or an empty slice if it was found to
 // be eligible
 func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error) {
-	var notEligibleReasons []string
 	requirements, err := v.GetClusterHostRequirements(ctx, cluster, host)
 	if err != nil {
 		return nil, err
 	}
+	// This method can be called on demand, so the disk may already have service non-eligibility reasons
+	notEligibleReasons := v.purgeServiceReasons(disk.InstallationEligibility.NotEligibleReasons)
+
 	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
 	if disk.SizeBytes < minSizeBytes {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
-				"Disk is too small (disk only has %s, but %s are required)",
+				tooSmallDiskTemplate,
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
 	if allowedDriveTypes := []string{"HDD", "SSD"}; !funk.ContainsString(allowedDriveTypes, disk.DriveType) {
 		notEligibleReasons = append(notEligibleReasons,
-			fmt.Sprintf("Drive type is %s, it must be one of %s.",
-				disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
+			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
 	}
 
 	return notEligibleReasons, nil
+}
+
+func (v *validator) purgeServiceReasons(reasons []string) []string {
+	var notEligibleReasons []string
+	for _, reason := range reasons {
+		var matches bool
+		for _, matcher := range diskEligibilityMatchers {
+			if matcher.MatchString(reason) {
+				matches = true
+				break
+			}
+		}
+		if !matches {
+			notEligibleReasons = append(notEligibleReasons, reason)
+		}
+	}
+	return notEligibleReasons
 }
 
 func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {

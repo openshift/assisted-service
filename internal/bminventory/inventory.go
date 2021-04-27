@@ -1509,9 +1509,36 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 				h.ID.String(), cluster.ID.String())
 			return common.NewApiError(http.StatusNotFound, err)
 		}
+
+		// Refresh inventory - especially disk eligibility. The host requirements might have changed.
+		err = b.refreshInventory(ctx, cluster, h, tx)
+		if err != nil {
+			return err
+		}
+
 		if err = b.hostApi.RefreshStatus(ctx, &dbHost.Host, tx); err != nil {
 			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
 			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *common.Cluster, host *models.Host, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if host.Inventory != "" {
+		err := b.hostApi.RefreshInventory(ctx, host, db)
+		if err != nil {
+			log.WithError(err).Errorf("failed to update inventory of host %s cluster %s", host.ID, cluster.ID.String())
+			switch err := err.(type) {
+			case *common.ApiErrorResponse:
+				if err.StatusCode() != http.StatusConflict {
+					return err
+				}
+				log.Infof("ignoring wrong status error (%v) for host %s in cluster %s", err, host.ID, cluster.ID.String())
+			default:
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
 		}
 	}
 	return nil
@@ -2188,10 +2215,12 @@ func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *com
 		}
 	}
 
+	var finalOperators []*models.MonitoredOperator
 	// After we aligned to the new update OLM info, we need to delete the old OLMs remainders that are still connected to the cluster
 	var removedOLMOperators []*models.MonitoredOperator
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
+			finalOperators = append(finalOperators, clusterOperator)
 			continue
 		}
 
@@ -2202,7 +2231,10 @@ func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *com
 				log.Error(err)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
+		} else {
+			finalOperators = append(finalOperators, clusterOperator)
 		}
+		cluster.MonitoredOperators = finalOperators
 	}
 	b.setOperatorsUsage(updateOLMOperators, removedOLMOperators, usages)
 
