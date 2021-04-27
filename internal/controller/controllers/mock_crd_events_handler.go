@@ -34,6 +34,20 @@ func (m *MockCRDEventsHandler) EXPECT() *MockCRDEventsHandlerMockRecorder {
 	return m.recorder
 }
 
+// GetAgentClusterInstallUpdates mocks base method
+func (m *MockCRDEventsHandler) GetAgentClusterInstallUpdates() chan event.GenericEvent {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAgentClusterInstallUpdates")
+	ret0, _ := ret[0].(chan event.GenericEvent)
+	return ret0
+}
+
+// GetAgentClusterInstallUpdates indicates an expected call of GetAgentClusterInstallUpdates
+func (mr *MockCRDEventsHandlerMockRecorder) GetAgentClusterInstallUpdates() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAgentClusterInstallUpdates", reflect.TypeOf((*MockCRDEventsHandler)(nil).GetAgentClusterInstallUpdates))
+}
+
 // GetAgentUpdates mocks base method
 func (m *MockCRDEventsHandler) GetAgentUpdates() chan event.GenericEvent {
 	m.ctrl.T.Helper()
