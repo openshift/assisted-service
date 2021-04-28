@@ -151,6 +151,9 @@ func getValidationMetricCounter(validationID, expectedMetric string) int {
 	if len(filteredMetrics) == 0 {
 		return 0
 	}
+	if len(filteredMetrics) != 1 {
+		fmt.Println(filteredMetrics)
+	}
 	Expect(len(filteredMetrics)).To(Equal(1))
 
 	counter, err := strconv.Atoi(strings.ReplaceAll((strings.Split(filteredMetrics[0], "}")[1]), " ", ""))
@@ -353,7 +356,7 @@ var _ = Describe("Metrics tests", func() {
 			assertHostValidationEvent(ctx, clusterID, string(*h.ID), models.HostValidationIDConnected, false)
 		})
 
-		It("'has-inventory' failed", func() {
+		FIt("'has-inventory' failed", func() {
 
 			// Inventory is sent to service or not, there is no usecase in which the service hold an inventroy
 			// for the host and at a later time loose it, therefore this case isn't tested and we directly
@@ -740,7 +743,7 @@ var _ = Describe("Metrics tests", func() {
 			assertHostValidationEvent(ctx, clusterID, "h1", models.HostValidationIDBelongsToMajorityGroup, false)
 		})
 
-		It("'ntp-synced' failed", func() {
+		FIt("'ntp-synced' failed", func() {
 
 			// create a validation success
 			h := &registerHost(clusterID).Host
