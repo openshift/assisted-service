@@ -16,6 +16,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
+const (
+	mirrorRegistryRefCertKey         = "ca-bundle.crt"
+	mirrorRegistryRefRegistryConfKey = "registries.conf"
+	mirrorRegistryConfVolume         = "mirror-registry-conf"
+	mirrorRegistryCertVolume         = "mirror-registry-ca"
+)
+
 func getPullSecret(ctx context.Context, c client.Client, name, namespace string) (string, error) {
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{

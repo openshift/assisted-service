@@ -161,6 +161,39 @@ annotation to the `AgentServiceConfig` specifying the name of the configmap to b
 used. This ConfigMap must exist in the namespace where the operator is
 installed.
 
+## Deploying the operand with mirror registry configuration
+
+In case user wants to create an installation that uses mirror registry, the following must be executed:
+1. Create and upload a ConfigMap that will include the following keys:
+   ca-bundle.crt -  contents of the certificate for accessing the mirror registry. I may be a certificate bundle, but it is still one string
+   registries.conf - contents of the registries.conf file that configures mapping to the mirror registry.
+
+   Note: ConfigMap should be installed in the same namespace as the assisted-service-operator (ie. `assisted-installer`).
+2. set the mirrorRegistryConfigmapName in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+spec:
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+  mirrorRegistryConfigmapName: mirrorRegistyMap
+EOF
+```
+
 For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/internal/controller/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml).
 
 ## Subscription config

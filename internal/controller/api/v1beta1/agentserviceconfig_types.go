@@ -40,6 +40,13 @@ type AgentServiceConfigSpec struct {
 	// With respect to the resource requests, a minimum of 10Gi is recommended.
 	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Storage for database"
 	DatabaseStorage corev1.PersistentVolumeClaimSpec `json:"databaseStorage"`
+	// MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration
+	// In case no configuration is need, this field will be nil. ConfigMap must contain to entries:
+	// ca-bundle.crt - hold the contents of mirror registry certificate/s
+	// registries.conf - holds the content of registries.conf file configured with mirror registries
+	// +optional
+	//+operator-sdk:csv:customresourcedefinitions:type=spec,displayName="Mirror Registry and Certificate ConfigMap Name"
+	MirrorRegistryRef *corev1.LocalObjectReference `json:"mirrorRegistryRef,omitempty"`
 }
 
 // ConditionType related to our reconcile loop in addition to all the reasons

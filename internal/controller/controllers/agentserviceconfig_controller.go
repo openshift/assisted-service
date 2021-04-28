@@ -23,7 +23,9 @@ import (
 	"strconv"
 
 	"github.com/go-logr/logr"
+	"github.com/go-openapi/swag"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -289,6 +291,19 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 		return err
 	}
 
+	if instance.Spec.MirrorRegistryRef != nil {
+		err = r.validateMirrorRegistriesConfigMap(ctx, instance)
+		if err != nil {
+			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ConditionReconcileCompleted,
+				Status:  corev1.ConditionFalse,
+				Reason:  aiv1beta1.ReasonDeploymentFailure,
+				Message: err.Error(),
+			})
+			return err
+		}
+	}
+
 	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
 	deployment, mutateFn := r.newAssistedServiceDeployment(instance, serviceURL)
 
@@ -332,6 +347,24 @@ func (r *AgentServiceConfigReconciler) ensureIngressCertCM(ctx context.Context, 
 		return err
 	} else if result != controllerutil.OperationResultNone {
 		r.Log.Info("Ingress config map created")
+	}
+	return nil
+}
+
+func (r *AgentServiceConfigReconciler) validateMirrorRegistriesConfigMap(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
+	mirrorCM := &corev1.ConfigMap{}
+	err := r.Get(ctx, types.NamespacedName{Name: instance.Spec.MirrorRegistryRef.Name, Namespace: r.Namespace}, mirrorCM)
+	if err != nil {
+		r.Log.Info("Failed to get mirror registries ConfigMap")
+		return err
+	}
+	keysToValidate := []string{mirrorRegistryRefCertKey, mirrorRegistryRefRegistryConfKey}
+	for _, key := range keysToValidate {
+		if _, ok := mirrorCM.Data[key]; !ok {
+			r.Log.Info("mirror registries configmap %s does not contain key %s", instance.Spec.MirrorRegistryRef.Name, key)
+			err = fmt.Errorf("%s key missing in the mirrror registries configmap %s", key, instance.Spec.MirrorRegistryRef.Name)
+			return err
+		}
 	}
 	return nil
 }
@@ -708,6 +741,49 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 				},
 			},
 		},
+	}
+
+	if instance.Spec.MirrorRegistryRef != nil {
+		mirrorVolumeMounts := []corev1.VolumeMount{
+			{Name: mirrorRegistryCertVolume, MountPath: common.MirrorRegistriesCertificatePath, SubPath: common.MirrorRegistriesCertificateFile},
+			{Name: mirrorRegistryConfVolume, MountPath: common.MirrorRegistriesConfigDir},
+		}
+		mirrorVolumes := []corev1.Volume{
+			{
+				Name: mirrorRegistryCertVolume,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: *instance.Spec.MirrorRegistryRef,
+						DefaultMode:          swag.Int32(420),
+						Optional:             swag.Bool(true),
+						Items: []corev1.KeyToPath{
+							{
+								Key:  mirrorRegistryRefCertKey,
+								Path: common.MirrorRegistriesCertificateFile,
+							},
+						},
+					},
+				},
+			},
+			{
+				Name: mirrorRegistryConfVolume,
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: *instance.Spec.MirrorRegistryRef,
+						DefaultMode:          swag.Int32(420),
+						Optional:             swag.Bool(true),
+						Items: []corev1.KeyToPath{
+							{
+								Key:  mirrorRegistryRefRegistryConfKey,
+								Path: common.MirrorRegistriesConfigFile,
+							},
+						},
+					},
+				},
+			},
+		}
+		serviceContainer.VolumeMounts = append(serviceContainer.VolumeMounts, mirrorVolumeMounts...)
+		volumes = append(volumes, mirrorVolumes...)
 	}
 
 	deploymentLabels := map[string]string{
