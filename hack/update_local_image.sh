@@ -23,7 +23,7 @@ case "${CLUSTER_CONTEXT}" in
     then
       # The SKIPPER_UID environment variable is an indication that we are running on a skipper container.
       # We don't want to change the user's host but to ask the user to install.
-      if [[ ! -v SKIPPER_UID ]]; then
+      if [[ ! -n SKIPPER_UID ]]; then
         echo "ERROR: minikube command is not installed or not in your PATH"
         exit 1
       fi

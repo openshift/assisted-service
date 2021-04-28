@@ -35,7 +35,6 @@ def main():
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
         raw_data = raw_data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-        raw_data = raw_data.replace('REPLACE_IMAGE_PULL_POLICY', f'"{deploy_options.image_pull_policy}"')
         data = yaml.safe_load(raw_data)
 
         image_fqdn = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
@@ -59,6 +58,9 @@ def main():
                 data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "IfNotPresent"
             else:
                 data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
+
+        if deploy_options.image_pull_policy:
+            data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = deploy_options.image_pull_policy
 
         if deploy_options.target == deployment_options.OCP_TARGET:
             data["spec"]["replicas"] = 1 # force single replica

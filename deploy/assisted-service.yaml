@@ -23,7 +23,7 @@ spec:
               cpu: 300m
               memory: 400Mi
           image: REPLACE_IMAGE
-          imagePullPolicy: REPLACE_IMAGE_PULL_POLICY
+          imagePullPolicy: Always
           ports:
             - containerPort: 8090
           livenessProbe:

@@ -60,7 +60,7 @@ def load_deployment_options(parser=None):
     parser.add_argument('-p', '--port', action="append", nargs=2,
                         metavar=('port', 'name'),  help="Expose a port")
     parser.add_argument("--image-pull-policy", help='Determine if the image should be pulled prior to starting the container.',
-                    type=str, choices=["Always", "IfNotPresent", "Never"], default="Always")
+                    type=str, choices=["Always", "IfNotPresent", "Never"])
 
     deploy_options = parser.add_mutually_exclusive_group()
     deploy_options.add_argument("--deploy-tag", help='Tag for all deployment images', type=str)

@@ -72,7 +72,12 @@ skipper make generate-from-swagger
 
 ### Pre-configuration
 
-- Run minikube on your system.
+- Run minikube on your system
+- Enable [registry addon](https://minikube.sigs.k8s.io/docs/handbook/registry/) on your minikube
+- Set LOCAL_ASSISTED_ORG to point to your local registry address
+```
+export LOCAL_ASSISTED_ORG=localhost:5000
+```
 - Deploy services `skipper make deploy-test`
 
 ### Run system tests
@@ -110,7 +115,7 @@ skipper make unit-test FOCUS=cluster
 if you are making changes and don't want to deploy everything once again you can simply run this command:
 
 ```shell
-make update-service && kubectl get pod --namespace assisted-installer -o name | grep assisted-service | xargs kubectl delete --namespace assisted-installer
+skipper make patch-service 
 ```
 
 It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
