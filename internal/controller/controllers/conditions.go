@@ -52,15 +52,15 @@ const (
 	//ClusterDeployment Conditions
 	ClusterSpecSyncedCondition hivev1.ClusterDeploymentConditionType = "SpecSynced"
 
-	ClusterInstalledCondition hivev1.ClusterDeploymentConditionType = "Installed"
+	ClusterCompletedCondition hivev1.ClusterDeploymentConditionType = "Completed"
 
-	ClusterReadyForInstallationCondition hivev1.ClusterDeploymentConditionType = "ReadyForInstallation"
-	ClusterReadyReason                   string                                = "ClusterIsReady"
-	ClusterReadyMsg                      string                                = "The cluster is ready to begin the installation"
-	ClusterNotReadyReason                string                                = "ClusterNotReady"
-	ClusterNotReadyMsg                   string                                = "The cluster is not ready to begin the installation"
-	ClusterAlreadyInstallingReason       string                                = "ClusterAlreadyInstalling"
-	ClusterAlreadyInstallingMsg          string                                = "The cluster cannot begin the installation because it has already started"
+	ClusterRequirementsMetCondition hivev1.ClusterDeploymentConditionType = "RequirementsMet"
+	ClusterReadyReason              string                                = "ClusterIsReady"
+	ClusterReadyMsg                 string                                = "The cluster is ready to begin the installation"
+	ClusterNotReadyReason           string                                = "ClusterNotReady"
+	ClusterNotReadyMsg              string                                = "The cluster is not ready to begin the installation"
+	ClusterAlreadyInstallingReason  string                                = "ClusterAlreadyInstalling"
+	ClusterAlreadyInstallingMsg     string                                = "The cluster cannot begin the installation because it has already started"
 
 	ClusterValidatedCondition    hivev1.ClusterDeploymentConditionType = "Validated"
 	ClusterValidationsOKMsg      string                                = "The cluster's validations are passing"

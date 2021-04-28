@@ -700,7 +700,7 @@ func clusterReadyForInstallation(cluster *hivev1.ClusterDeployment, status strin
 		msg = fmt.Sprintf("%s %s", UnknownStatusMsg, status)
 	}
 	setClusterCondition(&cluster.Status.Conditions, hivev1.ClusterDeploymentCondition{
-		Type:    ClusterReadyForInstallationCondition,
+		Type:    ClusterRequirementsMetCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,
@@ -735,7 +735,7 @@ func clusterInstalled(cluster *hivev1.ClusterDeployment, status, statusInfo stri
 		msg = fmt.Sprintf("%s %s", UnknownStatusMsg, status)
 	}
 	setClusterCondition(&cluster.Status.Conditions, hivev1.ClusterDeploymentCondition{
-		Type:    ClusterInstalledCondition,
+		Type:    ClusterCompletedCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,
@@ -797,13 +797,13 @@ func setClusterConditionsUnknown(clusterDeployment *hivev1.ClusterDeployment) {
 		Message: NotAvailableMsg,
 	})
 	setClusterCondition(&clusterDeployment.Status.Conditions, hivev1.ClusterDeploymentCondition{
-		Type:    ClusterReadyForInstallationCondition,
+		Type:    ClusterRequirementsMetCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  NotAvailableReason,
 		Message: NotAvailableMsg,
 	})
 	setClusterCondition(&clusterDeployment.Status.Conditions, hivev1.ClusterDeploymentCondition{
-		Type:    ClusterInstalledCondition,
+		Type:    ClusterCompletedCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  NotAvailableReason,
 		Message: NotAvailableMsg,

@@ -433,7 +433,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				return kubeClient.Update(ctx, agent)
 			}, "30s", "10s").Should(BeNil())
 		}
-		checkClusterCondition(ctx, key, controllers.ClusterReadyForInstallationCondition, controllers.ClusterAlreadyInstallingReason)
+		checkClusterCondition(ctx, key, controllers.ClusterRequirementsMetCondition, controllers.ClusterAlreadyInstallingReason)
 	})
 
 	It("deploy clusterDeployment with agent and update agent", func() {
@@ -793,7 +793,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.NoProxy).Should(Equal(""))
@@ -837,7 +837,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -874,7 +874,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 
@@ -892,7 +892,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
@@ -920,7 +920,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
@@ -944,7 +944,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
@@ -983,7 +983,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
@@ -1018,7 +1018,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
 		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
@@ -1056,7 +1056,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		By("Wait for installing")
-		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstallationInProgressReason)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
@@ -1145,7 +1145,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		By("Wait for installing")
-		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstallationInProgressReason)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
@@ -1176,7 +1176,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verify Day 2 Cluster")
-		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstalledReason)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterCompletedCondition, controllers.InstalledReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
@@ -1235,7 +1235,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		By("Wait for installing")
-		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstallationInProgressReason)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 			for _, h := range c.Hosts {
@@ -1262,7 +1262,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Verify Day 2 Cluster")
-		checkClusterCondition(ctx, clusterKey, controllers.ClusterInstalledCondition, controllers.InstalledReason)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterCompletedCondition, controllers.InstalledReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
@@ -1296,7 +1296,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 	})
 
 	It("deploy clusterDeployment without machine cidr", func() {
@@ -1308,7 +1308,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterReadyForInstallationCondition, controllers.ClusterNotReadyReason)
+		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 	})
 
 	It("deploy clusterDeployment with invalid clusterImageSet", func() {

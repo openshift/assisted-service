@@ -226,9 +226,9 @@ var _ = Describe("cluster reconcile", func() {
 
 				cluster = getTestCluster()
 				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 			}
 
 			It("create new cluster", func() {
@@ -491,9 +491,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("installed", func() {
@@ -564,9 +564,9 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = getTestCluster()
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Message).To(Equal(InstalledMsg + " Done"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstalledMsg + " Done"))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 
 			Expect(cluster.Spec.Installed).To(BeTrue())
 			Expect(cluster.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
@@ -607,8 +607,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Fail to create day2", func() {
@@ -641,8 +641,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(NotAvailableReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionUnknown))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(NotAvailableReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionUnknown))
 		})
 
 		It("Create day2 if day1 is already deleted none SNO", func() {
@@ -694,8 +694,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("installed - fail to get admin password", func() {
@@ -718,8 +718,8 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("failed to start installation", func() {
@@ -742,9 +742,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("not ready for installation", func() {
@@ -759,9 +759,9 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = getTestCluster()
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("not ready for installation - hosts not approved", func() {
@@ -779,9 +779,9 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = getTestCluster()
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("install day2 host", func() {
@@ -808,9 +808,9 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = getTestCluster()
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("install failure day2 host", func() {
@@ -841,9 +841,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 	})
@@ -915,9 +915,9 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = getTestCluster()
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("only state changed", func() {
@@ -948,9 +948,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterValidatedCondition).Reason).To(Equal(ValidationsFailingReason))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterValidatedCondition).Message).To(Equal(ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK"))
 			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterValidatedCondition).Status).To(Equal(corev1.ConditionFalse))
@@ -1175,13 +1175,13 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
 			conditions: []hivev1.ClusterDeploymentCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterNotReadyMsg,
 					Reason:  ClusterNotReadyReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationNotStartedMsg,
 					Reason:  InstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
@@ -1201,13 +1201,13 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
 			conditions: []hivev1.ClusterDeploymentCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterNotReadyMsg,
 					Reason:  ClusterNotReadyReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationNotStartedMsg,
 					Reason:  InstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
@@ -1227,13 +1227,13 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "",
 			conditions: []hivev1.ClusterDeploymentCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterAlreadyInstallingMsg,
 					Reason:  ClusterAlreadyInstallingReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstalledMsg + " Done",
 					Reason:  InstalledReason,
 					Status:  corev1.ConditionTrue,
@@ -1253,13 +1253,13 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
 			conditions: []hivev1.ClusterDeploymentCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterAlreadyInstallingMsg,
 					Reason:  ClusterAlreadyInstallingReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstalledMsg + " Done",
 					Reason:  InstalledReason,
 					Status:  corev1.ConditionTrue,
@@ -1279,13 +1279,13 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
 			conditions: []hivev1.ClusterDeploymentCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterAlreadyInstallingMsg,
 					Reason:  ClusterAlreadyInstallingReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationInProgressMsg + " Phase 1",
 					Reason:  InstallationInProgressReason,
 					Status:  corev1.ConditionFalse,
@@ -1305,13 +1305,13 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
 			conditions: []hivev1.ClusterDeploymentCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterReadyMsg,
 					Reason:  ClusterReadyReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationNotStartedMsg,
 					Reason:  InstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
