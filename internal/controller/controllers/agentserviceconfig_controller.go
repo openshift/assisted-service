@@ -520,7 +520,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		},
 
 		// enable https
-		{Name: "SERVE_HTTPS", Value: "True"},
+		{Name: "SERVE_HTTPS", Value: getEnvVar("SERVE_HTTPS", "True")},
 		{Name: "HTTPS_CERT_FILE", Value: "/etc/assisted-tls-config/tls.crt"},
 		{Name: "HTTPS_KEY_FILE", Value: "/etc/assisted-tls-config/tls.key"},
 	}
