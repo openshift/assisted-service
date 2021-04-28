@@ -93,14 +93,14 @@ Assisted Installer Operator
 
 Once the dev-script environment is up-and-running, and the [bmo][bmo] has been deployed, you can
 proceed to deploying the Assisted Installer Operator. There's a script in the dev-scripts repo that
-facilitests this step:
+facilitates this step:
 
 ```
 [dev@edge-10 dev-scripts]$ make assisted_deployment
 ```
 
 Take a look at the [script itself](https://github.com/openshift-metal3/dev-scripts/blob/master/assisted_deployment.sh)
-to know what variables can be customized for the Assisted Installer Opertor deployment.
+to know what variables can be customized for the Assisted Installer Operator deployment.
 
 Creating BareMetalHost resources
 ===
@@ -136,10 +136,11 @@ spec:
     credentialsName: bmc-secret
 ```
 
-Setting `automatedCleaningMode` field and the `inspect.metal3.io` annotation are both optional. If
+Setting `automatedCleaningMode` field and the `inspect.metal3.io` annotations are both optional. If
 skipped, the `BareMetalHost` will boot IPA and spend some time in the inspecting phase when the
-manifest is applied. Setting the `infraenvs.agent-install.openshift.io` is required. Without it,
-BMAC won't be able to set the ISO Url in the BareMetalHost resource.
+manifest is applied. Setting the `infraenvs.agent-install.openshift.io` is required and it must be
+set to the name of the InfraEnv to use. Without it, BMAC won't be able to set the ISO Url in the
+BareMetalHost resource.
 
 It is possible to specify `RootDeviceHints` for the `BareMetalHost` resource. Root device hints are
 used to tell the installer what disk to use as the installation disk. Refer to the
@@ -162,3 +163,47 @@ kubectl create secret -n assisted-installer generic my-pull-secret --from-file=.
 ```
 
 At this point, it's possible to deploy the SNO cluster by modifying and applying [the SNO manifest](./crds/clusterDeployment-SNO.yaml)
+
+Troubleshooting
+==
+
+- I have created the BMH, the ClusterDeployment, and the InfraEnv resources. Why doesn't the node start?
+
+The first thing to do is to verify that an ISO has been created and that it is associated with the
+BMH. Here are a few commands that can be run to achieve this:
+
+```
+$ oc describe infraenv $YOUR_INFRAENV | grep ISO
+$ oc describe bmh $YOUR_BMH | grep Image
+```
+
+- InfraEnv's ISO Url doesn't have an URL set
+
+This means something may have gone wrong during the ISO generation. Check the assisted-service logs
+(and docs) to know what happened.
+
+- InfraEnv has an URL associated but the BMH Image URL field is not set:
+
+Check that the `infraenvs.agent-install.openshift.io` label is set in your `BareMetalHost` resource
+and that the value matches the name of the InfraEnv's. Remember that both resources **must** be in
+the same namespace.
+
+- URL is set everywhere, node still doesn't start
+
+Double check that the `BareMetalHost` definition has `online` set to true. BMAC should take care of
+this during the reconcile but, you know, software, computer gnomes, and dark magic.
+
+- Node boots but it loooks like it is booting something else
+
+Check that the `inspect.metal3.io` and `automatedCleaningMode` are both set to `disabled`. This will
+prevent Ironic from doing inspection and any cleaning, which will speed up the deployment process
+and prevent it from running IPA before running the ISO.
+
+- Node boots, but nothing else seems to be happening
+
+Check that an agent has been registered for this cluster and BMH. You can verify this by chekcing
+the existing agents and find the one that has an interface with a MacAddress that matches the BMH
+`BootMACAddress`.
+
+If there is an agent, the next thing to check is that all validations have passed. This can be done
+by inspecting the `ClusterDeployment` and verify that the validation phase has succeeded.
