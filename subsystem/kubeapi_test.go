@@ -387,7 +387,7 @@ func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *
 	host := registerNode(ctx, clusterID, hostname)
 	generateHWPostStepReply(ctx, host, validHwInfo, hostname)
 	generateFAPostStepReply(ctx, host, validFreeAddresses)
-	generateDiskSpeedResponses(ctx, sdbId, host)
+	generateSuccessfulDiskSpeedResponses(ctx, sdbId, host)
 	return host
 }
 
