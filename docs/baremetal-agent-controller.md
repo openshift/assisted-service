@@ -28,6 +28,10 @@ Dev Scripts
 export MASTER_VCPU=4
 export MASTER_MEMORY=20000
 
+# Set memory and CPU for workers
+export WORKER_VCPU=4
+export WORKER_MEMORY=20000
+
 # No workers are needed to test BMAC
 export NUM_WORKERS=0
 
@@ -37,10 +41,6 @@ export NUM_EXTRA_WORKERS=1
 # At the time of this writing, this requires the 1195 PR
 # mentioned below.
 export PROVISIONING_NETWORK_PROFILE=Disabled
-
-# By default dev-scripts uses the metal3 BMO image
-# clone the downstream version and set the path here.
-export BAREMETAL_OPERATOR_LOCAL_IMAGE=/path/to/your/local/clone
 ```
 
 The config above should provide you with an environment that is ready to be used for the operator,
@@ -52,7 +52,7 @@ and the steps required:
 Once dev-script is up and running, modify the worker(s) and add 2 more disks (10GB should be enough)
 as they are required by the Assisted Installer Operator.
 
-Baremetal Operator
+Local Baremetal Operator (optional)
 ==
 
 The [baremetal-operator][bmo] will define the BareMetalHost custom resource required by the agent
@@ -76,9 +76,9 @@ for host in $(oc get baremetalhost -n openshift-machine-api -o name | grep -e '-
 done
 ```
 
-The steps mentioned above are optional, but recommended. They will make debugging easier. Let's now
-run [local-bmo][local-bmo] and move on. This script will tail the logs so do it in a separate buffer
-so that it can be kept running.
+The steps mentioned above are optional, and only recommended for debugging purposes. Let's now run
+[local-bmo][local-bmo] and move on. This script will tail the logs so do it in a separate buffer so
+that it can be kept running.
 
 ```bash
 # Note variable is different from the one in your dev-script
@@ -92,25 +92,15 @@ Assisted Installer Operator
 ===
 
 Once the dev-script environment is up-and-running, and the [bmo][bmo] has been deployed, you can
-proceed to deploying the Assisted Installer Operator following [this documentation](./operator).
-At the end of this process you will have the assisted-service running under the `assisted-installer`
-namespace.
-
-Take notice of the [assisted-service-patch-image][aspi-custom] customization if you are testing a local
-assisted-service image. More on this in the operator docs. Another, more hacky option, is to
-manually modify the image for the `assisted-service` deployment after it's been deployed. Favor the
-customization way over this.
-
+proceed to deploying the Assisted Installer Operator. There's a script in the dev-scripts repo that
+facilitests this step:
 
 ```
-[dev@edge-10 dev-scripts]$ oc get pods
-NAME                                READY   STATUS    RESTARTS   AGE
-assisted-service-7d45ccf4f8-88pw4   1/1     Running   0          18h
-ocp-metal-ui-7967c757b4-fdxph       1/1     Running   0          21h
-postgres-6bd4dc768f-54pgz           1/1     Running   0          21h
+[dev@edge-10 dev-scripts]$ make assisted_deployment
 ```
 
-Tailing the logs for the `assisted-service` pod should not show any errors.
+Take a look at the [script itself](https://github.com/openshift-metal3/dev-scripts/blob/master/assisted_deployment.sh)
+to know what variables can be customized for the Assisted Installer Opertor deployment.
 
 Creating BareMetalHost resources
 ===
@@ -140,16 +130,20 @@ metadata:
 spec:
   online: true
   bootMACAddress: 00:ec:ee:f8:5a:ba
-  # Disable automated cleaning mode
   automatedCleaningMode: disabled
   bmc:
     address: ....
     credentialsName: bmc-secret
 ```
 
-The above is an optional step. If skipped, the `BareMetalHost` will boot IPA and spend some time in
-the inspecting phase when the manifest is applied. There's an [open PR](https://github.com/openshift-metal3/dev-scripts/pull/1193/)
-that will allow setting an environment variable to have inspection disabled by `dev-scripts` by default.
+Setting `automatedCleaningMode` field and the `inspect.metal3.io` annotation are both optional. If
+skipped, the `BareMetalHost` will boot IPA and spend some time in the inspecting phase when the
+manifest is applied. Setting the `infraenvs.agent-install.openshift.io` is required. Without it,
+BMAC won't be able to set the ISO Url in the BareMetalHost resource.
+
+It is possible to specify `RootDeviceHints` for the `BareMetalHost` resource. Root device hints are
+used to tell the installer what disk to use as the installation disk. Refer to the
+[baremetal-operator documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/api.md#rootdevicehints) to know more.
 
 
 [bmo]: https://github.com/openshift/baremetal-operator
