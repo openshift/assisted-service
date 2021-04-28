@@ -35,6 +35,7 @@ def main():
     with open(SRC_FILE, "r") as src:
         raw_data = src.read()
         raw_data = raw_data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+        raw_data = raw_data.replace('REPLACE_IMAGE_PULL_POLICY', f'"{deploy_options.image_pull_policy}"')
         data = yaml.safe_load(raw_data)
 
         image_fqdn = deployment_options.get_image_override(deploy_options, "assisted-service", "SERVICE")
@@ -58,8 +59,6 @@ def main():
                 data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "IfNotPresent"
             else:
                 data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Never"
-        else:
-            data["spec"]["template"]["spec"]["containers"][0]["imagePullPolicy"] = "Always"
 
         if deploy_options.target == deployment_options.OCP_TARGET:
             data["spec"]["replicas"] = 1 # force single replica
@@ -70,6 +69,10 @@ def main():
             service_container["env"].append({'name': 'ISO_WORKSPACE_BASE_DIR', 'value': '/data'})
             service_container["env"].append({'name': 'ISO_CACHE_DIR', 'value': '/data/cache'})
 
+        if deploy_options.port:
+            for port_option in deploy_options.port:
+                port = {"containerPort": int(port_option[0])}
+                data["spec"]["template"]["spec"]["containers"][0]["ports"].append(port)
 
     with open(DST_FILE, "w+") as dst:
         yaml.dump(data, dst, default_flow_style=False)

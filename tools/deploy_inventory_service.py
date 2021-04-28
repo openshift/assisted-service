@@ -1,5 +1,7 @@
 import os
 
+import yaml
+
 import deploy_tls_secret
 import deployment_options
 import utils
@@ -15,10 +17,20 @@ def main():
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'assisted-service-service.yaml')
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
-            data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+            raw_data = src.read()
+            raw_data = raw_data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
+            data = yaml.safe_load(raw_data)
+
+            if deploy_options.port:
+                for port_number_str, port_name in deploy_options.port:
+                    port = {"name": port_name,
+                            "port": int(port_number_str),
+                            "protocol": "TCP",
+                            "targetPort": int(port_number_str)}
+                    data["spec"]["ports"].append(port)
+
             print("Deploying {}".format(dst_file))
-            dst.write(data)
+            dst.write(yaml.dump(data))
 
     if deploy_options.apply_manifest:
         utils.apply(
