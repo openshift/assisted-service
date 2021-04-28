@@ -145,6 +145,8 @@ func getValidationMetricCounter(validationID, expectedMetric string) int {
 	cmd := exec.Command("curl", "-s", url)
 	output, err := cmd.Output()
 	Expect(err).NotTo(HaveOccurred())
+	_, err = GinkgoWriter.Write(output)
+	Expect(err).NotTo(HaveOccurred())
 
 	metrics := strings.Split(string(output), "\n")
 	filteredMetrics := filterMetrics(metrics, expectedMetric, fmt.Sprintf("ValidationType=\"%s\"", validationID))
