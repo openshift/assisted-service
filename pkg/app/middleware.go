@@ -2,6 +2,7 @@ package app
 
 import (
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -49,4 +50,37 @@ func SetupCORSMiddleware(handler http.Handler, domains []string) http.Handler {
 		MaxAge: int((10 * time.Minute).Seconds()),
 	})
 	return corsHandler.Handler(handler)
+}
+
+type RequestMatch struct {
+	Path    *regexp.Regexp
+	Methods []string
+}
+
+func (r *RequestMatch) match(req *http.Request) bool {
+	if !r.Path.MatchString(req.URL.Path) {
+		return false
+	}
+
+	for _, m := range r.Methods {
+		if req.Method == m {
+			return true
+		}
+	}
+
+	return false
+}
+
+// WithPathAllowListMiddleware restricts the paths the handler will respond to ones which match
+// an entry in allowedPaths
+func WithPathAllowListMiddleware(next http.Handler, allowList []*RequestMatch) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		for _, m := range allowList {
+			if m.match(r) {
+				next.ServeHTTP(w, r)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusForbidden)
+	})
 }

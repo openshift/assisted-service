@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -468,6 +469,15 @@ func main() {
 		go func() {
 			log.Fatal(http.ListenAndServeTLS(address, Options.HTTPSCertFile, Options.HTTPSKeyFile, httpsHandler))
 		}()
+
+		// If we're serving https, we only want to allow downloading the iso over http so add the middleware here
+		allowList := []*app.RequestMatch{
+			{
+				Path:    regexp.MustCompile(`/clusters/[\w-]+/downloads/image$`),
+				Methods: []string{http.MethodGet, http.MethodHead},
+			},
+		}
+		h = app.WithPathAllowListMiddleware(h, allowList)
 	}
 
 	log.Infof("Serving http on port %d", Options.HTTPPort)
