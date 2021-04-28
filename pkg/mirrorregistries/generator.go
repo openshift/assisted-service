@@ -2,56 +2,65 @@ package mirrorregistries
 
 import (
 	"fmt"
+	"io/ioutil"
 
-	"github.com/openshift/assisted-service/models"
 	"github.com/pelletier/go-toml"
 )
+
+const mirrorRegistriesCAPath = "/etc/pki/ca-trust/extracted/pem/mirror_ca.pem"
+const mirrorRegistriesPath = "/etc/containers/registries.conf"
+
+//go:generate mockgen -source=generator.go -package=mirrorregistries -destination=mock_generator.go
+type MirrorRegistriesConfigBuilder interface {
+	IsMirrorRegistriesConfigured() bool
+	GetMirrorCA() ([]byte, error)
+	GetMirrorRegistries() ([]byte, error)
+	ExtractLocationMirrorDataFromRegistries() ([]RegistriesConf, error)
+}
+
+type mirrorRegistriesConfigBuilder struct {
+}
+
+func New() MirrorRegistriesConfigBuilder {
+	return &mirrorRegistriesConfigBuilder{}
+}
 
 type RegistriesConf struct {
 	Location string
 	Mirror   string
 }
 
-// builds an /etc/containers/registries.conf file contents in TOML format based on the input.
-// for format details see man containers-registries.conf
-func FormatRegistriesConfForIgnition(mirrorRegistriesCaConfig *models.MirrorRegistriesCaConfig) (string, string, error) {
-	if mirrorRegistriesCaConfig == nil {
-		return "", "", nil
-	}
-	caConfig := mirrorRegistriesCaConfig.CaConfig
-	mirrorRegistriesConfig := mirrorRegistriesCaConfig.MirrorRegistriesConfig
-
-	// create a map that represents TOML tree
-	treeMap := make(map[string]interface{})
-	registryEntryList := []map[string]interface{}{}
-	// loop over mirror registries data and for each create its own map
-	for _, mirrorRegistryConfig := range mirrorRegistriesConfig.MirrorRegistries {
-		registryMap := make(map[string]interface{})
-		registryMap["prefix"] = mirrorRegistryConfig.Prefix
-		registryMap["location"] = mirrorRegistryConfig.Location
-		registryMap["mirror-by-digest-only"] = false
-		mirrorMap := make(map[string]interface{})
-		mirrorMap["location"] = mirrorRegistryConfig.MirrorLocation
-		// mirror is also an  TOML array, so it must be a list of maps
-		registryMap["mirror"] = []interface{}{mirrorMap}
-		registryEntryList = append(registryEntryList, registryMap)
-	}
-
-	treeMap["unqualified-search-registries"] = mirrorRegistriesConfig.UnqualifiedSearchRegistries
-	treeMap["registry"] = registryEntryList
-
-	tomlTree, err := toml.TreeFromMap(treeMap)
+func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
+	_, err := m.GetMirrorCA()
 	if err != nil {
-		return "", "", err
+		return false
 	}
-	tomlString, err := tomlTree.ToTomlString()
-	if err != nil {
-		return "", "", err
-	}
-	return tomlString, caConfig, nil
+	_, err = m.GetMirrorRegistries()
+	return err == nil
 }
 
-func ExtractLocationMirrorDataFromRegistries(registriesConfToml string) ([]RegistriesConf, error) {
+// return error if the path is actually an empty dir, which will indicate that
+// the mirror registries are not configured.
+// empty dir is due to the way we mao configmap in the assisted-service pod
+func (m *mirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
+	return readFile(mirrorRegistriesCAPath)
+}
+
+// returns error if the file is not present, which will also indicate that
+// mirror registries are not confgiured
+func (m *mirrorRegistriesConfigBuilder) GetMirrorRegistries() ([]byte, error) {
+	return readFile(mirrorRegistriesPath)
+}
+
+func (m *mirrorRegistriesConfigBuilder) ExtractLocationMirrorDataFromRegistries() ([]RegistriesConf, error) {
+	contents, err := m.GetMirrorRegistries()
+	if err != nil {
+		return nil, err
+	}
+	return extractLocationMirrorDataFromRegistries(string(contents))
+}
+
+func extractLocationMirrorDataFromRegistries(registriesConfToml string) ([]RegistriesConf, error) {
 	tomlTree, err := toml.Load(registriesConfToml)
 	if err != nil {
 		return nil, err
@@ -79,4 +88,8 @@ func ExtractLocationMirrorDataFromRegistries(registriesConfToml string) ([]Regis
 	}
 
 	return registriesConfList, nil
+}
+
+func readFile(filePath string) ([]byte, error) {
+	return ioutil.ReadFile(filePath)
 }
