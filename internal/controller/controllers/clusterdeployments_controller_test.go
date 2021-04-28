@@ -138,6 +138,18 @@ func getDefaultClusterDeploymentSpec(clusterName, aciName, pullSecretName string
 	}
 }
 
+func kubeTimeNow() *metav1.Time {
+	t := metav1.NewTime(time.Now())
+	return &t
+}
+
+func simulateACIDeletionWithFinalizer(ctx context.Context, c client.Client, aci *hiveext.AgentClusterInstall) {
+	// simulate ACI deletion with finalizer
+	aci.ObjectMeta.Finalizers = []string{AgentClusterInstallFinalizerName}
+	aci.ObjectMeta.DeletionTimestamp = kubeTimeNow()
+	Expect(c.Update(ctx, aci)).Should(BeNil())
+}
+
 var _ = Describe("cluster reconcile", func() {
 	var (
 		c                              client.Client
@@ -471,23 +483,45 @@ var _ = Describe("cluster reconcile", func() {
 
 	Context("cluster deletion", func() {
 		var (
-			sId     strfmt.UUID
-			cluster *hivev1.ClusterDeployment
+			sId strfmt.UUID
+			cd  *hivev1.ClusterDeployment
+			aci *hiveext.AgentClusterInstall
 		)
 
 		BeforeEach(func() {
-			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName)
+			cd = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			cd.Status = hivev1.ClusterDeploymentStatus{}
+			defaultAgentClusterInstallSpec = getDefaultAgentClusterInstallSpec(clusterName)
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
 			id := uuid.New()
 			sId = strfmt.UUID(id.String())
-			cluster.Status = hivev1.ClusterDeploymentStatus{}
-			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+			mockCtrl = gomock.NewController(GinkgoT())
+			mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
+			mockClusterApi = cluster.NewMockAPI(mockCtrl)
+			mockHostApi = host.NewMockAPI(mockCtrl)
+			mockCRDEventsHandler = NewMockCRDEventsHandler(mockCtrl)
+			mockManifestsApi = manifests.NewMockClusterManifestsInternals(mockCtrl)
+			cr = &ClusterDeploymentsReconciler{
+				Client:           c,
+				Scheme:           scheme.Scheme,
+				Log:              common.GetTestLog(),
+				Installer:        mockInstallerInternal,
+				ClusterApi:       mockClusterApi,
+				HostApi:          mockHostApi,
+				CRDEventsHandler: mockCRDEventsHandler,
+				Manifests:        mockManifestsApi,
+			}
+			Expect(c.Create(ctx, cd)).ShouldNot(HaveOccurred())
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
 			imageSet := getDefaultTestImageSet(imageSetName, releaseImage)
 			Expect(c.Create(ctx, imageSet)).To(BeNil())
 		})
 
-		It("cluster resource deleted - verify call to deregister cluster", func() {
+		It("agentClusterInstall resource deleted - verify call to deregister cluster", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID: &sId,
@@ -496,8 +530,8 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
 
-			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
-			request := newClusterDeploymentRequest(cluster)
+			simulateACIDeletionWithFinalizer(ctx, c, aci)
+			request := newClusterDeploymentRequest(cd)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(result).Should(Equal(ctrl.Result{}))
@@ -509,20 +543,21 @@ var _ = Describe("cluster reconcile", func() {
 					ID: &sId,
 				},
 			}
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(errors.New("internal error"))
 
-			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: internal error", cluster.Name)
+			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: internal error", cd.Name)
 
-			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
-			request := newClusterDeploymentRequest(cluster)
+			simulateACIDeletionWithFinalizer(ctx, c, aci)
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cd)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).Should(HaveOccurred())
 			Expect(err.Error()).Should(Equal(expectedErrMsg))
 			Expect(result).Should(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		})
 
-		It("cluster resource deleted and created again", func() {
+		It("agentClusterInstall resource deleted and created again", func() {
 			backEndCluster := &common.Cluster{
 				Cluster: models.Cluster{
 					ID: &sId,
@@ -532,8 +567,8 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 
-			Expect(c.Delete(ctx, cluster)).ShouldNot(HaveOccurred())
-			request := newClusterDeploymentRequest(cluster)
+			simulateACIDeletionWithFinalizer(ctx, c, aci)
+			request := newClusterDeploymentRequest(cd)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).ShouldNot(HaveOccurred())
 			Expect(result).Should(Equal(ctrl.Result{}))
@@ -541,12 +576,11 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 			mockInstallerInternal.EXPECT().RegisterClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(backEndCluster, nil)
 
-			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
-			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			Expect(c.Delete(ctx, aci)).ShouldNot(HaveOccurred())
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cd)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
-			request = newClusterDeploymentRequest(cluster)
+			request = newClusterDeploymentRequest(cd)
 			result, err = cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
@@ -636,7 +670,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(3)
 			password := "test"
 			username := "admin"
 			kubeconfig := "kubeconfig content"
@@ -682,7 +716,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.StatusInfo = swag.String("Done")
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(3)
 			password := "test"
 			username := "admin"
 			kubeconfig := "kubeconfig content"
@@ -728,8 +762,9 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			expectedError := errors.New("internal error")
+			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: %s", cluster.Name, expectedError)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(expectedError).Times(1)
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
 				Type:    ClusterCompletedCondition,
@@ -744,7 +779,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedError)
+			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErrMsg)
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
@@ -757,7 +792,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			expectedErr := "internal error"
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New(expectedErr))
