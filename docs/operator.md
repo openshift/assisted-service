@@ -136,7 +136,6 @@ cat <<EOF | kubectl create -f -
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
-  namespace: assisted-installer
   name: agent
 spec:
   databaseStorage:
@@ -154,6 +153,14 @@ spec:
 EOF
 ```
 
+**NOTE Unsupported**
+It is possible to specify a ConfigMap to be mounted into the assisted-service
+container as environment variables by adding an
+`"unsupported.agent-install.openshift.io/assisted-service-configmap"`
+annotation to the `AgentServiceConfig` specifying the name of the configmap to be
+used. This ConfigMap must exist in the namespace where the operator is
+installed.
+
 For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/internal/controller/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml).
 
 ## Subscription config
@@ -162,12 +169,11 @@ Subscription configs override any environment variables set in
 the deployment specs and any values from ConfigMaps. They can be
 used to configure the operator deployment.
 
-Here is an example. By default, the operator bundle is configured
-to use minimal-iso for ISO_IMAGE_TYPE. It can be reconfigured to
-full-iso through the Subscription config.
+In the example below, we configure the image that will be used
+when deploying the assisted-service by changing the value of `SERVICE_IMAGE`.
 
 ``` bash
-cat <<EOF | kubectl create -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
@@ -179,7 +185,10 @@ spec:
   name: assisted-service-operator
   source: assisted-service-manifests
   sourceNamespace: openshift-marketplace
-  startingCSV: assisted-service-operator.v0.0.1
+  config:
+    env:
+      - name: SERVICE_IMAGE
+        value: "my-custom-assisted-service-image"
 EOF
 ```
 

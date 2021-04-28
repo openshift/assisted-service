@@ -5,7 +5,9 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,10 +22,12 @@ const (
 	testName                         = "agent"
 	testAgentServiceConfigKind       = "testKind"
 	testAgentServiceConfigAPIVersion = "testAPIVersion"
+	testHost                         = "my.test"
+	testConfigmapName                = "test-configmap"
 )
 
 func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler {
-	c := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+	c := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(initObjs...).Build()
 	return &AgentServiceConfigReconciler{
 		Client:    c,
 		Scheme:    scheme.Scheme,
@@ -42,7 +46,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 	)
 
 	BeforeEach(func() {
-		asc = newDefaultAgentServiceConfig()
+		asc = newASCDefault()
 		ascr = newTestReconciler(asc)
 	})
 
@@ -104,7 +108,55 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 	})
 })
 
-func newDefaultAgentServiceConfig() *aiv1beta1.AgentServiceConfig {
+var _ = Describe("ensureAssistedServiceDeployment", func() {
+	var (
+		asc   *aiv1beta1.AgentServiceConfig
+		ascr  *AgentServiceConfigReconciler
+		ctx   = context.Background()
+		route = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost,
+			},
+		}
+	)
+
+	Context("without annotation on AgentServiceConfig", func() {
+		It("should not modify assisted-service deployment", func() {
+			asc = newASCDefault()
+			ascr = newTestReconciler(asc, route)
+			Expect(ascr.ensureAssistedServiceDeployment(ctx, asc)).To(Succeed())
+
+			found := &appsv1.Deployment{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(len(found.Spec.Template.Spec.Containers[0].EnvFrom)).To(Equal(0))
+		})
+	})
+
+	Context("with annotation on AgentServiceConfig", func() {
+		It("should modify assisted-service deployment", func() {
+			asc = newASCWithCMAnnotation()
+			ascr = newTestReconciler(asc, route)
+			Expect(ascr.ensureAssistedServiceDeployment(ctx, asc)).To(Succeed())
+			found := &appsv1.Deployment{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal([]corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: testConfigmapName,
+						},
+					},
+				},
+			}))
+		})
+	})
+})
+
+func newASCDefault() *aiv1beta1.AgentServiceConfig {
 	return &aiv1beta1.AgentServiceConfig{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       testAgentServiceConfigKind,
@@ -130,5 +182,10 @@ func newDefaultAgentServiceConfig() *aiv1beta1.AgentServiceConfig {
 			},
 		},
 	}
+}
 
+func newASCWithCMAnnotation() *aiv1beta1.AgentServiceConfig {
+	asc := newASCDefault()
+	asc.ObjectMeta.Annotations = map[string]string{configmapAnnotation: testConfigmapName}
+	return asc
 }
