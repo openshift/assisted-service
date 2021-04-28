@@ -15,26 +15,67 @@ For more information about the API and its various authentication methods, see [
 
 set -euo pipefail
 
-## User specific configuration
+if ! ocm token 2>/dev/null >/dev/null; then
+    echo "Failed to run 'ocm token' command, please see the assisted_service/docs/cloud.md doc for authentication information"
+    exit 1
+fi
+
+## User specific configuration <-----------
 WANTED_PASSWORD=mypass
 TOKEN=$(ocm token)
 OCM_API_ENDPOINT="https://api.openshift.com/api/" 
-CLUSTER_ID="3e76dcd9-04d1-4540-b49a-9291f32a3ccc" # Copy from Assisted Installer URL
+if true; then
+    echo "Don't forget to modify the script with your cluster ID, delete this warning after you did"
+    exit 1
+fi
+CLUSTER_ID="243e09fb-d924-42a1-bad9-b78638b767d9" # Copy from Assisted Installer URL
 DEST_ISO_FILE="changed_password.iso"
 ###############################
 
-echo Downloading the original ignition file into the '$ORIGINAL_IGNITION' variable
-ORIGINAL_IGNITION=$(curl -s $OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/downloads/files\?file_name\=discovery.ign -H "Authorization: Bearer $TOKEN")
+function log() {
+    if [[ ! $? == 0 ]]; then
+        echo "Script enountered an error"
+        exit 1
+    fi
+}
 
-echo Generating a salted hash from '$WANTED_PASSWORD'
+trap log EXIT
+
+echo "Password set log" > .set_iso_password_log
+
+DISCOVERY_IGN_URL=$OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/downloads/'files?file_name=discovery.ign'
+
+if ! curl --fail -s ${DISCOVERY_IGN_URL} -H "Authorization: Bearer $TOKEN" >/dev/null; then
+    echo "Can't seem to find a discovery.ign, please generate a discovery ISO file using the UI first"
+    exit 1
+fi
+
+echo Downloading the original ignition file into the ORIGINAL_IGNITION variable
+ORIGINAL_IGNITION=$(curl --fail -s ${DISCOVERY_IGN_URL} -H "Authorization: Bearer $TOKEN")
+
+echo === Original ignition === >> .set_iso_password_log
+echo "$ORIGINAL_IGNITION" >> .set_iso_password_log
+echo ========================= >> .set_iso_password_log
+echo >> .set_iso_password_log
+
+echo Generating a salted hash from WANTED_PASSWORD
 PASS_HASH=$(mkpasswd --method=SHA-512 $WANTED_PASSWORD | tr -d '\n')
 
-echo Modifying '$ORIGINAL_IGNITION' to contain the new password hash rather than the previous one
+echo === Password Hash=== >> .set_iso_password_log
+echo "$PASS_HASH" >> .set_iso_password_log
+echo ==================== >> .set_iso_password_log
+echo >> .set_iso_password_log
+
+echo Modifying ORIGINAL_IGNITION to contain the new password hash rather than the previous one
 NEW_IGNITION=$(<<< "$ORIGINAL_IGNITION" jq --arg passhash $PASS_HASH '.passwd.users[0].passwordHash = $passhash')
 
-echo Telling service to use our patched ignition file
-curl -s $OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/discovery-ignition -H "Authorization: Bearer $TOKEN" --request PATCH --header "Content-Type: application/json" --data @<(echo '{"config": "replaceme"}' | jq --rawfile ignition <(echo $NEW_IGNITION) '.config = $ignition')
+echo === New patched ignition === >> .set_iso_password_log
+echo "$NEW_IGNITION" >> .set_iso_password_log
+echo ============================ >> .set_iso_password_log
+echo >> .set_iso_password_log
 
-echo Downloading the new ISO file into $DEST_ISO_FILE
-curl $OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/downloads/image -H "Authorization: Bearer $(ocm token)" > $DEST_ISO_FILE
+echo Telling service to use our patched ignition file
+curl --fail -s $OCM_API_ENDPOINT/assisted-install/v1/clusters/$CLUSTER_ID/discovery-ignition -H "Authorization: Bearer $TOKEN" --request PATCH --header "Content-Type: application/json" --data @<(echo '{"config": "replaceme"}' | jq --rawfile ignition <(echo $NEW_IGNITION) '.config = $ignition')
+
+echo "Done, please re-generate the ISO using the UI and download the newly generated ISO"
 ```
