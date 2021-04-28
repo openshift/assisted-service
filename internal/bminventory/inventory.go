@@ -2406,7 +2406,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 			log.WithError(err).Errorf("failed to register host <%s> to cluster %s due to: %s",
 				params.NewHostParams.HostID, params.ClusterID.String(), err.Error())
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, params.NewHostParams.HostID, models.EventSeverityError,
-				"Failed to register host: cluster cannot accept new hosts in its current state", time.Now())
+				err.Error(), time.Now())
 			return common.NewApiError(http.StatusConflict, err)
 		}
 	}

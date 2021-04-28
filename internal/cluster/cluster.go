@@ -613,7 +613,11 @@ func (m *Manager) AcceptRegistration(c *common.Cluster) (err error) {
 	clusterStatus := swag.StringValue(c.Status)
 	allowedStatuses := []string{models.ClusterStatusInsufficient, models.ClusterStatusReady, models.ClusterStatusPendingForInput, models.ClusterStatusAddingHosts}
 	if !funk.ContainsString(allowedStatuses, clusterStatus) {
-		err = errors.Errorf("Cluster %s is in %s state, host can register only in one of %s", c.ID, clusterStatus, allowedStatuses)
+		if clusterStatus == models.ClusterStatusInstalled {
+			err = errors.Errorf("Cannot add host to a cluster that is already installed, please use the day2 cluster option")
+		} else {
+			err = errors.Errorf("Host can register only in one of the following states: %s", allowedStatuses)
+		}
 	}
 	return err
 }
