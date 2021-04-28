@@ -1500,6 +1500,13 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		log.WithError(err).Errorf("Failed to set cluster %s majority groups", cluster.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
+
+	dbCluster, err := common.GetClusterFromDB(tx, *cluster.ID, true)
+	if err != nil {
+		log.WithError(err).Errorf("not refreshing cluster hosts - failed to find cluster %s", *cluster.ID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+
 	for _, h := range cluster.Hosts {
 		var err error
 		var dbHost *common.Host
@@ -1511,7 +1518,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		}
 
 		// Refresh inventory - especially disk eligibility. The host requirements might have changed.
-		err = b.refreshInventory(ctx, cluster, h, tx)
+		err = b.refreshInventory(ctx, dbCluster, h, tx)
 		if err != nil {
 			return err
 		}
@@ -1527,7 +1534,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *common.Cluster, host *models.Host, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, b.log)
 	if host.Inventory != "" {
-		err := b.hostApi.RefreshInventory(ctx, host, db)
+		err := b.hostApi.RefreshInventory(ctx, cluster, host, db)
 		if err != nil {
 			log.WithError(err).Errorf("failed to update inventory of host %s cluster %s", host.ID, cluster.ID.String())
 			switch err := err.(type) {
@@ -2215,12 +2222,10 @@ func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *com
 		}
 	}
 
-	var finalOperators []*models.MonitoredOperator
 	// After we aligned to the new update OLM info, we need to delete the old OLMs remainders that are still connected to the cluster
 	var removedOLMOperators []*models.MonitoredOperator
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
-			finalOperators = append(finalOperators, clusterOperator)
 			continue
 		}
 
@@ -2231,10 +2236,7 @@ func (b *bareMetalInventory) updateOperatorsData(_ context.Context, cluster *com
 				log.Error(err)
 				return common.NewApiError(http.StatusInternalServerError, err)
 			}
-		} else {
-			finalOperators = append(finalOperators, clusterOperator)
 		}
-		cluster.MonitoredOperators = finalOperators
 	}
 	b.setOperatorsUsage(updateOLMOperators, removedOLMOperators, usages)
 

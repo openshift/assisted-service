@@ -133,7 +133,7 @@ type API interface {
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
-	RefreshInventory(ctx context.Context, h *models.Host, db *gorm.DB) error
+	RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
@@ -277,15 +277,21 @@ func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *model
 	return err
 }
 
-func (m *Manager) RefreshInventory(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	return m.updateInventory(ctx, h, h.Inventory, db)
+func (m *Manager) RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error {
+	return m.updateInventory(ctx, cluster, h, h.Inventory, db)
 }
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
-	return m.updateInventory(ctx, h, inventoryStr, m.db)
+	log := logutil.FromContext(ctx, m.log)
+	cluster, err := common.GetClusterFromDB(m.db, h.ClusterID, true)
+	if err != nil {
+		log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	return m.updateInventory(ctx, cluster, h, inventoryStr, m.db)
 }
 
-func (m *Manager) updateInventory(ctx context.Context, h *models.Host, inventoryStr string, db *gorm.DB) error {
+func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, inventoryStr string, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, m.log)
 
 	hostStatus := swag.StringValue(h.Status)
@@ -300,12 +306,6 @@ func (m *Manager) updateInventory(ctx context.Context, h *models.Host, inventory
 	inventory, err := hostutil.UnmarshalInventory(inventoryStr)
 	if err != nil {
 		return err
-	}
-
-	cluster, err := common.GetClusterFromDB(db, h.ClusterID, true)
-	if err != nil {
-		log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID)
-		return common.NewApiError(http.StatusNotFound, err)
 	}
 
 	err = m.populateDisksEligibility(ctx, inventory, cluster, h)

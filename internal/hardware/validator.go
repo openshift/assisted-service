@@ -28,14 +28,14 @@ var (
 )
 
 func init() {
-	tmp := compile(tooSmallDiskTemplate, ".*", ".*")
+	tmp := compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*")
 	diskEligibilityMatchers = append(diskEligibilityMatchers, tmp)
 
-	tmp = compile(wrongDriveTypeTemplate, ".*", ".*")
+	tmp = compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*")
 	diskEligibilityMatchers = append(diskEligibilityMatchers, tmp)
 }
 
-func compile(template string, wildcards ...string) *regexp.Regexp {
+func compileDiskReasonTemplate(template string, wildcards ...string) *regexp.Regexp {
 	tmp, err := regexp.Compile(fmt.Sprintf(regexp.QuoteMeta(template), wildcards))
 	if err != nil {
 		panic(err)
