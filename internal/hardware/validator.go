@@ -23,26 +23,6 @@ const (
 	wrongDriveTypeTemplate = "Drive type is %s, it must be one of %s."
 )
 
-var (
-	diskEligibilityMatchers []*regexp.Regexp
-)
-
-func init() {
-	tmp := compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*")
-	diskEligibilityMatchers = append(diskEligibilityMatchers, tmp)
-
-	tmp = compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*")
-	diskEligibilityMatchers = append(diskEligibilityMatchers, tmp)
-}
-
-func compileDiskReasonTemplate(template string, wildcards ...string) *regexp.Regexp {
-	tmp, err := regexp.Compile(fmt.Sprintf(regexp.QuoteMeta(template), wildcards))
-	if err != nil {
-		panic(err)
-	}
-	return tmp
-}
-
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
@@ -59,10 +39,15 @@ type Validator interface {
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
+	diskEligibilityMatchers := []*regexp.Regexp{
+		compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*"),
+		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
+	}
 	return &validator{
-		ValidatorCfg: cfg,
-		log:          log,
-		operatorsAPI: operatorsAPI,
+		ValidatorCfg:            cfg,
+		log:                     log,
+		operatorsAPI:            operatorsAPI,
+		diskEligibilityMatchers: diskEligibilityMatchers,
 	}
 }
 
@@ -81,8 +66,9 @@ type ValidatorCfg struct {
 
 type validator struct {
 	ValidatorCfg
-	log          logrus.FieldLogger
-	operatorsAPI operators.API
+	log                     logrus.FieldLogger
+	operatorsAPI            operators.API
+	diskEligibilityMatchers []*regexp.Regexp
 }
 
 // DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
@@ -138,7 +124,7 @@ func (v *validator) purgeServiceReasons(reasons []string) []string {
 	var notEligibleReasons []string
 	for _, reason := range reasons {
 		var matches bool
-		for _, matcher := range diskEligibilityMatchers {
+		for _, matcher := range v.diskEligibilityMatchers {
 			if matcher.MatchString(reason) {
 				matches = true
 				break
@@ -273,4 +259,12 @@ func (v *validator) getOCPRequirementsForVersion(openShiftVersion string) *model
 		requirements = v.GetHostRequirements()
 	}
 	return requirements
+}
+
+func compileDiskReasonTemplate(template string, wildcards ...string) *regexp.Regexp {
+	tmp, err := regexp.Compile(fmt.Sprintf(regexp.QuoteMeta(template), wildcards))
+	if err != nil {
+		panic(err)
+	}
+	return tmp
 }

@@ -1504,17 +1504,24 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 	dbCluster, err := common.GetClusterFromDB(tx, *cluster.ID, true)
 	if err != nil {
 		log.WithError(err).Errorf("not refreshing cluster hosts - failed to find cluster %s", *cluster.ID)
-		return common.NewApiError(http.StatusNotFound, err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewApiError(http.StatusNotFound, err)
+		}
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	dbHosts := make(map[strfmt.UUID]*models.Host)
+	for _, dbHost := range dbCluster.Hosts {
+		dbHosts[*dbHost.ID] = dbHost
 	}
 
 	for _, h := range cluster.Hosts {
 		var err error
-		var dbHost *common.Host
-
-		if dbHost, err = common.GetHostFromDB(tx, cluster.ID.String(), h.ID.String()); err != nil {
-			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
-				h.ID.String(), cluster.ID.String())
-			return common.NewApiError(http.StatusNotFound, err)
+		dbHost, ok := dbHosts[*h.ID]
+		if !ok {
+			message := fmt.Sprintf("failed to find host <%s> in cluster <%s>", h.ID.String(), cluster.ID.String())
+			log.Errorf(message)
+			return common.NewApiError(http.StatusNotFound, errors.Errorf(message))
 		}
 
 		// Refresh inventory - especially disk eligibility. The host requirements might have changed.
@@ -1523,7 +1530,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 			return err
 		}
 
-		if err = b.hostApi.RefreshStatus(ctx, &dbHost.Host, tx); err != nil {
+		if err = b.hostApi.RefreshStatus(ctx, dbHost, tx); err != nil {
 			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
@@ -1542,6 +1549,9 @@ func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *comm
 				if err.StatusCode() != http.StatusConflict {
 					return err
 				}
+				// In RefreshInventory there is a precondition on host's status that on failure returns StatusConflict.
+				// In case of cluster update we don't want to fail the whole update if host can't be, according to
+				// business rules, updated. An example of such case is disabled host.
 				log.Infof("ignoring wrong status error (%v) for host %s in cluster %s", err, host.ID, cluster.ID.String())
 			default:
 				return common.NewApiError(http.StatusInternalServerError, err)
