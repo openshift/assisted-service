@@ -74,8 +74,35 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 // ValidateHost verifies whether this operator is valid for given host
-func (o *operator) ValidateHost(_ context.Context, _ *common.Cluster, _ *models.Host) (api.ValidationResult, error) {
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
+func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
+	numOfHosts := len(cluster.Hosts)
+	if host.Inventory == "" {
+		o.log.Info("Empty Inventory of host with hostID ", host.ID)
+		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
+	}
+	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	if err != nil {
+		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID()}, err
+	}
+
+	// compact mode
+	if numOfHosts <= 3 {
+		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
+			return o.checkHostRequirements(ctx, cluster, host, inventory, compactMode)
+		}
+		o.log.Errorf("OCS unsupported Host Role for Compact Mode")
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}}, nil
+	}
+
+	// Minimal and Standard mode
+	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
+	if host.Role == models.HostRoleAutoAssign {
+		status := "All host roles must be assigned to enable OCS in Standard or Minimal Mode."
+		o.log.Info("OCS Validate Requirements status ", status)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
+	}
+	return o.checkHostRequirements(ctx, cluster, host, inventory, minimalMode)
 }
 
 // GenerateManifests generates manifests for the operator
@@ -98,33 +125,34 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	numOfHosts := len(cluster.Hosts)
 
-	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
-	if err != nil {
-		return nil, err
+	var disks int64 = 0
+	if host.Inventory != "" {
+		inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+		if err != nil {
+			return nil, err
+		}
+		disks = int64(getValidDiskCount(inventory.Disks) - 1)
 	}
 
-	disks := int64(getValidDiskCount(inventory.Disks) - 1)
-
-	if numOfHosts < 3 {
-		return nil, fmt.Errorf("OCS requires a minimum of 3 hosts")
-	}
-
-	if numOfHosts == 3 { // Compact Mode
+	if numOfHosts <= 3 { // Compact Mode
+		var reqDisks int64 = 1
+		if disks > 0 {
+			reqDisks = disks
+		}
+		// for each disk ocs requires 2 CPUs and 5 GB RAM
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
-			if disks <= 0 {
-				return nil, fmt.Errorf("OCS requires a minimum of one non-bootable disk per host")
-			}
 			return &models.ClusterHostRequirementsDetails{
-				CPUCores:   CPUCompactMode + disks*o.config.OCSRequiredDiskCPUCount,
-				RAMMib:     conversions.GbToMib(MemoryGBCompactMode + disks*o.config.OCSRequiredDiskRAMGB),
+				CPUCores:   CPUCompactMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
+				RAMMib:     conversions.GbToMib(MemoryGBCompactMode + reqDisks*o.config.OCSRequiredDiskRAMGB),
 				DiskSizeGb: MinDiskSize,
 			}, nil
 		}
-		return nil, fmt.Errorf("OCS compact mode unsupported role: %s", host.Role)
-	}
-
-	if host.Role == models.HostRoleAutoAssign { //If auto-assign we cannot proceed with minimal or standard mode
-		return nil, fmt.Errorf("OCS minimal mode unsupported role: %s", host.Role)
+		// regular worker req
+		return &models.ClusterHostRequirementsDetails{
+			CPUCores:   CPUMinimalMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
+			RAMMib:     conversions.GbToMib(MemoryGBMinimalMode + reqDisks*o.config.OCSRequiredDiskRAMGB),
+			DiskSizeGb: MinDiskSize,
+		}, nil
 	}
 
 	// The OCS minimal deployment mode sets up a storage cluster using reduced resources. If the resources will be more, standard mode will be deployed automatically.
@@ -133,6 +161,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
 	}
 
+	// worker and auto-assign
 	if disks > 0 {
 		// for each disk ocs requires 2 CPUs and 5 GB RAM
 		return &models.ClusterHostRequirementsDetails{
@@ -173,4 +202,28 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 			},
 		},
 	}, nil
+}
+
+func (o *operator) checkHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, mode ocsDeploymentMode) (api.ValidationResult, error) {
+	requirements, err := o.GetHostRequirements(ctx, cluster, host)
+	if err != nil {
+		message := fmt.Sprintf("Failed to get host requirements for host with id %s", host.ID)
+		o.log.Error(message)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message, err.Error()}}, err
+	}
+
+	if inventory.CPU.Count < requirements.CPUCores {
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy OCS. Required CPU count is %d but found %d.", requirements.CPUCores, inventory.CPU.Count)}}, nil
+	}
+
+	if inventory.Memory.UsableBytes < conversions.MibToBytes(requirements.RAMMib) {
+		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OCS. Required memory is %d MiB but found %d MiB.", requirements.RAMMib, usableMemory)}}, nil
+	}
+
+	if mode == compactMode && getValidDiskCount(inventory.Disks) <= 1 {
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires to have at least one non-bootable on each host in compact mode."}}, nil
+	}
+
+	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 }
