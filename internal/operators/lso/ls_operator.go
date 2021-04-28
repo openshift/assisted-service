@@ -57,7 +57,7 @@ func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *model
 
 // GenerateManifests generates manifests for the operator
 func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, error) {
-	return Manifests(c.Cluster.OpenshiftVersion)
+	return Manifests()
 }
 
 // GetProperties provides description of operator properties: none required

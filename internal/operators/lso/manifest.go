@@ -5,9 +5,8 @@ import (
 	"text/template"
 )
 
-func lsoSubscription(OpenShiftVersion string) ([]byte, error) {
+func lsoSubscription() ([]byte, error) {
 	data := map[string]string{
-		"OPENSHIFT_VERSION":          OpenShiftVersion,
 		"OPERATOR_NAMESPACE":         Operator.Namespace,
 		"OPERATOR_SUBSCRIPTION_NAME": Operator.SubscriptionName,
 	}
@@ -18,7 +17,6 @@ metadata:
   name: "{{.OPERATOR_SUBSCRIPTION_NAME}}"
   namespace: "{{.OPERATOR_NAMESPACE}}"
 spec:
-  channel: "{{.OPENSHIFT_VERSION}}"
   installPlanApproval: Automatic
   name: local-storage-operator
   source: redhat-operators
@@ -36,8 +34,8 @@ spec:
 	return buf.Bytes(), nil
 }
 
-func Manifests(OpenshiftVersion string) (map[string][]byte, error) {
-	lsoSubs, err := lsoSubscription(OpenshiftVersion)
+func Manifests() (map[string][]byte, error) {
+	lsoSubs, err := lsoSubscription()
 	if err != nil {
 		return nil, err
 	}
