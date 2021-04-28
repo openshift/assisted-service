@@ -151,6 +151,9 @@ func getValidationMetricCounter(validationID, expectedMetric string) int {
 	if len(filteredMetrics) == 0 {
 		return 0
 	}
+	if len(filteredMetrics) != 1 {
+		fmt.Println(filteredMetrics)
+	}
 	Expect(len(filteredMetrics)).To(Equal(1))
 
 	counter, err := strconv.Atoi(strings.ReplaceAll((strings.Split(filteredMetrics[0], "}")[1]), " ", ""))
