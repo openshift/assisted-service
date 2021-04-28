@@ -629,7 +629,7 @@ func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *mo
 
 func (m *Manager) CancelInstallation(ctx context.Context, h *models.Host, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := fmt.Sprintf("Installation canceled for host %s", hostutil.GetHostnameForMsg(h))
+	eventInfo := fmt.Sprintf("Installation cancelled for host %s", hostutil.GetHostnameForMsg(h))
 	shouldAddEvent := true
 	defer func() {
 		if shouldAddEvent {

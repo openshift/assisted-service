@@ -635,7 +635,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 	log := logutil.FromContext(ctx, m.log)
 
 	eventSeverity := models.EventSeverityInfo
-	eventInfo := "Canceled cluster installation"
+	eventInfo := "Cancelled cluster installation"
 	defer func() {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
 	}()

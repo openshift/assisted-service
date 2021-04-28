@@ -1247,7 +1247,7 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
-			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
+			Expect(*cancelEvent.Message).Should(Equal("Cancelled cluster installation"))
 		})
 		It("cancel_failed_installation", func() {
 			c.Status = swag.String(models.ClusterStatusError)
@@ -1260,7 +1260,7 @@ var _ = Describe("CancelInstallation", func() {
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
-			Expect(*cancelEvent.Message).Should(Equal("Canceled cluster installation"))
+			Expect(*cancelEvent.Message).Should(Equal("Cancelled cluster installation"))
 		})
 
 		AfterEach(func() {
