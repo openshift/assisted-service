@@ -37,9 +37,14 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
 const (
@@ -53,6 +58,9 @@ const (
 	servicePort              int32  = 8090
 	databasePort             int32  = 5432
 	agentLocalAuthSecretName        = serviceName + "local-auth" // #nosec
+
+	defaultIngressCertCMName      string = "default-ingress-cert"
+	defaultIngressCertCMNamespace string = "openshift-config-managed"
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -109,6 +117,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.ensureAgentRoute,
 		r.ensureAgentLocalAuthSecret,
 		r.ensurePostgresSecret,
+		r.ensureIngressCertCM,
 		r.ensureAssistedServiceDeployment,
 	} {
 		err := f(ctx, instance)
@@ -295,8 +304,54 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 	return nil
 }
 
+func (r *AgentServiceConfigReconciler) ensureIngressCertCM(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
+	sourceCM := &corev1.ConfigMap{}
+
+	if err := r.Get(ctx, types.NamespacedName{Name: defaultIngressCertCMName, Namespace: defaultIngressCertCMNamespace}, sourceCM); err != nil {
+		r.Log.Error(err, "Failed to get default ingress cert config map")
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: "Failed to get default ingress cert config map: " + err.Error(),
+		})
+		return err
+	}
+
+	cm, mutateFn := r.newIngressCertCM(instance, sourceCM)
+
+	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, mutateFn); err != nil {
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: "Failed to ensure ingress cert config map: " + err.Error(),
+		})
+		return err
+	} else if result != controllerutil.OperationResultNone {
+		r.Log.Info("Ingress config map created")
+	}
+	return nil
+}
+
+func checkIngressCMName(obj metav1.Object) bool {
+	return obj.GetNamespace() == defaultIngressCertCMNamespace && obj.GetName() == defaultIngressCertCMName
+}
+
 // SetupWithManager sets up the controller with the Manager.
 func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	ingressCMPredicates := builder.WithPredicates(predicate.Funcs{
+		CreateFunc:  func(e event.CreateEvent) bool { return checkIngressCMName(e.Object) },
+		UpdateFunc:  func(e event.UpdateEvent) bool { return checkIngressCMName(e.ObjectNew) },
+		DeleteFunc:  func(e event.DeleteEvent) bool { return checkIngressCMName(e.Object) },
+		GenericFunc: func(e event.GenericEvent) bool { return checkIngressCMName(e.Object) },
+	})
+	ingressCMHandler := handler.EnqueueRequestsFromMapFunc(
+		func(_ client.Object) []reconcile.Request {
+			return []reconcile.Request{{NamespacedName: types.NamespacedName{Name: agentServiceConfigName}}}
+		},
+	)
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.AgentServiceConfig{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
@@ -304,6 +359,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&corev1.Secret{}).
 		Owns(&routev1.Route{}).
 		Owns(&appsv1.Deployment{}).
+		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, ingressCMHandler, ingressCMPredicates).
 		Complete(r)
 }
 
@@ -466,9 +522,6 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 	serviceEnv := []corev1.EnvVar{
 		{Name: "SERVICE_BASE_URL", Value: getEnvVar("SERVICE_BASE_URL", serviceURL.String())},
 
-		// TODO: FIX ME!!!
-		{Name: "SKIP_CERT_VERIFICATION", Value: "True"},
-
 		// database
 		newSecretEnvVar("DB_HOST", "db.host", databaseName),
 		newSecretEnvVar("DB_NAME", "db.name", databaseName),
@@ -523,6 +576,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		{Name: "SERVE_HTTPS", Value: "True"},
 		{Name: "HTTPS_CERT_FILE", Value: "/etc/assisted-tls-config/tls.crt"},
 		{Name: "HTTPS_KEY_FILE", Value: "/etc/assisted-tls-config/tls.key"},
+		{Name: "SERVICE_CA_CERT_PATH", Value: "/etc/assisted-ingress-cert/ca-bundle.crt"},
+		{Name: "SKIP_CERT_VERIFICATION", Value: "False"},
 	}
 
 	serviceContainer := corev1.Container{
@@ -538,6 +593,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "bucket-filesystem", MountPath: "/data"},
 			{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
+			{Name: "ingress-cert", MountPath: "/etc/assisted-ingress-cert"},
 		},
 		Resources: corev1.ResourceRequirements{
 			Requests: corev1.ResourceList{
@@ -621,6 +677,16 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 				},
 			},
 		},
+		{
+			Name: "ingress-cert",
+			VolumeSource: corev1.VolumeSource{
+				ConfigMap: &corev1.ConfigMapVolumeSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: defaultIngressCertCMName,
+					},
+				},
+			},
+		},
 	}
 
 	deploymentLabels := map[string]string{
@@ -679,4 +745,26 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
+}
+
+func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.AgentServiceConfig, sourceCM *corev1.ConfigMap) (*corev1.ConfigMap, controllerutil.MutateFn) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultIngressCertCMName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+			return err
+		}
+		cm.Data = make(map[string]string)
+		for k, v := range sourceCM.Data {
+			cm.Data[k] = v
+		}
+		return nil
+	}
+
+	return cm, mutateFn
 }
