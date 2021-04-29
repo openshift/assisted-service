@@ -42,5 +42,5 @@ function wait_for_pod() {
   done
 
   echo "Waiting for pod (${pod}) on namespace (${namespace}) with labels (${selector}) to become ready..."
-  oc wait -n "$namespace" --for=condition=Ready pod --selector "$selector" --timeout=180s
+  oc wait -n "$namespace" --for=condition=Ready pod --selector "$selector" --timeout=10m
 }
