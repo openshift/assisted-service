@@ -189,3 +189,23 @@ func ValidateInstallerArgs(args []string) error {
 func IsDay2Host(h *models.Host) bool {
 	return swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost
 }
+
+// GetAddressFamilies returns if a host has addresses in IPv4, in IPv6 family, or both
+func GetAddressFamilies(host *models.Host) (bool, bool, error) {
+
+	var inventory models.Inventory
+	err := json.Unmarshal([]byte(host.Inventory), &inventory)
+	if err != nil {
+		return false, false, err
+	}
+	v4 := false
+	v6 := false
+	for _, i := range inventory.Interfaces {
+		v4 = v4 || len(i.IPV4Addresses) > 0
+		v6 = v6 || len(i.IPV6Addresses) > 0
+		if v4 && v6 {
+			break
+		}
+	}
+	return v4, v6, nil
+}

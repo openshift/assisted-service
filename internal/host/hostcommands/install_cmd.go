@@ -259,7 +259,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log 
 		}
 	}
 
-	installerArgs, err := appendDHCPArgs(cluster, installerArgs, log)
+	installerArgs, err := appendDHCPArgs(cluster, host, installerArgs, log)
 	if err != nil {
 		return "", err
 	}
@@ -273,7 +273,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log 
 	return toJSONString(installerArgs)
 }
 
-func appendDHCPArgs(cluster *common.Cluster, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
+func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []string, log logrus.FieldLogger) ([]string, error) {
 
 	if hasUserConfiguredIP(installerArgs) {
 		return installerArgs, nil
@@ -288,10 +288,20 @@ func appendDHCPArgs(cluster *common.Cluster, installerArgs []string, log logrus.
 		return append(installerArgs, "--append-karg", "ip=dhcp"), nil
 	}
 
-	if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
-		return installerArgs, nil
+	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
+		return installerArgs, errors.Errorf("cannot determine machine network address family")
 	}
-	return installerArgs, errors.Errorf("cannot determine machine network address family")
+
+	if v4, v6, err := hostutil.GetAddressFamilies(host); err != nil {
+		return installerArgs, err
+	} else if v4 && v6 {
+		log.Warnf("Cannot set DHCP kernel argument for host %s of day-2 cluster %s with dual IP stack. Not doing so may result in failing to download ignition or ISO", host.ID, *cluster.ID)
+		return installerArgs, nil
+	} else if v6 {
+		return append(installerArgs, "--append-karg", "ip=dhcp6"), nil
+	} else {
+		return append(installerArgs, "--append-karg", "ip=dhcp"), nil
+	}
 }
 
 func hasUserConfiguredIP(args []string) bool {
