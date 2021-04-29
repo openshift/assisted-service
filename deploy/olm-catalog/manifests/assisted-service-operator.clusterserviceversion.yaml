@@ -48,6 +48,9 @@ spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
+    - kind: AgentClusterInstall
+      name: agentclusterinstalls.extensions.hive.openshift.io
+      version: v1beta1
     - displayName: Agent
       kind: Agent
       name: agents.agent-install.openshift.io
@@ -290,6 +293,26 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - extensions.hive.openshift.io
+          resources:
+          - agentclusterinstalls
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - extensions.hive.openshift.io
+          resources:
+          - agentclusterinstalls/status
+          verbs:
+          - get
+          - patch
+          - update
         - apiGroups:
           - hive.openshift.io
           resources:

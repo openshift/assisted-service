@@ -160,10 +160,10 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Create(ctx, agentCluster2)).To(Succeed())
 
 			pullSecretName := "pull-secret"
-			defaultClusterSpec1 := getDefaultClusterDeploymentSpec(cluster1Name, pullSecretName)
+			defaultClusterSpec1 := getDefaultClusterDeploymentSpec(cluster1Name, "test-cluster-aci", pullSecretName)
 			clusterDeployment1 = newClusterDeployment(cluster1Name, testNamespace, defaultClusterSpec1)
 			Expect(c.Create(ctx, clusterDeployment1)).To(Succeed())
-			defaultClusterSpec2 := getDefaultClusterDeploymentSpec(cluster2Name, pullSecretName)
+			defaultClusterSpec2 := getDefaultClusterDeploymentSpec(cluster2Name, "test-cluster-aci", pullSecretName)
 			clusterDeployment2 = newClusterDeployment(cluster2Name, testNamespace, defaultClusterSpec2)
 			Expect(c.Create(ctx, clusterDeployment2)).To(Succeed())
 
@@ -196,7 +196,7 @@ var _ = Describe("bmac reconcile", func() {
 
 			It("should return nothing if agent does not match cluster deployment name", func() {
 				clusterName := "not-matching-agents-cluster-name"
-				defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, "test-pull")
+				defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, "test-cluster-aci", "test-pull")
 				clusterDeploymentNotMatching := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				agents := bmhr.findAgentsByClusterDeployment(context.Background(), clusterDeploymentNotMatching)
 				Expect(len(agents)).To(Equal(0))
@@ -583,7 +583,7 @@ var _ = Describe("bmac reconcile", func() {
 			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{Image: image, BootMACAddress: macStr, BMC: bmh_v1alpha1.BMCDetails{CredentialsName: fmt.Sprintf(adminKubeConfigStringTemplate, clusterName)}})
 			Expect(c.Create(ctx, host)).To(BeNil())
 
-			defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, pullSecretName)
+			defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, "test-cluster-aci", pullSecretName)
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			cluster.Spec.Installed = true
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())

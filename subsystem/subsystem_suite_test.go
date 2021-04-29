@@ -16,6 +16,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/client/versions"
+	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/pkg/auth"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -75,7 +76,9 @@ func setupKubeClient() {
 	if addErr := hivev1.AddToScheme(scheme.Scheme); addErr != nil {
 		logrus.Fatalf("Fail adding kubernetes hivev1 scheme: %s", addErr)
 	}
-
+	if addErr := hiveext.AddToScheme(scheme.Scheme); addErr != nil {
+		logrus.Fatalf("Fail adding kubernetes hivev1 scheme: %s", addErr)
+	}
 	if addErr := bmh_v1alpha1.AddToScheme(scheme.Scheme); addErr != nil {
 		logrus.Fatalf("Fail adding kubernetes bmh scheme: %s", addErr)
 	}
