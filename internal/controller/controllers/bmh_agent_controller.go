@@ -492,7 +492,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, bmh *bmh_v1alpha
 	// If the cluster is not installed yet, we can't get kubeconfig for the cluster yet.
 	if !clusterDeployment.Spec.Installed {
 		r.Log.Infof("ClusterDeployment %s/%s for agent %s/%s is not installed yet", clusterDeployment.Namespace, clusterDeployment.Name, agent.Namespace, agent.Name)
-		// TODO: If cluster is not Installed, wait until a reconcile is trigged by a watch event instead
+		// If cluster is not Installed, wait until a reconcile is trigged by a ClusterDeployment watch event instead
 		return reconcileComplete{}
 	}
 
@@ -630,6 +630,49 @@ func (r *BMACReconciler) findInstallationDiskID(devices []aiv1beta1.HostDisk, hi
 	}
 
 	return ""
+}
+
+// Finds the agents related to this ClusterDeployment
+//
+// The ClusterDeployment <-> agent relation is one-to-many.
+// This function returns all Agents whose ClusterDeploymentName name
+// matches this ClusterDeployment's name.
+func (r *BMACReconciler) findAgentsByClusterDeployment(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) []*aiv1beta1.Agent {
+	agentList := aiv1beta1.AgentList{}
+	err := r.Client.List(ctx, &agentList)
+	if err != nil {
+		return []*aiv1beta1.Agent{}
+	}
+
+	// There may be more than one Agent that maps to the same BMH
+	// if the cluster deployment had previous failed installations.
+	// Only the newest agent for each BMH is returned.
+	bmhToAgentMap := map[string]*aiv1beta1.Agent{}
+	for i, agent := range agentList.Items {
+		if agent.Spec.ClusterDeploymentName == nil {
+			continue
+		}
+		if agent.Spec.ClusterDeploymentName.Name != clusterDeployment.Name {
+			continue
+		}
+		if bmhName, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]; ok {
+			if existingAgent, ok := bmhToAgentMap[bmhName]; ok {
+				// if there are two Agent with the same bmhName, return the newest
+				if agent.ObjectMeta.CreationTimestamp.After(existingAgent.ObjectMeta.CreationTimestamp.Time) {
+					bmhToAgentMap[bmhName] = &agentList.Items[i]
+				}
+			} else {
+				bmhToAgentMap[bmhName] = &agentList.Items[i]
+			}
+		}
+	}
+
+	agents := []*aiv1beta1.Agent{}
+	for _, agent := range bmhToAgentMap {
+		agents = append(agents, agent)
+	}
+
+	return agents
 }
 
 // Finds the agents related to this BMH
@@ -835,8 +878,30 @@ func (r *BMACReconciler) getSpokeClient(secret *corev1.Secret) (client.Client, e
 	return r.spokeClient, err
 }
 
+// Returns a list of BMH ReconcileRequests for a given Agent
+func (r *BMACReconciler) agentToBMHReconcileRequests(ctx context.Context, agent *aiv1beta1.Agent) []reconcile.Request {
+	// No need to list all the `BareMetalHost` resources if the agent
+	// already has the reference to one of them.
+	if val, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]; ok {
+		return []reconcile.Request{{NamespacedName: types.NamespacedName{
+			Namespace: agent.Namespace,
+			Name:      val,
+		}}}
+	}
+
+	bmh, err := r.findBMHByAgent(ctx, agent)
+	if bmh == nil || err != nil {
+		return []reconcile.Request{}
+	}
+
+	return []reconcile.Request{{NamespacedName: types.NamespacedName{
+		Namespace: bmh.Namespace,
+		Name:      bmh.Name,
+	}}}
+}
+
 func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	mapAgentToClusterDeployment := func(a client.Object) []reconcile.Request {
+	mapAgentToBMH := func(a client.Object) []reconcile.Request {
 		ctx := context.Background()
 		agent := &aiv1beta1.Agent{}
 
@@ -844,24 +909,30 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			return []reconcile.Request{}
 		}
 
-		// No need to list all the `BareMetalHost` resources if the agent
-		// already has the reference to one of them.
-		if val, ok := agent.ObjectMeta.Labels[AGENT_BMH_LABEL]; ok {
-			return []reconcile.Request{{NamespacedName: types.NamespacedName{
-				Namespace: agent.Namespace,
-				Name:      val,
-			}}}
-		}
+		return r.agentToBMHReconcileRequests(ctx, agent)
+	}
 
-		bmh, err := r.findBMHByAgent(ctx, agent)
-		if bmh == nil || err != nil {
+	mapClusterDeploymentToBMH := func(a client.Object) []reconcile.Request {
+		ctx := context.Background()
+		clusterDeployment := &hivev1.ClusterDeployment{}
+
+		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, clusterDeployment); err != nil {
 			return []reconcile.Request{}
 		}
 
-		return []reconcile.Request{{NamespacedName: types.NamespacedName{
-			Namespace: bmh.Namespace,
-			Name:      bmh.Name,
-		}}}
+		// Don't queue any reconcile if the ClusterDeployment
+		// has not been installed.
+		if !clusterDeployment.Spec.Installed {
+			return []reconcile.Request{}
+		}
+
+		reconcileRequests := []reconcile.Request{}
+		agents := r.findAgentsByClusterDeployment(ctx, clusterDeployment)
+		for _, agent := range agents {
+			reconcileRequests = append(reconcileRequests, r.agentToBMHReconcileRequests(ctx, agent)...)
+		}
+
+		return reconcileRequests
 	}
 
 	mapInfraEnvToBMH := func(a client.Object) []reconcile.Request {
@@ -898,7 +969,8 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bmh_v1alpha1.BareMetalHost{}).
-		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToClusterDeployment)).
+		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToBMH)).
 		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
+		Watches(&source.Kind{Type: &hivev1.ClusterDeployment{}}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToBMH)).
 		Complete(r)
 }
