@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/connectivity"
+	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/dns"
@@ -675,6 +676,7 @@ func createControllerManager() (manager.Manager, error) {
 		utilruntime.Must(scheme.AddToScheme(schemes))
 		utilruntime.Must(aiv1beta1.AddToScheme(schemes))
 		utilruntime.Must(hivev1.AddToScheme(schemes))
+		utilruntime.Must(hiveext.AddToScheme(schemes))
 		utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{

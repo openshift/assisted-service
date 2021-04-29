@@ -17,12 +17,12 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
-	"github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/openshift/hive/apis/hive/v1/aws"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
@@ -57,95 +57,98 @@ func newClusterDeployment(name, namespace string, spec hivev1.ClusterDeploymentS
 	}
 }
 
-func getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.ClusterDeploymentSpec {
-	return hivev1.ClusterDeploymentSpec{
-		ClusterName: clusterName,
-		BaseDomain:  "hive.example.com",
-		Provisioning: &hivev1.Provisioning{
-			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
-			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
-			InstallStrategy: &hivev1.InstallStrategy{
-				Agent: &agent.InstallStrategy{
-					Networking: agent.Networking{
-						MachineNetwork: nil,
-						ClusterNetwork: []agent.ClusterNetworkEntry{{
-							CIDR:       "10.128.0.0/14",
-							HostPrefix: 23,
-						}},
-						ServiceNetwork: []string{"172.30.0.0/16"},
-					},
-					SSHPublicKey: "some-key",
-					ProvisionRequirements: agent.ProvisionRequirements{
-						ControlPlaneAgents: 1,
-						WorkerAgents:       0,
-					},
-				},
-			},
+func getDefaultSNOAgentClusterInstallSpec(clusterName string) hiveext.AgentClusterInstallSpec {
+	return hiveext.AgentClusterInstallSpec{
+		Networking: hiveext.Networking{
+			MachineNetwork: nil,
+			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
+				CIDR:       "10.128.0.0/14",
+				HostPrefix: 23,
+			}},
+			ServiceNetwork: []string{"172.30.0.0/16"},
 		},
-		Platform: hivev1.Platform{
-			AgentBareMetal: &agent.BareMetalPlatform{},
+		SSHPublicKey: "some-key",
+		ProvisionRequirements: hiveext.ProvisionRequirements{
+			ControlPlaneAgents: 1,
+			WorkerAgents:       0,
 		},
-		PullSecretRef: &corev1.LocalObjectReference{
-			Name: pullSecretName,
+		ImageSetRef:          hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
+		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterName},
+	}
+}
+
+func newAgentClusterInstall(name, namespace string, spec hiveext.AgentClusterInstallSpec) *hiveext.AgentClusterInstall {
+	return &hiveext.AgentClusterInstall{
+		Spec: spec,
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "AgentClusterInstall",
+			APIVersion: "hiveextension/v1beta1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
 		},
 	}
 }
 
-func getDefaultClusterDeploymentSpec(clusterName, pullSecretName string) hivev1.ClusterDeploymentSpec {
+func getDefaultAgentClusterInstallSpec(clusterName string) hiveext.AgentClusterInstallSpec {
+	return hiveext.AgentClusterInstallSpec{
+		APIVIP:     "1.2.3.8",
+		IngressVIP: "1.2.3.9",
+		Networking: hiveext.Networking{
+			MachineNetwork: nil,
+			ClusterNetwork: []hiveext.ClusterNetworkEntry{{
+				CIDR:       "10.128.0.0/14",
+				HostPrefix: 23,
+			}},
+			ServiceNetwork: []string{"172.30.0.0/16"},
+		},
+		SSHPublicKey: "some-key",
+		ProvisionRequirements: hiveext.ProvisionRequirements{
+			ControlPlaneAgents: 3,
+			WorkerAgents:       2,
+		},
+		ImageSetRef:          hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
+		ClusterDeploymentRef: corev1.LocalObjectReference{Name: clusterName},
+	}
+}
+
+func getDefaultClusterDeploymentSpec(clusterName, aciName, pullSecretName string) hivev1.ClusterDeploymentSpec {
 	return hivev1.ClusterDeploymentSpec{
 		BaseDomain:  "hive.example.com",
 		ClusterName: clusterName,
-		Provisioning: &hivev1.Provisioning{
-			InstallConfigSecretRef: &corev1.LocalObjectReference{Name: "cluster-install-config"},
-			ImageSetRef:            &hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
-			InstallStrategy: &hivev1.InstallStrategy{
-				Agent: &agent.InstallStrategy{
-					Networking: agent.Networking{
-						MachineNetwork: nil,
-						ClusterNetwork: []agent.ClusterNetworkEntry{{
-							CIDR:       "10.128.0.0/14",
-							HostPrefix: 23,
-						}},
-						ServiceNetwork: []string{"172.30.0.0/16"},
-					},
-					SSHPublicKey: "some-key",
-					ProvisionRequirements: agent.ProvisionRequirements{
-						ControlPlaneAgents: 3,
-						WorkerAgents:       2,
-					},
-				},
-			},
-		},
-		Platform: hivev1.Platform{
-			AgentBareMetal: &agent.BareMetalPlatform{
-				APIVIP:     "1.2.3.8",
-				IngressVIP: "1.2.3.9",
-			},
-		},
 		PullSecretRef: &corev1.LocalObjectReference{
 			Name: pullSecretName,
+		},
+		ClusterInstallRef: &hivev1.ClusterInstallLocalReference{
+			Group:   hiveext.Group,
+			Version: hiveext.Version,
+			Kind:    "AgentClusterInstall",
+			Name:    aciName,
 		},
 	}
 }
 
 var _ = Describe("cluster reconcile", func() {
 	var (
-		c                     client.Client
-		cr                    *ClusterDeploymentsReconciler
-		ctx                   = context.Background()
-		mockCtrl              *gomock.Controller
-		mockInstallerInternal *bminventory.MockInstallerInternals
-		mockClusterApi        *cluster.MockAPI
-		mockHostApi           *host.MockAPI
-		mockManifestsApi      *manifests.MockClusterManifestsInternals
-		mockCRDEventsHandler  *MockCRDEventsHandler
-		defaultClusterSpec    hivev1.ClusterDeploymentSpec
-		clusterName           = "test-cluster"
-		pullSecretName        = "pull-secret"
-		imageSetName          = "openshift-v4.8.0"
-		releaseImage          = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
-		ocpReleaseVersion     = "4.8.0"
-		openshiftVersion      = &models.OpenshiftVersion{
+		c                              client.Client
+		cr                             *ClusterDeploymentsReconciler
+		ctx                            = context.Background()
+		mockCtrl                       *gomock.Controller
+		mockInstallerInternal          *bminventory.MockInstallerInternals
+		mockClusterApi                 *cluster.MockAPI
+		mockHostApi                    *host.MockAPI
+		mockManifestsApi               *manifests.MockClusterManifestsInternals
+		mockCRDEventsHandler           *MockCRDEventsHandler
+		defaultClusterSpec             hivev1.ClusterDeploymentSpec
+		clusterName                    = "test-cluster"
+		agentClusterInstallName        = "test-cluster-aci"
+		defaultAgentClusterInstallSpec hiveext.AgentClusterInstallSpec
+		pullSecretName                 = "pull-secret"
+		imageSetName                   = "openshift-v4.8.0"
+		releaseImage                   = "quay.io/openshift-release-dev/ocp-release:4.8.0-x86_64"
+		ocpReleaseVersion              = "4.8.0"
+		openshiftVersion               = &models.OpenshiftVersion{
 			DisplayName:    new(string),
 			ReleaseImage:   new(string),
 			ReleaseVersion: &ocpReleaseVersion,
@@ -165,6 +168,17 @@ var _ = Describe("cluster reconcile", func() {
 		return &cluster
 	}
 
+	getTestClusterInstall := func() *hiveext.AgentClusterInstall {
+		clusterInstall := &hiveext.AgentClusterInstall{}
+		Expect(c.Get(ctx,
+			types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      agentClusterInstallName,
+			},
+			clusterInstall)).To(BeNil())
+		return clusterInstall
+	}
+
 	getSecret := func(namespace, name string) *corev1.Secret {
 		var secret corev1.Secret
 		key := types.NamespacedName{
@@ -176,7 +190,8 @@ var _ = Describe("cluster reconcile", func() {
 	}
 
 	BeforeEach(func() {
-		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, pullSecretName)
+		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName)
+		defaultAgentClusterInstallSpec = getDefaultAgentClusterInstallSpec(clusterName)
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
@@ -229,11 +244,11 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
 
-				cluster = getTestCluster()
-				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-				Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+				aci := getTestClusterInstall()
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 			}
 
 			It("create new cluster", func() {
@@ -246,7 +261,8 @@ var _ = Describe("cluster reconcile", func() {
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				validateCreation(cluster)
 			})
 
@@ -258,8 +274,11 @@ var _ = Describe("cluster reconcile", func() {
 				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace,
-					getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName))
+					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName))
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 				validateCreation(cluster)
 			})
@@ -273,9 +292,12 @@ var _ = Describe("cluster reconcile", func() {
 				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
-				cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents = 0
-				cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents = 1
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+				aci.Spec.ProvisionRequirements.WorkerAgents = 0
+				aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 				validateCreation(cluster)
 			})
@@ -290,16 +312,19 @@ var _ = Describe("cluster reconcile", func() {
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName))
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, errString)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 		})
 	})
 
@@ -332,6 +357,9 @@ var _ = Describe("cluster reconcile", func() {
 		cluster.Status = hivev1.ClusterDeploymentStatus{}
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
 		expectedErr := "expected-error"
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, errors.Errorf(expectedErr))
 
@@ -339,11 +367,11 @@ var _ = Describe("cluster reconcile", func() {
 		result, err := cr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
-		cluster = getTestCluster()
+		aci = getTestClusterInstall()
 		expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-		Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-		Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-		Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 	})
 
 	Context("cluster deletion", func() {
@@ -420,6 +448,8 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 			request = newClusterDeploymentRequest(cluster)
 			result, err = cr.Reconcile(ctx, request)
@@ -432,6 +462,7 @@ var _ = Describe("cluster reconcile", func() {
 		var (
 			sId            strfmt.UUID
 			cluster        *hivev1.ClusterDeployment
+			aci            *hiveext.AgentClusterInstall
 			backEndCluster *common.Cluster
 		)
 
@@ -444,19 +475,21 @@ var _ = Describe("cluster reconcile", func() {
 			id := uuid.New()
 			sId = strfmt.UUID(id.String())
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 			backEndCluster = &common.Cluster{
 				Cluster: models.Cluster{
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.8",
-					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusReady),
-					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
-					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
-					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
 					Kind:                     swag.String(models.ClusterKindCluster),
 				},
 				PullSecret: testPullSecretVal,
@@ -496,10 +529,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("installed", func() {
@@ -532,13 +565,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
+			aci = getTestClusterInstall()
 			cluster = getTestCluster()
-			Expect(cluster.Spec.Installed).To(BeTrue())
-			Expect(cluster.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
-			secretAdmin := getSecret(cluster.Namespace, cluster.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
+			Expect(aci.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
+			secretAdmin := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
 			Expect(string(secretAdmin.Data["password"])).To(Equal(password))
 			Expect(string(secretAdmin.Data["username"])).To(Equal(username))
-			secretKubeConfig := getSecret(cluster.Namespace, cluster.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
+			secretKubeConfig := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
 			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfig))
 		})
 
@@ -559,29 +592,28 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
 			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.WorkerAgents = 0
-			cluster.Spec.Provisioning.InstallStrategy.Agent.ProvisionRequirements.ControlPlaneAgents = 1
+			aci.Spec.ProvisionRequirements.WorkerAgents = 0
+			aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
 			cluster.Spec.BaseDomain = "hive.example.com"
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Message).To(Equal(InstalledMsg + " Done"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstalledMsg + " Done"))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 
-			Expect(cluster.Spec.Installed).To(BeTrue())
-			Expect(cluster.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
-			Expect(cluster.Status.WebConsoleURL).To(Equal("https://console-openshift-console.apps.test-cluster.hive.example.com"))
-			Expect(cluster.Status.APIURL).To(Equal("https://api.test-cluster.hive.example.com:6443"))
-			secretAdmin := getSecret(cluster.Namespace, cluster.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
+			cluster = getTestCluster()
+			Expect(aci.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
+			secretAdmin := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
 			Expect(string(secretAdmin.Data["password"])).To(Equal(password))
 			Expect(string(secretAdmin.Data["username"])).To(Equal(username))
-			secretKubeConfig := getSecret(cluster.Namespace, cluster.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
+			secretKubeConfig := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
 			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfig))
 		})
 
@@ -608,13 +640,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedError)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Fail to create day2", func() {
@@ -642,13 +674,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(NotAvailableReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionUnknown))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(NotAvailableReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionUnknown))
 		})
 
 		It("Create day2 if day1 is already deleted none SNO", func() {
@@ -662,15 +694,20 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(clusterReply, nil)
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
-			cluster.Spec.Installed = true
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
+				Type:    ClusterCompletedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  InstalledReason,
+				Message: InstalledMsg,
+			})
+			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
 		})
 
 		It("installed - fail to get kube config", func() {
@@ -693,15 +730,14 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(cluster.Spec.Installed).To(BeFalse())
 			Expect(cluster.Spec.ClusterMetadata).To(BeNil())
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("installed - fail to get admin password", func() {
@@ -717,15 +753,14 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
-			Expect(cluster.Spec.Installed).To(BeFalse())
+			aci = getTestClusterInstall()
 			Expect(cluster.Spec.ClusterMetadata).To(BeNil())
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("failed to start installation", func() {
@@ -744,14 +779,14 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("not ready for installation", func() {
@@ -764,11 +799,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("not ready for installation - hosts not approved", func() {
@@ -784,11 +819,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("install day2 host", func() {
@@ -813,11 +848,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("install failure day2 host", func() {
@@ -843,19 +878,19 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Install with manifests - no configmap", func() {
-			cluster.Spec.Provisioning.ManifestsConfigMapRef = &corev1.LocalObjectReference{Name: "cluster-install-config"}
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			aci.Spec.ManifestsConfigMapRef = &corev1.LocalObjectReference{Name: "cluster-install-config"}
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 
 			backEndCluster.Status = swag.String(models.ClusterStatusReady)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -869,13 +904,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).NotTo(Equal(""))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionTrue))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).NotTo(Equal(""))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Update manifests - manifests exists , create failed", func() {
@@ -901,21 +936,21 @@ var _ = Describe("cluster reconcile", func() {
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("error")).Times(1)
 			request := newClusterDeploymentRequest(cluster)
-			cluster = getTestCluster()
-			cluster.Spec.Provisioning.ManifestsConfigMapRef = ref
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			aci = getTestClusterInstall()
+			aci.Spec.ManifestsConfigMapRef = ref
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Update manifests - manifests exists , list failed", func() {
@@ -928,20 +963,20 @@ var _ = Describe("cluster reconcile", func() {
 
 			request := newClusterDeploymentRequest(cluster)
 			cluster = getTestCluster()
-			cluster.Spec.Provisioning.ManifestsConfigMapRef = ref
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			aci.Spec.ManifestsConfigMapRef = ref
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}))
 
-			cluster = getTestCluster()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Update manifests - succeed", func() {
@@ -978,17 +1013,17 @@ var _ = Describe("cluster reconcile", func() {
 				Return(installClusterReply, nil)
 
 			cluster = getTestCluster()
-			cluster.Spec.Provisioning.ManifestsConfigMapRef = ref
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			aci.Spec.ManifestsConfigMapRef = ref
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("Update manifests - no manifests", func() {
@@ -1015,10 +1050,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("Update manifests - delete old + error should be ignored", func() {
@@ -1045,10 +1080,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterInstalledCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 
 		})
 	})
@@ -1056,9 +1091,12 @@ var _ = Describe("cluster reconcile", func() {
 	It("reconcile on installed sno cluster should not return an error or requeue", func() {
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound).Times(1)
 		cluster := newClusterDeployment(clusterName, testNamespace,
-			getDefaultSNOClusterDeploymentSpec(clusterName, pullSecretName))
-		cluster.Spec.Installed = true
+			getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName))
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
 		request := newClusterDeploymentRequest(cluster)
 		result, err := cr.Reconcile(ctx, request)
 		Expect(err).To(BeNil())
@@ -1069,6 +1107,7 @@ var _ = Describe("cluster reconcile", func() {
 		var (
 			sId     strfmt.UUID
 			cluster *hivev1.ClusterDeployment
+			aci     *hiveext.AgentClusterInstall
 		)
 
 		BeforeEach(func() {
@@ -1080,6 +1119,9 @@ var _ = Describe("cluster reconcile", func() {
 			sId = strfmt.UUID(id.String())
 
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 		})
 
 		It("update pull-secret network cidr and cluster name", func() {
@@ -1089,7 +1131,7 @@ var _ = Describe("cluster reconcile", func() {
 					Name:                     "different-cluster-name",
 					OpenshiftVersion:         "4.8",
 					ClusterNetworkCidr:       "11.129.0.0/14",
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
 
 					Status: swag.String(models.ClusterStatusPendingForInput),
 				},
@@ -1109,7 +1151,7 @@ var _ = Describe("cluster reconcile", func() {
 					Expect(swag.StringValue(param.ClusterUpdateParams.PullSecret)).To(Equal(testPullSecretVal))
 					Expect(swag.StringValue(param.ClusterUpdateParams.Name)).To(Equal(defaultClusterSpec.ClusterName))
 					Expect(swag.StringValue(param.ClusterUpdateParams.ClusterNetworkCidr)).
-						To(Equal(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR))
+						To(Equal(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR))
 				}).Return(updateReply, nil)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -1117,11 +1159,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci := getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("only state changed", func() {
@@ -1130,14 +1172,14 @@ var _ = Describe("cluster reconcile", func() {
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.8",
-					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
-					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
-					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
-					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
 					Kind:                     swag.String(models.ClusterKindCluster),
 					ValidationsInfo:          "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
 				},
@@ -1151,13 +1193,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			cluster = getTestCluster()
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterReadyForInstallationCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterValidatedCondition).Reason).To(Equal(ValidationsFailingReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterValidatedCondition).Message).To(Equal(ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK"))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterValidatedCondition).Status).To(Equal(corev1.ConditionFalse))
+			aci := getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterValidatedCondition).Reason).To(Equal(ValidationsFailingReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterValidatedCondition).Message).To(Equal(ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK"))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterValidatedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("failed getting cluster", func() {
@@ -1169,11 +1211,11 @@ var _ = Describe("cluster reconcile", func() {
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
-			cluster = getTestCluster()
+			aci := getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 		})
 
 		It("update internal error", func() {
@@ -1197,11 +1239,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			cluster = getTestCluster()
+			aci := getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, errString)
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(cluster.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 		})
 
 		It("add install config overrides annotation", func() {
@@ -1210,14 +1252,14 @@ var _ = Describe("cluster reconcile", func() {
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.8",
-					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
-					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
-					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
-					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -1251,14 +1293,14 @@ var _ = Describe("cluster reconcile", func() {
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.8",
-					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
-					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
-					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
-					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
 					InstallConfigOverrides:   `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 				},
 				PullSecret: testPullSecretVal,
@@ -1289,14 +1331,14 @@ var _ = Describe("cluster reconcile", func() {
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.8",
-					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
-					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
-					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
-					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
 					InstallConfigOverrides:   `{"controlPlane": {"hyperthreading": "Disabled"}}`,
 				},
 				PullSecret: testPullSecretVal,
@@ -1343,14 +1385,14 @@ var _ = Describe("cluster reconcile", func() {
 					ID:                       &sId,
 					Name:                     clusterName,
 					OpenshiftVersion:         "4.8",
-					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
-					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
 					Status:                   swag.String(models.ClusterStatusInsufficient),
-					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
-					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
-					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
 					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
-					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
 				},
 				PullSecret: testPullSecretVal,
 			}
@@ -1360,10 +1402,12 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
 
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
-			sshPublicKeySuffixSpace := fmt.Sprintf("%s ",
-				defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey)
-			cluster.Spec.Provisioning.InstallStrategy.Agent.SSHPublicKey = sshPublicKeySuffixSpace
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			sshPublicKeySuffixSpace := fmt.Sprintf("%s ", defaultAgentClusterInstallSpec.SSHPublicKey)
+			aci.Spec.SSHPublicKey = sshPublicKeySuffixSpace
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
@@ -1375,13 +1419,14 @@ var _ = Describe("cluster reconcile", func() {
 
 var _ = Describe("TestConditions", func() {
 	var (
-		c              client.Client
-		cr             *ClusterDeploymentsReconciler
-		ctx            = context.Background()
-		mockCtrl       *gomock.Controller
-		backEndCluster *common.Cluster
-		clusterRequest ctrl.Request
-		clusterKey     types.NamespacedName
+		c                      client.Client
+		cr                     *ClusterDeploymentsReconciler
+		ctx                    = context.Background()
+		mockCtrl               *gomock.Controller
+		backEndCluster         *common.Cluster
+		clusterRequest         ctrl.Request
+		clusterKey             types.NamespacedName
+		agentClusterInstallKey types.NamespacedName
 	)
 
 	BeforeEach(func() {
@@ -1401,8 +1446,14 @@ var _ = Describe("TestConditions", func() {
 			Namespace: testNamespace,
 			Name:      "clusterDeployment",
 		}
-		clusterDeployment := newClusterDeployment(clusterKey.Name, clusterKey.Namespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "pull-secret"))
+		agentClusterInstallKey = types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "agentClusterInstall",
+		}
+		clusterDeployment := newClusterDeployment(clusterKey.Name, clusterKey.Namespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", agentClusterInstallKey.Name, "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		aci := newAgentClusterInstall(agentClusterInstallKey.Name, agentClusterInstallKey.Namespace, getDefaultAgentClusterInstallSpec(clusterKey.Name))
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 		clusterRequest = newClusterDeploymentRequest(clusterDeployment)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 	})
@@ -1416,22 +1467,22 @@ var _ = Describe("TestConditions", func() {
 		clusterStatus  string
 		statusInfo     string
 		validationInfo string
-		conditions     []hivev1.ClusterDeploymentCondition
+		conditions     []hivev1.ClusterInstallCondition
 	}{
 		{
 			name:           "Unsufficient",
 			clusterStatus:  models.ClusterStatusInsufficient,
 			statusInfo:     "",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
-			conditions: []hivev1.ClusterDeploymentCondition{
+			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterNotReadyMsg,
 					Reason:  ClusterNotReadyReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationNotStartedMsg,
 					Reason:  InstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
@@ -1449,15 +1500,15 @@ var _ = Describe("TestConditions", func() {
 			clusterStatus:  models.ClusterStatusPendingForInput,
 			statusInfo:     "",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
-			conditions: []hivev1.ClusterDeploymentCondition{
+			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterNotReadyMsg,
 					Reason:  ClusterNotReadyReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationNotStartedMsg,
 					Reason:  InstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
@@ -1475,15 +1526,15 @@ var _ = Describe("TestConditions", func() {
 			clusterStatus:  models.ClusterStatusAddingHosts,
 			statusInfo:     "Done",
 			validationInfo: "",
-			conditions: []hivev1.ClusterDeploymentCondition{
+			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterAlreadyInstallingMsg,
 					Reason:  ClusterAlreadyInstallingReason,
-					Status:  corev1.ConditionFalse,
+					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstalledMsg + " Done",
 					Reason:  InstalledReason,
 					Status:  corev1.ConditionTrue,
@@ -1501,15 +1552,15 @@ var _ = Describe("TestConditions", func() {
 			clusterStatus:  models.ClusterStatusInstalled,
 			statusInfo:     "Done",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
-			conditions: []hivev1.ClusterDeploymentCondition{
+			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterAlreadyInstallingMsg,
 					Reason:  ClusterAlreadyInstallingReason,
-					Status:  corev1.ConditionFalse,
+					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstalledMsg + " Done",
 					Reason:  InstalledReason,
 					Status:  corev1.ConditionTrue,
@@ -1527,15 +1578,15 @@ var _ = Describe("TestConditions", func() {
 			clusterStatus:  models.ClusterStatusInstalling,
 			statusInfo:     "Phase 1",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
-			conditions: []hivev1.ClusterDeploymentCondition{
+			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterAlreadyInstallingMsg,
 					Reason:  ClusterAlreadyInstallingReason,
-					Status:  corev1.ConditionFalse,
+					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationInProgressMsg + " Phase 1",
 					Reason:  InstallationInProgressReason,
 					Status:  corev1.ConditionFalse,
@@ -1553,15 +1604,15 @@ var _ = Describe("TestConditions", func() {
 			clusterStatus:  models.ClusterStatusReady,
 			statusInfo:     "",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
-			conditions: []hivev1.ClusterDeploymentCondition{
+			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterReadyForInstallationCondition,
+					Type:    ClusterRequirementsMetCondition,
 					Message: ClusterReadyMsg,
 					Reason:  ClusterReadyReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterInstalledCondition,
+					Type:    ClusterCompletedCondition,
 					Message: InstallationNotStartedMsg,
 					Reason:  InstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
@@ -1586,10 +1637,12 @@ var _ = Describe("TestConditions", func() {
 			Expect(err).To(BeNil())
 			cluster := &hivev1.ClusterDeployment{}
 			Expect(c.Get(ctx, clusterKey, cluster)).To(BeNil())
+			clusterInstall := &hiveext.AgentClusterInstall{}
+			Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
 			for _, cond := range t.conditions {
-				Expect(FindStatusCondition(cluster.Status.Conditions, cond.Type).Message).To(Equal(cond.Message))
-				Expect(FindStatusCondition(cluster.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
-				Expect(FindStatusCondition(cluster.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Message).To(Equal(cond.Message))
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
+				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
 			}
 
 		})
