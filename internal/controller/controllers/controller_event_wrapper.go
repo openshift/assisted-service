@@ -27,6 +27,7 @@ func NewControllerEventsWrapper(crdEventsHandler CRDEventsHandler, events *event
 
 func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
 	c.events.AddEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
+
 	cluster, err := common.GetClusterFromDB(c.db, clusterID, common.SkipEagerLoading)
 	if err != nil {
 		return
@@ -42,6 +43,10 @@ func (c *controllerEventsWrapper) AddEvent(ctx context.Context, clusterID strfmt
 	}
 }
 
-func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error) {
-	return c.events.GetEvents(clusterID, hostID)
+func (c *controllerEventsWrapper) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity string, msg string, eventTime time.Time, props ...interface{}) {
+	c.events.AddMetricsEvent(ctx, clusterID, hostID, severity, msg, eventTime, props)
+}
+
+func (c *controllerEventsWrapper) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	return c.events.GetEvents(clusterID, hostID, categories...)
 }

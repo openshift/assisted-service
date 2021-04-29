@@ -2494,7 +2494,7 @@ var _ = Describe("Permanently delete clusters", func() {
 
 	registerCluster := func() common.Cluster {
 		id := strfmt.UUID(uuid.New().String())
-		eventsHandler.AddEvent(ctx, id, &id, "", "", time.Now())
+		eventsHandler.AddEvent(ctx, id, &id, models.EventSeverityInfo, "", time.Now())
 		c := common.Cluster{Cluster: models.Cluster{
 			ID:                 &id,
 			MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},

@@ -12,13 +12,15 @@ import (
 	"strings"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // ListEventsURL generates an URL for the list events operation
 type ListEventsURL struct {
 	ClusterID strfmt.UUID
 
-	HostID *strfmt.UUID
+	Categories []string
+	HostID     *strfmt.UUID
 
 	_basePath string
 	// avoid unkeyed usage
@@ -60,6 +62,23 @@ func (o *ListEventsURL) Build() (*url.URL, error) {
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
 	qs := make(url.Values)
+
+	var categoriesIR []string
+	for _, categoriesI := range o.Categories {
+		categoriesIS := categoriesI
+		if categoriesIS != "" {
+			categoriesIR = append(categoriesIR, categoriesIS)
+		}
+	}
+
+	categories := swag.JoinByFormat(categoriesIR, "")
+
+	if len(categories) > 0 {
+		qsv := categories[0]
+		if qsv != "" {
+			qs.Set("categories", qsv)
+		}
+	}
 
 	var hostIDQ string
 	if o.HostID != nil {

@@ -21,11 +21,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-/*
-Given events library
-	Initially
-		There are no events
-*/
 var _ = Describe("Events library", func() {
 	var (
 		db        *gorm.DB
@@ -131,9 +126,9 @@ var _ = Describe("Events library", func() {
 
 	Context("additional properties", func() {
 		It("multiple properties", func() {
-			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInternal, "e1", time.Now(),
+			theEvents.AddMetricsEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "e1", time.Now(),
 				"p1", "abcd", "p2", 6.0)
-			evs, err := theEvents.GetEvents(cluster1, nil)
+			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryMetrics)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(1))
 			Expect(evs[0]).Should(WithProperty("p1", "abcd"))
@@ -142,21 +137,41 @@ var _ = Describe("Events library", func() {
 
 		It("map properties", func() {
 			var props = map[string]interface{}{"p1": "abcd"}
-			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInternal, "e1", time.Now(),
+			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "e1", time.Now(),
 				props)
-			evs, err := theEvents.GetEvents(cluster1, nil)
+			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryUser)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(1))
 			Expect(evs[0]).Should(WithProperty("p1", "abcd"))
 		})
 
 		It("bad properties", func() {
-			theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInternal, "e1", time.Now(),
+			theEvents.AddMetricsEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "e1", time.Now(),
 				"p1")
-			evs, err := theEvents.GetEvents(cluster1, nil)
+			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryMetrics)
 			Expect(err).Should(BeNil())
 			Expect(len(evs)).Should(Equal(1))
 			Expect(evs[0].Props).Should(Equal(""))
+		})
+	})
+
+	Context("event category", func() {
+		BeforeEach(func() {
+			for _, s := range events.DefaultEventCategories {
+				theEvents.AddEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, s, time.Now())
+			}
+			theEvents.AddMetricsEvent(context.TODO(), cluster1, nil, models.EventSeverityInfo, "metrics", time.Now())
+		})
+		It("GetEvents with default category", func() {
+			evs, err := theEvents.GetEvents(cluster1, nil)
+			Expect(err).Should(BeNil())
+			Expect(len(evs)).Should(Equal(len(events.DefaultEventCategories)))
+		})
+		It("GetEvents with selected category", func() {
+			evs, err := theEvents.GetEvents(cluster1, nil, models.EventCategoryMetrics)
+			Expect(err).Should(BeNil())
+			Expect(len(evs)).Should(Equal(1))
+			Expect(*evs[0].Message).Should(Equal("metrics"))
 		})
 	})
 

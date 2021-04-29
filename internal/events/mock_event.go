@@ -53,17 +53,39 @@ func (mr *MockHandlerMockRecorder) AddEvent(ctx, clusterID, hostID, severity, ms
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddEvent", reflect.TypeOf((*MockHandler)(nil).AddEvent), varargs...)
 }
 
-// GetEvents mocks base method
-func (m *MockHandler) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID) ([]*common.Event, error) {
+// AddMetricsEvent mocks base method
+func (m *MockHandler) AddMetricsEvent(ctx context.Context, clusterID strfmt.UUID, hostID *strfmt.UUID, severity, msg string, eventTime time.Time, props ...interface{}) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetEvents", clusterID, hostID)
+	varargs := []interface{}{ctx, clusterID, hostID, severity, msg, eventTime}
+	for _, a := range props {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "AddMetricsEvent", varargs...)
+}
+
+// AddMetricsEvent indicates an expected call of AddMetricsEvent
+func (mr *MockHandlerMockRecorder) AddMetricsEvent(ctx, clusterID, hostID, severity, msg, eventTime interface{}, props ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, clusterID, hostID, severity, msg, eventTime}, props...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddMetricsEvent", reflect.TypeOf((*MockHandler)(nil).AddMetricsEvent), varargs...)
+}
+
+// GetEvents mocks base method
+func (m *MockHandler) GetEvents(clusterID strfmt.UUID, hostID *strfmt.UUID, categories ...string) ([]*common.Event, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{clusterID, hostID}
+	for _, a := range categories {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetEvents", varargs...)
 	ret0, _ := ret[0].([]*common.Event)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetEvents indicates an expected call of GetEvents
-func (mr *MockHandlerMockRecorder) GetEvents(clusterID, hostID interface{}) *gomock.Call {
+func (mr *MockHandlerMockRecorder) GetEvents(clusterID, hostID interface{}, categories ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), clusterID, hostID)
+	varargs := append([]interface{}{clusterID, hostID}, categories...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvents", reflect.TypeOf((*MockHandler)(nil).GetEvents), varargs...)
 }

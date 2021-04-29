@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewListEventsParams creates a new ListEventsParams object
@@ -60,6 +61,11 @@ for the list events operation typically these are written to a http.Request
 */
 type ListEventsParams struct {
 
+	/*Categories
+	  A comma-separated list of event categories.
+
+	*/
+	Categories []string
 	/*ClusterID
 	  The cluster to return events for.
 
@@ -109,6 +115,17 @@ func (o *ListEventsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithCategories adds the categories to the list events params
+func (o *ListEventsParams) WithCategories(categories []string) *ListEventsParams {
+	o.SetCategories(categories)
+	return o
+}
+
+// SetCategories adds the categories to the list events params
+func (o *ListEventsParams) SetCategories(categories []string) {
+	o.Categories = categories
+}
+
 // WithClusterID adds the clusterID to the list events params
 func (o *ListEventsParams) WithClusterID(clusterID strfmt.UUID) *ListEventsParams {
 	o.SetClusterID(clusterID)
@@ -138,6 +155,14 @@ func (o *ListEventsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Re
 		return err
 	}
 	var res []error
+
+	valuesCategories := o.Categories
+
+	joinedCategories := swag.JoinByFormat(valuesCategories, "")
+	// query array param categories
+	if err := r.SetQueryParam("categories", joinedCategories...); err != nil {
+		return err
+	}
 
 	// path param cluster_id
 	if err := r.SetPathParam("cluster_id", o.ClusterID.String()); err != nil {
