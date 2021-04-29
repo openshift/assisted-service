@@ -36,6 +36,95 @@ func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler
 	}
 }
 
+func newAgentServiceConfigRequest(asc *aiv1beta1.AgentServiceConfig) ctrl.Request {
+	namespacedName := types.NamespacedName{
+		Namespace: asc.ObjectMeta.Namespace,
+		Name:      asc.ObjectMeta.Name,
+	}
+	return ctrl.Request{NamespacedName: namespacedName}
+}
+
+var _ = Describe("agentserviceconfig_controller reconcile", func() {
+	var (
+		asc       *aiv1beta1.AgentServiceConfig
+		ascr      *AgentServiceConfigReconciler
+		ctx       = context.Background()
+		route     *routev1.Route
+		routeHost = "testHost"
+	)
+
+	BeforeEach(func() {
+		asc = newASCWithCMAnnotation()
+		ascr = newTestReconciler(asc)
+
+		// The operator searches for the ingress cert config map.
+		// If the config map isn't available the test runner will show
+		// Message: "configmaps \"default-ingress-cert\" not found
+		ingressCM := &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      defaultIngressCertCMName,
+				Namespace: defaultIngressCertCMNamespace,
+			},
+		}
+		Expect(ascr.Client.Create(ctx, ingressCM)).To(Succeed())
+
+		// AgentServiceConfig created route is missing Host.
+		// We create one here with a value set for Host so that
+		// reconcile does not fail.
+		route, _ = ascr.newAgentRoute(asc)
+		route.Spec.Host = routeHost
+		Expect(ascr.Client.Create(ctx, route)).To(Succeed())
+	})
+
+	It("reconcile should succeed", func() {
+		result, err := ascr.Reconcile(ctx, newAgentServiceConfigRequest(asc))
+		Expect(err).To(Succeed())
+		Expect(result).To(Equal(ctrl.Result{}))
+	})
+})
+
+var _ = Describe("ensureAgentRoute", func() {
+	var (
+		asc  *aiv1beta1.AgentServiceConfig
+		ascr *AgentServiceConfigReconciler
+		ctx  = context.Background()
+	)
+
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc)
+	})
+
+	Context("with no existing route", func() {
+		It("should create new route", func() {
+			found := &routev1.Route{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
+				Namespace: testNamespace}, found)).ToNot(Succeed())
+
+			Expect(ascr.ensureAgentRoute(ctx, asc)).To(Succeed())
+
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
+				Namespace: testNamespace}, found)).To(Succeed())
+		})
+	})
+
+	Context("with existing route", func() {
+		It("should not change route Host", func() {
+			routeHost := "route.example.com"
+			route, _ := ascr.newAgentRoute(asc)
+			route.Spec.Host = routeHost
+			Expect(ascr.Client.Create(ctx, route)).To(Succeed())
+
+			Expect(ascr.ensureAgentRoute(ctx, asc)).To(Succeed())
+
+			found := &routev1.Route{}
+			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
+				Namespace: testNamespace}, found)).To(Succeed())
+			Expect(found.Spec.Host).To(Equal(routeHost))
+		})
+	})
+})
+
 var _ = Describe("ensureAgentLocalAuthSecret", func() {
 	var (
 		asc        *aiv1beta1.AgentServiceConfig
