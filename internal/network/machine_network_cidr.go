@@ -225,6 +225,7 @@ func GetMachineCidrForUserManagedNetwork(cluster *common.Cluster, log logrus.Fie
 
 	bootstrap := common.GetBootstrapHost(cluster)
 	if bootstrap == nil {
+		log.Warnf("No bootstrap found in cluster %s", cluster.ID)
 		return ""
 	}
 
