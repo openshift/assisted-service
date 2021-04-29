@@ -525,7 +525,7 @@ var _ = Describe("cancel installation", func() {
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
-			eventMessage := fmt.Sprintf("Installation canceled for host %s", hostutil.GetHostnameForMsg(&h))
+			eventMessage := fmt.Sprintf("Installation cancelled for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*cancelEvent.Message).Should(Equal(eventMessage))
 		})
 
@@ -538,7 +538,7 @@ var _ = Describe("cancel installation", func() {
 			Expect(len(events)).ShouldNot(Equal(0))
 			cancelEvent := events[len(events)-1]
 			Expect(*cancelEvent.Severity).Should(Equal(models.EventSeverityInfo))
-			eventMessage := fmt.Sprintf("Installation canceled for host %s", hostutil.GetHostnameForMsg(&h))
+			eventMessage := fmt.Sprintf("Installation cancelled for host %s", hostutil.GetHostnameForMsg(&h))
 			Expect(*cancelEvent.Message).Should(Equal(eventMessage))
 		})
 
