@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -84,7 +85,8 @@ var _ = Describe("ClusterManifestTests", func() {
 		clusterID := strfmt.UUID(uuid.New().String())
 		cluster := common.Cluster{
 			Cluster: models.Cluster{
-				ID: &clusterID,
+				ID:     &clusterID,
+				Status: swag.String(models.ClusterStatusReady),
 			},
 		}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
@@ -497,6 +499,24 @@ spec:
 			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.New(""))))
 			err := response.(*common.ApiErrorResponse)
 			Expect(err.StatusCode()).To(Equal(int32(http.StatusNotFound)))
+		})
+
+		It("deletes after installation has been started", func() {
+			clusterID := strfmt.UUID(uuid.New().String())
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &clusterID,
+					Status: swag.String(models.ClusterStatusInstalling),
+				},
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			response := manifestsAPI.DeleteClusterManifest(ctx, operations.DeleteClusterManifestParams{
+				ClusterID: *cluster.ID,
+				FileName:  "file-1.yaml",
+			})
+			Expect(response).Should(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.New(""))))
+			err := response.(*common.ApiErrorResponse)
+			Expect(err.StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 		})
 	})
 

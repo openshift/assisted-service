@@ -18,6 +18,7 @@ package controllers
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -32,8 +33,10 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
+	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/openshift/hive/apis/hive/v1/agent"
 	"github.com/pkg/errors"
@@ -70,9 +73,11 @@ type ClusterDeploymentsReconciler struct {
 	ClusterApi       cluster.API
 	HostApi          host.API
 	CRDEventsHandler CRDEventsHandler
+	Manifests        manifests.ClusterManifestsInternals
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
+// +kubebuilder:rbac:groups="",resources=configmaps,verbs=get;list;watch
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterdeployments/finalizers,verbs=update
@@ -163,6 +168,17 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterD
 		return r.updateStatus(ctx, clusterDeployment, cluster, err)
 	}
 	if ready {
+
+		// create custom manifests if needed before installation
+		err = r.addCustomManifests(ctx, clusterDeployment, cluster)
+		if err != nil {
+			_, _ = r.updateStatus(ctx, clusterDeployment, cluster, err)
+			// We decided to requeue with one minute timeout in order to give user a chance to fix manifest
+			// this timeout allows us not to run reconcile too much time and
+			// still have a nice feedback when user will fix the error
+			return ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}, nil
+		}
+
 		r.Log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
@@ -402,6 +418,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 	}
 	return nil
 }
+
 func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
 	cluster *common.Cluster) error {
 	// handle InstallConfigOverrides
@@ -424,6 +441,85 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		return nil
 	}
 	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluster *common.Cluster,
+	clusterDeployment *hivev1.ClusterDeployment, alreadyCreatedManifests models.ListManifests) error {
+
+	r.Log.Debugf("Going to sync list of given with already created manifests")
+
+	manifestsFromConfigMap, err := r.getClusterDeploymentManifest(ctx, clusterDeployment)
+	if err != nil {
+		return err
+	}
+
+	// delete all manifests that are not part of configmap
+	// skip errors
+	for _, manifest := range alreadyCreatedManifests {
+		if _, ok := manifestsFromConfigMap[manifest.FileName]; !ok {
+			r.Log.Infof("Deleting cluster deployment %s manifest %s", cluster.KubeKeyName, manifest.FileName)
+			_ = r.Manifests.DeleteClusterManifestInternal(ctx, operations.DeleteClusterManifestParams{
+				ClusterID: *cluster.ID,
+				FileName:  manifest.FileName,
+				Folder:    swag.String(models.ManifestFolderOpenshift),
+			})
+		}
+	}
+
+	// create/update all manifests provided by configmap data
+	for filename, manifest := range manifestsFromConfigMap {
+		r.Log.Infof("Creating cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
+		_, err := r.Manifests.CreateClusterManifestInternal(ctx, operations.CreateClusterManifestParams{
+			ClusterID: *cluster.ID,
+			CreateManifestParams: &models.CreateManifestParams{
+				Content:  swag.String(base64.StdEncoding.EncodeToString([]byte(manifest))),
+				FileName: swag.String(filename),
+				Folder:   swag.String(models.ManifestFolderOpenshift),
+			}})
+		if err != nil {
+			r.Log.WithError(err).Errorf("Failed to create cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) (map[string]string, error) {
+	configuredManifests := &corev1.ConfigMap{}
+	configuredManifests.Data = map[string]string{}
+	// get manifests from configmap if we have reference for it
+	if clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef != nil {
+		err := r.Get(ctx, types.NamespacedName{Namespace: clusterDeployment.Namespace,
+			Name: clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef.Name}, configuredManifests)
+		if err != nil {
+			r.Log.WithError(err).Errorf("Failed to get configmap %s in %s",
+				clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef.Name, clusterDeployment.Namespace)
+			return nil, err
+		}
+	}
+	return configuredManifests.Data, nil
+}
+
+func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
+	cluster *common.Cluster) error {
+
+	alreadyCreatedManifests, err := r.Manifests.ListClusterManifestsInternal(ctx, operations.ListClusterManifestsParams{
+		ClusterID: *cluster.ID,
+	})
+	if err != nil {
+		r.Log.WithError(err).Errorf("Failed to list manifests for %q cluster deployment", clusterDeployment.Name)
+		return err
+	}
+
+	// if reference to manifests was deleted from cluster deployment
+	// but we already added some in previous reconcile loop, we want to clean them.
+	// if no reference were provided we will delete all manifests that were in the list
+	if clusterDeployment.Spec.Provisioning.ManifestsConfigMapRef == nil && len(alreadyCreatedManifests) == 0 {
+		r.Log.Debugf("Nothing to do, skipping manifest creation")
+		return nil
+	}
+
+	return r.syncManifests(ctx, cluster, clusterDeployment, alreadyCreatedManifests)
 }
 
 func (r *ClusterDeploymentsReconciler) isSNO(cluster *hivev1.ClusterDeployment) bool {

@@ -62,6 +62,33 @@ func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Clien
 	}
 }
 
+func deployOrUpdateConfigMap(ctx context.Context, client k8sclient.Client, name string, data map[string]string) *corev1.ConfigMap {
+	c := &corev1.ConfigMap{}
+	err := client.Get(
+		ctx,
+		types.NamespacedName{Namespace: Options.Namespace, Name: name},
+		c,
+	)
+	if apierrors.IsNotFound(err) {
+		c = &corev1.ConfigMap{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "ConfigMap",
+				APIVersion: "v1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: Options.Namespace,
+				Name:      name,
+			},
+			Data: data,
+		}
+		Expect(client.Create(ctx, c)).To(BeNil())
+	} else {
+		c.Data = data
+		Expect(client.Update(ctx, c)).To(BeNil())
+	}
+	return c
+}
+
 func deployPullSecretResource(ctx context.Context, client k8sclient.Client, name, secret string) {
 	data := map[string]string{corev1.DockerConfigJsonKey: secret}
 	s := &corev1.Secret{
@@ -1350,5 +1377,63 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// Create ClusterImageSet
 		deployClusterImageSetCRD(ctx, kubeClient, spec.Provisioning.ImageSetRef)
 		checkClusterCondition(ctx, clusterKubeName, controllers.ClusterSpecSyncedCondition, controllers.SyncedOkReason)
+	})
+
+	It("deploy clusterDeployment with manifest reference with bad manifest and then fixing it ", func() {
+		By("Create cluster")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSNOSpec(secretRef)
+		ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
+		clusterDeploymentSpec.Provisioning.ManifestsConfigMapRef = ref
+		content := `apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: master
+  name: 99-openshift-machineconfig-master-kargs
+spec:
+  kernelArguments:
+    - 'loglevel=7'`
+
+		By("Start installation without config map")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		By("Approve Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterReadyForInstallationCondition, controllers.ClusterReadyReason)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
+
+		By("Deploy bad config map")
+		data := map[string]string{"test.yaml": content, "test.dc": "test"}
+		cm := deployOrUpdateConfigMap(ctx, kubeClient, ref.Name, data)
+		defer func() {
+			_ = kubeClient.Delete(ctx, cm)
+		}()
+
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterReadyForInstallationCondition, controllers.ClusterReadyReason)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterSpecSyncedCondition, controllers.InputErrorReason)
+
+		By("Fixing configmap and expecting installation to start")
+		// adding sleep to be sure all reconciles will finish, will test that requeue worked as expected
+		time.Sleep(30 * time.Second)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterReadyForInstallationCondition, controllers.ClusterReadyReason)
+
+		data = map[string]string{"test.yaml": content, "test2.yaml": content}
+		deployOrUpdateConfigMap(ctx, kubeClient, ref.Name, data)
+		checkClusterCondition(ctx, clusterKey, controllers.ClusterReadyForInstallationCondition, controllers.ClusterAlreadyInstallingReason)
 	})
 })
