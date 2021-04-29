@@ -9,8 +9,8 @@ import (
 // Minimum mask size to allow 128 addresses for cluster or service CIDRs
 const MinMaskDelta = 7
 
-// Minimum mask size for Machine CIDR to allow at least 64 addresses
-const MinMachineMaskDelta = 6
+// Minimum mask size for Machine CIDR to allow at least 16 addresses
+const MinMachineMaskDelta = 4
 
 // VerifyCIDRsNotOverlap returns true if one of the CIDRs is a subset of the other.
 func verifyCIDRsNotOverlap(acidr, bcidr *net.IPNet) error {

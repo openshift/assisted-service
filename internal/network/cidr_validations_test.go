@@ -39,9 +39,13 @@ var _ = Describe("CIDR validations", func() {
 		It("Machine CIDR 26 OK", func() {
 			Expect(VerifyMachineCIDR("1.2.3.128/26")).ToNot(HaveOccurred())
 		})
-		It("Machine CIDR 27 Fail", func() {
-			Expect(VerifyMachineCIDR("1.2.3.128/27")).To(HaveOccurred())
+		It("Machine CIDR 29 Fail", func() {
+			Expect(VerifyMachineCIDR("1.2.3.128/29")).To(HaveOccurred())
 		})
+		It("Machine CIDR 27 OK", func() {
+			Expect(VerifyMachineCIDR("1.2.3.128/27")).ToNot(HaveOccurred())
+		})
+
 		It("Service CIDR 26 Fail", func() {
 			Expect(VerifyClusterOrServiceCIDR("1.2.3.0/26")).To(HaveOccurred())
 		})
