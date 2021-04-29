@@ -843,6 +843,10 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 	}
 
 	hosts := cluster.Hosts
+	/*
+		We want the resulting hosts to be always in the same order.  Otherwise, there might be cases that we will get different
+		connectivity string (see marshalledMajorityGroups below), for the same connectivity group result.
+	*/
 	sort.Slice(hosts, func(i, j int) bool {
 		return hosts[i].ID.String() < hosts[j].ID.String()
 	})
@@ -881,7 +885,11 @@ func (m *Manager) SetConnectivityMajorityGroupsForCluster(clusterID strfmt.UUID,
 	// We want to calculate majority groups only when in pre-install states since it is needed for pre-install validations
 	var cluster common.Cluster
 	if err := db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
-		return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
+		var statusCode int32 = http.StatusInternalServerError
+		if gorm.IsRecordNotFoundError(err) {
+			statusCode = http.StatusNotFound
+		}
+		return common.NewApiError(statusCode, errors.Wrapf(err, "Getting cluster %s", clusterID.String()))
 	}
 	return m.setConnectivityMajorityGroupsForClusterInternal(&cluster, db)
 }
