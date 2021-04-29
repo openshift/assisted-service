@@ -691,7 +691,7 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		}
 		reply := make([]reconcile.Request, 0, len(clusterDeployments.Items))
 		for _, clusterDeployment := range clusterDeployments.Items {
-			if clusterDeployment.Spec.PullSecretRef.Name == a.GetName() {
+			if clusterDeployment.Spec.PullSecretRef != nil && clusterDeployment.Spec.PullSecretRef.Name == a.GetName() {
 				reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
 					Namespace: clusterDeployment.Namespace,
 					Name:      clusterDeployment.Name,
