@@ -48,26 +48,26 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 	t, err := validateToken(token, a.publicKey)
 	if err != nil {
 		a.log.WithError(err).Error("failed to validate token")
-		return nil, err
+		return nil, common.NewInfraError(401, err)
 	}
 	claims, ok := t.Claims.(jwt.MapClaims)
 	if !ok {
 		err := errors.Errorf("failed to parse JWT token claims")
 		a.log.Error(err)
-		return nil, err
+		return nil, common.NewInfraError(401, err)
 	}
 
 	clusterID, ok := claims["cluster_id"].(string)
 	if !ok {
 		err := errors.Errorf("claims are incorrectly formatted")
 		a.log.Error(err)
-		return nil, err
+		return nil, common.NewInfraError(401, err)
 	}
 
 	if !clusterExists(a.db, clusterID) {
 		err := errors.Errorf("cluster %s does not exist", clusterID)
 		a.log.Error(err)
-		return nil, err
+		return nil, common.NewInfraError(401, err)
 	}
 
 	a.log.Debugf("Authenticating cluster %s JWT", clusterID)
@@ -75,7 +75,7 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 }
 
 func (a *LocalAuthenticator) AuthUserAuth(_ string) (interface{}, error) {
-	return nil, errors.Errorf("User Authentication not allowed for local auth")
+	return nil, common.NewInfraError(401, errors.Errorf("User Authentication not allowed for local auth"))
 }
 
 func (a *LocalAuthenticator) AuthURLAuth(token string) (interface{}, error) {
