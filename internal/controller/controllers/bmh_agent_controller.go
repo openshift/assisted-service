@@ -20,6 +20,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -400,6 +402,27 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 
 }
 
+func httpISODownloadURL(origURL string) (string, error) {
+	u, err := url.Parse(origURL)
+	if err != nil {
+		return "", err
+	}
+
+	if u.Scheme == "http" {
+		return origURL, nil
+	}
+
+	namespace, ok := os.LookupEnv("NAMESPACE")
+	if !ok {
+		namespace = "assisted-installer"
+	}
+
+	u.Scheme = "http"
+	u.Host = fmt.Sprintf("%s.%s:%d", appName, namespace, serviceHTTPPort)
+
+	return u.String(), nil
+}
+
 // Reconcile the `BareMetalHost` resource
 //
 // This reconcile step sets the Image.URL value in the `BareMetalHost`
@@ -450,7 +473,11 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 			// are done at the beginning of this function.
 			bmh.Spec.Image = &bmh_v1alpha1.Image{}
 			liveIso := "live-iso"
-			bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
+			u, err := httpISODownloadURL(infraEnv.Status.ISODownloadURL)
+			if err != nil {
+				return reconcileError{err}
+			}
+			bmh.Spec.Image.URL = u
 			bmh.Spec.Image.DiskFormat = &liveIso
 
 			bmh.Spec.AutomatedCleaningMode = "disabled"

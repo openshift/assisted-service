@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang/mock/gomock"
@@ -154,7 +155,7 @@ var _ = Describe("bmac reconcile", func() {
 			var isoImageURL string
 
 			BeforeEach(func() {
-				isoImageURL = "http://buzz.lightyear.io/discovery-image.iso"
+				isoImageURL = "https://buzz.lightyear.io/discovery-image.iso"
 				infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
 				infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
 				Expect(c.Create(ctx, infraEnv)).To(BeNil())
@@ -177,7 +178,7 @@ var _ = Describe("bmac reconcile", func() {
 
 			})
 
-			It("should set the ISODownloadURL in the BMH", func() {
+			It("should set the ISODownloadURL in the BMH to the service http url", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
@@ -185,7 +186,28 @@ var _ = Describe("bmac reconcile", func() {
 				updatedHost := &bmh_v1alpha1.BareMetalHost{}
 				err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
-				Expect(updatedHost.Spec.Image.URL).To(Equal(isoImageURL))
+				Expect(updatedHost.Spec.Image.URL).To(Equal("http://assisted-service.assisted-installer:8090/discovery-image.iso"))
+			})
+
+			It("should set the ISODownloadURL in the BMH to the service http url using NAMESPACE", func() {
+				oldNamespace, wasSet := os.LookupEnv("NAMESPACE")
+				os.Setenv("NAMESPACE", "testnamespace")
+				defer func() {
+					if wasSet {
+						os.Setenv("NAMESPACE", oldNamespace)
+					} else {
+						os.Unsetenv("NAMESPACE")
+					}
+				}()
+
+				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{}))
+
+				updatedHost := &bmh_v1alpha1.BareMetalHost{}
+				err = c.Get(ctx, types.NamespacedName{Name: "bmh-reconcile", Namespace: testNamespace}, updatedHost)
+				Expect(err).To(BeNil())
+				Expect(updatedHost.Spec.Image.URL).To(Equal("http://assisted-service.testnamespace:8090/discovery-image.iso"))
 			})
 
 			It("should disable cleaning and set online true in the BMH", func() {
