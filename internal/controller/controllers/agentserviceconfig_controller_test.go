@@ -3,7 +3,6 @@ package controllers
 import (
 	"context"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
@@ -35,28 +34,21 @@ func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler
 
 var _ = Describe("ensureAgentLocalAuthSecret", func() {
 	var (
-		asc             *aiv1beta1.AgentServiceConfig
-		ascr            *AgentServiceConfigReconciler
-		ctx             = context.Background()
-		mockCtrl        *gomock.Controller
-		privateKey      = "test-private-key"
-		publicKey       = "test-public-key"
-		localAuthSecret *corev1.Secret
+		asc        *aiv1beta1.AgentServiceConfig
+		ascr       *AgentServiceConfigReconciler
+		ctx        = context.Background()
+		privateKey = "test-private-key"
+		publicKey  = "test-public-key"
 	)
 
 	BeforeEach(func() {
-		mockCtrl = gomock.NewController(GinkgoT())
 		asc = newDefaultAgentServiceConfig()
 		ascr = newTestReconciler(asc)
 	})
 
-	AfterEach(func() {
-		mockCtrl.Finish()
-	})
-
 	Context("with an existing local auth secret", func() {
 		It("should not modify existing keys", func() {
-			localAuthSecret = &corev1.Secret{
+			localAuthSecret := &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      agentLocalAuthSecretName,
 					Namespace: testNamespace,
