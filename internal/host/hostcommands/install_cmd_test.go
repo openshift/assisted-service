@@ -505,82 +505,89 @@ var _ = Describe("construct host install arguments", func() {
 		log     = common.GetTestLog()
 	)
 	BeforeEach(func() {
+		clusterID := strfmt.UUID(uuid.New().String())
 		cluster = &common.Cluster{
 			Cluster: models.Cluster{
+				ID:        &clusterID,
 				ImageInfo: &models.ImageInfo{},
 			},
 		}
-		host = &models.Host{}
+		hostID := strfmt.UUID(uuid.New().String())
+		host = &models.Host{
+			ID: &hostID,
+		}
 	})
 	It("ip=dhcp6 added when machine CIDR is IPv6", func() {
 		cluster.MachineNetworkCidr = "2001:db8::/120"
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp6"]`))
 	})
 	It("ip=dhcp added when machine CIDR is IPv4", func() {
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\"]"))
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp"]`))
 	})
 	It("ip=dhcp6 added when there's no machine CIDR and bootstrap is IPv6", func() {
-		cluster.Hosts = make([]*models.Host, 1)
-		cluster.Hosts[0] = &models.Host{
-			Bootstrap: true,
-			Inventory: "{\"interfaces\":[{\"ipv4_addresses\":[\"2002:db8::a/64\"]}]}",
+		cluster.Hosts = []*models.Host{
+			{
+				Bootstrap: true,
+				Inventory: `{"interfaces":[{"ipv4_addresses":["2002:db8::a/64"]}]}`,
+			},
 		}
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp6"]`))
 	})
 	It("ip=dhcp added when there's no machine CIDR and bootstrap is IPv4", func() {
-		cluster.Hosts = make([]*models.Host, 1)
-		cluster.Hosts[0] = &models.Host{
-			Bootstrap: true,
-			Inventory: "{\"interfaces\":[{\"ipv4_addresses\":[\"192.186.10.12/24\"]}]}",
+		cluster.Hosts = []*models.Host{
+			{
+				Bootstrap: true,
+				Inventory: `{"interfaces":[{"ipv4_addresses":["192.186.10.12/24"]}]}`,
+			},
 		}
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\"]"))
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp"]`))
 	})
 	It("ip=dhcp and copy-network added with static config", func() {
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp\",\"--copy-network\"]"))
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp","--copy-network"]`))
 	})
 	It("ip=dhcp added with static config and copy-network set by the user", func() {
-		host.InstallerArgs = "[\"--copy-network\"]"
+		host.InstallerArgs = `["--copy-network"]`
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--copy-network\",\"--append-karg\",\"ip=dhcp\"]"))
+		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=dhcp"]`))
 	})
 	It("ip=dhcp added when copy-network set by the user without static config", func() {
-		host.InstallerArgs = "[\"--copy-network\"]"
+		host.InstallerArgs = `["--copy-network"]`
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--copy-network\",\"--append-karg\",\"ip=dhcp\"]"))
+		Expect(args).To(Equal(`["--copy-network","--append-karg","ip=dhcp"]`))
 	})
 	It("existing args updated with ip=dhcp when machine CIDR is IPv4", func() {
 		cluster.MachineNetworkCidr = "2001:db8::/120"
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--append-karg\",\"ip=dhcp6\"]"))
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp6"]`))
 	})
 	It("existing args updated with ip=dhcp6 when machine CIDR is IPv6", func() {
-		host.InstallerArgs = "[\"--append-karg\",\"rd.break=cmdline\"]"
+		host.InstallerArgs = `["--append-karg","rd.break=cmdline"]`
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(args).To(Equal("[\"--append-karg\",\"rd.break=cmdline\",\"--append-karg\",\"ip=dhcp\"]"))
+		Expect(args).To(Equal(`["--append-karg","rd.break=cmdline","--append-karg","ip=dhcp"]`))
 	})
 	It("don't add ip arg if ip=dhcp added by user", func() {
-		kargs := "[\"--append-karg\",\"ip=dhcp\"]"
+		kargs := `["--append-karg","ip=dhcp"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "2001:db8::/120"
 		args, err := constructHostInstallerArgs(cluster, host, log)
@@ -588,7 +595,7 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(args).To(Equal(kargs))
 	})
 	It("don't add ip arg if ip=dhcp6 added by user", func() {
-		kargs := "[\"--append-karg\",\"ip=dhcp6\"]"
+		kargs := `["--append-karg","ip=dhcp6"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		args, err := constructHostInstallerArgs(cluster, host, log)
@@ -596,7 +603,7 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(args).To(Equal(kargs))
 	})
 	It("don't add ip arg if ip=eth0:any added by user", func() {
-		kargs := "[\"--append-karg\",\"ip=eth0:any\"]"
+		kargs := `["--append-karg","ip=eth0:any"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		args, err := constructHostInstallerArgs(cluster, host, log)
@@ -604,7 +611,7 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(args).To(Equal(kargs))
 	})
 	It("don't add ip arg if ip=dhcp deleted by user", func() {
-		kargs := "[\"--delete-karg\",\"ip=dhcp\"]"
+		kargs := `["--delete-karg","ip=dhcp"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "2001:db8::/120"
 		args, err := constructHostInstallerArgs(cluster, host, log)
@@ -612,7 +619,7 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(args).To(Equal(kargs))
 	})
 	It("don't add ip arg if ip=dhcp6 deleted by user", func() {
-		kargs := "[\"--delete-karg\",\"ip=dhcp6\"]"
+		kargs := `["--delete-karg","ip=dhcp6"]`
 		host.InstallerArgs = kargs
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		args, err := constructHostInstallerArgs(cluster, host, log)
@@ -624,24 +631,68 @@ var _ = Describe("construct host install arguments", func() {
 		Expect(err).To(HaveOccurred())
 	})
 	It("error if machine CIDR not given and no bootsrap", func() {
-		cluster.Hosts = make([]*models.Host, 1)
-		cluster.Hosts[0] = &models.Host{
-			Bootstrap: false,
-			Inventory: "{\"interfaces\":[{\"ipv4_addresses\":[\"192.186.10.12/24\"]}]}",
+		cluster.Hosts = []*models.Host{
+			{
+				Bootstrap: false,
+				Inventory: `{"interfaces":[{"ipv4_addresses":["192.186.10.12/24"]}]}`,
+			},
 		}
 		_, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).To(HaveOccurred())
 	})
-	It("default if machine CIDR not given and day2 cluster", func() {
+	It("ip=dhcp added when only IPv4 in day2", func() {
 		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
-		cluster.Hosts = make([]*models.Host, 1)
-		cluster.Hosts[0] = &models.Host{
-			Bootstrap: false,
-			Inventory: "{\"interfaces\":[{\"ipv4_addresses\":[\"192.186.10.12/24\"]}]}",
-		}
+		host.Inventory = `{
+				"interfaces":[
+					{
+						"ipv4_addresses":[
+							"192.186.10.12/24"
+						]
+					}
+				]
+			}`
+		args, err := constructHostInstallerArgs(cluster, host, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp"]`))
+	})
+	It("ip=dhcp6 added when only IPv6 in day2", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		host.Inventory = `{
+				"interfaces":[
+					{
+						"ipv6_addresses":[
+							"2002:db8::1/64"
+						]
+					}
+				]
+			}`
+		args, err := constructHostInstallerArgs(cluster, host, log)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(args).To(Equal(`["--append-karg","ip=dhcp6"]`))
+	})
+	It("ip not set when dual stack in day2", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		host.Inventory = `{
+				"interfaces":[
+					{
+						"ipv4_addresses":[
+							"2002:db8::1/64"
+						],
+						"ipv6_addresses":[
+							"192.186.10.12/24"
+						]
+					}
+				]
+			}`
 		args, err := constructHostInstallerArgs(cluster, host, log)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(args).To(Equal(""))
+	})
+	It("error when inventory corrupted", func() {
+		cluster.Kind = swag.String(models.ClusterKindAddHostsCluster)
+		host.Inventory = ""
+		_, err := constructHostInstallerArgs(cluster, host, log)
+		Expect(err).To(HaveOccurred())
 	})
 })
 
