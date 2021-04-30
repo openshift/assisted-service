@@ -92,7 +92,12 @@ var (
 		Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
 		Disks:  []*models.Disk{&loop0, &sdb},
 		Interfaces: []*models.Interface{
-			{IPV4Addresses: []string{"1.2.3.4/24"}},
+			{
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				MacAddress: "e6:53:3d:a7:77:b4",
+			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
 		Timestamp:    1601853088,
@@ -106,6 +111,7 @@ var (
 				IPV4Addresses: []string{
 					"1.2.3.4/24",
 				},
+				MacAddress: "e6:53:3d:a7:77:b4",
 			},
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
