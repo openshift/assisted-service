@@ -13,6 +13,7 @@ import (
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
@@ -20,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/mocks"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
@@ -44,7 +46,14 @@ var _ = BeforeEach(func() {
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
-	clusterHost = &models.Host{}
+	b, err := hostutil.MarshalInventory(&models.Inventory{
+		CPU:    &models.CPU{Count: 8},
+		Memory: &models.Memory{UsableBytes: 64 * conversions.GiB},
+		Disks: []*models.Disk{
+			{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+			{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}})
+	Expect(err).To(Not(HaveOccurred()))
+	clusterHost = &models.Host{Inventory: b, Role: models.HostRoleMaster}
 
 	ctrl = gomock.NewController(GinkgoT())
 	manifestsAPI = mocks.NewMockManifestsAPI(ctrl)

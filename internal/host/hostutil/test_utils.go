@@ -168,6 +168,38 @@ func GenerateInventoryWithResources(cpu, memory int64, hostname string, gpus ...
 	return string(b)
 }
 
+func GenerateInventoryWithResourcesAndMultipleDisk(cpu, memory int64, hostname string, gpus ...*models.Gpu) string {
+	inventory := models.Inventory{
+		CPU: &models.CPU{Count: cpu, Flags: []string{"vmx"}},
+		Disks: []*models.Disk{
+			{
+				SizeBytes: 128849018880,
+				DriveType: "HDD",
+			},
+			{
+				SizeBytes: 128849018880,
+				DriveType: "SDD",
+			},
+		},
+		Gpus: gpus,
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+			},
+		},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(memory), UsableBytes: conversions.GibToBytes(memory)},
+		Hostname:     hostname,
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Timestamp:    1601835002,
+	}
+	b, err := json.Marshal(&inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
 func GenerateInventoryWithResourcesWithBytes(cpu, memory int64, hostname string) string {
 	inventory := models.Inventory{
 		CPU: &models.CPU{Count: cpu, Flags: []string{"vmx"}},
