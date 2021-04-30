@@ -3,6 +3,7 @@ source utils.sh
 set -xeo pipefail
 
 SERVICE_IMAGE="${SERVICE_IMAGE:-}"
+SERVICE_BASE_URL="${SERVICE_BASE_URL:-}"
 INSTALLER_IMAGE="${INSTALLER_IMAGE:-}"
 AGENT_IMAGE="${AGENT_IMAGE:-}"
 DATABASE_IMAGE="${DATABASE_IMAGE:-}"
@@ -18,6 +19,13 @@ function subscription_config() {
 cat <<EOF
     - name: SERVICE_IMAGE
       value: '$SERVICE_IMAGE'
+EOF
+    fi
+
+    if [ -n "${SERVICE_BASE_URL}" ]; then
+cat <<EOF
+    - name: SERVICE_BASE_URL
+      value: '$SERVICE_BASE_URL'
 EOF
     fi
 
