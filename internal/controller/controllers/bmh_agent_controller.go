@@ -194,6 +194,14 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	result = r.reconcileSpokeBMH(ctx, bmh, agent)
 
+	if result.Dirty() {
+		err := r.Client.Update(ctx, bmh)
+		if err != nil {
+			r.Log.WithError(err).Errorf("Error adding BMH detached annotation after creating spoke BMH")
+			return reconcileError{err}.Result()
+		}
+	}
+
 	return result.Result()
 }
 
@@ -545,6 +553,18 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, bmh *bmh_v1alpha
 		return reconcileError{err}
 	}
 
+	// Add detached annotation to hub BMH so that Ironic stops managing the host from
+	// the hub cluster. After spoke BMH is created, the host will be managed by the spoke
+	// cluster.
+	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
+	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; !ok {
+		if bmh.ObjectMeta.Annotations == nil {
+			bmh.ObjectMeta.Annotations = make(map[string]string)
+		}
+		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
+		return reconcileComplete{true}
+	}
+
 	return reconcileComplete{}
 }
 
@@ -752,7 +772,12 @@ func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *m
 			Namespace: machine.Namespace,
 		}
 		// copy annotations. hardwaredetails annotations is needed for automatic csr approval
-		bmhSpoke.ObjectMeta.Annotations = bmh.ObjectMeta.Annotations
+		// We don't copy all annotations because there are some annotations that should not be
+		// carried over from the hub BMH. The detached annotation is an example.
+		if bmhSpoke.ObjectMeta.Annotations == nil {
+			bmhSpoke.ObjectMeta.Annotations = make(map[string]string)
+		}
+		bmhSpoke.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]
 		// HardwareDetails annotation needs a special case. The annotation gets removed once it's consumed by the baremetal operator
 		// and data is copied to the bmh status. So we are reconciling the annotation from the agent status inventory.
 		// If HardwareDetails annotation is already copied from hub bmh.annotation above, this won't overwrite it.
