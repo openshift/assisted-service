@@ -6680,3 +6680,35 @@ var _ = Describe("GetCredentials", func() {
 		verifyApiError(reply, http.StatusConflict)
 	})
 })
+
+var _ = Describe("AddOpenshiftVersion", func() {
+	var (
+		cfg          = Config{}
+		ctx          = context.Background()
+		bm           *bareMetalInventory
+		db           *gorm.DB
+		dbName       string
+		pullSecret   = "test_pull_secret"
+		releaseImage = "releaseImage"
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB(dbName)
+		bm = createInventory(db, cfg)
+	})
+
+	It("successfully added version", func() {
+		mockVersions.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any()).Return(common.TestDefaultConfig.Version, nil).Times(1)
+
+		version, err := bm.AddOpenshiftVersion(ctx, releaseImage, pullSecret)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(version).Should(Equal(common.TestDefaultConfig.Version))
+	})
+
+	It("failed to added version", func() {
+		mockVersions.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any()).Return(nil, errors.New("failed")).Times(1)
+
+		_, err := bm.AddOpenshiftVersion(ctx, releaseImage, pullSecret)
+		Expect(err).Should(HaveOccurred())
+	})
+})
