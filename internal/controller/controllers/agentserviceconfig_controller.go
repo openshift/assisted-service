@@ -22,11 +22,11 @@ import (
 	"net/url"
 	"strconv"
 
-	"github.com/go-logr/logr"
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -66,7 +66,7 @@ const (
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
 type AgentServiceConfigReconciler struct {
 	client.Client
-	Log      logr.Logger
+	Log      logrus.FieldLogger
 	Scheme   *runtime.Scheme
 	Recorder record.EventRecorder
 
@@ -123,9 +123,8 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 		err := f(ctx, instance)
 		if err != nil {
 			r.Log.Error(err, "Failed reconcile")
-			if statusErr := r.Status().Update(ctx, instance); statusErr != nil {
-				r.Log.Error(err, "Failed to update status")
-				return ctrl.Result{Requeue: true}, statusErr
+			if updated, result, updateErr := UpdateStatus(r.Log, r.Status().Update, ctx, instance); !updated {
+				return result, updateErr
 			}
 			return ctrl.Result{Requeue: true}, err
 		}
@@ -138,7 +137,10 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 		Reason:  aiv1beta1.ReasonReconcileSucceeded,
 		Message: msg,
 	})
-	return ctrl.Result{}, r.Status().Update(ctx, instance)
+	if updated, result, updateErr := UpdateStatus(r.Log, r.Status().Update, ctx, instance); !updated {
+		return result, updateErr
+	}
+	return ctrl.Result{}, nil
 }
 
 func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {

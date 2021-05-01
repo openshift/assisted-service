@@ -2,12 +2,16 @@ package controllers
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/sirupsen/logrus"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apiserver/pkg/registry/generic/registry"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -79,4 +83,28 @@ func AddLabel(labels map[string]string, labelKey, labelValue string) map[string]
 	}
 	labels[labelKey] = labelValue
 	return labels
+}
+
+type UpdateStatusFunc func(ctx context.Context, obj client.Object, opts ...client.UpdateOption) error
+
+func UpdateStatus(
+	log logrus.FieldLogger,
+	updateFunc UpdateStatusFunc,
+	ctx context.Context,
+	obj client.Object,
+	opts ...client.UpdateOption) (bool, ctrl.Result, error) {
+
+	err := updateFunc(ctx, obj, opts...)
+	if err == nil {
+		return true, ctrl.Result{}, nil
+	} else if strings.Contains(err.Error(), registry.OptimisticLockErrorMsg) {
+		// The given resource has stale data.
+		// Try to reconcile again the up-to-date resource as soon as possible.
+		log.Debugf("Failed to update %s Status of %s - resource is out of date (will try again)",
+			obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName())
+		return false, ctrl.Result{RequeueAfter: time.Second}, nil
+	}
+	log.WithError(err).Errorf("Failed to update %s Status of %s",
+		obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName())
+	return false, ctrl.Result{Requeue: true}, err
 }

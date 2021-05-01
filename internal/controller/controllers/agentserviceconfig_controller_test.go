@@ -6,13 +6,13 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
@@ -27,7 +27,7 @@ func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler
 	return &AgentServiceConfigReconciler{
 		Client:    c,
 		Scheme:    scheme.Scheme,
-		Log:       ctrl.Log.WithName("testLog"),
+		Log:       logrus.New(),
 		Namespace: testNamespace,
 	}
 }

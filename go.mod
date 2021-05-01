@@ -70,6 +70,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	k8s.io/api v0.20.5
 	k8s.io/apimachinery v0.20.5
+	k8s.io/apiserver v0.19.2
 	k8s.io/client-go v12.0.0+incompatible
 	k8s.io/kubectl v0.20.5
 	k8s.io/utils v0.0.0-20201110183641-67b214c5f920

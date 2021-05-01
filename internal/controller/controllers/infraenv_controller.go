@@ -210,8 +210,9 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 			Reason:  aiv1beta1.ImageCreationErrorReason,
 			Message: aiv1beta1.ImageStateFailedToCreate + ": " + clusterDeploymentRefErr.Error(),
 		})
-		if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-			r.Log.WithError(updateErr).Error("failed to update infraEnv status")
+		if updated, result, updateErr := UpdateStatus(r.Log, r.Status().Update, ctx, infraEnv); !updated && updateErr == nil {
+			// temporary error, try reconciling again as soon as possible.
+			return result, nil
 		}
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
@@ -236,8 +237,9 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 			Reason:  aiv1beta1.ImageCreationErrorReason,
 			Message: aiv1beta1.ImageStateFailedToCreate + ": " + inventoryErr.Error(),
 		})
-		if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-			r.Log.WithError(updateErr).Error("failed to update infraEnv status")
+		if updated, result, updateErr := UpdateStatus(r.Log, r.Status().Update, ctx, infraEnv); !updated && updateErr == nil {
+			// temporary error, try reconciling again as soon as possible.
+			return result, nil
 		}
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
@@ -293,9 +295,8 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 		Message: aiv1beta1.ImageStateCreated,
 	})
 	infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
-	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update infraEnv status")
-		return ctrl.Result{Requeue: true}, nil
+	if updated, result, _ := UpdateStatus(r.Log, r.Status().Update, ctx, infraEnv); !updated {
+		return result, nil
 	}
 	return ctrl.Result{Requeue: false}, nil
 }
@@ -340,8 +341,9 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		// In a case of an error, clear the download URL.
 		infraEnv.Status.ISODownloadURL = ""
 	}
-	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update infraEnv status")
+	if updated, result, updateErr := UpdateStatus(r.Log, r.Status().Update, ctx, infraEnv); !updated && updateErr == nil {
+		// temporary error, try reconciling again as soon as possible.
+		return result, nil
 	}
 	return ctrl.Result{Requeue: Requeue}, err
 }

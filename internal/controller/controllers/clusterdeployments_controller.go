@@ -734,9 +734,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 		cluster.Status.WebConsoleURL = common.GetConsoleUrl(cluster.Spec.ClusterName, cluster.Spec.BaseDomain)
 	}
 
-	if updateErr := r.Status().Update(ctx, cluster); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
-		return ctrl.Result{Requeue: true}, nil
+	if updated, result, _ := UpdateStatus(r.Log, r.Status().Update, ctx, cluster); !updated {
+		return result, nil
 	}
 	if syncErr != nil && !IsHTTP4XXError(syncErr) {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil

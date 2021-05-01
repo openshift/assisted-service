@@ -26,6 +26,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	controllers "github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -106,7 +107,7 @@ func main() {
 
 	if err = (&controllers.AgentServiceConfigReconciler{
 		Client:    mgr.GetClient(),
-		Log:       ctrl.Log.WithName("controllers").WithName("AgentServiceConfig"),
+		Log:       logrus.New(),
 		Scheme:    mgr.GetScheme(),
 		Recorder:  mgr.GetEventRecorderFor("agentserviceconfig-controller"),
 		Namespace: ns,

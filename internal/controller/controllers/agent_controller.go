@@ -129,9 +129,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, agent *aiv1beta1.Age
 	} else {
 		setConditionsUnknown(agent)
 	}
-	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update agent Status")
-		return ctrl.Result{Requeue: true}, nil
+	if updated, result, _ := UpdateStatus(r.Log, r.Status().Update, ctx, agent); !updated {
+		return result, nil
 	}
 	if internal {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
