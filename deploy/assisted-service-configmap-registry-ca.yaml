@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mirror-registry-ca
+  namespace: REPLACE_NAMESPACE
+  labels:
+    app: assisted-service
+data:
+  ca-bundle.crt: |
+REPLACE_WITH_TLS_CA_BUNDLE_PEM
+  registries.conf: |
+REPLACE_WITH_REGISTRIES_CONF
