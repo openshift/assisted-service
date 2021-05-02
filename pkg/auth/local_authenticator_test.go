@@ -68,6 +68,12 @@ var _ = Describe("AuthAgentAuth", func() {
 		return strings.Join(parts, ".")
 	}
 
+	validateErrorResponse := func(err error) {
+		infraError, ok := err.(*common.InfraErrorResponse)
+		Expect(ok).To(BeTrue())
+		Expect(infraError.StatusCode()).To(Equal(int32(401)))
+	}
+
 	It("Validates a token correctly", func() {
 		_, err := a.AuthAgentAuth(token)
 		Expect(err).ToNot(HaveOccurred())
@@ -76,23 +82,27 @@ var _ = Describe("AuthAgentAuth", func() {
 	It("Fails an invalid token", func() {
 		_, err := a.AuthAgentAuth(token + "asdf")
 		Expect(err).To(HaveOccurred())
+		validateErrorResponse(err)
 	})
 
 	It("Fails all user auth", func() {
 		_, err := a.AuthUserAuth(token)
 		Expect(err).To(HaveOccurred())
+		validateErrorResponse(err)
 	})
 
 	It("Fails a token with invalid signing method", func() {
 		newTok := fakeTokenAlg(token)
 		_, err := a.AuthAgentAuth(newTok)
 		Expect(err).To(HaveOccurred())
+		validateErrorResponse(err)
 	})
 
 	It("Fails with an RSA token", func() {
 		rsaToken, _ := GetTokenAndCert()
 		_, err := a.AuthAgentAuth(rsaToken)
 		Expect(err).To(HaveOccurred())
+		validateErrorResponse(err)
 	})
 
 	It("Fails for a deleted cluster", func() {
@@ -101,5 +111,6 @@ var _ = Describe("AuthAgentAuth", func() {
 
 		_, err := a.AuthAgentAuth(token)
 		Expect(err).To(HaveOccurred())
+		validateErrorResponse(err)
 	})
 })
