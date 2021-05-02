@@ -400,8 +400,7 @@ func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, arg
 		return false, errors.New("IsPreparingTimedOut invalid argument")
 	}
 	var cluster common.Cluster
-	err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error
-	if err != nil {
+	if err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error; err != nil {
 		return false, err
 	}
 	return swag.StringValue(cluster.Status) != models.ClusterStatusPreparingForInstallation, nil
@@ -434,7 +433,8 @@ func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitc
 		if !ok {
 			return errors.New("Host PostRefreshLogsProgress invalid argument")
 		}
-		_, err := hostutil.UpdateLogsProgress(params.ctx, logutil.FromContext(params.ctx, th.log),
+		var err error
+		_, err = hostutil.UpdateLogsProgress(params.ctx, logutil.FromContext(params.ctx, th.log),
 			params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID, sHost.srcState, progress)
 		return err
 	}
@@ -518,8 +518,7 @@ func (th *transitionHandler) ShouldIgnoreInstallingInProgressTimeout(
 
 func IsClusterInstallationPendingUserAction(clusterID strfmt.UUID, db *gorm.DB) (bool, error) {
 	var cluster common.Cluster
-	err := db.Select("status").Take(&cluster, "id = ?", clusterID.String()).Error
-	if err != nil {
+	if err := db.Select("status").Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
 		return false, err
 	}
 	return swag.StringValue(cluster.Status) == models.ClusterStatusInstallingPendingUserAction, nil
@@ -554,8 +553,10 @@ func (th *transitionHandler) PostRefreshHost(reason string) stateswitch.PostTran
 			template = strings.Replace(template, "$FAILING_VALIDATIONS", strings.Join(failedValidations, " ; "), 1)
 		}
 
-		_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
-			sHost.srcState, swag.StringValue(sHost.host.Status), template)
+		if sHost.srcState != swag.StringValue(sHost.host.Status) || swag.StringValue(sHost.host.StatusInfo) != template {
+			_, err = hostutil.UpdateHostStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, th.eventsHandler, sHost.host.ClusterID, *sHost.host.ID,
+				sHost.srcState, swag.StringValue(sHost.host.Status), template)
+		}
 		return err
 	}
 	return ret
@@ -617,7 +618,8 @@ func (th *transitionHandler) PostRefreshHostRefreshStageUpdateTime(
 	if time.Minute > time.Since(time.Time(sHost.host.Progress.StageUpdatedAt)) {
 		return nil
 	}
-	_, err := refreshHostStageUpdateTime(
+	var err error
+	_, err = refreshHostStageUpdateTime(
 		logutil.FromContext(params.ctx, th.log),
 		params.db,
 		sHost.host.ClusterID,

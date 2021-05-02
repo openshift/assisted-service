@@ -67,14 +67,6 @@ type validation struct {
 	skippedStates []models.HostStage
 }
 
-func (c *validationContext) loadCluster() error {
-	clusterFromDB, err := common.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
-	if err == nil {
-		c.cluster = clusterFromDB
-	}
-	return err
-}
-
 func (c *validationContext) loadInventory() error {
 	if c.host.Inventory != "" {
 		var inventory models.Inventory
@@ -125,15 +117,14 @@ func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Val
 	return err
 }
 
-func newValidationContext(host *models.Host, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
+func newValidationContext(host *models.Host, c *common.Cluster, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
 	ret := &validationContext{
-		host: host,
-		db:   db,
+		host:    host,
+		db:      db,
+		cluster: c,
 	}
-	err := ret.loadCluster()
-	if err == nil {
-		err = ret.loadInventory()
-	}
+	var err error
+	err = ret.loadInventory()
 	if err == nil {
 		err = ret.validateRole()
 	}

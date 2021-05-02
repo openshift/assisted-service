@@ -323,7 +323,7 @@ func (v *clusterValidator) sufficientMastersCount(c *clusterPreprocessContext) V
 		//if allocated masters count is less than the desired count, find eligable hosts
 		//from the candidate pool to match the master count criteria, up to 3
 		if len(masters) < minMastersNeededForInstallation {
-			if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.db, v.log); isValid && err == nil {
+			if isValid, err := v.hostAPI.IsValidMasterCandidate(h, c.cluster, c.db, v.log); isValid && err == nil {
 				masters = append(masters, h)
 				continue
 			}

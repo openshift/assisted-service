@@ -125,7 +125,7 @@ type API interface {
 	IsInstallable(h *models.Host) bool
 	// auto assign host role
 	AutoAssignRole(ctx context.Context, h *models.Host, db *gorm.DB) error
-	IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error)
+	IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error)
 	SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.DB) error
 	UpdateLogsProgress(ctx context.Context, h *models.Host, progress string) error
 	PermanentHostsDeletion(olderThan strfmt.DateTime) error
@@ -314,16 +314,22 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	}).Error
 }
 
-func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	defer commonutils.MeasureOperation("host RefreshStatus", m.log, m.metricApi)()
+func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, db *gorm.DB) error {
+	defer commonutils.MeasureOperation("host refreshStatusInternal", m.log, m.metricApi)()
 	if db == nil {
 		db = m.db
 	}
-	vc, err := newValidationContext(h, db, m.hwValidator)
+	var (
+		vc               *validationContext
+		err              error
+		conditions       map[string]bool
+		newValidationRes ValidationsStatus
+	)
+	vc, err = newValidationContext(h, c, db, m.hwValidator)
 	if err != nil {
 		return err
 	}
-	conditions, newValidationRes, err := m.rp.preprocess(vc)
+	conditions, newValidationRes, err = m.rp.preprocess(vc)
 	if err != nil {
 		return err
 	}
@@ -337,7 +343,8 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 		// For changes to be detected and reported correctly, the comparison needs to be
 		// performed before the new validations are updated to the DB.
 		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
-		if _, err = m.updateValidationsInDB(ctx, db, h, newValidationRes); err != nil {
+		_, err = m.updateValidationsInDB(ctx, db, h, newValidationRes)
+		if err != nil {
 			return err
 		}
 	}
@@ -356,6 +363,17 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 		return common.NewApiError(http.StatusConflict, err)
 	}
 	return nil
+}
+
+func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	if db == nil {
+		db = m.db
+	}
+	clusterFromDB, err := common.GetClusterFromDBWithoutDisabledHosts(db, h.ClusterID)
+	if err != nil {
+		return err
+	}
+	return m.refreshStatusInternal(ctx, h, clusterFromDB, db)
 }
 
 func (m *Manager) Install(ctx context.Context, h *models.Host, db *gorm.DB) error {
@@ -876,6 +894,9 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	var (
 		autoSelectedRole = models.HostRoleWorker
 		log              = logutil.FromContext(ctx, m.log)
+		err              error
+		clusterFromDB    *common.Cluster
+		vc               *validationContext
 	)
 
 	if hostutil.IsDay2Host(h) {
@@ -884,7 +905,7 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 
 	// count already existing masters
 	mastersCount := 0
-	if err := db.Model(&models.Host{}).Where("cluster_id = ? and status != ? and role = ?",
+	if err = db.Model(&models.Host{}).Where("cluster_id = ? and status != ? and role = ?",
 		h.ClusterID, models.HostStatusDisabled, models.HostRoleMaster).Count(&mastersCount).Error; err != nil {
 		log.WithError(err).Errorf("failed to count masters in cluster %s", h.ClusterID.String())
 		return autoSelectedRole, err
@@ -892,7 +913,12 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 
 	if mastersCount < common.MinMasterHostsNeededForInstallation {
 		h.Role = models.HostRoleMaster
-		vc, err := newValidationContext(h, db, m.hwValidator)
+		clusterFromDB, err = common.GetClusterFromDBWithoutDisabledHosts(db, h.ClusterID)
+		if err != nil {
+			log.WithError(err).Errorf("failed to get cluster %s from db", h.ID.String())
+			return autoSelectedRole, err
+		}
+		vc, err = newValidationContext(h, clusterFromDB, db, m.hwValidator)
 		if err != nil {
 			log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 			return autoSelectedRole, err
@@ -910,13 +936,14 @@ func (m *Manager) selectRole(ctx context.Context, h *models.Host, db *gorm.DB) (
 	return autoSelectedRole, nil
 }
 
-func (m *Manager) IsValidMasterCandidate(h *models.Host, db *gorm.DB, log logrus.FieldLogger) (bool, error) {
+func (m *Manager) IsValidMasterCandidate(h *models.Host, c *common.Cluster, db *gorm.DB, log logrus.FieldLogger) (bool, error) {
 	if h.Role == models.HostRoleWorker {
 		return false, nil
 	}
 
 	h.Role = models.HostRoleMaster
-	vc, err := newValidationContext(h, db, m.hwValidator)
+
+	vc, err := newValidationContext(h, c, db, m.hwValidator)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create new validation context for host %s", h.ID.String())
 		return false, err
