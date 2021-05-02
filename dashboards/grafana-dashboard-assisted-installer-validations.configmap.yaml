@@ -76,7 +76,7 @@ data:
             {
               "expr": "sum(increase(service_assisted_installer_host_validation_failed_after_success_before_installation[$__range:$__rate_interval])) by (hostValidationType)",
               "interval": "",
-              "legendFormat": "{hostValidationType}}",
+              "legendFormat": "{{hostValidationType}}",
               "refId": "A"
             }
           ],
@@ -131,7 +131,7 @@ data:
             {
               "expr": "sum(increase(service_assisted_installer_host_validation_is_in_failed_status_on_cluster_deletion[$__range:$__rate_interval])) by (hostValidationType)",
               "interval": "",
-              "legendFormat": "{hostValidationType}}",
+              "legendFormat": "{{hostValidationType}}",
               "refId": "A"
             }
           ],
@@ -186,7 +186,7 @@ data:
             {
               "expr": "sum(increase(service_assisted_installer_cluster_validation_failed_after_success_before_installation[$__range:$__rate_interval])) by (clusterValidationType)",
               "interval": "",
-              "legendFormat": "{hostValidationType}}",
+              "legendFormat": "{{clusterValidationType}}",
               "refId": "A"
             }
           ],
@@ -241,7 +241,7 @@ data:
             {
               "expr": "sum(increase(service_assisted_installer_cluster_validation_is_in_failed_status_on_cluster_deletion[$__range:$__rate_interval])) by (clusterValidationType)",
               "interval": "",
-              "legendFormat": "{hostValidationType}}",
+              "legendFormat": "{{clusterValidationType}}",
               "refId": "A"
             }
           ],
