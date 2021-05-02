@@ -10,7 +10,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/manifests"
-	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -44,7 +43,7 @@ spec:
 		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 			NewClusterParams: &models.ClusterCreateParams{
 				Name:             swag.String("test-cluster"),
-				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				OpenshiftVersion: swag.String(openshiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				SSHPublicKey:     sshPublicKey,
 			},

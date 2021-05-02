@@ -61,7 +61,7 @@ func registerCluster(ctx context.Context, client *client.AssistedInstall, cluste
 	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{
 			Name:             swag.String(clusterName),
-			OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+			OpenshiftVersion: swag.String(openshiftVersion),
 			PullSecret:       swag.String(pullSecret),
 			BaseDNSDomain:    "example.com",
 		},
