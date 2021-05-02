@@ -1,0 +1,22 @@
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
+metadata:
+  name: test-agent-cluster-install
+  namespace: assisted-installer
+spec:
+  apiVIP: 1.2.3.8
+  clusterDeploymentRef:
+    name: test-cluster
+  imageSetRef:
+    name: openshift-v4.8.0
+  ingressVIP: 1.2.3.9
+  networking:
+    clusterNetwork:
+    - cidr: 10.128.0.0/14
+      hostPrefix: 23
+    serviceNetwork:
+    - 172.30.0.0/16
+  provisionRequirements:
+    controlPlaneAgents: 3
+  sshPublicKey: ssh-rsa your-public-key-here
+

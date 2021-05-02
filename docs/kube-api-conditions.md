@@ -2,11 +2,9 @@
 
 Conditions provide a standard mechanism for higher-level status reporting from a controller. Read more about conditions [here](https://github.com/kubernetes/community/blob/master/contributors/devel/sig-architecture/api-conventions.md#typical-status-properties)
 
-## ClusterDeployment Conditions
+## AgentClusterInstall Conditions
 
-Hive handle a set of existing condition [types](https://github.com/openshift/hive/blob/master/apis/hive/v1/clusterdeployment_types.go#L338).
-
-Assisted Installer handles additional types: `SpecSynced`, `ReadyForInstallation`, `Installed` and `Validated`.
+AgentClusterInstall supported condition types are : `SpecSynced`, `RequirementsMet`, `Completed` and `Validated`.
 
 |Type|Status|Reason|Message|Description|
 |----|----|-----|-------------------|-------------------|
@@ -18,16 +16,16 @@ Assisted Installer handles additional types: `SpecSynced`, `ReadyForInstallation
 |Validated|False|ValidationsFailing|The cluster's validations are failing: "summary of failed validations"|If the cluster status is "insufficient" or "pending-for-input"|
 |Validated|Unknown|ValidationsUnknown|The cluster's validations have not yet been calculated|If the validations have not yet been calculated|
 ||||||
-|ReadyForInstallation|True|ClusterIsReady|The cluster is ready to begin the installation|if the cluster status is "ready"|
-|ReadyForInstallation|False|ClusterNotReady|The cluster is not ready to begin the installation|If the cluster is before installation ("insufficient"/"pending-for-input")|
-|ReadyForInstallation|False|ClusterAlreadyInstalling|The cluster cannot begin the installation because it has already started|If the cluster has begun installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action", "adding-hosts", "installed", "error") |
+|RequirementsMet|True|ClusterIsReady|The cluster is ready to begin the installation|if the cluster status is "ready"|
+|RequirementsMet|False|ClusterNotReady|The cluster is not ready to begin the installation|If the cluster is before installation ("insufficient"/"pending-for-input")|
+|RequirementsMet|True|ClusterAlreadyInstalling|The cluster requirements are met|If the cluster has begun installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action", "adding-hosts", "installed", "error") |
 ||||||
-|Installed|True|InstallationCompleted|The installation has completed: "status_info"|If the cluster status is "installed"|
-|Installed|False|InstallationFailed|The installation has failed: "status_info"|If the cluster status is "error"|
-|Installed|False|InstallationNotStarted|The installation has not yet started|If the cluster is before installation ("insufficient"/"pending-for-input"/"ready")|
-|Installed|False|InstallationInProgress|The installation is in progress: "status_info"|If the cluster is installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action")|
+|Completed|True|InstallationCompleted|The installation has completed: "status_info"|If the cluster status is "installed"|
+|Completed|False|InstallationFailed|The installation has failed: "status_info"|If the cluster status is "error"|
+|Completed|False|InstallationNotStarted|The installation has not yet started|If the cluster is before installation ("insufficient"/"pending-for-input"/"ready")|
+|Completed|False|InstallationInProgress|The installation is in progress: "status_info"|If the cluster is installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action")|
 
-Here an example of ClusterDeployment conditions:
+Here an example of AgentClusterInstall conditions:
 
 ```sh
 Status:
@@ -40,10 +38,10 @@ Status:
     Type:                  SpecSynced
     Last Probe Time:       2021-04-20T12:52:58Z
     Last Transition Time:  2021-04-20T12:52:58Z
-    Message:               The cluster cannot begin the installation because it has already started
+    Message:               The cluster requirements are met
     Reason:                ClusterAlreadyInstalling
-    Status:                False
-    Type:                  ReadyForInstallation
+    Status:                True
+    Type:                  RequirementsMet
     Last Probe Time:       2021-04-20T12:47:01Z
     Last Transition Time:  2021-04-20T12:47:01Z
     Message:               The cluster s validations are passing
@@ -55,7 +53,7 @@ Status:
     Message:               The installation is in progress: Preparing cluster for installation
     Reason:                InstallationInProgress
     Status:                False
-    Type:                  Installed
+    Type:                  Completed
 ```
 
 ## Agent Conditions
@@ -124,7 +122,7 @@ The InfraEnv condition type supported is: `ImageCreated`
 |Type|Status|Reason|Message|Description|
 |----|----|-----|-------------------|-------------------|
 |ImageCreated|True|ImageCreated|Image has been created|If the ISO image was successfully created|
-|ImageCreated|False|ImageCreationError|Failed to create image: "error message"If the ISO image was not successfully created|
+|ImageCreated|False|ImageCreationError|Failed to create image: "error message"|If the ISO image was not successfully created|
 
 Here an example of InfraEnv conditions:
 
