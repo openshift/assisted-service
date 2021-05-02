@@ -7,9 +7,11 @@ import (
 	"strings"
 
 	"github.com/openshift/assisted-service/internal/hardware"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -35,9 +37,10 @@ type refreshPreprocessor struct {
 	conditions              []condition
 	operatorsApi            operators.API
 	disabledHostValidations DisabledHostValidations
+	metricApi               metrics.API
 }
 
-func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API, disabledHostValidations DisabledHostValidations) *refreshPreprocessor {
+func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.ValidatorCfg, hwValidator hardware.Validator, operatorsApi operators.API, disabledHostValidations DisabledHostValidations, metricApi metrics.API) *refreshPreprocessor {
 	v := &validator{
 		log:            log,
 		hwValidatorCfg: hwValidatorCfg,
@@ -50,12 +53,14 @@ func newRefreshPreprocessor(log logrus.FieldLogger, hwValidatorCfg *hardware.Val
 		conditions:              newConditions(v),
 		operatorsApi:            operatorsApi,
 		disabledHostValidations: disabledHostValidations,
+		metricApi:               metricApi,
 	}
 }
 
 const validationDisabledByConfiguration = "Validation disabled by configuration"
 
 func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool, ValidationsStatus, error) {
+	defer commonutils.MeasureOperation("host preprocess", r.log, r.metricApi)()
 	conditions := make(map[string]bool)
 	validationsOutput := make(ValidationsStatus)
 	for _, v := range r.validations {

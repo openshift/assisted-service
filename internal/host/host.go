@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -169,7 +170,7 @@ func NewManager(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handle
 		hwValidator:    hwValidator,
 		eventsHandler:  eventsHandler,
 		sm:             NewHostStateMachine(th),
-		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations),
+		rp:             newRefreshPreprocessor(log, hwValidatorCfg, hwValidator, operatorsApi, config.DisabledHostvalidations, metricApi),
 		metricApi:      metricApi,
 		Config:         *config,
 		leaderElector:  leaderElector,
@@ -314,6 +315,7 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
+	defer commonutils.MeasureOperation("preprocess", m.log, m.metricApi)()
 	if db == nil {
 		db = m.db
 	}
@@ -340,13 +342,16 @@ func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB
 		}
 	}
 
-	err = m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
-		ctx:               ctx,
-		db:                db,
-		eventHandler:      m.eventsHandler,
-		conditions:        conditions,
-		validationResults: newValidationRes,
-	})
+	err = func() error {
+		defer commonutils.MeasureOperation("host newStateHost", m.log, m.metricApi)()
+		return m.sm.Run(TransitionTypeRefresh, newStateHost(h), &TransitionArgsRefreshHost{
+			ctx:               ctx,
+			db:                db,
+			eventHandler:      m.eventsHandler,
+			conditions:        conditions,
+			validationResults: newValidationRes,
+		})
+	}()
 	if err != nil {
 		return common.NewApiError(http.StatusConflict, err)
 	}
@@ -794,6 +799,8 @@ func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.H
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, vc *validationContext, h *models.Host,
 	newValidationRes, currentValidationRes ValidationsStatus) {
+
+	defer commonutils.MeasureOperation("host reportValidationStatusChanged", m.log, m.metricApi)()
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
