@@ -164,7 +164,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			BeforeEach(func() {
 				c = createCluster(&id, "installing", statusInfoInstalling)
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 			})
 
 			It("installing -> installing", func() {
@@ -537,7 +537,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			mockEvents.EXPECT().
 				AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).
+			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 				Return(true, nil).AnyTimes()
 
 			for i := 0; i < nClusters; i++ {
@@ -600,7 +600,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				Expect(err).ShouldNot(HaveOccurred())
 				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).Times(0)
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(0)
 			})
 
 			It("empty log info (no logs expected or arrived)", func() {
@@ -1085,7 +1085,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 				mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			}
 			if len(t.hosts) > 0 {
-				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+				mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			}
 			if t.userActionResetExpected {
 				mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).AnyTimes()

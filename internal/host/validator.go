@@ -68,9 +68,9 @@ type validation struct {
 }
 
 func (c *validationContext) loadCluster() error {
-	clusterFromDB, err := common.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
-	if err == nil {
-		c.cluster = clusterFromDB
+	var err error
+	if c.cluster == nil {
+		c.cluster, err = common.GetClusterFromDBWithoutDisabledHosts(c.db, c.host.ClusterID)
 	}
 	return err
 }
@@ -125,10 +125,11 @@ func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Val
 	return err
 }
 
-func newValidationContext(host *models.Host, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
+func newValidationContext(host *models.Host, c *common.Cluster, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
 	ret := &validationContext{
-		host: host,
-		db:   db,
+		host:    host,
+		db:      db,
+		cluster: c,
 	}
 	err := ret.loadCluster()
 	if err == nil {
