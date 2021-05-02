@@ -125,7 +125,7 @@ var _ = Describe("monitor_disconnection", func() {
 
 	AfterEach(func() {
 		ctrl.Finish()
-		db.Close()
+		common.DeleteTestDB(db, dbName)
 	})
 })
 

@@ -94,6 +94,7 @@ type Config struct {
 	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
+	MonitorWorkersNum       int                     `envconfig:"HOST_MONITOR_WORKERS_NUM" default:"10"`
 	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:"container-images-available"` // Disable container image validation to fix BZ-1937293
 }
 

@@ -117,6 +117,7 @@ type PrepareConfig struct {
 type Config struct {
 	PrepareConfig           PrepareConfig
 	MonitorBatchSize        int  `envconfig:"CLUSTER_MONITOR_BATCH_SIZE" default:"100"`
+	MonitorWorkersNum       int  `envconfig:"CLUSTER_MONITOR_WORKERS_NUM" default:"10"`
 	EnableSingleNodeDnsmasq bool `envconfig:"ENABLE_SINGLE_NODE_DNSMASQ" default:"false"`
 }
 
@@ -491,15 +492,11 @@ func (m *Manager) ClusterMonitoring() {
 	m.log.Debugf("Running ClusterMonitoring")
 	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
 	var (
-		offset              int
-		limit               = m.MonitorBatchSize
-		monitored           int64
-		clusters            []*common.Cluster
-		clusterAfterRefresh *common.Cluster
-		requestID           = requestid.NewID()
-		ctx                 = requestid.ToContext(context.Background(), requestID)
-		log                 = requestid.RequestIDLogger(m.log, requestID)
-		err                 error
+		limit     = m.MonitorBatchSize
+		requestID = requestid.NewID()
+		ctx       = requestid.ToContext(context.Background(), requestID)
+		log       = requestid.RequestIDLogger(m.log, requestID)
+		monitored int64
 	)
 
 	_ = m.autoAssignMachineNetworkCidrs()
@@ -507,6 +504,72 @@ func (m *Manager) ClusterMonitoring() {
 	defer func() {
 		m.prevMonitorInvokedAt = curMonitorInvokedAt
 	}()
+
+	jobs := make(chan *common.Cluster, limit)
+	monitorRes := make(chan int64, m.MonitorWorkersNum)
+
+	// workers
+	for i := 0; i < m.MonitorWorkersNum; i++ {
+		go m.monitorWorker(ctx, curMonitorInvokedAt, jobs, monitorRes)
+	}
+
+	// push work into channel
+	m.monitorWorkManager(log, jobs)
+
+	// closing the channel will make sure that works will stop.
+	// it will not break the flow and workers will complete all the tasks until the channel is empty.
+	close(jobs)
+	// using results channel as a wait group for the workers
+	for i := 0; i < m.MonitorWorkersNum; i++ {
+		monitored += <-monitorRes
+	}
+	m.metricAPI.MonitoredClusterCount(monitored)
+}
+
+// consume clusters from the jobs channel and perform refresh status on them
+func (m *Manager) monitorWorker(ctx context.Context, curMonitorInvokedAt time.Time, jobs chan *common.Cluster,
+	monitorRes chan int64) {
+	var (
+		err                 error
+		monitored           int64
+		clusterAfterRefresh *common.Cluster
+		log                 = logutil.FromContext(ctx, m.log)
+	)
+	defer func() { monitorRes <- monitored }()
+	for cluster := range jobs {
+		// can't use leader election, it will cause a deadlock on the work manager
+		// workers need to clean the jobs channel
+		if !m.SkipMonitoring(cluster) {
+			monitored += 1
+			if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
+				log.WithError(err).Error("failed to set majority group for clusters")
+			}
+			clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db)
+			if err != nil {
+				log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
+				continue
+			}
+
+			if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
+				log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
+					swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
+			}
+
+			if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
+				m.triggerLeaseTimeoutEvent(ctx, cluster)
+			}
+		}
+	}
+}
+
+// iterate over clusters in batches and push them to a jobs channel for the workers to consume
+func (m *Manager) monitorWorkManager(log logrus.FieldLogger, jobs chan *common.Cluster) {
+	var (
+		clusters []*common.Cluster
+		limit    = m.MonitorBatchSize
+		offset   int
+		err      error
+	)
 
 	//no need to refresh cluster status if the cluster is in the following statuses
 	//when cluster is in error. it should be still monitored until all the logs are collected.
@@ -516,6 +579,10 @@ func (m *Manager) ClusterMonitoring() {
 	}
 
 	for {
+		if !m.leaderElector.IsLeader() {
+			m.log.Debugf("Not a leader, exiting ClusterMonitoring")
+			return
+		}
 		clusters = make([]*common.Cluster, 0, limit)
 		if err = m.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Preload(common.MonitoredOperatorsTable).
 			Offset(offset).Limit(limit).Order("id").Find(&clusters, "status NOT IN (?)", noNeedToMonitorInStates).Error; err != nil {
@@ -523,37 +590,15 @@ func (m *Manager) ClusterMonitoring() {
 			return
 		}
 		if len(clusters) == 0 {
-			break
+			return
 		}
-		for _, cluster := range clusters {
-			if !m.leaderElector.IsLeader() {
-				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
-				return
-			}
-			if !m.SkipMonitoring(cluster) {
-				monitored += 1
-				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
-					log.WithError(err).Error("failed to set majority group for clusters")
-				}
-				clusterAfterRefresh, err = m.refreshStatusInternal(ctx, cluster, m.db)
-				if err != nil {
-					log.WithError(err).Errorf("failed to refresh cluster %s state", cluster.ID)
-					continue
-				}
 
-				if swag.StringValue(clusterAfterRefresh.Status) != swag.StringValue(cluster.Status) {
-					log.Infof("cluster %s updated status from %s to %s via monitor", cluster.ID,
-						swag.StringValue(cluster.Status), swag.StringValue(clusterAfterRefresh.Status))
-				}
-
-				if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
-					m.triggerLeaseTimeoutEvent(ctx, cluster)
-				}
-			}
+		for i := range clusters {
+			jobs <- clusters[i]
 		}
+
 		offset += limit
 	}
-	m.metricAPI.MonitoredClusterCount(monitored)
 }
 
 func CanDownloadFiles(c *common.Cluster) (err error) {

@@ -39,6 +39,7 @@ var (
 		ResetTimeout:            3 * time.Minute,
 		EnableAutoReset:         true,
 		MonitorBatchSize:        100,
+		MonitorWorkersNum:       10,
 		DisabledHostvalidations: defaultDisabledHostValidations,
 	}
 	defaultNTPSources = []*models.NtpSource{common.TestNTPSourceSynced}
