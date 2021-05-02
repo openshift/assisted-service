@@ -243,7 +243,13 @@ func generateEssentialHostSteps(ctx context.Context, h *models.Host, name string
 func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {
 	generateHWPostStepReply(ctx, h, inventory, name)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
-	generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{common.TestImageStatusesSuccess})
+}
+
+func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...*models.Host) {
+	generateSuccessfulDiskSpeedResponses(ctx, sdbId, hosts...)
+	for _, h := range hosts {
+		generateContainerImageAvailabilityPostStepReply(ctx, h, []*models.ContainerImageAvailability{common.TestImageStatusesSuccess})
+	}
 }
 
 func registerNode(ctx context.Context, clusterID strfmt.UUID, name string) *models.Host {

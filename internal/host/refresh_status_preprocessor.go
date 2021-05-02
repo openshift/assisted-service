@@ -206,9 +206,9 @@ func newValidations(v *validator) []validation {
 			skippedStates: manualRebootStages,
 		},
 		{
-			id:        AreContainerImagesAvailable,
-			condition: v.areImagesAvailable,
-			formatter: v.printImageAvailability,
+			id:        SucessfullOrUnknownContainerImagesAvailability,
+			condition: v.sucessfullOrUnknownContainerImagesAvailability,
+			formatter: v.printSucessfullOrUnknownContainerImagesAvailability,
 		},
 		{
 			id:        SufficientOrUnknownInstallationDiskSpeed,
@@ -247,6 +247,10 @@ func newConditions(v *validator) []condition {
 		{
 			id: ClusterInError,
 			fn: v.isClusterInError,
+		},
+		{
+			id: SuccessfulContainerImageAvailability,
+			fn: v.isSuccessfulContainerImageAvailability,
 		},
 	}
 	return ret

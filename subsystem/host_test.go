@@ -167,6 +167,8 @@ var _ = Describe("Host tests", func() {
 		steps = getNextSteps(clusterID, *host2.ID)
 		_, ok = getStepInList(steps, models.StepTypeInstallationDiskSpeedCheck)
 		Expect(ok).Should(Equal(true))
+		_, ok = getStepInList(steps, models.StepTypeContainerImageAvailability)
+		Expect(ok).Should(Equal(true))
 	})
 
 	It("next step - DHCP", func() {
@@ -420,7 +422,6 @@ var _ = Describe("Host tests", func() {
 		)
 
 		BeforeEach(func() {
-			Skip("OCPBUGSM-25447 AreContainerImagesAvailable isn't mandatory validation for host isSufficientForInstall")
 			h = &registerHost(clusterID).Host
 		})
 

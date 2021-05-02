@@ -78,8 +78,17 @@ func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error)
 		return "", err
 	}
 
+	imagesToCheck, err := cmd.filterImagesWithStatus(host, cmd.instructionConfig.InstallerImage, images.MCOImage, images.MustGatherImage)
+	if err != nil {
+		return "", err
+	}
+
+	if len(imagesToCheck) == 0 {
+		return "", nil
+	}
+
 	request := models.ContainerImageAvailabilityRequest{
-		Images:  []string{cmd.instructionConfig.InstallerImage, images.MCOImage, images.MustGatherImage},
+		Images:  imagesToCheck,
 		Timeout: defaultImageAvailabilityTimeoutSeconds,
 	}
 
@@ -92,10 +101,28 @@ func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error)
 	return string(b), nil
 }
 
+func (cmd *imageAvailabilityCmd) filterImagesWithStatus(host *models.Host, candidates ...string) ([]string, error) {
+	imagesStatus, err := common.UnmarshalImageStatuses(host.ImagesStatus)
+	if err != nil {
+		return nil, err
+	}
+	ret := make([]string, 0)
+	for _, c := range candidates {
+		if !common.ImageStatusExists(imagesStatus, c) {
+			ret = append(ret, c)
+		}
+	}
+	return ret, nil
+}
+
 func (cmd *imageAvailabilityCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
 	param, err := cmd.prepareParam(host)
 	if err != nil {
 		return nil, err
+	}
+
+	if param == "" {
+		return nil, nil
 	}
 
 	const containerName = "container_image_availability"

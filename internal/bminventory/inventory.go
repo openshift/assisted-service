@@ -2678,7 +2678,7 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 
 func shouldHandle(params installer.PostStepReplyParams) bool {
 	switch params.Reply.StepType {
-	case models.StepTypeInstallationDiskSpeedCheck:
+	case models.StepTypeInstallationDiskSpeedCheck, models.StepTypeContainerImageAvailability:
 		/*
 		   In case that the command sent 0 length output is should not be handled.  When disk speed check takes a long time,
 		   we don't want to run 2 such commands concurrently.  The prior running disk-speed-check, there is a verification
