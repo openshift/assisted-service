@@ -328,7 +328,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-	defer commonutils.MeasureOperation("refreshStatusInternal", m.log, m.metricAPI)()
+	defer commonutils.MeasureOperation("cluster refreshStatusInternal", m.log, m.metricAPI)()
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -409,7 +409,7 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 }
 
 func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
-	defer commonutils.MeasureOperation("tryAssignMachineCidrDHCPMode", m.log, m.metricAPI)()
+	// defer commonutils.MeasureOperation("tryAssignMachineCidrDHCPMode", m.log, m.metricAPI)()
 	networks := network.GetClusterNetworks(cluster.Hosts, m.log)
 	if len(networks) == 1 {
 		/*
@@ -427,7 +427,7 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 }
 
 func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
-	defer commonutils.MeasureOperation("tryAssignMachineCidrNonDHCPMode", m.log, m.metricAPI)()
+	// defer commonutils.MeasureOperation("tryAssignMachineCidrNonDHCPMode", m.log, m.metricAPI)()
 	machineCidr, err := network.CalculateMachineNetworkCIDR(
 		cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
 
@@ -498,11 +498,11 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 }
 
 func (m *Manager) ClusterMonitoring() {
-	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 		return
 	}
+	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
 	m.log.Debugf("Running ClusterMonitoring")
 	var (
 		offset              int

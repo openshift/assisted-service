@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/thoas/go-funk"
 )
@@ -21,6 +22,7 @@ func (m *Manager) HostMonitoring() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")
 		return
 	}
+	defer commonutils.MeasureOperation("host HostMonitoring", m.log, m.metricApi)()
 	m.log.Debugf("Running HostMonitoring")
 	var (
 		offset    int

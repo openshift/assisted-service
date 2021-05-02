@@ -315,7 +315,7 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 }
 
 func (m *Manager) RefreshStatus(ctx context.Context, h *models.Host, db *gorm.DB) error {
-	defer commonutils.MeasureOperation("preprocess", m.log, m.metricApi)()
+	defer commonutils.MeasureOperation("host RefreshStatus", m.log, m.metricApi)()
 	if db == nil {
 		db = m.db
 	}
