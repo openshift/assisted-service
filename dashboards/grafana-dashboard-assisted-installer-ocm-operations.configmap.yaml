@@ -90,7 +90,7 @@ data:
               "expr": "sum(rate(service_assisted_installer_operation_duration_miliseconds_sum{}[5m])) by (operation)/ sum(rate(service_assisted_installer_operation_duration_miliseconds_count{}[5m])) by (operation)",
               "hide": false,
               "interval": "",
-              "legendFormat": "{operation}}",
+              "legendFormat": "{{operation}}",
               "refId": "D"
             }
           ],
@@ -151,7 +151,7 @@ data:
               "expr": "sum(rate(service_assisted_installer_operation_duration_miliseconds_count[$__rate_interval])) by (operation)",
               "hide": false,
               "interval": "",
-              "legendFormat": "{operation}}",
+              "legendFormat": "{{operation}}",
               "refId": "A"
             }
           ],
