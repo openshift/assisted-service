@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -260,6 +261,7 @@ func (m *Manager) reportValidationFailedMetrics(ctx context.Context, c *common.C
 
 func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.Cluster,
 	newValidationRes, currentValidationRes ValidationsStatus) {
+	defer commonutils.MeasureOperation("reportValidationStatusChanged", m.log, m.metricAPI)()
 	for vCategory, vRes := range newValidationRes {
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
@@ -287,6 +289,7 @@ func (m *Manager) getValidationStatus(vs ValidationsStatus, category string, vID
 }
 
 func GetValidations(c *common.Cluster) (ValidationsStatus, error) {
+
 	var currentValidationRes ValidationsStatus
 	if c.ValidationsInfo != "" {
 		if err := json.Unmarshal([]byte(c.ValidationsInfo), &currentValidationRes); err != nil {
@@ -325,6 +328,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
+	defer commonutils.MeasureOperation("refreshStatusInternal", m.log, m.metricAPI)()
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -336,7 +340,12 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		newValidationRes map[string][]ValidationResult
 	)
 	vc = newClusterValidationContext(c, db)
-	conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
+
+	func() {
+		defer commonutils.MeasureOperation("preprocess", m.log, m.metricAPI)()
+		conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
+	}()
+
 	if err != nil {
 		return c, err
 	}
@@ -368,7 +377,10 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 		dnsApi:            m.dnsApi,
 	}
 
-	err = m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
+	err = func() error {
+		defer commonutils.MeasureOperation("newStateCluster", m.log, m.metricAPI)()
+		return m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
+	}()
 	if err != nil {
 		return nil, common.NewApiError(http.StatusConflict, err)
 	}
@@ -397,6 +409,7 @@ func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 }
 
 func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
+	defer commonutils.MeasureOperation("tryAssignMachineCidrDHCPMode", m.log, m.metricAPI)()
 	networks := network.GetClusterNetworks(cluster.Hosts, m.log)
 	if len(networks) == 1 {
 		/*
@@ -414,6 +427,7 @@ func (m *Manager) tryAssignMachineCidrDHCPMode(cluster *common.Cluster) error {
 }
 
 func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error {
+	defer commonutils.MeasureOperation("tryAssignMachineCidrNonDHCPMode", m.log, m.metricAPI)()
 	machineCidr, err := network.CalculateMachineNetworkCIDR(
 		cluster.APIVip, cluster.IngressVip, cluster.Hosts, false)
 
@@ -430,6 +444,7 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 }
 
 func (m *Manager) autoAssignMachineNetworkCidrs() error {
+	defer commonutils.MeasureOperation("autoAssignMachineNetworkCidrs", m.log, m.metricAPI)()
 	var clusters []*common.Cluster
 	/*
 	 * The aim is to get from DB only clusters that are candidates for machine network CIDR auto assign
@@ -483,6 +498,7 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 }
 
 func (m *Manager) ClusterMonitoring() {
+	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 		return
@@ -829,6 +845,7 @@ func (m *Manager) IsReadyForInstallation(c *common.Cluster) (bool, string) {
 }
 
 func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *common.Cluster, db *gorm.DB) error {
+	defer commonutils.MeasureOperation("setConnectivityMajorityGroupsForClusterInternal", m.log, m.metricAPI)()
 	if db == nil {
 		db = m.db
 	}
