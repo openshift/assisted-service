@@ -4295,12 +4295,5 @@ func (b *bareMetalInventory) AddOpenshiftVersion(ctx context.Context, ocpRelease
 		return nil, err
 	}
 
-	// Upload relevant boot files according to the specified version
-	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(ctx, b.log, b.objectHandler)
-	if err := b.objectHandler.UploadBootFiles(ctx, *openshiftVersion.DisplayName, b.Config.ServiceBaseURL, haveLatestMinimalTemplate); err != nil {
-		log.WithError(err).Errorf("Failed uploading boot files for OCP version %s", *openshiftVersion.DisplayName)
-		return nil, err
-	}
-
 	return openshiftVersion, nil
 }
