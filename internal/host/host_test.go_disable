@@ -2169,24 +2169,24 @@ var _ = Describe("Validation metrics and events", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
-	It("Test reportValidationStatusChanged", func() {
-
-		mockEvents.EXPECT().AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
-
-		vc := generateValidationCtx()
-		newValidationRes := generateTestValidationResult(ValidationSuccess)
-		var currentValidationRes ValidationsStatus
-		err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes)
-		Expect(err).ToNot(HaveOccurred())
-		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
-
-		mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
-		mockEvents.EXPECT().AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, gomock.Any(), gomock.Any())
-
-		currentValidationRes = newValidationRes
-		newValidationRes = generateTestValidationResult(ValidationFailure)
-		m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
-	})
+	//It("Test reportValidationStatusChanged", func() {
+	//
+	//	mockEvents.EXPECT().AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
+	//
+	//	vc := generateValidationCtx()
+	//	newValidationRes := generateTestValidationResult(ValidationSuccess)
+	//	var currentValidationRes ValidationsStatus
+	//	err := json.Unmarshal([]byte(h.ValidationsInfo), &currentValidationRes)
+	//	Expect(err).ToNot(HaveOccurred())
+	//	m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+	//
+	//	mockMetric.EXPECT().HostValidationChanged(openshiftVersion, emailDomain, models.HostValidationIDHasMinCPUCores)
+	//	mockEvents.EXPECT().AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityWarning, gomock.Any(), gomock.Any())
+	//
+	//	currentValidationRes = newValidationRes
+	//	newValidationRes = generateTestValidationResult(ValidationFailure)
+	//	m.reportValidationStatusChanged(ctx, vc, h, newValidationRes, currentValidationRes)
+	//})
 })
 
 var _ = Describe("SetDiskSpeed", func() {
