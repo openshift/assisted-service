@@ -67,6 +67,22 @@ const (
 	ClusterValidationsUnknownMsg string = "The cluster's validations have not yet been calculated"
 	ClusterValidationsFailingMsg string = "The cluster's validations are failing:"
 
+	ClusterFailedCondition string = hivev1.ClusterInstallFailed
+	ClusterFailedReason    string = "InstallationFailed"
+	ClusterFailedMsg       string = "The installation failed:"
+	ClusterNotFailedReason string = "InstallationNotFailed"
+	ClusterNotFailedMsg    string = "The installation has not failed"
+
+	ClusterStoppedCondition       string = hivev1.ClusterInstallStopped
+	ClusterStoppedFailedReason    string = "InstallationFailed"
+	ClusterStoppedFailedMsg       string = "The installation has stopped due to error"
+	ClusterStoppedCanceledReason  string = "InstallationCancelled"
+	ClusterStoppedCanceledMsg     string = "The installation has stopped because it was cancelled"
+	ClusterStoppedCompletedReason string = "InstallationCompleted"
+	ClusterStoppedCompletedMsg    string = "The installation has stopped because it completed successfully"
+	ClusterNotStoppedReason       string = "InstallationNotStopped"
+	ClusterNotStoppedMsg          string = "The installation is waiting to start or in progress"
+
 	//Agent Conditions
 	SpecSyncedCondition conditionsv1.ConditionType = "SpecSynced"
 

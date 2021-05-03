@@ -772,6 +772,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 			clusterRequirementsMet(clusterInstall, status)
 			clusterValidated(clusterInstall, status, c)
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo))
+			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
+			clusterStopped(clusterInstall, status)
 		}
 	} else {
 		setClusterConditionsUnknown(clusterInstall)
@@ -881,6 +883,58 @@ func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statu
 	})
 }
 
+func clusterFailed(clusterInstall *hiveext.AgentClusterInstall, status, statusInfo string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.ClusterStatusError:
+		condStatus = corev1.ConditionTrue
+		reason = ClusterFailedReason
+		msg = fmt.Sprintf("%s %s", ClusterFailedMsg, statusInfo)
+	default:
+		condStatus = corev1.ConditionFalse
+		reason = ClusterNotFailedReason
+		msg = ClusterNotFailedMsg
+	}
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    ClusterFailedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
+func clusterStopped(clusterInstall *hiveext.AgentClusterInstall, status string) {
+	var condStatus corev1.ConditionStatus
+	var reason string
+	var msg string
+	switch status {
+	case models.ClusterStatusError:
+		condStatus = corev1.ConditionTrue
+		reason = ClusterStoppedFailedReason
+		msg = ClusterStoppedFailedMsg
+	case models.ClusterStatusCancelled:
+		condStatus = corev1.ConditionTrue
+		reason = ClusterStoppedCanceledReason
+		msg = ClusterStoppedCanceledMsg
+	case models.ClusterStatusInstalled:
+		condStatus = corev1.ConditionTrue
+		reason = ClusterStoppedCompletedReason
+		msg = ClusterStoppedCompletedMsg
+	default:
+		condStatus = corev1.ConditionFalse
+		reason = ClusterNotStoppedReason
+		msg = ClusterNotStoppedMsg
+	}
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    ClusterStoppedCondition,
+		Status:  condStatus,
+		Reason:  reason,
+		Message: msg,
+	})
+}
+
 func clusterValidated(clusterInstall *hiveext.AgentClusterInstall, status string, c *common.Cluster) {
 	failedValidationInfo := ""
 	validationRes, err := cluster.GetValidations(c)
@@ -943,6 +997,18 @@ func setClusterConditionsUnknown(clusterInstall *hiveext.AgentClusterInstall) {
 	})
 	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
 		Type:    ClusterCompletedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
+	})
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    ClusterFailedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
+	})
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    ClusterStoppedCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  NotAvailableReason,
 		Message: NotAvailableMsg,
