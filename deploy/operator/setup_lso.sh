@@ -2,6 +2,12 @@ source utils.sh
 
 set -xeo pipefail
 
+if [ -z "${DISKS}" ]; then
+    echo "You must provide DISKS env-var. For example:"
+    echo "    bash DISKS=\$(echo sd{b..f}) ./create_libvirt_disks.sh"
+    exit 1
+fi
+
 function install_lso() {
     oc adm new-project openshift-local-storage || true
 
@@ -46,11 +52,7 @@ spec:
   managementState: Managed
   storageClassDevices:
     - devicePaths:
-        - /dev/sdb
-        - /dev/sdc
-        - /dev/sdd
-        - /dev/sde
-        - /dev/sdf
+$(printf '        - /dev/%s\n' ${DISKS})
       storageClassName: assisted-service
       volumeMode: Filesystem
 EOCR
