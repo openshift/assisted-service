@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
@@ -26,13 +27,14 @@ import (
 
 var _ = Describe("monitor_disconnection", func() {
 	var (
-		ctx        = context.Background()
-		db         *gorm.DB
-		state      API
-		host       models.Host
-		ctrl       *gomock.Controller
-		mockEvents *events.MockHandler
-		dbName     string
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		host          models.Host
+		ctrl          *gomock.Controller
+		mockEvents    *events.MockHandler
+		dbName        string
+		mockMetricApi *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -41,6 +43,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		dummy := &leader.DummyElector{}
 		mockHwValidator := hardware.NewMockValidator(ctrl)
+		mockMetricApi = metrics.NewMockAPI(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
 			Total: &models.ClusterHostRequirementsDetails{},
@@ -48,7 +51,7 @@ var _ = Describe("monitor_disconnection", func() {
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			nil, defaultConfig, dummy, mockOperators)
+			mockMetricApi, defaultConfig, dummy, mockOperators)
 		clusterID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(strfmt.UUID(uuid.New().String()), clusterID, models.HostStatusDiscovering)
 		cluster := hostutil.GenerateTestCluster(clusterID, "1.1.0.0/16")
@@ -58,6 +61,8 @@ var _ = Describe("monitor_disconnection", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		db.First(&host, "id = ? and cluster_id = ?", host.ID, host.ClusterID)
 
+		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
+		mockMetricApi.EXPECT().MonitoredHostsCount(gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
@@ -126,15 +131,16 @@ var _ = Describe("monitor_disconnection", func() {
 
 var _ = Describe("TestHostMonitoring", func() {
 	var (
-		ctx        = context.Background()
-		db         *gorm.DB
-		state      API
-		host       models.Host
-		ctrl       *gomock.Controller
-		cfg        Config
-		mockEvents *events.MockHandler
-		dbName     string
-		clusterID  = strfmt.UUID(uuid.New().String())
+		ctx           = context.Background()
+		db            *gorm.DB
+		state         API
+		host          models.Host
+		ctrl          *gomock.Controller
+		cfg           Config
+		mockEvents    *events.MockHandler
+		dbName        string
+		clusterID     = strfmt.UUID(uuid.New().String())
+		mockMetricApi *metrics.MockAPI
 	)
 
 	BeforeEach(func() {
@@ -145,6 +151,7 @@ var _ = Describe("TestHostMonitoring", func() {
 			AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 			AnyTimes()
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
+		mockMetricApi = metrics.NewMockAPI(ctrl)
 		mockHwValidator := hardware.NewMockValidator(ctrl)
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
@@ -153,8 +160,9 @@ var _ = Describe("TestHostMonitoring", func() {
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
-			nil, &cfg, &leader.DummyElector{}, mockOperators)
+			mockMetricApi, &cfg, &leader.DummyElector{}, mockOperators)
 
+		mockMetricApi.EXPECT().Duration("HostMonitoring", gomock.Any()).Times(1)
 		mockOperators.EXPECT().ValidateHost(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.HostValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
@@ -190,14 +198,17 @@ var _ = Describe("TestHostMonitoring", func() {
 		}
 
 		It("5 hosts all disconnected", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(5)).Times(1)
 			registerAndValidateDisconnected(5)
 		})
 
 		It("15 hosts all disconnected", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(15)).Times(1)
 			registerAndValidateDisconnected(15)
 		})
 
 		It("765 hosts all disconnected", func() {
+			mockMetricApi.EXPECT().MonitoredHostsCount(int64(765)).Times(1)
 			registerAndValidateDisconnected(765)
 		})
 	})

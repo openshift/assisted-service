@@ -11,7 +11,7 @@ func MeasureOperation(operation string, log logrus.FieldLogger, metricsApi metri
 	start := time.Now()
 	return func() {
 		duration := time.Since(start)
-		log.Infof("%s took : %v", operation, duration)
+		log.Debugf("%s took : %v", operation, duration)
 		if metricsApi != nil {
 			metricsApi.Duration(operation, duration)
 		}

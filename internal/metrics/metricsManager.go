@@ -36,6 +36,8 @@ const (
 	counterClusterValidationFailed                = "assisted_installer_cluster_validation_is_in_failed_status_on_cluster_deletion"
 	counterClusterValidationChanged               = "assisted_installer_cluster_validation_failed_after_success_before_installation"
 	counterFilesystemUsagePercentage              = "assisted_installer_filesystem_usage_percentage"
+	counterMonitoredHosts                         = "assisted_installer_monitored_hosts"
+	counterMonitoredClusters                      = "assisted_installer_monitored_clusters"
 )
 
 const (
@@ -58,6 +60,8 @@ const (
 	counterDescriptionClusterValidationFailed                = "Number of cluster validation errors"
 	counterDescriptionClusterValidationChanged               = "Number of cluster validations that already succeed but start to fail again"
 	counterDescriptionFilesystemUsagePercentage              = "The percentage of the filesystem usage by the service"
+	counterDescriptionMonitoredHosts                         = "Number of hosts monitored by host monitor"
+	counterDescriptionMonitoredClusters                      = "Number of clusters monitored by cluster monitor"
 )
 
 const (
@@ -81,6 +85,8 @@ const (
 	hostValidationTypeLabel    = "hostValidationType"
 	clusterValidationTypeLabel = "clusterValidationType"
 	imageLabel                 = "imageName"
+	hosts                      = "hosts"
+	clusters                   = "clusters"
 )
 
 type API interface {
@@ -98,6 +104,8 @@ type API interface {
 	DiskSyncDuration(clusterID strfmt.UUID, hostID strfmt.UUID, diskPath string, syncDuration int64)
 	ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64)
 	FileSystemUsage(usageInPercentage float64)
+	MonitoredHostsCount(monitoredHosts int64)
+	MonitoredClusterCount(monitoredClusters int64)
 }
 
 type MetricsManager struct {
@@ -122,6 +130,8 @@ type MetricsManager struct {
 	serviceLogicClusterValidationFailed                *prometheus.CounterVec
 	serviceLogicClusterValidationChanged               *prometheus.CounterVec
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
+	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
+	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
 }
 
 func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
@@ -280,6 +290,20 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 				Help:      counterDescriptionFilesystemUsagePercentage,
 			}, []string{},
 		),
+
+		serviceLogicMonitoredHosts: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      counterMonitoredHosts,
+			Help:      counterDescriptionMonitoredHosts,
+		}, []string{hosts}),
+
+		serviceLogicMonitoredClusters: prometheus.NewGaugeVec(prometheus.GaugeOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      counterMonitoredClusters,
+			Help:      counterDescriptionMonitoredClusters,
+		}, []string{hosts}),
 	}
 
 	registry.MustRegister(
@@ -300,6 +324,8 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 		m.serviceLogicClusterValidationChanged,
 		m.serviceLogicClusterHostImagePullStatus,
 		m.serviceLogicFilesystemUsagePercentage,
+		m.serviceLogicMonitoredHosts,
+		m.serviceLogicMonitoredClusters,
 	)
 	return m
 }
@@ -434,6 +460,14 @@ func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, 
 
 func (m *MetricsManager) FileSystemUsage(usageInPercentage float64) {
 	m.serviceLogicFilesystemUsagePercentage.WithLabelValues().Set(usageInPercentage)
+}
+
+func (m *MetricsManager) MonitoredHostsCount(monitoredHosts int64) {
+	m.serviceLogicMonitoredHosts.WithLabelValues(hosts).Set(float64(monitoredHosts))
+}
+
+func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
+	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Set(float64(monitoredClusters))
 }
 
 func bytesToGib(bytes int64) int64 {
