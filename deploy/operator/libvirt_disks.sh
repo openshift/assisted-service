@@ -1,10 +1,13 @@
-if [ -z "${NODES}" ]; then
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source ${__dir}/utils.sh
+
+if [ -z "${NODES:-}" ]; then
     export NODES=$(virsh list --name | grep worker || virsh list --name | grep master)
 fi
 
-if [ -z "${DISKS}" ]; then
-    echo "You must provide DISKS env-var. For example:"
-    echo "    DISKS=\$(echo sd{b..f}) bash ./libvirt_disks.sh create"
+if [ -z "${DISKS:-}" ]; then
+    echo "You must provide DISKS env-var."
+    print_help
     exit 1
 fi
 
@@ -44,9 +47,6 @@ function destroy() {
     echo "Done destroying libvirt disks!"
 }
 
-ALL_FUNCS=$(compgen -A function)
-case "$@" in
-    create)  create;;
-    destroy) destroy;;
-    *)       echo "Usage: DISKS=<disk names> bash ./libvirt_disks.sh ($(echo $ALL_FUNCS | tr ' ' '|'))" && exit 1;;
-esac
+declare -F $@ || (print_help && exit 1)
+
+"$@"

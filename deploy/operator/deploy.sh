@@ -1,8 +1,17 @@
-if [ -z "${DISKS}" ]; then
+#!/usr/bin/env bash
+
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -z "${DISKS:-}" ]; then
     export DISKS=$(echo sd{b..f})
 fi
 
-source ./libvirt_disks.sh create
-source ./setup_lso.sh
-source ./setup_hive.sh
-source ./setup_assisted_operator.sh
+${__dir}/libvirt_disks.sh create
+
+if [ "${INSTALL_LSO:-true}" == "true" ]; then
+    ${__dir}/setup_lso.sh install_lso
+fi
+
+${__dir}/setup_lso.sh create_local_volume
+${__dir}/setup_hive.sh
+${__dir}/setup_assisted_operator.sh
