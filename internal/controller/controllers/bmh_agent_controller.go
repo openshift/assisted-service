@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"sort"
 	"strings"
-	"time"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
@@ -58,7 +57,7 @@ const (
 	BMH_AGENT_ROLE                      = "bmac.agent-install.openshift.io/role"
 	BMH_AGENT_HOSTNAME                  = "bmac.agent-install.openshift.io/hostname"
 	BMH_AGENT_MACHINE_CONFIG_POOL       = "bmac.agent-install.openshift.io/machine-config-pool"
-	BMH_INSTALL_ENV_LABEL               = "infraenvs.agent-install.openshift.io"
+	BMH_INFRA_ENV_LABEL                 = "infraenvs.agent-install.openshift.io"
 	BMH_AGENT_INSTALLER_ARGS            = "bmac.agent-install.openshift.io/installer-args"
 	BMH_DETACHED_ANNOTATION             = "baremetalhost.metal3.io/detached"
 	BMH_INSPECT_ANNOTATION              = "inspect.metal3.io"
@@ -87,23 +86,6 @@ func (r reconcileComplete) Result() (result reconcile.Result, err error) {
 
 func (r reconcileComplete) Dirty() bool {
 	return r.dirty
-}
-
-// reconcileRequeue is a result indicating that the reconcile should be
-// requeued.
-type reconcileRequeue struct {
-	delay time.Duration
-}
-
-func (r reconcileRequeue) Result() (result reconcile.Result, err error) {
-	result.RequeueAfter = r.delay
-	// Set Requeue true as well as RequeueAfter in case the delay is 0.
-	result.Requeue = true
-	return
-}
-
-func (r reconcileRequeue) Dirty() bool {
-	return false
 }
 
 // reconcileError is a result indicating that an error occurred while attempting
@@ -423,13 +405,10 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 	for ann, value := range bmh.Labels {
 		r.Log.Debugf("BMH label %s value %s", ann, value)
 
-		// Find the `BMH_INSTALL_ENV_LABEL`, get the infraEnv configured in it
+		// Find the `BMH_INFRA_ENV_LABEL`, get the infraEnv configured in it
 		// and copy the ISO Url from the InfraEnv to the BMH resource.
-		if ann == BMH_INSTALL_ENV_LABEL {
+		if ann == BMH_INFRA_ENV_LABEL {
 			infraEnv := &aiv1beta1.InfraEnv{}
-			// TODO: Watch for the InfraEnv resource and do the reconcile
-			// when the required data is there.
-			// https://github.com/openshift/assisted-service/pull/1279/files#r604213425
 
 			r.Log.Debugf("Loading InfraEnv %s", value)
 			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, infraEnv); err != nil {
@@ -439,9 +418,9 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 
 			if infraEnv.Status.ISODownloadURL == "" {
 				// the image has not been created yet, try later.
-				r.Log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Retrying reconcile for BareMetalHost  %s/%s",
+				r.Log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Waiting for new reconcile for BareMetalHost  %s/%s",
 					infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
-				return reconcileRequeue{time.Minute}
+				return reconcileComplete{}
 			}
 
 			r.Log.Debugf("Setting attributes in BMH")
@@ -700,7 +679,7 @@ func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMe
 //
 // Only `BareMetalHost` resources that match one of the Agent's
 // MAC addresses will be returned.
-func (r *BMACReconciler) findBMH(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+func (r *BMACReconciler) findBMHByAgent(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
 	bmhList := bmh_v1alpha1.BareMetalHostList{}
 	err := r.Client.List(ctx, &bmhList, client.InNamespace(agent.Namespace))
 	if err != nil {
@@ -715,6 +694,29 @@ func (r *BMACReconciler) findBMH(ctx context.Context, agent *aiv1beta1.Agent) (*
 		}
 	}
 	return nil, nil
+}
+
+// Find `BareMetalHost` resources that match an InfraEnv
+//
+// Only `BareMetalHost` resources that have a label with a
+// reference to an InfraEnv
+func (r *BMACReconciler) findBMHByInfraEnv(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) ([]*bmh_v1alpha1.BareMetalHost, error) {
+	bmhList := bmh_v1alpha1.BareMetalHostList{}
+	err := r.Client.List(ctx, &bmhList, client.InNamespace(infraEnv.Namespace))
+	if err != nil {
+		return nil, err
+	}
+
+	bmhs := []*bmh_v1alpha1.BareMetalHost{}
+
+	for i, bmh := range bmhList.Items {
+		if val, ok := bmh.ObjectMeta.Labels[BMH_INFRA_ENV_LABEL]; ok {
+			if strings.EqualFold(val, infraEnv.Name) {
+				bmhs = append(bmhs, &bmhList.Items[i])
+			}
+		}
+	}
+	return bmhs, nil
 }
 
 func (r *BMACReconciler) ensureSpokeBMH(ctx context.Context, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost, machine *machinev1beta1.Machine, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
@@ -851,7 +853,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			}}}
 		}
 
-		bmh, err := r.findBMH(ctx, agent)
+		bmh, err := r.findBMHByAgent(ctx, agent)
 		if bmh == nil || err != nil {
 			return []reconcile.Request{}
 		}
@@ -862,8 +864,41 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		}}}
 	}
 
+	mapInfraEnvToBMH := func(a client.Object) []reconcile.Request {
+		ctx := context.Background()
+		infraEnv := &aiv1beta1.InfraEnv{}
+
+		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, infraEnv); err != nil {
+			return []reconcile.Request{}
+		}
+
+		// Don't queue any reconcile if the InfraEnv
+		// doesn't have the ISODownloadURL set yet.
+		if infraEnv.Status.ISODownloadURL == "" {
+			return []reconcile.Request{}
+		}
+
+		bmhs, err := r.findBMHByInfraEnv(ctx, infraEnv)
+		if len(bmhs) == 0 || err != nil {
+			return []reconcile.Request{}
+		}
+
+		requests := make([]reconcile.Request, len(bmhs))
+
+		for i, bmh := range bmhs {
+			requests[i] = reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Namespace: bmh.Namespace,
+					Name:      bmh.Name,
+				}}
+		}
+
+		return requests
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&bmh_v1alpha1.BareMetalHost{}).
 		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToClusterDeployment)).
+		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
 		Complete(r)
 }

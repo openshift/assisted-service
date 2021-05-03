@@ -64,6 +64,7 @@ var _ = Describe("bmac reconcile", func() {
 	Describe("queue bmh request for agent", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		var agent *v1beta1.Agent
+		var infraEnv *v1beta1.InfraEnv
 
 		BeforeEach(func() {
 			macStr := "12-34-56-78-9A-BC"
@@ -88,7 +89,11 @@ var _ = Describe("bmac reconcile", func() {
 			}
 			Expect(c.Create(ctx, agent)).To(BeNil())
 
+			infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
 			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{BootMACAddress: macStr})
+			labels := make(map[string]string)
+			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
+			host.ObjectMeta.Labels = labels
 			Expect(c.Create(ctx, host)).To(BeNil())
 
 		})
@@ -98,9 +103,9 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Delete(ctx, agent)).ShouldNot(HaveOccurred())
 		})
 
-		Context("findBMH, when both agent and bmh exist,", func() {
+		Context("findBMHByAgent, when both agent and bmh exist,", func() {
 			It("should return the agent if their MAC address matches", func() {
-				result, err := bmhr.findBMH(context.Background(), agent)
+				result, err := bmhr.findBMHByAgent(context.Background(), agent)
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(host))
 			})
@@ -109,9 +114,27 @@ var _ = Describe("bmac reconcile", func() {
 				agent = newAgent("bmac-agent-no-MAC", testNamespace, v1beta1.AgentSpec{})
 				Expect(c.Create(ctx, agent)).To(BeNil())
 
-				result, err := bmhr.findBMH(context.Background(), agent)
+				result, err := bmhr.findBMHByAgent(context.Background(), agent)
 				Expect(err).To(BeNil())
 				Expect(result).To(BeNil())
+			})
+		})
+
+		Context("findBMHByInfraEnv, when both InfraEnv and BMH exist", func() {
+			It("should return the bmh if the lable matches the InfraEnv name", func() {
+				result, err := bmhr.findBMHByInfraEnv(context.Background(), infraEnv)
+				Expect(err).To(BeNil())
+				Expect(result).NotTo(BeEmpty())
+				Expect(result).To(ContainElement(host))
+			})
+
+			It("should return nil if there is no match", func() {
+				noMatchEnv := newInfraEnvImage("no-reference-pointing-at-me", testNamespace, v1beta1.InfraEnvSpec{})
+				Expect(c.Create(ctx, noMatchEnv)).To(BeNil())
+
+				result, err := bmhr.findBMHByInfraEnv(context.Background(), noMatchEnv)
+				Expect(err).To(BeNil())
+				Expect(result).To(BeEmpty())
 			})
 		})
 	})
@@ -121,7 +144,7 @@ var _ = Describe("bmac reconcile", func() {
 		BeforeEach(func() {
 			host = newBMH("bmh-reconcile", &bmh_v1alpha1.BareMetalHostSpec{})
 			labels := make(map[string]string)
-			labels[BMH_INSTALL_ENV_LABEL] = "testInfraEnv"
+			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
 			host.ObjectMeta.Labels = labels
 			Expect(c.Create(ctx, host)).To(BeNil())
 		})
@@ -145,7 +168,7 @@ var _ = Describe("bmac reconcile", func() {
 
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
-				Expect(result.RequeueAfter).To(Equal(time.Minute))
+				Expect(result).To(Equal(ctrl.Result{}))
 			})
 		})
 
@@ -709,7 +732,7 @@ var _ = Describe("bmac reconcile", func() {
 			host.ObjectMeta.Annotations = make(map[string]string)
 			host.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
 			labels := make(map[string]string)
-			labels[BMH_INSTALL_ENV_LABEL] = "testInfraEnv"
+			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
 			host.ObjectMeta.Labels = labels
 			Expect(c.Create(ctx, host)).To(BeNil())
 		})
