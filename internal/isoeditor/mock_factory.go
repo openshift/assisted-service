@@ -35,15 +35,15 @@ func (m *MockFactory) EXPECT() *MockFactoryMockRecorder {
 }
 
 // WithEditor mocks base method
-func (m *MockFactory) WithEditor(arg0 context.Context, arg1, arg2 string, arg3 logrus.FieldLogger, arg4 EditFunc) error {
+func (m *MockFactory) WithEditor(arg0 context.Context, arg1 string, arg2 logrus.FieldLogger, arg3 EditFunc) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "WithEditor", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "WithEditor", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // WithEditor indicates an expected call of WithEditor
-func (mr *MockFactoryMockRecorder) WithEditor(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockFactoryMockRecorder) WithEditor(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithEditor", reflect.TypeOf((*MockFactory)(nil).WithEditor), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WithEditor", reflect.TypeOf((*MockFactory)(nil).WithEditor), arg0, arg1, arg2, arg3)
 }

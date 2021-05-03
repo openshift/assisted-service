@@ -55,22 +55,21 @@ type OffsetInfo struct {
 
 //go:generate mockgen -package=isoeditor -destination=mock_editor.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Editor
 type Editor interface {
-	CreateMinimalISOTemplate(serviceBaseURL string) (string, error)
+	CreateMinimalISOTemplate(serviceBaseURL, openshiftVersion string) (string, error)
 	CreateClusterMinimalISO(ignition string, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error)
 }
 
 type rhcosEditor struct {
 	isoHandler          isoutil.Handler
-	openshiftVersion    string
 	log                 logrus.FieldLogger
 	workDir             string
 	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
 }
 
-func (e *rhcosEditor) getRootFSURL(serviceBaseURL string) string {
+func getRootFSURL(serviceBaseURL, openshiftVersion string) string {
 	var downloadBootFilesURL = &bootfiles.DownloadBootFilesURL{
 		FileType:         "rootfs.img",
-		OpenshiftVersion: e.openshiftVersion,
+		OpenshiftVersion: openshiftVersion,
 	}
 	url, err := downloadBootFilesURL.Build()
 	if err != nil {
@@ -82,7 +81,7 @@ func (e *rhcosEditor) getRootFSURL(serviceBaseURL string) string {
 
 // Creates the template minimal iso by removing the rootfs and adding the url
 // Returns the path to the created iso file
-func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, error) {
+func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL, openshiftVersion string) (string, error) {
 	if err := e.isoHandler.Extract(); err != nil {
 		return "", err
 	}
@@ -96,7 +95,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(serviceBaseURL string) (string, e
 		return "", err
 	}
 
-	if err := e.fixTemplateConfigs(serviceBaseURL); err != nil {
+	if err := e.fixTemplateConfigs(serviceBaseURL, openshiftVersion); err != nil {
 		e.log.WithError(err).Warnf("Failed to edit template configs")
 		return "", err
 	}
@@ -332,9 +331,9 @@ func (e *rhcosEditor) create() (string, error) {
 	return isoPath, nil
 }
 
-func (e *rhcosEditor) fixTemplateConfigs(serviceBaseURL string) error {
+func (e *rhcosEditor) fixTemplateConfigs(serviceBaseURL, openshiftVersion string) error {
 	// Add the rootfs url
-	rootFSURL := e.getRootFSURL(serviceBaseURL)
+	rootFSURL := getRootFSURL(serviceBaseURL, openshiftVersion)
 	replacement := fmt.Sprintf("$1 $2 'coreos.live.rootfs_url=%s'", rootFSURL)
 	if err := editFile(e.isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), `(?m)^(\s+linux) (.+| )+$`, replacement); err != nil {
 		return err

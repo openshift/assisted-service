@@ -146,9 +146,9 @@ func CreateAndUploadMinimalIso(ctx context.Context, log logrus.FieldLogger,
 
 	log.Infof("Extracting rhcos ISO (%s)", isoPath)
 	var minimalIsoPath string
-	err := editorFactory.WithEditor(ctx, isoPath, openshiftVersion, log, func(editor isoeditor.Editor) error {
+	err := editorFactory.WithEditor(ctx, isoPath, log, func(editor isoeditor.Editor) error {
 		var createError error
-		minimalIsoPath, createError = editor.CreateMinimalISOTemplate(serviceBaseURL)
+		minimalIsoPath, createError = editor.CreateMinimalISOTemplate(serviceBaseURL, openshiftVersion)
 		return createError
 	})
 	if err != nil {
