@@ -493,7 +493,7 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	// stopped to avoid excessive computation
 	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout)}
 	result := ((swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
-		funk.Contains(skipMonitoringStates, c.LogsInfo)) || len(c.Hosts) == 0
+		funk.Contains(skipMonitoringStates, c.LogsInfo))
 	return result
 }
 
