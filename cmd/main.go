@@ -195,9 +195,13 @@ func main() {
 	ctrlMgr, err := createControllerManager()
 	failOnError(err, "failed to create controller manager")
 
-	prometheusRegistry := prometheus.DefaultRegisterer
-	metricsManager := metrics.NewMetricsManager(prometheusRegistry)
 	usageManager := usage.NewManager(log)
+
+	crdEventsHandler := createCRDEventsHandler()
+	eventsHandler := createEventsHandler(crdEventsHandler, db, log)
+
+	prometheusRegistry := prometheus.DefaultRegisterer
+	metricsManager := metrics.NewMetricsManager(prometheusRegistry, eventsHandler)
 
 	ocmClient := getOCMClient(log, metricsManager)
 
@@ -217,8 +221,6 @@ func main() {
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
-	crdEventsHandler := createCRDEventsHandler()
-	eventsHandler := createEventsHandler(crdEventsHandler, db, log)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)

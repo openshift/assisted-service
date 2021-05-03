@@ -768,7 +768,7 @@ func (m *Manager) reportInstallationMetrics(ctx context.Context, h *models.Host,
 		log.Errorf("host %s in cluster %s has empty installation path", h.ID.String(), h.ClusterID.String())
 	}
 
-	m.metricApi.ReportHostInstallationMetrics(log, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
+	m.metricApi.ReportHostInstallationMetrics(ctx, cluster.OpenshiftVersion, h.ClusterID, cluster.EmailDomain, boot, h, previousProgress, CurrentStage)
 }
 
 func (m *Manager) ReportValidationFailedMetrics(ctx context.Context, h *models.Host, ocpVersion, emailDomain string) error {

@@ -5,10 +5,10 @@
 package metrics
 
 import (
+	context "context"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	models "github.com/openshift/assisted-service/models"
-	logrus "github.com/sirupsen/logrus"
 	reflect "reflect"
 	time "time"
 )
@@ -120,18 +120,6 @@ func (mr *MockAPIMockRecorder) ClusterHostInstallationCount(clusterID, emailDoma
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHostInstallationCount", reflect.TypeOf((*MockAPI)(nil).ClusterHostInstallationCount), clusterID, emailDomain, hostCount, clusterVersion)
 }
 
-// ClusterHostsNTPFailures mocks base method
-func (m *MockAPI) ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClusterHostsNTPFailures", clusterID, emailDomain, hostNTPFailureCount)
-}
-
-// ClusterHostsNTPFailures indicates an expected call of ClusterHostsNTPFailures
-func (mr *MockAPIMockRecorder) ClusterHostsNTPFailures(clusterID, emailDomain, hostNTPFailureCount interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHostsNTPFailures", reflect.TypeOf((*MockAPI)(nil).ClusterHostsNTPFailures), clusterID, emailDomain, hostNTPFailureCount)
-}
-
 // Duration mocks base method
 func (m *MockAPI) Duration(operation string, duration time.Duration) {
 	m.ctrl.T.Helper()
@@ -145,27 +133,27 @@ func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock
 }
 
 // ClusterInstallationFinished mocks base method
-func (m *MockAPI) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
+func (m *MockAPI) ClusterInstallationFinished(ctx context.Context, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClusterInstallationFinished", log, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
+	m.ctrl.Call(m, "ClusterInstallationFinished", ctx, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
 }
 
 // ClusterInstallationFinished indicates an expected call of ClusterInstallationFinished
-func (mr *MockAPIMockRecorder) ClusterInstallationFinished(log, result, clusterVersion, clusterID, emailDomain, installationStartedTime interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ClusterInstallationFinished(ctx, result, clusterVersion, clusterID, emailDomain, installationStartedTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), log, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), ctx, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
 }
 
 // ReportHostInstallationMetrics mocks base method
-func (m *MockAPI) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+func (m *MockAPI) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ReportHostInstallationMetrics", log, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
+	m.ctrl.Call(m, "ReportHostInstallationMetrics", ctx, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
 }
 
 // ReportHostInstallationMetrics indicates an expected call of ReportHostInstallationMetrics
-func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(log, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(ctx, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), log, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReportHostInstallationMetrics", reflect.TypeOf((*MockAPI)(nil).ReportHostInstallationMetrics), ctx, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
 }
 
 // DiskSyncDuration mocks base method
