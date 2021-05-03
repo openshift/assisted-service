@@ -155,11 +155,11 @@ func deployBMHCRD(ctx context.Context, client k8sclient.Client, name string, spe
 	Expect(err).To(BeNil())
 }
 
-func addAnnotationToClusterDeployment(ctx context.Context, client k8sclient.Client, key types.NamespacedName, annotationKey string, annotationValue string) {
+func addAnnotationToAgentClusterInstall(ctx context.Context, client k8sclient.Client, key types.NamespacedName, annotationKey string, annotationValue string) {
 	Eventually(func() error {
-		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, client, key)
-		clusterDeploymentCRD.SetAnnotations(map[string]string{annotationKey: annotationValue})
-		return kubeClient.Update(ctx, clusterDeploymentCRD)
+		agentClusterInstallCRD := getAgentClusterInstallCRD(ctx, client, key)
+		agentClusterInstallCRD.SetAnnotations(map[string]string{annotationKey: annotationValue})
+		return kubeClient.Update(ctx, agentClusterInstallCRD)
 	}, "30s", "10s").Should(BeNil())
 }
 
@@ -1051,7 +1051,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
 		installConfigOverrides := `{"controlPlane": {"hyperthreading": "Enabled"}}`
-		addAnnotationToClusterDeployment(ctx, kubeClient, clusterKubeName, controllers.InstallConfigOverrides, installConfigOverrides)
+		addAnnotationToAgentClusterInstall(ctx, kubeClient, installkey, controllers.InstallConfigOverrides, installConfigOverrides)
 
 		Eventually(func() string {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1081,7 +1081,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))
 
 		installConfigOverrides := `{"controlPlane": "malformed json": "Enabled"}}`
-		addAnnotationToClusterDeployment(ctx, kubeClient, clusterKubeName, controllers.InstallConfigOverrides, installConfigOverrides)
+		addAnnotationToAgentClusterInstall(ctx, kubeClient, installkey, controllers.InstallConfigOverrides, installConfigOverrides)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.InputErrorReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.InstallConfigOverrides).Should(Equal(""))

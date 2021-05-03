@@ -1159,7 +1159,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			aci := getTestClusterInstall()
+			aci = getTestClusterInstall()
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
@@ -1193,7 +1193,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 
-			aci := getTestClusterInstall()
+			aci = getTestClusterInstall()
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
@@ -1211,7 +1211,7 @@ var _ = Describe("cluster reconcile", func() {
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
-			aci := getTestClusterInstall()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
@@ -1239,7 +1239,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
-			aci := getTestClusterInstall()
+			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, errString)
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
@@ -1279,8 +1279,8 @@ var _ = Describe("cluster reconcile", func() {
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(updateReply, nil)
 			// Add annotation
-			cluster.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			aci.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -1359,8 +1359,8 @@ var _ = Describe("cluster reconcile", func() {
 					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
 				}).Return(updateReply, nil)
 			// Add annotation
-			cluster.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
-			Expect(c.Update(ctx, cluster)).Should(BeNil())
+			aci.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
