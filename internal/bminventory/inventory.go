@@ -1047,7 +1047,7 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 	}
 
 	var clusterISOPath string
-	err = b.isoEditorFactory.WithEditor(ctx, isoPath, cluster.OpenshiftVersion, log, func(editor isoeditor.Editor) error {
+	err = b.isoEditorFactory.WithEditor(ctx, isoPath, log, func(editor isoeditor.Editor) error {
 		log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
 		var createError error
 		clusterProxyInfo := isoeditor.ClusterProxyInfo{

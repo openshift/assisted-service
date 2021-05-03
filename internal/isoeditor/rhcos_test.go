@@ -75,7 +75,7 @@ var _ = Context("with test files", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 			err := editor.(*rhcosEditor).embedOffsetsInSystemArea(isoFile)
 			Expect(err).ToNot(HaveOccurred())
-			file, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			file, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Creating the template should remove the working directory
@@ -87,7 +87,7 @@ var _ = Context("with test files", func() {
 
 		It("missing iso file", func() {
 			editor := editorForFile("invalid", workDir, mockStaticNetworkConfig)
-			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -116,7 +116,7 @@ var _ = Context("with test files", func() {
 			err := isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = editor.(*rhcosEditor).fixTemplateConfigs(defaultTestServiceBaseURL)
+			err = editor.(*rhcosEditor).fixTemplateConfigs(defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 
 			newLine := "	linux /images/pxeboot/vmlinuz random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal 'coreos.live.rootfs_url=%s'"
@@ -138,7 +138,7 @@ var _ = Context("with test files", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 
 			// Create template
-			isoPath, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			isoPath, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Read offsets
@@ -270,7 +270,6 @@ var _ = Context("with test files", func() {
 func editorForFile(iso string, workDir string, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig) Editor {
 	return &rhcosEditor{
 		isoHandler:          isoutil.NewHandler(iso, workDir),
-		openshiftVersion:    defaultTestOpenShiftVersion,
 		log:                 getTestLog(),
 		staticNetworkConfig: staticNetworkConfig,
 	}
