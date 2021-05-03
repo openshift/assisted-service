@@ -46,6 +46,12 @@ rules:
 - apiGroups:
   - agent-install.openshift.io
   resources:
+  - agents/ai-deprovision
+  verbs:
+  - update
+- apiGroups:
+  - agent-install.openshift.io
+  resources:
   - agents/status
   verbs:
   - get

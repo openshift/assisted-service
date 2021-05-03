@@ -114,12 +114,7 @@ var _ = Describe("agent reconcile", func() {
 			Namespace: testNamespace,
 			Name:      "host",
 		}
-		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s failed to get clusterDeployment with name clusterDeployment in namespace test-namespace: clusterdeployments.hive.openshift.io \"clusterDeployment\" not found", InputErrorMsg)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Reason).To(Equal(InputErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-
+		Expect(c.Get(ctx, key, agent).Error()).To(Equal("agents.agent-install.openshift.io \"host\" not found"))
 	})
 
 	It("cluster not found in database", func() {
@@ -137,11 +132,7 @@ var _ = Describe("agent reconcile", func() {
 			Namespace: testNamespace,
 			Name:      "host",
 		}
-		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s record not found", InputErrorMsg)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Reason).To(Equal(InputErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(c.Get(ctx, key, agent).Error()).To(Equal("agents.agent-install.openshift.io \"host\" not found"))
 	})
 
 	It("error getting cluster from database", func() {
@@ -183,11 +174,7 @@ var _ = Describe("agent reconcile", func() {
 			Namespace: testNamespace,
 			Name:      "host",
 		}
-		Expect(c.Get(ctx, key, agent)).To(BeNil())
-		expectedState := fmt.Sprintf("%s host not found in cluster", InputErrorMsg)
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Message).To(Equal(expectedState))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Reason).To(Equal(InputErrorReason))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(c.Get(ctx, key, agent).Error()).To(Equal("agents.agent-install.openshift.io \"host\" not found"))
 	})
 
 	It("Agent update", func() {

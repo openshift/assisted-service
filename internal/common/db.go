@@ -156,6 +156,16 @@ func GetHostFromDB(db *gorm.DB, clusterId, hostId string) (*Host, error) {
 	return &host, nil
 }
 
+func GetHostByIdFromDB(db *gorm.DB, hostId string) (*Host, error) {
+	var host Host
+
+	err := db.First(&host, "id = ?", hostId).Error
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get host %s", hostId)
+	}
+	return &host, nil
+}
+
 func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, value interface{}, where ...interface{}) error {
 	return db.Where("cluster_id = ?", clusterID).Delete(value, where...).Error
 }

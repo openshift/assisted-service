@@ -36,14 +36,21 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
+)
+
+const (
+	AgentFinalizerName = "agent." + aiv1beta1.Group + "/ai-deprovision"
 )
 
 // AgentReconciler reconciles a Agent object
@@ -57,6 +64,7 @@ type AgentReconciler struct {
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/ai-deprovision,verbs=update
 
 func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log.Infof("Reconcile has been called for Agent name=%s namespace=%s", req.Name, req.Namespace)
@@ -72,6 +80,35 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		r.Log.Debugf("ClusterDeploymentName not set in Agent %s. Skipping Reconcile", agent.Name)
 		return ctrl.Result{Requeue: false}, nil
 	}
+
+	if agent.ObjectMeta.DeletionTimestamp.IsZero() { // agent not being deleted
+		// Register a finalizer if it is absent.
+		if !funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
+			controllerutil.AddFinalizer(agent, AgentFinalizerName)
+			if err = r.Update(ctx, agent); err != nil {
+				r.Log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+				return ctrl.Result{Requeue: true}, err
+			}
+		}
+	} else { // agent is being deleted
+		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
+			// deletion finalizer found, deregister the backend host and delete the agent
+			reply, cleanUpErr := r.deregisterHostIfNeeded(ctx, req.NamespacedName)
+			if cleanUpErr != nil {
+				r.Log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+				return reply, err
+			}
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(agent, AgentFinalizerName)
+			if err = r.Update(ctx, agent); err != nil {
+				r.Log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+				return ctrl.Result{Requeue: true}, err
+			}
+		}
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, nil
+	}
+
 	kubeKey := types.NamespacedName{
 		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
 		Name:      agent.Spec.ClusterDeploymentName.Name,
@@ -80,15 +117,23 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 
 	// Retrieve clusterDeployment
 	if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
+		if k8serrors.IsNotFound(err) {
+			// Delete the agent, using a finalizer with pre-delete to deregister the host.
+			return r.deleteAgent(ctx, req.NamespacedName)
+		}
 		errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 		// Update that we failed to retrieve the clusterDeployment
 		return r.updateStatus(ctx, agent, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
 	}
 
-	// Retrieve cluster for ClusterDeploymentName from the database
+	// Retrieve cluster by ClusterDeploymentName from the database
 	cluster, err := r.Installer.GetClusterByKubeKey(kubeKey)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// Delete the agent, using a finalizer with pre-delete to deregister the host.
+			return r.deleteAgent(ctx, req.NamespacedName)
+		}
 		// Update that we failed to retrieve the cluster from the database
 		return r.updateStatus(ctx, agent, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
 	}
@@ -96,7 +141,9 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	//Retrieve host from cluster
 	host := getHostFromCluster(cluster, agent.Name)
 	if host == nil {
-		return r.updateStatus(ctx, agent, nil, errors.New("host not found in cluster"), false)
+		// Host is not a part of the cluster, which may happen with newly created day2 clusters.
+		// Delete the agent, using a finalizer with pre-delete to deregister the host.
+		return r.deleteAgent(ctx, req.NamespacedName)
 	}
 
 	// check for updates from user, compare spec and update if needed
@@ -111,6 +158,63 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	return r.updateStatus(ctx, agent, host, nil, false)
+}
+
+func (r *AgentReconciler) deleteAgent(ctx context.Context, agent types.NamespacedName) (ctrl.Result, error) {
+	agentToDelete := &aiv1beta1.Agent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      agent.Name,
+			Namespace: agent.Namespace,
+		},
+	}
+	if delErr := r.Client.Delete(ctx, agentToDelete); delErr != nil {
+		r.Log.WithError(delErr).Errorf("Failed to delete resource %s %s", agent.Name, agent.Namespace)
+		return ctrl.Result{Requeue: true}, delErr
+	}
+	return ctrl.Result{}, nil
+}
+
+func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
+
+	buildReply := func(err error) (ctrl.Result, error) {
+		reply := ctrl.Result{}
+		if err == nil {
+			return reply, nil
+		}
+		reply.RequeueAfter = defaultRequeueAfterOnError
+		err = errors.Wrapf(err, "failed to deregister host: %s", key.Name)
+		r.Log.Error(err)
+		return reply, err
+	}
+
+	h, err := r.Installer.GetHostById(key.Name) // TODO: Change implementation to GetHostByKubeKey after MGMT-6006
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// return if from any reason host is already deleted from db (or never existed)
+			return buildReply(nil)
+		} else {
+			return buildReply(err)
+		}
+	}
+
+	err = r.Installer.DeregisterHostInternal(
+		ctx, installer.DeregisterHostParams{
+			ClusterID: h.ClusterID,
+			HostID:    *h.ID,
+		})
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// return if from any reason host is already deleted from db
+			return buildReply(nil)
+		} else {
+			return buildReply(err)
+		}
+	}
+
+	r.Log.Infof("Host resource deleted, Unregistered host: %s", h.ID.String())
+
+	return buildReply(nil)
 }
 
 // updateStatus is updating all the Agent Conditions.
