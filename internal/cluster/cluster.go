@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/pkg/ocm"
@@ -488,9 +489,11 @@ func (m *Manager) ClusterMonitoring() {
 		return
 	}
 	m.log.Debugf("Running ClusterMonitoring")
+	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
 	var (
 		offset              int
 		limit               = m.MonitorBatchSize
+		monitored           int64
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster
 		requestID           = requestid.NewID()
@@ -528,7 +531,7 @@ func (m *Manager) ClusterMonitoring() {
 				return
 			}
 			if !m.SkipMonitoring(cluster) {
-
+				monitored += 1
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
 				}
@@ -550,6 +553,7 @@ func (m *Manager) ClusterMonitoring() {
 		}
 		offset += limit
 	}
+	m.metricAPI.MonitoredClusterCount(monitored)
 }
 
 func CanDownloadFiles(c *common.Cluster) (err error) {
