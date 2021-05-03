@@ -61,6 +61,8 @@ const (
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
+
+	configmapAnnotation = "unsupported.agent-install.openshift.io/assisted-service-configmap"
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -519,6 +521,24 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.Age
 }
 
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
+
+	// User is responsible for knowing to restart assisted-service
+	var envFrom []corev1.EnvFromSource
+	annotations := instance.ObjectMeta.GetAnnotations()
+	configmapName, ok := annotations[configmapAnnotation]
+	if ok {
+		r.Log.Info("ConfigMap %v being used to configure assisted-service deployment", configmapName)
+		envFrom = []corev1.EnvFromSource{
+			{
+				ConfigMapRef: &corev1.ConfigMapEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configmapName,
+					},
+				},
+			},
+		}
+	}
+
 	serviceEnv := []corev1.EnvVar{
 		{Name: "SERVICE_BASE_URL", Value: getEnvVar("SERVICE_BASE_URL", serviceURL.String())},
 
@@ -589,7 +609,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 				Protocol:      corev1.ProtocolTCP,
 			},
 		},
-		Env: serviceEnv,
+		EnvFrom: envFrom,
+		Env:     serviceEnv,
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "bucket-filesystem", MountPath: "/data"},
 			{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},
