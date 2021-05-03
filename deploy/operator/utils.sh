@@ -1,6 +1,10 @@
+set -o nounset
+set -o pipefail
+set -o errexit
+
 function wait_for_crd() {
   crd="$1"
-  namespace="$2"
+  namespace="${2:-}"
   echo "Waiting for CRD (${crd}) on namespace (${namespace}) to be defined..."
   for i in {1..40}; do
     oc get "crd/${crd}" -n "${namespace}" && break || sleep 10
@@ -12,7 +16,7 @@ function wait_for_crd() {
 
 function wait_for_operator() {
   subscription="$1"
-  namespace="$2"
+  namespace="${2:-}"
   echo "Waiting for operator ${subscription} to get installed on namespace ${namespace}..."
 
   for _ in $(seq 1 60); do
@@ -43,4 +47,9 @@ function wait_for_pod() {
 
   echo "Waiting for pod (${pod}) on namespace (${namespace}) with labels (${selector}) to become ready..."
   oc wait -n "$namespace" --for=condition=Ready pod --selector "$selector" --timeout=10m
+}
+
+function print_help() {
+  ALL_FUNCS=$(compgen -A "function" | grep -Ev "(help|wait_for)" | paste -s -d'|')
+  echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (${ALL_FUNCS})"
 }

@@ -1,10 +1,11 @@
-source utils.sh
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source ${__dir}/utils.sh
 
-set -xeo pipefail
+STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
 
-if [ -z "${DISKS}" ]; then
+if [ -z "${DISKS:-}" ]; then
     echo "You must provide DISKS env-var. For example:"
-    echo "    bash DISKS=\$(echo sd{b..f}) ./create_libvirt_disks.sh"
+    print_help
     exit 1
 fi
 
@@ -13,7 +14,7 @@ function install_lso() {
 
     oc annotate project openshift-local-storage openshift.io/node-selector='' --overwrite=true
 
-    cat <<EOCR | oc apply -f -
+    tee << EOCR >(oc apply -f -)
 apiVersion: operators.coreos.com/v1alpha2
 kind: OperatorGroup
 metadata:
@@ -36,12 +37,13 @@ spec:
 EOCR
 
     wait_for_operator "local-storage-operator" "openshift-local-storage"
+    echo "Done installing local-storage-operator!"
 }
 
 function create_local_volume() {
     wait_for_crd "localvolumes.local.storage.openshift.io" "openshift-local-storage"
 
-    cat <<EOCR | oc apply -f -
+    tee << EOCR >(oc apply -f -)
 apiVersion: local.storage.openshift.io/v1
 kind: LocalVolume
 metadata:
@@ -53,11 +55,13 @@ spec:
   storageClassDevices:
     - devicePaths:
 $(printf '        - /dev/%s\n' ${DISKS})
-      storageClassName: assisted-service
+      storageClassName: ${STORAGE_CLASS_NAME}
       volumeMode: Filesystem
 EOCR
+
+  echo "Done creating local volume for assisted-service!"
 }
 
-install_lso
-create_local_volume
-echo "Done configuring local-storage-operator!"
+declare -F $@ || (print_help && exit 1)
+
+"$@"

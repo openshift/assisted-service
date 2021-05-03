@@ -1,4 +1,5 @@
-source utils.sh
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source ${__dir}/utils.sh
 
 set -xeo pipefail
 
