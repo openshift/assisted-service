@@ -55,9 +55,9 @@ type InfraEnvSpec struct {
 	// +optional
 	AdditionalNTPSources []string `json:"additionalNTPSources,omitempty"`
 
-	// SSHAuthorizedKey is a SSH public keys that will be added to all agents for use in debugging.
+	// SSHAuthorizedKeys are the SSH public keys that will be added to all agents for use in debugging.
 	// +optional
-	SSHAuthorizedKey string `json:"sshAuthorizedKey,omitempty"`
+	SSHAuthorizedKeys string `json:"sshAuthorizedKeys,omitempty"`
 
 	// PullSecretRef is the reference to the secret to use when pulling images.
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef"`

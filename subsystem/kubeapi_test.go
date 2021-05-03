@@ -376,8 +376,8 @@ func getDefaultInfraEnvSpec(secretRef *corev1.LocalObjectReference,
 			Name:      clusterDeployment.ClusterName,
 			Namespace: Options.Namespace,
 		},
-		PullSecretRef:    secretRef,
-		SSHAuthorizedKey: sshPublicKey,
+		PullSecretRef:     secretRef,
+		SSHAuthorizedKeys: sshPublicKey,
 	}
 }
 

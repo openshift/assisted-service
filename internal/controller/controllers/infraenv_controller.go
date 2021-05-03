@@ -256,7 +256,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 		ClusterID: *cluster.ID,
 		ImageCreateParams: &models.ImageCreateParams{
 			ImageType:    r.Config.ImageType,
-			SSHPublicKey: infraEnv.Spec.SSHAuthorizedKey,
+			SSHPublicKey: infraEnv.Spec.SSHAuthorizedKeys,
 		},
 	}
 

@@ -778,8 +778,8 @@ spec:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
                     type: string
                 type: object
-              sshAuthorizedKey:
-                description: SSHAuthorizedKey is a SSH public keys that will be added to all agents for use in debugging.
+              sshAuthorizedKeys:
+                description: SSHAuthorizedKeys are the SSH public keys that will be added to all agents for use in debugging.
                 type: string
             required:
             - agentLabelSelector
