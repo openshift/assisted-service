@@ -207,18 +207,18 @@ func (mr *MockAPIMockRecorder) IsRequireUserActionReset(arg0 interface{}) *gomoc
 }
 
 // IsValidMasterCandidate mocks base method
-func (m *MockAPI) IsValidMasterCandidate(arg0 *models.Host, arg1 *gorm.DB, arg2 logrus.FieldLogger) (bool, error) {
+func (m *MockAPI) IsValidMasterCandidate(arg0 *models.Host, arg1 *common.Cluster, arg2 *gorm.DB, arg3 logrus.FieldLogger) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsValidMasterCandidate", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "IsValidMasterCandidate", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // IsValidMasterCandidate indicates an expected call of IsValidMasterCandidate
-func (mr *MockAPIMockRecorder) IsValidMasterCandidate(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) IsValidMasterCandidate(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidMasterCandidate", reflect.TypeOf((*MockAPI)(nil).IsValidMasterCandidate), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsValidMasterCandidate", reflect.TypeOf((*MockAPI)(nil).IsValidMasterCandidate), arg0, arg1, arg2, arg3)
 }
 
 // PermanentHostsDeletion mocks base method

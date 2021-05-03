@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	"github.com/thoas/go-funk"
@@ -28,6 +29,7 @@ func (m *Manager) HostMonitoring() {
 		requestID = requestid.NewID()
 		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
+		err       error
 	)
 
 	monitorStates := []string{
@@ -47,23 +49,26 @@ func (m *Manager) HostMonitoring() {
 		models.HostStatusError,     // for limited time, until log collection finished or timed-out
 	}
 	for {
-		hosts := make([]*models.Host, 0, limit)
-		if err := m.db.Where("status IN (?)", monitorStates).Offset(offset).Limit(limit).
-			Order("cluster_id, id").Find(&hosts).Error; err != nil {
-			log.WithError(err).Errorf("failed to get hosts")
+		var clusters []*common.Cluster
+		if err = m.db.Preload("Hosts", "status in (?)", monitorStates).Preload(common.MonitoredOperatorsTable).
+			Offset(offset).Limit(limit).Order("id").Find(&clusters, "exists (select 1 from hosts where clusters.id = hosts.cluster_id)").Error; err != nil {
+			log.WithError(err).Errorf("failed to get clusters for host monitoring")
 			return
 		}
-		if len(hosts) == 0 {
+		if len(clusters) == 0 {
 			break
 		}
-		for _, host := range hosts {
-			if !m.leaderElector.IsLeader() {
-				m.log.Debugf("Not a leader, exiting HostMonitoring")
-				return
-			}
-			if !m.SkipMonitoring(host) {
-				if err := m.RefreshStatus(ctx, host, m.db); err != nil {
-					log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+		for _, c := range clusters {
+			for _, host := range c.Hosts {
+				if !m.leaderElector.IsLeader() {
+					m.log.Debugf("Not a leader, exiting HostMonitoring")
+					return
+				}
+				if !m.SkipMonitoring(host) {
+					err = m.refreshStatusInternal(ctx, host, c, m.db)
+					if err != nil {
+						log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
+					}
 				}
 			}
 		}
