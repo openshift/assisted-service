@@ -541,7 +541,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 
 	checkMasterCandidates := func(times int) candidateChecker {
 		return func() {
-			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(times)
+			mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).Times(times)
 		}
 	}
 
@@ -1191,7 +1191,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi)
 
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -3148,6 +3148,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				}
 				Expect(cluster.ValidationsInfo).To(BeEmpty())
 				clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
+				Expect(clusterAfterRefresh).ToNot(BeNil())
 				Expect(clusterAfterRefresh.ValidationsInfo).To(BeEmpty())
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
@@ -4058,7 +4059,7 @@ var _ = Describe("Single node", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	mockIsValidMasterCandidate := func() {
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()

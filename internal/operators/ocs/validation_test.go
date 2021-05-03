@@ -96,7 +96,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 	}
 
 	mockIsValidMasterCandidate := func() {
-		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
+		mockHostAPI.EXPECT().IsValidMasterCandidate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 	}
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
