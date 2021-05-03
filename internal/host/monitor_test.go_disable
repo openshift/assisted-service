@@ -201,5 +201,4 @@ var _ = Describe("TestHostMonitoring", func() {
 			registerAndValidateDisconnected(765)
 		})
 	})
-
 })

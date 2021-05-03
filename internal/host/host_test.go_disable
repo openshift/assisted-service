@@ -2075,7 +2075,9 @@ var _ = Describe("IsValidMasterCandidate", func() {
 				h.Inventory = t.inventory
 				h.Role = t.srcRole
 				Expect(db.Create(&h).Error).ShouldNot(HaveOccurred())
-				isValidReply, err := hapi.IsValidMasterCandidate(&h, db, common.GetTestLog())
+				var cluster common.Cluster
+				Expect(db.Preload("Hosts").Take(&cluster, "id = ?", clusterId.String()).Error).ToNot(HaveOccurred())
+				isValidReply, err := hapi.IsValidMasterCandidate(&h, &cluster, db, common.GetTestLog())
 				Expect(isValidReply).Should(Equal(t.isValid))
 				Expect(err).ShouldNot(HaveOccurred())
 			})
