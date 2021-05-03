@@ -137,6 +137,8 @@ var _ = Describe("TestClusterMonitoring", func() {
 		expectedState = ""
 		shouldHaveUpdated = false
 
+		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
+		mockMetric.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDLsoRequirementsSatisfied)},
@@ -332,7 +334,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 			It("finalizing -> installed (kubeconfig exist, operator status available)", func() {
 				shouldHaveUpdated = true
 				expectedState = models.ClusterStatusInstalled
-
+				mockMetric.EXPECT().MonitoredClusterCount(int64(0)).AnyTimes()
 				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), expectedState, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 				Expect(db.Model(c.MonitoredOperators[0]).Updates(map[string]interface{}{"status": models.OperatorStatusAvailable}).Error).To(Not(HaveOccurred()))
@@ -342,6 +344,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 		Context("from installed state", func() {
 			BeforeEach(func() {
 				c = createCluster(&id, models.ClusterStatusInstalled, statusInfoInstalled)
+				mockMetric.EXPECT().MonitoredClusterCount(gomock.Any()).AnyTimes()
 				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 			})
 
@@ -572,10 +575,12 @@ var _ = Describe("TestClusterMonitoring", func() {
 		}
 
 		It("10 clusters monitor", func() {
+			mockMetric.EXPECT().MonitoredClusterCount(int64(10)).Times(1)
 			monitorKnownToInsufficient(10)
 		})
 
 		It("352 clusters monitor", func() {
+			mockMetric.EXPECT().MonitoredClusterCount(int64(352)).Times(1)
 			monitorKnownToInsufficient(352)
 		})
 	})
@@ -651,6 +656,8 @@ var _ = Describe("lease timeout event", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, nil, nil)
 
+		mockMetric.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
+		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
@@ -760,6 +767,8 @@ var _ = Describe("Auto assign machine CIDR", func() {
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, dummy, mockOperators, nil, nil, nil)
 
+		mockMetric.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
+		mockMetric.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},
@@ -1844,14 +1853,15 @@ var _ = Describe("SetVipsData", func() {
 
 var _ = Describe("Majority groups", func() {
 	var (
-		dbIndex    int
-		clusterApi *Manager
-		db         *gorm.DB
-		id         strfmt.UUID
-		cluster    common.Cluster
-		ctrl       *gomock.Controller
-		mockEvents *events.MockHandler
-		dbName     string
+		dbIndex       int
+		clusterApi    *Manager
+		db            *gorm.DB
+		id            strfmt.UUID
+		cluster       common.Cluster
+		ctrl          *gomock.Controller
+		mockEvents    *events.MockHandler
+		mockMetricApi *metrics.MockAPI
+		dbName        string
 	)
 
 	AfterEach(func() {
@@ -1864,9 +1874,10 @@ var _ = Describe("Majority groups", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEvents = events.NewMockHandler(ctrl)
 		mockOperators := operators.NewMockAPI(ctrl)
+		mockMetricApi = metrics.NewMockAPI(ctrl)
 		dummy := &leader.DummyElector{}
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, nil, nil, nil, dummy, mockOperators, nil, nil, nil)
+			mockEvents, nil, mockMetricApi, nil, dummy, mockOperators, nil, nil, nil)
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
 			ID:                       &id,
@@ -1880,6 +1891,8 @@ var _ = Describe("Majority groups", func() {
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
+		mockMetricApi.EXPECT().MonitoredClusterCount(int64(1)).AnyTimes()
+		mockMetricApi.EXPECT().Duration("ClusterMonitoring", gomock.Any()).AnyTimes()
 		mockOperators.EXPECT().ValidateCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]api.ValidationResult{
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDCnvRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.ClusterValidationIDOcsRequirementsSatisfied)},

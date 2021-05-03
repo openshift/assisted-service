@@ -203,3 +203,27 @@ func (mr *MockAPIMockRecorder) FileSystemUsage(usageInPercentage interface{}) *g
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FileSystemUsage", reflect.TypeOf((*MockAPI)(nil).FileSystemUsage), usageInPercentage)
 }
+
+// MonitoredHostsCount mocks base method
+func (m *MockAPI) MonitoredHostsCount(monitoredHosts int64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "MonitoredHostsCount", monitoredHosts)
+}
+
+// MonitoredHostsCount indicates an expected call of MonitoredHostsCount
+func (mr *MockAPIMockRecorder) MonitoredHostsCount(monitoredHosts interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitoredHostsCount", reflect.TypeOf((*MockAPI)(nil).MonitoredHostsCount), monitoredHosts)
+}
+
+// MonitoredClusterCount mocks base method
+func (m *MockAPI) MonitoredClusterCount(monitoredClusters int64) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "MonitoredClusterCount", monitoredClusters)
+}
+
+// MonitoredClusterCount indicates an expected call of MonitoredClusterCount
+func (mr *MockAPIMockRecorder) MonitoredClusterCount(monitoredClusters interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MonitoredClusterCount", reflect.TypeOf((*MockAPI)(nil).MonitoredClusterCount), monitoredClusters)
+}
