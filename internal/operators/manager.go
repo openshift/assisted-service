@@ -10,6 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
@@ -195,6 +196,7 @@ func (mgr *Manager) ValidateHost(ctx context.Context, cluster *common.Cluster, h
 
 // ValidateCluster validates cluster requirements
 func (mgr *Manager) ValidateCluster(ctx context.Context, cluster *common.Cluster) ([]api.ValidationResult, error) {
+	defer commonutils.MeasureOperation(fmt.Sprintf("cluster operators ValidateCluster %s", cluster.ID), mgr.log, nil)()
 	results := make([]api.ValidationResult, 0, len(mgr.olmOperators))
 
 	pendingOperators := make(map[string]struct{})

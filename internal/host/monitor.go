@@ -2,6 +2,7 @@ package host
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
@@ -22,15 +23,17 @@ func (m *Manager) HostMonitoring() {
 		m.log.Debugf("Not a leader, exiting HostMonitoring")
 		return
 	}
-	defer commonutils.MeasureOperation("host HostMonitoring", m.log, m.metricApi)()
 	m.log.Debugf("Running HostMonitoring")
 	var (
 		offset    int
+		skipped   = 0
 		limit     = m.Config.MonitorBatchSize
 		requestID = requestid.NewID()
 		ctx       = requestid.ToContext(context.Background(), requestID)
 		log       = requestid.RequestIDLogger(m.log, requestID)
 	)
+
+	defer commonutils.MeasureOperation(fmt.Sprintf("host HostMonitoring num of hosts %d, skipped %d", offset, skipped), m.log, m.metricApi)()
 
 	monitorStates := []string{
 		models.HostStatusDiscovering,
@@ -67,6 +70,8 @@ func (m *Manager) HostMonitoring() {
 				if err := m.RefreshStatus(ctx, host, m.db); err != nil {
 					log.WithError(err).Errorf("failed to refresh host %s state", *host.ID)
 				}
+			} else {
+				skipped += 1
 			}
 		}
 		offset += limit

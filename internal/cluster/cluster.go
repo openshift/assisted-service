@@ -266,13 +266,13 @@ func (m *Manager) reportValidationStatusChanged(ctx context.Context, c *common.C
 		for _, v := range vRes {
 			if currentStatus, ok := m.getValidationStatus(currentValidationRes, vCategory, v.ID); ok {
 				if v.Status == ValidationFailure && currentStatus == ValidationSuccess {
-					m.metricAPI.ClusterValidationChanged(c.OpenshiftVersion, c.EmailDomain, models.ClusterValidationID(v.ID))
+					go m.metricAPI.ClusterValidationChanged(c.OpenshiftVersion, c.EmailDomain, models.ClusterValidationID(v.ID))
 					eventMsg := fmt.Sprintf("Cluster validation '%s' that used to succeed is now failing", v.ID)
-					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, eventMsg, time.Now())
+					go m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, eventMsg, time.Now())
 				}
 				if v.Status == ValidationSuccess && currentStatus == ValidationFailure {
 					eventMsg := fmt.Sprintf("Cluster validation '%s' is now fixed", v.ID)
-					m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, eventMsg, time.Now())
+					go m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityInfo, eventMsg, time.Now())
 				}
 			}
 		}
@@ -328,7 +328,7 @@ func (m *Manager) RefreshStatus(ctx context.Context, c *common.Cluster, db *gorm
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, db *gorm.DB) (*common.Cluster, error) {
-	defer commonutils.MeasureOperation("cluster refreshStatusInternal", m.log, m.metricAPI)()
+	defer commonutils.MeasureOperation(fmt.Sprintf("cluster refreshStatusInternal id %s number of hosts %d", c.ID, len(c.Hosts)), m.log, m.metricAPI)()
 	//new transition code
 	if db == nil {
 		db = m.db
@@ -342,7 +342,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 	vc = newClusterValidationContext(c, db)
 
 	func() {
-		defer commonutils.MeasureOperation("preprocess", m.log, m.metricAPI)()
+		defer commonutils.MeasureOperation(fmt.Sprintf("preprocess %s", c.ID), m.log, m.metricAPI)()
 		conditions, newValidationRes, err = m.rp.preprocess(ctx, vc)
 	}()
 
@@ -378,7 +378,7 @@ func (m *Manager) refreshStatusInternal(ctx context.Context, c *common.Cluster, 
 	}
 
 	err = func() error {
-		defer commonutils.MeasureOperation("newStateCluster", m.log, m.metricAPI)()
+		defer commonutils.MeasureOperation(fmt.Sprintf("newStateCluster %s", c.ID), m.log, m.metricAPI)()
 		return m.sm.Run(TransitionTypeRefreshStatus, newStateCluster(vc.cluster), args)
 	}()
 	if err != nil {
@@ -493,7 +493,7 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	// stopped to avoid excessive computation
 	skipMonitoringStates := []string{string(models.LogsStateCompleted), string(models.LogsStateTimeout)}
 	result := ((swag.StringValue(c.Status) == models.ClusterStatusError || swag.StringValue(c.Status) == models.ClusterStatusCancelled) &&
-		funk.Contains(skipMonitoringStates, c.LogsInfo))
+		funk.Contains(skipMonitoringStates, c.LogsInfo)) || len(c.Hosts) == 0
 	return result
 }
 
@@ -502,11 +502,12 @@ func (m *Manager) ClusterMonitoring() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 		return
 	}
-	defer commonutils.MeasureOperation("ClusterMonitoring", m.log, m.metricAPI)()
+
 	m.log.Debugf("Running ClusterMonitoring")
 	var (
 		offset              int
 		limit               = m.MonitorBatchSize
+		skipped             = 0
 		clusters            []*common.Cluster
 		clusterAfterRefresh *common.Cluster
 		requestID           = requestid.NewID()
@@ -514,6 +515,8 @@ func (m *Manager) ClusterMonitoring() {
 		log                 = requestid.RequestIDLogger(m.log, requestID)
 		err                 error
 	)
+
+	defer commonutils.MeasureOperation(fmt.Sprintf("ClusterMonitoring with num of clusters %d, skipped %d", offset, skipped), m.log, m.metricAPI)()
 
 	_ = m.autoAssignMachineNetworkCidrs()
 	curMonitorInvokedAt := time.Now()
@@ -543,6 +546,7 @@ func (m *Manager) ClusterMonitoring() {
 				m.log.Debugf("Not a leader, exiting ClusterMonitoring")
 				return
 			}
+
 			if !m.SkipMonitoring(cluster) {
 
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
@@ -562,6 +566,8 @@ func (m *Manager) ClusterMonitoring() {
 				if m.shouldTriggerLeaseTimeoutEvent(cluster, curMonitorInvokedAt) {
 					m.triggerLeaseTimeoutEvent(ctx, cluster)
 				}
+			} else {
+				skipped += 1
 			}
 		}
 		offset += limit
