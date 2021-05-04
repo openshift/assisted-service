@@ -97,18 +97,21 @@ def verify_ocp_versions(ocp_versions: dict):
         if "release_image" not in metadata:
             # in hive cluster deployment scenario, the release image is specified within an imageset
             continue
-        verify_image_version(key, metadata["release_image"])
+        verify_image_version(key, metadata["release_image"], metadata["release_version"])
 
 
-def verify_image_version(ocp_version: str, release_image: str):
+def verify_image_version(ocp_version: str, release_image: str, release_version: str):
     if release_image in SKIP_IMAGES:
         print(f"Skipping image version {release_image}", file=sys.stderr)
         return
 
-    major, minor, *_other_version_components = get_oc_version(release_image).split(".")
+    oc_version = get_oc_version(release_image)
+    assert oc_version == release_version, f"{release_image} full version is {oc_version} not {release_version}"
+
+    major, minor, *_other_version_components = oc_version.split(".")
     ocp_major, ocp_minor, *_ = ocp_version.split(".")
 
-    assert (ocp_major, ocp_minor) == (major, minor), f"{release_image} image version is {major}.{minor} not {ocp_major}.{ocp_minor}"
+    assert (ocp_major, ocp_minor) == (major, minor), f"{release_image} major.minor key should be {major}.{minor} not {ocp_major}.{ocp_minor}"
 
 
 def get_oc_version(release_image: str) -> str:
