@@ -48,8 +48,3 @@ function wait_for_pod() {
   echo "Waiting for pod (${pod}) on namespace (${namespace}) with labels (${selector}) to become ready..."
   oc wait -n "$namespace" --for=condition=Ready pod --selector "$selector" --timeout=10m
 }
-
-function print_help() {
-  ALL_FUNCS=$(compgen -A "function" | grep -Ev "(help|wait_for)" | paste -s -d'|')
-  echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (${ALL_FUNCS})"
-}

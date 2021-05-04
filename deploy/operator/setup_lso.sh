@@ -1,10 +1,27 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
+source ${__dir}/mirror_utils.sh
 
 STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
+DISCONNECTED="${DISCONNECTED:-false}"
+
+function print_help() {
+  ALL_FUNCS="install_lso|create_local_volume|print_help"
+  if [ "${DISCONNECTED}" == "true" ]; then
+    echo "Usage: DISKS=\$(echo sd{b..f}) DISCONNECTED=true AUTHFILE=... bash ${0} (${ALL_FUNCS})"
+  else
+    echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (${ALL_FUNCS})"
+  fi
+}
 
 if [ -z "${DISKS:-}" ]; then
-    echo "You must provide DISKS env-var. For example:"
+    echo "You must provide DISKS env-var."
+    print_help
+    exit 1
+fi
+
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE}" ]; then
+    echo "On disconnected mode, you must provide AUTHFILE env-var."
     print_help
     exit 1
 fi
@@ -13,6 +30,17 @@ function install_lso() {
     oc adm new-project openshift-local-storage || true
 
     oc annotate project openshift-local-storage openshift.io/node-selector='' --overwrite=true
+
+    catalog_source="redhat-operators"
+    if [ "${DISCONNECTED}" = true ]; then
+	if ! which opm; then
+	    install_opm
+	fi
+
+        disable_default_indexes
+        mirror_package "local-storage-operator" "redhat-operator-index" "4.8" "${LOCAL_REGISTRY}" "${AUTHFILE}"
+        catalog_source="mirror-catalog-for-local-storage-operator"
+    fi
 
     tee << EOCR >(oc apply -f -)
 apiVersion: operators.coreos.com/v1alpha2
@@ -32,7 +60,7 @@ metadata:
 spec:
   installPlanApproval: Automatic
   name: local-storage-operator
-  source: redhat-operators
+  source: ${catalog_source}
   sourceNamespace: openshift-marketplace
 EOCR
 
