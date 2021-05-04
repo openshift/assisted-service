@@ -76,45 +76,45 @@ func (o *operator) ValidateCluster(_ context.Context, _ *common.Cluster) (api.Va
 func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
 	if host.Inventory == "" {
 		o.log.Info("Empty Inventory of host with hostID ", host.ID)
-		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetClusterValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
+		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
 	}
 	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 	if err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID()}, err
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID()}, err
 	}
 
 	if !virt.IsVirtSupported(inventory) {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"CPU does not have virtualization support "}}, nil
 	}
 
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if host.Role == models.HostRoleAutoAssign {
 		status := "All host roles must be assigned to enable CNV."
 		o.log.Info("Validate Requirements status ", status)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{status}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 	}
 	requirements, err := o.GetHostRequirements(ctx, cluster, host)
 	if err != nil {
 		message := fmt.Sprintf("Failed to get host requirements for host with id %s", host.ID)
 		o.log.Error(message)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{message, err.Error()}}, err
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message, err.Error()}}, err
 	}
 
 	cpu := requirements.CPUCores
 	if inventory.CPU.Count < cpu {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy CNV. Required CPU count is %d but found %d ", cpu, inventory.CPU.Count)}}, nil
 	}
 
 	mem := requirements.RAMMib
 	memBytes := conversions.MibToBytes(mem)
 	if inventory.Memory.UsableBytes < memBytes {
 		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetClusterValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy CNV. Required memory is %d MiB but found %d MiB", mem, usableMemory)}}, nil
 	}
 
 	// TODO: validate available devices on worker node like gpu and sr-iov and check whether there is enough memory to support them
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetClusterValidationID()}, nil
+	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID()}, nil
 }
 
 // GenerateManifests generates manifests for the operator
