@@ -390,22 +390,6 @@ func If(id stringer) stateswitch.Condition {
 	return ret
 }
 
-func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return false, errors.New("IsPreparingTimedOut incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsRefreshHost)
-	if !ok {
-		return false, errors.New("IsPreparingTimedOut invalid argument")
-	}
-	var cluster common.Cluster
-	if err := params.db.Select("status").Take(&cluster, "id = ?", sHost.host.ClusterID.String()).Error; err != nil {
-		return false, err
-	}
-	return swag.StringValue(cluster.Status) != models.ClusterStatusPreparingForInstallation, nil
-}
-
 func (th *transitionHandler) HasClusterError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) (bool, error) {
 	sHost, ok := sw.(*stateHost)
 	if !ok {
@@ -493,35 +477,6 @@ func (th *transitionHandler) HasInstallationInProgressTimedOut(sw stateswitch.St
 		maxDuration = InstallationProgressTimeout["DEFAULT"]
 	}
 	return time.Since(time.Time(sHost.host.Progress.StageUpdatedAt)) > maxDuration, nil
-}
-
-func (th *transitionHandler) ShouldIgnoreInstallingInProgressTimeout(
-	sw stateswitch.StateSwitch,
-	args stateswitch.TransitionArgs) (bool, error) {
-	sHost, ok := sw.(*stateHost)
-	if !ok {
-		return false, errors.New("ShouldRefreshTimeout incompatible type of StateSwitch")
-	}
-	params, ok := args.(*TransitionArgsRefreshHost)
-	if !ok {
-		return false, errors.New("ShouldRefreshTimeout invalid argument")
-	}
-	if funk.Contains(WrongBootOrderIgnoreTimeoutStages, sHost.host.Progress.CurrentStage) {
-		if isClusterPendingUser, err := IsClusterInstallationPendingUserAction(sHost.host.ClusterID, params.db); err != nil {
-			return true, err
-		} else if isClusterPendingUser {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-func IsClusterInstallationPendingUserAction(clusterID strfmt.UUID, db *gorm.DB) (bool, error) {
-	var cluster common.Cluster
-	if err := db.Select("status").Take(&cluster, "id = ?", clusterID.String()).Error; err != nil {
-		return false, err
-	}
-	return swag.StringValue(cluster.Status) == models.ClusterStatusInstallingPendingUserAction, nil
 }
 
 // Return a post transition function with a constant reason

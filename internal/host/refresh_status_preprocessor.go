@@ -236,6 +236,18 @@ func newConditions(v *validator) []condition {
 			id: ValidRoleForInstallation,
 			fn: v.isValidRoleForInstallation,
 		},
+		{
+			id: StageInWrongBootStages,
+			fn: v.isStageInWrongBootStages,
+		},
+		{
+			id: ClusterPendingUserAction,
+			fn: v.isClusterPendingUserAction,
+		},
+		{
+			id: ClusterInError,
+			fn: v.isClusterInError,
+		},
 	}
 	return ret
 }
