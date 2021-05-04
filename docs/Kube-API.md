@@ -41,6 +41,9 @@ Upon InfraEnv creation, the InfraEnv controller will search by label+value for m
 
 The InfraEnv controller will watch for NMState config creation/changes and search for corresponding InfraEnv resources to reconcile since we need to regenerate the image for those.
 
+:warning: **It is advised to create all NMStateConfigs resources before their corresponding InfraEnv.
+The reason is that InfraEnv doesn't have a way to know how many NMStateConfigs to expect; therefore, it re-creates its ISO when new NMStateConfigs are found.
+The new ISO automatically propagates to any agents that haven't yet started installing.**
 
 ### [Agent](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/agent_types.go)
 The Agent CRD represents a Host that boot from an ISO and registered to a cluster.
