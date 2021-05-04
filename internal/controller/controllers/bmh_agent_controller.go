@@ -17,24 +17,29 @@ limitations under the License.
 package controllers
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
+	"text/template"
 	"time"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/ignition"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -67,11 +72,25 @@ const (
 	BMH_AGENT_IGNITION_CONFIG_OVERRIDES = "bmac.agent-install.openshift.io/ignition-config-overrides"
 	MACHINE_ROLE                        = "machine.openshift.io/cluster-api-machine-role"
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
+	MCS_CERT_NAME                       = "ca.crt"
 )
 
 var (
 	InfraEnvImageCooldownPeriod = 60 * time.Second
 )
+
+const certificateAuthoritiesIgnitionOverride = `{
+	"ignition": {
+	  "version": "3.1.0",
+	  "security": {
+		"tls": {
+		  "certificateAuthorities": [{
+			"source": "{{.SOURCE}}"
+		  }]
+		}
+	  }
+	}
+  }`
 
 // reconcileResult is an interface that encapsulates the result of a Reconcile
 // call, as returned by the action corresponding to the current state.
@@ -165,7 +184,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 	bmh := &bmh_v1alpha1.BareMetalHost{}
 
 	if err := r.Get(ctx, req.NamespacedName, bmh); err != nil {
-		if !errors.IsNotFound(err) {
+		if !k8serrors.IsNotFound(err) {
 			return reconcileError{err}.Result()
 		}
 		return reconcileComplete{}.Result()
@@ -208,6 +227,19 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			log.WithError(err).Errorf("Error updating hardwaredetails")
+			return reconcileError{err}.Result()
+		}
+	}
+
+	if result.Stop(ctx) {
+		return result.Result()
+	}
+
+	result = r.ensureMCSCert(ctx, log, bmh, agent)
+	if result.Dirty() {
+		err := r.Client.Update(ctx, bmh)
+		if err != nil {
+			log.WithError(err).Errorf("Error adding MCS cert of spoke cluster into BMH")
 			return reconcileError{err}.Result()
 		}
 	}
@@ -630,38 +662,22 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 // - Create BMH with externallyProvisioned set to true and set the newly created machine as ConsumerRef
 // BMH_HARDWARE_DETAILS_ANNOTATION is needed for auto approval of the CSR.
 func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
-	// Only worker role is supported for day2 operation
-	if agent.Spec.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
-		log.Debugf("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Spec.Role, agent.Spec.ClusterDeploymentName)
+
+	if !r.validateWorkerForDay2(log, agent) {
 		return reconcileComplete{}
 	}
-
-	cdKey := types.NamespacedName{
-		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
-		Name:      agent.Spec.ClusterDeploymentName.Name,
-	}
-	clusterDeployment := &hivev1.ClusterDeployment{}
-	if err := r.Get(ctx, cdKey, clusterDeployment); err != nil {
-		log.WithError(err).Errorf("failed to get clusterDeployment resource %s/%s", cdKey.Namespace, cdKey.Name)
+	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
+	if err != nil {
 		return reconcileError{err}
 	}
-
-	// If the cluster is not installed yet, we can't get kubeconfig for the cluster yet.
-	if !clusterDeployment.Spec.Installed {
-		log.Infof("ClusterDeployment %s/%s for agent %s/%s is not installed yet", clusterDeployment.Namespace, clusterDeployment.Name, agent.Namespace, agent.Name)
-		// If cluster is not Installed, wait until a reconcile is trigged by a ClusterDeployment watch event instead
+	if !installed {
 		return reconcileComplete{}
 	}
-
-	// Secret contains kubeconfig for the spoke cluster
-	secret := &corev1.Secret{}
-	name := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
-	err := r.Get(ctx, types.NamespacedName{Namespace: clusterDeployment.Namespace, Name: name}, secret)
-	if err != nil && errors.IsNotFound(err) {
-		log.WithError(err).Errorf("failed to get secret resource %s/%s", clusterDeployment.Namespace, name)
-		// TODO: If secret is not found, wait until a reconcile is trigged by a watch event instead
-		return reconcileComplete{}
-	} else if err != nil {
+	secret, ok, err := r.getSecret(ctx, log, agent, cd)
+	if err != nil {
+		if !ok {
+			return reconcileComplete{}
+		}
 		return reconcileError{err}
 	}
 
@@ -671,7 +687,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		return reconcileError{err}
 	}
 
-	machine, err := r.ensureSpokeMachine(ctx, log, spokeClient, bmh, clusterDeployment)
+	machine, err := r.ensureSpokeMachine(ctx, log, spokeClient, bmh, cd)
 	if err != nil {
 		log.WithError(err).Errorf("failed to create or update spoke Machine")
 		return reconcileError{err}
@@ -700,7 +716,6 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
 		return reconcileComplete{dirty: true}
 	}
-
 	return reconcileComplete{}
 }
 
@@ -939,6 +954,99 @@ func (r *BMACReconciler) ensureSpokeMachine(ctx context.Context, log logrus.Fiel
 	return machineSpoke, nil
 }
 
+// Get MCS cert from the spoke cluster, encode it and add it to BMH
+// To increase the capacity of the spoke cluster on day2, while adding remote worker nodes to the spoke cluster,
+// we need to pull the MCS certificate from the spoke cluster and inject it as part of the ignition config
+// before the node boots so that there is no failure due to Certificate signed by Unknown Authority
+// Ref: https://access.redhat.com/solutions/4799921
+func (r *BMACReconciler) ensureMCSCert(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
+	if !r.validateWorkerForDay2(log, agent) {
+		return reconcileComplete{}
+	}
+	cd, installed, err := r.getClusterDeploymentAndCheckIfInstalled(ctx, log, agent)
+	if err != nil {
+		return reconcileError{err}
+	}
+	if !installed {
+		return reconcileComplete{}
+	}
+	secret, ok, err := r.getSecret(ctx, log, agent, cd)
+	if err != nil {
+		if !ok {
+			return reconcileComplete{}
+		}
+		return reconcileError{err}
+	}
+
+	spokeClient, err := r.getSpokeClient(secret)
+	if err != nil {
+		log.WithError(err).Errorf("failed to create spoke kubeclient")
+		return reconcileError{err}
+	}
+
+	MCSCert, ignitionWithMCSCert, err := r.createIgnitionWithMCSCert(ctx, log, spokeClient)
+	if err != nil {
+		return reconcileError{err}
+	}
+	if bmh.ObjectMeta.Annotations == nil {
+		bmh.ObjectMeta.Annotations = make(map[string]string)
+	}
+	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
+	userIgnition, ok := bmhAnnotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]
+
+	// check if bmh already has MCS cert in it
+	if strings.Contains(userIgnition, MCSCert) {
+		log.Debug("BMH already has MCS cert set")
+		return reconcileComplete{}
+	}
+
+	// User has set ignition via annotation
+	if ok {
+		log.Debug("User has set ignition via annotation")
+		res, err := ignition.MergeIgnitionConfig([]byte(userIgnition), []byte(ignitionWithMCSCert))
+		if err != nil {
+			log.WithError(err).Errorf("Error while merging the ignitions")
+			return reconcileError{err}
+		}
+		bmh.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = res
+
+	} else {
+		log.Debug("User has not set ignition via annotation so we set the annotation with ignition containing MCS cert from spoke cluster")
+		bmh.ObjectMeta.Annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES] = ignitionWithMCSCert
+	}
+	log.Info("MCS certificate injected")
+	return reconcileComplete{dirty: true}
+}
+
+func (r *BMACReconciler) createIgnitionWithMCSCert(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client) (string, string, error) {
+	configMap := &corev1.ConfigMap{}
+	var encodedMCSCrt, ignitionWithMCSCert string
+	key := types.NamespacedName{
+		Namespace: "kube-system",
+		Name:      "root-ca",
+	}
+	if err := spokeClient.Get(ctx, key, configMap); err != nil {
+		if k8serrors.IsNotFound(err) {
+			return encodedMCSCrt, ignitionWithMCSCert, err
+		}
+	}
+	if configMap.Data == nil {
+		return encodedMCSCrt, ignitionWithMCSCert, errors.Errorf("Configmap %s/%s  does not contain any data", configMap.Namespace, configMap.Name)
+	}
+	certData, ok := configMap.Data[MCS_CERT_NAME]
+	if !ok || len(certData) == 0 {
+		return encodedMCSCrt, ignitionWithMCSCert, errors.Errorf("Configmap data for %s/%s  does not contain %s", configMap.Namespace, configMap.Name, MCS_CERT_NAME)
+	}
+	mcsCrt := configMap.Data[MCS_CERT_NAME]
+	encodedMCSCrt = base64.StdEncoding.EncodeToString([]byte(mcsCrt))
+	ignitionWithMCSCert, err := r.formatMCSCertificateIgnition(encodedMCSCrt)
+	if err != nil {
+		return encodedMCSCrt, ignitionWithMCSCert, errors.Errorf("Failed to create ignition string with MCS cert")
+	}
+	return encodedMCSCrt, ignitionWithMCSCert, nil
+
+}
+
 func (r *BMACReconciler) ensureSpokeBMHSecret(ctx context.Context, log logrus.FieldLogger, spokeClient client.Client, bmh *bmh_v1alpha1.BareMetalHost) (*corev1.Secret, error) {
 	secretName := bmh.Spec.BMC.CredentialsName
 	secret := &corev1.Secret{}
@@ -1139,4 +1247,64 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
 		Watches(&source.Kind{Type: &hivev1.ClusterDeployment{}}, handler.EnqueueRequestsFromMapFunc(mapClusterDeploymentToBMH)).
 		Complete(r)
+}
+
+func (r *BMACReconciler) formatMCSCertificateIgnition(mcsCert string) (string, error) {
+	var ignitionParams = map[string]string{
+		"SOURCE": fmt.Sprintf("data:text/plain;charset=utf-8;base64,%s", mcsCert),
+	}
+	tmpl, err := template.New("nodeIgnition").Parse(certificateAuthoritiesIgnitionOverride)
+	if err != nil {
+		return "", err
+	}
+	buf := &bytes.Buffer{}
+	if err = tmpl.Execute(buf, ignitionParams); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
+func (r *BMACReconciler) validateWorkerForDay2(log logrus.FieldLogger, agent *aiv1beta1.Agent) bool {
+	// Only worker role is supported for day2 operation
+	if agent.Spec.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
+		log.Debugf("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Spec.Role, agent.Spec.ClusterDeploymentName)
+		return false
+	}
+	return true
+}
+
+func (r *BMACReconciler) getClusterDeploymentAndCheckIfInstalled(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent) (*hivev1.ClusterDeployment, bool, error) {
+	clusterDeployment := &hivev1.ClusterDeployment{}
+
+	cdKey := types.NamespacedName{
+		Namespace: agent.Spec.ClusterDeploymentName.Namespace,
+		Name:      agent.Spec.ClusterDeploymentName.Name,
+	}
+	var err error
+	if err = r.Get(ctx, cdKey, clusterDeployment); err != nil {
+		log.WithError(err).Errorf("failed to get clusterDeployment resource %s/%s", cdKey.Namespace, cdKey.Name)
+		return clusterDeployment, false, err
+	}
+
+	// If the cluster is not installed yet, we can't get kubeconfig for the cluster yet.
+	if !clusterDeployment.Spec.Installed {
+		log.Debugf("ClusterDeployment %s/%s for agent %s/%s is not installed yet", clusterDeployment.Namespace, clusterDeployment.Name, agent.Namespace, agent.Name)
+		// If cluster is not Installed, wait until a reconcile is trigged by a ClusterDeployment watch event instead
+		return clusterDeployment, false, err
+	}
+	return clusterDeployment, true, err
+}
+
+func (r *BMACReconciler) getSecret(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterDeployment *hivev1.ClusterDeployment) (*corev1.Secret, bool, error) {
+	secret := &corev1.Secret{}
+	name := fmt.Sprintf(adminKubeConfigStringTemplate, clusterDeployment.Name)
+
+	err := r.Get(ctx, types.NamespacedName{Namespace: agent.Spec.ClusterDeploymentName.Namespace, Name: name}, secret)
+	if err != nil && k8serrors.IsNotFound(err) {
+		log.WithError(err).Errorf("failed to get secret resource %s/%s", agent.Spec.ClusterDeploymentName.Namespace, name)
+		// TODO: If secret is not found, wait until a reconcile is trigged by a watch event instead
+	} else if err != nil {
+		return secret, true, err
+	}
+	return secret, false, err
 }
