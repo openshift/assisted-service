@@ -503,6 +503,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusDisconnected),
 			stateswitch.State(models.HostStatusDiscovering),
 			stateswitch.State(models.HostStatusInsufficient),
+			stateswitch.State(models.HostStatusKnown),
 		},
 		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
 			stateswitch.Not(hasMinRequiredHardware)),

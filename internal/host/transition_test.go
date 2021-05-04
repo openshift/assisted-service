@@ -2378,14 +2378,19 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     true,
 			},
 			{
-				name:              "known to insufficient (1)",
-				role:              models.HostRoleAutoAssign,
-				validCheckInTime:  true,
-				srcState:          models.HostStatusKnown,
-				dstState:          models.HostStatusKnown,
-				statusInfoChecker: makeValueChecker(""),
-				inventory:         insufficientHWInventory(),
-				errorExpected:     true,
+				name:             "known to insufficient (1)",
+				role:             models.HostRoleAutoAssign,
+				validCheckInTime: true,
+				srcState:         models.HostStatusKnown,
+				dstState:         models.HostStatusInsufficient,
+				statusInfoChecker: makeValueChecker("Host does not meet the minimum hardware requirements: " +
+					"Host couldn't synchronize with any NTP server ; Machine Network CIDR is undefined; the Machine " +
+					"Network CIDR can be defined by setting either the API or Ingress virtual IPs ; Require a disk of at " +
+					"least 120 GB ; Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes ; " +
+					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for " +
+					"any role is 8.00 GiB, found only 130 bytes"),
+				inventory:     insufficientHWInventory(),
+				errorExpected: false,
 			},
 			{
 				name:             "known to pending",

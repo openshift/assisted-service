@@ -3062,7 +3062,10 @@ var _ = Describe("Update cluster with OLM operators", func() {
 		clusterID = clstrID
 		hosts = registerHostsAndSetRolesDHCP(clusterID, 3)
 		inventory := *validHwInfo
+		// The hosts need to have enough memory for hosting OCS
+		inventory.Memory = &models.Memory{PhysicalBytes: int64(40 * units.GiB), UsableBytes: int64(40 * units.GiB)}
 		for _, disk := range inventory.Disks {
+			// The disks need to be too small for OCP with OCS
 			disk.SizeBytes = conversions.GbToBytes(120)
 		}
 		for i, host := range hosts {
@@ -3075,6 +3078,7 @@ var _ = Describe("Update cluster with OLM operators", func() {
 		By("sanity check: having eligible disks")
 		cluster := getCluster(clusterID)
 		for _, host := range cluster.Hosts {
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusKnown))
 			inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 			Expect(err).ToNot(HaveOccurred())
 			for _, disk := range inventory.Disks {
@@ -3097,6 +3101,7 @@ var _ = Describe("Update cluster with OLM operators", func() {
 		By("having ineligible disks")
 		cluster = getCluster(clusterID)
 		for _, host := range cluster.Hosts {
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
 			inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 			Expect(err).ToNot(HaveOccurred())
 			for _, disk := range inventory.Disks {

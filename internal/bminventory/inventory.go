@@ -1501,6 +1501,8 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	// Cluster is retrieved from DB to make sure we operate on the most recent information regarding monitored operators
+	// enabled for the cluster.
 	dbCluster, err := common.GetClusterFromDB(tx, *cluster.ID, common.UseEagerLoading)
 	if err != nil {
 		log.WithError(err).Errorf("not refreshing cluster hosts - failed to find cluster %s", *cluster.ID)
@@ -1510,28 +1512,18 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	dbHosts := make(map[strfmt.UUID]*models.Host)
-	for _, dbHost := range dbCluster.Hosts {
-		dbHosts[*dbHost.ID] = dbHost
-	}
-
-	for _, h := range cluster.Hosts {
+	for _, dbHost := range cluster.Hosts {
 		var err error
-		dbHost, ok := dbHosts[*h.ID]
-		if !ok {
-			message := fmt.Sprintf("failed to find host <%s> in cluster <%s>", h.ID.String(), cluster.ID.String())
-			log.Errorf(message)
-			return common.NewApiError(http.StatusNotFound, errors.Errorf(message))
-		}
 
 		// Refresh inventory - especially disk eligibility. The host requirements might have changed.
-		err = b.refreshInventory(ctx, dbCluster, h, tx)
+		// dbHost object might be updated with the latest disk eligibility information.
+		err = b.refreshInventory(ctx, dbCluster, dbHost, tx)
 		if err != nil {
 			return err
 		}
 
 		if err = b.hostApi.RefreshStatus(ctx, dbHost, tx); err != nil {
-			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
+			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *dbHost.ID, cluster.ID.String())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
