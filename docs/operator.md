@@ -168,7 +168,38 @@ In case user wants to create an installation that uses mirror registry, the foll
    ca-bundle.crt -  contents of the certificate for accessing the mirror registry. I may be a certificate bundle, but it is still one string
    registries.conf - contents of the registries.conf file that configures mapping to the mirror registry.
 
-   Note: ConfigMap should be installed in the same namespace as the assisted-service-operator (ie. `assisted-installer`).
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mirror-registry-ca
+  namespace: "assisted-installer"
+  labels:
+    app: assisted-service
+data:
+  ca-bundle.crt: |
+    -----BEGIN CERTIFICATE-----
+    certificate contents
+    -----END CERTIFICATE-----
+
+  registries.conf: |
+    unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
+    
+    [[registry]]
+       prefix = ""
+       location = "quay.io/ocpmetal"
+       mirror-by-digest-only = false
+    
+       [[registry.mirror]]
+       location = "bm-cluster-1-hyper.e2e.bos.redhat.com:5000/ocpmetal"
+EOF
+```
+
+   Note1: ConfigMap should be installed in the same namespace as the assisted-service-operator (ie. `assisted-installer`).
+   
+   Note2: registry.conf supplied should use "mirror-by-digest-only = false" mode
+
 2. set the mirrorRegistryConfigmapName in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
 
 ``` bash
