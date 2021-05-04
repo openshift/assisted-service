@@ -89,6 +89,7 @@ def update_openshift_versions_hashmap(ocp_versions: dict, release_image: str, na
         ocp_versions[key] = ocp_versions[larget_version].copy()
 
     ocp_versions[key]["release_image"] = release_image
+    ocp_versions[key]["release_version"] = oc_version
     ocp_versions[key]["display_name"] = oc_version if name_override is None else name_override
 
 
