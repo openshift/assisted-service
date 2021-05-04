@@ -26,8 +26,21 @@ BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-b
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 
 ifdef DEBUG
-    DEBUG_ARGS=-gcflags "all=-N -l"
-    DEBUG_PORT_ARGS= --port ${DEBUG_PORT} debug-port --image-pull-policy IfNotPresent
+	DEBUG_ARGS=-gcflags "all=-N -l"
+	DEBUG_PORT_OPTIONS= --port ${DEBUG_PORT} debug-port
+	UPDATE_IMAGE=update-debug-minimal
+else
+	UPDATE_IMAGE=update-minimal
+endif
+
+ifdef LOCAL_ASSISTED_ORG
+	UPDATE_LOCAL_SERVICE=_update-private-registry-image
+	LOCAL_SERVICE=${LOCAL_ASSISTED_ORG}/assisted-service:${ASSISTED_TAG}
+	IMAGE_PULL_POLICY=--image-pull-policy Always
+else
+	IMAGE_PULL_POLICY=--image-pull-policy IfNotPresent
+	UPDATE_LOCAL_SERVICE=_update-local-k8s-image
+	LOCAL_SERVICE=${SERVICE}
 endif
 
 CONTAINER_BUILD_PARAMS = --network=host --label git_revision=${GIT_REVISION} ${CONTAINER_BUILD_EXTRA_PARAMS}
@@ -149,6 +162,19 @@ update-debug-minimal:
 	docker build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_PORT=$(DEBUG_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
 	rm -r build/debug-image
 
+update-image: $(UPDATE_IMAGE)
+
+_update-private-registry-image: update-image
+	docker tag $(SERVICE) $(LOCAL_SERVICE)
+	docker push $(LOCAL_SERVICE)
+
+_update-local-k8s-image:
+	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
+    # Should be replaced after installing a local registry
+	./hack/update_local_image.sh
+
+update-local-image: $(UPDATE_LOCAL_SERVICE)
+
 build-image: validate update-minimal
 
 update-service: build-in-docker
@@ -156,11 +182,6 @@ update-service: build-in-docker
 
 update: build-all
 	docker push $(SERVICE)
-
-_update-local-image:
-	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
-	# Should be replaced after installing a local registry
-	./hack/update_local_image.sh
 
 define publish_image
 	${1} tag ${2} ${3}
@@ -228,7 +249,7 @@ deploy-ocm-secret: deploy-namespace
 
 deploy-inventory-service-file: deploy-namespace
 	python3 ./tools/deploy_inventory_service.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" --namespace "$(NAMESPACE)" \
-		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_ARGS)
+		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_OPTIONS)
 	sleep 5;  # wait for service to get an address
 
 deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
@@ -252,7 +273,7 @@ deploy-resources: generate-manifests
 deploy-service: deploy-service-requirements
 	python3 ./tools/deploy_assisted_installer.py $(DEPLOY_TAG_OPTION) --namespace "$(NAMESPACE)" \
 		$(TEST_FLAGS) --target "$(TARGET)" --replicas-count $(REPLICAS_COUNT) \
-		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_ARGS)
+		--apply-manifest $(APPLY_MANIFEST) $(DEBUG_PORT_OPTIONS) $(IMAGE_PULL_POLICY)
 	$(MAKE) wait-for-service
 
 wait-for-service:
@@ -284,12 +305,15 @@ ci-deploy-for-subsystem: _verify_cluster generate-keys
 	export IPV6_SUPPORT="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
-deploy-test: _verify_cluster generate-keys
+patch-service: _verify_cluster update-local-image
+	$(call restart_service_pods)
+
+deploy-test: _verify_cluster generate-keys update-local-image
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
-	export ASSISTED_ORG=assisted-local-registry && export ASSISTED_TAG=assisted-test && export TEST_FLAGS=--subsystem-test && \
+	export SERVICE=${LOCAL_SERVICE} && export TEST_FLAGS=--subsystem-test && \
 	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
 	export IPV6_SUPPORT="True" && \
-	$(MAKE) _update-local-image deploy-wiremock deploy-all
+	$(MAKE) deploy-wiremock deploy-all
 
 # $SERVICE is built with docker. If we want the latest version of $SERVICE
 # we need to pull it from the docker daemon before deploy-onprem.
