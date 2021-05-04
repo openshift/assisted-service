@@ -15,8 +15,11 @@ type condition struct {
 const (
 	InstallationDiskSpeedCheckSuccessful = conditionId("installation-disk-speed-check-successful")
 	ClusterPreparingForInstallation      = conditionId("cluster-preparing-for-installation")
+	ClusterPendingUserAction             = conditionId("cluster-pending-user-action")
 	ClusterInstalling                    = conditionId("cluster-installing")
 	ValidRoleForInstallation             = conditionId("valid-role-for-installation")
+	StageInWrongBootStages               = conditionId("stage-in-wrong-boot-stages")
+	ClusterInError                       = conditionId("cluster-in-error")
 )
 
 func (c conditionId) String() string {
@@ -36,7 +39,19 @@ func (v *validator) isClusterInstalling(c *validationContext) bool {
 	return swag.StringValue(c.cluster.Status) == models.ClusterStatusInstalling
 }
 
+func (v *validator) isClusterInError(c *validationContext) bool {
+	return swag.StringValue(c.cluster.Status) == models.ClusterStatusError
+}
+
+func (v *validator) isClusterPendingUserAction(c *validationContext) bool {
+	return swag.StringValue(c.cluster.Status) == models.ClusterStatusInstallingPendingUserAction
+}
+
 func (v *validator) isValidRoleForInstallation(c *validationContext) bool {
 	validRoles := []string{string(models.HostRoleMaster), string(models.HostRoleWorker)}
 	return funk.ContainsString(validRoles, string(c.host.Role))
+}
+
+func (v *validator) isStageInWrongBootStages(c *validationContext) bool {
+	return funk.Contains(WrongBootOrderIgnoreTimeoutStages, c.host.Progress.CurrentStage)
 }

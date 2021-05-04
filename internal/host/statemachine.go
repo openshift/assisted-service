@@ -390,7 +390,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusResettingPendingUserAction),
 			stateswitch.State(models.HostStatusInstallingPendingUserAction),
 		},
-		Condition:        stateswitch.And(th.HasClusterError, stateswitch.Not(th.IsDay2Host)),
+		Condition:        stateswitch.And(If(ClusterInError), stateswitch.Not(th.IsDay2Host)),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoAbortingDueClusterErrors),
 	})
@@ -438,12 +438,13 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoConnectionTimedOut),
 	})
+	shouldIgnoreInstallationProgressTimeout := stateswitch.And(If(StageInWrongBootStages), If(ClusterPendingUserAction))
 
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusInstallingInProgress)},
-		Condition:        th.ShouldIgnoreInstallingInProgressTimeout,
+		Condition:        shouldIgnoreInstallationProgressTimeout,
 		DestinationState: stateswitch.State(models.HostStatusInstallingInProgress),
 		PostTransition:   th.PostRefreshHostRefreshStageUpdateTime,
 	})
@@ -455,7 +456,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			stateswitch.State(models.HostStatusInstallingInProgress)},
 		Condition: stateswitch.And(
 			th.HasInstallationInProgressTimedOut,
-			stateswitch.Not(th.ShouldIgnoreInstallingInProgressTimeout)),
+			stateswitch.Not(shouldIgnoreInstallationProgressTimeout)),
 		DestinationState: stateswitch.State(models.HostStatusError),
 		PostTransition:   th.PostRefreshHost(statusInfoInstallationInProgressTimedOut),
 	})
@@ -471,7 +472,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		sm.AddTransition(stateswitch.TransitionRule{
 			TransitionType:   TransitionTypeRefresh,
 			SourceStates:     []stateswitch.State{state},
-			Condition:        stateswitch.Not(th.HasClusterError),
+			Condition:        stateswitch.Not(If(ClusterInError)),
 			DestinationState: state,
 		})
 	}
