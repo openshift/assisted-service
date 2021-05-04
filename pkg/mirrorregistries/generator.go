@@ -4,11 +4,9 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/pelletier/go-toml"
 )
-
-const mirrorRegistriesCAPath = "/etc/pki/ca-trust/extracted/pem/mirror_ca.pem"
-const mirrorRegistriesPath = "/etc/containers/registries.conf"
 
 //go:generate mockgen -source=generator.go -package=mirrorregistries -destination=mock_generator.go
 type MirrorRegistriesConfigBuilder interface {
@@ -43,13 +41,13 @@ func (m *mirrorRegistriesConfigBuilder) IsMirrorRegistriesConfigured() bool {
 // the mirror registries are not configured.
 // empty dir is due to the way we mao configmap in the assisted-service pod
 func (m *mirrorRegistriesConfigBuilder) GetMirrorCA() ([]byte, error) {
-	return readFile(mirrorRegistriesCAPath)
+	return readFile(common.MirrorRegistriesCertificatePath)
 }
 
 // returns error if the file is not present, which will also indicate that
 // mirror registries are not confgiured
 func (m *mirrorRegistriesConfigBuilder) GetMirrorRegistries() ([]byte, error) {
-	return readFile(mirrorRegistriesPath)
+	return readFile(common.MirrorRegistriesConfigPath)
 }
 
 func (m *mirrorRegistriesConfigBuilder) ExtractLocationMirrorDataFromRegistries() ([]RegistriesConf, error) {

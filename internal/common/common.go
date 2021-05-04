@@ -7,16 +7,24 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-const EnvConfigPrefix = "myapp"
+const (
+	EnvConfigPrefix = "myapp"
 
-const MinMasterHostsNeededForInstallation = 3
-const AllowedNumberOfMasterHostsInNoneHaMode = 1
-const AllowedNumberOfWorkersInNoneHaMode = 0
-const IllegalWorkerHostsCount = 1
+	MinMasterHostsNeededForInstallation    = 3
+	AllowedNumberOfMasterHostsInNoneHaMode = 1
+	AllowedNumberOfWorkersInNoneHaMode     = 0
+	IllegalWorkerHostsCount                = 1
 
-const HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
+	HostCACertPath = "/etc/assisted-service/service-ca-cert.crt"
 
-const consoleUrlPrefix = "https://console-openshift-console.apps"
+	consoleUrlPrefix = "https://console-openshift-console.apps"
+
+	MirrorRegistriesCertificateFile = "mirror_ca.pem"
+	MirrorRegistriesCertificatePath = "/etc/pki/ca-trust/extracted/pem/" + MirrorRegistriesCertificateFile
+	MirrorRegistriesConfigDir       = "/etc/containers"
+	MirrorRegistriesConfigFile      = "registries.conf"
+	MirrorRegistriesConfigPath      = MirrorRegistriesConfigDir + "/" + MirrorRegistriesConfigFile
+)
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
 // after reboot.  This will cause the DHCP server to provide the same IP address after reboot.

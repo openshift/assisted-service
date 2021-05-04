@@ -106,6 +106,50 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			Expect(foundAfterNextEnsure.StringData["ec-public-key.pem"]).To(Equal(foundPublicKey))
 		})
 	})
+
+	Context("validate mirror registries config mao", func() {
+		It("valid config map", func() {
+			mirrorMap := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "user-configmap",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"ca-bundle.crt":   "ca-bundle-value",
+					"registries.conf": "registries-conf-value",
+				},
+			}
+			Expect(ascr.Client.Create(ctx, mirrorMap)).To(Succeed())
+			asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: "user-configmap"}
+			err := ascr.validateMirrorRegistriesConfigMap(ctx, asc)
+			Expect(err).To(BeNil())
+		})
+		It("invalid config map, keys", func() {
+			mirrorMap := &corev1.ConfigMap{
+				TypeMeta: metav1.TypeMeta{
+					APIVersion: "v1",
+					Kind:       "ConfigMap",
+				},
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "user-configmap",
+					Namespace: testNamespace,
+				},
+				Data: map[string]string{
+					"some_key":        "ca-bundle-value",
+					"registries.conf": "registries-conf-value",
+				},
+			}
+			Expect(ascr.Client.Create(ctx, mirrorMap)).To(Succeed())
+			asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: "user-configmap"}
+			err := ascr.validateMirrorRegistriesConfigMap(ctx, asc)
+			Expect(err).To(HaveOccurred())
+		})
+
+	})
 })
 
 var _ = Describe("ensureAssistedServiceDeployment", func() {
