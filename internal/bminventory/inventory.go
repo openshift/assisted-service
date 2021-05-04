@@ -3842,7 +3842,7 @@ func (b *bareMetalInventory) CompleteInstallation(ctx context.Context, params in
 }
 
 func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster common.Cluster) error {
-	return b.dnsApi.ChangeDNSRecordSets(ctx, &cluster, true)
+	return b.dnsApi.DeleteDNSRecordSets(ctx, &cluster)
 }
 
 func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
