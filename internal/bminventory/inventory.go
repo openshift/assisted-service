@@ -1501,7 +1501,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	dbCluster, err := common.GetClusterFromDB(tx, *cluster.ID, true)
+	dbCluster, err := common.GetClusterFromDB(tx, *cluster.ID, common.UseEagerLoading)
 	if err != nil {
 		log.WithError(err).Errorf("not refreshing cluster hosts - failed to find cluster %s", *cluster.ID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {

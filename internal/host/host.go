@@ -283,7 +283,7 @@ func (m *Manager) RefreshInventory(ctx context.Context, cluster *common.Cluster,
 
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
 	log := logutil.FromContext(ctx, m.log)
-	cluster, err := common.GetClusterFromDB(m.db, h.ClusterID, true)
+	cluster, err := common.GetClusterFromDB(m.db, h.ClusterID, common.UseEagerLoading)
 	if err != nil {
 		log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID)
 		return common.NewApiError(http.StatusNotFound, err)
