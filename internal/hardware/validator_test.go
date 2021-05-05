@@ -9,6 +9,7 @@ import (
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/kelseyhightower/envconfig"
@@ -306,6 +307,32 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
 	})
 
+	It("should contain correct default requirements for sno master host", func() {
+		role := models.HostRoleMaster
+		id1 := strfmt.UUID(uuid.New().String())
+		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresSno))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibSno * int64(units.KiB)))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
+
+		Expect(result.Operators).To(ConsistOf(operatorRequirements))
+
+		Expect(result.Total.DiskSizeGb).To(Equal(cfg.MinDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresSno + details1.CPUCores + details2.CPUCores))
+		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibSno*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
+		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+	})
+
 	It("should contain correct default requirements for worker host", func() {
 		role := models.HostRoleWorker
 		id1 := strfmt.UUID(uuid.New().String())
@@ -476,6 +503,36 @@ var _ = Describe("Preflight host requirements", func() {
 					CPUCores:                         cfg.MinCPUCoresMaster,
 					DiskSizeGb:                       cfg.MinDiskSizeGb,
 					RAMMib:                           cfg.MinRamGibMaster * int64(units.KiB),
+					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+				},
+			},
+			Worker: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         cfg.MinCPUCoresWorker,
+					DiskSizeGb:                       cfg.MinDiskSizeGb,
+					RAMMib:                           cfg.MinRamGibWorker * int64(units.KiB),
+					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+				},
+			},
+		}
+		Expect(*result.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
+		Expect(result.Operators).To(ConsistOf(operatorRequirements))
+	})
+
+	It("should contain correct preflight  host requirements - single node", func() {
+		operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(cluster)).Return(operatorRequirements, nil)
+
+		result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), cluster)
+
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
+			Master: &models.HostTypeHardwareRequirements{
+				Quantitative: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         cfg.MinCPUCoresSno,
+					DiskSizeGb:                       cfg.MinDiskSizeGb,
+					RAMMib:                           cfg.MinRamGibSno * int64(units.KiB),
 					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
 				},
 			},

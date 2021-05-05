@@ -219,6 +219,7 @@ func (v *validator) hasMinMemory(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
+
 	return boolValue(c.inventory.Memory.PhysicalBytes >= conversions.GibToBytes(v.hwValidatorCfg.MinRamGib))
 }
 
@@ -227,8 +228,8 @@ func (v *validator) printHasMinMemory(c *validationContext, status ValidationSta
 	case ValidationSuccess:
 		return "Sufficient minimum RAM"
 	case ValidationFailure:
-		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %s, found only %s", conversions.BytesToString(conversions.GibToBytes(v.hwValidatorCfg.MinRamGib)),
-			conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
+		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %s, found only %s",
+			conversions.BytesToString(conversions.GibToBytes(v.hwValidatorCfg.MinRamGib)), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
 	default:

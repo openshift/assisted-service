@@ -2358,9 +2358,8 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 	return cluster, nil
 }
 
-func (b *bareMetalInventory) GetHostRequirements(_ context.Context, _ installer.GetHostRequirementsParams) middleware.Responder {
-	requirements := b.hwValidator.GetHostRequirements()
-
+func (b *bareMetalInventory) GetHostRequirements(_ context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
+	requirements := b.hwValidator.GetHostRequirements(swag.BoolValue(params.SingleNode))
 	return installer.NewGetHostRequirementsOK().WithPayload(
 		&models.HostRequirements{
 			Master: hostRequirementsRoleFrom(requirements.MasterRequirements),
