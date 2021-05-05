@@ -48,16 +48,16 @@ func (mr *MockEditorMockRecorder) CreateClusterMinimalISO(arg0, arg1, arg2 inter
 }
 
 // CreateMinimalISOTemplate mocks base method
-func (m *MockEditor) CreateMinimalISOTemplate(arg0, arg1 string) (string, error) {
+func (m *MockEditor) CreateMinimalISOTemplate(arg0 string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateMinimalISOTemplate", arg0, arg1)
+	ret := m.ctrl.Call(m, "CreateMinimalISOTemplate", arg0)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateMinimalISOTemplate indicates an expected call of CreateMinimalISOTemplate
-func (mr *MockEditorMockRecorder) CreateMinimalISOTemplate(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockEditorMockRecorder) CreateMinimalISOTemplate(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMinimalISOTemplate", reflect.TypeOf((*MockEditor)(nil).CreateMinimalISOTemplate), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateMinimalISOTemplate", reflect.TypeOf((*MockEditor)(nil).CreateMinimalISOTemplate), arg0)
 }
