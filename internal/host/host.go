@@ -94,7 +94,7 @@ type Config struct {
 	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
-	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:"container-images-available"` // Disable container image validation to fix BZ-1937293
+	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS"` // Which host validations to disable (should not run in preprocess)
 }
 
 //go:generate mockgen -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
@@ -550,28 +550,19 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 }
 
 func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImageStatus *models.ContainerImageAvailability, db *gorm.DB) error {
-	var hostImageStatuses map[string]*models.ContainerImageAvailability = make(map[string]*models.ContainerImageAvailability)
-
-	if h.ImagesStatus != "" {
-		err := json.Unmarshal([]byte(h.ImagesStatus), &hostImageStatuses)
-		if err != nil {
-			return errors.Wrapf(err, "Failed to unmarshal image statuses for host %s", h.ID.String())
-		}
+	hostImageStatuses, err := common.UnmarshalImageStatuses(h.ImagesStatus)
+	if err != nil {
+		return errors.Wrapf(err, "Unmarshal image status for host %s", h.ID.String())
 	}
 
-	// Check if the image status already exist
-	imageStatus, imageExists := hostImageStatuses[newImageStatus.Name]
-	if imageExists {
-		// Same result - Nothing to update
-		if imageStatus.Result == newImageStatus.Result {
-			return nil
-		}
-
+	oldImageStatus, alreadyExists := common.GetImageStatus(hostImageStatuses, newImageStatus.Name)
+	if alreadyExists {
 		m.log.Infof("Updating image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
-		hostImageStatuses[newImageStatus.Name].Result = newImageStatus.Result
+		oldImageStatus.Result = newImageStatus.Result
+		common.SetImageStatus(hostImageStatuses, oldImageStatus)
 	} else {
+		common.SetImageStatus(hostImageStatuses, newImageStatus)
 		m.log.Infof("Adding new image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
-		hostImageStatuses[newImageStatus.Name] = newImageStatus
 		m.metricApi.ImagePullStatus(h.ClusterID, *h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
 
 		eventInfo := fmt.Sprintf("Host %s: New image status %s. result: %s.",
@@ -584,13 +575,12 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 
 		m.eventsHandler.AddEvent(ctx, h.ClusterID, h.ID, models.EventSeverityInfo, eventInfo, time.Now())
 	}
-
-	bytes, err := json.Marshal(hostImageStatuses)
+	marshalledStatuses, err := common.MarshalImageStatuses(hostImageStatuses)
 	if err != nil {
 		return errors.Wrapf(err, "Failed to marshal image statuses for host %s", h.ID.String())
 	}
 
-	return db.Model(h).Update("images_status", string(bytes)).Error
+	return db.Model(h).Update("images_status", marshalledStatuses).Error
 }
 
 func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error {

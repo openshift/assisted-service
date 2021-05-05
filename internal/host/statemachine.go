@@ -295,12 +295,28 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshHost(statusInfoPreparingForInstallation),
 	})
 
+	// Unknown validations
+	installationDiskSpeedUnknown := stateswitch.And(stateswitch.Not(If(InstallationDiskSpeedCheckSuccessful)), If(SufficientOrUnknownInstallationDiskSpeed))
+	imagesAvailabilityUnknown := stateswitch.And(stateswitch.Not(If(SuccessfulContainerImageAvailability)), If(SucessfullOrUnknownContainerImagesAvailability))
+
+	// All validations are successful
+	allConditionsSuccessful := stateswitch.And(If(InstallationDiskSpeedCheckSuccessful), If(SuccessfulContainerImageAvailability))
+
+	// All validations are successful, or were not evaluated
+	allConditionsSuccessfulOrUnknown := stateswitch.And(If(SufficientOrUnknownInstallationDiskSpeed), If(SucessfullOrUnknownContainerImagesAvailability))
+
+	// At least one of the validations failed
+	atLeastOneConditionFailed := stateswitch.Not(allConditionsSuccessfulOrUnknown)
+
+	// At least one of the validations has not been evaluated and there are no failed validations
+	atLeastOneConditionUnknown := stateswitch.And(stateswitch.Or(installationDiskSpeedUnknown, imagesAvailabilityUnknown), allConditionsSuccessfulOrUnknown)
+
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(InstallationDiskSpeedCheckSuccessful), If(ClusterPreparingForInstallation)),
+		Condition:        stateswitch.And(If(IsConnected), allConditionsSuccessful, If(ClusterPreparingForInstallation)),
 		DestinationState: stateswitch.State(models.HostStatusPreparingSuccessful),
 		PostTransition:   th.PostRefreshHost(statusInfoHostPreparationSuccessful),
 	})
@@ -325,13 +341,12 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		PostTransition:   th.PostRefreshHost(statusInfoInstalling),
 	})
 
-	installationDiskSpeedCheckFailed := stateswitch.Not(If(SufficientOrUnknownInstallationDiskSpeed))
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), installationDiskSpeedCheckFailed),
+		Condition:        stateswitch.And(If(IsConnected), atLeastOneConditionFailed),
 		DestinationState: stateswitch.State(models.HostStatusInsufficient),
 		PostTransition:   th.PostRefreshHost(statusInfoNotReadyForInstall),
 	})
@@ -341,18 +356,17 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), If(SufficientOrUnknownInstallationDiskSpeed), stateswitch.Not(If(ClusterPreparingForInstallation))),
+		Condition:        stateswitch.And(If(IsConnected), allConditionsSuccessfulOrUnknown, stateswitch.Not(If(ClusterPreparingForInstallation))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
 		PostTransition:   th.PostRefreshHost(statusInfoClusterIsNotPreparing),
 	})
 
-	installationDiskSpeedUnknown := stateswitch.Not(stateswitch.Or(If(InstallationDiskSpeedCheckSuccessful), installationDiskSpeedCheckFailed))
 	sm.AddTransition(stateswitch.TransitionRule{
 		TransitionType: TransitionTypeRefresh,
 		SourceStates: []stateswitch.State{
 			stateswitch.State(models.HostStatusPreparingForInstallation),
 		},
-		Condition:        stateswitch.And(If(IsConnected), installationDiskSpeedUnknown, If(ClusterPreparingForInstallation)),
+		Condition:        stateswitch.And(If(IsConnected), atLeastOneConditionUnknown, If(ClusterPreparingForInstallation)),
 		DestinationState: stateswitch.State(models.HostStatusPreparingForInstallation),
 	})
 
@@ -493,7 +507,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 
 	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr), If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup),
-		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(SufficientOrUnknownInstallationDiskSpeed))
+		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(SufficientOrUnknownInstallationDiskSpeed), If(SucessfullOrUnknownContainerImagesAvailability))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles

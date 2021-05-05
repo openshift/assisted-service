@@ -1731,55 +1731,55 @@ var _ = Describe("UpdateImageStatus", func() {
 
 	tests := []struct {
 		name                  string
-		originalImageStatuses map[string]*models.ContainerImageAvailability
+		originalImageStatuses common.ImageStatuses
 		newImageStatus        *models.ContainerImageAvailability
 		changeInDB            bool
 	}{
 		{
 			name:                  "no images - new success",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{},
+			originalImageStatuses: common.ImageStatuses{},
 			newImageStatus:        common.TestImageStatusesSuccess,
 			changeInDB:            true,
 		},
 		{
 			name:                  "no images - new failure",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{},
+			originalImageStatuses: common.ImageStatuses{},
 			newImageStatus:        common.TestImageStatusesSuccess,
 			changeInDB:            true,
 		},
 		{
 			name:                  "original success - new success",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+			originalImageStatuses: common.ImageStatuses{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 			newImageStatus:        testAlreadyPulledImageStatuses,
 			changeInDB:            false,
 		},
 		{
 			name:                  "original success - new already pulled",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+			originalImageStatuses: common.ImageStatuses{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 			newImageStatus:        testAlreadyPulledImageStatuses,
 			changeInDB:            false,
 		},
 		{
 			name:                  "original success - new failure",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+			originalImageStatuses: common.ImageStatuses{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
 			newImageStatus:        common.TestImageStatusesFailure,
 			changeInDB:            true,
 		},
 		{
 			name:                  "original failure - new success",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
+			originalImageStatuses: common.ImageStatuses{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 			newImageStatus:        common.TestImageStatusesSuccess,
 			changeInDB:            true,
 		},
 		{
 			name:                  "original failure - new failure",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
+			originalImageStatuses: common.ImageStatuses{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 			newImageStatus:        common.TestImageStatusesFailure,
 			changeInDB:            false,
 		},
 		{
 			name:                  "original failure - new already pulled",
-			originalImageStatuses: map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
+			originalImageStatuses: common.ImageStatuses{common.TestDefaultConfig.ImageName: common.TestImageStatusesFailure},
 			newImageStatus:        testAlreadyPulledImageStatuses,
 			changeInDB:            true,
 		},

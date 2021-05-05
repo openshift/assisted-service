@@ -555,35 +555,20 @@ func (v *validator) printNTPSynced(c *validationContext, status ValidationStatus
 	}
 }
 
-func (v *validator) areImagesAvailable(c *validationContext) ValidationStatus {
-	var imageStatuses map[string]*models.ContainerImageAvailability
-
-	if c.host.ImagesStatus == "" {
-		return ValidationPending
-	}
-
-	if err := json.Unmarshal([]byte(c.host.ImagesStatus), &imageStatuses); err != nil {
+func (v *validator) sucessfullOrUnknownContainerImagesAvailability(c *validationContext) ValidationStatus {
+	imageStatuses, err := common.UnmarshalImageStatuses(c.host.ImagesStatus)
+	if err != nil {
 		v.log.WithError(err).Warn("Parse container image statuses")
 		return ValidationError
 	}
 
-	if len(imageStatuses) == 0 {
-		return ValidationPending
-	}
-
-	for _, imageStatus := range imageStatuses {
-		if isInvalidImageStatus(imageStatus) {
-			return ValidationFailure
-		}
-	}
-
-	return ValidationSuccess
+	return boolValue(allImagesValid(imageStatuses))
 }
 
-func (v *validator) printImageAvailability(c *validationContext, status ValidationStatus) string {
+func (v *validator) printSucessfullOrUnknownContainerImagesAvailability(c *validationContext, status ValidationStatus) string {
 	switch status {
 	case ValidationSuccess:
-		return "All required container images were pulled and are available"
+		return "All required container images were either pulled successfully or no attempt was made to pull them"
 	case ValidationFailure:
 		images, err := v.getFailedImagesNames(c.host)
 		if err == nil {
@@ -592,26 +577,15 @@ func (v *validator) printImageAvailability(c *validationContext, status Validati
 		fallthrough
 	case ValidationError:
 		return "Parse error for container image statuses"
-	case ValidationPending:
-		return "Missing container images statuses"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
 func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
-	var imageStatuses map[string]*models.ContainerImageAvailability
-
-	if host.ImagesStatus == "" {
-		return []string{}, nil
-	}
-
-	if err := json.Unmarshal([]byte(host.ImagesStatus), &imageStatuses); err != nil {
-		return []string{}, err
-	}
-
-	if len(imageStatuses) == 0 {
-		return []string{}, nil
+	imageStatuses, err := common.UnmarshalImageStatuses(host.ImagesStatus)
+	if err != nil {
+		return nil, err
 	}
 
 	imageNames := make([]string, 0)
@@ -628,6 +602,15 @@ func (v *validator) getFailedImagesNames(host *models.Host) ([]string, error) {
 func isInvalidImageStatus(imageStatus *models.ContainerImageAvailability) bool {
 	return imageStatus.Result == models.ContainerImageAvailabilityResultFailure ||
 		(imageStatus.SizeBytes > 0 && imageStatus.DownloadRate < ImageStatusDownloadRateThreshold)
+}
+
+func allImagesValid(imageStatuses common.ImageStatuses) bool {
+	for _, imageStatus := range imageStatuses {
+		if isInvalidImageStatus(imageStatus) {
+			return false
+		}
+	}
+	return true
 }
 
 /*

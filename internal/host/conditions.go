@@ -2,6 +2,7 @@ package host
 
 import (
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 	"github.com/thoas/go-funk"
 )
@@ -20,6 +21,7 @@ const (
 	ValidRoleForInstallation             = conditionId("valid-role-for-installation")
 	StageInWrongBootStages               = conditionId("stage-in-wrong-boot-stages")
 	ClusterInError                       = conditionId("cluster-in-error")
+	SuccessfulContainerImageAvailability = conditionId("successful-container-image-availability")
 )
 
 func (c conditionId) String() string {
@@ -54,4 +56,9 @@ func (v *validator) isValidRoleForInstallation(c *validationContext) bool {
 
 func (v *validator) isStageInWrongBootStages(c *validationContext) bool {
 	return funk.Contains(WrongBootOrderIgnoreTimeoutStages, c.host.Progress.CurrentStage)
+}
+
+func (v *validator) isSuccessfulContainerImageAvailability(c *validationContext) bool {
+	imagesStatuses, err := common.UnmarshalImageStatuses(c.host.ImagesStatus)
+	return err == nil && len(imagesStatuses) > 0 && allImagesValid(imagesStatuses)
 }
