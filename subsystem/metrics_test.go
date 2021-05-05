@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strconv"
@@ -124,6 +125,11 @@ func waitForClusterValidationStatus(clusterID strfmt.UUID, expectedStatus string
 func filterMetrics(metrics []string, substrings ...string) []string {
 	var res []string
 	for _, m := range metrics {
+		// skip metrics description
+		if strings.HasPrefix(m, "#") {
+			continue
+		}
+
 		containsAll := true
 		for _, ss := range substrings {
 			if !strings.Contains(m, ss) {
@@ -138,8 +144,7 @@ func filterMetrics(metrics []string, substrings ...string) []string {
 	return res
 }
 
-func getValidationMetricCounter(validationID, expectedMetric string) int {
-
+func getMetricRecords() []string {
 	url := fmt.Sprintf("http://%s/metrics", Options.InventoryHost)
 
 	cmd := exec.Command("curl", "-s", url)
@@ -148,7 +153,11 @@ func getValidationMetricCounter(validationID, expectedMetric string) int {
 	_, err = GinkgoWriter.Write(output)
 	Expect(err).NotTo(HaveOccurred())
 
-	metrics := strings.Split(string(output), "\n")
+	return strings.Split(string(output), "\n")
+}
+
+func getValidationMetricCounter(validationID, expectedMetric string) int {
+	metrics := getMetricRecords()
 	filteredMetrics := filterMetrics(metrics, expectedMetric, fmt.Sprintf("ValidationType=\"%s\"", validationID))
 	if len(filteredMetrics) == 0 {
 		return 0
@@ -158,6 +167,15 @@ func getValidationMetricCounter(validationID, expectedMetric string) int {
 	counter, err := strconv.Atoi(strings.ReplaceAll((strings.Split(filteredMetrics[0], "}")[1]), " ", ""))
 	Expect(err).NotTo(HaveOccurred())
 	return counter
+}
+
+func getMetricRecord(name string) (string, error) {
+	metrics := getMetricRecords()
+	filteredMetrics := filterMetrics(metrics, name)
+	if len(filteredMetrics) == 0 {
+		return "", errors.New("metric not found")
+	}
+	return filteredMetrics[0], nil
 }
 
 func assertHostValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostName string, validationID models.HostValidationID, isFailure bool) {
@@ -921,6 +939,36 @@ var _ = Describe("Metrics tests", func() {
 
 			// check generated events
 			assertClusterValidationEvent(ctx, clusterID, models.ClusterValidationIDNtpServerConfigured, false)
+		})
+	})
+
+	Context("Filesystem metrics test", func() {
+		if Options.Storage != "filesystem" {
+			return
+		}
+
+		It("'assisted_installer_filesystem_usage_percentage' metric recorded", func() {
+			By("Generate ISO for cluster")
+			imageType := models.ImageTypeMinimalIso
+			_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+				ClusterID: clusterID,
+				ImageCreateParams: &models.ImageCreateParams{
+					ImageType: imageType,
+				},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
+
+			By("Verify filesystem metrics")
+			record, err := getMetricRecord("assisted_installer_filesystem_usage_percentage")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(record).ToNot(BeEmpty())
+
+			value, err := strconv.ParseFloat(record[strings.LastIndex(record, " ")+1:], 32)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(BeNumerically(">", 0))
+			Expect(value).To(BeNumerically("<=", 100))
 		})
 	})
 })
