@@ -17,65 +17,65 @@ var _ = Describe("Ocs Operator", func() {
 		ctx                 = context.TODO()
 		operator            = NewOcsOperator(common.GetTestLog())
 		masterWithThreeDisk = &models.Host{Role: models.HostRoleMaster,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 				}})}
-		masterWithNoDisk      = &models.Host{Role: models.HostRoleMaster, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GB})}
+		masterWithNoDisk      = &models.Host{Role: models.HostRoleMaster, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB})}
 		masterWithNoInventory = &models.Host{Role: models.HostRoleMaster}
 		masterWithOneDisk     = &models.Host{Role: models.HostRoleMaster,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"}}})}
 
 		masterWithLessCPU = &models.Host{Role: models.HostRoleMaster,
-			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 32 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 				}})}
 
 		masterWithLessRAM = &models.Host{Role: models.HostRoleMaster,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 				}})}
 		workerWithOneDisk = &models.Host{Role: models.HostRoleWorker,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 				}})}
 		workerWithTwoDisk = &models.Host{Role: models.HostRoleWorker,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 				}})}
 		workerWithThreeDisk = &models.Host{Role: models.HostRoleWorker,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "HDD"},
 				}})}
-		workerWithNoDisk      = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GB})}
+		workerWithNoDisk      = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
 		workerWithNoInventory = &models.Host{Role: models.HostRoleWorker}
 		workerWithLessCPU     = &models.Host{Role: models.HostRoleWorker,
-			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 64 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 				}})}
 		workerWithLessRAM = &models.Host{Role: models.HostRoleWorker,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GB,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
 				}})}
-		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GB,
+		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 			Disks: []*models.Disk{
 				{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 				{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
@@ -92,49 +92,49 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk,
 				}}},
 				masterWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBCompactMode + 2*operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("there are three masters",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBCompactMode + 2*operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("no disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithNoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBCompactMode + operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("no inventory in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoInventory, masterWithOneDisk,
 				}}},
 				masterWithNoInventory,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBCompactMode + operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("only one disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithOneDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBCompactMode + operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("there are 3 hosts, role of one as auto-assign",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, autoAssignHost,
 				}}},
 				autoAssignHost,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBCompactMode + operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("there are two master and one worker",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
 				}}},
 				workerWithTwoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBMinimalMode + operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 		)
 
@@ -147,7 +147,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, autoAssignHost, masterWithOneDisk,
 				}}},
 				autoAssignHost,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBMinimalMode + operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("there are 6 hosts, master requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -161,35 +161,35 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBMinimalMode + 2*operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("there are 6 hosts, worker with two disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithTwoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GbToMib(MemoryGBMinimalMode + operator.config.OCSRequiredDiskRAMGB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
 			),
 			table.Entry("there are 6 hosts, worker with one disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithOneDisk,
 				}}},
 				workerWithOneDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode, RAMMib: conversions.GbToMib(MemoryGBMinimalMode)},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode)},
 			),
 			table.Entry("there are 6 hosts, worker with no disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithNoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode, RAMMib: conversions.GbToMib(MemoryGBMinimalMode)},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode)},
 			),
 			table.Entry("there are 6 hosts, worker with no inventory requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoInventory,
 				}}},
 				workerWithNoInventory,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode, RAMMib: conversions.GbToMib(MemoryGBMinimalMode)},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode)},
 			),
 		)
 	})
@@ -259,7 +259,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessRAM,
 				}}},
 				masterWithLessRAM,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 22888 MiB but found 4768 MiB."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 24576 MiB but found 5120 MiB."}},
 			),
 		)
 
@@ -314,7 +314,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessRAM,
 				}}},
 				workerWithLessRAM,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 15258 MiB but found 4768 MiB."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 16384 MiB but found 5120 MiB."}},
 			),
 		)
 	})

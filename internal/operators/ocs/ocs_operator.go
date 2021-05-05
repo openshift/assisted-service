@@ -139,18 +139,18 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		if disks > 0 {
 			reqDisks = disks
 		}
-		// for each disk ocs requires 2 CPUs and 5 GB RAM
+		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			return &models.ClusterHostRequirementsDetails{
 				CPUCores:   CPUCompactMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
-				RAMMib:     conversions.GbToMib(MemoryGBCompactMode + reqDisks*o.config.OCSRequiredDiskRAMGB),
+				RAMMib:     conversions.GibToMib(MemoryGiBCompactMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
 				DiskSizeGb: MinDiskSize,
 			}, nil
 		}
 		// regular worker req
 		return &models.ClusterHostRequirementsDetails{
 			CPUCores:   CPUMinimalMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
-			RAMMib:     conversions.GbToMib(MemoryGBMinimalMode + reqDisks*o.config.OCSRequiredDiskRAMGB),
+			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
 			DiskSizeGb: MinDiskSize,
 		}, nil
 	}
@@ -163,16 +163,16 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 
 	// worker and auto-assign
 	if disks > 0 {
-		// for each disk ocs requires 2 CPUs and 5 GB RAM
+		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		return &models.ClusterHostRequirementsDetails{
 			CPUCores:   CPUMinimalMode + disks*o.config.OCSRequiredDiskCPUCount,
-			RAMMib:     conversions.GbToMib(MemoryGBMinimalMode + disks*o.config.OCSRequiredDiskRAMGB),
+			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + disks*o.config.OCSRequiredDiskRAMGiB),
 			DiskSizeGb: MinDiskSize,
 		}, nil
 	}
 	return &models.ClusterHostRequirementsDetails{
 		CPUCores: CPUMinimalMode,
-		RAMMib:   conversions.GbToMib(MemoryGBMinimalMode),
+		RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode),
 	}, nil
 }
 
@@ -194,7 +194,7 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 				// TODO: adjust when https://github.com/openshift/assisted-service/pull/1456 is merged
 				Quantitative: &models.ClusterHostRequirementsDetails{},
 				Qualitative: []string{
-					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGB),
+					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGiB),
 					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSRequiredDiskCPUCount),
 					"At least 3 hosts in case of cluster with workers",
 					"At least 1 non-boot disk on 3 hosts",

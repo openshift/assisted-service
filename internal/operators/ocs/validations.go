@@ -12,13 +12,13 @@ import (
 
 type Config struct {
 	OCSMinimumCPUCount                int64             `envconfig:"OCS_MINIMUM_CPU_COUNT" default:"18"`
-	OCSMinimumRAMGB                   int64             `envconfig:"OCS_MINIMUM_RAM_COUNT" default:"57"`
+	OCSMinimumRAMGiB                  int64             `envconfig:"OCS_MINIMUM_RAM_GiB" default:"57"`
 	OCSRequiredDisk                   int64             `envconfig:"OCS_MINIMUM_DISK" default:"3"`
 	OCSRequiredDiskCPUCount           int64             `envconfig:"OCS_REQUIRED_DISK_CPU_COUNT" default:"2"` // each disk requires 2 cpus
-	OCSRequiredDiskRAMGB              int64             `envconfig:"OCS_REQUIRED_DISK_RAM_GB" default:"5"`    // each disk requires 5GB ram
+	OCSRequiredDiskRAMGiB             int64             `envconfig:"OCS_REQUIRED_DISK_RAM_GiB" default:"5"`   // each disk requires 5GiB ram
 	OCSRequiredHosts                  int64             `envconfig:"OCS_MINIMUM_HOST" default:"3"`
 	OCSStandardAndCompactModeCPUCount int64             `envconfig:"OCS_STANDARD_AND_COMPACT_MODE_CPU_COUNT" default:"30"` // Compact Mode cpu requirements for 3 nodes( 4*3(master)+6*3(OCS) cpus)
-	OCSStandardAndCompactModeRAMGB    int64             `envconfig:"OCS_STANDARD_AND_COMPACT_MODE_RAM_GB" default:"81"`    // Compact Mode ram requirements (8*3(master)+57(OCS) GB)
+	OCSStandardAndCompactModeRAMGiB   int64             `envconfig:"OCS_STANDARD_AND_COMPACT_MODE_RAM_GiB" default:"81"`   // Compact Mode ram requirements (8*3(master)+57(OCS) GiB)
 	OCSMasterWorkerHosts              int64             `envconfig:"OCS_REQUIRED_MASTER_WORKER_HOSTS" default:"6"`
 	OCSDisksAvailable                 int64             `envconfig:"OCS_DISKS_AVAILABLE" default:"3"`
 	OCSDeploymentType                 ocsDeploymentMode `envconfig:"OCS_DEPLOYMENT_TYPE" default:"None"`
@@ -123,16 +123,16 @@ func (o *operator) computeNodeResourceUtil(host *models.Host, nodeInfo *resource
 	disks := getValidDiskCount(inventory.Disks)
 	if disks > 1 { // OCS must use only the non-boot disks
 		requiredDiskCPU := int64(disks-1) * o.config.OCSRequiredDiskCPUCount
-		requiredDiskRAM := int64(disks-1) * o.config.OCSRequiredDiskRAMGB
+		requiredDiskRAM := int64(disks-1) * o.config.OCSRequiredDiskRAMGiB
 
-		if inventory.CPU.Count < requiredDiskCPU || inventory.Memory.UsableBytes < conversions.GbToBytes(requiredDiskRAM) {
-			status = fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", disks, " disks that require ", requiredDiskCPU, " CPUs, ", requiredDiskRAM, " RAMGB")
+		if inventory.CPU.Count < requiredDiskCPU || inventory.Memory.UsableBytes < conversions.GibToBytes(requiredDiskRAM) {
+			status = fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", disks, " disks that require ", requiredDiskCPU, " CPUs, ", requiredDiskRAM, " GiB RAM")
 			nodeInfo.insufficientHosts = append(nodeInfo.insufficientHosts, status)
 			o.log.Info(status)
 		} else {
-			nodeInfo.cpuCount += inventory.CPU.Count - requiredDiskCPU                            // cpus excluding the cpus required for disks
-			nodeInfo.ram += inventory.Memory.UsableBytes - conversions.GbToBytes(requiredDiskRAM) // ram excluding the ram required for disks
-			nodeInfo.numDisks += (int64)(disks - 1)                                               // not counting the boot disk
+			nodeInfo.cpuCount += inventory.CPU.Count - requiredDiskCPU                             // cpus excluding the cpus required for disks
+			nodeInfo.ram += inventory.Memory.UsableBytes - conversions.GibToBytes(requiredDiskRAM) // ram excluding the ram required for disks
+			nodeInfo.numDisks += (int64)(disks - 1)                                                // not counting the boot disk
 			nodeInfo.hostsWithDisks++
 		}
 	} else {
@@ -191,30 +191,30 @@ func validateRequirementsForMode(o *operator, nodeInfo *resourceInfo, mode ocsDe
 
 	if mode == compactMode || mode == standardMode {
 		totalCPUs = o.config.OCSStandardAndCompactModeCPUCount
-		totalRAM = o.config.OCSStandardAndCompactModeRAMGB
+		totalRAM = o.config.OCSStandardAndCompactModeRAMGiB
 	} else {
 		totalCPUs = o.config.OCSMinimumCPUCount
-		totalRAM = o.config.OCSMinimumRAMGB
+		totalRAM = o.config.OCSMinimumRAMGiB
 	}
-	return nodeInfo.cpuCount >= totalCPUs && nodeInfo.ram >= conversions.GbToBytes(totalRAM) && nodeInfo.numDisks >= o.config.OCSRequiredDisk && nodeInfo.hostsWithDisks >= o.config.OCSRequiredHosts
+	return nodeInfo.cpuCount >= totalCPUs && nodeInfo.ram >= conversions.GibToBytes(totalRAM) && nodeInfo.numDisks >= o.config.OCSRequiredDisk && nodeInfo.hostsWithDisks >= o.config.OCSRequiredHosts
 }
 
 func (o *operator) setStatusInsufficientResources(nodeInfo *resourceInfo, mode ocsDeploymentMode) string {
 	var totalCPUs int64
-	var totalRAMGB int64
+	var totalRAMGiB int64
 	if mode == compactMode {
 		totalCPUs = o.config.OCSStandardAndCompactModeCPUCount
-		totalRAMGB = o.config.OCSStandardAndCompactModeRAMGB
+		totalRAMGiB = o.config.OCSStandardAndCompactModeRAMGiB
 	} else {
 		totalCPUs = o.config.OCSMinimumCPUCount
-		totalRAMGB = o.config.OCSMinimumRAMGB
+		totalRAMGiB = o.config.OCSMinimumRAMGiB
 	}
 	status := fmt.Sprint("Insufficient Resources to deploy OCS in ", string(mode), " Mode. A minimum of ")
 	if nodeInfo.cpuCount < totalCPUs {
 		status = status + fmt.Sprint(totalCPUs, " CPUs, excluding disk CPU resources ")
 	}
-	if nodeInfo.ram < conversions.GbToBytes(totalRAMGB) {
-		status = status + fmt.Sprint(totalRAMGB, " RAM GB, excluding disk RAM resources ")
+	if nodeInfo.ram < conversions.GibToBytes(totalRAMGiB) {
+		status = status + fmt.Sprint(totalRAMGiB, " GiB RAM, excluding disk RAM resources ")
 	}
 	if nodeInfo.numDisks < o.config.OCSRequiredDisk {
 		status = status + fmt.Sprint(o.config.OCSRequiredDisk, " Disks of minimum ", MinDiskSize, "GB is required ")
