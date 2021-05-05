@@ -253,14 +253,6 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		}
 	}
 
-	/*
-		if cluster.ImageInfo.MirrorRegistriesConfig != "" {
-			err := i.setImageContentSources(cluster.ImageInfo.MirrorRegistriesConfig, cfg)
-			if err != nil {
-				return nil, err
-			}
-		}
-	*/
 	return cfg, nil
 }
 
@@ -445,9 +437,11 @@ func (i *installConfigBuilder) getHypethreadingConfiguration(cluster *common.Clu
 
 func (i *installConfigBuilder) getCAContents(cluster *common.Cluster, rhRootCA string, installRHRootCAFlag bool) string {
 	// CA for mirror registries and RH CA are mutually exclusive
-	caContents, err := i.mirrorRegistriesBuilder.GetMirrorCA()
-	if err == nil {
-		return "\n" + string(caContents)
+	if i.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
+		caContents, err := i.mirrorRegistriesBuilder.GetMirrorCA()
+		if err == nil {
+			return "\n" + string(caContents)
+		}
 	}
 	if installRHRootCAFlag {
 		return rhRootCA
