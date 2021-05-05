@@ -217,8 +217,8 @@ func (o *operator) checkHostRequirements(ctx context.Context, cluster *common.Cl
 	}
 
 	if inventory.Memory.UsableBytes < conversions.MibToBytes(requirements.RAMMib) {
-		usableMemory := conversions.BytesToMib(inventory.Memory.UsableBytes)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OCS. Required memory is %d MiB but found %d MiB.", requirements.RAMMib, usableMemory)}}, nil
+		usableMemory := conversions.BytesToGiB(inventory.Memory.UsableBytes)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OCS. Required memory is %d GiB but found %d GiB.", conversions.MibToGiB(requirements.RAMMib), usableMemory)}}, nil
 	}
 
 	if mode == compactMode && getValidDiskCount(inventory.Disks) <= 1 {

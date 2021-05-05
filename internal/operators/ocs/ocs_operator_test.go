@@ -259,7 +259,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithLessRAM,
 				}}},
 				masterWithLessRAM,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 24576 MiB but found 5120 MiB."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 24 GiB but found 5 GiB."}},
 			),
 		)
 
@@ -314,7 +314,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessRAM,
 				}}},
 				workerWithLessRAM,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 16384 MiB but found 5120 MiB."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 16 GiB but found 5 GiB."}},
 			),
 		)
 	})
