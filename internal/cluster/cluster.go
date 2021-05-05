@@ -636,8 +636,6 @@ func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 }
 
 func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
-	log := logutil.FromContext(ctx, m.log)
-
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := "Cancelled cluster installation"
 	defer func() {
@@ -654,8 +652,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 		eventInfo = fmt.Sprintf("Failed to cancel installation: %s", err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
-	//report installation finished metric
-	m.metricAPI.ClusterInstallationFinished(log, "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+	m.metricAPI.ClusterInstallationFinished(ctx, "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 	return nil
 }
 
@@ -1068,6 +1065,9 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 	cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, m.log)
 	destStatus := models.ClusterStatusError
+	result := models.ClusterStatusInstalled
+	severity := models.EventSeverityInfo
+	eventMsg := fmt.Sprintf("Successfully finished installing cluster %s", cluster.Name)
 
 	if successfullyFinished {
 		destStatus = models.ClusterStatusInstalled
@@ -1090,19 +1090,13 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 		return nil, err
 	}
 
-	result := models.ClusterStatusInstalled
-
-	severity := models.EventSeverityInfo
-	eventMsg := fmt.Sprintf("Successfully finished installing cluster %s", cluster.Name)
 	if !successfullyFinished {
 		result = models.ClusterStatusError
 		severity = models.EventSeverityCritical
 		eventMsg = fmt.Sprintf("Failed installing cluster %s. Reason: %s", cluster.Name, reason)
 	}
-
-	m.metricAPI.ClusterInstallationFinished(log, result, cluster.OpenshiftVersion,
-		*cluster.ID, cluster.EmailDomain, cluster.InstallStartedAt)
 	m.eventsHandler.AddEvent(ctx, *cluster.ID, nil, severity, eventMsg, time.Now())
-
+	m.metricAPI.ClusterInstallationFinished(ctx, result, cluster.OpenshiftVersion,
+		*cluster.ID, cluster.EmailDomain, cluster.InstallStartedAt)
 	return clusterAfterUpdate, nil
 }

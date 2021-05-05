@@ -1,12 +1,15 @@
 package metrics
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 )
@@ -97,10 +100,9 @@ type API interface {
 	ClusterValidationChanged(clusterVersion string, emailDomain string, clusterValidationType models.ClusterValidationID)
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string)
-	ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int)
 	Duration(operation string, duration time.Duration)
-	ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
-	ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
+	ClusterInstallationFinished(ctx context.Context, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
+	ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 	DiskSyncDuration(clusterID strfmt.UUID, hostID strfmt.UUID, diskPath string, syncDuration int64)
 	ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64)
 	FileSystemUsage(usageInPercentage float64)
@@ -110,6 +112,7 @@ type API interface {
 
 type MetricsManager struct {
 	registry prometheus.Registerer
+	handler  events.Handler
 
 	serviceLogicClusterCreation                        *prometheus.CounterVec
 	serviceLogicClusterInstallationStarted             *prometheus.CounterVec
@@ -134,10 +137,13 @@ type MetricsManager struct {
 	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
 }
 
-func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
+var _ API = &MetricsManager{}
+
+func NewMetricsManager(registry prometheus.Registerer, eventsHandler events.Handler) *MetricsManager {
 
 	m := &MetricsManager{
 		registry: registry,
+		handler:  eventsHandler,
 
 		serviceLogicClusterCreation: prometheus.NewCounterVec(
 			prometheus.CounterOpts{
@@ -331,6 +337,7 @@ func NewMetricsManager(registry prometheus.Registerer) *MetricsManager {
 }
 
 func (m *MetricsManager) ClusterRegistered(clusterVersion string, clusterID strfmt.UUID, emailDomain string) {
+	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 	m.serviceLogicClusterCreation.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Inc()
 }
 
@@ -351,24 +358,28 @@ func (m *MetricsManager) ClusterValidationChanged(clusterVersion string, emailDo
 }
 
 func (m *MetricsManager) InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string) {
+	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 	m.serviceLogicClusterInstallationStarted.WithLabelValues(clusterVersion, clusterID.String(), emailDomain, userManagedNetworking).Inc()
 }
 
 func (m *MetricsManager) ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string) {
+	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 	m.serviceLogicClusterHostInstallationCount.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Observe(float64(hostCount))
 }
 
-func (m *MetricsManager) ClusterHostsNTPFailures(clusterID strfmt.UUID, emailDomain string, hostNTPFailureCount int) {
-	m.serviceLogicClusterHostNTPFailuresCount.WithLabelValues(clusterID.String(), emailDomain).Observe(float64(hostNTPFailureCount))
-}
-
-func (m *MetricsManager) ClusterInstallationFinished(log logrus.FieldLogger, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
+func (m *MetricsManager) ClusterInstallationFinished(ctx context.Context, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	duration := time.Since(time.Time(installationStartedTime)).Seconds()
+	m.handler.AddMetricsEvent(ctx, clusterID, nil, models.EventSeverityInfo, "cluster.installation.results", time.Now(),
+		"duration", duration)
+
+	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
+	log := logutil.FromContext(ctx, logrus.New())
 	log.Infof("Cluster %s Installation Finished result %s clusterVersion %s duration %f", clusterID.String(), result, clusterVersion, duration)
 	m.serviceLogicClusterInstallationSeconds.WithLabelValues(result, clusterVersion, clusterID.String(), emailDomain).Observe(duration)
 }
 
 func (m *MetricsManager) Duration(operation string, duration time.Duration) {
+	//MGMT-4526 TODO: Do not move this to ELK with events. It is called repeatedly over short periods of time
 	m.serviceLogicOperationDurationMiliSeconds.WithLabelValues(operation).Observe(float64(duration.Milliseconds()))
 }
 
@@ -380,8 +391,9 @@ func (m *MetricsManager) ImagePullStatus(clusterID, hostID strfmt.UUID, imageNam
 	m.serviceLogicClusterHostImagePullStatus.WithLabelValues(imageName, resultStatus, clusterID.String(), hostID.String()).Observe(downloadRate)
 }
 
-func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk,
+func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk,
 	h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+	log := logutil.FromContext(ctx, logrus.New())
 	if previousProgress != nil && previousProgress.CurrentStage != currentStage {
 		roleStr := string(h.Role)
 		if h.Bootstrap {
@@ -404,7 +416,8 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 		}
 		switch currentStage {
 		case models.HostStageDone, models.HostStageFailed:
-			m.handleHostInstallationComplete(log, clusterVersion, clusterID, emailDomain, roleStr, hwVendor, hwProduct, diskType, installationStageStr, h)
+			//TODO: handle cancel as well
+			m.reportHostMetricsOnInstallationComplete(ctx, clusterVersion, clusterID, emailDomain, roleStr, hwVendor, hwProduct, diskType, installationStageStr, h)
 		}
 		//report the installation phase duration
 		if previousProgress.CurrentStage != "" {
@@ -415,46 +428,76 @@ func (m *MetricsManager) ReportHostInstallationMetrics(log logrus.FieldLogger, c
 			}
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
 				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
+			m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.stage.duration", time.Now(),
+				"duration", duration, "stage", string(phaseResult), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType)
+
+			//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
 				string(phaseResult), clusterVersion, clusterID.String(), emailDomain, h.DiscoveryAgentVersion, hwVendor, hwProduct, diskType).Observe(duration)
 		}
 	}
 }
 
-func (m *MetricsManager) handleHostInstallationComplete(log logrus.FieldLogger, clusterVersion string, clusterID strfmt.UUID, emailDomain string,
+func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string,
 	roleStr string, hwVendor string, hwProduct string, diskType string, installationStageStr string, h *models.Host) {
+	log := logutil.FromContext(ctx, logrus.New())
+
+	//increment the count of successful installed hosts
+	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 	log.Infof("service Logic Cluster Hosts clusterVersion %s, roleStr %s, vendor %s, product %s, disk %s, result %s",
 		clusterVersion, roleStr, hwVendor, hwProduct, diskType, installationStageStr)
 	m.serviceLogicClusterHosts.WithLabelValues(roleStr, installationStageStr, clusterVersion, clusterID.String(), emailDomain, hwVendor, hwProduct, diskType).Inc()
-	var hwInfo models.Inventory
 
+	var hwInfo models.Inventory
 	err := json.Unmarshal([]byte(h.Inventory), &hwInfo)
 	if err != nil {
 		log.Errorf("failed to report host hardware installation metrics for %s", h.ID)
-	} else {
-		log.Infof("service Logic Cluster Host Cores role %s, result %s cpu %d",
-			roleStr, installationStageStr, hwInfo.CPU.Count)
-		m.serviceLogicClusterHostCores.WithLabelValues(roleStr, installationStageStr,
-			clusterVersion, clusterID.String(), emailDomain).Observe(float64(hwInfo.CPU.Count))
-		log.Infof("service Logic Cluster Host RAMGb role %s, result %s ram %d",
-			roleStr, installationStageStr, bytesToGib(hwInfo.Memory.PhysicalBytes))
-		m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr,
-			clusterVersion, clusterID.String(), emailDomain).Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
-		for _, disk := range hwInfo.Disks {
-			//TODO change the code after adding storage controller to disk model
-			diskTypeStr := disk.DriveType //+ "-" + disk.StorageController
-			log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
-				roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
-			//TODO missing raid data
-			m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr,
-				clusterVersion, clusterID.String(), emailDomain).Observe(float64(bytesToGib(disk.SizeBytes)))
-		}
-		for _, inter := range hwInfo.Interfaces {
-			log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
-				roleStr, installationStageStr, float64(inter.SpeedMbps))
-			m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr,
-				clusterVersion, clusterID.String(), emailDomain).Observe(float64(inter.SpeedMbps))
-		}
+		return
+	}
+	//collect the number of host's cores
+	log.Infof("service Logic Cluster Host Cores role %s, result %s cpu %d",
+		roleStr, installationStageStr, hwInfo.CPU.Count)
+
+	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
+	m.serviceLogicClusterHostCores.WithLabelValues(roleStr, installationStageStr,
+		clusterVersion, clusterID.String(), emailDomain).Observe(float64(hwInfo.CPU.Count))
+
+	//collect the host's RAM data
+	log.Infof("service Logic Cluster Host RAMGb role %s, result %s ram %d",
+		roleStr, installationStageStr, bytesToGib(hwInfo.Memory.PhysicalBytes))
+
+	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
+	m.serviceLogicClusterHostRAMGb.WithLabelValues(roleStr, installationStageStr,
+		clusterVersion, clusterID.String(), emailDomain).Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
+
+	m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.mem.cpu", time.Now(),
+		"stage", installationStageStr, "host_role", roleStr, "mem_bytes", bytesToGib(hwInfo.Memory.PhysicalBytes),
+		"core_count", hwInfo.CPU.Count)
+
+	//report disk's type, size and role for each disk
+	for _, disk := range hwInfo.Disks {
+		//TODO change the code after adding storage controller to disk model
+		//TODO missing raid data
+		diskTypeStr := disk.DriveType //+ "-" + disk.StorageController
+		log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
+			roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
+		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "disk.size.type", time.Now(),
+			"stage", installationStageStr, "host_role", roleStr, "disk_type", diskTypeStr, "disk_size", bytesToGib(disk.SizeBytes))
+
+		//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
+		m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr,
+			clusterVersion, clusterID.String(), emailDomain).Observe(float64(bytesToGib(disk.SizeBytes)))
+	}
+	//report NIC's speed. role for each NIC
+	for _, inter := range hwInfo.Interfaces {
+		log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
+			roleStr, installationStageStr, float64(inter.SpeedMbps))
+		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "nic.speed", time.Now(),
+			"stage", installationStageStr, "host_role", roleStr, "nic_speed", inter.SpeedMbps)
+
+		//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
+		m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr,
+			clusterVersion, clusterID.String(), emailDomain).Observe(float64(inter.SpeedMbps))
 	}
 }
 
