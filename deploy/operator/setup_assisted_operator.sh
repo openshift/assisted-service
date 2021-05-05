@@ -8,38 +8,12 @@ INDEX_IMAGE="${INDEX_IMAGE:-quay.io/ocpmetal/assisted-service-index:latest}"
 STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
 
 function subscription_config() {
-    if [ -n "${SERVICE_IMAGE:-}" ]; then
-cat <<EOF
-    - name: SERVICE_IMAGE
-      value: '${SERVICE_IMAGE}'
-EOF
-    fi
-
-    if [ -n "${SERVICE_BASE_URL:-}" ]; then
-cat <<EOF
-    - name: SERVICE_BASE_URL
-      value: '${SERVICE_BASE_URL}'
-EOF
-    fi
-
-    if [ -n "${INSTALLER_IMAGE:-}" ]; then
-cat <<EOF
-    - name: INSTALLER_IMAGE
-      value: '${INSTALLER_IMAGE}'
-EOF
-    fi
+    # Notice that this list of env variables is alphabetically ordered due to OLM bug
 
     if [ -n "${AGENT_IMAGE:-}" ]; then
 cat <<EOF
     - name: AGENT_IMAGE
       value: '${AGENT_IMAGE}'
-EOF
-    fi
-
-    if [ -n "${DATABASE_IMAGE:-}" ]; then
-cat <<EOF
-    - name: DATABASE_IMAGE
-      value: '${DATABASE_IMAGE}'
 EOF
     fi
 
@@ -50,10 +24,38 @@ cat <<EOF
 EOF
     fi
 
+    if [ -n "${DATABASE_IMAGE:-}" ]; then
+cat <<EOF
+    - name: DATABASE_IMAGE
+      value: '${DATABASE_IMAGE}'
+EOF
+    fi
+
+    if [ -n "${INSTALLER_IMAGE:-}" ]; then
+cat <<EOF
+    - name: INSTALLER_IMAGE
+      value: '${INSTALLER_IMAGE}'
+EOF
+    fi
+
     if [ -n "${OPENSHIFT_VERSIONS:-}" ]; then
 cat <<EOF
     - name: OPENSHIFT_VERSIONS
       value: '${OPENSHIFT_VERSIONS}'
+EOF
+    fi
+
+    if [ -n "${SERVICE_BASE_URL:-}" ]; then
+cat <<EOF
+    - name: SERVICE_BASE_URL
+      value: '${SERVICE_BASE_URL}'
+EOF
+    fi
+
+    if [ -n "${SERVICE_IMAGE:-}" ]; then
+cat <<EOF
+    - name: SERVICE_IMAGE
+      value: '${SERVICE_IMAGE}'
 EOF
     fi
 }
