@@ -178,6 +178,25 @@ func getMetricRecord(name string) (string, error) {
 	return filteredMetrics[0], nil
 }
 
+func getMetricEvents(ctx context.Context, clusterID strfmt.UUID) []*models.Event {
+	eventsReply, err := userBMClient.Events.ListEvents(ctx, &events.ListEventsParams{
+		ClusterID:  clusterID,
+		Categories: []string{"metrics"},
+	})
+	Expect(err).NotTo(HaveOccurred())
+	return eventsReply.GetPayload()
+}
+
+func filterMetricEvents(in []*models.Event, hostID strfmt.UUID, message string) []*models.Event {
+	events := make([]*models.Event, 0)
+	for _, ev := range in {
+		if ev.HostID == hostID && *ev.Message == message {
+			events = append(events, ev)
+		}
+	}
+	return events
+}
+
 func assertHostValidationEvent(ctx context.Context, clusterID strfmt.UUID, hostName string, validationID models.HostValidationID, isFailure bool) {
 
 	eventsReply, err := userBMClient.Events.ListEvents(ctx, &events.ListEventsParams{
@@ -304,6 +323,77 @@ var _ = Describe("Metrics tests", func() {
 
 	AfterEach(func() {
 		clearDB()
+	})
+
+	Context("host metrics events", func() {
+		var c *models.Cluster
+		var bootstrap models.Host
+
+		var toProps = func(str string) map[string]interface{} {
+			props := make(map[string]interface{})
+			Expect(json.Unmarshal([]byte(str), &props)).NotTo(HaveOccurred())
+			return props
+		}
+
+		BeforeEach(func() {
+			//start host installation process
+			registerHostsAndSetRoles(clusterID, 3)
+			c = installCluster(clusterID)
+			for _, host := range c.Hosts {
+				waitForHostState(ctx, clusterID, *host.ID, "installing", defaultWaitForHostStateTimeout)
+				if host.Bootstrap {
+					bootstrap = *host
+				}
+			}
+		})
+
+		tests := []struct {
+			name     string
+			dstStage models.HostStage
+		}{
+			{
+				name:     "host metrics on host stage done",
+				dstStage: models.HostStageDone,
+			},
+			{
+				name:     "host metrics on host stage failed",
+				dstStage: models.HostStageFailed,
+			},
+		}
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				//move the bootstrap host to the desired state
+				updateProgress(*bootstrap.ID, clusterID, t.dstStage)
+
+				//read metrics events
+				evs := getMetricEvents(context.TODO(), clusterID)
+				Expect(len(evs)).To(Equal(4))
+
+				host_mem_cpu_evs := filterMetricEvents(evs, *bootstrap.ID, "host.mem.cpu")
+				Expect(len(host_mem_cpu_evs)).To(Equal(1))
+				host_mem_cpu_props := toProps(host_mem_cpu_evs[0].Props)
+				Expect(host_mem_cpu_props["host_role"]).To(Equal("bootstrap"))
+				Expect(host_mem_cpu_props["stage"]).To(Equal(string(t.dstStage)))
+				Expect(host_mem_cpu_props["core_count"]).NotTo(BeNil())
+				Expect(host_mem_cpu_props["mem_bytes"]).NotTo(BeNil())
+
+				disk_size_type_evs := filterMetricEvents(evs, *bootstrap.ID, "disk.size.type")
+				Expect(len(disk_size_type_evs)).To(Equal(2))
+				disk_size_type_props := toProps(disk_size_type_evs[0].Props)
+				Expect(disk_size_type_props["host_role"]).To(Equal("bootstrap"))
+				Expect(disk_size_type_props["stage"]).To(Equal(string(t.dstStage)))
+				Expect(disk_size_type_props["disk_size"]).NotTo(BeNil())
+				Expect(disk_size_type_props["disk_type"]).NotTo(BeNil())
+
+				nic_speed_evs := filterMetricEvents(evs, *bootstrap.ID, "nic.speed")
+				Expect(len(nic_speed_evs)).To(Equal(1))
+				nic_speed_props := toProps(nic_speed_evs[0].Props)
+				Expect(nic_speed_props["host_role"]).To(Equal("bootstrap"))
+				Expect(nic_speed_props["stage"]).To(Equal(string(t.dstStage)))
+				Expect(nic_speed_props["nic_speed"]).NotTo(BeNil())
+			})
+		}
 	})
 
 	Context("Host validation metrics", func() {
