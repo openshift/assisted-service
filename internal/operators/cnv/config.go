@@ -4,16 +4,18 @@ import (
 	"strings"
 )
 
-type SupportedGPUsDecoder map[string]bool
+type DeviceIDDecoder map[string]bool
 
 type Config struct {
 	// List of supported GPUs: https://issues.redhat.com/browse/CNV-7749
-	SupportedGPUs SupportedGPUsDecoder `envconfig:"CNV_SUPPORTED_GPUS" default:"10de:1db6,10de:1eb8"`
+	SupportedGPUs DeviceIDDecoder `envconfig:"CNV_SUPPORTED_GPUS" default:"10de:1db6,10de:1eb8"`
+	// List of supported SR-IOV NICs: https://docs.openshift.com/container-platform/4.7/networking/hardware_networks/about-sriov.html#supported-devices_about-sriov
+	SupportedSRIOVNetworkIC DeviceIDDecoder `envconfig:"CNV_SUPPORTED_SRIOV_NICS" default:"8086:158b,15b3:1015,15b3:1017,15b3:1013,15b3:101b"`
 }
 
-func (d *SupportedGPUsDecoder) Decode(value string) error {
-	supportedGPUsSet := make(SupportedGPUsDecoder)
-	*d = supportedGPUsSet
+func (d *DeviceIDDecoder) Decode(value string) error {
+	deviceIDSet := make(DeviceIDDecoder)
+	*d = deviceIDSet
 
 	if strings.TrimSpace(value) == "" {
 		return nil
@@ -21,7 +23,7 @@ func (d *SupportedGPUsDecoder) Decode(value string) error {
 	devices := strings.Split(value, ",")
 
 	for _, device := range devices {
-		supportedGPUsSet[strings.ToLower(device)] = true
+		deviceIDSet[strings.ToLower(device)] = true
 	}
 	return nil
 }

@@ -21,10 +21,15 @@ var _ = Describe("CNV operator", func() {
 	)
 
 	BeforeEach(func() {
-		cfg := cnv.Config{SupportedGPUs: map[string]bool{
-			"10de:1db6": true,
-			"10de:1eb8": true,
-		}}
+		cfg := cnv.Config{
+			SupportedGPUs: map[string]bool{
+				"10de:1db6": true,
+				"10de:1eb8": true,
+			},
+			SupportedSRIOVNetworkIC: map[string]bool{
+				"8086:158b": true,
+				"15b3:1015": true,
+			}}
 		operator = cnv.NewCNVOperator(log, cfg)
 	})
 
@@ -47,7 +52,7 @@ var _ = Describe("CNV operator", func() {
 			func(gpus []*models.Gpu, expectedRequirements *models.ClusterHostRequirementsDetails) {
 				host := models.Host{
 					Role:      models.HostRoleWorker,
-					Inventory: getInventory(gpus),
+					Inventory: getInventoryWithGPUs(gpus),
 				}
 
 				requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
@@ -75,10 +80,42 @@ var _ = Describe("CNV operator", func() {
 				newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)),
 		)
 
+		table.DescribeTable("should be returned for worker inventory with supported SR-IOV interfaces",
+			func(interfaces []*models.Interface, expectedRequirements *models.ClusterHostRequirementsDetails) {
+				host := models.Host{
+					Role:      models.HostRoleWorker,
+					Inventory: getInventoryWithInterfaces(interfaces),
+				}
+
+				requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(requirements).ToNot(BeNil())
+				Expect(requirements).To(BeEquivalentTo(expectedRequirements))
+			},
+			table.Entry("1 supported SR-IOV Interface",
+				[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}},
+				newRequirements(cnv.WorkerCPU, cnv.WorkerMemory+1024)),
+			table.Entry("1 supported SR-IOV Interface+1 unsupported",
+				[]*models.Interface{{Product: "0x158B", Vendor: "0x8086"}, {Product: "1111", Vendor: "0000"}},
+				newRequirements(cnv.WorkerCPU, cnv.WorkerMemory+1024)),
+
+			table.Entry("2 supported SR-IOV Interfaces",
+				[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}, {Product: "1015", Vendor: "15b3"}},
+				newRequirements(cnv.WorkerCPU, cnv.WorkerMemory+2*1024)),
+			table.Entry("3 identical supported SR-IOV Interfaces",
+				[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}, {Product: "0x158b", Vendor: "0x8086"}, {Product: "0x158b", Vendor: "0x8086"}},
+				newRequirements(cnv.WorkerCPU, cnv.WorkerMemory+3*1024)),
+
+			table.Entry("2 unsupported SR-IOV Interfaces only",
+				[]*models.Interface{{Product: "2222", Vendor: "0000"}, {Product: "1111", Vendor: "0000"}},
+				newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)),
+		)
+
 		table.DescribeTable("should be returned for master inventory with GPUs", func(gpus []*models.Gpu) {
 			host := models.Host{
 				Role:      models.HostRoleMaster,
-				Inventory: getInventory(gpus),
+				Inventory: getInventoryWithGPUs(gpus),
 			}
 
 			requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
@@ -102,6 +139,49 @@ var _ = Describe("CNV operator", func() {
 				[]*models.Gpu{{DeviceID: "2222", VendorID: "0000"}, {DeviceID: "1111", VendorID: "0000"}}),
 		)
 
+		table.DescribeTable("should be returned for master inventory with SR-IOV interfaces",
+			func(interfaces []*models.Interface) {
+				host := models.Host{
+					Role:      models.HostRoleMaster,
+					Inventory: getInventoryWithInterfaces(interfaces),
+				}
+
+				requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+
+				Expect(err).ToNot(HaveOccurred())
+				Expect(requirements).ToNot(BeNil())
+				Expect(requirements).To(BeEquivalentTo(newRequirements(cnv.MasterCPU, cnv.MasterMemory)))
+			},
+			table.Entry("1 supported SR-IOV Interface",
+				[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}}),
+			table.Entry("1 supported SR-IOV Interface+1 unsupported",
+				[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}, {Product: "1111", Vendor: "0000"}}),
+
+			table.Entry("2 supported SR-IOV Interfaces",
+				[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}, {Product: "0x1015", Vendor: "0x15b3"}}),
+			table.Entry("3 identical supported SR-IOV Interfaces",
+				[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}, {Product: "0x158b", Vendor: "0x8086"}, {Product: "0x158b", Vendor: "0x8086"}}),
+
+			table.Entry("2 unsupported SR-IOV Interfaces only",
+				[]*models.Interface{{Product: "2222", Vendor: "0000"}, {Product: "1111", Vendor: "0000"}}),
+		)
+
+		It("should be returned for worker with supported GPU and SR-IOV interface", func() {
+			host := models.Host{
+				Role: models.HostRoleWorker,
+				Inventory: getInventoryWith(
+					[]*models.Gpu{{DeviceID: "1db6", VendorID: "10de"}},
+					[]*models.Interface{{Product: "0x158b", Vendor: "0x8086"}},
+				),
+			}
+
+			requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(requirements).ToNot(BeNil())
+			Expect(requirements).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory+2*1024)))
+		})
+
 		It("should fail for worker with malformed inventory JSON", func() {
 			host := models.Host{
 				Role:      models.HostRoleWorker,
@@ -113,24 +193,6 @@ var _ = Describe("CNV operator", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should take into account GPUs from env variables", func() {
-			cfg := cnv.Config{SupportedGPUs: map[string]bool{
-				"0000:1111": true,
-				"2222:3333": true,
-			}}
-			operator = cnv.NewCNVOperator(log, cfg)
-
-			host := models.Host{
-				Role:      models.HostRoleWorker,
-				Inventory: getInventory([]*models.Gpu{{DeviceID: "1111", VendorID: "0000"}, {DeviceID: "3333", VendorID: "2222"}}),
-			}
-
-			requirements, err := operator.GetHostRequirements(context.TODO(), nil, &host)
-
-			Expect(err).ToNot(HaveOccurred())
-			Expect(requirements).ToNot(BeNil())
-			Expect(requirements).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory+2*1024)))
-		})
 	})
 
 	Context("preflight hardware requirements", func() {
@@ -141,10 +203,10 @@ var _ = Describe("CNV operator", func() {
 			Expect(requirements.Dependencies).To(ConsistOf(lso.Operator.Name))
 			Expect(requirements.OperatorName).To(BeEquivalentTo(cnv.Operator.Name))
 
-			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(2))
+			Expect(requirements.Requirements.Worker.Qualitative).To(HaveLen(3))
 			Expect(requirements.Requirements.Worker.Quantitative).To(BeEquivalentTo(newRequirements(cnv.WorkerCPU, cnv.WorkerMemory)))
 
-			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(2))
+			Expect(requirements.Requirements.Master.Qualitative).To(HaveLen(3))
 			Expect(requirements.Requirements.Master.Quantitative).To(BeEquivalentTo(newRequirements(cnv.MasterCPU, cnv.MasterMemory)))
 
 			Expect(requirements.Requirements.Master.Qualitative).To(BeEquivalentTo(requirements.Requirements.Worker.Qualitative))
@@ -152,8 +214,22 @@ var _ = Describe("CNV operator", func() {
 	})
 })
 
-func getInventory(gpus []*models.Gpu) string {
+func getInventoryWithGPUs(gpus []*models.Gpu) string {
 	inventory := models.Inventory{Gpus: gpus}
+	return marshal(inventory)
+}
+
+func getInventoryWithInterfaces(interfaces []*models.Interface) string {
+	inventory := models.Inventory{Interfaces: interfaces}
+	return marshal(inventory)
+}
+
+func getInventoryWith(gpus []*models.Gpu, interfaces []*models.Interface) string {
+	inventory := models.Inventory{Gpus: gpus, Interfaces: interfaces}
+	return marshal(inventory)
+}
+
+func marshal(inventory models.Inventory) string {
 	inventoryJSON, err := hostutil.MarshalInventory(&inventory)
 	Expect(err).ToNot(HaveOccurred())
 	return inventoryJSON
