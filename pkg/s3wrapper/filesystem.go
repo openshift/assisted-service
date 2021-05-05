@@ -376,7 +376,11 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 	}
 
 	if !minimalExists {
-		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, openshiftVersion, serviceBaseURL, f, f.isoEditorFactory); err != nil {
+		rootFSURL, err := f.versionsHandler.GetRHCOSRootFS(openshiftVersion)
+		if err != nil {
+			return err
+		}
+		if err = CreateAndUploadMinimalIso(ctx, log, isoFilePath, minimalIsoObject, rootFSURL, f, f.isoEditorFactory); err != nil {
 			return err
 		}
 	}

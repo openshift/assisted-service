@@ -23,7 +23,7 @@ import (
 
 const (
 	minimalTemplatesVersionFileName = "minimal_templates_version.json"
-	minimalTemplatesVersionLatest   = 2 // increase if templates update is needed
+	minimalTemplatesVersionLatest   = 3 // increase if templates update is needed
 )
 
 type templatesVersion struct {
@@ -140,15 +140,14 @@ func DoAllBootFilesExist(ctx context.Context, isoObjectName string, api API) (bo
 	return true, nil
 }
 
-func CreateAndUploadMinimalIso(ctx context.Context, log logrus.FieldLogger,
-	isoPath, minimalIsoObject, openshiftVersion, serviceBaseURL string,
+func CreateAndUploadMinimalIso(ctx context.Context, log logrus.FieldLogger, isoPath, minimalIsoObject, rootFSURL string,
 	api API, editorFactory isoeditor.Factory) error {
 
 	log.Infof("Extracting rhcos ISO (%s)", isoPath)
 	var minimalIsoPath string
 	err := editorFactory.WithEditor(ctx, isoPath, log, func(editor isoeditor.Editor) error {
 		var createError error
-		minimalIsoPath, createError = editor.CreateMinimalISOTemplate(serviceBaseURL, openshiftVersion)
+		minimalIsoPath, createError = editor.CreateMinimalISOTemplate(rootFSURL)
 		return createError
 	})
 	if err != nil {
