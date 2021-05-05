@@ -46,6 +46,66 @@ var _ = Describe("DNS tests", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(dnsDomain).Should(BeNil())
 	})
+
+	Context("DNS domain", func() {
+
+		generateDomainName := func(labelLen, labelCount int) string {
+			buff := make([]byte, labelLen*labelCount+labelCount-1)
+			dot := labelLen
+			for i := range buff {
+				if i == dot {
+					buff[i] = '.'
+					dot = dot + labelLen + 1
+				} else {
+					buff[i] = 'a'
+				}
+			}
+			return string(buff)
+		}
+
+		tests := []struct {
+			baseDomain  string
+			clusterName string
+			valid       bool
+		}{
+			{
+				baseDomain:  "example.com",
+				clusterName: generateDomainName(64, 1),
+				valid:       false,
+			},
+			{
+				baseDomain:  generateDomainName(64, 2),
+				clusterName: "cluster-name",
+				valid:       false,
+			},
+			{
+				baseDomain:  generateDomainName(60, 3),
+				clusterName: generateDomainName(6, 1),
+				valid:       false,
+			},
+			{
+				baseDomain:  generateDomainName(62, 2),
+				clusterName: generateDomainName(60, 1),
+				valid:       true,
+			},
+			{
+				baseDomain:  "example.com",
+				clusterName: "cluster-name",
+				valid:       true,
+			},
+		}
+		for _, t := range tests {
+			t := t
+			It(fmt.Sprintf("Base domain: %s, cluster name: %s", t.baseDomain, t.clusterName), func() {
+				err := dnsApi.ValidateDNSName(t.clusterName, t.baseDomain)
+				if t.valid {
+					Expect(err).ToNot(HaveOccurred())
+				} else {
+					Expect(err).To(HaveOccurred())
+				}
+			})
+		}
+	})
 })
 
 var _ = Describe("DNS record set update tests", func() {

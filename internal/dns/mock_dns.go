@@ -78,6 +78,20 @@ func (mr *MockDNSApiMockRecorder) GetDNSDomain(clusterName, baseDNSDomainName in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDNSDomain", reflect.TypeOf((*MockDNSApi)(nil).GetDNSDomain), clusterName, baseDNSDomainName)
 }
 
+// ValidateDNSName mocks base method
+func (m *MockDNSApi) ValidateDNSName(clusterName, baseDNSDomainName string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateDNSName", clusterName, baseDNSDomainName)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateDNSName indicates an expected call of ValidateDNSName
+func (mr *MockDNSApiMockRecorder) ValidateDNSName(clusterName, baseDNSDomainName interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateDNSName", reflect.TypeOf((*MockDNSApi)(nil).ValidateDNSName), clusterName, baseDNSDomainName)
+}
+
 // ValidateBaseDNS mocks base method
 func (m *MockDNSApi) ValidateBaseDNS(domain *DNSDomain) error {
 	m.ctrl.T.Helper()

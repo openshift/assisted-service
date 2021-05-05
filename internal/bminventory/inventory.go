@@ -474,13 +474,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if sshPublicKey := swag.StringValue(&cluster.SSHPublicKey); sshPublicKey != "" {
-		sshPublicKey = strings.TrimSpace(cluster.SSHPublicKey)
-		if err = validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
-			return nil, common.NewApiError(http.StatusBadRequest, err)
-		}
-		cluster.SSHPublicKey = sshPublicKey
+	if err = b.validateDNSName(cluster); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
+
+	if err = updateSSHPublicKey(&cluster); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
+	}
+
 	b.setDefaultUsage(&cluster.Cluster)
 
 	err = b.clusterApi.RegisterCluster(ctx, &cluster)
@@ -498,6 +499,26 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 	success = true
 	b.metricApi.ClusterRegistered(cluster.OpenshiftVersion, *cluster.ID, cluster.EmailDomain)
 	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+}
+
+func updateSSHPublicKey(cluster *common.Cluster) error {
+	sshPublicKey := swag.StringValue(&cluster.SSHPublicKey)
+	if sshPublicKey == "" {
+		return nil
+	}
+	sshPublicKey = strings.TrimSpace(cluster.SSHPublicKey)
+	if err := validations.ValidateSSHPublicKey(sshPublicKey); err != nil {
+		return err
+	}
+	cluster.SSHPublicKey = sshPublicKey
+	return nil
+}
+
+func (b *bareMetalInventory) validateDNSName(cluster common.Cluster) error {
+	if cluster.Name == "" || cluster.BaseDNSDomain == "" {
+		return nil
+	}
+	return b.dnsApi.ValidateDNSName(cluster.Name, cluster.BaseDNSDomain)
 }
 
 func (b *bareMetalInventory) integrateWithAMSClusterRegistration(ctx context.Context, cluster *common.Cluster) error {
@@ -3927,10 +3948,16 @@ func (b *bareMetalInventory) deleteDNSRecordSets(ctx context.Context, cluster co
 
 func (b *bareMetalInventory) validateDNSDomain(cluster common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger) error {
 	clusterName := swag.StringValue(params.ClusterUpdateParams.Name)
+	if clusterName == "" {
+		clusterName = cluster.Name
+	}
 	clusterBaseDomain := swag.StringValue(params.ClusterUpdateParams.BaseDNSDomain)
+	if clusterBaseDomain == "" {
+		clusterBaseDomain = cluster.BaseDNSDomain
+	}
 	if clusterBaseDomain != "" {
-		if err := validations.ValidateDomainNameFormat(clusterBaseDomain); err != nil {
-			log.WithError(err).Errorf("Invalid cluster base domain: %s", clusterBaseDomain)
+		if err := b.dnsApi.ValidateDNSName(clusterName, clusterBaseDomain); err != nil {
+			log.WithError(err).Errorf("Invalid cluster domain: %s.%s", clusterName, clusterBaseDomain)
 			return common.NewApiError(http.StatusBadRequest, err)
 		}
 	}
