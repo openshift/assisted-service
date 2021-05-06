@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"strconv"
 	"strings"
 	"time"
@@ -280,28 +281,68 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []
 	}
 
 	machineNetworkCIDR := network.GetMachineCidrForUserManagedNetwork(cluster, log)
-	log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, network.IsIPv6CIDR(machineNetworkCIDR))
-	if network.IsIPv6CIDR(machineNetworkCIDR) {
-		return append(installerArgs, "--append-karg", "ip=dhcp6"), nil
-	}
 	if machineNetworkCIDR != "" {
-		return append(installerArgs, "--append-karg", "ip=dhcp"), nil
+		ipv6 := network.IsIPv6CIDR(machineNetworkCIDR)
+		log.Debugf("Machine network CIDR: %s. IPv6: %t", machineNetworkCIDR, ipv6)
+		inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+		if err != nil {
+			return nil, err
+		}
+		_, network, err := net.ParseCIDR(machineNetworkCIDR)
+		if err != nil {
+			return installerArgs, err
+		}
+		for _, nic := range inventory.Interfaces {
+			installerArgs, err = appendDHCPPerNIC(network, nic, ipv6, installerArgs)
+			if err != nil {
+				return installerArgs, err
+			}
+		}
+		return installerArgs, nil
 	}
 
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		return installerArgs, errors.Errorf("cannot determine machine network address family")
 	}
-
 	if v4, v6, err := hostutil.GetAddressFamilies(host); err != nil {
 		return installerArgs, err
 	} else if v4 && v6 {
 		log.Warnf("Cannot set DHCP kernel argument for host %s of day-2 cluster %s with dual IP stack. Not doing so may result in failing to download ignition or ISO", host.ID, *cluster.ID)
-		return installerArgs, nil
-	} else if v6 {
-		return append(installerArgs, "--append-karg", "ip=dhcp6"), nil
-	} else {
-		return append(installerArgs, "--append-karg", "ip=dhcp"), nil
 	}
+	return installerArgs, nil
+}
+
+func appendDHCPPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, args []string) ([]string, error) {
+	var addresses []string
+	var dhcp string
+	if ipv6 {
+		addresses = nic.IPV6Addresses
+		dhcp = "dhcp6"
+	} else {
+		addresses = nic.IPV4Addresses
+		dhcp = "dhcp"
+	}
+	found, err := findAnyInCIDR(network, addresses)
+	if err != nil {
+		return nil, err
+	}
+	if found {
+		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)), nil
+	}
+	return args, nil
+}
+
+func findAnyInCIDR(network *net.IPNet, addresses []string) (bool, error) {
+	for _, a := range addresses {
+		ip, _, err := net.ParseCIDR(a)
+		if err != nil {
+			return false, err
+		}
+		if network.Contains(ip) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func hasUserConfiguredIP(args []string) bool {
