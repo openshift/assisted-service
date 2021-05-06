@@ -3076,8 +3076,8 @@ var _ = Describe("Update cluster with OLM operators", func() {
 
 	It("should change disk eligibility", func() {
 		By("sanity check: having eligible disks")
-		cluster := getCluster(clusterID)
-		for _, host := range cluster.Hosts {
+		clusterFromDB := getCluster(clusterID)
+		for _, host := range clusterFromDB.Hosts {
 			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusKnown))
 			inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 			Expect(err).ToNot(HaveOccurred())
@@ -3088,7 +3088,7 @@ var _ = Describe("Update cluster with OLM operators", func() {
 		}
 
 		By("enabling OCS operator - increasing disk requirements")
-		_, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
+		updatedClusterResponse, err := userBMClient.Installer.UpdateCluster(context.TODO(), &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				OlmOperators: []*models.OperatorCreateParams{
 					{Name: ocs.Operator.Name},
@@ -3099,16 +3099,20 @@ var _ = Describe("Update cluster with OLM operators", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		By("having ineligible disks")
-		cluster = getCluster(clusterID)
-		for _, host := range cluster.Hosts {
-			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
-			inventory, err := hostutil.UnmarshalInventory(host.Inventory)
-			Expect(err).ToNot(HaveOccurred())
-			for _, disk := range inventory.Disks {
-				Expect(disk.InstallationEligibility.Eligible).To(BeFalse())
-				Expect(disk.InstallationEligibility.NotEligibleReasons).To(ContainElement(ContainSubstring("Disk is too small")))
+		verifyHosts := func(cluster *models.Cluster) {
+			for _, host := range cluster.Hosts {
+				Expect(*host.Status).To(BeEquivalentTo(models.HostStatusInsufficient))
+				inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+				Expect(err).ToNot(HaveOccurred())
+				for _, disk := range inventory.Disks {
+					Expect(disk.InstallationEligibility.Eligible).To(BeFalse())
+					Expect(disk.InstallationEligibility.NotEligibleReasons).To(ContainElement(ContainSubstring("Disk is too small")))
+				}
 			}
 		}
+		clusterFromDB = getCluster(clusterID)
+		verifyHosts(clusterFromDB)
+		verifyHosts(updatedClusterResponse.Payload)
 	})
 })
 
