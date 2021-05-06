@@ -380,7 +380,10 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context, clust
 
 	updateString(spec.Platform.AgentBareMetal.APIVIP, cluster.APIVip, &params.APIVip)
 	updateString(spec.Platform.AgentBareMetal.IngressVIP, cluster.IngressVip, &params.IngressVip)
-	updateString(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
+
+	// Trim key before comapring as done in RegisterClusterInternal
+	sshPublicKey := strings.TrimSpace(spec.Provisioning.InstallStrategy.Agent.SSHPublicKey)
+	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)
 
 	if userManagedNetwork := isUserManagedNetwork(clusterDeployment); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)

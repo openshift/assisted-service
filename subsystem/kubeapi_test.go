@@ -1063,6 +1063,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSNOSpec(secretRef)
+
+		// Add space suffix to SSHPublicKey to validate proper install
+		sshPublicKeySuffixSpace := fmt.Sprintf("%s ",
+			spec.Provisioning.InstallStrategy.Agent.SSHPublicKey)
+		spec.Provisioning.InstallStrategy.Agent.SSHPublicKey = sshPublicKeySuffixSpace
+
 		deployClusterDeploymentCRD(ctx, kubeClient, spec)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
