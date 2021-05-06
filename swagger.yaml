@@ -2985,6 +2985,13 @@ paths:
         - userAuth: [admin, read-only-admin, user]
       description: Get minimum host requirements.
       operationId: GetHostRequirements
+      parameters:
+        - in: header
+          name: single_node
+          description: Get hw requirements for single node.
+          type: boolean
+          required: false
+          default: false
       responses:
         "200":
           description: Success.

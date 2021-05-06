@@ -4639,6 +4639,15 @@ func init() {
           "installer"
         ],
         "operationId": "GetHostRequirements",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Get hw requirements for single node.",
+            "name": "single_node",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",
@@ -12245,6 +12254,15 @@ func init() {
           "installer"
         ],
         "operationId": "GetHostRequirements",
+        "parameters": [
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Get hw requirements for single node.",
+            "name": "single_node",
+            "in": "header"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success.",

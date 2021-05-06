@@ -10,13 +10,23 @@ import (
 
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewGetHostRequirementsParams creates a new GetHostRequirementsParams object
-// no default values defined in spec.
+// with the default values initialized.
 func NewGetHostRequirementsParams() GetHostRequirementsParams {
 
-	return GetHostRequirementsParams{}
+	var (
+		// initialize parameters with default values
+
+		singleNodeDefault = bool(false)
+	)
+
+	return GetHostRequirementsParams{
+		SingleNode: &singleNodeDefault,
+	}
 }
 
 // GetHostRequirementsParams contains all the bound params for the get host requirements operation
@@ -27,6 +37,12 @@ type GetHostRequirementsParams struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
+
+	/*Get hw requirements for single node.
+	  In: header
+	  Default: false
+	*/
+	SingleNode *bool
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -38,8 +54,35 @@ func (o *GetHostRequirementsParams) BindRequest(r *http.Request, route *middlewa
 
 	o.HTTPRequest = r
 
+	if err := o.bindSingleNode(r.Header[http.CanonicalHeaderKey("single_node")], true, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindSingleNode binds and validates parameter SingleNode from header.
+func (o *GetHostRequirementsParams) bindSingleNode(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewGetHostRequirementsParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("single_node", "header", "bool", raw)
+	}
+	o.SingleNode = &value
+
 	return nil
 }

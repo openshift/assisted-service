@@ -51,17 +51,17 @@ func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock
 }
 
 // GetHostRequirements mocks base method
-func (m *MockValidator) GetHostRequirements() *models.VersionedHostRequirements {
+func (m *MockValidator) GetHostRequirements(singleNodeCluster bool) *models.VersionedHostRequirements {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostRequirements")
+	ret := m.ctrl.Call(m, "GetHostRequirements", singleNodeCluster)
 	ret0, _ := ret[0].(*models.VersionedHostRequirements)
 	return ret0
 }
 
 // GetHostRequirements indicates an expected call of GetHostRequirements
-func (mr *MockValidatorMockRecorder) GetHostRequirements() *gomock.Call {
+func (mr *MockValidatorMockRecorder) GetHostRequirements(singleNodeCluster interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements), singleNodeCluster)
 }
 
 // GetHostInstallationPath mocks base method

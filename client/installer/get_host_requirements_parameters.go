@@ -14,13 +14,17 @@ import (
 	"github.com/go-openapi/runtime"
 	cr "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // NewGetHostRequirementsParams creates a new GetHostRequirementsParams object
 // with the default values initialized.
 func NewGetHostRequirementsParams() *GetHostRequirementsParams {
-
+	var (
+		singleNodeDefault = bool(false)
+	)
 	return &GetHostRequirementsParams{
+		SingleNode: &singleNodeDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -29,8 +33,11 @@ func NewGetHostRequirementsParams() *GetHostRequirementsParams {
 // NewGetHostRequirementsParamsWithTimeout creates a new GetHostRequirementsParams object
 // with the default values initialized, and the ability to set a timeout on a request
 func NewGetHostRequirementsParamsWithTimeout(timeout time.Duration) *GetHostRequirementsParams {
-
+	var (
+		singleNodeDefault = bool(false)
+	)
 	return &GetHostRequirementsParams{
+		SingleNode: &singleNodeDefault,
 
 		timeout: timeout,
 	}
@@ -39,8 +46,11 @@ func NewGetHostRequirementsParamsWithTimeout(timeout time.Duration) *GetHostRequ
 // NewGetHostRequirementsParamsWithContext creates a new GetHostRequirementsParams object
 // with the default values initialized, and the ability to set a context for a request
 func NewGetHostRequirementsParamsWithContext(ctx context.Context) *GetHostRequirementsParams {
-
+	var (
+		singleNodeDefault = bool(false)
+	)
 	return &GetHostRequirementsParams{
+		SingleNode: &singleNodeDefault,
 
 		Context: ctx,
 	}
@@ -49,8 +59,11 @@ func NewGetHostRequirementsParamsWithContext(ctx context.Context) *GetHostRequir
 // NewGetHostRequirementsParamsWithHTTPClient creates a new GetHostRequirementsParams object
 // with the default values initialized, and the ability to set a custom HTTPClient for a request
 func NewGetHostRequirementsParamsWithHTTPClient(client *http.Client) *GetHostRequirementsParams {
-
+	var (
+		singleNodeDefault = bool(false)
+	)
 	return &GetHostRequirementsParams{
+		SingleNode: &singleNodeDefault,
 		HTTPClient: client,
 	}
 }
@@ -59,6 +72,13 @@ func NewGetHostRequirementsParamsWithHTTPClient(client *http.Client) *GetHostReq
 for the get host requirements operation typically these are written to a http.Request
 */
 type GetHostRequirementsParams struct {
+
+	/*SingleNode
+	  Get hw requirements for single node.
+
+	*/
+	SingleNode *bool
+
 	timeout    time.Duration
 	Context    context.Context
 	HTTPClient *http.Client
@@ -97,6 +117,17 @@ func (o *GetHostRequirementsParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithSingleNode adds the singleNode to the get host requirements params
+func (o *GetHostRequirementsParams) WithSingleNode(singleNode *bool) *GetHostRequirementsParams {
+	o.SetSingleNode(singleNode)
+	return o
+}
+
+// SetSingleNode adds the singleNode to the get host requirements params
+func (o *GetHostRequirementsParams) SetSingleNode(singleNode *bool) {
+	o.SingleNode = singleNode
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *GetHostRequirementsParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -104,6 +135,15 @@ func (o *GetHostRequirementsParams) WriteToRequest(r runtime.ClientRequest, reg 
 		return err
 	}
 	var res []error
+
+	if o.SingleNode != nil {
+
+		// header param single_node
+		if err := r.SetHeaderParam("single_node", swag.FormatBool(*o.SingleNode)); err != nil {
+			return err
+		}
+
+	}
 
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
