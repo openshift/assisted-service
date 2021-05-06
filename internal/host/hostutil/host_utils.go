@@ -192,9 +192,7 @@ func IsDay2Host(h *models.Host) bool {
 
 // GetAddressFamilies returns if a host has addresses in IPv4, in IPv6 family, or both
 func GetAddressFamilies(host *models.Host) (bool, bool, error) {
-
-	var inventory models.Inventory
-	err := json.Unmarshal([]byte(host.Inventory), &inventory)
+	inventory, err := UnmarshalInventory(host.Inventory)
 	if err != nil {
 		return false, false, err
 	}
