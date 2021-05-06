@@ -454,12 +454,12 @@ clean-onprem:
 
 # Current Operator version
 OPERATOR_VERSION ?= 0.0.3
-BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog/$(OPERATOR_VERSION)
+BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
 BUNDLE_METADATA_OPTS ?= --channels=alpha,ocm-2.3 --default-channel=alpha
 
 .PHONY: operator-bundle
 operator-bundle:
-	operator-sdk generate kustomize manifests -q
+	operator-sdk generate kustomize manifests --apis-dir internal/controller/api -q
 	# TODO(djzager) use this line to pin images in the future
 	# cd config/manager && kustomize edit set image controller=$(SERVICE)
 	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) --output-dir $(BUNDLE_OUTPUT_DIR) $(BUNDLE_METADATA_OPTS)
@@ -469,8 +469,8 @@ operator-bundle:
 
 # Build the bundle and index images.
 .PHONY: operator-bundle-build operator-bundle-update
-operator-bundle-build:
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.bundle -t $(BUNDLE_IMAGE) .
+operator-bundle-build: operator-bundle
+	docker build $(CONTAINER_BUILD_PARAMS) -f deploy/olm-catalog/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
 
 operator-bundle-update:
 	docker push $(BUNDLE_IMAGE)
