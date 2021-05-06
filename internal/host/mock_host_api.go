@@ -235,6 +235,20 @@ func (mr *MockAPIMockRecorder) PermanentHostsDeletion(arg0 interface{}) *gomock.
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PermanentHostsDeletion", reflect.TypeOf((*MockAPI)(nil).PermanentHostsDeletion), arg0)
 }
 
+// RefreshInventory mocks base method
+func (m *MockAPI) RefreshInventory(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host, arg3 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RefreshInventory", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RefreshInventory indicates an expected call of RefreshInventory
+func (mr *MockAPIMockRecorder) RefreshInventory(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RefreshInventory", reflect.TypeOf((*MockAPI)(nil).RefreshInventory), arg0, arg1, arg2, arg3)
+}
+
 // RefreshStatus mocks base method
 func (m *MockAPI) RefreshStatus(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
 	m.ctrl.T.Helper()

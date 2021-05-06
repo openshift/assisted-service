@@ -1500,18 +1500,54 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		log.WithError(err).Errorf("Failed to set cluster %s majority groups", cluster.ID.String())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	for _, h := range cluster.Hosts {
-		var err error
-		var dbHost *common.Host
 
-		if dbHost, err = common.GetHostFromDB(tx, cluster.ID.String(), h.ID.String()); err != nil {
-			log.WithError(err).Errorf("failed to find host <%s> in cluster <%s>",
-				h.ID.String(), cluster.ID.String())
+	// Cluster is retrieved from DB to make sure we operate on the most recent information regarding monitored operators
+	// enabled for the cluster.
+	dbCluster, err := common.GetClusterFromDB(tx, *cluster.ID, common.UseEagerLoading)
+	if err != nil {
+		log.WithError(err).Errorf("not refreshing cluster hosts - failed to find cluster %s", *cluster.ID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return common.NewApiError(http.StatusNotFound, err)
 		}
-		if err = b.hostApi.RefreshStatus(ctx, &dbHost.Host, tx); err != nil {
-			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *h.ID, cluster.ID.String())
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	for _, dbHost := range cluster.Hosts {
+		var err error
+
+		// Refresh inventory - especially disk eligibility. The host requirements might have changed.
+		// dbHost object might be updated with the latest disk eligibility information.
+		err = b.refreshInventory(ctx, dbCluster, dbHost, tx)
+		if err != nil {
+			return err
+		}
+
+		if err = b.hostApi.RefreshStatus(ctx, dbHost, tx); err != nil {
+			log.WithError(err).Errorf("failed to refresh state of host %s cluster %s", *dbHost.ID, cluster.ID.String())
 			return common.NewApiError(http.StatusInternalServerError, err)
+		}
+	}
+	return nil
+}
+
+func (b *bareMetalInventory) refreshInventory(ctx context.Context, cluster *common.Cluster, host *models.Host, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, b.log)
+	if host.Inventory != "" {
+		err := b.hostApi.RefreshInventory(ctx, cluster, host, db)
+		if err != nil {
+			log.WithError(err).Errorf("failed to update inventory of host %s cluster %s", host.ID, cluster.ID.String())
+			switch err := err.(type) {
+			case *common.ApiErrorResponse:
+				if err.StatusCode() != http.StatusConflict {
+					return err
+				}
+				// In RefreshInventory there is a precondition on host's status that on failure returns StatusConflict.
+				// In case of cluster update we don't want to fail the whole update if host can't be, according to
+				// business rules, updated. An example of such case is disabled host.
+				log.Infof("ignoring wrong status error (%v) for host %s in cluster %s", err, host.ID, cluster.ID.String())
+			default:
+				return common.NewApiError(http.StatusInternalServerError, err)
+			}
 		}
 	}
 	return nil

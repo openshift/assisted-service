@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -17,13 +18,18 @@ import (
 	"github.com/thoas/go-funk"
 )
 
+const (
+	tooSmallDiskTemplate   = "Disk is too small (disk only has %s, but %s are required)"
+	wrongDriveTypeTemplate = "Drive type is %s, it must be one of %s."
+)
+
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostRequirements(singleNodeCluster bool) *models.VersionedHostRequirements
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
-	DiskIsEligible(disk *models.Disk) []string
+	DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	GetInstallationDiskSpeedThresholdMs() int64
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
@@ -33,10 +39,15 @@ type Validator interface {
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
+	diskEligibilityMatchers := []*regexp.Regexp{
+		compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*"),
+		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
+	}
 	return &validator{
-		ValidatorCfg: cfg,
-		log:          log,
-		operatorsAPI: operatorsAPI,
+		ValidatorCfg:            cfg,
+		log:                     log,
+		operatorsAPI:            operatorsAPI,
+		diskEligibilityMatchers: diskEligibilityMatchers,
 	}
 }
 
@@ -57,8 +68,9 @@ type ValidatorCfg struct {
 
 type validator struct {
 	ValidatorCfg
-	log          logrus.FieldLogger
-	operatorsAPI operators.API
+	log                     logrus.FieldLogger
+	operatorsAPI            operators.API
+	diskEligibilityMatchers []*regexp.Regexp
 }
 
 // DiskEligibilityInitialized is used to detect inventories created by older versions of the agent/service
@@ -86,22 +98,44 @@ func isNvme(name string) bool {
 // it against a list of predicates. Returns all the reasons the disk
 // was found to be not eligible, or an empty slice if it was found to
 // be eligible
-func (v *validator) DiskIsEligible(disk *models.Disk) []string {
-	var notEligibleReasons []string
+func (v *validator) DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error) {
+	requirements, err := v.GetClusterHostRequirements(ctx, cluster, host)
+	if err != nil {
+		return nil, err
+	}
+	// This method can be called on demand, so the disk may already have service non-eligibility reasons
+	notEligibleReasons := v.purgeServiceReasons(disk.InstallationEligibility.NotEligibleReasons)
 
-	if minSizeBytes := conversions.GbToBytes(v.MinDiskSizeGb); disk.SizeBytes < minSizeBytes {
+	minSizeBytes := conversions.GbToBytes(requirements.Total.DiskSizeGb)
+	if disk.SizeBytes < minSizeBytes {
 		notEligibleReasons = append(notEligibleReasons,
 			fmt.Sprintf(
-				"Disk is too small (disk only has %s, but %s are required)",
+				tooSmallDiskTemplate,
 				humanize.Bytes(uint64(disk.SizeBytes)), humanize.Bytes(uint64(minSizeBytes))))
 	}
 
 	if allowedDriveTypes := []string{"HDD", "SSD"}; !funk.ContainsString(allowedDriveTypes, disk.DriveType) {
 		notEligibleReasons = append(notEligibleReasons,
-			fmt.Sprintf("Drive type is %s, it must be one of %s.",
-				disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
+			fmt.Sprintf(wrongDriveTypeTemplate, disk.DriveType, strings.Join(allowedDriveTypes, ", ")))
 	}
 
+	return notEligibleReasons, nil
+}
+
+func (v *validator) purgeServiceReasons(reasons []string) []string {
+	var notEligibleReasons []string
+	for _, reason := range reasons {
+		var matches bool
+		for _, matcher := range v.diskEligibilityMatchers {
+			if matcher.MatchString(reason) {
+				matches = true
+				break
+			}
+		}
+		if !matches {
+			notEligibleReasons = append(notEligibleReasons, reason)
+		}
+	}
 	return notEligibleReasons
 }
 
@@ -243,4 +277,12 @@ func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) *model
 	}
 
 	return requirements
+}
+
+func compileDiskReasonTemplate(template string, wildcards ...string) *regexp.Regexp {
+	tmp, err := regexp.Compile(fmt.Sprintf(regexp.QuoteMeta(template), wildcards))
+	if err != nil {
+		panic(err)
+	}
+	return tmp
 }

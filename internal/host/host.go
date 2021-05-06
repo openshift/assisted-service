@@ -133,6 +133,7 @@ type API interface {
 	UpdateRole(ctx context.Context, h *models.Host, role models.HostRole, db *gorm.DB) error
 	UpdateHostname(ctx context.Context, h *models.Host, hostname string, db *gorm.DB) error
 	UpdateInventory(ctx context.Context, h *models.Host, inventory string) error
+	RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error
 	UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error
 	UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, h *models.Host, machineConfigPoolName string) error
 	UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskId string) error
@@ -231,7 +232,7 @@ func (m *Manager) HandleInstallationFailure(ctx context.Context, h *models.Host)
 // addition to agent-side checks that have already been performed. The reason that some
 // checks are performed by the agent (and not the service) is because the agent has data
 // that is not available in the service.
-func (m *Manager) populateDisksEligibility(inventory *models.Inventory) {
+func (m *Manager) populateDisksEligibility(ctx context.Context, inventory *models.Inventory, cluster *common.Cluster, host *models.Host) error {
 	for _, disk := range inventory.Disks {
 		if !hardware.DiskEligibilityInitialized(disk) {
 			// for backwards compatibility, pretend that the agent has decided that this disk is eligible
@@ -240,11 +241,15 @@ func (m *Manager) populateDisksEligibility(inventory *models.Inventory) {
 		}
 
 		// Append to the existing reasons already filled in by the agent
-		disk.InstallationEligibility.NotEligibleReasons = append(disk.InstallationEligibility.NotEligibleReasons,
-			m.hwValidator.DiskIsEligible(disk)...)
+		reasons, err := m.hwValidator.DiskIsEligible(ctx, disk, cluster, host)
+		if err != nil {
+			return err
+		}
+		disk.InstallationEligibility.NotEligibleReasons = reasons
 
 		disk.InstallationEligibility.Eligible = len(disk.InstallationEligibility.NotEligibleReasons) == 0
 	}
+	return nil
 }
 
 // populateDisksId ensures that every disk has an id.
@@ -272,7 +277,23 @@ func (m *Manager) HandlePrepareInstallationFailure(ctx context.Context, h *model
 	return err
 }
 
+func (m *Manager) RefreshInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, db *gorm.DB) error {
+	return m.updateInventory(ctx, cluster, h, h.Inventory, db)
+}
+
 func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventoryStr string) error {
+	log := logutil.FromContext(ctx, m.log)
+	cluster, err := common.GetClusterFromDB(m.db, h.ClusterID, common.UseEagerLoading)
+	if err != nil {
+		log.WithError(err).Errorf("not updating inventory - failed to find cluster %s", h.ClusterID)
+		return common.NewApiError(http.StatusNotFound, err)
+	}
+	return m.updateInventory(ctx, cluster, h, inventoryStr, m.db)
+}
+
+func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, inventoryStr string, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, m.log)
+
 	hostStatus := swag.StringValue(h.Status)
 	allowedStatuses := append(hostStatusesBeforeInstallation[:], models.HostStatusInstallingInProgress)
 
@@ -287,7 +308,11 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 		return err
 	}
 
-	m.populateDisksEligibility(inventory)
+	err = m.populateDisksEligibility(ctx, inventory, cluster, h)
+	if err != nil {
+		log.WithError(err).Errorf("not updating inventory - failed to check disks eligibility for host %s", h.ID)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
 	m.populateDisksId(inventory)
 
 	h.Inventory, err = hostutil.MarshalInventory(inventory)
@@ -306,7 +331,7 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 		h.InstallationDiskID = hostutil.GetDeviceIdentifier(installationDisk)
 	}
 
-	return m.db.Model(h).Update(map[string]interface{}{
+	return db.Model(h).Update(map[string]interface{}{
 		"inventory":              h.Inventory,
 		"installation_disk_path": h.InstallationDiskPath,
 		"installation_disk_id":   h.InstallationDiskID,

@@ -1213,6 +1213,9 @@ func makeJsonChecker(expected map[validationID]validationCheckResult) *validatio
 }
 
 var _ = Describe("Refresh Host", func() {
+	const (
+		minDiskSizeGb = 120
+	)
 	var (
 		supportedGPU      = models.Gpu{VendorID: "10de", DeviceID: "1db6"}
 		ctx               = context.Background()
@@ -1239,7 +1242,7 @@ var _ = Describe("Refresh Host", func() {
 			// Mock the hwValidator behavior of performing simple filtering according to disk size, because these tests
 			// rely on small disks to get filtered out.
 			return funk.Filter(inventory.Disks, func(disk *models.Disk) bool {
-				return disk.SizeBytes >= conversions.GibToBytes(validatorCfg.MinDiskSizeGb)
+				return disk.SizeBytes >= conversions.GibToBytes(minDiskSizeGb)
 			}).([]*models.Disk)
 		}).AnyTimes()
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
@@ -2430,14 +2433,19 @@ var _ = Describe("Refresh Host", func() {
 				errorExpected:     true,
 			},
 			{
-				name:              "known to insufficient (1)",
-				role:              models.HostRoleAutoAssign,
-				validCheckInTime:  true,
-				srcState:          models.HostStatusKnown,
-				dstState:          models.HostStatusKnown,
-				statusInfoChecker: makeValueChecker(""),
-				inventory:         insufficientHWInventory(),
-				errorExpected:     true,
+				name:             "known to insufficient (1)",
+				role:             models.HostRoleAutoAssign,
+				validCheckInTime: true,
+				srcState:         models.HostStatusKnown,
+				dstState:         models.HostStatusInsufficient,
+				statusInfoChecker: makeValueChecker("Host does not meet the minimum hardware requirements: " +
+					"Host couldn't synchronize with any NTP server ; Machine Network CIDR is undefined; the Machine " +
+					"Network CIDR can be defined by setting either the API or Ingress virtual IPs ; Require a disk of at " +
+					"least 120 GB ; Require at least 8.00 GiB RAM for role auto-assign, found only 130 bytes ; " +
+					"The host is not eligible to participate in Openshift Cluster because the minimum required RAM for " +
+					"any role is 8.00 GiB, found only 130 bytes"),
+				inventory:     insufficientHWInventory(),
+				errorExpected: false,
 			},
 			{
 				name:             "known to pending",
