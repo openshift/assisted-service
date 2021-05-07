@@ -2,6 +2,7 @@ package auth
 
 import (
 	"crypto"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/go-openapi/runtime"
@@ -9,14 +10,16 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/pkg/ocm"
+	"github.com/patrickmn/go-cache"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
 type LocalAuthenticator struct {
+	cache     *cache.Cache
+	db        *gorm.DB
 	log       logrus.FieldLogger
 	publicKey crypto.PublicKey
-	db        *gorm.DB
 }
 
 func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*LocalAuthenticator, error) {
@@ -30,9 +33,10 @@ func NewLocalAuthenticator(cfg *Config, log logrus.FieldLogger, db *gorm.DB) (*L
 	}
 
 	a := &LocalAuthenticator{
+		cache:     cache.New(10*time.Minute, 30*time.Minute),
+		db:        db,
 		log:       log,
 		publicKey: key,
-		db:        db,
 	}
 
 	return a, nil
@@ -64,10 +68,15 @@ func (a *LocalAuthenticator) AuthAgentAuth(token string) (interface{}, error) {
 		return nil, common.NewInfraError(401, err)
 	}
 
-	if !clusterExists(a.db, clusterID) {
-		err := errors.Errorf("cluster %s does not exist", clusterID)
-		a.log.Error(err)
-		return nil, common.NewInfraError(401, err)
+	_, exists := a.cache.Get(clusterID)
+	if !exists {
+		if clusterExists(a.db, clusterID) {
+			a.cache.Set(clusterID, "", cache.DefaultExpiration)
+		} else {
+			err := errors.Errorf("cluster %s does not exist", clusterID)
+			a.log.Error(err)
+			return nil, common.NewInfraError(401, err)
+		}
 	}
 
 	a.log.Debugf("Authenticating cluster %s JWT", clusterID)
