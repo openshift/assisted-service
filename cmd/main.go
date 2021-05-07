@@ -71,6 +71,7 @@ import (
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
@@ -514,13 +515,29 @@ func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API
 func setupDB(log logrus.FieldLogger) *gorm.DB {
 	dbConnectionStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=disable",
 		Options.DBConfig.Host, Options.DBConfig.Port, Options.DBConfig.User, Options.DBConfig.Name, Options.DBConfig.Pass)
-	db, err := gorm.Open("postgres", dbConnectionStr)
-	if err != nil {
-		log.WithError(err).Fatal("Fail to connect to DB")
+	var db *gorm.DB
+	var err error
+	// Tries to open a db connection every 2 seconds for up to 10 seconds.
+	timeout := 10 * time.Second
+	retryInterval := 2 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	log.Info("Connecting to DB")
+	wait.UntilWithContext(ctx, func(ctx context.Context) {
+		db, err = gorm.Open("postgres", dbConnectionStr)
+		if err != nil {
+			log.WithError(err).Info("Failed to connect to DB, retrying")
+			return
+		}
+		db.DB().SetMaxIdleConns(0)
+		db.DB().SetMaxOpenConns(0)
+		db.DB().SetConnMaxLifetime(0)
+		cancel()
+	}, retryInterval)
+	if ctx.Err().Error() == context.DeadlineExceeded.Error() {
+		log.WithError(ctx.Err()).Fatal("Timed out connecting to DB")
 	}
-	db.DB().SetMaxIdleConns(0)
-	db.DB().SetMaxOpenConns(0)
-	db.DB().SetConnMaxLifetime(0)
+	log.Info("Connected to DB")
 	return db
 }
 
