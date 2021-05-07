@@ -124,7 +124,7 @@ def get_service_url(
     if target == INGRESS_REMOTE_TARGET:
         domain = get_domain(domain, target, namespace)
         service_host = f"assisted-installer.{domain}"
-        return to_url(service_host, disable_tls)
+        return to_url(host=service_host, disable_tls=disable_tls)
     else:
         service_host = get_service_host(
             service,
