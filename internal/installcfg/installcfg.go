@@ -390,7 +390,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 	}
 	caContent := i.getCAContents(cluster, ca, addRhCa)
 	if caContent != "" {
-		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, ca)
+		cfg.AdditionalTrustBundle = fmt.Sprintf(` | %s`, caContent)
 	}
 
 	return cfg, nil
