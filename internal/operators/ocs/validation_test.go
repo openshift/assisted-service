@@ -79,16 +79,16 @@ func makeJsonChecker(expected map[clust.ValidationID]validationCheckResult) *val
 
 var _ = Describe("Ocs Operator use-cases", func() {
 	var (
-		ctx                                           = context.Background()
-		db                                            *gorm.DB
-		clusterId, hid1, hid2, hid3, hid4, hid5, hid6 strfmt.UUID
-		cluster                                       common.Cluster
-		clusterApi                                    *clust.Manager
-		mockEvents                                    *events.MockHandler
-		mockHostAPI                                   *host.MockAPI
-		mockMetric                                    *metrics.MockAPI
-		ctrl                                          *gomock.Controller
-		dbName                                        string
+		ctx                                                 = context.Background()
+		db                                                  *gorm.DB
+		clusterId, hid1, hid2, hid3, hid4, hid5, hid6, hid7 strfmt.UUID
+		cluster                                             common.Cluster
+		clusterApi                                          *clust.Manager
+		mockEvents                                          *events.MockHandler
+		mockHostAPI                                         *host.MockAPI
+		mockMetric                                          *metrics.MockAPI
+		ctrl                                                *gomock.Controller
+		dbName                                              string
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -116,6 +116,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		hid4 = strfmt.UUID("77e381eb-f464-4d28-829e-210bd26dba68")
 		hid5 = strfmt.UUID("e80cb08a-e797-44f5-adc2-2826790b0307")
 		hid6 = strfmt.UUID(uuid.New().String())
+		hid7 = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
@@ -477,7 +478,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 81 GiB RAM, excluding disk RAM resources is required."},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 105 GiB RAM, excluding disk RAM resources is required."},
 			}),
 			errorExpected: false,
 		},
@@ -639,7 +640,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 81 GiB RAM, excluding disk RAM resources is required."},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Compact Mode. A minimum of 105 GiB RAM, excluding disk RAM resources is required."},
 			}),
 			errorExpected: false,
 		},
@@ -960,7 +961,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
 				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
 				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
-				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Mode. A minimum of 57 GiB RAM, excluding disk RAM resources is required."},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationFailure, messagePattern: "Insufficient Resources to deploy OCS in Minimal Mode. A minimum of 81 GiB RAM, excluding disk RAM resources is required."},
 			}),
 			errorExpected: false,
 		},
@@ -1245,6 +1246,66 @@ var _ = Describe("Ocs Operator use-cases", func() {
 						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
 						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
 					Role: models.HostRoleWorker},
+			},
+			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
+			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{
+				clust.IsMachineCidrDefined:                {status: clust.ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+				clust.IsMachineCidrEqualsToCalculatedCidr: {status: clust.ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+				clust.IsApiVipDefined:                     {status: clust.ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+				clust.IsApiVipValid:                       {status: clust.ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				clust.IsIngressVipDefined:                 {status: clust.ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+				clust.IsIngressVipValid:                   {status: clust.ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+				clust.AllHostsAreReadyToInstall:           {status: clust.ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+				clust.IsDNSDomainDefined:                  {status: clust.ValidationSuccess, messagePattern: "The base domain is defined"},
+				clust.IsPullSecretSet:                     {status: clust.ValidationSuccess, messagePattern: "The pull secret is set"},
+				clust.SufficientMastersCount:              {status: clust.ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				clust.IsOcsRequirementsSatisfied:          {status: clust.ValidationSuccess, messagePattern: "OCS Requirements for Standard Deployment are satisfied"},
+			}),
+			errorExpected: false,
+		},
+		{
+			name:               "ocs enabled, 7 nodes with 4 worker nodes for standard deployment no disk in one",
+			srcState:           models.ClusterStatusReady,
+			dstState:           models.ClusterStatusReady,
+			machineNetworkCidr: "1.2.3.0/24",
+			apiVip:             "1.2.3.5",
+			ingressVip:         "1.2.3.6",
+			dnsDomain:          "test.com",
+			pullSecretSet:      true,
+			hosts: []models.Host{
+				{ID: &hid1, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid2, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid3, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 16, Ram: 64 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB},
+						{SizeBytes: 40 * conversions.GB}}}),
+					Role: models.HostRoleMaster},
+				{ID: &hid4, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid5, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid6, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB, Disks: []*models.Disk{
+						{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+						{SizeBytes: 40 * conversions.GB, DriveType: "SSD"}}}),
+					Role: models.HostRoleWorker},
+				{ID: &hid7, Status: swag.String(models.HostStatusKnown),
+					Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB}),
+					Role:      models.HostRoleWorker},
 			},
 			statusInfoChecker: makeValueChecker(clust.StatusInfoReady),
 			validationsChecker: makeJsonChecker(map[clust.ValidationID]validationCheckResult{

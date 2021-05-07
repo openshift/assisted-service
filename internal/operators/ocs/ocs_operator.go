@@ -68,7 +68,7 @@ func (o *operator) GetHostValidationID() string {
 
 // ValidateCluster verifies whether this operator is valid for given cluster
 func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (api.ValidationResult, error) {
-	status, message := o.validateRequirements(&cluster.Cluster)
+	status, message := o.validateClusterRequirements(&cluster.Cluster)
 
 	return api.ValidationResult{Status: status, ValidationId: o.GetClusterValidationID(), Reasons: []string{message}}, nil
 }
@@ -142,15 +142,15 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			return &models.ClusterHostRequirementsDetails{
-				CPUCores:   CPUCompactMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
-				RAMMib:     conversions.GibToMib(MemoryGiBCompactMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
+				CPUCores:   CPUCompactMode + (reqDisks * o.config.OCSPerDiskCPUCount),
+				RAMMib:     conversions.GibToMib(MemoryGiBCompactMode + reqDisks*o.config.OCSPerDiskRAMGiB),
 				DiskSizeGb: MinDiskSize,
 			}, nil
 		}
 		// regular worker req
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores:   CPUMinimalMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
-			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
+			CPUCores:   CPUMinimalMode + (reqDisks * o.config.OCSPerDiskCPUCount),
+			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + reqDisks*o.config.OCSPerDiskRAMGiB),
 			DiskSizeGb: MinDiskSize,
 		}, nil
 	}
@@ -165,8 +165,8 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 	if disks > 0 {
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores:   CPUMinimalMode + disks*o.config.OCSRequiredDiskCPUCount,
-			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + disks*o.config.OCSRequiredDiskRAMGiB),
+			CPUCores:   CPUMinimalMode + (disks * o.config.OCSPerDiskCPUCount),
+			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + disks*o.config.OCSPerDiskRAMGiB),
 			DiskSizeGb: MinDiskSize,
 		}, nil
 	}
@@ -200,8 +200,8 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 				},
 				Qualitative: []string{
 					"Requirements apply only for clusters with workers",
-					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGiB),
-					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSRequiredDiskCPUCount),
+					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSPerDiskRAMGiB),
+					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSPerDiskCPUCount),
 					"At least 3 workers",
 					"At least 1 non-boot disk on 3 workers",
 				},
