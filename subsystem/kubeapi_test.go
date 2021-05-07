@@ -49,16 +49,16 @@ var (
 func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Client) *corev1.LocalObjectReference {
 	err := client.Get(
 		ctx,
-		types.NamespacedName{Namespace: Options.Namespace, Name: "pull-secret"},
+		types.NamespacedName{Namespace: Options.Namespace, Name: pullSecretName},
 		&corev1.Secret{},
 	)
 	if apierrors.IsNotFound(err) {
-		deployPullSecretResource(ctx, kubeClient, "pull-secret", pullSecret)
+		deployPullSecretResource(ctx, kubeClient, pullSecretName, pullSecret)
 	} else {
 		Expect(err).To(BeNil())
 	}
 	return &corev1.LocalObjectReference{
-		Name: "pull-secret",
+		Name: pullSecretName,
 	}
 }
 
@@ -408,6 +408,18 @@ func cleanUP(ctx context.Context, client k8sclient.Client) {
 	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	ps := &corev1.Secret{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Secret",
+			APIVersion: "v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: Options.Namespace,
+			Name:      pullSecretName,
+		},
+		Type: corev1.SecretTypeDockerConfigJson,
+	}
+	Expect(client.Delete(ctx, ps)).To(BeNil())
 }
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
