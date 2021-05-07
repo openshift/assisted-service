@@ -1,11 +1,11 @@
 package ocs
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -114,7 +114,6 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, nodeInfo *r
 }
 
 func (o *operator) computeNodeResourceUtil(host *models.Host, nodeInfo *resourceInfo) (string, error) {
-	var inventory models.Inventory
 	var status string
 
 	// if inventory is empty, return an error
@@ -123,24 +122,30 @@ func (o *operator) computeNodeResourceUtil(host *models.Host, nodeInfo *resource
 		nodeInfo.missingInventory = true
 		status = "Missing Inventory in some of the hosts"
 		return status, errors.New("Missing Inventory in some of the hosts ") // to indicate that inventory is empty and the ValidationStatus must be Pending
-	} else if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+	}
+	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
+	if err != nil {
 		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
 		return status, err
 	}
 
-	disks := getValidDiskCount(inventory.Disks)
-	if disks > 1 { // OCS must use only the non-boot disks
-		requiredDiskCPU := int64(disks-1) * o.config.OCSRequiredDiskCPUCount
-		requiredDiskRAM := int64(disks-1) * o.config.OCSRequiredDiskRAMGiB
+	diskCount, err := getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	if err != nil {
+		return err.Error(), err
+	}
+
+	if diskCount > 0 {
+		requiredDiskCPU := diskCount * o.config.OCSRequiredDiskCPUCount
+		requiredDiskRAM := diskCount * o.config.OCSRequiredDiskRAMGiB
 
 		if inventory.CPU.Count < requiredDiskCPU || inventory.Memory.UsableBytes < conversions.GibToBytes(requiredDiskRAM) {
-			status = fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", disks, " disks that require ", requiredDiskCPU, " CPUs, ", requiredDiskRAM, " GiB RAM")
+			status = fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", diskCount, " disks that require ", requiredDiskCPU, " CPUs, ", requiredDiskRAM, " GiB RAM")
 			nodeInfo.insufficientHosts = append(nodeInfo.insufficientHosts, status)
 			o.log.Info(status)
 		} else {
 			nodeInfo.cpuCount += inventory.CPU.Count - requiredDiskCPU                             // cpus excluding the cpus required for disks
 			nodeInfo.ram += inventory.Memory.UsableBytes - conversions.GibToBytes(requiredDiskRAM) // ram excluding the ram required for disks
-			nodeInfo.numDisks += (int64)(disks - 1)                                                // not counting the boot disk
+			nodeInfo.numDisks += diskCount
 			nodeInfo.hostsWithDisks++
 		}
 	} else {
@@ -164,7 +169,7 @@ func (o *operator) canOCSBeDeployed(hosts []*models.Host, nodeInfo *resourceInfo
 	}
 
 	if nodeInfo.numDisks%3 != 0 {
-		status = fmt.Sprint("The number of disks in the cluster for OCS must be a multiple of 3 with a minimum size of ", MinDiskSize, " GB")
+		status = "The number of disks in the cluster for OCS must be a multiple of 3."
 		o.log.Info(status)
 		return false, status
 	}
@@ -225,7 +230,7 @@ func (o *operator) setStatusInsufficientResources(nodeInfo *resourceInfo, mode o
 		status = status + fmt.Sprint(totalRAMGiB, " GiB RAM, excluding disk RAM resources ")
 	}
 	if nodeInfo.numDisks < o.config.OCSRequiredDisk {
-		status = status + fmt.Sprint(o.config.OCSRequiredDisk, " Disks of minimum ", MinDiskSize, "GB is required ")
+		status = status + fmt.Sprint(o.config.OCSRequiredDisk, " Disks of minimum ", ocsMinDiskSize, "GB is required ")
 	}
 	if nodeInfo.hostsWithDisks < o.config.OCSRequiredHosts {
 		status = status + fmt.Sprint(o.config.OCSRequiredHosts, " Hosts with disks, ")
@@ -236,13 +241,18 @@ func (o *operator) setStatusInsufficientResources(nodeInfo *resourceInfo, mode o
 }
 
 // count all disks of drive type ssd or hdd
-func getValidDiskCount(disks []*models.Disk) int {
-	var countDisks int
+func getValidDiskCount(disks []*models.Disk, installationDiskID string) (int64, error) {
+	var countDisks int64
+	var err error
 
 	for _, disk := range disks {
-		if disk.SizeBytes >= conversions.GbToBytes(MinDiskSize) && (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) {
-			countDisks++
+		if (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) && installationDiskID != disk.ID {
+			if disk.SizeBytes < conversions.GbToBytes(ocsMinDiskSize) {
+				err = fmt.Errorf("OCS Invalid Disk Size all the disks present should be more than %d GB", ocsMinDiskSize)
+			} else {
+				countDisks++
+			}
 		}
 	}
-	return countDisks
+	return countDisks, err
 }

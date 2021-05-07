@@ -19,10 +19,10 @@ const (
 	// so per host requires (72-(8*3)-(5*3))/3 = 11 GiB RAM per host
 	MemoryGiBMinimalMode int64 = 11
 
-	ssdDrive     string            = "SSD"
-	hddDrive     string            = "HDD"
-	MinDiskSize  int64             = 5 //5GB is the min disk size for OCS
-	compactMode  ocsDeploymentMode = "Compact"
-	minimalMode  ocsDeploymentMode = "Minimal"
-	standardMode ocsDeploymentMode = "Standard"
+	ssdDrive       string            = "SSD"
+	hddDrive       string            = "HDD"
+	ocsMinDiskSize int64             = 25 //25GB is the min disk size for OCS
+	compactMode    ocsDeploymentMode = "Compact"
+	minimalMode    ocsDeploymentMode = "Minimal"
+	standardMode   ocsDeploymentMode = "Standard"
 )

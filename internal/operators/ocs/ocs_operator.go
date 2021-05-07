@@ -86,6 +86,14 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID()}, err
 	}
 
+	/* GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
+	we ignore the number of valid Disks as its handled later based on mode of deployment  */
+	_, err = getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	if err != nil {
+		o.log.Errorf("%s %s", err.Error(), host.ID)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
+	}
+
 	// compact mode
 	if numOfHosts <= 3 {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
@@ -125,33 +133,36 @@ func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
 func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error) {
 	numOfHosts := len(cluster.Hosts)
 
-	var disks int64 = 0
+	var diskCount int64 = 0
 	if host.Inventory != "" {
 		inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 		if err != nil {
 			return nil, err
 		}
-		disks = int64(getValidDiskCount(inventory.Disks) - 1)
+
+		/* GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
+		we ignore the error as its treated as 500 in the UI */
+		diskCount, _ = getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	}
 
 	if numOfHosts <= 3 { // Compact Mode
 		var reqDisks int64 = 1
-		if disks > 0 {
-			reqDisks = disks
+		if diskCount > 0 {
+			reqDisks = diskCount
 		}
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			return &models.ClusterHostRequirementsDetails{
 				CPUCores:   CPUCompactMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
 				RAMMib:     conversions.GibToMib(MemoryGiBCompactMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
-				DiskSizeGb: MinDiskSize,
+				DiskSizeGb: ocsMinDiskSize,
 			}, nil
 		}
 		// regular worker req
 		return &models.ClusterHostRequirementsDetails{
 			CPUCores:   CPUMinimalMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
 			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
-			DiskSizeGb: MinDiskSize,
+			DiskSizeGb: ocsMinDiskSize,
 		}, nil
 	}
 
@@ -162,12 +173,12 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 	}
 
 	// worker and auto-assign
-	if disks > 0 {
+	if diskCount > 0 {
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores:   CPUMinimalMode + disks*o.config.OCSRequiredDiskCPUCount,
-			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + disks*o.config.OCSRequiredDiskRAMGiB),
-			DiskSizeGb: MinDiskSize,
+			CPUCores:   CPUMinimalMode + diskCount*o.config.OCSRequiredDiskCPUCount,
+			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + diskCount*o.config.OCSRequiredDiskRAMGiB),
+			DiskSizeGb: ocsMinDiskSize,
 		}, nil
 	}
 	return &models.ClusterHostRequirementsDetails{
@@ -227,7 +238,7 @@ func (o *operator) checkHostRequirements(ctx context.Context, cluster *common.Cl
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OCS. Required memory is %d GiB but found %d GiB.", conversions.MibToGiB(requirements.RAMMib), usableMemory)}}, nil
 	}
 
-	if mode == compactMode && getValidDiskCount(inventory.Disks) <= 1 {
+	if diskCount, _ := getValidDiskCount(inventory.Disks, host.InstallationDiskID); diskCount <= 0 && mode == compactMode {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires to have at least one non-bootable on each host in compact mode."}}, nil
 	}
 
