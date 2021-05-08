@@ -22,8 +22,7 @@ import (
 )
 
 const (
-	defaultTestOpenShiftVersion = "4.6"
-	defaultTestServiceBaseURL   = "http://198.51.100.0:6000"
+	testRootFSURL = "https://example.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"
 )
 
 func getTestLog() logrus.FieldLogger {
@@ -75,7 +74,7 @@ var _ = Context("with test files", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 			err := editor.(*rhcosEditor).embedOffsetsInSystemArea(isoFile)
 			Expect(err).ToNot(HaveOccurred())
-			file, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			file, err := editor.CreateMinimalISOTemplate(testRootFSURL)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Creating the template should remove the working directory
@@ -87,7 +86,7 @@ var _ = Context("with test files", func() {
 
 		It("missing iso file", func() {
 			editor := editorForFile("invalid", workDir, mockStaticNetworkConfig)
-			_, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			_, err := editor.CreateMinimalISOTemplate(testRootFSURL)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -109,18 +108,16 @@ var _ = Context("with test files", func() {
 	Describe("fixTemplateConfigs", func() {
 		It("alters the kernel parameters correctly", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
-			rootfsURL := fmt.Sprintf("%s/api/assisted-install/v1/boot-files?file_type=rootfs.img&openshift_version=%s",
-				defaultTestServiceBaseURL, defaultTestOpenShiftVersion)
 			isoHandler := editor.(*rhcosEditor).isoHandler
 
 			err := isoHandler.Extract()
 			Expect(err).ToNot(HaveOccurred())
 
-			err = editor.(*rhcosEditor).fixTemplateConfigs(defaultTestServiceBaseURL)
+			err = editor.(*rhcosEditor).fixTemplateConfigs(testRootFSURL)
 			Expect(err).ToNot(HaveOccurred())
 
 			newLine := "	linux /images/pxeboot/vmlinuz random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal 'coreos.live.rootfs_url=%s'"
-			grubCfg := fmt.Sprintf(newLine, rootfsURL)
+			grubCfg := fmt.Sprintf(newLine, testRootFSURL)
 			validateFileContainsLine(isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), grubCfg)
 
 			newLine = "	initrd /images/pxeboot/initrd.img /images/ignition.img %s"
@@ -128,7 +125,7 @@ var _ = Context("with test files", func() {
 			validateFileContainsLine(isoHandler.ExtractedPath("EFI/redhat/grub.cfg"), grubCfg)
 
 			newLine = "  append initrd=/images/pxeboot/initrd.img,/images/ignition.img,%s random.trust_cpu=on rd.luks.options=discard ignition.firstboot ignition.platform.id=metal coreos.live.rootfs_url=%s"
-			isolinuxCfg := fmt.Sprintf(newLine, ramDiskImagePath, rootfsURL)
+			isolinuxCfg := fmt.Sprintf(newLine, ramDiskImagePath, testRootFSURL)
 			validateFileContainsLine(isoHandler.ExtractedPath("isolinux/isolinux.cfg"), isolinuxCfg)
 		})
 	})
@@ -138,7 +135,7 @@ var _ = Context("with test files", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 
 			// Create template
-			isoPath, err := editor.CreateMinimalISOTemplate(defaultTestServiceBaseURL)
+			isoPath, err := editor.CreateMinimalISOTemplate(testRootFSURL)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Read offsets
@@ -270,7 +267,6 @@ var _ = Context("with test files", func() {
 func editorForFile(iso string, workDir string, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig) Editor {
 	return &rhcosEditor{
 		isoHandler:          isoutil.NewHandler(iso, workDir),
-		openshiftVersion:    defaultTestOpenShiftVersion,
 		log:                 getTestLog(),
 		staticNetworkConfig: staticNetworkConfig,
 	}

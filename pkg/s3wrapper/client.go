@@ -551,7 +551,11 @@ func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIs
 	}
 
 	if !minimalExists {
-		if err = CreateAndUploadMinimalIso(ctx, log, baseIsoPath, minimalIsoObject, openshiftVersion, serviceBaseURL, c, c.isoEditorFactory); err != nil {
+		rootFSURL, err := c.versionsHandler.GetRHCOSRootFS(openshiftVersion)
+		if err != nil {
+			return err
+		}
+		if err = CreateAndUploadMinimalIso(ctx, log, baseIsoPath, minimalIsoObject, rootFSURL, c, c.isoEditorFactory); err != nil {
 			return err
 		}
 	}

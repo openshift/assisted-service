@@ -28,6 +28,7 @@ type Handler interface {
 	restapi.VersionsAPI
 	GetReleaseImage(openshiftVersion string) (string, error)
 	GetRHCOSImage(openshiftVersion string) (string, error)
+	GetRHCOSRootFS(openshiftVersion string) (string, error)
 	GetRHCOSVersion(openshiftVersion string) (string, error)
 	GetReleaseVersion(openshiftVersion string) (string, error)
 	GetKey(openshiftVersion string) (string, error)
@@ -111,6 +112,22 @@ func (h *handler) GetRHCOSImage(openshiftVersion string) (string, error) {
 	}
 
 	return *h.openshiftVersions[versionKey].RhcosImage, nil
+}
+
+func (h *handler) GetRHCOSRootFS(openshiftVersion string) (string, error) {
+	versionKey, err := h.GetKey(openshiftVersion)
+	if err != nil {
+		return "", err
+	}
+	if !h.IsOpenshiftVersionSupported(versionKey) {
+		return "", errors.Errorf("No rhcos rootfs for unsupported openshift version %s", versionKey)
+	}
+
+	if h.openshiftVersions[versionKey].RhcosRootfs == nil {
+		return "", errors.Errorf("RHCOS rootfs was missing for openshift version %s", versionKey)
+	}
+
+	return *h.openshiftVersions[versionKey].RhcosRootfs, nil
 }
 
 func (h *handler) GetRHCOSVersion(openshiftVersion string) (string, error) {
