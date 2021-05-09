@@ -1,26 +1,10 @@
 # Adds namespace to all resources.
-# namespace: assisted-service-operator-system
 namespace: assisted-installer
 
-# Value of this field is prepended to the
-# names of all resources, e.g. a deployment named
-# "wordpress" becomes "alices-wordpress".
-# Note that it should also match with the prefix (text before '-') of the namespace
-# field above.
-#namePrefix: assisted-service-operator-
-
-# Labels to add to all resources and selectors.
-#commonLabels:
-#  someName: someValue
-
 bases:
-# Commented out crd because we are building a operator-less bundle
-#- ../crd
+- ../crd
 - ../rbac
-# Commented out manager because we are building a operator-less bundle
 - ../manager
-- ../assisted-service
-- ../../internal/controller/config/crd
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix including the one in
 # crd/kustomization.yaml
 #- ../webhook
@@ -34,39 +18,9 @@ patchesStrategicMerge:
 # Required patches
 ###################
 
-# Enables assisted-service startup to create a route for the service
-# through an init container. This used by in-cluster deployments so that 
-# a route to the service is created and the SERVICE_BASE_URL is updated 
-# to match the route's URL.
-#- assisted-service-patch-init-containers.yaml
-
-# An init container that creates a random password and secret for postgres
-# if a secret does not already exist.
-#- postgres-patch-init-container.yaml
-
-# Sets ISO_IMAGE_TYPE to minimal-iso 
-#- assisted-service-patch-iso-image-type.yaml
-
-# Creates the volume and PersistentVolumeClaim for the filesystem client.
-# If using scality uncomment the assisted-service-patch-deploy-target.yaml 
-# and comment these out. In the generated config DEPLOY_TARGET is "ocp" and 
-# STORAGE is "filesystem".
-#- assisted-service-patch-volume-bucket-filesystem.yaml
-
-# An init container that updates proxy-pass in nginx.conf in the
-# ocp-metal-ui ConfigMap to match the assisted-service's service route URL.
-#- ui-patch-init-containers.yaml
-
 ###################
 # Optional patches
 ###################
-# Uncomment to set a mininum disk size allowed by the hardware validator.
-# By default the minimum disk size allowed is 120GB. The patch sets the
-# minimum disk size to 20GB.
-#- assisted-service-configmap-patch-hw-validator-min-disk-size.yaml
-
-# Uncomment to use a custom assisted-service image in the deployment
-#- assisted-service-patch-image.yaml
 
 # Protect the /metrics endpoint by putting it behind auth.
 # If you want your controller-manager to expose the /metrics

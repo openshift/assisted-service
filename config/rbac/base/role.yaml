@@ -1,14 +1,8 @@
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: default
-  namespace: REPLACE_NAMESPACE
----
 kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: default
-  namespace: REPLACE_NAMESPACE
+  name: assisted-service
+  namespace: default
 rules:
   - verbs:
       - get
@@ -45,18 +39,3 @@ rules:
     resources:
       - configmaps
     resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
-
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: default
-  namespace: REPLACE_NAMESPACE
-subjects:
-  - kind: ServiceAccount
-    name: default
-    namespace: REPLACE_NAMESPACE
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: default

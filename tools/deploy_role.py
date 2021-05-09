@@ -12,55 +12,29 @@ def main():
 
     utils.verify_build_directory(deploy_options.namespace)
 
+    dst_dir = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'rbac')
+    if os.path.exists(dst_dir):
+        shutil.rmtree(dst_dir)
+    shutil.copytree('config/rbac', dst_dir)
+
     if deploy_options.target == deployment_options.OCP_TARGET:
-        src_file = os.path.join(os.getcwd(), 'deploy/roles/ocp_role.yaml')
-        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'ocp_role.yaml')
+        dst_file = os.path.join(dst_dir, 'ocp/kustomization.yaml')
     else:
-        src_file = os.path.join(os.getcwd(), 'deploy/roles/default_role.yaml')
-        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'default_role.yaml')
-
-    with open(src_file, "r") as src:
-        with open(dst_file, "w+") as dst:
-            data = src.read()
-            data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-            log.info(f"Deploying {dst_file}")
-            dst.write(data)
-
-    if deploy_options.apply_manifest:
-        utils.apply(
-            target=deploy_options.target,
-            namespace=deploy_options.namespace,
-            file=dst_file
-        )
+        dst_file = os.path.join(dst_dir, 'base/kustomization.yaml')
 
     if deploy_options.enable_kube_api:
-        controller_roles_path = 'internal/controller/config/rbac'
-        src_file = os.path.join(os.getcwd(), controller_roles_path, 'kube_api_roles.yaml')
-        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'kube_api_roles.yaml')
-        with open(src_file, "r") as src:
-            with open(dst_file, "w+") as dst:
-                data = src.read()
-                data = data.replace('REPLACE_NAMESPACE', f'"{deploy_options.namespace}"')
-                dst.write(data)
+        dst_file = os.path.join(dst_dir, 'kustomization.yaml')
 
-        if deploy_options.apply_manifest:
-            log.info(f"Deploying {dst_file}")
-            utils.apply(
-                target=deploy_options.target,
-                namespace=deploy_options.namespace,
-                file=dst_file
-            )
+    with open(dst_file, "a") as dst:
+        log.info(f"Deploying {dst_file}")
+        dst.write("namespace: " + deploy_options.namespace + '\n')
 
-        src_file = os.path.join(os.getcwd(), controller_roles_path, 'role.yaml')
-        dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, 'controller_roles.yaml')
-        shutil.copy(src_file, dst_file)
-        if deploy_options.apply_manifest:
-            log.info(f"Deploying {dst_file}")
-            utils.apply(
-                target=deploy_options.target,
-                namespace=deploy_options.namespace,
-                file=dst_file,
-            )
+    if deploy_options.apply_manifest:
+        utils.apply_kustomize(
+            target=deploy_options.target,
+            namespace=deploy_options.namespace,
+            file=os.path.dirname(dst_file),
+        )
 
 
 if __name__ == "__main__":

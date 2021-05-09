@@ -1,14 +1,7 @@
-kind: ServiceAccount
-apiVersion: v1
-metadata:
-  name: default
-  namespace: REPLACE_NAMESPACE
----
 kind: ClusterRole
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
-  name: default
-  namespace: REPLACE_NAMESPACE
+  name: assisted-service
 rules:
   - verbs:
       - get
@@ -58,33 +51,9 @@ rules:
     resources:
       - clusterversions
   - verbs:
-      - get
-      - update
-      - delete
-    apiGroups:
-      - ''
-    resources:
-      - configmaps
-    resourceNames: ["assisted-service-leader-election-helper", "assisted-service-migration-helper", "assisted-service-baseiso-helper"]
-  - verbs:
       - create
       - get
     apiGroups:
       - route.openshift.io
     resources:
       - routes
-
----
-kind: ClusterRoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: default
-  namespace: REPLACE_NAMESPACE
-subjects:
-  - kind: ServiceAccount
-    name: default
-    namespace: REPLACE_NAMESPACE
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: default

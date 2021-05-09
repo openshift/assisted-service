@@ -4,7 +4,7 @@ metadata:
   labels:
     control-plane: assisted-service-operator
   name: assisted-service-operator-metrics-service
-  namespace: system
+  namespace: assisted-installer
 spec:
   ports:
   - name: https

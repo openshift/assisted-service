@@ -12,29 +12,11 @@ For development and testing purposes it may be beneficial to build the operator
 bundle and index images. If you don't __need__ to build it, just skip to
 [Deploying the Operator](#deploying-the-operator).
 
-### Background
+Build the bundle:
 
-To generate the manifests and CSV in ./bundle, "make operator-bundle" first calls the "ocp-create-manifests" target. This target in turn calls "deploy-service-on-ocp-cluster and deploy-ui-on-ocp-cluster" while setting APPLY_MANIFESTS=False and APPLY_NAMESPACE=False. This causes the resource yamls to be created in ./build/assisted-installer/ but does not apply them.
-
-The relevant resource yamls are then copied to ./config/assisted-service where additional customizations are applied using Kustomize. The resulting yaml is then piped to operator-sdk, creating the manifests and CSVs in ./bundle/manifests.
-
-More information about bundles: <https://sdk.operatorframework.io/docs/olm-integration/generation/>
-
-### Create the bundle and index images
-
-```bash
-export ORG=quay.io/change-me
-export BUNDLE_IMAGE=$ORG/assisted-service-operator-bundle:0.0.1
-export INDEX_IMAGE=$ORG/assisted-service-index:0.0.1
-# Build bundle image
+```
+export BUNDLE_IMAGE=quay.io/${QUAY_NAMESPACE}/assisted-service-operator-bundle:${TAG}
 make operator-bundle-build
-# Push bundle image
-make operator-bundle-update
-
-# Create index image
-opm index add --bundles $BUNDLE_IMAGE --tag $INDEX_IMAGE
-# Push index image used in catalog source
-podman push $INDEX_IMAGE
 ```
 
 ## Deploying the operator
@@ -53,9 +35,7 @@ EOF
 ```
 
 Having the ClusterDeployment CRD installed is a prerequisite.
-Install Hive, if it has not already been installed. Note the
-startingCSV version, it may need to be updated to a more
-recent version. See [version list](https://github.com/operator-framework/community-operators/tree/master/community-operators/hive-operator).
+Install Hive, if it has not already been installed.
 
 ``` bash
 cat <<EOF | kubectl create -f -
@@ -70,66 +50,30 @@ spec:
   name: hive-operator
   source: community-operators
   sourceNamespace: openshift-marketplace
-  startingCSV: hive-operator.v1.0.19
 ```
 
-Create a CatalogSource for the operator to appear in OperatorHub.
-The CatalogSource spec image can be set to quay.io/ocpmetal/assisted-service-index:latest
-if you want to pick up the latest merged change on master or to a
-custom the index image.
+Deploy the operator using the operator-sdk:
 
-``` bash
-cat <<EOF | kubectl create -f -
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: assisted-service-catalog
-  namespace: openshift-marketplace
-spec:
-  sourceType: grpc
-  image: quay.io/ocpmetal/assisted-service-index:latest
-EOF
+```bash
+operator-sdk run bundle \
+  --namespace assisted-installer \
+  ${BUNDLE_IMAGE:-quay.io/ocpmetal/assisted-service-operator-bundle:latest}
 ```
 
-It may take a few minutes for the operator to appear in OperatorHub.
-Once it is in OperatorHub, the operator can be installed through the
-console.
+Now you should see the `assisted-service-operator` deployment running in the
+`assisted-installer` namespace.
 
-The operator can also be installed through the command line by creating
-an OperatorGroup and Subscription.
+**NOTE**
 
-``` bash
-cat <<EOF | kubectl create -f -
-apiVersion: operators.coreos.com/v1
-kind: OperatorGroup
-metadata:
-    name: assisted-installer-group
-    namespace: assisted-installer
-spec:
-  targetNamespaces:
-    - assisted-installer
-EOF
+Use `operator-sdk cleanup assisted-service-operator` to remove the operator when
+installed via `operator-sdk run`.
 
-cat <<EOF | kubectl create -f -
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: assisted-service-operator
-  namespace: assisted-installer
-spec:
-  channel: alpha
-  installPlanApproval: Automatic
-  name: assisted-service-operator
-  source: assisted-service-catalog
-  sourceNamespace: openshift-marketplace
-  startingCSV: assisted-service-operator.v0.0.1
-EOF
-```
+## Creating an AgentServiceConfig Resource
 
-## Deploying the operand
+The Assisted Service is deployed by creating an AgentServiceConfig.
+At a minimum, you must specify the `databaseStorage` and `filesystemStorage` to
+be used.
 
-An Assisted Service Deployment is created by creating an
-AgentServiceConfig CustomResource. Here is a basic example:
 
 ``` bash
 cat <<EOF | kubectl create -f -
@@ -153,7 +97,45 @@ spec:
 EOF
 ```
 
-**NOTE Unsupported**
+## Configuring the Assisted Service Deployment
+
+### Via Subscription
+
+The operator subscription can be used to configure the images used in the
+assisted-service deployment and the installer + controller + agent images used by
+the assisted-service.
+
+``` bash
+cat <<EOF | kubectl apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: assisted-service-operator
+  namespace: assisted-installer
+spec:
+  config:
+    env:
+      - name: SERVICE_IMAGE
+        value: ${SERVICE_IMAGE}
+      - name: DATABASE_IMAGE
+        value: ${DATABASE_IMAGE}
+      - name: AGENT_IMAGE
+        value: ${AGENT_IMAGE}
+      - name: CONTROLLER_IMAGE
+        value: ${CONTROLLER_IMAGE}
+      - name: INSTALLER_IMAGE
+        value: ${INSTALLER_IMAGE}
+EOF
+```
+
+**NOTE**
+
+The default channel for the assisted-service-operator package, here and in
+[community-operators](https://github.com/operator-framework/community-operators/tree/master/community-operators/assisted-service-operator),
+is `"alpha"` so we do not include it in the Subscription.
+
+### Specifying Environmental Variables via ConfigMap
+
 It is possible to specify a ConfigMap to be mounted into the assisted-service
 container as environment variables by adding an
 `"unsupported.agent-install.openshift.io/assisted-service-configmap"`
@@ -161,7 +143,34 @@ annotation to the `AgentServiceConfig` specifying the name of the configmap to b
 used. This ConfigMap must exist in the namespace where the operator is
 installed.
 
-## Deploying the operand with mirror registry configuration
+Simply create a ConfigMap in the `assisted-installer` namespace:
+
+``` bash
+cat <<EOF | kubectl create -f -
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: my-assisted-service-config
+  namespace: assisted-installer
+data:
+  LOG_LEVEL: "debug"
+EOF
+```
+
+Add the annotation to the AgentServiceConfig:
+
+```bash
+cat <<EOF | kubectl apply -f -
+apiVersion: operators.coreos.com/v1alpha1
+kind: AgentServiceConfig
+metadata:
+  name: agent
+  annotations:
+    unsupported.agent-install.openshift.io/assisted-service-configmap: "my-assisted-service-config"
+EOF
+```
+
+### Mirror Registry Configuration
 
 In case user wants to create an installation that uses mirror registry, the following must be executed:
 1. Create and upload a ConfigMap that will include the following keys:
@@ -203,71 +212,14 @@ EOF
 2. set the mirrorRegistryConfigmapName in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
 
 ``` bash
-cat <<EOF | kubectl create -f -
+cat <<EOF | kubectl apply -f -
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
   name: agent
 spec:
-  databaseStorage:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 10Gi
-  filesystemStorage:
-    accessModes:
-    - ReadWriteOnce
-    resources:
-      requests:
-        storage: 20Gi
   mirrorRegistryConfigmapName: mirrorRegistyMap
 EOF
 ```
 
-For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/internal/controller/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml).
-
-## Subscription config
-
-Subscription configs override any environment variables set in
-the deployment specs and any values from ConfigMaps. They can be
-used to configure the operator deployment.
-
-In the example below, we configure the image that will be used
-when deploying the assisted-service by changing the value of `SERVICE_IMAGE`.
-
-``` bash
-cat <<EOF | kubectl apply -f -
-apiVersion: operators.coreos.com/v1alpha1
-kind: Subscription
-metadata:
-  name: assisted-service-operator
-  namespace: assisted-installer
-spec:
-  channel: alpha
-  installPlanApproval: Automatic
-  name: assisted-service-operator
-  source: assisted-service-manifests
-  sourceNamespace: openshift-marketplace
-  config:
-    env:
-      - name: SERVICE_IMAGE
-        value: "my-custom-assisted-service-image"
-EOF
-```
-
-## Useful Kustomize options
-
-In [`config/default/kustomization.yaml`](https://github.com/openshift/assisted-service/blob/master/config/default/kustomization.yaml):
-
-```
-# Uncomment to set a mininum disk size allowed by the hardware validator.
-# By default the minimum disk size allowed is 120GB. The patch sets the
-# minimum disk size to 20GB.
-#- assisted-service-configmap-patch-hw-validator-min-disk-size.yaml
-```
-
-```
-# Uncomment to use a custom assisted-service image in the deployment
-#- assisted-service-patch-image.yaml
-```
+For more details on how to specify the CR, see [AgentServiceConfig CRD](https://github.com/openshift/assisted-service/blob/master/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml).

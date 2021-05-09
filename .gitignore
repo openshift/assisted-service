@@ -13,6 +13,9 @@ __pycache__/
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Drop scorecard stuff
+deploy/olm-catalog/**/tests/**
+
 /vendor
 reports
 
@@ -21,15 +24,4 @@ coreos-installer
 livecd.iso
 
 # Operator bundle files
-bundle*
-config/rbac/ocp_role.yaml
-config/rbac/kube_api_roles.yaml
-config/rbac/controller_roles.yaml
-config/assisted-service/scality-secret.yaml
-config/assisted-service/scality-public-secret.yaml
-config/assisted-service/postgres-deployment.yaml
-config/assisted-service/assisted-installer-sso.yaml
-config/assisted-service/assisted-service-configmap.yaml
-config/assisted-service/assisted-service-service.yaml
-config/assisted-service/assisted-service.yaml
-config/assisted-service/deploy_ui.yaml
+/bundle*

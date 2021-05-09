@@ -2,56 +2,46 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: ClusterServiceVersion
 metadata:
   annotations:
-    alm-examples: |-
-      [
-        {
-           "apiVersion": "agent-install.openshift.io/v1beta1",
-           "kind": "AgentServiceConfig",
-           "metadata": {
-              "namespace": "assisted-installer",
-              "name": "agent"
-           },
-           "spec": {
-              "databaseStorage": {
-                 "accessModes": [
-                    "ReadWriteOnce"
-                 ],
-                 "resources": {
-                    "requests": {
-                       "storage": "10Gi"
-                    }
-                 }
-              },
-              "filesystemStorage": {
-                 "accessModes": [
-                    "ReadWriteOnce"
-                 ],
-                 "resources": {
-                    "requests": {
-                       "storage": "100Gi"
-                    }
-                 }
-              }
-           }
-        }
-      ]
+    alm-examples: '[]'
     capabilities: Basic Install
     description: Assisted Service is used to orchestrate baremetal OpenShift installations.
+    olm.skipRange: <0.0.3
+    operatorframework.io/suggested-namespace: assisted-installer
     operators.operatorframework.io/builder: operator-sdk-v1.3.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
-    "operatorframework.io/suggested-namespace": assisted-installer
-    support: 'https://github.com/openshift/assisted-service/issues/new'
-    repository: 'https://github.com/openshift/assisted-service'
-  name: assisted-service-operator.v0.0.1
+    repository: https://github.com/openshift/assisted-service
+    support: https://github.com/openshift/assisted-service/issues/new
+  name: assisted-service-operator.v0.0.3
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
     owned:
-    - kind: Agents
+    - description: AgentServiceConfig represents an Assisted Service deployment. Only an AgentServiceConfig with name="agent" will be reconciled, for all other names a "Warning" event will be emitted + message logged and it will be ignored forever.
+      displayName: Agent Service Config
+      kind: AgentServiceConfig
+      name: agentserviceconfigs.agent-install.openshift.io
+      specDescriptors:
+      - description: DatabaseStorage defines the spec of the PersistentVolumeClaim to be created for the database's filesystem. With respect to the resource requests, a minimum of 10Gi is recommended.
+        displayName: Storage for database
+        path: databaseStorage
+      - description: 'FileSystemStorage defines the spec of the PersistentVolumeClaim to be created for the assisted-service''s filesystem (logs, etc). With respect to the resource requests, the amount of filesystem storage consumer will depend largely on the number of clusters you intend to create. Approximate storage requiremens include:   - ~200 MB per cluster   - ~2-3 GB per supported OpenShift version 20Gi is the recommended minimum for development/testing and 100Gi is recommended for everything else.'
+        displayName: Storage for service filesystem
+        path: filesystemStorage
+      - description: 'MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration In case no configuration is need, this field will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the contents of mirror registry certificate/s registries.conf - holds the content of registries.conf file configured with mirror registries'
+        displayName: Mirror Registry and Certificate ConfigMap Name
+        path: mirrorRegistryRef
+      version: v1beta1
+    - displayName: Agent
+      kind: Agent
       name: agents.agent-install.openshift.io
       version: v1beta1
-    - kind: InfraEnv
+    - displayName: InfraEnv
+      kind: InfraEnv
       name: infraenvs.agent-install.openshift.io
+      version: v1beta1
+    - displayName: NMStateConfig
+      kind: NMStateConfig
+      name: nmstateconfigs.agent-install.openshift.io
       version: v1beta1
   description: |-
     Assisted Service is used to orchestrate baremetal OpenShift installations.
@@ -61,9 +51,8 @@ spec:
     No other name will be accepted.
   displayName: Assisted Service Operator
   icon:
-    - base64data: >-
-        PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4=
-      mediatype: image/svg+xml
+  - base64data: PHN2ZyBpZD0iTGF5ZXJfMSIgZGF0YS1uYW1lPSJMYXllciAxIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxOTIgMTQ1Ij48ZGVmcz48c3R5bGU+LmNscy0xe2ZpbGw6I2UwMDt9PC9zdHlsZT48L2RlZnM+PHRpdGxlPlJlZEhhdC1Mb2dvLUhhdC1Db2xvcjwvdGl0bGU+PHBhdGggZD0iTTE1Ny43Nyw2Mi42MWExNCwxNCwwLDAsMSwuMzEsMy40MmMwLDE0Ljg4LTE4LjEsMTcuNDYtMzAuNjEsMTcuNDZDNzguODMsODMuNDksNDIuNTMsNTMuMjYsNDIuNTMsNDRhNi40Myw2LjQzLDAsMCwxLC4yMi0xLjk0bC0zLjY2LDkuMDZhMTguNDUsMTguNDUsMCwwLDAtMS41MSw3LjMzYzAsMTguMTEsNDEsNDUuNDgsODcuNzQsNDUuNDgsMjAuNjksMCwzNi40My03Ljc2LDM2LjQzLTIxLjc3LDAtMS4wOCwwLTEuOTQtMS43My0xMC4xM1oiLz48cGF0aCBjbGFzcz0iY2xzLTEiIGQ9Ik0xMjcuNDcsODMuNDljMTIuNTEsMCwzMC42MS0yLjU4LDMwLjYxLTE3LjQ2YTE0LDE0LDAsMCwwLS4zMS0zLjQybC03LjQ1LTMyLjM2Yy0xLjcyLTcuMTItMy4yMy0xMC4zNS0xNS43My0xNi42QzEyNC44OSw4LjY5LDEwMy43Ni41LDk3LjUxLjUsOTEuNjkuNSw5MCw4LDgzLjA2LDhjLTYuNjgsMC0xMS42NC01LjYtMTcuODktNS42LTYsMC05LjkxLDQuMDktMTIuOTMsMTIuNSwwLDAtOC40MSwyMy43Mi05LjQ5LDI3LjE2QTYuNDMsNi40MywwLDAsMCw0Mi41Myw0NGMwLDkuMjIsMzYuMywzOS40NSw4NC45NCwzOS40NU0xNjAsNzIuMDdjMS43Myw4LjE5LDEuNzMsOS4wNSwxLjczLDEwLjEzLDAsMTQtMTUuNzQsMjEuNzctMzYuNDMsMjEuNzdDNzguNTQsMTA0LDM3LjU4LDc2LjYsMzcuNTgsNTguNDlhMTguNDUsMTguNDUsMCwwLDEsMS41MS03LjMzQzIyLjI3LDUyLC41LDU1LC41LDc0LjIyYzAsMzEuNDgsNzQuNTksNzAuMjgsMTMzLjY1LDcwLjI4LDQ1LjI4LDAsNTYuNy0yMC40OCw1Ni43LTM2LjY1LDAtMTIuNzItMTEtMjcuMTYtMzAuODMtMzUuNzgiLz48L3N2Zz4=
+    mediatype: image/svg+xml
   install:
     spec:
       deployments: null
@@ -84,10 +73,10 @@ spec:
   links:
   - name: Assisted Service
     url: https://github.com/openshift/assisted-service
-  maturity: alpha
   maintainers:
-    - name: Support
-      email: support@redhat.com
+  - email: support@redhat.com
+    name: Support
+  maturity: alpha
   provider:
     name: Red Hat
-  version: 0.0.1
+  version: 0.0.3
