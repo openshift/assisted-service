@@ -30,7 +30,6 @@ func TestJob(t *testing.T) {
 const (
 	defaultTestOpenShiftVersion = "4.6"
 	defaultTestRhcosURL         = "rhcosURL"
-	defaultTestRhcosRootFSURL   = "rhcosRootFSURL"
 	defaultTestServiceBaseURL   = "http://1.1.1.1:6000"
 )
 

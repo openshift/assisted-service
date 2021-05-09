@@ -38,10 +38,6 @@ type OpenshiftVersion struct {
 	// Required: true
 	RhcosImage *string `json:"rhcos_image"`
 
-	// The RHCOS rootfs url.
-	// Required: true
-	RhcosRootfs *string `json:"rhcos_rootfs"`
-
 	// Build ID of the RHCOS image.
 	// Required: true
 	RhcosVersion *string `json:"rhcos_version"`
@@ -69,10 +65,6 @@ func (m *OpenshiftVersion) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateRhcosImage(formats); err != nil {
-		res = append(res, err)
-	}
-
-	if err := m.validateRhcosRootfs(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -120,15 +112,6 @@ func (m *OpenshiftVersion) validateReleaseVersion(formats strfmt.Registry) error
 func (m *OpenshiftVersion) validateRhcosImage(formats strfmt.Registry) error {
 
 	if err := validate.Required("rhcos_image", "body", m.RhcosImage); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (m *OpenshiftVersion) validateRhcosRootfs(formats strfmt.Registry) error {
-
-	if err := validate.Required("rhcos_rootfs", "body", m.RhcosRootfs); err != nil {
 		return err
 	}
 

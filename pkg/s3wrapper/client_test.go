@@ -409,7 +409,6 @@ var _ = Describe("s3client", func() {
 
 			// Should upload version file
 			uploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(1)
-			mockVersions.EXPECT().GetRHCOSRootFS(defaultTestOpenShiftVersion).Return("https://example.com/rootfs/url", nil)
 
 			err := client.uploadBootFiles(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, false)
 			Expect(err).ToNot(HaveOccurred())
