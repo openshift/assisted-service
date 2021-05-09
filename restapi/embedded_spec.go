@@ -7216,7 +7216,6 @@ func init() {
         "release_image",
         "release_version",
         "rhcos_image",
-        "rhcos_rootfs",
         "rhcos_version",
         "support_level"
       ],
@@ -7239,10 +7238,6 @@ func init() {
         },
         "rhcos_image": {
           "description": "The base RHCOS image used for the discovery iso.",
-          "type": "string"
-        },
-        "rhcos_rootfs": {
-          "description": "The RHCOS rootfs url.",
           "type": "string"
         },
         "rhcos_version": {
@@ -14894,7 +14889,6 @@ func init() {
         "release_image",
         "release_version",
         "rhcos_image",
-        "rhcos_rootfs",
         "rhcos_version",
         "support_level"
       ],
@@ -14917,10 +14911,6 @@ func init() {
         },
         "rhcos_image": {
           "description": "The base RHCOS image used for the discovery iso.",
-          "type": "string"
-        },
-        "rhcos_rootfs": {
-          "description": "The RHCOS rootfs url.",
           "type": "string"
         },
         "rhcos_version": {

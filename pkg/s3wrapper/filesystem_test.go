@@ -266,7 +266,6 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
-			mockVersions.EXPECT().GetRHCOSRootFS(defaultTestOpenShiftVersion).Return(defaultTestRhcosRootFSURL, nil).Times(1)
 
 			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
