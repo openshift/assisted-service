@@ -1,4 +1,10 @@
 function mirror_package() {
+  # Here we will do the next actions:
+  # 1. Create an index of specific packages from specific remote indexes
+  # 2. Push the index image to the local index
+  # 3. Upload all packages to the local index and create ICSP and
+  #    CatalogSource for the new created index
+
   # e.g. "local-storage-operator"
   package="${1}"
 
@@ -38,6 +44,11 @@ function mirror_package() {
         --registry-config="${authfile}" \
         --to-manifests="${manifests_dir}"
 
+  echo "Applyed image-content-source-policy:"
+  cat "${manifests_dir}/imageContentSourcePolicy.yaml"
+
+  oc apply -f "${manifests_dir}/imageContentSourcePolicy.yaml"
+
   cat > "${manifests_dir}/catalogSource.yaml" << EOF
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
@@ -54,7 +65,9 @@ spec:
       interval: 30m
 EOF
 
-  oc apply -f "${manifests_dir}/imageContentSourcePolicy.yaml"
+  echo "Applyed catalog source:"
+  cat "${manifests_dir}/catalogSource.yaml"
+
   oc apply -f "${manifests_dir}/catalogSource.yaml"
 }
 
@@ -64,7 +77,11 @@ function disable_default_indexes() {
 }
 
 function merge_authfiles() {
-  jq -s '.[0] * .[1]' "${1}" "${2}" > "${3}"
+  first_authfile="${1}"
+  second_authfile="${2}"
+  merged_authfile="${3}"
+
+  jq -s '.[0] * .[1]' "${first_authfile}" "${second_authfile}" > "${merged_authfile}"
 }
 
 function install_opm() {
