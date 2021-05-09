@@ -230,6 +230,27 @@ var _ = Describe("installcfg", func() {
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"))
 	})
 
+	It("CA AdditionalTrustBundle is set to mirror CA", func() {
+		var result InstallerConfigBaremetal
+		cluster.InstallConfigOverrides = ""
+		ca := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"
+		mirrorCA := "-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pFDaxRgtF123FVTA=\n-----END CERTIFICATE-----"
+		gomock.InOrder(mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false),
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true))
+		mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte(mirrorCA), nil).Times(1)
+		data, err := installConfig.GetInstallConfig(&cluster, true, ca)
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.AdditionalTrustBundle).Should(Equal(" | \n-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
+			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
+			"2lyDI6UR3Fbz4pFDaxRgtF123FVTA=\n-----END CERTIFICATE-----"))
+	})
+
 	It("CA AdditionalTrustBundle not added", func() {
 		var result InstallerConfigBaremetal
 		cluster.InstallConfigOverrides = ""
