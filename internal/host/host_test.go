@@ -2286,6 +2286,113 @@ var _ = Describe("SetDiskSpeed", func() {
 
 })
 
+var _ = Describe("ResetHostValidation", func() {
+	var (
+		ctrl            *gomock.Controller
+		ctx             = context.Background()
+		db              *gorm.DB
+		dbName          string
+		mockEvents      *events.MockHandler
+		mockHwValidator *hardware.MockValidator
+		validatorCfg    *hardware.ValidatorCfg
+		m               *Manager
+		h               *models.Host
+	)
+
+	registerTestHost := func(clusterID strfmt.UUID) *models.Host {
+
+		hostID := strfmt.UUID(uuid.New().String())
+		h := hostutil.GenerateTestHost(hostID, clusterID, models.HostStatusInsufficient)
+
+		h.Inventory = hostutil.GenerateMasterInventory()
+		h.InstallationDiskID = "/dev/sda"
+
+		Expect(m.RegisterHost(ctx, &h, db)).ToNot(HaveOccurred())
+
+		return &h
+	}
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		validatorCfg = createValidatorCfg()
+		mockMetric := metrics.NewMockAPI(ctrl)
+		m = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil)
+		h = registerTestHost(strfmt.UUID(uuid.New().String()))
+		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
+		mockMetric.EXPECT().ImagePullStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	})
+
+	verifyExistingDiskResult := func(h *models.Host, path string, exitCode int64, speedMs int64) {
+		diskInfo, err := common.GetDiskInfo(h.DisksInfo, path)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(diskInfo).ToNot(BeNil())
+		Expect(diskInfo.DiskSpeed).ToNot(BeNil())
+		Expect(diskInfo.DiskSpeed.Tested).To(BeTrue())
+		Expect(diskInfo.DiskSpeed.ExitCode).To(Equal(exitCode))
+		if exitCode == 0 {
+			Expect(diskInfo.DiskSpeed.SpeedMs).To(Equal(speedMs))
+		}
+	}
+
+	verifyNonExistentDiskResult := func(h *models.Host, path string) {
+		diskInfo, err := common.GetDiskInfo(h.DisksInfo, path)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(diskInfo).ToNot(BeNil())
+		Expect(diskInfo.DiskSpeed).To(BeNil())
+	}
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	It("One disk in error", func() {
+		Expect(m.SetDiskSpeed(ctx, h, "/dev/sda", 2, 5, nil)).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyExistingDiskResult(&newHost, "/dev/sda", 5, 2)
+		Expect(m.ResetHostValidation(ctx, *h.ID, h.ClusterID, string(models.HostValidationIDSufficientOrUnknownInstallationDiskSpeed), nil)).ToNot(HaveOccurred())
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		verifyNonExistentDiskResult(&newHost, "/dev/sda")
+	})
+	It("One image in error", func() {
+		Expect(m.UpdateImageStatus(ctx, h, &models.ContainerImageAvailability{
+			Name:   "a.b.c",
+			Result: models.ContainerImageAvailabilityResultFailure,
+		}, db)).ToNot(HaveOccurred())
+		var newHost models.Host
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		imageStatuses, err := common.UnmarshalImageStatuses(newHost.ImagesStatus)
+		Expect(err).ToNot(HaveOccurred())
+		imageStatus, exists := common.GetImageStatus(imageStatuses, "a.b.c")
+		Expect(exists).To(BeTrue())
+		Expect(imageStatus.Result).To(Equal(models.ContainerImageAvailabilityResultFailure))
+		Expect(m.ResetHostValidation(ctx, *h.ID, h.ClusterID, string(models.HostValidationIDContainerImagesAvailable), nil)).ToNot(HaveOccurred())
+		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
+		imageStatuses, err = common.UnmarshalImageStatuses(newHost.ImagesStatus)
+		Expect(err).ToNot(HaveOccurred())
+		_, exists = common.GetImageStatus(imageStatuses, "a.b.c")
+		Expect(exists).To(BeFalse())
+	})
+	It("Unsupported validation", func() {
+		Expect(m.ResetHostValidation(ctx, *h.ID, h.ClusterID, string(models.HostValidationIDAPIVipConnected), nil)).To(HaveOccurred())
+	})
+	It("Nonexistant validation", func() {
+		Expect(m.ResetHostValidation(ctx, *h.ID, h.ClusterID, "abcd", nil)).To(HaveOccurred())
+	})
+	It("Host not found", func() {
+		err := m.ResetHostValidation(ctx, strfmt.UUID(uuid.New().String()), h.ClusterID, string(models.HostValidationIDContainerImagesAvailable), nil)
+		Expect(err).To(HaveOccurred())
+		apiErr, ok := err.(*common.ApiErrorResponse)
+		Expect(ok).To(BeTrue())
+		Expect(apiErr.StatusCode()).To(BeNumerically("==", http.StatusNotFound))
+	})
+})
+
 var _ = Describe("Disabled Host Validation", func() {
 	const (
 		disabledHostValidationEnvironmentName = "DISABLED_HOST_VALIDATIONS"

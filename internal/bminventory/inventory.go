@@ -4317,6 +4317,12 @@ func hostRequirementsRoleFrom(requirements *models.ClusterHostRequirementsDetail
   TODO Add implementation.  Needed because it is part of generated InstallerAPI
 */
 func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
+	err := b.hostApi.ResetHostValidation(ctx, params.ClusterID, params.HostID, params.ValidationID, nil)
+	if err != nil {
+		log := logutil.FromContext(ctx, b.log)
+		log.WithError(err).Error("Reset host validation")
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewResetHostValidationOK()
 }
 
