@@ -1326,6 +1326,51 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 	})
+
+	Context("cluster update not needed", func() {
+		var (
+			sId strfmt.UUID
+		)
+
+		BeforeEach(func() {
+			id := uuid.New()
+			sId = strfmt.UUID(id.String())
+		})
+
+		It("SSHPublicKey in ClusterDeployment has spaces in suffix", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultClusterSpec.Provisioning.InstallStrategy.Agent.Networking.ServiceNetwork[0],
+					IngressVip:               defaultClusterSpec.Platform.AgentBareMetal.IngressVIP,
+					APIVip:                   defaultClusterSpec.Platform.AgentBareMetal.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			sshPublicKeySuffixSpace := fmt.Sprintf("%s ",
+				defaultClusterSpec.Provisioning.InstallStrategy.Agent.SSHPublicKey)
+			cluster.Spec.Provisioning.InstallStrategy.Agent.SSHPublicKey = sshPublicKeySuffixSpace
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
+	})
 })
 
 var _ = Describe("TestConditions", func() {
