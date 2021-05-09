@@ -79,6 +79,17 @@ var _ = Describe("AuthAgentAuth", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
+	It("Caches the response", func() {
+		_, err := a.AuthAgentAuth(token)
+		Expect(err).ToNot(HaveOccurred())
+
+		resp := db.Delete(cluster)
+		Expect(resp.Error).ToNot(HaveOccurred())
+
+		_, err = a.AuthAgentAuth(token)
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 	It("Fails an invalid token", func() {
 		_, err := a.AuthAgentAuth(token + "asdf")
 		Expect(err).To(HaveOccurred())
