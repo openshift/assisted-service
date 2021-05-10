@@ -32,6 +32,8 @@ type OSImage struct {
 	Version string `json:"version"`
 	// Url specifies the path to the Operating System image.
 	Url string `json:"url"`
+	// rootFSUrl specifies the path to the root filesystem.
+	RootFSUrl string `json:"rootFSUrl"`
 }
 
 // AgentServiceConfigSpec defines the desired state of AgentServiceConfig

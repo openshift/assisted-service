@@ -853,6 +853,7 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(instance *aiv1beta1.
 		version := models.OpenshiftVersion{
 			RhcosVersion: &image.Version,
 			RhcosImage:   &image.Url,
+			RhcosRootfs:  &image.RootFSUrl,
 		}
 		// The last entry for a particular OpenShift version takes precedence.
 		versions[image.OpenshiftVersion] = version
