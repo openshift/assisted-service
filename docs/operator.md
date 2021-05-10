@@ -66,8 +66,11 @@ Now you should see the `assisted-service-operator` deployment running in the
 
 **NOTE**
 
-Use `operator-sdk cleanup assisted-service-operator` to remove the operator when
-installed via `operator-sdk run`.
+```bash
+operator-sdk cleanup --namespace assisted-installer assisted-service-operator
+```
+
+Is an effective way to remove the operator when installed via `operator-sdk run`.
 
 ## Creating an AgentServiceConfig Resource
 
@@ -134,6 +137,33 @@ EOF
 The default channel for the assisted-service-operator package, here and in
 [community-operators](https://github.com/operator-framework/community-operators/tree/master/community-operators/assisted-service-operator),
 is `"alpha"` so we do not include it in the Subscription.
+
+### Available Operator System Images
+
+Locations of OS Images to be used when generating the discovery ISOs for
+different OpenShift versions can be specified via the `osImages` field on the
+AgentServiceConfig.
+
+```
+apiVersion: agent-install.openshift.io/v1beta1
+kind: AgentServiceConfig
+metadata:
+ name: agent
+spec:
+  osImages:
+    - openshiftVersion: "4.6"
+      version: "46.82.202012051820-0"
+      url: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso"
+      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img"
+    - openshiftVersion: "4.7"
+      version: "47.83.202103251640-0"
+      url: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"
+      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"
+    - openshiftVersion: "4.8"
+      version: "47.83.202103251640-0"
+      url: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"
+      rootFSUrl: "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"
+```
 
 ### Specifying Environmental Variables via ConfigMap
 
@@ -210,7 +240,7 @@ EOF
    
    Note2: registry.conf supplied should use "mirror-by-digest-only = false" mode
 
-2. set the mirrorRegistryConfigmapName in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
+2. set the mirrorRegistryRef in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
 
 ``` bash
 cat <<EOF | kubectl apply -f -
@@ -219,7 +249,8 @@ kind: AgentServiceConfig
 metadata:
   name: agent
 spec:
-  mirrorRegistryConfigmapName: mirrorRegistyMap
+  mirrorRegistryRef:
+    name: mirrorRegistyMap
 EOF
 ```
 
