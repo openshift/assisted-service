@@ -8,7 +8,7 @@ DISCONNECTED="${DISCONNECTED:-false}"
 function print_help() {
   ALL_FUNCS="install_lso|create_local_volume|print_help"
   if [ "${DISCONNECTED}" == "true" ]; then
-    echo "Usage: DISKS=\$(echo sd{b..f}) DISCONNECTED=true AUTHFILE=... bash ${0} (${ALL_FUNCS})"
+    echo "Usage: DISKS=\$(echo sd{b..f}) DISCONNECTED=true LOCAL_REGISTRY=... AUTHFILE=... bash ${0} (${ALL_FUNCS})"
   else
     echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (${ALL_FUNCS})"
   fi
@@ -22,6 +22,12 @@ fi
 
 if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE}" ]; then
     echo "On disconnected mode, you must provide AUTHFILE env-var."
+    print_help
+    exit 1
+fi
+
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY}" ]; then
+    echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
     print_help
     exit 1
 fi
