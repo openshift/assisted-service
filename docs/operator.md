@@ -161,7 +161,7 @@ Add the annotation to the AgentServiceConfig:
 
 ```bash
 cat <<EOF | kubectl apply -f -
-apiVersion: operators.coreos.com/v1alpha1
+apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
   name: agent
