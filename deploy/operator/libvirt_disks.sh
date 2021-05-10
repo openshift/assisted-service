@@ -1,6 +1,10 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
 
+function print_help() {
+  echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (create|destroy|print_help)"
+}
+
 if [ -z "${NODES:-}" ]; then
     export NODES=$(virsh list --name | grep worker || virsh list --name | grep master)
 fi
