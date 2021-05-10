@@ -25,6 +25,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-openapi/swag"
+	"github.com/hashicorp/go-version"
 	routev1 "github.com/openshift/api/route/v1"
 	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
@@ -565,6 +566,28 @@ func (r *AgentServiceConfigReconciler) newPostgresSecret(instance *aiv1beta1.Age
 	return secret, mutateFn, nil
 }
 
+func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.AgentServiceConfig, sourceCM *corev1.ConfigMap) (*corev1.ConfigMap, controllerutil.MutateFn) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      defaultIngressCertCMName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+			return err
+		}
+		cm.Data = make(map[string]string)
+		for k, v := range sourceCM.Data {
+			cm.Data[k] = v
+		}
+		return nil
+	}
+
+	return cm, mutateFn
+}
+
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
 	openshiftVersions := r.getOpenshiftVersions(instance)
 
@@ -843,25 +866,40 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 	return deployment, mutateFn
 }
 
-func (r *AgentServiceConfigReconciler) getOpenshiftVersions(instance *aiv1beta1.AgentServiceConfig) (string) {
+func (r *AgentServiceConfigReconciler) getOpenshiftVersions(instance *aiv1beta1.AgentServiceConfig) string {
 	if instance.Spec.OSImages == nil {
 		return OpenshiftVersions()
 	}
 
-	versions := make(models.OpenshiftVersions)
+	openshiftVersions := make(models.OpenshiftVersions)
 	for _, image := range instance.Spec.OSImages {
-		version := models.OpenshiftVersion{
+		v, err := version.NewVersion(image.OpenshiftVersion)
+		if err != nil {
+			r.Log.Error(err, fmt.Sprintf("Problem parsing OpenShift version %v, skipping.", image.OpenshiftVersion))
+			continue
+		}
+
+		// put string in x.y format
+		versionString := fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1])
+		openshiftVersion := models.OpenshiftVersion{
+			DisplayName:  &versionString,
 			RhcosVersion: &image.Version,
 			RhcosImage:   &image.Url,
 			RhcosRootfs:  &image.RootFSUrl,
 		}
-		// The last entry for a particular OpenShift version takes precedence.
-		versions[image.OpenshiftVersion] = version
+
+		// the last entry for a particular OpenShift version takes precedence.
+		openshiftVersions[versionString] = openshiftVersion
 	}
 
-	encodedVersions, err := json.Marshal(versions)
+	if len(openshiftVersions) == 0 {
+		r.Log.Info("No valid OS Image specified, returning default", "OpenShift Versions", OpenshiftVersions())
+		return OpenshiftVersions()
+	}
+
+	encodedVersions, err := json.Marshal(openshiftVersions)
 	if err != nil {
-		r.Log.Info("Problem marshaling versions (%v) to string, returning default %v", versions, OpenshiftVersions())
+		r.Log.Error(err, fmt.Sprintf("Problem marshaling versions (%v) to string, returning default %v", openshiftVersions, OpenshiftVersions()))
 		return OpenshiftVersions()
 	}
 
@@ -880,26 +918,4 @@ func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
 			},
 		},
 	}
-}
-
-func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.AgentServiceConfig, sourceCM *corev1.ConfigMap) (*corev1.ConfigMap, controllerutil.MutateFn) {
-	cm := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      defaultIngressCertCMName,
-			Namespace: r.Namespace,
-		},
-	}
-
-	mutateFn := func() error {
-		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
-			return err
-		}
-		cm.Data = make(map[string]string)
-		for k, v := range sourceCM.Data {
-			cm.Data[k] = v
-		}
-		return nil
-	}
-
-	return cm, mutateFn
 }
