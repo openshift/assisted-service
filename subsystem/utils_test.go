@@ -357,3 +357,12 @@ func verifyUsageSet(featureUsage string, candidates ...models.Usage) {
 		Expect(usages[usage.Name]).To(Equal(usage))
 	}
 }
+
+func verifyUsageNotSet(featureUsage string, features ...string) {
+	usages := make(map[string]*models.Usage)
+	err := json.Unmarshal([]byte(featureUsage), &usages)
+	Expect(err).NotTo(HaveOccurred())
+	for _, name := range features {
+		Expect(usages[name]).To(BeNil())
+	}
+}

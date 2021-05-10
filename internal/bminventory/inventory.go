@@ -2041,7 +2041,12 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
 	b.setUsage(swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone,
 		usage.HighAvailabilityModeUsage, nil, usages)
 	b.setProxyUsage(&cluster.HTTPProxy, &cluster.HTTPProxy, &cluster.NoProxy, usages)
-	b.setOperatorsUsage(cluster.MonitoredOperators, []*models.MonitoredOperator{}, usages)
+	olmOperators := funk.Filter(cluster.MonitoredOperators, func(op *models.MonitoredOperator) bool {
+		return op != nil && op.OperatorType == models.OperatorTypeOlm
+	}).([]*models.MonitoredOperator)
+	b.setOperatorsUsage(olmOperators, []*models.MonitoredOperator{}, usages)
+	featusage, _ := json.Marshal(usages)
+	cluster.FeatureUsage = string(featusage)
 }
 
 func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string, noProxy *string, usages map[string]models.Usage) {
@@ -2068,11 +2073,11 @@ func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string
 
 func (b *bareMetalInventory) setOperatorsUsage(updateOLMOperators []*models.MonitoredOperator, removedOLMOperators []*models.MonitoredOperator, usages map[string]models.Usage) {
 	for _, operator := range updateOLMOperators {
-		b.usageApi.Add(usages, operator.Name, nil)
+		b.usageApi.Add(usages, strings.ToUpper(operator.Name), nil)
 	}
 
 	for _, operator := range removedOLMOperators {
-		b.usageApi.Remove(usages, operator.Name)
+		b.usageApi.Remove(usages, strings.ToUpper(operator.Name))
 	}
 }
 
