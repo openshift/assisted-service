@@ -50,6 +50,7 @@ spec:
   name: hive-operator
   source: community-operators
   sourceNamespace: openshift-marketplace
+EOF
 ```
 
 Deploy the operator using the operator-sdk:
