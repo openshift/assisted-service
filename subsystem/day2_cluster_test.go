@@ -12,6 +12,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/bminventory"
+	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -182,6 +183,7 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check installation - one node", func() {
+		By("register day2 host and install it")
 		host := &registerHost(clusterID).Host
 		h := getHost(clusterID, *host.ID)
 		generateEssentialHostSteps(ctx, h, "hostname")
@@ -190,6 +192,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		waitForHostState(ctx, clusterID, *h.ID, "known", 60*time.Second)
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
 		Expect(err).NotTo(HaveOccurred())
+		By("check day2 host status")
 		h = getHost(clusterID, *host.ID)
 		Expect(*h.Status).Should(Equal("installing"))
 		Expect(h.Role).Should(Equal(models.HostRoleWorker))
@@ -199,6 +202,15 @@ var _ = Describe("Day2 cluster tests", func() {
 		updateProgress(*h.ID, clusterID, models.HostStageRebooting)
 		h = getHost(clusterID, *host.ID)
 		Expect(*h.Status).Should(Equal("added-to-existing-cluster"))
+		By("check usage for day2 host")
+		c := getCluster(clusterID)
+		verifyUsageSet(c.FeatureUsage,
+			models.Usage{
+				Name: usage.Day2HostUsage,
+				Data: map[string]interface{}{
+					"day2_host_count": 1.0,
+				},
+			})
 	})
 
 	It("check installation - one node", func() {
@@ -224,6 +236,7 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 	It("check installation - 2 nodes", func() {
+		By("register two day2 host and install them")
 		host := &registerHost(clusterID).Host
 		h1 := getHost(clusterID, *host.ID)
 		host = &registerHost(clusterID).Host
@@ -233,14 +246,13 @@ var _ = Describe("Day2 cluster tests", func() {
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(ctx, h1, true)
 		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
-
+		
 		generateEssentialHostSteps(ctx, h2, "hostname2")
 		waitForHostState(ctx, clusterID, *h2.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(ctx, h2, true)
 		waitForHostState(ctx, clusterID, *h2.ID, "known", 60*time.Second)
-
+		
 		_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: clusterID})
-
 		Expect(err).NotTo(HaveOccurred())
 		h1 = getHost(clusterID, *h1.ID)
 		Expect(*h1.Status).Should(Equal("installing"))
@@ -265,6 +277,15 @@ var _ = Describe("Day2 cluster tests", func() {
 
 		c := getCluster(clusterID)
 		Expect(*c.Status).Should(Equal("adding-hosts"))
+		
+		By("check usage for day2 host")
+		verifyUsageSet(c.FeatureUsage,
+			models.Usage{
+				Name: usage.Day2HostUsage,
+				Data: map[string]interface{}{
+					"day2_host_count": 2.0,
+				},
+			})
 	})
 
 	It("check installation - 0 nodes", func() {
@@ -291,6 +312,15 @@ var _ = Describe("Day2 cluster tests", func() {
 
 		c := getCluster(clusterID)
 		Expect(*c.Status).Should(Equal("adding-hosts"))
+		
+		By("check usage for day2 host - usage follow configuration only")
+		verifyUsageSet(c.FeatureUsage,
+			models.Usage{
+				Name: usage.Day2HostUsage,
+				Data: map[string]interface{}{
+					"day2_host_count": 2.0,
+				},
+			})
 	})
 
 	It("check installation - install specific node", func() {

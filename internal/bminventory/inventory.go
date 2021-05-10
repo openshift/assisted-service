@@ -1311,6 +1311,12 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 		return common.GenerateErrorResponder(err)
 	}
 
+	usages, err := usage.Unmarshal(cluster.Cluster.FeatureUsage)
+	if err != nil {
+		log.WithError(err).Errorf("failed to read feature usage from cluster %s", params.ClusterID)
+		usages = make(usage.FeatureUsage)
+	}
+
 	// auto select hosts roles if not selected yet.
 	err = b.db.Transaction(func(tx *gorm.DB) error {
 		for i := range cluster.Hosts {
@@ -1368,13 +1374,17 @@ func (b *bareMetalInventory) InstallHosts(ctx context.Context, params installer.
 		}
 	}
 
+	//report day2 feature usage and save the result within the same transaction
+	b.setUsage(true, usage.Day2HostUsage, &map[string]interface{}{
+		"day2_host_count": len(cluster.Hosts)}, usages)
+	b.usageApi.Save(tx, *cluster.ID, usages)
+
 	err = tx.Commit().Error
 	if err != nil {
 		log.Error(err)
 		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
 	}
 	txSuccess = true
-
 	return installer.NewInstallHostsAccepted().WithPayload(&cluster.Cluster)
 }
 
