@@ -140,6 +140,7 @@ type API interface {
 	GetHostValidDisks(role *models.Host) ([]*models.Disk, error)
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
+	ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -994,6 +995,49 @@ func (m *Manager) SetDiskSpeed(ctx context.Context, h *models.Host, path string,
 		}
 	}
 	return nil
+}
+
+func (m *Manager) resetDiskSpeedValidation(host *models.Host, log logrus.FieldLogger, db *gorm.DB) error {
+	bootDevice, err := hardware.GetBootDevice(log, m.hwValidator, host)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.New("Get boot device"))
+	}
+	var updatedHost models.Host
+	updatedHost.DisksInfo, err = common.ResetDiskSpeed(bootDevice, host.DisksInfo)
+	if err != nil {
+		return common.NewApiError(http.StatusInternalServerError, errors.New("Reset disk speed"))
+	}
+	return db.Model(&models.Host{}).Where("cluster_id = ? and id = ?", host.ClusterID.String(), host.ID.String()).Update(&updatedHost).Error
+}
+
+func (m *Manager) resetContainerImagesValidation(host *models.Host, db *gorm.DB) error {
+	return db.Model(&models.Host{}).Where("cluster_id = ? and id = ?", host.ClusterID.String(), host.ID.String()).Updates(
+		map[string]interface{}{
+			"images_status": "",
+		}).Error
+}
+
+func (m *Manager) ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error {
+	if db == nil {
+		db = m.db
+	}
+	h, err := common.GetHostFromDB(db, clusterID.String(), hostID.String())
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return common.NewApiError(http.StatusNotFound, errors.Wrapf(err, "Host %s if cluster %s was not found", hostID.String(), clusterID.String()))
+		}
+		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unexpected error while getting host %s of cluster %s", hostID.String(), clusterID.String()))
+	}
+	log := logutil.FromContext(ctx, m.log)
+	host := &h.Host
+	switch validationID {
+	case string(models.HostValidationIDSufficientOrUnknownInstallationDiskSpeed):
+		return m.resetDiskSpeedValidation(host, log, db)
+	case string(models.HostValidationIDContainerImagesAvailable):
+		return m.resetContainerImagesValidation(host, db)
+	default:
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Validation \"%s\" cannot be reset", validationID))
+	}
 }
 
 func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {

@@ -319,6 +319,20 @@ func (mr *MockAPIMockRecorder) ResetHost(arg0, arg1, arg2, arg3 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHost", reflect.TypeOf((*MockAPI)(nil).ResetHost), arg0, arg1, arg2, arg3)
 }
 
+// ResetHostValidation mocks base method
+func (m *MockAPI) ResetHostValidation(arg0 context.Context, arg1, arg2 strfmt.UUID, arg3 string, arg4 *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResetHostValidation", arg0, arg1, arg2, arg3, arg4)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ResetHostValidation indicates an expected call of ResetHostValidation
+func (mr *MockAPIMockRecorder) ResetHostValidation(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResetHostValidation", reflect.TypeOf((*MockAPI)(nil).ResetHostValidation), arg0, arg1, arg2, arg3, arg4)
+}
+
 // ResetPendingUserAction mocks base method
 func (m *MockAPI) ResetPendingUserAction(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
 	m.ctrl.T.Helper()

@@ -64,3 +64,17 @@ func SetDiskSpeed(path string, speedMs int64, exitCode int64, disksInfoStr strin
 	disksInfo[path] = info
 	return MarshalDisks(disksInfo)
 }
+
+func ResetDiskSpeed(path, disksInfoStr string) (string, error) {
+	disksInfo, err := UnMarshalDisks(disksInfoStr)
+	if err != nil {
+		return "", err
+	}
+	info, ok := disksInfo[path]
+	if !ok {
+		return disksInfoStr, nil
+	}
+	info.DiskSpeed = nil
+	disksInfo[path] = info
+	return MarshalDisks(disksInfo)
+}
