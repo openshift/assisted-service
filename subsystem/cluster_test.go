@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/internal/usage"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
@@ -544,6 +545,114 @@ func setClusterAsFinalizing(ctx context.Context, clusterID strfmt.UUID) {
 	waitForClusterState(ctx, clusterID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
 }
 
+var _ = Describe("ListClusters", func() {
+
+	var (
+		ctx     = context.Background()
+		cluster *models.Cluster
+	)
+
+	BeforeEach(func() {
+
+		registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				BaseDNSDomain:            "example.com",
+				ClusterNetworkHostPrefix: 23,
+				Name:                     swag.String("test-cluster"),
+				OpenshiftVersion:         swag.String(openshiftVersion),
+				PullSecret:               swag.String(pullSecret),
+				SSHPublicKey:             sshPublicKey,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		cluster = registerClusterReply.GetPayload()
+		log.Infof("Register cluster %s", cluster.ID.String())
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	Context("Filter by opensfhift cluster ID", func() {
+
+		BeforeEach(func() {
+			registerHostsAndSetRolesDHCP(*cluster.ID, 5)
+			_ = installCluster(*cluster.ID)
+		})
+
+		It("searching for an existing openshift cluster ID", func() {
+			list, err := userBMClient.Installer.ListClusters(
+				ctx,
+				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("41940ee8-ec99-43de-8766-174381b4921d")})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(1))
+		})
+
+		It("discarding openshift cluster ID field", func() {
+			list, err := userBMClient.Installer.ListClusters(
+				ctx,
+				&installer.ListClustersParams{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(1))
+		})
+
+		It("searching for a non-existing openshift cluster ID", func() {
+			list, err := userBMClient.Installer.ListClusters(
+				ctx,
+				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(0))
+		})
+	})
+
+	Context("Filter by AMS subscription IDs", func() {
+
+		BeforeEach(func() {
+			if Options.AuthType == auth.TypeNone {
+				Skip("auth is disabled")
+			}
+			if !Options.WithAMSSubscriptions {
+				Skip("AMS is disabled")
+			}
+		})
+
+		It("searching for an existing AMS subscription ID", func() {
+			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{
+				AmsSubscriptionIds: []string{FakeSubscriptionID.String()},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(1))
+
+		})
+
+		It("discarding AMS subscription ID field", func() {
+			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(1))
+		})
+
+		It("searching for a non-existing AMS Subscription ID", func() {
+			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{
+				AmsSubscriptionIds: []string{"1h89fvtqeelulpo0fl5oddngj2ao7XXX"},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(0))
+		})
+
+		It("searching for both existing and non-existing AMS subscription IDs", func() {
+			list, err := userBMClient.Installer.ListClusters(ctx, &installer.ListClustersParams{
+				AmsSubscriptionIds: []string{
+					FakeSubscriptionID.String(),
+					"1h89fvtqeelulpo0fl5oddngj2ao7XXX",
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			Expect(len(list.GetPayload())).Should(Equal(1))
+
+		})
+	})
+})
+
 var _ = Describe("cluster install - DHCP", func() {
 	var (
 		ctx         = context.Background()
@@ -605,31 +714,6 @@ var _ = Describe("cluster install - DHCP", func() {
 		BeforeEach(func() {
 			clusterID = *cluster.ID
 			registerHostsAndSetRolesDHCP(clusterID, 5)
-		})
-
-		It("filters based on openshift cluster ID", func() {
-			_ = installCluster(clusterID)
-
-			By("searching for an existing openshift cluster ID")
-			list, err := userBMClient.Installer.ListClusters(
-				ctx,
-				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("41940ee8-ec99-43de-8766-174381b4921d")})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(list.GetPayload())).Should(Equal(1))
-
-			By("discarding cluster ID field")
-			list, err = userBMClient.Installer.ListClusters(
-				ctx,
-				&installer.ListClustersParams{})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(list.GetPayload())).Should(Equal(1))
-
-			By("searching for a non-existing openshift cluster ID")
-			list, err = userBMClient.Installer.ListClusters(
-				ctx,
-				&installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
-			Expect(err).NotTo(HaveOccurred())
-			Expect(len(list.GetPayload())).Should(Equal(0))
 		})
 
 		It("Install with DHCP", func() {

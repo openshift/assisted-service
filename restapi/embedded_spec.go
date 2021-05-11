@@ -344,6 +344,15 @@ func init() {
             "description": "A specific cluster to retrieve.",
             "name": "openshift_cluster_id",
             "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "If non-empty, returned Clusters are filtered to those with matching subscription IDs.",
+            "name": "ams_subscription_ids",
+            "in": "query"
           }
         ],
         "responses": {
@@ -7958,6 +7967,15 @@ func init() {
             "format": "uuid",
             "description": "A specific cluster to retrieve.",
             "name": "openshift_cluster_id",
+            "in": "query"
+          },
+          {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "If non-empty, returned Clusters are filtered to those with matching subscription IDs.",
+            "name": "ams_subscription_ids",
             "in": "query"
           }
         ],

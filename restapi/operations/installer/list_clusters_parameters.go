@@ -40,6 +40,10 @@ type ListClustersParams struct {
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
 
+	/*If non-empty, returned Clusters are filtered to those with matching subscription IDs.
+	  In: query
+	*/
+	AmsSubscriptionIds []string
 	/*Whether to return clusters that have been unregistered.
 	  In: header
 	  Default: false
@@ -62,6 +66,11 @@ func (o *ListClustersParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	qs := runtime.Values(r.URL.Query())
 
+	qAmsSubscriptionIds, qhkAmsSubscriptionIds, _ := qs.GetOK("ams_subscription_ids")
+	if err := o.bindAmsSubscriptionIds(qAmsSubscriptionIds, qhkAmsSubscriptionIds, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := o.bindGetUnregisteredClusters(r.Header[http.CanonicalHeaderKey("get_unregistered_clusters")], true, route.Formats); err != nil {
 		res = append(res, err)
 	}
@@ -74,6 +83,34 @@ func (o *ListClustersParams) BindRequest(r *http.Request, route *middleware.Matc
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+// bindAmsSubscriptionIds binds and validates array parameter AmsSubscriptionIds from query.
+//
+// Arrays are parsed according to CollectionFormat: "" (defaults to "csv" when empty).
+func (o *ListClustersParams) bindAmsSubscriptionIds(rawData []string, hasKey bool, formats strfmt.Registry) error {
+
+	var qvAmsSubscriptionIds string
+	if len(rawData) > 0 {
+		qvAmsSubscriptionIds = rawData[len(rawData)-1]
+	}
+
+	// CollectionFormat:
+	amsSubscriptionIdsIC := swag.SplitByFormat(qvAmsSubscriptionIds, "")
+	if len(amsSubscriptionIdsIC) == 0 {
+		return nil
+	}
+
+	var amsSubscriptionIdsIR []string
+	for _, amsSubscriptionIdsIV := range amsSubscriptionIdsIC {
+		amsSubscriptionIdsI := amsSubscriptionIdsIV
+
+		amsSubscriptionIdsIR = append(amsSubscriptionIdsIR, amsSubscriptionIdsI)
+	}
+
+	o.AmsSubscriptionIds = amsSubscriptionIdsIR
+
 	return nil
 }
 
