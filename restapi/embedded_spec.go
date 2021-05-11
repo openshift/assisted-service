@@ -6214,41 +6214,6 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
-    "fio_perf_check_request": {
-      "type": "object",
-      "required": [
-        "path",
-        "duration_threshold_ms",
-        "exit_code"
-      ],
-      "properties": {
-        "duration_threshold_ms": {
-          "description": "The maximal fdatasync duration in ms that is considered acceptable.",
-          "type": "integer"
-        },
-        "exit_code": {
-          "description": "Exit code to return in case of an error.",
-          "type": "integer"
-        },
-        "path": {
-          "description": "--filename argument for fio (expects a file or a block device path).",
-          "type": "string"
-        }
-      }
-    },
-    "fio_perf_check_response": {
-      "type": "object",
-      "properties": {
-        "io_sync_duration": {
-          "description": "The 99th percentile of fdatasync durations in milliseconds.",
-          "type": "integer"
-        },
-        "path": {
-          "description": "The device path.",
-          "type": "string"
-        }
-      }
-    },
     "free-addresses-list": {
       "type": "array",
       "items": {
@@ -7487,7 +7452,6 @@ func init() {
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
         "ntp-synchronizer",
-        "fio-perf-check",
         "installation-disk-speed-check",
         "container-image-availability",
         "domain-resolution"
@@ -13911,41 +13875,6 @@ func init() {
         "$ref": "#/definitions/event"
       }
     },
-    "fio_perf_check_request": {
-      "type": "object",
-      "required": [
-        "path",
-        "duration_threshold_ms",
-        "exit_code"
-      ],
-      "properties": {
-        "duration_threshold_ms": {
-          "description": "The maximal fdatasync duration in ms that is considered acceptable.",
-          "type": "integer"
-        },
-        "exit_code": {
-          "description": "Exit code to return in case of an error.",
-          "type": "integer"
-        },
-        "path": {
-          "description": "--filename argument for fio (expects a file or a block device path).",
-          "type": "string"
-        }
-      }
-    },
-    "fio_perf_check_response": {
-      "type": "object",
-      "properties": {
-        "io_sync_duration": {
-          "description": "The 99th percentile of fdatasync durations in milliseconds.",
-          "type": "integer"
-        },
-        "path": {
-          "description": "The device path.",
-          "type": "string"
-        }
-      }
-    },
     "free-addresses-list": {
       "type": "array",
       "items": {
@@ -15174,7 +15103,6 @@ func init() {
         "dhcp-lease-allocate",
         "api-vip-connectivity-check",
         "ntp-synchronizer",
-        "fio-perf-check",
         "installation-disk-speed-check",
         "container-image-availability",
         "domain-resolution"

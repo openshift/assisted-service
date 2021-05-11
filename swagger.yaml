@@ -3744,7 +3744,6 @@ definitions:
       - dhcp-lease-allocate
       - api-vip-connectivity-check
       - ntp-synchronizer
-      - fio-perf-check
       - installation-disk-speed-check
       - container-image-availability
       - domain-resolution
@@ -4817,33 +4816,6 @@ definitions:
       is_success:
         type: boolean
         description: API VIP connectivity check result.
-
-  fio_perf_check_request:
-    type: object
-    required:
-      - path
-      - duration_threshold_ms
-      - exit_code
-    properties:
-      path:
-        type: string
-        description: --filename argument for fio (expects a file or a block device path).
-      duration_threshold_ms:
-        type: integer
-        description: The maximal fdatasync duration in ms that is considered acceptable.
-      exit_code:
-        type: integer
-        description: Exit code to return in case of an error.
-
-  fio_perf_check_response:
-    type: object
-    properties:
-      io_sync_duration:
-        type: integer
-        description: The 99th percentile of fdatasync durations in milliseconds.
-      path:
-        type: string
-        description: The device path.
 
   disk_speed_check_request:
     type: object

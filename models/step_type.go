@@ -47,9 +47,6 @@ const (
 	// StepTypeNtpSynchronizer captures enum value "ntp-synchronizer"
 	StepTypeNtpSynchronizer StepType = "ntp-synchronizer"
 
-	// StepTypeFioPerfCheck captures enum value "fio-perf-check"
-	StepTypeFioPerfCheck StepType = "fio-perf-check"
-
 	// StepTypeInstallationDiskSpeedCheck captures enum value "installation-disk-speed-check"
 	StepTypeInstallationDiskSpeedCheck StepType = "installation-disk-speed-check"
 
@@ -65,7 +62,7 @@ var stepTypeEnum []interface{}
 
 func init() {
 	var res []StepType
-	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","fio-perf-check","installation-disk-speed-check","container-image-availability","domain-resolution"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connectivity-check","execute","inventory","install","free-network-addresses","reset-installation","dhcp-lease-allocate","api-vip-connectivity-check","ntp-synchronizer","installation-disk-speed-check","container-image-availability","domain-resolution"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {
