@@ -139,6 +139,88 @@ var _ = Describe("bmac reconcile", func() {
 		})
 	})
 
+	Describe("queue bmh request for cluster deployment", func() {
+		var bmh *bmh_v1alpha1.BareMetalHost
+		var agentCluster1 *v1beta1.Agent
+		var agentCluster2 *v1beta1.Agent
+		var clusterDeployment1 *hivev1.ClusterDeployment
+		var clusterDeployment2 *hivev1.ClusterDeployment
+		cluster1Name := "test-cluster"
+		cluster2Name := "test-cluster2"
+		macStr := "12-34-56-78-9A-BC"
+		bmhName := "bmh-reconcile"
+
+		BeforeEach(func() {
+			creationTime1, err := time.Parse(time.RFC3339, "2021-05-04T00:00:00.000Z")
+			Expect(err).To(Succeed())
+			agentCluster1 = newAgentWithClusterReference("bmac-agent", testNamespace, "1.2.3.4", "1001:db8::10/120", macStr, cluster1Name, bmhName, creationTime1)
+			Expect(c.Create(ctx, agentCluster1)).To(Succeed())
+
+			agentCluster2 = newAgentWithClusterReference("bmac-agent2", testNamespace, "1.2.3.6", "1001:db8::11/120", "12-34-56-78-9A-BD", cluster2Name, bmhName, creationTime1)
+			Expect(c.Create(ctx, agentCluster2)).To(Succeed())
+
+			pullSecretName := "pull-secret"
+			defaultClusterSpec1 := getDefaultClusterDeploymentSpec(cluster1Name, pullSecretName)
+			clusterDeployment1 = newClusterDeployment(cluster1Name, testNamespace, defaultClusterSpec1)
+			Expect(c.Create(ctx, clusterDeployment1)).To(Succeed())
+			defaultClusterSpec2 := getDefaultClusterDeploymentSpec(cluster2Name, pullSecretName)
+			clusterDeployment2 = newClusterDeployment(cluster2Name, testNamespace, defaultClusterSpec2)
+			Expect(c.Create(ctx, clusterDeployment2)).To(Succeed())
+
+			bmh = newBMH(bmhName, &bmh_v1alpha1.BareMetalHostSpec{BootMACAddress: macStr})
+			Expect(c.Create(ctx, bmh)).To(Succeed())
+		})
+
+		Context("findAgentsByClusterDeployment, when both cluster deployment and agents exist", func() {
+			It("should return the agent matching cluster deployment name", func() {
+				agents := bmhr.findAgentsByClusterDeployment(context.Background(), clusterDeployment1)
+				Expect(len(agents)).To(Equal(1))
+				Expect(agents[0].ObjectMeta.Name).To(Equal(agentCluster1.ObjectMeta.Name))
+
+				agents = bmhr.findAgentsByClusterDeployment(context.Background(), clusterDeployment2)
+				Expect(len(agents)).To(Equal(1))
+				Expect(agents[0].ObjectMeta.Name).To(Equal(agentCluster2.ObjectMeta.Name))
+			})
+
+			It("should return the a single agent if there are multiple agents with same BMH name", func() {
+				// newerAgent is same as agentCluster1 but with newer CreationTimestamp
+				creationTime, err := time.Parse(time.RFC3339, "2021-05-05T01:00:00.000Z")
+				Expect(err).To(Succeed())
+				newerAgent := newAgentWithClusterReference("bmac-agent-newer", testNamespace, "1.2.3.4", "1001:db8::10/120", macStr, cluster1Name, bmhName, creationTime)
+				Expect(c.Create(ctx, newerAgent)).To(Succeed())
+
+				agents := bmhr.findAgentsByClusterDeployment(context.Background(), clusterDeployment1)
+				Expect(len(agents)).To(Equal(1))
+				Expect(agents[0].ObjectMeta.Name).To(Equal(newerAgent.ObjectMeta.Name))
+			})
+
+			It("should return nothing if agent does not match cluster deployment name", func() {
+				clusterName := "not-matching-agents-cluster-name"
+				defaultClusterSpec := getDefaultClusterDeploymentSpec(clusterName, "test-pull")
+				clusterDeploymentNotMatching := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				agents := bmhr.findAgentsByClusterDeployment(context.Background(), clusterDeploymentNotMatching)
+				Expect(len(agents)).To(Equal(0))
+			})
+		})
+
+		Context("agentToBMHReconcileRequests", func() {
+			It("should return the BMH reconcile request if agent mac addresses matches bmh", func() {
+				BMHReconcileRequests := bmhr.agentToBMHReconcileRequests(context.Background(), agentCluster1)
+				Expect(len(BMHReconcileRequests)).To(Equal(1))
+				Expect(BMHReconcileRequests[0].Name).To(Equal(bmh.ObjectMeta.Name))
+				Expect(BMHReconcileRequests[0].Namespace).To(Equal(bmh.ObjectMeta.Namespace))
+			})
+
+			It("should not return the BMH reconcile request if agent mac addresses does not match bmh", func() {
+				creationTime, err := time.Parse(time.RFC3339, "2021-05-05T01:00:00.000Z")
+				Expect(err).To(Succeed())
+				agentNoMatch := newAgentWithClusterReference("bmac-agent-no-match", "no-match", "no-match", "no-match", "no-match", "no-match", "", creationTime)
+				BMHReconcileRequests := bmhr.agentToBMHReconcileRequests(context.Background(), agentNoMatch)
+				Expect(len(BMHReconcileRequests)).To(Equal(0))
+			})
+		})
+	})
+
 	Describe("Reconcile a BMH with an infraEnv label", func() {
 		var host *bmh_v1alpha1.BareMetalHost
 		BeforeEach(func() {
@@ -776,3 +858,32 @@ var _ = Describe("bmac reconcile", func() {
 		})
 	})
 })
+
+func newAgentWithClusterReference(name string, namespace string, ipv4address string, ipv6address string, macaddress string, clusterName string, agentBMHLabel string, creationTime time.Time) *v1beta1.Agent {
+	agent := newAgent(name, namespace, v1beta1.AgentSpec{})
+	agent.Status.Inventory = v1beta1.HostInventory{
+		ReportTime: &metav1.Time{Time: time.Now()},
+		Memory: v1beta1.HostMemory{
+			PhysicalBytes: 2,
+		},
+		Interfaces: []v1beta1.HostInterface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					ipv4address,
+				},
+				IPV6Addresses: []string{
+					ipv6address,
+				},
+				MacAddress: macaddress,
+			},
+		},
+	}
+	agent.Spec.ClusterDeploymentName = &v1beta1.ClusterReference{Name: clusterName, Namespace: namespace}
+	if agentBMHLabel != "" {
+		agent.ObjectMeta.Labels = make(map[string]string)
+		agent.ObjectMeta.Labels[AGENT_BMH_LABEL] = agentBMHLabel
+	}
+	agent.ObjectMeta.CreationTimestamp.Time = creationTime
+	return agent
+}
