@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/alecthomas/units"
@@ -805,6 +806,7 @@ var _ = Describe("cluster install", func() {
 				PullSecret:               swag.String(pullSecret),
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,
+				VipDhcpAllocation:        swag.Bool(true),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -926,6 +928,31 @@ var _ = Describe("cluster install", func() {
 	})
 
 	Context("usage", func() {
+		It("report usage on default features with SNO", func() {
+			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:            "example.com",
+					ClusterNetworkCidr:       &clusterCIDR,
+					ClusterNetworkHostPrefix: 23,
+					Name:                     swag.String("sno-cluster"),
+					OpenshiftVersion:         swag.String(snoVersion),
+					PullSecret:               swag.String(pullSecret),
+					ServiceNetworkCidr:       &serviceCIDR,
+					SSHPublicKey:             sshPublicKey,
+					VipDhcpAllocation:        swag.Bool(true),
+					HighAvailabilityMode:     swag.String(models.ClusterHighAvailabilityModeNone),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			cluster = registerClusterReply.GetPayload()
+			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: *cluster.ID})
+			Expect(err).NotTo(HaveOccurred())
+			log.Infof("usage after create: %s\n", getReply.Payload.FeatureUsage)
+			verifyUsageSet(getReply.Payload.FeatureUsage,
+				models.Usage{Name: usage.HighAvailabilityModeUsage})
+			verifyUsageNotSet(getReply.Payload.FeatureUsage, strings.ToUpper("console"), usage.VipDhcpAllocationUsage)
+		})
+
 		It("report usage on update cluster", func() {
 			clusterID := *cluster.ID
 			h := &registerHost(clusterID).Host
@@ -948,7 +975,6 @@ var _ = Describe("cluster install", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 			getReply, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
-			log.Infof("usage after udpate: %s\n", getReply.Payload.FeatureUsage)
 			verifyUsageSet(getReply.Payload.FeatureUsage,
 				models.Usage{Name: usage.VipDhcpAllocationUsage},
 				models.Usage{

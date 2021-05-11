@@ -31,6 +31,7 @@ var log *logrus.Logger
 var wiremock *WireMock
 var kubeClient k8sclient.Client
 var openshiftVersion string = "4.6"
+var snoVersion string = "4.8"
 
 const (
 	pollDefaultInterval = 1 * time.Millisecond

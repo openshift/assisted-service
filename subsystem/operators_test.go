@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -126,7 +127,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
 				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeTrue())
-				verifyUsageSet(c.FeatureUsage, models.Usage{Name: lso.Operator.Name}, models.Usage{Name: ocs.Operator.Name})
+				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)}, models.Usage{Name: strings.ToUpper(ocs.Operator.Name)})
 			})
 
 			By("Second time - operators is not empty", func() {
@@ -145,7 +146,7 @@ var _ = Describe("Operators endpoint tests", func() {
 
 				Expect(operators.IsEnabled(c.MonitoredOperators, lso.Operator.Name)).Should(BeTrue())
 				Expect(operators.IsEnabled(c.MonitoredOperators, ocs.Operator.Name)).Should(BeFalse())
-				verifyUsageSet(c.FeatureUsage, models.Usage{Name: lso.Operator.Name})
+				verifyUsageSet(c.FeatureUsage, models.Usage{Name: strings.ToUpper(lso.Operator.Name)})
 			})
 		})
 	})
