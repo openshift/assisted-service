@@ -30,7 +30,7 @@ const (
 	AreLsoRequirementsSatisfied                    = validationID(models.HostValidationIDLsoRequirementsSatisfied)
 	AreOcsRequirementsSatisfied                    = validationID(models.HostValidationIDOcsRequirementsSatisfied)
 	AreCnvRequirementsSatisfied                    = validationID(models.HostValidationIDCnvRequirementsSatisfied)
-	SufficientOrUnknownInstallationDiskSpeed       = validationID(models.HostValidationIDSufficientOrUnknownInstallationDiskSpeed)
+	SufficientOrUnknownInstallationDiskSpeed       = validationID(models.HostValidationIDSufficientInstallationDiskSpeed)
 )
 
 func (v validationID) category() (string, error) {

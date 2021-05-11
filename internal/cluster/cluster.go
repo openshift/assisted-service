@@ -712,7 +712,7 @@ func (m *Manager) HandlePreInstallError(ctx context.Context, c *common.Cluster, 
 		log.WithError(err).Errorf("Failed to handle pre installation error for cluster %s", c.ID.String())
 	} else {
 		log.Infof("Successfully handled pre-installation error, cluster %s", c.ID.String())
-		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "Failed to prepare cluster for installation. Please retry later", time.Now())
+		m.eventsHandler.AddEvent(ctx, *c.ID, nil, models.EventSeverityWarning, "Failed to prepare the installation due to an unexpected error. Please retry later", time.Now())
 	}
 }
 

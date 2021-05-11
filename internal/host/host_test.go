@@ -2355,7 +2355,7 @@ var _ = Describe("ResetHostValidation", func() {
 		var newHost models.Host
 		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
 		verifyExistingDiskResult(&newHost, "/dev/sda", 5, 2)
-		Expect(m.ResetHostValidation(ctx, *h.ID, h.ClusterID, string(models.HostValidationIDSufficientOrUnknownInstallationDiskSpeed), nil)).ToNot(HaveOccurred())
+		Expect(m.ResetHostValidation(ctx, *h.ID, h.ClusterID, string(models.HostValidationIDSufficientInstallationDiskSpeed), nil)).ToNot(HaveOccurred())
 		Expect(db.Take(&newHost, "id = ? and cluster_id = ?", h.ID.String(), h.ClusterID.String()).Error).ToNot(HaveOccurred())
 		verifyNonExistentDiskResult(&newHost, "/dev/sda")
 	})

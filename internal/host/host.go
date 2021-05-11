@@ -1031,7 +1031,7 @@ func (m *Manager) ResetHostValidation(ctx context.Context, hostID, clusterID str
 	log := logutil.FromContext(ctx, m.log)
 	host := &h.Host
 	switch validationID {
-	case string(models.HostValidationIDSufficientOrUnknownInstallationDiskSpeed):
+	case string(models.HostValidationIDSufficientInstallationDiskSpeed):
 		return m.resetDiskSpeedValidation(host, log, db)
 	case string(models.HostValidationIDContainerImagesAvailable):
 		return m.resetContainerImagesValidation(host, db)

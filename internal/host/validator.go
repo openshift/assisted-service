@@ -639,7 +639,7 @@ func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationC
 		}
 		return "Speed of installation disk is sufficient"
 	case ValidationFailure:
-		return "Insufficient disk speed or error occurred during disk speed measurement"
+		return "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"
 	case ValidationError:
 		return "Error occured while getting boot device"
 	default:
