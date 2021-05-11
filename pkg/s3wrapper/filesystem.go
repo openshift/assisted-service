@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"os"
 	"path"
@@ -12,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/alecthomas/units"
 	"github.com/google/renameio"
 	"github.com/moby/moby/pkg/ioutils"
 	"github.com/openshift/assisted-service/internal/common"
@@ -79,13 +79,16 @@ func (f *FSClient) Upload(ctx context.Context, data []byte, objectName string) e
 
 func (f *FSClient) UploadFile(ctx context.Context, filePath, objectName string) error {
 	log := logutil.FromContext(ctx, f.log)
-	data, err := ioutil.ReadFile(filePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		err = errors.Wrapf(err, "Unable to open file %s for upload", filePath)
 		log.Error(err)
 		return err
 	}
-	return f.Upload(ctx, data, objectName)
+
+	defer file.Close()
+
+	return f.UploadStream(ctx, file, objectName)
 }
 
 func (f *FSClient) UploadFileToPublicBucket(ctx context.Context, filePath, objectName string) error {
@@ -113,7 +116,7 @@ func (f *FSClient) UploadStream(ctx context.Context, reader io.Reader, objectNam
 		log.Error(err)
 		return err
 	}
-	buffer := make([]byte, 1024)
+	buffer := make([]byte, units.MiB)
 
 	t, err := renameio.TempFile("", filePath)
 	if err != nil {
