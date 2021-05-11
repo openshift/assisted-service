@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -69,6 +70,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
+	"go.elastic.co/apm/module/apmhttp"
+	"go.elastic.co/apm/module/apmlogrus"
 	"golang.org/x/sync/errgroup"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -132,10 +135,16 @@ var Options struct {
 	HTTPSKeyFile                string        `envconfig:"HTTPS_KEY_FILE" default:""`
 	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
 	FileSystemUsageThreshold    int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
+	EnableElasticAPM            bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
 }
 
 func InitLogs() *logrus.Entry {
 	log := logrus.New()
+
+	if Options.EnableElasticAPM {
+		log.AddHook(&apmlogrus.Hook{})
+	}
+
 	log.SetReportCaller(true)
 
 	logger := log.WithFields(logrus.Fields{})
@@ -374,6 +383,16 @@ func main() {
 	innerHandler := func() func(http.Handler) http.Handler {
 		return func(h http.Handler) http.Handler {
 			wrapped := metrics.WithMatchedRoute(log.WithField("pkg", "matched-h"), prometheusRegistry)(h)
+
+			if Options.EnableElasticAPM {
+				// For APM metrics, we only want to trace openapi (internal) requests.
+				// We are generating our own transaction name since we are wrapping the lower
+				// http handler. This will allow us to generate a transaction name that allows
+				// us to group similar requests (using URL patterns) rather than individual ones.
+				apmOptions := apmhttp.WithServerRequestName(generateAPMTransactionName)
+				wrapped = apmhttp.Wrap(wrapped, apmOptions)
+			}
+
 			wrapped = paramctx.ContextHandler()(wrapped)
 			return wrapped
 		}
@@ -474,6 +493,20 @@ func main() {
 	} else {
 		log.Fatal(http.ListenAndServe(address, h))
 	}
+}
+
+func generateAPMTransactionName(request *http.Request) string {
+	route := middleware.MatchedRouteFrom(request)
+
+	if route == nil {
+		// Use the actual URL path if no route
+		// matched this request. This will make
+		// sure we can, granuarly, introspect
+		// non-grouped requests.
+		return request.URL.Path
+	}
+
+	return route.PathPattern
 }
 
 func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
