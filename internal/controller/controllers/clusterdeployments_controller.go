@@ -50,6 +50,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -122,6 +123,11 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return ctrl.Result{}, nil
 		}
 		r.Log.WithError(err).Errorf("Failed to get AgentClusterInstall %s", aciName)
+		return ctrl.Result{Requeue: true}, err
+	}
+
+	err = r.ensureOwnerRef(ctx, clusterDeployment, clusterInstall)
+	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -741,6 +747,7 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 			r.Log.Errorf("%v was not an AgentClusterInstall", a) // shouldn't be possible
 			return []reconcile.Request{}
 		}
+		r.Log.Debugf("Map ACI : %s %s CD ref name %s", aci.Namespace, aci.Name, aci.Spec.ClusterDeploymentRef.Name)
 		return []reconcile.Request{
 			{
 				NamespacedName: types.NamespacedName{
@@ -1055,4 +1062,14 @@ func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionT
 	}
 
 	return nil
+}
+
+// ensureOwnerRef sets the owner reference of ClusterDeployment on AgentClusterInstall
+func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, cd *hivev1.ClusterDeployment, ci *hiveext.AgentClusterInstall) error {
+
+	if err := controllerutil.SetOwnerReference(cd, ci, r.Scheme); err != nil {
+		r.Log.WithError(err).Error("error setting owner reference Agent Cluster Install")
+		return err
+	}
+	return r.Update(ctx, ci)
 }

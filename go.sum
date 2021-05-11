@@ -304,6 +304,7 @@ github.com/cpuguy83/go-md2man/v2 v2.0.0/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsr
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
 github.com/creack/pty v1.1.9 h1:uDmaGzcdjhF4i/plgjmEsriH11Y0o7RKapEf/LDaM3w=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
+github.com/cucumber/godog v0.8.1 h1:lVb+X41I4YDreE+ibZ50bdXmySxgRviYFgKY6Aw4XE8=
 github.com/cucumber/godog v0.8.1/go.mod h1:vSh3r/lM+psC1BPXvdkSEuNjmXfpVqrMGYAElF6hxnA=
 github.com/cyphar/filepath-securejoin v0.2.2 h1:jCwT2GTP+PY5nBz3c/YL5PAIbusElVrPujOBSCj8xRg=
 github.com/cyphar/filepath-securejoin v0.2.2/go.mod h1:FpkQEhXnPnOthhzymB7CGsFk2G9VLXONKD9G7QGMM+4=
@@ -324,8 +325,6 @@ github.com/denis-tingajkin/go-header v0.3.1/go.mod h1:sq/2IxMhaZX+RRcgHfCRx/m0M5
 github.com/denisenkom/go-mssqldb v0.0.0-20181014144952-4e0d7dc8888f/go.mod h1:xN/JuLBIz4bjkxNmByTiV1IbhfnYb6oo99phBn4Eqhc=
 github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd h1:83Wprp6ROGeiHFAP8WJdI2RoxALQYgdllERc3N5N2DM=
 github.com/denisenkom/go-mssqldb v0.0.0-20191124224453-732737034ffd/go.mod h1:xbL0rPBG9cCiLr28tMa8zpbdarY27NDyej4t/EjAShU=
-github.com/dgoodwin/hive/apis v0.0.0-20210426140401-97292266a297 h1:sNV683xs4A3DBQRdInwevaO6VUR5debstXnhQAcuEBs=
-github.com/dgoodwin/hive/apis v0.0.0-20210426140401-97292266a297/go.mod h1:Ujw9ImzSYvo9VlUX6Gjy7zPFP7xYUAU50tdf1wPpN6c=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible h1:7qlOGliEKZXTDg6OTjfoBKDXWrumCAMpl/TFQ4/5kLM=
 github.com/dgrijalva/jwt-go v3.2.0+incompatible/go.mod h1:E3ru+11k8xSBh+hMPgOLZmtrrCbhqsmaPHjLKYnJCaQ=
 github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954 h1:RMLoZVzv4GliuWafOuPuQDKSm1SJph7uCRnnS61JAn4=
@@ -1207,7 +1206,6 @@ github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f74205
 github.com/openshift/cluster-api-provider-gcp v0.0.1-0.20201002065957-9854f7420570/go.mod h1:7NRECVE26rvP1/fs1CbhfY5gsgnnFQNhb9txTFzWmUw=
 github.com/openshift/custom-resource-status v1.1.0 h1:EjSh0f3vF6eaS3zAToVHUXcS7N2jVEosUFJ0sRKvmZ0=
 github.com/openshift/custom-resource-status v1.1.0/go.mod h1:GDjWl0tX6FNIj82vIxeudWeSx2Ff6nDZ8uJn0ohUFvo=
-github.com/openshift/hive/apis v0.0.0-20210426191512-e906999ec6ed/go.mod h1:Ujw9ImzSYvo9VlUX6Gjy7zPFP7xYUAU50tdf1wPpN6c=
 github.com/openshift/hive/apis v0.0.0-20210506000654-5c038fb05190 h1:8eShHtqtKwgJWdJh/H0ytAsAblDCA1bAjvokIfuU2jM=
 github.com/openshift/hive/apis v0.0.0-20210506000654-5c038fb05190/go.mod h1:Ujw9ImzSYvo9VlUX6Gjy7zPFP7xYUAU50tdf1wPpN6c=
 github.com/openshift/library-go v0.0.0-20200512120242-21a1ff978534/go.mod h1:2kWwXTkpoQJUN3jZ3QW88EIY1hdRMqxgRs2hheEW/pg=
