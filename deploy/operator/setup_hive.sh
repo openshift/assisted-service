@@ -1,7 +1,10 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
 
-set -xeo pipefail
+set -o nounset
+set -o pipefail
+set -o errexit
+set -o xtrace
 
 DISCONNECTED="${DISCONNECTED:-false}"
 HIVE_IMAGE="${HIVE_IMAGE:-registry.ci.openshift.org/openshift/hive-v4.0:hive}"
@@ -54,14 +57,15 @@ EOCR
 
 function from_upstream() {
   HIVE_DIR="${HIVE_DIR:-${HOME}/go/src/github.com/openshift/hive}"
+  HIVE_BRANCH="${HIVE_BRANCH:-master}"
 
   if [ ! -d "${HIVE_DIR}" ]; then
     git clone https://github.com/openshift/hive.git "${HIVE_DIR}"
   fi
 
-  pushd $HOME/go/src/github.com/openshift/hive
-  git fetch origin
-  git pull origin master
+  pushd ${HIVE_DIR}
+  git fetch origin "${HIVE_BRANCH}"
+  git reset --hard FETCH_HEAD
 
   if [ "${DISCONNECTED}" = "true" ]; then
     export IMG="${LOCAL_REGISTRY}/localimages/hive:latest"
