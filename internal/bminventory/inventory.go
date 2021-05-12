@@ -3050,7 +3050,7 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 		return common.GenerateErrorResponder(err)
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		return installer.NewResetClusterInternalServerError().WithPayload(
 			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
@@ -3059,6 +3059,11 @@ func (b *bareMetalInventory) DisableHost(ctx context.Context, params installer.D
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s disabled by user", hostutil.GetHostnameForMsg(&host.Host)), time.Now())
+
+	c, err = b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *c.ID})
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewDisableHostOK().WithPayload(&c.Cluster)
 }
 
@@ -3106,7 +3111,7 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 		return common.GenerateErrorResponder(err)
 	}
 
-	if err := tx.Commit().Error; err != nil {
+	if err = tx.Commit().Error; err != nil {
 		log.Error(err)
 		return common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
 	}
@@ -3114,6 +3119,11 @@ func (b *bareMetalInventory) EnableHost(ctx context.Context, params installer.En
 
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s enabled by user", hostutil.GetHostnameForMsg(&host.Host)), time.Now())
+
+	c, err = b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *c.ID})
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
 	return installer.NewEnableHostOK().WithPayload(&c.Cluster)
 }
 
