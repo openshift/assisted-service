@@ -237,6 +237,22 @@ func getClusterFromDB(
 	return cluster
 }
 
+func getClusterDeploymentAgents(ctx context.Context, client k8sclient.Client, clusterDeployment types.NamespacedName) *v1beta1.AgentList {
+	agents := &v1beta1.AgentList{}
+	clusterAgents := &v1beta1.AgentList{}
+	err := client.List(ctx, agents)
+	Expect(err).To(BeNil())
+	clusterAgents.TypeMeta = agents.TypeMeta
+	clusterAgents.ListMeta = agents.ListMeta
+	for _, agent := range agents.Items {
+		if agent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
+			agent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
+			clusterAgents.Items = append(clusterAgents.Items, agent)
+		}
+	}
+	return clusterAgents
+}
+
 func getClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *hivev1.ClusterDeployment {
 	cluster := &hivev1.ClusterDeployment{}
 	err := client.Get(ctx, key, cluster)
@@ -1566,6 +1582,58 @@ spec:
 		data = map[string]string{"test.yaml": content, "test2.yaml": content}
 		deployOrUpdateConfigMap(ctx, kubeClient, ref.Name, data)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterAlreadyInstallingReason)
+	})
+
+	It("delete agent and validate host deregistration", func() {
+		By("Deploy SNO cluster")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultSNOAgentClusterInstallSpec()
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterAgentCLusterInstallName,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+
+		By("Validate no hosts currently belong to the cluster and clusterDeployment")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+
+		Eventually(func() int {
+			return len(getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout).Hosts)
+		}, "2m", "2s").Should(Equal(0))
+
+		By("Register a Host and validate that an agent CR was created")
+		configureLocalAgentClient(cluster.ID.String())
+		setupNewHost(ctx, "hostname1", *cluster.ID)
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(1))
+
+		By("Validate that the backend reflects single host belong to the cluster")
+		Eventually(func() int {
+			return len(getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout).Hosts)
+		}, "2m", "2s").Should(Equal(1))
+
+		By("Delete agent CR and validate")
+		agent := getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items[0]
+		Expect(kubeClient.Delete(ctx, &agent)).To(BeNil())
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+
+		By("Validate that the backend reflects that no hosts belong to the cluster")
+		Eventually(func() int {
+			return len(getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout).Hosts)
+		}, "2m", "2s").Should(Equal(0))
 	})
 })
 

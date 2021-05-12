@@ -113,6 +113,7 @@ type InstallerInternals interface {
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
+	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
 	GetCommonHostInternal(ctx context.Context, clusterId string, hostId string) (*common.Host, error)
 	UpdateHostApprovedInternal(ctx context.Context, clusterId string, hostId string, approved bool) error
 	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
@@ -123,6 +124,7 @@ type InstallerInternals interface {
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
+	GetHostById(hostId string) (*common.Host, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -2558,19 +2560,25 @@ func isRegisterHostForbiddenDueWrongBootOrder(err error) bool {
 }
 
 func (b *bareMetalInventory) DeregisterHost(ctx context.Context, params installer.DeregisterHostParams) middleware.Responder {
+	if err := b.DeregisterHostInternal(ctx, params); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewDeregisterHostNoContent()
+}
+
+func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error {
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Deregister host: %s cluster %s", params.HostID, params.ClusterID)
 
 	if err := b.db.Where("id = ? and cluster_id = ?", params.HostID, params.ClusterID).Delete(&common.Host{}).Error; err != nil {
 		// TODO: check error type
-		return installer.NewDeregisterHostBadRequest().
-			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+		return common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	// TODO: need to check that host can be deleted from the cluster
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, &params.HostID, models.EventSeverityInfo,
 		fmt.Sprintf("Host %s: deregistered from cluster", params.HostID.String()), time.Now())
-	return installer.NewDeregisterHostNoContent()
+	return nil
 }
 
 func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHostParams) middleware.Responder {
@@ -2588,6 +2596,19 @@ func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHost
 	// Clear this field as it is not needed to be sent via API
 	host.FreeAddresses = ""
 	return installer.NewGetHostOK().WithPayload(&host.Host)
+}
+
+func (b *bareMetalInventory) GetHostById(hostId string) (*common.Host, error) {
+	host, err := common.GetHostByIdFromDB(b.db, hostId)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = b.customizeHost(&host.Host); err != nil {
+		return nil, err
+	}
+
+	return host, nil
 }
 
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
