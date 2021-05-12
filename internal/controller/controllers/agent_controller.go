@@ -198,7 +198,7 @@ func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
 func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
 
 	if agent.Spec.InstallerArgs == host.InstallerArgs {
-		r.Log.Debugf("Nothing to update, installer args were already set")
+		r.Log.Infof("Nothing to update, installer args were already set")
 		return nil
 	}
 
@@ -221,7 +221,7 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Clu
 	argsBytes, _ := json.Marshal(agentSpecInstallerArgs.Args)
 	// we need to validate if the equal one more after marshalling
 	if string(argsBytes) == host.InstallerArgs {
-		r.Log.Debugf("Nothing to update, installer args were already set")
+		r.Log.Infof("Nothing to update, installer args were already set")
 		return nil
 	}
 
@@ -368,7 +368,7 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 
 func (r *AgentReconciler) updateInventory(host *models.Host, agent *aiv1beta1.Agent) error {
 	if host.Inventory == "" {
-		r.Log.Debugf("Skip update inventory: Host %s inventory not set", agent.Name)
+		r.Log.Infof("Skip update inventory: Host %s inventory not set", agent.Name)
 		return nil
 	}
 	var inventory models.Inventory
@@ -474,7 +474,7 @@ func (r *AgentReconciler) updateInventory(host *models.Host, agent *aiv1beta1.Ag
 
 func (r *AgentReconciler) updateHostIgnition(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
 	if agent.Spec.IgnitionConfigOverrides == host.IgnitionConfigOverrides {
-		r.Log.Debugf("Nothing to update, ignition config override was already set")
+		r.Log.Infof("Nothing to update, ignition config override was already set")
 		return nil
 	}
 	agentHostIgnitionParams := models.HostIgnitionParams{Config: ""}

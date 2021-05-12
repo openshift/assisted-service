@@ -106,6 +106,8 @@ func (r reconcileError) Dirty() bool {
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;update;patch
 
 func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	r.Log.Infof("Started bmh reconcile for agent bmh %s/%s", req.NamespacedName, req.Name)
+
 	bmh := &bmh_v1alpha1.BareMetalHost{}
 
 	if err := r.Get(ctx, req.NamespacedName, bmh); err != nil {
@@ -118,7 +120,7 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// Let's reconcile the BMH
 	result := r.reconcileBMH(ctx, bmh)
 	if result.Dirty() {
-		r.Log.Debugf("Updating dirty BMH %v", bmh)
+		r.Log.Infof("Updating dirty BMH %v", bmh)
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			r.Log.WithError(err).Errorf("Error updating after BMH reconcile")
@@ -147,6 +149,7 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// any action to take is implemented in each function respectively.
 	result = r.reconcileAgentInventory(bmh, agent)
 	if result.Dirty() {
+		fmt.Println("DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD")
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			r.Log.WithError(err).Errorf("Error updating hardwaredetails")
@@ -156,8 +159,10 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 
 	result = r.reconcileAgentSpec(bmh, agent)
 	if result.Dirty() {
+		fmt.Println("!!!!!!!!!!!!!!!! reconcileAgentSpec")
 		err := r.Client.Update(ctx, agent)
 		if err != nil {
+			fmt.Println("111111111111111111111111111111")
 			r.Log.WithError(err).Errorf("Error updating agent")
 			return reconcileError{err}.Result()
 		}
@@ -167,6 +172,7 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// Adding the detached annotation to the BMH stops Ironic from managing it.
 	result = r.addBMHDetachedAnnotationIfAgentHasStartedInstallation(ctx, bmh, agent)
 	if result.Dirty() {
+		fmt.Println("KKKKKKKKKKKKKKKKKKKKKKKKKKKKKKKK")
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			r.Log.WithError(err).Errorf("Error updating BMH detached annotation")
@@ -177,6 +183,7 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	result = r.reconcileSpokeBMH(ctx, bmh, agent)
 
 	if result.Dirty() {
+		fmt.Println("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
 			r.Log.WithError(err).Errorf("Error adding BMH detached annotation after creating spoke BMH")
@@ -204,7 +211,7 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 // the BMH should happen in this reconcile step.
 func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 
-	r.Log.Debugf("Started Agent Spec reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
+	r.Log.Infof("Started Agent Spec reconcile for agent %s/%s and bmh %s/%s", agent.Namespace, agent.Name, bmh.Namespace, bmh.Name)
 
 	// Do all the copying from the BMH annotations to the agent.
 
@@ -221,11 +228,14 @@ func (r *BMACReconciler) reconcileAgentSpec(bmh *bmh_v1alpha1.BareMetalHost, age
 		agent.Spec.MachineConfigPool = val
 	}
 
+	fmt.Println("AAAAAAAAAAAAAAAAAAAAA", annotations)
 	if val, ok := annotations[BMH_AGENT_INSTALLER_ARGS]; ok {
+		fmt.Println("SETTTTTTTTTTTTTTTTTTTTTTTTT", BMH_AGENT_INSTALLER_ARGS)
 		agent.Spec.InstallerArgs = val
 	}
 
 	if val, ok := annotations[BMH_AGENT_IGNITION_CONFIG_OVERRIDES]; ok {
+		fmt.Println("SETTTTTTTTTTTTTTTTTTTTTTTTT", BMH_AGENT_IGNITION_CONFIG_OVERRIDES)
 		agent.Spec.IgnitionConfigOverrides = val
 	}
 
@@ -399,18 +409,18 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 		return reconcileComplete{}
 	}
 
-	r.Log.Debugf("Started BMH reconcile for %s/%s", bmh.Namespace, bmh.Name)
-	r.Log.Debugf("BMH value %v", bmh)
+	r.Log.Infof("Started BMH reconcile for %s/%s", bmh.Namespace, bmh.Name)
+	r.Log.Infof("BMH value %v", bmh)
 
 	for ann, value := range bmh.Labels {
-		r.Log.Debugf("BMH label %s value %s", ann, value)
+		r.Log.Infof("BMH label %s value %s", ann, value)
 
 		// Find the `BMH_INFRA_ENV_LABEL`, get the infraEnv configured in it
 		// and copy the ISO Url from the InfraEnv to the BMH resource.
 		if ann == BMH_INFRA_ENV_LABEL {
 			infraEnv := &aiv1beta1.InfraEnv{}
 
-			r.Log.Debugf("Loading InfraEnv %s", value)
+			r.Log.Infof("Loading InfraEnv %s", value)
 			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, infraEnv); err != nil {
 				r.Log.WithError(err).Errorf("failed to get infraEnv resource %s/%s", bmh.Namespace, value)
 				return reconcileError{client.IgnoreNotFound(err)}
@@ -423,7 +433,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 				return reconcileComplete{}
 			}
 
-			r.Log.Debugf("Setting attributes in BMH")
+			r.Log.Infof("Setting attributes in BMH")
 			// We'll just overwrite this at this point
 			// since the nullness and emptyness checks
 			// are done at the beginning of this function.
@@ -475,7 +485,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, bmh *bmh_v1alpha1.Bar
 func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, bmh *bmh_v1alpha1.BareMetalHost, agent *aiv1beta1.Agent) reconcileResult {
 	// Only worker role is supported for day2 operation
 	if agent.Spec.Role != models.HostRoleWorker || agent.Spec.ClusterDeploymentName == nil {
-		r.Log.Debugf("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Spec.Role, agent.Spec.ClusterDeploymentName)
+		r.Log.Infof("Skipping spoke BareMetalHost reconcile for  agent %s/%s, role %s and clusterDeployment %s.", agent.Namespace, agent.Name, agent.Spec.Role, agent.Spec.ClusterDeploymentName)
 		return reconcileComplete{}
 	}
 

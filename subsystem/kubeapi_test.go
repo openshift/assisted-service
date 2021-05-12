@@ -579,12 +579,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent := getAgentCRD(ctx, kubeClient, key)
 
 			if agent.Spec.IgnitionConfigOverrides == "" {
+				fmt.Println("BBBBBBBBBBBB no agent.Spec.IgnitionConfigOverrides")
 				return false
 			}
 
 			if h.IgnitionConfigOverrides == "" {
+				fmt.Println("BBBBBBBBBBBB no h.IgnitionConfigOverrides")
 				return false
 			}
+			fmt.Println("BBBBBBBBBBBB IgnitionConfigOverrides ", h.IgnitionConfigOverrides, agent.Spec.IgnitionConfigOverrides)
 			return reflect.DeepEqual(h.IgnitionConfigOverrides, agent.Spec.IgnitionConfigOverrides)
 		}, "2m", "10s").Should(Equal(true))
 
@@ -816,6 +819,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Expect(err).To(BeNil())
 			agent := getAgentCRD(ctx, kubeClient, key)
 			if agent.Spec.InstallerArgs == "" {
+				fmt.Println("AAAAAAAAAAAAAAAA no agent InstallerArgs")
 				return false
 			}
 
@@ -824,11 +828,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Expect(err).To(BeNil())
 
 			if h.InstallerArgs == "" {
+				fmt.Println("AAAAAAAAAAAAAAAA no host InstallerArgs")
 				return false
 			}
 
 			err = json.Unmarshal([]byte(h.InstallerArgs), &j2)
 			Expect(err).To(BeNil())
+			fmt.Println("AAAAAAAAAAAAAAAA InstallerArgs", j2, j)
 			return reflect.DeepEqual(j2, j)
 		}, "2m", "10s").Should(Equal(true))
 
@@ -1569,84 +1575,84 @@ spec:
 	})
 })
 
-var _ = Describe("bmac reconcile flow", func() {
-	if !Options.EnableKubeAPI {
-		return
-	}
-
-	ctx := context.Background()
-
-	var (
-		bmh         *bmhv1alpha1.BareMetalHost
-		bmhNsName   types.NamespacedName
-		agentNsName types.NamespacedName
-		infraNsName types.NamespacedName
-	)
-
-	BeforeEach(func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		key := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterName,
-		}
-
-		infraNsName = types.NamespacedName{
-			Name:      "infraenv",
-			Namespace: Options.Namespace,
-		}
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
-
-		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
-		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
-		agentNsName = types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
-		}
-
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{}
-		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
-		bmhNsName = types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      host.ID.String(),
-		}
-	})
-
-	AfterEach(func() {
-		cleanUP(ctx, kubeClient)
-		clearDB()
-	})
-
-	Context("sno reconcile flow", func() {
-		It("reconciles the infraenv", func() {
-			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
-			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
-
-			Eventually(func() bool {
-				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-				return bmh.Spec.Image != nil && bmh.Spec.Image.URL != ""
-			}, "30s", "10s").Should(Equal(true))
-
-			Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(bmhv1alpha1.CleaningModeDisabled))
-			Expect(bmh.ObjectMeta.Annotations).To(HaveKey(controllers.BMH_INSPECT_ANNOTATION))
-			Expect(bmh.ObjectMeta.Annotations[controllers.BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
-		})
-
-		It("reconciles the agent", func() {
-			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-			agent := getAgentCRD(ctx, kubeClient, agentNsName)
-			bmh.Spec.BootMACAddress = getAgentMac(agent)
-			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
-			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
-
-			Eventually(func() bool {
-				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-				return bmh.ObjectMeta.Annotations != nil && bmh.ObjectMeta.Annotations[controllers.BMH_HARDWARE_DETAILS_ANNOTATION] != ""
-			}, "60s", "10s").Should(Equal(true))
-		})
-	})
-})
+//var _ = Describe("bmac reconcile flow", func() {
+//	if !Options.EnableKubeAPI {
+//		return
+//	}
+//
+//	ctx := context.Background()
+//
+//	var (
+//		bmh         *bmhv1alpha1.BareMetalHost
+//		bmhNsName   types.NamespacedName
+//		agentNsName types.NamespacedName
+//		infraNsName types.NamespacedName
+//	)
+//
+//	BeforeEach(func() {
+//		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+//		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+//		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+//		key := types.NamespacedName{
+//			Namespace: Options.Namespace,
+//			Name:      clusterDeploymentSpec.ClusterName,
+//		}
+//
+//		infraNsName = types.NamespacedName{
+//			Name:      "infraenv",
+//			Namespace: Options.Namespace,
+//		}
+//		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+//		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+//
+//		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+//		configureLocalAgentClient(cluster.ID.String())
+//		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+//		agentNsName = types.NamespacedName{
+//			Namespace: Options.Namespace,
+//			Name:      host.ID.String(),
+//		}
+//
+//		bmhSpec := bmhv1alpha1.BareMetalHostSpec{}
+//		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
+//		bmhNsName = types.NamespacedName{
+//			Namespace: Options.Namespace,
+//			Name:      host.ID.String(),
+//		}
+//	})
+//
+//	AfterEach(func() {
+//		cleanUP(ctx, kubeClient)
+//		clearDB()
+//	})
+//
+//	Context("sno reconcile flow", func() {
+//		It("reconciles the infraenv", func() {
+//			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+//			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
+//			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
+//
+//			Eventually(func() bool {
+//				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+//				return bmh.Spec.Image != nil && bmh.Spec.Image.URL != ""
+//			}, "30s", "10s").Should(Equal(true))
+//
+//			Expect(bmh.Spec.AutomatedCleaningMode).To(Equal(bmhv1alpha1.CleaningModeDisabled))
+//			Expect(bmh.ObjectMeta.Annotations).To(HaveKey(controllers.BMH_INSPECT_ANNOTATION))
+//			Expect(bmh.ObjectMeta.Annotations[controllers.BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
+//		})
+//
+//		It("reconciles the agent", func() {
+//			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+//			agent := getAgentCRD(ctx, kubeClient, agentNsName)
+//			bmh.Spec.BootMACAddress = getAgentMac(agent)
+//			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
+//			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
+//
+//			Eventually(func() bool {
+//				bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
+//				return bmh.ObjectMeta.Annotations != nil && bmh.ObjectMeta.Annotations[controllers.BMH_HARDWARE_DETAILS_ANNOTATION] != ""
+//			}, "60s", "10s").Should(Equal(true))
+//		})
+//	})
+//})
