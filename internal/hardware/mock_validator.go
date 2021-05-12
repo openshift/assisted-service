@@ -50,20 +50,6 @@ func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostValidDisks", reflect.TypeOf((*MockValidator)(nil).GetHostValidDisks), host)
 }
 
-// GetHostRequirements mocks base method
-func (m *MockValidator) GetHostRequirements(singleNodeCluster bool) *models.VersionedHostRequirements {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostRequirements", singleNodeCluster)
-	ret0, _ := ret[0].(*models.VersionedHostRequirements)
-	return ret0
-}
-
-// GetHostRequirements indicates an expected call of GetHostRequirements
-func (mr *MockValidatorMockRecorder) GetHostRequirements(singleNodeCluster interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockValidator)(nil).GetHostRequirements), singleNodeCluster)
-}
-
 // GetHostInstallationPath mocks base method
 func (m *MockValidator) GetHostInstallationPath(host *models.Host) string {
 	m.ctrl.T.Helper()
@@ -123,17 +109,18 @@ func (mr *MockValidatorMockRecorder) ListEligibleDisks(inventory interface{}) *g
 }
 
 // GetInstallationDiskSpeedThresholdMs mocks base method
-func (m *MockValidator) GetInstallationDiskSpeedThresholdMs() int64 {
+func (m *MockValidator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetInstallationDiskSpeedThresholdMs")
+	ret := m.ctrl.Call(m, "GetInstallationDiskSpeedThresholdMs", ctx, cluster, host)
 	ret0, _ := ret[0].(int64)
-	return ret0
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // GetInstallationDiskSpeedThresholdMs indicates an expected call of GetInstallationDiskSpeedThresholdMs
-func (mr *MockValidatorMockRecorder) GetInstallationDiskSpeedThresholdMs() *gomock.Call {
+func (mr *MockValidatorMockRecorder) GetInstallationDiskSpeedThresholdMs(ctx, cluster, host interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationDiskSpeedThresholdMs", reflect.TypeOf((*MockValidator)(nil).GetInstallationDiskSpeedThresholdMs))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInstallationDiskSpeedThresholdMs", reflect.TypeOf((*MockValidator)(nil).GetInstallationDiskSpeedThresholdMs), ctx, cluster, host)
 }
 
 // GetPreflightHardwareRequirements mocks base method

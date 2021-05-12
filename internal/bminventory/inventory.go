@@ -2916,7 +2916,12 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 	if exitCode == 0 {
 		b.metricApi.DiskSyncDuration(h.ClusterID, *h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 
-		if diskPerfCheckResponse.IoSyncDuration > b.hwValidator.GetInstallationDiskSpeedThresholdMs() {
+		thresholdMs, err := b.getInstallationDiskSpeedThresholdMs(ctx, h)
+		if err != nil {
+			log.WithError(err).Warnf("Error getting installation disk speed threshold for host %s", h.ID.String())
+			return err
+		}
+		if diskPerfCheckResponse.IoSyncDuration > thresholdMs {
 			// If the 99th percentile of fdatasync durations is more than 10ms, it's not fast enough for etcd.
 			// See: https://www.ibm.com/cloud/blog/using-fio-to-tell-whether-your-storage-is-fast-enough-for-etcd
 			msg := fmt.Sprintf("Host's disk %s is slower than the supported speed, and may cause degraded cluster performance (fdatasync duration: %d ms)",
@@ -2927,6 +2932,15 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 	}
 
 	return b.hostApi.SetDiskSpeed(ctx, h, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration, exitCode, nil)
+}
+
+func (b *bareMetalInventory) getInstallationDiskSpeedThresholdMs(ctx context.Context, h *models.Host) (int64, error) {
+	cluster, err := common.GetClusterFromDB(b.db, h.ClusterID, common.UseEagerLoading)
+	if err != nil {
+		return 0, err
+	}
+
+	return b.hwValidator.GetInstallationDiskSpeedThresholdMs(ctx, cluster, h)
 }
 
 func (b *bareMetalInventory) processImageAvailabilityResponse(ctx context.Context, host *models.Host, responseStr string) error {

@@ -13,11 +13,11 @@ type VersionedRequirementsDecoder map[string]models.VersionedHostRequirements
 
 func (d *VersionedRequirementsDecoder) GetVersionedHostRequirements(version string) (*models.VersionedHostRequirements, error) {
 	if requirements, ok := (*d)[version]; ok {
-		return &requirements, nil
+		return copyVersionedHostRequirements(&requirements), nil
 	}
 
 	if requirements, ok := (*d)[DefaultVersion]; ok {
-		return &requirements, nil
+		return copyVersionedHostRequirements(&requirements), nil
 	}
 	return nil, fmt.Errorf("requirements for version %v not found", version)
 }
@@ -68,4 +68,21 @@ func validateDetails(details *models.ClusterHostRequirementsDetails, version str
 		return fmt.Errorf("CPU cores requirement must not be negative for version %v and %v role", version, role)
 	}
 	return nil
+}
+
+func copyVersionedHostRequirements(requirements *models.VersionedHostRequirements) *models.VersionedHostRequirements {
+	return &models.VersionedHostRequirements{
+		Version:            requirements.Version,
+		MasterRequirements: copyClusterHostRequirementsDetails(requirements.MasterRequirements),
+		WorkerRequirements: copyClusterHostRequirementsDetails(requirements.WorkerRequirements),
+	}
+}
+
+func copyClusterHostRequirementsDetails(details *models.ClusterHostRequirementsDetails) *models.ClusterHostRequirementsDetails {
+	return &models.ClusterHostRequirementsDetails{
+		CPUCores:                         details.CPUCores,
+		DiskSizeGb:                       details.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: details.InstallationDiskSpeedThresholdMs,
+		RAMMib:                           details.RAMMib,
+	}
 }
