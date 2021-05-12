@@ -9,16 +9,24 @@ For this integration, the Assisted Installer APIs are available via [CRDs](https
 ## CRD Types
 
 ### [ClusterDeployment](https://github.com/openshift/hive/blob/master/apis/hive/v1/clusterdeployment_types.go)
-The ClusterDeployment CRD is defined in the Hive repository, where additional fields are added for Agent Based installation.
-In the ClusterDeployment, the user can specify requirements like Networking, number of Control Plane and Workers nodes and more.
+The ClusterDeployment CRD is an API provided by Hive.
+
+See Hive documentation [here](https://github.com/openshift/hive/blob/master/docs/using-hive.md#cluster-provisioning).
+
+The ClusterDeployment can have a reference to an AgentClusterInstall (`Spec.ClusterInstallRef`) that defines the required parameters of the Cluster.
+
+
+### [AgentClusterInstall](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/hiveextension/v1beta1/agentclusterinstall_types.go)
+In the AgentClusterInstall, the user can specify requirements like Networking, number of Control Plane and Worker nodes and more.
 
 The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
 
 Selecting a specific OCP release version is done using a ClusterImageSet, see documentation [here](kube-api-select-ocp-versions.md).
 
-The ClusterDeployment reflects the Cluster/Installation status through Conditions.
+The AgentClusterInstall reflects the Cluster/Installation status through Conditions.
 
 More details on conditions is available [here](kube-api-conditions.md)
+
 
 ### [InfraEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/infraenv_types.go)
 The InfraEnv CRD represents the configuration needed to create the discovery ISO.
@@ -98,7 +106,7 @@ Installed	The installation is in progress: Waiting for control plane
 ```
 
 ## Day 2 worker
-Once the cluster is installed, the ClusterDeployment is set to Installed and secrets for kubeconfig and credentials are created and referenced in the ClusterDeployment.
+Once the cluster is installed, the ClusterDeployment is set to Installed and secrets for kubeconfig and credentials are created and referenced in the AgentClusterInstall.
 
 In the Assisted Service, the original cluster is deleted and a Day 2 cluster is created instead.
 
@@ -132,7 +140,8 @@ You will likely need to adapt those for your own needs.
 * [NMState Config](crds/nmstate.yaml)
 * [Hive PullSecret Secret](crds/pullsecret.yaml)
 * [Hive ClusterDeployment](crds/clusterDeployment.yaml)
-* [Hive ClusterDeployment-SNO](crds/clusterDeployment-SNO.yaml)
+* [AgentClusterInstall](crds/agentClusterInstall.yaml)
+* [AgentClusterInstall SNO](crds/agentClusterInstallSNO.yaml)
 
 
 
@@ -249,18 +258,17 @@ data:
         - 'loglevel=7'`
 ```
 
-Create/update clusterdeployment with field manifestsConfigMapRef:
+Create/update AgentClusterInstall with field manifestsConfigMapRef:
 ```yaml
-apiVersion: hive.openshift.io/v1
-kind: ClusterDeployment
+apiVersion: extensions.hive.openshift.io/v1beta1
+kind: AgentClusterInstall
 metadata:
   name: my-baremetal-cluster
   namespace: mynamespace
-  annotations:
-    hive.openshift.io/try-install-once: "true"
 spec:
     manifestsConfigMapRef:
       name: my-baremetal-cluster-install-manifests
 ```
 If manifests provided in configmap data section will be in bad format or configmap will not exists but will be referenced
 we will set error in Sync condition only if cluster will be ready for installation. Changing configmap should fix the issue.
+
