@@ -358,7 +358,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		Condition:        stateswitch.And(If(IsConnected), allConditionsSuccessfulOrUnknown, stateswitch.Not(If(ClusterPreparingForInstallation))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
-		PostTransition:   th.PostRefreshHost(statusInfoClusterIsNotPreparing),
+		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{
@@ -377,7 +377,7 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		Condition:        stateswitch.And(If(IsConnected), stateswitch.Not(stateswitch.Or(If(ClusterPreparingForInstallation), If(ClusterInstalling)))),
 		DestinationState: stateswitch.State(models.HostStatusKnown),
-		PostTransition:   th.PostRefreshHost(statusInfoClusterIsNotPreparing),
+		PostTransition:   th.PostRefreshHost(statusInfoKnown),
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{
