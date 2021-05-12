@@ -133,29 +133,6 @@ var _ = Describe("s3client", func() {
 		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
-	It("download_boot_file", func() {
-		objectName := BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz")
-		publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(objectName)}).
-			Return(&s3.HeadObjectOutput{ETag: aws.String("abcdefg"), ContentLength: aws.Int64(100)}, nil)
-		publicMockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &publicBucket, Key: aws.String(objectName)}).
-			Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader([]byte("Hi!")))}, nil)
-		_, name, length, err := client.DownloadBootFile(ctx, defaultTestRhcosObject, "vmlinuz")
-		Expect(name).To(Equal(objectName))
-		Expect(length).To(Equal(int64(100)))
-		Expect(err).To(BeNil())
-	})
-	It("get_s3_boot_file_url", func() {
-		client1 := &S3Client{cfg: &Config{PublicS3Bucket: "public", Region: "us-east-1"}}
-		url := client1.GetS3BootFileURL(defaultTestRhcosObject, "rootfs.img")
-		Expect(url).To(Equal(fmt.Sprintf("https://public.s3.us-east-1.amazonaws.com/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))))
-		client2 := &S3Client{cfg: &Config{PublicS3Bucket: "public", S3EndpointURL: "http://foo.com:1234"}}
-		url = client2.GetS3BootFileURL(defaultTestRhcosObject, "initrd.img")
-		Expect(url).To(Equal(fmt.Sprintf("http://foo.com:1234/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))))
-
-		client3 := &S3Client{cfg: &Config{PublicS3Bucket: "public", Region: "us-east-1", S3EndpointURL: "s3.us-east-1.amazonaws.com"}}
-		url = client3.GetS3BootFileURL(defaultTestRhcosObject, "rootfs.img")
-		Expect(url).To(Equal(fmt.Sprintf("https://public.s3.us-east-1.amazonaws.com/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))))
-	})
 	Context("upload iso", func() {
 		success := func(hexBytes []byte, baseISOSize, areaOffset, areaLength int64, cached bool) {
 			uploadID := "12345"

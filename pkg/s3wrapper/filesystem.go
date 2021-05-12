@@ -394,16 +394,6 @@ func (f *FSClient) DoAllBootFilesExist(ctx context.Context, isoObjectName string
 	return DoAllBootFilesExist(ctx, isoObjectName, f)
 }
 
-func (f *FSClient) DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error) {
-	objectName := BootFileTypeToObjectName(isoObjectName, fileType)
-	reader, contentLength, err := f.Download(ctx, objectName)
-	return reader, objectName, contentLength, err
-}
-
-func (f *FSClient) GetS3BootFileURL(isoObjectName, fileType string) string {
-	return ""
-}
-
 func (f *FSClient) GetBaseIsoObject(openshiftVersion string) (string, error) {
 	rhcosVersion, err := f.versionsHandler.GetRHCOSVersion(openshiftVersion)
 	if err != nil {
@@ -563,14 +553,6 @@ func (d *FSClientDecorator) UploadBootFiles(ctx context.Context, openshiftVersio
 
 func (d *FSClientDecorator) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
 	return d.fsClient.DoAllBootFilesExist(ctx, isoObjectName)
-}
-
-func (d *FSClientDecorator) DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error) {
-	return d.fsClient.DownloadBootFile(ctx, isoObjectName, fileType)
-}
-
-func (d *FSClientDecorator) GetS3BootFileURL(isoObjectName, fileType string) string {
-	return d.fsClient.GetS3BootFileURL(isoObjectName, fileType)
 }
 
 func (d *FSClientDecorator) GetBaseIsoObject(openshiftVersion string) (string, error) {

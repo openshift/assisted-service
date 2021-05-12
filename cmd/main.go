@@ -19,7 +19,6 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
-	"github.com/openshift/assisted-service/internal/bootfiles"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -317,7 +316,6 @@ func main() {
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.manifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi)
-	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
@@ -412,7 +410,6 @@ func main() {
 		ManagedDomainsAPI:     domainHandler,
 		InnerMiddleware:       innerHandler(),
 		ManifestsAPI:          manifestsApi,
-		BootfilesAPI:          bootFilesApi,
 		OperatorsAPI:          operatorsHandler,
 	})
 	failOnError(err, "Failed to init rest handler")

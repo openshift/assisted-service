@@ -140,23 +140,6 @@ func (mr *MockAPIMockRecorder) Download(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Download", reflect.TypeOf((*MockAPI)(nil).Download), arg0, arg1)
 }
 
-// DownloadBootFile mocks base method
-func (m *MockAPI) DownloadBootFile(arg0 context.Context, arg1, arg2 string) (io.ReadCloser, string, int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadBootFile", arg0, arg1, arg2)
-	ret0, _ := ret[0].(io.ReadCloser)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(int64)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
-}
-
-// DownloadBootFile indicates an expected call of DownloadBootFile
-func (mr *MockAPIMockRecorder) DownloadBootFile(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadBootFile", reflect.TypeOf((*MockAPI)(nil).DownloadBootFile), arg0, arg1, arg2)
-}
-
 // DownloadPublic mocks base method
 func (m *MockAPI) DownloadPublic(arg0 context.Context, arg1 string) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
@@ -243,20 +226,6 @@ func (m *MockAPI) GetObjectSizeBytes(arg0 context.Context, arg1 string) (int64, 
 func (mr *MockAPIMockRecorder) GetObjectSizeBytes(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectSizeBytes", reflect.TypeOf((*MockAPI)(nil).GetObjectSizeBytes), arg0, arg1)
-}
-
-// GetS3BootFileURL mocks base method
-func (m *MockAPI) GetS3BootFileURL(arg0, arg1 string) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetS3BootFileURL", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetS3BootFileURL indicates an expected call of GetS3BootFileURL
-func (mr *MockAPIMockRecorder) GetS3BootFileURL(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetS3BootFileURL", reflect.TypeOf((*MockAPI)(nil).GetS3BootFileURL), arg0, arg1)
 }
 
 // IsAwsS3 mocks base method

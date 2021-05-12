@@ -20,7 +20,6 @@ import (
 	"github.com/go-openapi/swag"
 
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
-	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
@@ -76,9 +75,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerDisableHostHandler: installer.DisableHostHandlerFunc(func(params installer.DisableHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DisableHost has not yet been implemented")
-		}),
-		BootfilesDownloadBootFilesHandler: bootfiles.DownloadBootFilesHandlerFunc(func(params bootfiles.DownloadBootFilesParams) middleware.Responder {
-			return middleware.NotImplemented("operation bootfiles.DownloadBootFiles has not yet been implemented")
 		}),
 		InstallerDownloadClusterFilesHandler: installer.DownloadClusterFilesHandlerFunc(func(params installer.DownloadClusterFilesParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DownloadClusterFiles has not yet been implemented")
@@ -343,8 +339,6 @@ type AssistedInstallAPI struct {
 	InstallerDeregisterHostHandler installer.DeregisterHostHandler
 	// InstallerDisableHostHandler sets the operation handler for the disable host operation
 	InstallerDisableHostHandler installer.DisableHostHandler
-	// BootfilesDownloadBootFilesHandler sets the operation handler for the download boot files operation
-	BootfilesDownloadBootFilesHandler bootfiles.DownloadBootFilesHandler
 	// InstallerDownloadClusterFilesHandler sets the operation handler for the download cluster files operation
 	InstallerDownloadClusterFilesHandler installer.DownloadClusterFilesHandler
 	// InstallerDownloadClusterISOHandler sets the operation handler for the download cluster i s o operation
@@ -578,9 +572,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerDisableHostHandler == nil {
 		unregistered = append(unregistered, "installer.DisableHostHandler")
-	}
-	if o.BootfilesDownloadBootFilesHandler == nil {
-		unregistered = append(unregistered, "bootfiles.DownloadBootFilesHandler")
 	}
 	if o.InstallerDownloadClusterFilesHandler == nil {
 		unregistered = append(unregistered, "installer.DownloadClusterFilesHandler")
@@ -900,10 +891,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
 	o.handlers["DELETE"]["/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewDisableHost(o.context, o.InstallerDisableHostHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/boot-files"] = bootfiles.NewDownloadBootFiles(o.context, o.BootfilesDownloadBootFilesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

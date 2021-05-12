@@ -58,8 +58,6 @@ type API interface {
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
 	UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error
 	DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error)
-	DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error)
-	GetS3BootFileURL(isoObjectName, fileType string) string
 	GetBaseIsoObject(openshiftVersion string) (string, error)
 	GetMinimalIsoObjectName(openshiftVersion string) (string, error)
 
@@ -565,21 +563,6 @@ func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIs
 
 func (c *S3Client) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
 	return DoAllBootFilesExist(ctx, isoObjectName, c)
-}
-
-func (c *S3Client) DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error) {
-	objectName := BootFileTypeToObjectName(isoObjectName, fileType)
-	reader, contentLength, err := c.download(ctx, objectName, c.cfg.PublicS3Bucket, c.publicClient)
-	return reader, objectName, contentLength, err
-}
-
-func (c *S3Client) GetS3BootFileURL(isoObjectName, fileType string) string {
-	objectName := BootFileTypeToObjectName(isoObjectName, fileType)
-	if c.IsAwsS3() {
-		return fmt.Sprintf("https://%s.s3.%s.amazonaws.com/%s", c.cfg.PublicS3Bucket, c.cfg.Region, objectName)
-	} else {
-		return fmt.Sprintf("%s/%s", c.cfg.S3EndpointURL, objectName)
-	}
 }
 
 func (c *S3Client) GetBaseIsoObject(openshiftVersion string) (string, error) {

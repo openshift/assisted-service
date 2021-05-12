@@ -14,7 +14,6 @@ import (
 	"github.com/go-openapi/strfmt"
 
 	"github.com/openshift/assisted-service/client/assisted_service_iso"
-	"github.com/openshift/assisted-service/client/bootfiles"
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/managed_domains"
@@ -66,7 +65,6 @@ func New(c Config) *AssistedInstall {
 	cli := new(AssistedInstall)
 	cli.Transport = transport
 	cli.AssistedServiceIso = assisted_service_iso.New(transport, strfmt.Default, c.AuthInfo)
-	cli.Bootfiles = bootfiles.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Events = events.New(transport, strfmt.Default, c.AuthInfo)
 	cli.Installer = installer.New(transport, strfmt.Default, c.AuthInfo)
 	cli.ManagedDomains = managed_domains.New(transport, strfmt.Default, c.AuthInfo)
@@ -79,7 +77,6 @@ func New(c Config) *AssistedInstall {
 // AssistedInstall is a client for assisted install
 type AssistedInstall struct {
 	AssistedServiceIso *assisted_service_iso.Client
-	Bootfiles          *bootfiles.Client
 	Events             *events.Client
 	Installer          *installer.Client
 	ManagedDomains     *managed_domains.Client
