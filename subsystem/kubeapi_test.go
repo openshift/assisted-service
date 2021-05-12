@@ -562,6 +562,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent,bmh and ignition config override", func() {
+		Skip("MGMT-6451 flaky test")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, spec)
@@ -672,6 +673,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent and update installer args", func() {
+		Skip("MGMT-6451 flaky test")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, spec)
