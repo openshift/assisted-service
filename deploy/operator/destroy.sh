@@ -10,6 +10,7 @@ fi
 kubectl delete namespace assisted-installer
 kubectl delete agentserviceconfigs.agent-install.openshift.io agent
 kubectl delete localvolume -n openshift-local-storage assisted-service
+kubectl delete catalogsource assisted-service-catalog -n openshift-marketplace
 
 ${__dir}/libvirt_disks.sh destroy
 kubectl get pv -o=name | xargs -r kubectl delete
