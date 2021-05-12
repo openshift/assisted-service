@@ -52,7 +52,7 @@ RUN dnf install -y libvirt-libs python3 && \
     dnf clean all
 
 RUN mkdir nmstate
-RUN curl -SL https://github.com/nmstate/nmstate/releases/download/v1.0.2/nmstate-1.0.2.tar.gz | tar -xz -C nmstate
+RUN curl --retry 5 -SL https://github.com/nmstate/nmstate/releases/download/v1.0.2/nmstate-1.0.2.tar.gz | tar -xz -C nmstate
 RUN cd /nmstate/nmstate-1.0.2 && python3 setup.py build
 RUN cd /nmstate/nmstate-1.0.2 && python3 setup.py install
 
