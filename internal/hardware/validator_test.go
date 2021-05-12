@@ -402,6 +402,32 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
 	})
 
+	It("should not overwrite requirements after an sno call", func() {
+		role := models.HostRoleMaster
+		id1 := strfmt.UUID(uuid.New().String())
+		host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+		cluster.OpenshiftVersion = "4.6"
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil).Times(2)
+
+		result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresSno))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibSno * int64(units.KiB)))
+
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+
+		result, err = hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).ToNot(BeNil())
+
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresMaster))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibMaster * int64(units.KiB)))
+	})
+
 	It("should contain correct default requirements for worker host", func() {
 		role := models.HostRoleWorker
 		id1 := strfmt.UUID(uuid.New().String())
