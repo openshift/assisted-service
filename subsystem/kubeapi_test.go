@@ -408,14 +408,21 @@ func getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecond
 	}
 }
 
-func getAgentMac(agent *v1beta1.Agent) string {
-
-	for _, agentInterface := range agent.Status.Inventory.Interfaces {
-		if agentInterface.MacAddress != "" {
-			return agentInterface.MacAddress
+func getAgentMac(ctx context.Context, client k8sclient.Client, key types.NamespacedName) string {
+	mac := ""
+	Eventually(func() bool {
+		agent := getAgentCRD(ctx, client, key)
+		for _, agentInterface := range agent.Status.Inventory.Interfaces {
+			if agentInterface.MacAddress != "" {
+				fmt.Println("Found mac !!!!!")
+				mac = agentInterface.MacAddress
+				return true
+			}
 		}
-	}
-	return ""
+		return false
+	}, "60s", "10s").Should(BeTrue())
+
+	return mac
 }
 
 func cleanUP(ctx context.Context, client k8sclient.Client) {
@@ -563,8 +570,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		agent := getAgentCRD(ctx, kubeClient, key)
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(agent)}
+		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		Eventually(func() error {
@@ -802,8 +808,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		agent := getAgentCRD(ctx, kubeClient, key)
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(agent)}
+		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
@@ -1644,8 +1649,7 @@ spec:
 //
 //		It("reconciles the agent", func() {
 //			bmh = getBmhCRD(ctx, kubeClient, bmhNsName)
-//			agent := getAgentCRD(ctx, kubeClient, agentNsName)
-//			bmh.Spec.BootMACAddress = getAgentMac(agent)
+//			bmh.Spec.BootMACAddress = getAgentMac(ctx, kubeClient, key)
 //			bmh.SetLabels(map[string]string{controllers.BMH_INFRA_ENV_LABEL: infraNsName.Name})
 //			Expect(kubeClient.Update(ctx, bmh)).ToNot(HaveOccurred())
 //
