@@ -4271,7 +4271,7 @@ var _ = Describe("UploadClusterIngressCert test", func() {
 		Expect(generateReply).Should(Equal(installer.NewUploadClusterIngressCertCreated()))
 	})
 })
-var _ = Describe("List unregistered clusters", func() {
+var _ = Describe("List clusters", func() {
 
 	var (
 		bm                 *bareMetalInventory
@@ -4281,6 +4281,7 @@ var _ = Describe("List unregistered clusters", func() {
 		clusterID          strfmt.UUID
 		hostID             strfmt.UUID
 		openshiftClusterID = strToUUID("41940ee8-ec99-43de-8766-174381b4921d")
+		amsSubscriptionID  = strToUUID("1sOMjCKRmEHYanIsp1bPbplb47t")
 		c                  common.Cluster
 		kubeconfigFile     *os.File
 		dbName             string
@@ -4298,6 +4299,7 @@ var _ = Describe("List unregistered clusters", func() {
 			Name:               "mycluster",
 			APIVip:             "10.11.12.13",
 			OpenshiftClusterID: *openshiftClusterID,
+			AmsSubscriptionID:  *amsSubscriptionID,
 		}}
 		err := db.Create(&c).Error
 		Expect(err).ShouldNot(HaveOccurred())
@@ -4335,30 +4337,67 @@ var _ = Describe("List unregistered clusters", func() {
 	It("List unregistered clusters failure - not an admin user", func() {
 		payload := &ocm.AuthPayload{}
 		payload.Role = ocm.UserRole
-		ctx = context.WithValue(ctx, restapi.AuthKey, payload)
+		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
 		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
-		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+		resp := bm.ListClusters(authCtx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 		Expect(resp).Should(BeAssignableToTypeOf(installer.NewListClustersForbidden()))
 	})
 
 	It("filters based on openshift cluster ID", func() {
+		payload := &ocm.AuthPayload{Role: ocm.UserRole}
+		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+
 		By("searching for an existing openshift cluster ID", func() {
-			resp := bm.ListClusters(ctx, installer.ListClustersParams{OpenshiftClusterID: openshiftClusterID})
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: openshiftClusterID})
 			payload := resp.(*installer.ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 		})
 
 		By("discarding cluster ID field", func() {
-			resp := bm.ListClusters(ctx, installer.ListClustersParams{})
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{})
 			payload := resp.(*installer.ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
 		})
 
 		By("searching for a non-existing openshift cluster ID", func() {
-			resp := bm.ListClusters(ctx, installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
 			payload := resp.(*installer.ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(0))
+		})
+	})
+
+	It("filters based on AMS subscription ID", func() {
+		payload := &ocm.AuthPayload{Role: ocm.UserRole}
+		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+
+		By("searching for a single existing AMS subscription ID", func() {
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{AmsSubscriptionIds: []string{amsSubscriptionID.String()}})
+			payload := resp.(*installer.ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+		})
+
+		By("discarding AMS subscription ID field", func() {
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{})
+			payload := resp.(*installer.ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(1))
+		})
+
+		By("searching for a non-existing AMS subscription ID", func() {
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{AmsSubscriptionIds: []string{"1sOMjCKRmEHYanIsp1bPbplbXXX"}})
+			payload := resp.(*installer.ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(0))
+		})
+
+		By("searching for both existing and non-existing AMS subscription IDs", func() {
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{
+				AmsSubscriptionIds: []string{
+					amsSubscriptionID.String(),
+					"1sOMjCKRmEHYanIsp1bPbplbXXX",
+				},
+			})
+			payload := resp.(*installer.ListClustersOK).Payload
+			Expect(len(payload)).Should(Equal(1))
 		})
 	})
 })

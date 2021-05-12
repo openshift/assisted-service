@@ -2348,6 +2348,10 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 		whereCondition += fmt.Sprintf(" AND openshift_cluster_id = '%s'", *params.OpenshiftClusterID)
 	}
 
+	if len(params.AmsSubscriptionIds) > 0 {
+		whereCondition += fmt.Sprintf(" AND ams_subscription_id IN %s", common.ToSqlList(params.AmsSubscriptionIds))
+	}
+
 	dbClusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading,
 		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)), whereCondition)
 	if err != nil {

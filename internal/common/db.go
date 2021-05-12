@@ -1,6 +1,8 @@
 package common
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -183,4 +185,10 @@ func (c *Cluster) AfterFind(db *gorm.DB) error {
 	}
 	c.TotalHostCount = int64(len(c.Hosts))
 	return nil
+}
+
+func ToSqlList(strs []string) string {
+	res := strings.Join(strs, `', '`)
+	res = fmt.Sprintf("('%s')", res)
+	return res
 }

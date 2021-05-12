@@ -73,6 +73,11 @@ for the list clusters operation typically these are written to a http.Request
 */
 type ListClustersParams struct {
 
+	/*AmsSubscriptionIds
+	  If non-empty, returned Clusters are filtered to those with matching subscription IDs.
+
+	*/
+	AmsSubscriptionIds []string
 	/*GetUnregisteredClusters
 	  Whether to return clusters that have been unregistered.
 
@@ -122,6 +127,17 @@ func (o *ListClustersParams) SetHTTPClient(client *http.Client) {
 	o.HTTPClient = client
 }
 
+// WithAmsSubscriptionIds adds the amsSubscriptionIds to the list clusters params
+func (o *ListClustersParams) WithAmsSubscriptionIds(amsSubscriptionIds []string) *ListClustersParams {
+	o.SetAmsSubscriptionIds(amsSubscriptionIds)
+	return o
+}
+
+// SetAmsSubscriptionIds adds the amsSubscriptionIds to the list clusters params
+func (o *ListClustersParams) SetAmsSubscriptionIds(amsSubscriptionIds []string) {
+	o.AmsSubscriptionIds = amsSubscriptionIds
+}
+
 // WithGetUnregisteredClusters adds the getUnregisteredClusters to the list clusters params
 func (o *ListClustersParams) WithGetUnregisteredClusters(getUnregisteredClusters *bool) *ListClustersParams {
 	o.SetGetUnregisteredClusters(getUnregisteredClusters)
@@ -151,6 +167,14 @@ func (o *ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 		return err
 	}
 	var res []error
+
+	valuesAmsSubscriptionIds := o.AmsSubscriptionIds
+
+	joinedAmsSubscriptionIds := swag.JoinByFormat(valuesAmsSubscriptionIds, "")
+	// query array param ams_subscription_ids
+	if err := r.SetQueryParam("ams_subscription_ids", joinedAmsSubscriptionIds...); err != nil {
+		return err
+	}
 
 	if o.GetUnregisteredClusters != nil {
 

@@ -113,6 +113,13 @@ paths:
           type: string
           format: uuid
           required: false
+        - in: query
+          name: ams_subscription_ids
+          description: If non-empty, returned Clusters are filtered to those with matching subscription IDs.
+          required: false
+          type: array
+          items:
+            type: string
       responses:
         "200":
           description: Success.

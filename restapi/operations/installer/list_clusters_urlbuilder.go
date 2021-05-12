@@ -11,10 +11,12 @@ import (
 	golangswaggerpaths "path"
 
 	"github.com/go-openapi/strfmt"
+	"github.com/go-openapi/swag"
 )
 
 // ListClustersURL generates an URL for the list clusters operation
 type ListClustersURL struct {
+	AmsSubscriptionIds []string
 	OpenshiftClusterID *strfmt.UUID
 
 	_basePath string
@@ -50,6 +52,23 @@ func (o *ListClustersURL) Build() (*url.URL, error) {
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
 	qs := make(url.Values)
+
+	var amsSubscriptionIdsIR []string
+	for _, amsSubscriptionIdsI := range o.AmsSubscriptionIds {
+		amsSubscriptionIdsIS := amsSubscriptionIdsI
+		if amsSubscriptionIdsIS != "" {
+			amsSubscriptionIdsIR = append(amsSubscriptionIdsIR, amsSubscriptionIdsIS)
+		}
+	}
+
+	amsSubscriptionIds := swag.JoinByFormat(amsSubscriptionIdsIR, "")
+
+	if len(amsSubscriptionIds) > 0 {
+		qsv := amsSubscriptionIds[0]
+		if qsv != "" {
+			qs.Set("ams_subscription_ids", qsv)
+		}
+	}
 
 	var openshiftClusterIDQ string
 	if o.OpenshiftClusterID != nil {
