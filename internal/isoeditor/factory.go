@@ -18,7 +18,7 @@ type EditFunc func(myEditor Editor) error
 
 //go:generate mockgen -package=isoeditor -destination=mock_factory.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Factory
 type Factory interface {
-	WithEditor(ctx context.Context, isoPath string, openshiftVersion string, log logrus.FieldLogger, proc EditFunc) error
+	WithEditor(ctx context.Context, isoPath string, log logrus.FieldLogger, proc EditFunc) error
 }
 
 type token struct{}
@@ -38,7 +38,7 @@ func NewFactory(config Config, staticNetworkConfig staticnetworkconfig.StaticNet
 	return f
 }
 
-func (f *RhcosFactory) WithEditor(ctx context.Context, isoPath string, openshiftVersion string, log logrus.FieldLogger, proc EditFunc) error {
+func (f *RhcosFactory) WithEditor(ctx context.Context, isoPath string, log logrus.FieldLogger, proc EditFunc) error {
 	select {
 	case f.sem <- token{}:
 	case <-ctx.Done():
@@ -49,7 +49,7 @@ func (f *RhcosFactory) WithEditor(ctx context.Context, isoPath string, openshift
 		<-f.sem
 	}()
 
-	ed, err := f.newEditor(isoPath, openshiftVersion, log)
+	ed, err := f.newEditor(isoPath, log)
 	if err != nil {
 		return err
 	}
@@ -57,14 +57,13 @@ func (f *RhcosFactory) WithEditor(ctx context.Context, isoPath string, openshift
 	return proc(ed)
 }
 
-func (f *RhcosFactory) newEditor(isoPath string, openshiftVersion string, log logrus.FieldLogger) (Editor, error) {
+func (f *RhcosFactory) newEditor(isoPath string, log logrus.FieldLogger) (Editor, error) {
 	isoTmpWorkDir, err := ioutil.TempDir(f.workspaceBaseDir, "isoutil")
 	if err != nil {
 		return nil, err
 	}
 	return &rhcosEditor{
 		isoHandler:          isoutil.NewHandler(isoPath, isoTmpWorkDir),
-		openshiftVersion:    openshiftVersion,
 		log:                 log,
 		workDir:             f.workspaceBaseDir,
 		staticNetworkConfig: f.staticNetworkConfig,
