@@ -82,7 +82,7 @@ pipeline {
                         writeJSON(file: 'data.txt', json: data, pretty: 4)
                     }
 
-                    sh '''curl -X POST -H 'Content-type: application/json' --data-binary "@data.txt" https://hooks.slack.com/services/${SLACK_TOKEN}'''
+                    sh '''curl --retry 5 -X POST -H 'Content-type: application/json' --data-binary "@data.txt" https://hooks.slack.com/services/${SLACK_TOKEN}'''
                 }
 
                 archiveArtifacts artifacts: '*.log', fingerprint: true, allowEmptyArchive: true
