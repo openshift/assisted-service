@@ -502,7 +502,7 @@ func completeInstallation(client *client.AssistedInstall, clusterID strfmt.UUID)
 			continue
 		}
 
-		reportMonitoredOperatorStatus(ctx, client, clusterID, operator.Name, status)
+		reportMonitoredOperatorStatus(ctx, client, clusterID, operator.Name, status, "1.0")
 	}
 }
 

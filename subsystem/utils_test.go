@@ -337,13 +337,14 @@ func register3nodes(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
 	return []*models.Host{h1, h2, h3}
 }
 
-func reportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, opName string, opStatus models.OperatorStatus) {
+func reportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, opName string, opStatus models.OperatorStatus, opVersion string) {
 	_, err := client.Operators.ReportMonitoredOperatorStatus(ctx, &operatorsClient.ReportMonitoredOperatorStatusParams{
 		ClusterID: clusterID,
 		ReportParams: &models.OperatorMonitorReport{
 			Name:       opName,
 			Status:     opStatus,
 			StatusInfo: string(opStatus),
+			Version:    opVersion,
 		},
 	})
 	Expect(err).NotTo(HaveOccurred())

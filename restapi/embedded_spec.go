@@ -7174,6 +7174,10 @@ func init() {
         "timeout_seconds": {
           "description": "Positive number represents a timeout in seconds for the operator to be available.",
           "type": "integer"
+        },
+        "version": {
+          "description": "Version of the operator.",
+          "type": "string"
         }
       }
     },
@@ -7332,6 +7336,10 @@ func init() {
         },
         "status_info": {
           "description": "Detailed information about the operator state.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version of the operator.",
           "type": "string"
         }
       }
@@ -14861,6 +14869,10 @@ func init() {
         "timeout_seconds": {
           "description": "Positive number represents a timeout in seconds for the operator to be available.",
           "type": "integer"
+        },
+        "version": {
+          "description": "Version of the operator.",
+          "type": "string"
         }
       }
     },
@@ -15019,6 +15031,10 @@ func init() {
         },
         "status_info": {
           "description": "Detailed information about the operator state.",
+          "type": "string"
+        },
+        "version": {
+          "description": "Version of the operator.",
           "type": "string"
         }
       }

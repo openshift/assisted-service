@@ -136,11 +136,12 @@ var _ = Describe("Operators manager", func() {
 
 	Context("UpdateMonitoredOperatorStatus", func() {
 		It("should update operator status", func() {
+			operatorVersion := "1.0.0"
 			statusInfo := "sorry, failed"
 			operatorName := common.TestDefaultConfig.MonitoredOperator.Name
 			newStatus := models.OperatorStatusFailed
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo)
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo, operatorVersion)
 
 			Expect(err).ToNot(HaveOccurred())
 
@@ -154,11 +155,12 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("should report error when operator not found", func() {
+			operatorVersion := "1.0.0"
 			statusInfo := "the very new progressing info"
 			newStatus := models.OperatorStatusProgressing
 			operatorName := "unknown"
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo)
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo, operatorVersion)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusNotFound))
@@ -171,11 +173,12 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("should report error for empty operator name", func() {
+			operatorVersion := "1.0.0"
 			statusInfo := "the very new progressing info"
 			newStatus := models.OperatorStatusProgressing
 			operatorName := ""
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo)
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo, operatorVersion)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusBadRequest))
@@ -188,12 +191,13 @@ var _ = Describe("Operators manager", func() {
 		})
 
 		It("Should create an event when CVO is reported", func() {
+			operatorVersion := "1.0.0"
 			newStatus := models.OperatorStatusAvailable
 			statusInfo := common.TestDefaultConfig.StatusInfo
 
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operators.OperatorCVO.Name, newStatus, statusInfo)
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operators.OperatorCVO.Name, newStatus, statusInfo, operatorVersion)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

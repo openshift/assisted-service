@@ -208,7 +208,7 @@ var _ = Describe("Operators endpoint tests", func() {
 		})
 
 		It("should be updated", func() {
-			reportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, ocs.Operator.Name, models.OperatorStatusFailed)
+			reportMonitoredOperatorStatus(ctx, agentBMClient, *cluster.Payload.ID, ocs.Operator.Name, models.OperatorStatusFailed, "1.0")
 
 			ops, err := agentBMClient.Operators.ListOfClusterOperators(ctx, opclient.NewListOfClusterOperatorsParams().
 				WithClusterID(*cluster.Payload.ID).
@@ -245,7 +245,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator available", func() {
-				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable)
+				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusAvailable, "1.0")
 			})
 
 			By("Wait for cluster to be installed", func() {
@@ -268,7 +268,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			})
 
 			By("Report operator failed", func() {
-				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed)
+				reportMonitoredOperatorStatus(context.TODO(), agentBMClient, clusterID, lso.Operator.Name, models.OperatorStatusFailed, "1.0")
 			})
 
 			By("Wait for cluster to be degraded", func() {

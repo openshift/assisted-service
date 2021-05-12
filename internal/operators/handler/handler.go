@@ -63,7 +63,7 @@ func (h *Handler) ListOfClusterOperators(ctx context.Context, params restoperato
 
 // ReportMonitoredOperatorStatus Controller API to report of monitored operators.
 func (h *Handler) ReportMonitoredOperatorStatus(ctx context.Context, params restoperators.ReportMonitoredOperatorStatusParams) middleware.Responder {
-	err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Status, params.ReportParams.StatusInfo)
+	err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Status, params.ReportParams.StatusInfo, params.ReportParams.Version)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
@@ -109,7 +109,7 @@ func (h *Handler) FindMonitoredOperator(ctx context.Context, clusterID strfmt.UU
 }
 
 // UpdateMonitoredOperatorStatus updates status and status info of a monitored operator for a cluster
-func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID strfmt.UUID, monitoredOperatorName string, status models.OperatorStatus, statusInfo string) error {
+func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID strfmt.UUID, monitoredOperatorName string, status models.OperatorStatus, statusInfo string, operatorVersion string) error {
 	log := logutil.FromContext(ctx, h.log)
 
 	txSuccess := false
@@ -132,6 +132,7 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 
 	operator.Status = status
 	operator.StatusInfo = statusInfo
+	operator.Version = operatorVersion
 	operator.StatusUpdatedAt = strfmt.DateTime(time.Now())
 
 	if err = tx.Save(operator).Error; err != nil {
