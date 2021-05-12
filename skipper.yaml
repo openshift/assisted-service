@@ -21,6 +21,7 @@ volumes:
   # libvirt
   - /var/run/libvirt/libvirt-sock:/var/run/libvirt/libvirt-sock
   - /var/lib/libvirt/:/var/lib/libvirt/
+  - /etc/pki/tls/certs/ca-bundle.crt:/etc/pki/tls/certs/ca-bundle.crt
 env_file:
   - skipper.env
 env:
