@@ -85,8 +85,9 @@ def update_openshift_versions_hashmap(ocp_versions: dict, release_image: str, na
     key = f"{major}.{minor}"
 
     if key not in ocp_versions:
-        larget_version = get_largest_version(list(ocp_versions.keys()))
-        ocp_versions[key] = ocp_versions[larget_version].copy()
+        largest_version = get_largest_version(list(ocp_versions.keys()))
+        ocp_versions[key] = ocp_versions[largest_version].copy()
+        ocp_versions[key].pop('default', None) # removes the 'default' key to avoid conflict
 
     ocp_versions[key]["release_image"] = release_image
     ocp_versions[key]["release_version"] = oc_version
