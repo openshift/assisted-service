@@ -136,7 +136,7 @@ func (r *BMACReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.
 	// is in a Deprovisioning state?
 
 	agent := r.findAgent(ctx, bmh)
-
+	fmt.Println("AGENT AAA ", agent)
 	// handle multiple agents matching the
 	// same BMH's Mac Address
 	if agent == nil {
@@ -710,6 +710,7 @@ func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMe
 
 	agents := []*aiv1beta1.Agent{}
 	for i, agent := range agentList.Items {
+		fmt.Println("DDDDDDDDDDDD", agent)
 		for _, agentInterface := range agent.Status.Inventory.Interfaces {
 			if agentInterface.MacAddress != "" && strings.EqualFold(bmh.Spec.BootMACAddress, agentInterface.MacAddress) {
 				agents = append(agents, &agentList.Items[i])
