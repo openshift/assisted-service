@@ -8,8 +8,7 @@ metadata:
           "apiVersion": "agent-install.openshift.io/v1beta1",
           "kind": "AgentServiceConfig",
           "metadata": {
-            "name": "agent",
-            "namespace": "assisted-installer"
+            "name": "agent"
           },
           "spec": {
             "databaseStorage": {
@@ -31,7 +30,27 @@ metadata:
                   "storage": "100Gi"
                 }
               }
-            }
+            },
+            "osImages": [
+              {
+                "openshiftVersion": "4.6",
+                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso",
+                "version": "46.82.202012051820-0"
+              },
+              {
+                "openshiftVersion": "4.7",
+                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
+                "version": "47.83.202103251640-0"
+              },
+              {
+                "openshiftVersion": "4.8",
+                "rootFSUrl": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-live-rootfs.x86_64.img",
+                "url": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-4.8.0-fc.3-x86_64-live.x86_64.iso",
+                "version": "48.84.202105062123-0"
+              }
+            ]
           }
         }
       ]
@@ -69,6 +88,9 @@ spec:
       - description: 'MirrorRegistryRef is the reference to the configmap that contains mirror registry configuration In case no configuration is need, this field will be nil. ConfigMap must contain to entries: ca-bundle.crt - hold the contents of mirror registry certificate/s registries.conf - holds the content of registries.conf file configured with mirror registries'
         displayName: Mirror Registry and Certificate ConfigMap Name
         path: mirrorRegistryRef
+      - description: OSImages defines a collection of Operating System images (ie. RHCOS images) that the assisted-service should use as the base when generating discovery ISOs.
+        displayName: Operating System Images
+        path: osImages
       version: v1beta1
     - displayName: InfraEnv
       kind: InfraEnv
@@ -183,6 +205,12 @@ spec:
           - patch
           - update
           - watch
+        - apiGroups:
+          - agent-install.openshift.io
+          resources:
+          - agents/ai-deprovision
+          verbs:
+          - update
         - apiGroups:
           - agent-install.openshift.io
           resources:
@@ -400,7 +428,7 @@ spec:
                 - name: INSTALLER_IMAGE
                   value: quay.io/ocpmetal/assisted-installer:latest
                 - name: OPENSHIFT_VERSIONS
-                  value: '{"4.6":{"display_name":"4.6.16","release_version":"4.6.16","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.9","release_version":"4.7.9","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.9-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso","rhcos_version":"47.83.202103251640-0","support_level":"production","default":true},"4.8":{"display_name":"4.8.0-fc.2","release_version":"4.8.0-fc.2","release_image":"quay.io/openshift-release-dev/ocp-release:4.8.0-fc.2-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso","rhcos_version":"47.83.202103251640-0","support_level":"beta"}}'
+                  value: '{"4.6":{"display_name":"4.6.16","release_version":"4.6.16","release_image":"quay.io/openshift-release-dev/ocp-release:4.6.16-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-4.6.8-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.6/4.6.8/rhcos-live-rootfs.x86_64.img","rhcos_version":"46.82.202012051820-0","support_level":"production"},"4.7":{"display_name":"4.7.9","release_version":"4.7.9","release_image":"quay.io/openshift-release-dev/ocp-release:4.7.9-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img","rhcos_version":"47.83.202103251640-0","support_level":"production","default":true},"4.8":{"display_name":"4.8.0-fc.3","release_version":"4.8.0-fc.3","release_image":"quay.io/openshift-release-dev/ocp-release:4.8.0-fc.3-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-4.8.0-fc.3-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-live-rootfs.x86_64.img","rhcos_version":"48.84.202105062123-0","support_level":"beta"}}'
                 - name: SERVICE_ACCOUNT_NAME
                   valueFrom:
                     fieldRef:
