@@ -268,12 +268,8 @@ func (v *validator) updateSingleNodeHwRequirements(requirements *models.Versione
 
 func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) *models.VersionedHostRequirements {
 	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(cluster.OpenshiftVersion)
-	if err != nil {
+	if err != nil || common.IsSingleNodeCluster(cluster) {
 		return v.GetHostRequirements(common.IsSingleNodeCluster(cluster))
-	}
-
-	if common.IsSingleNodeCluster(cluster) {
-		v.updateSingleNodeHwRequirements(requirements)
 	}
 
 	return requirements
