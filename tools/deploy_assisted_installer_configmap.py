@@ -26,6 +26,7 @@ def handle_arguments():
     parser.add_argument("--ipv6-support", default="True")
     parser.add_argument("--enable-sno-dnsmasq", default="True")
     parser.add_argument("--hw-requirements")
+    parser.add_argument("--kubeapi-day2", default="False")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -113,6 +114,9 @@ def main():
 
             if deploy_options.enable_kube_api:
                 y['data']['ENABLE_KUBE_API'] = 'true'
+
+            if deploy_options.kubeapi_day2:
+                y['data']['ENABLE_KUBE_API_DAY2'] = 'true'
 
             data = yaml.dump(y)
             dst.write(data)

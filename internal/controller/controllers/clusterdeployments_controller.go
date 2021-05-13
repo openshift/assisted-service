@@ -75,15 +75,16 @@ const defaultRequeueAfterOnError = 10 * time.Second
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
 	client.Client
-	Log              logrus.FieldLogger
-	Scheme           *runtime.Scheme
-	Installer        bminventory.InstallerInternals
-	ClusterApi       cluster.API
-	HostApi          host.API
-	CRDEventsHandler CRDEventsHandler
-	Manifests        manifests.ClusterManifestsInternals
-	ServiceBaseURL   string
-	AuthType         auth.AuthType
+	Log               logrus.FieldLogger
+	Scheme            *runtime.Scheme
+	Installer         bminventory.InstallerInternals
+	ClusterApi        cluster.API
+	HostApi           host.API
+	CRDEventsHandler  CRDEventsHandler
+	Manifests         manifests.ClusterManifestsInternals
+	ServiceBaseURL    string
+	AuthType          auth.AuthType
+	EnableDay2Cluster bool
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
@@ -176,7 +177,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		if !isInstalled(clusterDeployment, clusterInstall) {
 			return r.createNewCluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
-		if !r.isSNO(clusterInstall) {
+		if !r.isSNO(clusterInstall) && r.EnableDay2Cluster {
 			return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
 		// cluster is installed and SNO. Clear EventsURL
