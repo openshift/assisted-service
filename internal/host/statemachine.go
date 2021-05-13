@@ -506,8 +506,12 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 
 	var requiredInputFieldsExist = stateswitch.And(If(IsMachineCidrDefined))
 
-	var isSufficientForInstall = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole), If(BelongsToMachineCidr), If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup),
-		If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied), If(SufficientOrUnknownInstallationDiskSpeed), If(SucessfullOrUnknownContainerImagesAvailability), If(HasSufficientNetworkLatencyRequirementForRole), If(HasSufficientPacketLossRequirementForRole))
+	var operatorRequirementsSatisfied = stateswitch.And(If(AreOcsRequirementsSatisfied), If(AreLsoRequirementsSatisfied), If(AreCnvRequirementsSatisfied))
+
+	var hasMinHardwareForRole = stateswitch.And(If(HasMemoryForRole), If(HasCPUCoresForRole))
+
+	var isSufficientForInstall = stateswitch.And(hasMinHardwareForRole, If(BelongsToMachineCidr), If(IsHostnameUnique), If(IsHostnameValid), If(IsAPIVipConnected), If(BelongsToMajorityGroup),
+		operatorRequirementsSatisfied, If(SufficientOrUnknownInstallationDiskSpeed), If(SucessfullOrUnknownContainerImagesAvailability), If(HasSufficientNetworkLatencyRequirementForRole), If(HasSufficientPacketLossRequirementForRole))
 
 	// In order for this transition to be fired at least one of the validations in minRequiredHardwareValidations must fail.
 	// This transition handles the case that a host does not pass minimum hardware requirements for any of the roles
@@ -538,6 +542,8 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		},
 		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
 			hasMinRequiredHardware,
+			hasMinHardwareForRole,
+			operatorRequirementsSatisfied,
 			stateswitch.Not(requiredInputFieldsExist)),
 		DestinationState: stateswitch.State(models.HostStatusPendingForInput),
 		PostTransition:   th.PostRefreshHost(statusInfoPendingForInput),
@@ -559,6 +565,24 @@ func NewHostStateMachine(th *transitionHandler) stateswitch.StateMachine {
 			hasMinRequiredHardware,
 			requiredInputFieldsExist,
 			stateswitch.Not(isSufficientForInstall)),
+		DestinationState: stateswitch.State(models.HostStatusInsufficient),
+		PostTransition:   th.PostRefreshHost(statusInfoNotReadyForInstall),
+	})
+
+	// This transition moves host to "Insufficient" status when minimal hardware for role or operators requirements
+	// checks fail and IsMachineCidrDefined validation fails.
+	sm.AddTransition(stateswitch.TransitionRule{
+		TransitionType: TransitionTypeRefresh,
+		SourceStates: []stateswitch.State{
+			stateswitch.State(models.HostStatusDisconnected),
+			stateswitch.State(models.HostStatusInsufficient),
+			stateswitch.State(models.HostStatusPendingForInput),
+			stateswitch.State(models.HostStatusDiscovering),
+			stateswitch.State(models.HostStatusKnown),
+		},
+		Condition: stateswitch.And(If(IsConnected), If(HasInventory),
+			stateswitch.Not(requiredInputFieldsExist),
+			stateswitch.Not(stateswitch.And(hasMinHardwareForRole, operatorRequirementsSatisfied))),
 		DestinationState: stateswitch.State(models.HostStatusInsufficient),
 		PostTransition:   th.PostRefreshHost(statusInfoNotReadyForInstall),
 	})
