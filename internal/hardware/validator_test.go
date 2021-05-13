@@ -30,10 +30,38 @@ func TestValidator(t *testing.T) {
 }
 
 const (
-	minDiskSizeGb = 120
+	defaultMasterCores              = 1
+	defaultMasterRam                = 1024
+	defaultMasterDiskSize           = 10
+	defaultMasterDiskSpeedThreshold = 4
+	defaultWorkerCores              = 2
+	defaultWorkerRam                = 2048
+	defaultWorkerDiskSize           = 20
+	defaultWorkerDiskSpeedThreshold = 2
 )
 
 var _ = Describe("Disk eligibility", func() {
+	const (
+		minDiskSizeGb = 120
+	)
+	var versionRequirements = VersionedRequirementsDecoder{
+		"default": {
+			Version: "default",
+			MasterRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultMasterCores,
+				RAMMib:                           defaultMasterRam,
+				DiskSizeGb:                       minDiskSizeGb,
+				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			},
+			WorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultWorkerCores,
+				RAMMib:                           defaultWorkerRam,
+				DiskSizeGb:                       minDiskSizeGb,
+				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			},
+		},
+	}
+
 	var (
 		hwvalidator   Validator
 		testDisk      models.Disk
@@ -53,8 +81,7 @@ var _ = Describe("Disk eligibility", func() {
 		hostID := strfmt.UUID(uuid.New().String())
 		host = hostutil.GenerateTestHost(hostID, clusterID, models.HostStatusDiscovering)
 
-		var cfg ValidatorCfg
-		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
+		cfg := ValidatorCfg{VersionedRequirements: versionRequirements}
 
 		ctrl = gomock.NewController(GinkgoT())
 		operatorsMock = operators.NewMockAPI(ctrl)
@@ -270,6 +297,21 @@ var _ = Describe("Cluster host requirements", func() {
 
 	var versionRequirementsSource = []map[string]interface{}{
 		{
+			"version": "default",
+			"master": map[string]interface{}{
+				"cpu_cores":                            defaultMasterCores,
+				"ram_mib":                              defaultMasterRam,
+				"disk_size_gb":                         defaultMasterDiskSize,
+				"installation_disk_speed_threshold_ms": defaultMasterDiskSpeedThreshold,
+			},
+			"worker": map[string]interface{}{
+				"cpu_cores":                            defaultWorkerCores,
+				"ram_mib":                              defaultWorkerRam,
+				"disk_size_gb":                         defaultWorkerDiskSize,
+				"installation_disk_speed_threshold_ms": defaultWorkerDiskSpeedThreshold,
+			},
+		},
+		{
 			"version": "4.6",
 			"master": map[string]interface{}{
 				"cpu_cores":    4,
@@ -363,17 +405,17 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).ToNot(BeNil())
 
-		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(minDiskSizeGb))
-		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresMaster))
-		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibMaster * int64(units.KiB)))
-		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultMasterCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultMasterRam))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
-		Expect(result.Total.DiskSizeGb).To(Equal(minDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
-		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresMaster + details1.CPUCores + details2.CPUCores))
-		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibMaster*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
-		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+		Expect(result.Total.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.CPUCores).To(BeEquivalentTo(defaultMasterCores + details1.CPUCores + details2.CPUCores))
+		Expect(result.Total.RAMMib).To(BeEquivalentTo(defaultMasterRam + details1.RAMMib + details2.RAMMib))
+		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
 	})
 
 	It("should contain correct default requirements for sno master host", func() {
@@ -389,17 +431,17 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).ToNot(BeNil())
 
-		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(cfg.MinDiskSizeGb))
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize))
 		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresSno))
 		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibSno * int64(units.KiB)))
-		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
-		Expect(result.Total.DiskSizeGb).To(Equal(cfg.MinDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
-		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresSno + details1.CPUCores + details2.CPUCores))
-		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibSno*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
-		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+		Expect(result.Total.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresSno + details1.CPUCores + details2.CPUCores))
+		Expect(result.Total.RAMMib).To(BeEquivalentTo(cfg.MinRamGibSno*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
+		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
 	})
 
 	It("should contain correct default requirements for worker host", func() {
@@ -414,17 +456,17 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(result).ToNot(BeNil())
 
-		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(minDiskSizeGb))
-		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresWorker))
-		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibWorker * int64(units.KiB)))
-		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(Equal(cfg.InstallationDiskSpeedThresholdMs))
+		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultWorkerDiskSize))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultWorkerCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultWorkerRam))
+		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultWorkerDiskSpeedThreshold))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
-		Expect(result.Total.DiskSizeGb).To(Equal(minDiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
-		Expect(result.Total.CPUCores).To(Equal(cfg.MinCPUCoresWorker + details1.CPUCores + details2.CPUCores))
-		Expect(result.Total.RAMMib).To(Equal(cfg.MinRamGibWorker*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
-		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+		Expect(result.Total.DiskSizeGb).To(BeEquivalentTo(defaultWorkerDiskSize + details1.DiskSizeGb + details2.DiskSizeGb))
+		Expect(result.Total.CPUCores).To(BeEquivalentTo(defaultWorkerCores + details1.CPUCores + details2.CPUCores))
+		Expect(result.Total.RAMMib).To(BeEquivalentTo(defaultWorkerRam + details1.RAMMib + details2.RAMMib))
+		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultWorkerDiskSpeedThreshold))
 	})
 
 	It("should fail providing on operator API error", func() {
@@ -459,10 +501,10 @@ var _ = Describe("Cluster host requirements", func() {
 
 			Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
-			Expect(result.Total.DiskSizeGb).To(Equal(expectedOcpRequirements.DiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
-			Expect(result.Total.CPUCores).To(Equal(expectedOcpRequirements.CPUCores + details1.CPUCores + details2.CPUCores))
-			Expect(result.Total.RAMMib).To(Equal(expectedOcpRequirements.RAMMib + details1.RAMMib + details2.RAMMib))
-			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(expectedOcpRequirements.InstallationDiskSpeedThresholdMs))
+			Expect(result.Total.DiskSizeGb).To(BeEquivalentTo(expectedOcpRequirements.DiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
+			Expect(result.Total.CPUCores).To(BeEquivalentTo(expectedOcpRequirements.CPUCores + details1.CPUCores + details2.CPUCores))
+			Expect(result.Total.RAMMib).To(BeEquivalentTo(expectedOcpRequirements.RAMMib + details1.RAMMib + details2.RAMMib))
+			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(expectedOcpRequirements.InstallationDiskSpeedThresholdMs))
 		},
 		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
 			CPUCores:                         3,
@@ -494,6 +536,21 @@ var _ = Describe("Preflight host requirements", func() {
 	)
 
 	var versionRequirements = VersionedRequirementsDecoder{
+		"default": {
+			Version: "default",
+			MasterRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultMasterCores,
+				RAMMib:                           defaultMasterRam,
+				DiskSizeGb:                       defaultMasterDiskSize,
+				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			},
+			WorkerRequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultWorkerCores,
+				RAMMib:                           defaultWorkerRam,
+				DiskSizeGb:                       defaultWorkerDiskSize,
+				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			},
+		},
 		"4.6": {
 			Version: "4.6",
 			MasterRequirements: &models.ClusterHostRequirementsDetails{
@@ -558,7 +615,7 @@ var _ = Describe("Preflight host requirements", func() {
 		ctrl.Finish()
 	})
 
-	It("should contain correct preflight host requirements", func() {
+	It("should contain correct default preflight host requirements", func() {
 		operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(cluster)).Return(operatorRequirements, nil)
 
 		result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), cluster)
@@ -569,18 +626,18 @@ var _ = Describe("Preflight host requirements", func() {
 		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores:                         cfg.MinCPUCoresMaster,
-					DiskSizeGb:                       cfg.MinDiskSizeGb,
-					RAMMib:                           cfg.MinRamGibMaster * int64(units.KiB),
-					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+					CPUCores:                         defaultMasterCores,
+					DiskSizeGb:                       defaultMasterDiskSize,
+					RAMMib:                           defaultMasterRam,
+					InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores:                         cfg.MinCPUCoresWorker,
-					DiskSizeGb:                       cfg.MinDiskSizeGb,
-					RAMMib:                           cfg.MinRamGibWorker * int64(units.KiB),
-					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+					CPUCores:                         defaultWorkerCores,
+					DiskSizeGb:                       defaultWorkerDiskSize,
+					RAMMib:                           defaultWorkerRam,
+					InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
 				},
 			},
 		}
@@ -589,6 +646,7 @@ var _ = Describe("Preflight host requirements", func() {
 	})
 
 	It("should contain correct preflight  host requirements - single node", func() {
+		cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		operatorsMock.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Eq(cluster)).Return(operatorRequirements, nil)
 
 		result, err := hwvalidator.GetPreflightHardwareRequirements(context.TODO(), cluster)
@@ -600,17 +658,17 @@ var _ = Describe("Preflight host requirements", func() {
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
 					CPUCores:                         cfg.MinCPUCoresSno,
-					DiskSizeGb:                       cfg.MinDiskSizeGb,
+					DiskSizeGb:                       defaultMasterDiskSize,
 					RAMMib:                           cfg.MinRamGibSno * int64(units.KiB),
-					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+					InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
 				},
 			},
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores:                         cfg.MinCPUCoresWorker,
-					DiskSizeGb:                       cfg.MinDiskSizeGb,
-					RAMMib:                           cfg.MinRamGibWorker * int64(units.KiB),
-					InstallationDiskSpeedThresholdMs: cfg.InstallationDiskSpeedThresholdMs,
+					CPUCores:                         defaultWorkerCores,
+					DiskSizeGb:                       defaultWorkerDiskSize,
+					RAMMib:                           defaultWorkerRam,
+					InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
 				},
 			},
 		}

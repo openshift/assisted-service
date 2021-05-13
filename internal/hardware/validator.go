@@ -26,15 +26,13 @@ const (
 //go:generate mockgen -source=validator.go -package=hardware -destination=mock_validator.go
 type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
-	GetHostRequirements(singleNodeCluster bool) *models.VersionedHostRequirements
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
-	GetInstallationDiskSpeedThresholdMs() int64
+	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
-	// It should replace GetHostRequirements when its endpoint is not used anymore.
 	GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error)
 }
 
@@ -52,18 +50,12 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 }
 
 type ValidatorCfg struct {
-	MinCPUCores                      int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
-	MinCPUCoresWorker                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_WORKER" default:"2"`
-	MinCPUCoresMaster                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_MASTER" default:"4"`
-	MinCPUCoresSno                   int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_SNO" default:"8"`
-	MinRamGib                        int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
-	MinRamGibWorker                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_WORKER" default:"8"`
-	MinRamGibMaster                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_MASTER" default:"16"`
-	MinRamGibSno                     int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_SNO" default:"32"`
-	MinDiskSizeGb                    int64                        `envconfig:"HW_VALIDATOR_MIN_DISK_SIZE_GIB" default:"120"` // Env variable is GIB to not break infra
-	MaximumAllowedTimeDiffMinutes    int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
-	InstallationDiskSpeedThresholdMs int64                        `envconfig:"HW_INSTALLATION_DISK_SPEED_THRESHOLD_MS" default:"10"`
-	VersionedRequirements            VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
+	MinCPUCores                   int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
+	MinCPUCoresSno                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_SNO" default:"8"`
+	MinRamGib                     int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
+	MinRamGibSno                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_SNO" default:"32"`
+	MaximumAllowedTimeDiffMinutes int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
+	VersionedRequirements         VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
 }
 
 type validator struct {
@@ -164,36 +156,16 @@ func (v *validator) ListEligibleDisks(inventory *models.Inventory) []*models.Dis
 	return eligibleDisks
 }
 
-func (v *validator) GetHostRequirements(singleNodeCluster bool) *models.VersionedHostRequirements {
-	requirements := &models.VersionedHostRequirements{
-		MasterRequirements: &models.ClusterHostRequirementsDetails{
-			CPUCores:                         v.ValidatorCfg.MinCPUCoresMaster,
-			RAMMib:                           conversions.GibToMib(v.ValidatorCfg.MinRamGibMaster),
-			DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
-			InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
-		},
-		WorkerRequirements: &models.ClusterHostRequirementsDetails{
-			CPUCores:                         v.ValidatorCfg.MinCPUCoresWorker,
-			RAMMib:                           conversions.GibToMib(v.ValidatorCfg.MinRamGibWorker),
-			DiskSizeGb:                       v.ValidatorCfg.MinDiskSizeGb,
-			InstallationDiskSpeedThresholdMs: v.InstallationDiskSpeedThresholdMs,
-		},
-	}
-
-	if singleNodeCluster {
-		v.updateSingleNodeHwRequirements(requirements)
-	}
-
-	return requirements
-}
-
 func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 	operatorsRequirements, err := v.operatorsAPI.GetRequirementsBreakdownForHostInCluster(ctx, cluster, host)
 	if err != nil {
 		return nil, err
 	}
 
-	ocpRequirements := v.getOCPHostRoleRequirementsForVersion(cluster, host.Role)
+	ocpRequirements, err := v.getOCPHostRoleRequirementsForVersion(cluster, host.Role)
+	if err != nil {
+		return nil, err
+	}
 	total := totalizeRequirements(ocpRequirements, operatorsRequirements)
 	return &models.ClusterHostRequirements{
 		HostID:    *host.ID,
@@ -219,8 +191,12 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 	}, nil
 }
 
-func (v *validator) GetInstallationDiskSpeedThresholdMs() int64 {
-	return v.InstallationDiskSpeedThresholdMs
+func (v *validator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
+	requirements, err := v.GetClusterHostRequirements(ctx, cluster, host)
+	if err != nil {
+		return 0, err
+	}
+	return requirements.Total.InstallationDiskSpeedThresholdMs, nil
 }
 
 func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails, operatorRequirements []*models.OperatorHostRequirements) models.ClusterHostRequirementsDetails {
@@ -241,16 +217,22 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 	return total
 }
 
-func (v *validator) getOCPHostRoleRequirementsForVersion(cluster *common.Cluster, role models.HostRole) models.ClusterHostRequirementsDetails {
-	requirements := v.getOCPRequirementsForVersion(cluster)
-	if role == models.HostRoleMaster {
-		return *requirements.MasterRequirements
+func (v *validator) getOCPHostRoleRequirementsForVersion(cluster *common.Cluster, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {
+	requirements, err := v.getOCPRequirementsForVersion(cluster)
+	if err != nil {
+		return models.ClusterHostRequirementsDetails{}, err
 	}
-	return *requirements.WorkerRequirements
+	if role == models.HostRoleMaster {
+		return *requirements.MasterRequirements, nil
+	}
+	return *requirements.WorkerRequirements, nil
 }
 
 func (v *validator) getPreflightOCPRequirements(cluster *common.Cluster) (*models.HostTypeHardwareRequirementsWrapper, error) {
-	requirements := v.getOCPRequirementsForVersion(cluster)
+	requirements, err := v.getOCPRequirementsForVersion(cluster)
+	if err != nil {
+		return nil, err
+	}
 	return &models.HostTypeHardwareRequirementsWrapper{
 		Master: &models.HostTypeHardwareRequirements{
 			Quantitative: requirements.MasterRequirements,
@@ -266,13 +248,17 @@ func (v *validator) updateSingleNodeHwRequirements(requirements *models.Versione
 	requirements.MasterRequirements.RAMMib = conversions.GibToMib(v.ValidatorCfg.MinRamGibSno)
 }
 
-func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) *models.VersionedHostRequirements {
+func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) (*models.VersionedHostRequirements, error) {
 	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(cluster.OpenshiftVersion)
-	if err != nil || common.IsSingleNodeCluster(cluster) {
-		return v.GetHostRequirements(common.IsSingleNodeCluster(cluster))
+	if err != nil {
+		return nil, err
 	}
 
-	return requirements
+	if common.IsSingleNodeCluster(cluster) {
+		v.updateSingleNodeHwRequirements(requirements)
+	}
+
+	return requirements, nil
 }
 
 func compileDiskReasonTemplate(template string, wildcards ...string) *regexp.Regexp {

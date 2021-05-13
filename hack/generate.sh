@@ -76,10 +76,6 @@ function generate_configuration() {
     docker run --rm -v ${__root}/config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ${__root}/config/onprem-iso-config.ign
 }
 
-function generate_ocp_version() {
-  generate_configuration
-}
-
 # Generate manifests e.g. CRD, RBAC etc.
 function generate_manifests() {
     if [ "${ENABLE_KUBE_API:-}" != "true" ]; then exit 0; fi

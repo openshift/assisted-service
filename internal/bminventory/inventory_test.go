@@ -1492,13 +1492,21 @@ var _ = Describe("PostStepReply", func() {
 				ClusterID: *clusterId,
 				Status:    swag.String("discovering"),
 			}
+
+			cluster := common.Cluster{Cluster: models.Cluster{
+				ID:               clusterId,
+				PullSecretSet:    true,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
 
 		It("Disk speed success", func() {
 			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-			mockHwValidator.EXPECT().GetInstallationDiskSpeedThresholdMs().Return(int64(10)).Times(1)
+			mockHwValidator.EXPECT().GetInstallationDiskSpeedThresholdMs(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(10), nil).Times(1)
 			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
 			reply := bm.PostStepReply(ctx, params)
 			Expect(reply).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))

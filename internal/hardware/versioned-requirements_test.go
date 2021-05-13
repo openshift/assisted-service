@@ -254,6 +254,50 @@ var _ = Describe("Versioned Requirements", func() {
 			Expect(*requirements).To(BeEquivalentTo(expected))
 		})
 
+		It("should not be changed when returned value is modified", func() {
+			jsonSpec := []map[string]interface{}{
+				{
+					"version": "4.6.0",
+					"master": map[string]interface{}{
+						"cpu_cores":                            4,
+						"ram_mib":                              16384,
+						"disk_size_gb":                         120,
+						"installation_disk_speed_threshold_ms": 2,
+					},
+					"worker": map[string]interface{}{
+						"cpu_cores":                            2,
+						"ram_mib":                              8192,
+						"disk_size_gb":                         120,
+						"installation_disk_speed_threshold_ms": 3,
+					},
+				},
+			}
+			cfg, err := configureRequirements(jsonSpec)
+			Expect(err).ToNot(HaveOccurred())
+
+			requirements, err := cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
+
+			Expect(err).ToNot(HaveOccurred())
+			expected := models.VersionedHostRequirements{
+				Version: "4.6.0",
+				MasterRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 4, DiskSizeGb: 120,
+					RAMMib: conversions.GibToMib(16), InstallationDiskSpeedThresholdMs: 2},
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{CPUCores: 2, DiskSizeGb: 120,
+					RAMMib: conversions.GibToMib(8), InstallationDiskSpeedThresholdMs: 3},
+			}
+			Expect(*requirements).To(BeEquivalentTo(expected))
+
+			requirements.MasterRequirements.CPUCores = 1
+			requirements.MasterRequirements.RAMMib = 2
+			requirements.WorkerRequirements.CPUCores = 1
+			requirements.WorkerRequirements.RAMMib = 2
+			requirements.Version = "foo"
+
+			requirements, err = cfg.VersionedRequirements.GetVersionedHostRequirements("4.6.0")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(*requirements).To(BeEquivalentTo(expected))
+		})
+
 		It("should fail when requested and default versions not defined", func() {
 			jsonSpec := []map[string]interface{}{
 				{

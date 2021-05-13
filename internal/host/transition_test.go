@@ -32,13 +32,25 @@ import (
 
 func createValidatorCfg() *hardware.ValidatorCfg {
 	return &hardware.ValidatorCfg{
+		VersionedRequirements: hardware.VersionedRequirementsDecoder{
+			"default": {
+				Version: "default",
+				MasterRequirements: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         4,
+					RAMMib:                           16384,
+					DiskSizeGb:                       120,
+					InstallationDiskSpeedThresholdMs: 10,
+				},
+				WorkerRequirements: &models.ClusterHostRequirementsDetails{
+					CPUCores:                         2,
+					RAMMib:                           8192,
+					DiskSizeGb:                       120,
+					InstallationDiskSpeedThresholdMs: 10,
+				},
+			},
+		},
 		MinCPUCores:                   2,
-		MinCPUCoresWorker:             2,
-		MinCPUCoresMaster:             4,
-		MinDiskSizeGb:                 120,
 		MinRamGib:                     8,
-		MinRamGibWorker:               8,
-		MinRamGibMaster:               16,
 		MaximumAllowedTimeDiffMinutes: 4,
 	}
 }
