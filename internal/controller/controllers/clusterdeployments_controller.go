@@ -147,7 +147,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	// check for install config overrides and update if needed
-	err = r.updateInstallConfigOverrides(ctx, clusterDeployment, cluster)
+	err = r.updateInstallConfigOverrides(ctx, clusterInstall, cluster)
 	if err != nil {
 		return r.updateStatus(ctx, clusterInstall, cluster, err)
 	}
@@ -455,11 +455,11 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment,
+func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, clusterInstall *hiveext.AgentClusterInstall,
 	cluster *common.Cluster) error {
 	// handle InstallConfigOverrides
 	update := false
-	annotations := clusterDeployment.ObjectMeta.GetAnnotations()
+	annotations := clusterInstall.ObjectMeta.GetAnnotations()
 	installConfigOverrides := annotations[InstallConfigOverrides]
 	if cluster.InstallConfigOverrides != installConfigOverrides {
 		cluster.InstallConfigOverrides = installConfigOverrides
@@ -473,7 +473,7 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		if err != nil {
 			return err
 		}
-		r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+		r.Log.Infof("Updated InstallConfig overrides on clusterInstall %s/%s", clusterInstall.Namespace, clusterInstall.Name)
 		return nil
 	}
 	return nil
