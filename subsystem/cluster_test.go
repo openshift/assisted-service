@@ -242,7 +242,6 @@ var _ = Describe("Cluster", func() {
 		}
 		Expect(clusterFound.ID.String()).Should(Equal(clusterID.String()))
 		Expect(clusterFound.DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
-		Expect(len(clusterFound.Hosts)).ShouldNot(Equal(0))
 	})
 
 	It("cluster CRUD", func() {
