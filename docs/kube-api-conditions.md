@@ -4,7 +4,7 @@ Conditions provide a standard mechanism for higher-level status reporting from a
 
 ## AgentClusterInstall Conditions
 
-AgentClusterInstall supported condition types are : `SpecSynced`, `RequirementsMet`, `Completed` and `Validated`.
+AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMet`, `Completed`, `Failed`, `Stopped` and `Validated`.
 
 |Type|Status|Reason|Message|Description|
 |----|----|-----|-------------------|-------------------|
@@ -24,36 +24,56 @@ AgentClusterInstall supported condition types are : `SpecSynced`, `RequirementsM
 |Completed|False|InstallationFailed|The installation has failed: "status_info"|If the cluster status is "error"|
 |Completed|False|InstallationNotStarted|The installation has not yet started|If the cluster is before installation ("insufficient"/"pending-for-input"/"ready")|
 |Completed|False|InstallationInProgress|The installation is in progress: "status_info"|If the cluster is installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action")|
+||||||
+|Failed|True|InstallationFailed|The installation failed: "status_info"|if the cluster status is "error"|
+|Failed|False|InstallationNotFailed|The installation has not failed|If the cluster status is not "error"|
+||||||
+|Stopped|True|InstallationFailed|The installation has stopped due to error|if the cluster status is "error"|
+|Stopped|True|InstallationCancelled|The installation has stopped because it was cancelled|if the cluster status is "cancelled"|
+|Stopped|True|InstallationCompleted|The installation has stopped because it completed successfully|if the cluster status is "installed"|
+|Stopped|False|InstallationNotStopped|The installation is waiting to start or in progress|If the cluster status is not "error", "cancelled" or "installed|
 
 Here an example of AgentClusterInstall conditions:
 
 ```sh
 Status:
   Conditions:
-    Last Probe Time:       2021-04-20T12:40:38Z
-    Last Transition Time:  2021-04-20T12:40:38Z
-    Message:               The Spec has been successfully applied
-    Reason:                SyncOK
-    Status:                True
-    Type:                  SpecSynced
-    Last Probe Time:       2021-04-20T12:52:58Z
-    Last Transition Time:  2021-04-20T12:52:58Z
-    Message:               The cluster requirements are met
-    Reason:                ClusterAlreadyInstalling
-    Status:                True
-    Type:                  RequirementsMet
-    Last Probe Time:       2021-04-20T12:47:01Z
-    Last Transition Time:  2021-04-20T12:47:01Z
-    Message:               The cluster s validations are passing
-    Reason:                ValidationsPassing
-    Status:                True
-    Type:                  Validated
-    Last Probe Time:       2021-04-20T12:52:58Z
-    Last Transition Time:  2021-04-20T12:52:58Z
-    Message:               The installation is in progress: Preparing cluster for installation
-    Reason:                InstallationInProgress
-    Status:                False
-    Type:                  Completed
+    Last Probe Time:             2021-05-12T09:06:30Z
+    Last Transition Time:        2021-05-12T09:06:30Z
+    Message:                     The Spec has been successfully applied
+    Reason:                      SyncOK
+    Status:                      True
+    Type:                        SpecSynced
+    Last Probe Time:             2021-05-12T09:07:39Z
+    Last Transition Time:        2021-05-12T09:07:39Z
+    Message:                     The cluster requirements are met
+    Reason:                      ClusterAlreadyInstalling
+    Status:                      True
+    Type:                        RequirementsMet
+    Last Probe Time:             2021-05-12T09:07:39Z
+    Last Transition Time:        2021-05-12T09:07:39Z
+    Message:                     The cluster's validations are passing
+    Reason:                      ValidationsPassing
+    Status:                      True
+    Type:                        Validated
+    Last Probe Time:             2021-05-12T09:20:09Z
+    Last Transition Time:        2021-05-12T09:20:09Z
+    Message:                     The installation is in progress: Finalizing cluster installation
+    Reason:                      InstallationInProgress
+    Status:                      False
+    Type:                        Completed
+    Last Probe Time:             2021-05-12T09:06:30Z
+    Last Transition Time:        2021-05-12T09:06:30Z
+    Message:                     The installation has not failed
+    Reason:                      InstallationNotFailed
+    Status:                      False
+    Type:                        Failed
+    Last Probe Time:             2021-05-12T09:06:30Z
+    Last Transition Time:        2021-05-12T09:06:30Z
+    Message:                     The installation is waiting to start or in progress
+    Reason:                      InstallationNotStopped
+    Status:                      False
+    Type:                        Stopped
 ```
 
 ## Agent Conditions

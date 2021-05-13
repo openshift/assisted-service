@@ -1236,6 +1236,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Verify Cluster Metadata")
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstalledReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterFailedCondition, controllers.ClusterNotFailedReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterStoppedCondition, controllers.ClusterStoppedCompletedReason)
+
 		passwordSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminPasswordSecretRef
 		Expect(passwordSecretRef).NotTo(BeNil())
 		passwordkey := types.NamespacedName{
