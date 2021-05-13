@@ -34,6 +34,7 @@ type Validator interface {
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
 	GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error)
+	GetDefaultVersionRequirements(singleNode bool) (*models.VersionedHostRequirements, error)
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
@@ -189,6 +190,17 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 		Operators: operatorsRequirements,
 		Ocp:       ocpRequirements,
 	}, nil
+}
+
+func (v *validator) GetDefaultVersionRequirements(singleNode bool) (*models.VersionedHostRequirements, error) {
+	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(DefaultVersion)
+	if err != nil {
+		return nil, err
+	}
+	if singleNode {
+		v.updateSingleNodeHwRequirements(requirements)
+	}
+	return requirements, nil
 }
 
 func (v *validator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
