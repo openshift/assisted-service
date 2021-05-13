@@ -169,7 +169,7 @@ var _ = Describe("s3filesystem", func() {
 		client.handleFile(ctx, log, filePath, info, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
-	Context("upload boot files", func() {
+	Context("upload isos", func() {
 		It("all exist", func() {
 			err := os.MkdirAll(filepath.Join(baseDir, "files/images/pxeboot"), 0755)
 			Expect(err).ToNot(HaveOccurred())
@@ -200,16 +200,6 @@ var _ = Describe("s3filesystem", func() {
 			Expect(err).ToNot(HaveOccurred())
 			err = os.RemoveAll(filepath.Join(baseDir, "files"))
 			Expect(err).ToNot(HaveOccurred())
-			for _, fileType := range BootFileExtensions {
-
-				mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(1)
-				srcObject, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion)
-				Expect(err).ShouldNot(HaveOccurred())
-
-				err = ioutil.WriteFile(filepath.Join(baseDir, BootFileTypeToObjectName(srcObject, fileType)),
-					[]byte("Hello world"), 0600)
-				Expect(err).Should(BeNil())
-			}
 
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(1)
 			minimalIso, err := client.GetMinimalIsoObjectName(defaultTestOpenShiftVersion)
@@ -225,13 +215,13 @@ var _ = Describe("s3filesystem", func() {
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).Times(1)
 
-			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, true)
+			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
 			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
-			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL, false)
+			err := client.UploadISOs(ctx, unsupportedVersion, false)
 			Expect(err).To(HaveOccurred())
 		})
 		It("iso exists", func() {
@@ -272,15 +262,12 @@ var _ = Describe("s3filesystem", func() {
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 			mockMetricsAPI.EXPECT().FileSystemUsage(gomock.Any()).AnyTimes()
 
-			err = client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, true)
+			err = client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
 			Expect(err).ToNot(HaveOccurred())
 
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(1)
-			srcObject, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion)
+			_, err = client.GetBaseIsoObject(defaultTestOpenShiftVersion)
 			Expect(err).ShouldNot(HaveOccurred())
-			data, err := ioutil.ReadFile(filepath.Join(baseDir, BootFileTypeToObjectName(srcObject, "rootfs.img")))
-			Expect(err).ToNot(HaveOccurred())
-			Expect(string(data)).To(Equal("this is rootfs"))
 		})
 	})
 

@@ -56,8 +56,7 @@ type API interface {
 	UpdateObjectTimestamp(ctx context.Context, objectName string) (bool, error)
 	ExpireObjects(ctx context.Context, prefix string, deleteTime time.Duration, callback func(ctx context.Context, log logrus.FieldLogger, objectName string))
 	ListObjectsByPrefix(ctx context.Context, prefix string) ([]string, error)
-	UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error
-	DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error)
+	UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error
 	GetBaseIsoObject(openshiftVersion string) (string, error)
 	GetMinimalIsoObjectName(openshiftVersion string) (string, error)
 
@@ -101,13 +100,6 @@ type Config struct {
 }
 
 const timestampTagKey = "create_sec_since_epoch"
-
-var BootFileExtensions = [...]string{"iso", "initrd.img", "rootfs.img", "vmlinuz"}
-var ISOFileTypes = map[string]string{
-	"initrd.img": "/images/pxeboot/initrd.img",
-	"rootfs.img": "/images/pxeboot/rootfs.img",
-	"vmlinuz":    "/images/pxeboot/vmlinuz",
-}
 
 // NewS3Client creates new s3 client using default config along with defined env variables
 func NewS3Client(cfg *Config, logger logrus.FieldLogger, versionsHandler versions.Handler, isoEditorFactory isoeditor.Factory) *S3Client {
@@ -480,7 +472,7 @@ func (c *S3Client) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return objects, nil
 }
 
-func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
+func (c *S3Client) UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error {
 	rhcosImage, err := c.versionsHandler.GetRHCOSImage(openshiftVersion)
 	if err != nil {
 		return err
@@ -496,13 +488,13 @@ func (c *S3Client) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 		return err
 	}
 
-	return c.uploadBootFiles(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, serviceBaseURL, haveLatestMinimalTemplate)
+	return c.uploadISOs(ctx, baseIsoObject, minimalIsoObject, rhcosImage, openshiftVersion, haveLatestMinimalTemplate)
 }
 
-func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
+func (c *S3Client) uploadISOs(ctx context.Context, isoObjectName, minimalIsoObject, isoURL, openshiftVersion string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, c.log)
 
-	baseExists, err := c.DoAllBootFilesExist(ctx, isoObjectName)
+	baseExists, err := c.DoesPublicObjectExist(ctx, isoObjectName)
 	if err != nil {
 		return err
 	}
@@ -530,22 +522,12 @@ func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIs
 	}
 	defer os.Remove(baseIsoPath)
 
-	existsInBucket, err := c.DoesPublicObjectExist(ctx, isoObjectName)
-	if err != nil {
-		return err
-	}
-	if !existsInBucket {
+	if !baseExists {
 		err = c.UploadFileToPublicBucket(ctx, baseIsoPath, isoObjectName)
 		if err != nil {
 			return err
 		}
 		log.Infof("Successfully uploaded object %s", isoObjectName)
-	}
-
-	if !baseExists {
-		if err = ExtractBootFilesFromISOAndUpload(ctx, log, baseIsoPath, isoObjectName, isoURL, c); err != nil {
-			return err
-		}
 	}
 
 	if !minimalExists {
@@ -559,10 +541,6 @@ func (c *S3Client) uploadBootFiles(ctx context.Context, isoObjectName, minimalIs
 	}
 
 	return nil
-}
-
-func (c *S3Client) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
-	return DoAllBootFilesExist(ctx, isoObjectName, c)
 }
 
 func (c *S3Client) GetBaseIsoObject(openshiftVersion string) (string, error) {

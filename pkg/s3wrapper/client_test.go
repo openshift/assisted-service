@@ -302,39 +302,27 @@ var _ = Describe("s3client", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-	Context("upload boot files", func() {
+	Context("upload isos", func() {
 		It("all exist", func() {
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObjectMinimal)}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObject)}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz"))}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
 
 			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 
-			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, true)
+			err := client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
 			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
-			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL, false)
+			err := client.UploadISOs(ctx, unsupportedVersion, false)
 			Expect(err).To(HaveOccurred())
 		})
-		It("missing iso and rootfs", func() {
+		It("missing isos", func() {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				filesDir, err := ioutil.TempDir("", "isotest")
 				Expect(err).ToNot(HaveOccurred())
@@ -369,26 +357,14 @@ var _ = Describe("s3client", func() {
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
 				Bucket: &publicBucket,
 				Key:    aws.String(defaultTestRhcosObject)}).
-				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound"))).Times(2)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))}).
 				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound")))
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicUploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(3)
+			publicUploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(2)
 
 			// Should upload version file
 			uploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(1)
 			mockVersions.EXPECT().GetRHCOSRootFS(defaultTestOpenShiftVersion).Return("https://example.com/rootfs/url", nil)
 
-			err := client.uploadBootFiles(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, false)
+			err := client.uploadISOs(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

@@ -31,7 +31,6 @@ const (
 	defaultTestOpenShiftVersion = "4.6"
 	defaultTestRhcosURL         = "rhcosURL"
 	defaultTestRhcosRootFSURL   = "rhcosRootFSURL"
-	defaultTestServiceBaseURL   = "http://1.1.1.1:6000"
 )
 
 var (
@@ -76,33 +75,6 @@ var _ = Describe("FixEndpointURL", func() {
 		result, err := FixEndpointURL(endpoint)
 		Expect(result).To(Equal(""))
 		Expect(err).To(HaveOccurred())
-	})
-})
-
-var _ = Describe("UploadBootFiles", func() {
-	var (
-		ctx          = context.Background()
-		log          logrus.FieldLogger
-		ctrl         *gomock.Controller
-		mockS3Client *MockAPI
-	)
-
-	BeforeEach(func() {
-		log = logrus.New()
-		ctrl = gomock.NewController(GinkgoT())
-		mockS3Client = NewMockAPI(ctrl)
-	})
-
-	AfterEach(func() {
-		ctrl.Finish()
-	})
-
-	It("all files already uploaded", func() {
-		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img")).Return(true, nil)
-		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img")).Return(true, nil)
-		mockS3Client.EXPECT().DoesPublicObjectExist(ctx, BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz")).Return(true, nil)
-		err := ExtractBootFilesFromISOAndUpload(ctx, log, "/unused/file", defaultTestRhcosObject, defaultTestRhcosURL, mockS3Client)
-		Expect(err).ToNot(HaveOccurred())
 	})
 })
 

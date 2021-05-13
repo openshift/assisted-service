@@ -428,17 +428,17 @@ func main() {
 	h = spec.WithSpecMiddleware(h)
 
 	go func() {
-		// Upload boot files with a leader lock if we're running with multiple replicas
+		// Upload ISOs with a leader lock if we're running with multiple replicas
 		if Options.DeployTarget == deployment_type_k8s {
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
 
-			uploadFunc := func() error { return uploadBootFiles(objectHandler, openshiftVersionsMap, log) }
+			uploadFunc := func() error { return uploadISOs(objectHandler, openshiftVersionsMap, log) }
 			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
 		} else {
-			failOnError(uploadBootFiles(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
+			failOnError(uploadISOs(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
 		}
 
 		apiEnabler.Enable()
@@ -509,7 +509,7 @@ func generateAPMTransactionName(request *http.Request) string {
 	return route.Operation.ID
 }
 
-func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
+func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	errs, _ := errgroup.WithContext(ctx)
 	//cancel the context in case this method ends
@@ -521,7 +521,7 @@ func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.Op
 	for version := range openshiftVersionsMap {
 		currVersion := version
 		errs.Go(func() error {
-			err := objectHandler.UploadBootFiles(context.Background(), currVersion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
+			err := objectHandler.UploadISOs(context.Background(), currVersion, haveLatestMinimalTemplate)
 			return errors.Wrapf(err, "Failed uploading boot files for OCP version %s", currVersion)
 		})
 	}
