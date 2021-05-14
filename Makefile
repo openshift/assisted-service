@@ -24,6 +24,7 @@ DEBUG_PORT := $(or ${DEBUG_PORT},40000)
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
+IMAGE_DIGESTS := $(or ${IMAGE_DIGESTS},False)
 
 ifdef DEBUG
 	DEBUG_ARGS=-gcflags "all=-N -l"
@@ -463,7 +464,9 @@ BUNDLE_METADATA_OPTS ?= --channels=alpha,ocm-2.3 --default-channel=alpha
 .PHONY: operator-bundle
 operator-bundle:
 	operator-sdk generate kustomize manifests --apis-dir internal/controller/api -q
-	# TODO(djzager) use this line to pin images in the future
+ifeq ($(IMAGE_DIGESTS),True)
+	./hack/update_image_digests.sh
+endif
 	# cd config/manager && kustomize edit set image controller=$(SERVICE)
 	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) --output-dir $(BUNDLE_OUTPUT_DIR) $(BUNDLE_METADATA_OPTS)
 	# TODO(djzager) structure config/rbac in such a way to avoid need for this
@@ -480,3 +483,7 @@ operator-bundle-update:
 
 operator-index-build:
 	opm index add --bundles $(BUNDLE_IMAGE) --tag $(INDEX_IMAGE) --container-tool docker
+
+operator-prow-ci-bundle:
+	IMAGE_DIGESTS=True \
+	$(MAKE) operator-bundle
