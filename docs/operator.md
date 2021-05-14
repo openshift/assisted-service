@@ -201,6 +201,14 @@ metadata:
 EOF
 ```
 
+**NOTE**
+
+After modifying content of the ConfigMap a new rollout of the Deployment has to be forced. This can be done with
+
+```bash
+oc rollout restart deployment/assisted-service
+```
+
 ### Mirror Registry Configuration
 
 In case user wants to create an installation that uses mirror registry, the following must be executed:
@@ -225,19 +233,19 @@ data:
 
   registries.conf: |
     unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
-    
+
     [[registry]]
        prefix = ""
        location = "quay.io/ocpmetal"
        mirror-by-digest-only = false
-    
+
        [[registry.mirror]]
        location = "bm-cluster-1-hyper.e2e.bos.redhat.com:5000/ocpmetal"
 EOF
 ```
 
    Note1: ConfigMap should be installed in the same namespace as the assisted-service-operator (ie. `assisted-installer`).
-   
+
    Note2: registry.conf supplied should use "mirror-by-digest-only = false" mode
 
 2. set the mirrorRegistryRef in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:

@@ -86,6 +86,7 @@ type AgentServiceConfigReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agentserviceconfigs/finalizers,verbs=update
 // +kubebuilder:rbac:groups=apps,resources=deployments,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=persistentvolumeclaims,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=core,resources=configmaps,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete
@@ -125,6 +126,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(ctx context.Context, req ctrl.R
 		r.ensureAgentLocalAuthSecret,
 		r.ensurePostgresSecret,
 		r.ensureIngressCertCM,
+		r.ensureAssistedCM,
 		r.ensureAssistedServiceDeployment,
 	} {
 		err := f(ctx, instance)
@@ -277,25 +279,8 @@ func (r *AgentServiceConfigReconciler) ensurePostgresSecret(ctx context.Context,
 }
 
 func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
-	// must have the route in order to populate SERVICE_BASE_URL for the service
-	route := &routev1.Route{}
-	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
-	if err != nil || route.Spec.Host == "" {
-		if err == nil {
-			err = fmt.Errorf("Route's host is empty")
-		}
-		r.Log.Info("Failed to get route or route's host is empty")
-		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ConditionReconcileCompleted,
-			Status:  corev1.ConditionFalse,
-			Reason:  aiv1beta1.ReasonDeploymentFailure,
-			Message: "Failed to get route for assisted service: " + err.Error(),
-		})
-		return err
-	}
-
 	if instance.Spec.MirrorRegistryRef != nil {
-		err = r.validateMirrorRegistriesConfigMap(ctx, instance)
+		err := r.validateMirrorRegistriesConfigMap(ctx, instance)
 		if err != nil {
 			conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
 				Type:    aiv1beta1.ConditionReconcileCompleted,
@@ -307,11 +292,7 @@ func (r *AgentServiceConfigReconciler) ensureAssistedServiceDeployment(ctx conte
 		}
 	}
 
-	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
-	deployment, mutateFn := r.newAssistedServiceDeployment(instance, serviceURL)
-	if err != nil {
-		return err
-	}
+	deployment, mutateFn := r.newAssistedServiceDeployment(instance)
 
 	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, deployment, mutateFn); err != nil {
 		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
@@ -353,6 +334,103 @@ func (r *AgentServiceConfigReconciler) ensureIngressCertCM(ctx context.Context, 
 		return err
 	} else if result != controllerutil.OperationResultNone {
 		r.Log.Info("Ingress config map created")
+	}
+	return nil
+}
+
+func (r *AgentServiceConfigReconciler) newAssistedCM(instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*corev1.ConfigMap, controllerutil.MutateFn) {
+	cm := &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceName,
+			Namespace: r.Namespace,
+		},
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, cm, r.Scheme); err != nil {
+			return err
+		}
+
+		cm.Data = map[string]string{
+			"SERVICE_BASE_URL": serviceURL.String(),
+
+			// image overrides
+			"AGENT_DOCKER_IMAGE": AgentImage(),
+			"CONTROLLER_IMAGE":   ControllerImage(),
+			"INSTALLER_IMAGE":    InstallerImage(),
+			"SELF_VERSION":       ServiceImage(),
+			"OPENSHIFT_VERSIONS": r.getOpenshiftVersions(instance),
+
+			"ISO_IMAGE_TYPE":         "minimal-iso",
+			"S3_USE_SSL":             "false",
+			"LOG_LEVEL":              "info",
+			"LOG_FORMAT":             "text",
+			"INSTALL_RH_CA":          "false",
+			"REGISTRY_CREDS":         "",
+			"DEPLOY_TARGET":          "k8s",
+			"STORAGE":                "filesystem",
+			"ISO_WORKSPACE_BASE_DIR": "/data",
+			"ISO_CACHE_DIR":          "/data/cache",
+
+			// from configmap
+			"AUTH_TYPE":                   "local",
+			"BASE_DNS_DOMAINS":            "",
+			"CHECK_CLUSTER_VERSION":       "False",
+			"CREATE_S3_BUCKET":            "False",
+			"ENABLE_KUBE_API":             "True",
+			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
+			"IPV6_SUPPORT":                "True",
+			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
+			"PUBLIC_CONTAINER_REGISTRIES": "quay.io,registry.svc.ci.openshift.org",
+			"WITH_AMS_SUBSCRIPTIONS":      "False",
+
+			"NAMESPACE": r.Namespace,
+
+			// enable https
+			"SERVE_HTTPS":            "True",
+			"HTTPS_CERT_FILE":        "/etc/assisted-tls-config/tls.crt",
+			"HTTPS_KEY_FILE":         "/etc/assisted-tls-config/tls.key",
+			"SERVICE_CA_CERT_PATH":   "/etc/assisted-ingress-cert/ca-bundle.crt",
+			"SKIP_CERT_VERIFICATION": "False",
+		}
+
+		return nil
+	}
+
+	return cm, mutateFn
+}
+
+func (r *AgentServiceConfigReconciler) ensureAssistedCM(ctx context.Context, instance *aiv1beta1.AgentServiceConfig) error {
+	// must have the route in order to populate SERVICE_BASE_URL for the service
+	route := &routev1.Route{}
+	err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, route)
+	if err != nil || route.Spec.Host == "" {
+		if err == nil {
+			err = fmt.Errorf("Route's host is empty")
+		}
+		r.Log.Info("Failed to get route or route's host is empty")
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: "Failed to get route for assisted service: " + err.Error(),
+		})
+		return err
+	}
+
+	serviceURL := &url.URL{Scheme: "https", Host: route.Spec.Host}
+	cm, mutateFn := r.newAssistedCM(instance, serviceURL)
+
+	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, cm, mutateFn); err != nil {
+		conditionsv1.SetStatusCondition(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonDeploymentFailure,
+			Message: "Failed to ensure assisted settings config map: " + err.Error(),
+		})
+		return err
+	} else if result != controllerutil.OperationResultNone {
+		r.Log.Info("Assisted settings config map created")
 	}
 	return nil
 }
@@ -400,6 +478,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 		Owns(&corev1.Secret{}).
 		Owns(&routev1.Route{}).
 		Owns(&appsv1.Deployment{}).
+		Owns(&corev1.ConfigMap{}).
 		Watches(&source.Kind{Type: &corev1.ConfigMap{}}, ingressCMHandler, ingressCMPredicates).
 		Complete(r)
 }
@@ -588,29 +667,8 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.Agen
 	return cm, mutateFn
 }
 
-func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *aiv1beta1.AgentServiceConfig, serviceURL *url.URL) (*appsv1.Deployment, controllerutil.MutateFn) {
-	openshiftVersions := r.getOpenshiftVersions(instance)
-
-	// User is responsible for knowing to restart assisted-service
-	var envFrom []corev1.EnvFromSource
-	annotations := instance.ObjectMeta.GetAnnotations()
-	configmapName, ok := annotations[configmapAnnotation]
-	if ok {
-		r.Log.Info("ConfigMap %v being used to configure assisted-service deployment", configmapName)
-		envFrom = []corev1.EnvFromSource{
-			{
-				ConfigMapRef: &corev1.ConfigMapEnvSource{
-					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configmapName,
-					},
-				},
-			},
-		}
-	}
-
-	serviceEnv := []corev1.EnvVar{
-		{Name: "SERVICE_BASE_URL", Value: getEnvVar("SERVICE_BASE_URL", serviceURL.String())},
-
+func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *aiv1beta1.AgentServiceConfig) (*appsv1.Deployment, controllerutil.MutateFn) {
+	envSecrets := []corev1.EnvVar{
 		// database
 		newSecretEnvVar("DB_HOST", "db.host", databaseName),
 		newSecretEnvVar("DB_NAME", "db.name", databaseName),
@@ -621,52 +679,33 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 		// local auth secret
 		newSecretEnvVar("EC_PUBLIC_KEY_PEM", "ec-public-key.pem", agentLocalAuthSecretName),
 		newSecretEnvVar("EC_PRIVATE_KEY_PEM", "ec-private-key.pem", agentLocalAuthSecretName),
+	}
 
-		// image overrides
-		{Name: "AGENT_DOCKER_IMAGE", Value: AgentImage()},
-		{Name: "CONTROLLER_IMAGE", Value: ControllerImage()},
-		{Name: "INSTALLER_IMAGE", Value: InstallerImage()},
-		{Name: "SELF_VERSION", Value: ServiceImage()},
-		{Name: "OPENSHIFT_VERSIONS", Value: openshiftVersions},
-
-		{Name: "ISO_IMAGE_TYPE", Value: "minimal-iso"},
-		{Name: "S3_USE_SSL", Value: "false"},
-		{Name: "LOG_LEVEL", Value: "info"},
-		{Name: "LOG_FORMAT", Value: "text"},
-		{Name: "INSTALL_RH_CA", Value: "false"},
-		{Name: "REGISTRY_CREDS", Value: ""},
-		{Name: "DEPLOY_TARGET", Value: "k8s"},
-		{Name: "STORAGE", Value: "filesystem"},
-		{Name: "ISO_WORKSPACE_BASE_DIR", Value: "/data"},
-		{Name: "ISO_CACHE_DIR", Value: "/data/cache"},
-
-		// from configmap
-		{Name: "AUTH_TYPE", Value: "local"},
-		{Name: "BASE_DNS_DOMAINS", Value: ""},
-		{Name: "CHECK_CLUSTER_VERSION", Value: "False"},
-		{Name: "CREATE_S3_BUCKET", Value: "False"},
-		{Name: "ENABLE_KUBE_API", Value: "True"},
-		{Name: "ENABLE_SINGLE_NODE_DNSMASQ", Value: "True"},
-		{Name: "IPV6_SUPPORT", Value: "True"},
-		{Name: "JWKS_URL", Value: "https://api.openshift.com/.well-known/jwks.json"},
-		{Name: "PUBLIC_CONTAINER_REGISTRIES", Value: "quay.io,registry.svc.ci.openshift.org"},
-		{Name: "WITH_AMS_SUBSCRIPTIONS", Value: "False"},
-
+	envFrom := []corev1.EnvFromSource{
 		{
-			Name: "NAMESPACE",
-			ValueFrom: &corev1.EnvVarSource{
-				FieldRef: &corev1.ObjectFieldSelector{
-					FieldPath: "metadata.namespace",
+			ConfigMapRef: &corev1.ConfigMapEnvSource{
+				LocalObjectReference: corev1.LocalObjectReference{
+					Name: serviceName,
 				},
 			},
 		},
+	}
 
-		// enable https
-		{Name: "SERVE_HTTPS", Value: "True"},
-		{Name: "HTTPS_CERT_FILE", Value: "/etc/assisted-tls-config/tls.crt"},
-		{Name: "HTTPS_KEY_FILE", Value: "/etc/assisted-tls-config/tls.key"},
-		{Name: "SERVICE_CA_CERT_PATH", Value: "/etc/assisted-ingress-cert/ca-bundle.crt"},
-		{Name: "SKIP_CERT_VERIFICATION", Value: "False"},
+	// User is responsible for knowing to restart assisted-service
+	annotations := instance.ObjectMeta.GetAnnotations()
+	configmapName, ok := annotations[configmapAnnotation]
+	if ok {
+		r.Log.Info("ConfigMap %v being used to configure assisted-service deployment", configmapName)
+		envFrom = append(envFrom, []corev1.EnvFromSource{
+			{
+				ConfigMapRef: &corev1.ConfigMapEnvSource{
+					LocalObjectReference: corev1.LocalObjectReference{
+						Name: configmapName,
+					},
+				},
+			},
+		}...,
+		)
 	}
 
 	serviceContainer := corev1.Container{
@@ -679,7 +718,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(instance *ai
 			},
 		},
 		EnvFrom: envFrom,
-		Env:     serviceEnv,
+		Env:     envSecrets,
 		VolumeMounts: []corev1.VolumeMount{
 			{Name: "bucket-filesystem", MountPath: "/data"},
 			{Name: "tls-certs", MountPath: "/etc/assisted-tls-config"},

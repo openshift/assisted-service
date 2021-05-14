@@ -268,7 +268,15 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 
 			found := &appsv1.Deployment{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-			Expect(len(found.Spec.Template.Spec.Containers[0].EnvFrom)).To(Equal(0))
+			Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal([]corev1.EnvFromSource{
+				{
+					ConfigMapRef: &corev1.ConfigMapEnvSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: serviceName,
+						},
+					},
+				},
+			}))
 		})
 	})
 
@@ -279,15 +287,29 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 			Expect(ascr.ensureAssistedServiceDeployment(ctx, asc)).To(Succeed())
 			found := &appsv1.Deployment{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-			Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal([]corev1.EnvFromSource{
-				{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: testConfigmapName,
+
+			targetConfigMap := append(
+				[]corev1.EnvFromSource{
+					{
+						ConfigMapRef: &corev1.ConfigMapEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: serviceName,
+							},
 						},
 					},
 				},
-			}))
+				[]corev1.EnvFromSource{
+					{
+						ConfigMapRef: &corev1.ConfigMapEnvSource{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testConfigmapName,
+							},
+						},
+					},
+				}...,
+			)
+
+			Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal(targetConfigMap))
 		})
 	})
 
