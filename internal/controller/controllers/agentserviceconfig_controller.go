@@ -383,6 +383,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(instance *aiv1beta1.AgentSe
 			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
 			"PUBLIC_CONTAINER_REGISTRIES": "quay.io,registry.svc.ci.openshift.org",
 			"WITH_AMS_SUBSCRIPTIONS":      "False",
+			"HW_VALIDATOR_REQUIREMENTS":   `[{"version":"default","master":{"cpu_cores":4,"ram_mib":16384,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10},"worker":{"cpu_cores":2,"ram_mib":8192,"disk_size_gb":120,"installation_disk_speed_threshold_ms":10}}]`,
 
 			"NAMESPACE": r.Namespace,
 
