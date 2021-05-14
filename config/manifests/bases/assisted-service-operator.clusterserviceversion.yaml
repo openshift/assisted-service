@@ -4,14 +4,15 @@ metadata:
   annotations:
     alm-examples: '[]'
     capabilities: Basic Install
+    categories: OpenShift Optional
     description: Assisted Service is used to orchestrate baremetal OpenShift installations.
-    olm.skipRange: <0.0.3
+    olm.skipRange: <0.0.4
     operatorframework.io/suggested-namespace: assisted-installer
     operators.operatorframework.io/builder: operator-sdk-v1.3.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/openshift/assisted-service
     support: https://github.com/openshift/assisted-service/issues/new
-  name: assisted-service-operator.v0.0.3
+  name: assisted-service-operator.v0.0.4
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -82,4 +83,4 @@ spec:
   maturity: alpha
   provider:
     name: Red Hat
-  version: 0.0.3
+  version: 0.0.4
