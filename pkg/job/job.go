@@ -20,16 +20,6 @@ type Config struct {
 	DummyIgnition      bool `envconfig:"DUMMY_IGNITION"`
 }
 
-func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API) *kubeJob {
-	return &kubeJob{
-		Config:       cfg,
-		log:          log,
-		s3Client:     s3Client,
-		operatorsApi: operatorsApi,
-		workDir:      workDir,
-	}
-}
-
 type kubeJob struct {
 	Config
 	log          logrus.FieldLogger
@@ -38,12 +28,22 @@ type kubeJob struct {
 	workDir      string
 }
 
+func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API) *kubeJob {
+	return &kubeJob{
+		Config:       cfg,
+		log:          log,
+		s3Client:     s3Client,
+		operatorsApi: operatorsApi,
+		workDir:      filepath.Join(workDir, "install-config-generate"),
+	}
+}
+
 // GenerateInstallConfig creates install config and ignition files
 func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
 	log := logutil.FromContext(ctx, k.log)
-	workDir := filepath.Join(k.workDir, cluster.ID.String())
+	clusterWorkDir := filepath.Join(k.workDir, cluster.ID.String())
 	installerCacheDir := filepath.Join(k.workDir, "installercache")
-	err := os.Mkdir(workDir, 0755)
+	err := os.MkdirAll(clusterWorkDir, 0755)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
@@ -57,14 +57,14 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 				log.WithError(err).Errorf("Could not remove previous directory with failed config results: %s", debugPath)
 				return
 			}
-			err2 = os.Rename(workDir, debugPath)
+			err2 = os.Rename(clusterWorkDir, debugPath)
 			if err2 != nil {
-				log.WithError(err).Errorf("Could not rename %s to %s", workDir, debugPath)
+				log.WithError(err).Errorf("Could not rename %s to %s", clusterWorkDir, debugPath)
 				return
 			}
 			return
 		}
-		err2 := os.RemoveAll(workDir)
+		err2 := os.RemoveAll(clusterWorkDir)
 		if err2 != nil {
 			log.WithError(err).Error("Failed to clean up generated ignition directory")
 		}
@@ -73,13 +73,20 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 	// runs openshift-install to generate ignition files, then modifies them as necessary
 	var generator ignition.Generator
 	if k.Config.DummyIgnition {
-		generator = ignition.NewDummyGenerator(workDir, &cluster, k.s3Client, log)
+		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(workDir, installerCacheDir, &cluster, releaseImage, "", k.Config.ServiceCACertPath, k.s3Client, log, k.operatorsApi)
+		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror, k.Config.ServiceCACertPath, k.s3Client, log, k.operatorsApi)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {
 		return err
+	}
+
+	if k.Config.ServiceIPs != "" {
+		err = generator.UpdateEtcHosts(k.Config.ServiceIPs)
+		if err != nil {
+			return err
+		}
 	}
 
 	// upload files to S3

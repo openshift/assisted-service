@@ -54,7 +54,6 @@ import (
 	paramctx "github.com/openshift/assisted-service/pkg/context"
 	dbPkg "github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/executer"
-	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
@@ -329,7 +328,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := newISOInstallConfigGenerator(log, objectHandler, operatorsManager)
+	generator := job.New(log, objectHandler, Options.JobConfig, Options.WorkDir, operatorsManager)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient())
@@ -523,19 +522,6 @@ func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.Op
 	}
 
 	return errs.Wait()
-}
-
-func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsApi operators.API) generator.ISOInstallConfigGenerator {
-	var configGenerator generator.ISOInstallConfigGenerator
-	switch Options.Storage {
-	case storage_s3:
-		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), objectHandler, Options.JobConfig, Options.WorkDir, operatorsApi)
-	case storage_filesystem:
-		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, Options.WorkDir, operatorsApi)
-	default:
-		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
-	}
-	return configGenerator
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
