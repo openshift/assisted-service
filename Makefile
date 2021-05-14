@@ -78,6 +78,10 @@ ifeq ($(ENABLE_KUBE_API),true)
 	STORAGE = filesystem
 endif
 
+# Operator Vars
+BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
+BUNDLE_METADATA_OPTS ?= --channels=alpha,ocm-2.3 --default-channel=alpha
+
 # We decided to have an option to change replicas count only while running locally
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
 # Default for 1 replica
@@ -454,25 +458,12 @@ clean-onprem:
 ############
 # Operator #
 ############
-
-# Current Operator version
-OPERATOR_VERSION ?= 0.0.3
-BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
-BUNDLE_METADATA_OPTS ?= --channels=alpha,ocm-2.3 --default-channel=alpha
-
-.PHONY: operator-bundle
-operator-bundle:
-	operator-sdk generate kustomize manifests --apis-dir internal/controller/api -q
-	# TODO(djzager) use this line to pin images in the future
-	# cd config/manager && kustomize edit set image controller=$(SERVICE)
-	kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --version $(OPERATOR_VERSION) --output-dir $(BUNDLE_OUTPUT_DIR) $(BUNDLE_METADATA_OPTS)
-	# TODO(djzager) structure config/rbac in such a way to avoid need for this
-	rm $(BUNDLE_OUTPUT_DIR)/manifests/assisted-service_v1_serviceaccount.yaml
-	operator-sdk bundle validate $(BUNDLE_OUTPUT_DIR)
+# TODO(djzager): remove when prow/ci-index is updated to use generate-bundle
+operator-bundle: generate-bundle
 
 # Build the bundle and index images.
 .PHONY: operator-bundle-build operator-bundle-update
-operator-bundle-build: operator-bundle
+operator-bundle-build: generate-bundle
 	docker build $(CONTAINER_BUILD_PARAMS) -f deploy/olm-catalog/bundle.Dockerfile -t $(BUNDLE_IMAGE) .
 
 operator-bundle-update:
