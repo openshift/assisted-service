@@ -134,6 +134,7 @@ var Options struct {
 	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
 	FileSystemUsageThreshold    int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableElasticAPM            bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
+	WorkDir                     string        `envconfig:"WORK_DIR" default:"/data/"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -238,7 +239,7 @@ func main() {
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
-		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory, metricsManager, Options.FileSystemUsageThreshold)
+		Options.WorkDir, log, versionHandler, isoEditorFactory, metricsManager, Options.FileSystemUsageThreshold)
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
@@ -528,9 +529,9 @@ func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API
 	var configGenerator generator.ISOInstallConfigGenerator
 	switch Options.Storage {
 	case storage_s3:
-		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), objectHandler, Options.JobConfig, operatorsApi)
+		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), objectHandler, Options.JobConfig, Options.WorkDir, operatorsApi)
 	case storage_filesystem:
-		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, operatorsApi)
+		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, Options.WorkDir, operatorsApi)
 	default:
 		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
 	}

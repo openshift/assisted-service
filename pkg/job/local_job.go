@@ -18,22 +18,24 @@ type localJob struct {
 	log          logrus.FieldLogger
 	s3Client     s3wrapper.API
 	operatorsApi operators.API
+	workDir      string
 }
 
-func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, operatorsApi operators.API) *localJob {
+func NewLocalJob(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API) *localJob {
 	return &localJob{
 		Config:       cfg,
 		log:          log,
 		s3Client:     s3Client,
 		operatorsApi: operatorsApi,
+		workDir:      workDir,
 	}
 }
 
 // GenerateInstallConfig creates install config and ignition files
 func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
 	log := logutil.FromContext(ctx, j.log)
-	workDir := filepath.Join(j.Config.WorkDir, cluster.ID.String())
-	installerCacheDir := filepath.Join(j.Config.WorkDir, "installercache")
+	workDir := filepath.Join(j.workDir, cluster.ID.String())
+	installerCacheDir := filepath.Join(j.workDir, "installercache")
 	err := os.Mkdir(workDir, 0755)
 	if err != nil && !os.IsExist(err) {
 		return err

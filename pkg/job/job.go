@@ -17,16 +17,16 @@ type Config struct {
 	ServiceCACertPath  string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs         string `envconfig:"SERVICE_IPS" default:""`
 	ReleaseImageMirror string
-	WorkDir            string `envconfig:"WORK_DIR" default:"/data/"`
-	DummyIgnition      bool   `envconfig:"DUMMY_IGNITION"`
+	DummyIgnition      bool `envconfig:"DUMMY_IGNITION"`
 }
 
-func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, operatorsApi operators.API) *kubeJob {
+func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir string, operatorsApi operators.API) *kubeJob {
 	return &kubeJob{
 		Config:       cfg,
 		log:          log,
 		s3Client:     s3Client,
 		operatorsApi: operatorsApi,
+		workDir:      workDir,
 	}
 }
 
@@ -35,13 +35,14 @@ type kubeJob struct {
 	log          logrus.FieldLogger
 	s3Client     s3wrapper.API
 	operatorsApi operators.API
+	workDir      string
 }
 
 // GenerateInstallConfig creates install config and ignition files
 func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
 	log := logutil.FromContext(ctx, k.log)
-	workDir := filepath.Join(k.Config.WorkDir, cluster.ID.String())
-	installerCacheDir := filepath.Join(k.Config.WorkDir, "installercache")
+	workDir := filepath.Join(k.workDir, cluster.ID.String())
+	installerCacheDir := filepath.Join(k.workDir, "installercache")
 	err := os.Mkdir(workDir, 0755)
 	if err != nil && !os.IsExist(err) {
 		return err
@@ -49,7 +50,7 @@ func (k *kubeJob) GenerateInstallConfig(ctx context.Context, cluster common.Clus
 	defer func() {
 		// keep results in case of failure so a human can debug
 		if err != nil {
-			debugPath := filepath.Join(k.Config.WorkDir, cluster.ID.String()+"-failed")
+			debugPath := filepath.Join(k.workDir, cluster.ID.String()+"-failed")
 			// remove any prior failed results
 			err2 := os.RemoveAll(debugPath)
 			if err2 != nil && !os.IsNotExist(err2) {
