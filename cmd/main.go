@@ -80,8 +80,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -271,11 +269,6 @@ func main() {
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
 
-	var newUrl string
-	newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL)
-	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
-	Options.JobConfig.S3EndpointURL = newUrl
-
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
 	case deployment_type_k8s:
@@ -331,7 +324,7 @@ func main() {
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
 
-	newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
+	newUrl, err := s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
@@ -535,11 +528,7 @@ func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API
 	var configGenerator generator.ISOInstallConfigGenerator
 	switch Options.Storage {
 	case storage_s3:
-		kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
-		if err != nil {
-			log.WithError(err).Fatalf("failed to create controller-runtime client")
-		}
-		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, operatorsApi)
+		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), objectHandler, Options.JobConfig, operatorsApi)
 	case storage_filesystem:
 		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, operatorsApi)
 	default:

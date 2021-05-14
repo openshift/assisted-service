@@ -59,8 +59,3 @@ func (j *localJob) GenerateInstallConfig(ctx context.Context, cluster common.Clu
 
 	return nil
 }
-
-func (j *localJob) AbortInstallConfig(ctx context.Context, cluster common.Cluster) error {
-	// no job to abort
-	return nil
-}
