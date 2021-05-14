@@ -141,6 +141,7 @@ var Options struct {
 func InitLogs() *logrus.Entry {
 	log := logrus.New()
 
+	fmt.Println(Options.EnableElasticAPM)
 	if Options.EnableElasticAPM {
 		log.AddHook(&apmlogrus.Hook{})
 	}
@@ -506,7 +507,8 @@ func generateAPMTransactionName(request *http.Request) string {
 		return request.URL.Path
 	}
 
-	return route.PathPattern
+	// This matches the `operationId` in the swagger file
+	return route.Operation.ID
 }
 
 func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
