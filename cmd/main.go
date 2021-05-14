@@ -54,7 +54,7 @@ import (
 	paramctx "github.com/openshift/assisted-service/pkg/context"
 	dbPkg "github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/executer"
-	"github.com/openshift/assisted-service/pkg/job"
+	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logconfig "github.com/openshift/assisted-service/pkg/log"
@@ -99,7 +99,7 @@ var Options struct {
 	BMConfig                    bminventory.Config
 	DBConfig                    dbPkg.Config
 	HWValidatorConfig           hardware.ValidatorCfg
-	JobConfig                   job.Config
+	GeneratorConfig             generator.Config
 	InstructionConfig           hostcommands.InstructionConfig
 	OperatorsConfig             operators.Options
 	GCConfig                    garbagecollector.Config
@@ -218,7 +218,7 @@ func main() {
 	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
-	Options.JobConfig.ReleaseImageMirror = Options.ReleaseImageMirror
+	Options.GeneratorConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
@@ -328,7 +328,7 @@ func main() {
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := job.New(log, objectHandler, Options.JobConfig, Options.WorkDir, operatorsManager)
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, operatorsManager)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient())
