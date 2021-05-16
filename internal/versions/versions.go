@@ -209,13 +209,22 @@ func (h *handler) GetOCPSemVer(openshiftVersion string) (string, error) {
 }
 
 func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error) {
+	// Check whether ocpReleaseImage already exists in cache
+	for _, v := range h.openshiftVersions {
+		if v.ReleaseImage != nil && *v.ReleaseImage == ocpReleaseImage {
+			// Return existing version
+			version := v
+			return &version, nil
+		}
+	}
+
 	// Get openshift version from release image metadata (oc adm release info)
 	ocpVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, ocpReleaseImage, h.releaseImageMirror, pullSecret)
 	if err != nil {
 		return nil, err
 	}
 
-	// Return if version is not speficied in OPENSHIFT_VERSIONS
+	// Return if version is not specified in OPENSHIFT_VERSIONS
 	ocpVersionKey, err := h.GetKey(ocpVersion)
 	if err != nil {
 		return nil, err

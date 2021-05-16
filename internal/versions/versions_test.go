@@ -38,14 +38,6 @@ var defaultOpenShiftVersions = models.OpenshiftVersions{
 	},
 }
 
-var customOpenShiftVersions = models.OpenshiftVersions{
-	"4.7": models.OpenshiftVersion{
-		RhcosImage:     swag.String("rhcos_4.7.0"),
-		RhcosVersion:   swag.String("version-47.123-0"),
-		ReleaseVersion: nil, DisplayName: nil, ReleaseImage: nil, SupportLevel: nil,
-	},
-}
-
 var supportedCustomOpenShiftVersions = models.OpenshiftVersions{
 	"4.8": models.OpenshiftVersion{
 		DisplayName:  swag.String("4.8.0"),
@@ -320,12 +312,24 @@ var _ = Describe("list versions", func() {
 
 	Context("AddOpenshiftVersion", func() {
 		var (
-			pullSecret       = "test_pull_secret"
-			releaseImage     = "releaseImage"
-			ocpVersion       = "4.7.0"
-			keyVersion       = "4.7"
-			customOcpVersion = "4.8.0"
+			pullSecret              = "test_pull_secret"
+			releaseImage            = "releaseImage"
+			ocpVersion              = "4.7.0"
+			keyVersion              = "4.7"
+			customOcpVersion        = "4.8.0"
+			customKeyVersion        = "4.8"
+			customOpenShiftVersions models.OpenshiftVersions
 		)
+
+		BeforeEach(func() {
+			customOpenShiftVersions = models.OpenshiftVersions{
+				"4.7": models.OpenshiftVersion{
+					RhcosImage:     swag.String("rhcos_4.7.0"),
+					RhcosVersion:   swag.String("version-47.123-0"),
+					ReleaseVersion: nil, DisplayName: nil, ReleaseImage: nil, SupportLevel: nil,
+				},
+			}
+		})
 
 		It("added version successfully", func() {
 			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, "")
@@ -397,6 +401,17 @@ var _ = Describe("list versions", func() {
 
 			versionKey, _ := h.GetKey(ocpVersion)
 			Expect(err.Error()).Should(Equal(fmt.Sprintf("OCP version is not specified in OPENSHIFT_VERSIONS: %s", versionKey)))
+		})
+
+		It("release image already exists", func() {
+			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, "")
+
+			versionFromCache, err := h.GetVersion(customKeyVersion)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			version, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(version).Should(Equal(versionFromCache))
 		})
 	})
 })
