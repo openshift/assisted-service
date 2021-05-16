@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"regexp"
 	"sort"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"k8s.io/utils/pointer"
 )
 
 const (
@@ -223,6 +225,20 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 		if details.InstallationDiskSpeedThresholdMs > 0 {
 			if total.InstallationDiskSpeedThresholdMs == 0 || details.InstallationDiskSpeedThresholdMs < total.InstallationDiskSpeedThresholdMs {
 				total.InstallationDiskSpeedThresholdMs = details.InstallationDiskSpeedThresholdMs
+			}
+		}
+		if details.NetworkLatencyThresholdMs != nil && *details.NetworkLatencyThresholdMs >= 0 {
+			if total.NetworkLatencyThresholdMs == nil {
+				total.NetworkLatencyThresholdMs = details.NetworkLatencyThresholdMs
+			} else {
+				total.NetworkLatencyThresholdMs = pointer.Float64Ptr(math.Min(*total.NetworkLatencyThresholdMs, *details.NetworkLatencyThresholdMs))
+			}
+		}
+		if details.PacketLossPercentage != nil && *details.PacketLossPercentage >= 0 {
+			if total.PacketLossPercentage == nil {
+				total.PacketLossPercentage = details.PacketLossPercentage
+			} else {
+				total.PacketLossPercentage = pointer.Float64Ptr(math.Min(*total.PacketLossPercentage, *details.PacketLossPercentage))
 			}
 		}
 	}

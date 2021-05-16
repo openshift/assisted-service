@@ -6,6 +6,7 @@ import (
 
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"
 )
@@ -139,12 +140,27 @@ func GenerateTestDefaultVmwareInventory() string {
 	return string(b)
 }
 
-func GenerateTestDefaultInventoryIPv4Only() string {
-	defaultInventory := GenerateTestDefaultInventory()
-	var inventory models.Inventory
-	Expect(json.Unmarshal([]byte(defaultInventory), &inventory)).ToNot(HaveOccurred())
-	inventory.Interfaces[0].IPV6Addresses = nil
+type NetAddress struct {
+	IPv4Address []string
+	IPv6Address []string
+	Hostname    string
+}
 
+func GenerateTestInventoryWithNetwork(netAddress NetAddress) string {
+	inventory := &models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name:          "eth0",
+				IPV4Addresses: netAddress.IPv4Address,
+				IPV6Addresses: netAddress.IPv6Address,
+			},
+		},
+		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: "HDD"}},
+		CPU:          &models.CPU{Count: 16},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Hostname:     netAddress.Hostname,
+	}
 	b, err := json.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)

@@ -745,15 +745,16 @@ var _ = Describe("lease timeout event", func() {
 
 var _ = Describe("Auto assign machine CIDR", func() {
 	var (
-		db          *gorm.DB
-		c           common.Cluster
-		id          strfmt.UUID
-		clusterApi  *Manager
-		ctrl        *gomock.Controller
-		mockHostAPI *host.MockAPI
-		mockMetric  *metrics.MockAPI
-		dbName      string
-		mockEvents  *events.MockHandler
+		db                 *gorm.DB
+		c                  common.Cluster
+		id                 strfmt.UUID
+		clusterApi         *Manager
+		ctrl               *gomock.Controller
+		mockHostAPI        *host.MockAPI
+		mockMetric         *metrics.MockAPI
+		dbName             string
+		mockEvents         *events.MockHandler
+		defaultIPv4Address = common.NetAddress{IPv4Address: []string{"1.2.3.0/24"}}
 	)
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
@@ -809,7 +810,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			hosts: []*models.Host{
 				{
 					Status:    swag.String(models.HostStatusInsufficient),
-					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+					Inventory: common.GenerateTestInventoryWithNetwork(defaultIPv4Address),
 				},
 			},
 			userActionResetExpected: true,
@@ -834,11 +835,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			hosts: []*models.Host{
 				{
 					Status:    swag.String(models.HostStatusPendingForInput),
-					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+					Inventory: common.GenerateTestInventoryWithNetwork(defaultIPv4Address),
 				},
 				{
 					Status:    swag.String(models.HostStatusPendingForInput),
-					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+					Inventory: common.GenerateTestInventoryWithNetwork(defaultIPv4Address),
 				},
 			},
 			userActionResetExpected: true,
@@ -917,7 +918,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			hosts: []*models.Host{
 				{
 					Status:    swag.String(models.HostStatusInsufficient),
-					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+					Inventory: common.GenerateTestInventoryWithNetwork(defaultIPv4Address),
 				},
 			},
 			userActionResetExpected: true,
@@ -983,11 +984,11 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			hosts: []*models.Host{
 				{
 					Status:    swag.String(models.HostStatusPendingForInput),
-					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+					Inventory: common.GenerateTestInventoryWithNetwork(defaultIPv4Address),
 				},
 				{
 					Status:    swag.String(models.HostStatusPendingForInput),
-					Inventory: common.GenerateTestDefaultInventoryIPv4Only(),
+					Inventory: common.GenerateTestInventoryWithNetwork(defaultIPv4Address),
 				},
 			},
 			userActionResetExpected: true,

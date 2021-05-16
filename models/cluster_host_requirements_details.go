@@ -24,6 +24,12 @@ type ClusterHostRequirementsDetails struct {
 	// Required installation disk speed in ms
 	InstallationDiskSpeedThresholdMs int64 `json:"installation_disk_speed_threshold_ms,omitempty"`
 
+	// Maximum network average latency (RTT) at L3 for role.
+	NetworkLatencyThresholdMs *float64 `json:"network_latency_threshold_ms,omitempty"`
+
+	// Maximum packet loss allowed at L3 for role.
+	PacketLossPercentage *float64 `json:"packet_loss_percentage,omitempty"`
+
 	// Required number of RAM in MiB
 	RAMMib int64 `json:"ram_mib,omitempty"`
 }

@@ -2,10 +2,12 @@ package hostutil
 
 import (
 	"encoding/json"
+	"net"
 	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
@@ -54,7 +56,54 @@ func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string) m
 			StageUpdatedAt: now,
 		},
 		APIVipConnectivity: generateTestAPIVIpConnectivity(),
+		Connectivity:       generateTestConnectivityReport(),
 	}
+}
+
+func GenerateTestHostWithNetworkAddress(hostID, clusterID strfmt.UUID, role models.HostRole, status string, netAddr common.NetAddress) *models.Host {
+	now := strfmt.DateTime(time.Now())
+	h := models.Host{
+		ID:                &hostID,
+		RequestedHostname: netAddr.Hostname,
+		ClusterID:         clusterID,
+		Status:            swag.String(status),
+		Inventory:         common.GenerateTestInventoryWithNetwork(netAddr),
+		Role:              role,
+		Kind:              swag.String(models.HostKindHost),
+		CheckedInAt:       now,
+		StatusUpdatedAt:   now,
+		Progress: &models.HostProgressInfo{
+			StageStartedAt: now,
+			StageUpdatedAt: now,
+		},
+		APIVipConnectivity: generateTestAPIVIpConnectivity(),
+	}
+	return &h
+}
+
+func generateTestConnectivityReport() string {
+	c := models.ConnectivityReport{RemoteHosts: []*models.ConnectivityRemoteHost{}}
+	b, err := json.Marshal(&c)
+	Expect(err).NotTo(HaveOccurred())
+	return string(b)
+}
+
+func GenerateL3ConnectivityReport(hosts []*models.Host, latency float64, packetLoss float64) *models.ConnectivityReport {
+	con := models.ConnectivityReport{}
+	for _, h := range hosts {
+		var inv models.Inventory
+		Expect(json.Unmarshal([]byte(h.Inventory), &inv)).NotTo(HaveOccurred())
+		var ipAddr string
+		if len(inv.Interfaces[0].IPV4Addresses) != 0 {
+			ipAddr = inv.Interfaces[0].IPV4Addresses[0]
+		} else if len(inv.Interfaces[0].IPV6Addresses) != 0 {
+			ipAddr = inv.Interfaces[0].IPV6Addresses[0]
+		}
+		Expect(len(ipAddr)).NotTo(Equal(0))
+		l3 := models.L3Connectivity{Successful: true, AverageRTTMs: latency, PacketLossPercentage: packetLoss, RemoteIPAddress: ipAddr}
+		con.RemoteHosts = append(con.RemoteHosts, &models.ConnectivityRemoteHost{HostID: strfmt.UUID(uuid.New().String()), L3Connectivity: []*models.L3Connectivity{&l3}})
+	}
+	return &con
 }
 
 func generateTestAPIVIpConnectivity() string {
@@ -62,9 +111,7 @@ func generateTestAPIVIpConnectivity() string {
 		IsSuccess: true,
 	}
 	bytes, err := json.Marshal(checkAPIResponse)
-	if err != nil {
-		return ""
-	}
+	Expect(err).To(Not(HaveOccurred()))
 	return string(bytes)
 }
 
@@ -225,4 +272,34 @@ func GenerateInventoryWithResourcesWithBytes(cpu, memory int64, hostname string)
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
 	return string(b)
+}
+
+func GenerateIPv4Addresses(count int, machineCIDR string) []string {
+	ipAddress, _, err := net.ParseCIDR(machineCIDR)
+	Expect(err).NotTo(HaveOccurred())
+	return generateIPAddresses(count, ipAddress.To4())
+}
+
+func GenerateIPv6Addresses(count int, machineCIDR string) []string {
+	ipAddress, _, err := net.ParseCIDR(machineCIDR)
+	Expect(err).NotTo(HaveOccurred())
+	return generateIPAddresses(count, ipAddress.To16())
+}
+
+func generateIPAddresses(count int, ipAddress net.IP) []string {
+	ret := make([]string, count)
+	for i := 0; i < count; i++ {
+		incrementIP(ipAddress)
+		ret[i] = ipAddress.String()
+	}
+	return ret
+}
+
+func incrementIP(ip net.IP) {
+	for j := len(ip) - 1; j >= 0; j-- {
+		ip[j]++
+		if ip[j] > 0 {
+			break
+		}
+	}
 }

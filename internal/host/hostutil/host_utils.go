@@ -207,3 +207,19 @@ func GetAddressFamilies(host *models.Host) (bool, bool, error) {
 	}
 	return v4, v6, nil
 }
+func MarshalConnectivityReport(report *models.ConnectivityReport) (string, error) {
+	if data, err := json.Marshal(report); err != nil {
+		return "", err
+	} else {
+		return string(data), nil
+	}
+}
+
+func UnmarshalConnectivityReport(reportStr string) (*models.ConnectivityReport, error) {
+	var report models.ConnectivityReport
+
+	if err := json.Unmarshal([]byte(reportStr), &report); err != nil {
+		return nil, err
+	}
+	return &report, nil
+}

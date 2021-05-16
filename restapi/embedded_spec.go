@@ -5367,6 +5367,18 @@ func init() {
           "description": "Required installation disk speed in ms",
           "type": "integer"
         },
+        "network_latency_threshold_ms": {
+          "description": "Maximum network average latency (RTT) at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "packet_loss_percentage": {
+          "description": "Maximum packet loss allowed at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
         "ram_mib": {
           "description": "Required number of RAM in MiB",
           "type": "integer"
@@ -6699,7 +6711,9 @@ func init() {
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
         "sufficient-installation-disk-speed",
-        "cnv-requirements-satisfied"
+        "cnv-requirements-satisfied",
+        "sufficient-network-latency-requirement-for-role",
+        "sufficient-packet-loss-requirement-for-role"
       ]
     },
     "host_network": {
@@ -13140,6 +13154,18 @@ func init() {
           "description": "Required installation disk speed in ms",
           "type": "integer"
         },
+        "network_latency_threshold_ms": {
+          "description": "Maximum network average latency (RTT) at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "packet_loss_percentage": {
+          "description": "Maximum packet loss allowed at L3 for role.",
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
         "ram_mib": {
           "description": "Required number of RAM in MiB",
           "type": "integer"
@@ -14396,7 +14422,9 @@ func init() {
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
         "sufficient-installation-disk-speed",
-        "cnv-requirements-satisfied"
+        "cnv-requirements-satisfied",
+        "sufficient-network-latency-requirement-for-role",
+        "sufficient-packet-loss-requirement-for-role"
       ]
     },
     "host_network": {

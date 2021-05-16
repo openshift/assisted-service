@@ -1,7 +1,9 @@
 package host
 
 import (
+	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -90,4 +92,33 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, db
 
 	_, err := hostutil.UpdateHost(log, db, h.ClusterID, *h.ID, *h.Status, extras...)
 	return err
+}
+
+func GetHostnameAndRoleByIP(ip string, hosts []*models.Host) (string, models.HostRole, error) {
+	for _, h := range hosts {
+		if h.Inventory == "" {
+			continue
+		}
+		inv, err := hostutil.UnmarshalInventory(h.Inventory)
+		if err != nil {
+			return "", "", fmt.Errorf("unable to unmarshall cluster inventory for host %s", h.RequestedHostname)
+		}
+		if strings.Count(ip, ":") == 0 {
+			for _, i := range inv.Interfaces {
+				for _, ipv4 := range i.IPV4Addresses {
+					if ip == ipv4 {
+						return getRealHostname(h, inv), h.Role, nil
+					}
+				}
+			}
+		}
+		for _, i := range inv.Interfaces {
+			for _, ipv6 := range i.IPV6Addresses {
+				if ip == ipv6 {
+					return getRealHostname(h, inv), h.Role, nil
+				}
+			}
+		}
+	}
+	return "", "", fmt.Errorf("host with IP %s not found in inventory", ip)
 }
