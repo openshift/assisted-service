@@ -686,6 +686,10 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 	return nil
 }
 
+func (b *bareMetalInventory) DownloadClusterISOClone(ctx context.Context, params installer.DownloadClusterISOCloneParams) middleware.Responder {
+	return b.DownloadClusterISO(ctx, installer.DownloadClusterISOParams(params))
+}
+
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster common.Cluster
@@ -725,6 +729,10 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
 		contentLength)
+}
+
+func (b *bareMetalInventory) DownloadClusterISOHeadersClone(ctx context.Context, params installer.DownloadClusterISOHeadersCloneParams) middleware.Responder {
+	return b.DownloadClusterISOHeaders(ctx, installer.DownloadClusterISOHeadersParams(params))
 }
 
 func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
