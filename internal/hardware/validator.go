@@ -30,14 +30,16 @@ type Validator interface {
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
+	GetOCPRequirementsForVersion(cluster *common.Cluster) (*models.VersionedHostRequirements, error)
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
 	GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error)
 	GetDefaultVersionRequirements(singleNode bool) (*models.VersionedHostRequirements, error)
+	SetOperator(operators.API)
 }
 
-func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
+func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg) Validator {
 	diskEligibilityMatchers := []*regexp.Regexp{
 		compileDiskReasonTemplate(tooSmallDiskTemplate, ".*", ".*"),
 		compileDiskReasonTemplate(wrongDriveTypeTemplate, ".*", ".*"),
@@ -45,7 +47,6 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 	return &validator{
 		ValidatorCfg:            cfg,
 		log:                     log,
-		operatorsAPI:            operatorsAPI,
 		diskEligibilityMatchers: diskEligibilityMatchers,
 	}
 }
@@ -73,6 +74,10 @@ func DiskEligibilityInitialized(disk *models.Disk) bool {
 
 func (v *validator) GetHostInstallationPath(host *models.Host) string {
 	return hostutil.GetHostInstallationPath(host)
+}
+
+func (v *validator) SetOperator(api operators.API) {
+	v.operatorsAPI = api
 }
 
 func (v *validator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
@@ -230,7 +235,7 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 }
 
 func (v *validator) getOCPHostRoleRequirementsForVersion(cluster *common.Cluster, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {
-	requirements, err := v.getOCPRequirementsForVersion(cluster)
+	requirements, err := v.GetOCPRequirementsForVersion(cluster)
 	if err != nil {
 		return models.ClusterHostRequirementsDetails{}, err
 	}
@@ -241,7 +246,7 @@ func (v *validator) getOCPHostRoleRequirementsForVersion(cluster *common.Cluster
 }
 
 func (v *validator) getPreflightOCPRequirements(cluster *common.Cluster) (*models.HostTypeHardwareRequirementsWrapper, error) {
-	requirements, err := v.getOCPRequirementsForVersion(cluster)
+	requirements, err := v.GetOCPRequirementsForVersion(cluster)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +265,7 @@ func (v *validator) updateSingleNodeHwRequirements(requirements *models.Versione
 	requirements.MasterRequirements.RAMMib = conversions.GibToMib(v.ValidatorCfg.MinRamGibSno)
 }
 
-func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) (*models.VersionedHostRequirements, error) {
+func (v *validator) GetOCPRequirementsForVersion(cluster *common.Cluster) (*models.VersionedHostRequirements, error) {
 	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(cluster.OpenshiftVersion)
 	if err != nil {
 		return nil, err

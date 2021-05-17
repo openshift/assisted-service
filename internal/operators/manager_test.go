@@ -13,6 +13,7 @@ import (
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/api"
@@ -28,13 +29,14 @@ import (
 )
 
 var (
-	ctx          = context.Background()
-	cluster      *common.Cluster
-	clusterHost  *models.Host
-	log          = logrus.New()
-	manager      *operators.Manager
-	ctrl         *gomock.Controller
-	manifestsAPI *mocks.MockManifestsAPI
+	ctx             = context.Background()
+	cluster         *common.Cluster
+	clusterHost     *models.Host
+	log             = logrus.New()
+	manager         *operators.Manager
+	ctrl            *gomock.Controller
+	mockHwValidator *hardware.MockValidator
+	manifestsAPI    *mocks.MockManifestsAPI
 )
 
 var _ = BeforeEach(func() {
@@ -56,8 +58,9 @@ var _ = BeforeEach(func() {
 	clusterHost = &models.Host{Inventory: b, Role: models.HostRoleMaster}
 
 	ctrl = gomock.NewController(GinkgoT())
+	mockHwValidator = hardware.NewMockValidator(ctrl)
 	manifestsAPI = mocks.NewMockManifestsAPI(ctrl)
-	manager = operators.NewManager(log, manifestsAPI, operators.Options{})
+	manager = operators.NewManager(log, manifestsAPI, operators.Options{}, mockHwValidator)
 })
 
 var _ = AfterEach(func() {
@@ -160,6 +163,7 @@ var _ = Describe("Operators manager", func() {
 				&lso.Operator,
 			}
 
+			//	mockHwValidator.EXPECT().GetOCPRequirementsForVersion(gomock.Any()).Return(gomock.Any()).AnyTimes()
 			results, err := manager.ValidateCluster(context.TODO(), cluster)
 
 			Expect(err).ToNot(HaveOccurred())

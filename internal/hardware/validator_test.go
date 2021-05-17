@@ -87,7 +87,8 @@ var _ = Describe("Disk eligibility", func() {
 		operatorsMock = operators.NewMockAPI(ctrl)
 		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
 
-		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
+		hwvalidator = NewValidator(logrus.New(), cfg)
+		hwvalidator.SetOperator(operatorsMock)
 
 		bigEnoughSize = conversions.GbToBytes(minDiskSizeGb) + 1
 		tooSmallSize = conversions.GbToBytes(minDiskSizeGb) - 1
@@ -187,7 +188,7 @@ var _ = Describe("hardware_validator", func() {
 	BeforeEach(func() {
 		var cfg ValidatorCfg
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
-		hwvalidator = NewValidator(logrus.New(), cfg, nil)
+		hwvalidator = NewValidator(logrus.New(), cfg)
 		id1 := strfmt.UUID(uuid.New().String())
 		id2 := strfmt.UUID(uuid.New().String())
 		id3 := strfmt.UUID(uuid.New().String())
@@ -385,7 +386,8 @@ var _ = Describe("Cluster host requirements", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		operatorsMock = operators.NewMockAPI(ctrl)
 
-		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
+		hwvalidator = NewValidator(logrus.New(), cfg)
+		hwvalidator.SetOperator(operatorsMock)
 	})
 
 	AfterEach(func() {
@@ -608,7 +610,8 @@ var _ = Describe("Preflight host requirements", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		operatorsMock = operators.NewMockAPI(ctrl)
 
-		hwvalidator = NewValidator(logrus.New(), cfg, operatorsMock)
+		hwvalidator = NewValidator(logrus.New(), cfg)
+		hwvalidator.SetOperator(operatorsMock)
 	})
 
 	AfterEach(func() {

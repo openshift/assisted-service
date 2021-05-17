@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -337,6 +338,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		db                *gorm.DB
 		ctrl              *gomock.Controller
 		mockEventsHandler *events.MockHandler
+		mockHwValidator   *hardware.MockValidator
 		mockMetric        *metrics.MockAPI
 	)
 
@@ -345,7 +347,7 @@ var _ = Describe("Cancel cluster installation", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
 	})
 
@@ -409,13 +411,15 @@ var _ = Describe("Reset cluster", func() {
 		db                *gorm.DB
 		ctrl              *gomock.Controller
 		mockEventsHandler *events.MockHandler
+		mockHwValidator   *hardware.MockValidator
 	)
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
 		ctrl = gomock.NewController(GinkgoT())
 		mockEventsHandler = events.NewMockHandler(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, nil, nil, nil, operatorsManager, nil, nil, nil)
 	})
 
@@ -530,6 +534,7 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
 		dbName                                  string
+		mockHwValidator                         *hardware.MockValidator
 		mockS3Api                               *s3wrapper.MockAPI
 	)
 
@@ -551,7 +556,9 @@ var _ = Describe("Refresh Cluster - No DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
@@ -1171,6 +1178,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		cluster                                 common.Cluster
 		clusterApi                              *Manager
 		mockEvents                              *events.MockHandler
+		mockHwValidator                         *hardware.MockValidator
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
@@ -1186,7 +1194,9 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi)
@@ -1460,6 +1470,7 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		clusterApi                              *Manager
 		mockEvents                              *events.MockHandler
 		mockHostAPI                             *host.MockAPI
+		mockHwValidator                         *hardware.MockValidator
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
 		dbName                                  string
@@ -1474,7 +1485,9 @@ var _ = Describe("Refresh Cluster - Advanced networking validations", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
 
@@ -2308,6 +2321,7 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		ctrl                                    *gomock.Controller
 		dbName                                  string
 		mockS3Api                               *s3wrapper.MockAPI
+		mockHwValidator                         *hardware.MockValidator
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -2319,7 +2333,9 @@ var _ = Describe("Refresh Cluster - With DHCP", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
 		mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
@@ -2822,6 +2838,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		operatorsManager                        *operators.Manager
 		ctrl                                    *gomock.Controller
 		dbName                                  string
+		mockHwValidator                         *hardware.MockValidator
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -2838,7 +2855,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		mockS3Api = s3wrapper.NewMockAPI(ctrl)
-		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager = operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, mockS3Api, nil)
 
@@ -3164,16 +3183,17 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 
 var _ = Describe("Log Collection - refresh cluster", func() {
 	var (
-		ctx         = context.Background()
-		db          *gorm.DB
-		clusterId   strfmt.UUID
-		cluster     common.Cluster
-		clusterApi  *Manager
-		mockEvents  *events.MockHandler
-		mockHostAPI *host.MockAPI
-		mockMetric  *metrics.MockAPI
-		ctrl        *gomock.Controller
-		dbName      string
+		ctx             = context.Background()
+		db              *gorm.DB
+		clusterId       strfmt.UUID
+		cluster         common.Cluster
+		clusterApi      *Manager
+		mockEvents      *events.MockHandler
+		mockHostAPI     *host.MockAPI
+		mockMetric      *metrics.MockAPI
+		mockHwValidator *hardware.MockValidator
+		ctrl            *gomock.Controller
+		dbName          string
 	)
 
 	var (
@@ -3205,7 +3225,9 @@ var _ = Describe("Log Collection - refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		clusterApi = NewManager(logTimeoutConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -3335,6 +3357,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
+		mockHwValidator                         *hardware.MockValidator
 		dbName                                  string
 	)
 
@@ -3347,7 +3370,9 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
 		hid1 = strfmt.UUID(uuid.New().String())
@@ -3693,6 +3718,7 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockHostAPI                             *host.MockAPI
 		mockMetric                              *metrics.MockAPI
 		ctrl                                    *gomock.Controller
+		mockHwValidator                         *hardware.MockValidator
 		dbName                                  string
 	)
 
@@ -3705,7 +3731,9 @@ var _ = Describe("NTP refresh cluster", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
 
@@ -4053,6 +4081,7 @@ var _ = Describe("Single node", func() {
 		mockMetric                  *metrics.MockAPI
 		ctrl                        *gomock.Controller
 		dbName                      string
+		mockHwValidator             *hardware.MockValidator
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -4067,7 +4096,9 @@ var _ = Describe("Single node", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockHwValidator)
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
 		hid1 = strfmt.UUID(uuid.New().String())

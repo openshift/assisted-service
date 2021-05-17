@@ -3,6 +3,7 @@ package operators
 import (
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
+	"github.com/openshift/assisted-service/internal/operators/hardware"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
@@ -28,8 +29,8 @@ type Options struct {
 }
 
 // NewManager creates new instance of an Operator Manager
-func NewManager(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, options Options) *Manager {
-	return NewManagerWithOperators(log, manifestAPI, options, lso.NewLSOperator(), ocs.NewOcsOperator(log), cnv.NewCNVOperator(log, options.CNVConfig))
+func NewManager(log logrus.FieldLogger, manifestAPI restapi.ManifestsAPI, options Options, req hardware.RequirementsProvider) *Manager {
+	return NewManagerWithOperators(log, manifestAPI, options, lso.NewLSOperator(), ocs.NewOcsOperator(log, req), cnv.NewCNVOperator(log, options.CNVConfig))
 }
 
 // NewManagerWithOperators creates new instance of an Operator Manager and configures it with given operators

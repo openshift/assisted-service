@@ -1998,7 +1998,8 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		hwValidatorCfg := createValidatorCfg()
 		ctrl = gomock.NewController(GinkgoT())
 		mockOperators := operators.NewMockAPI(ctrl)
-		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators)
+		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg)
+		hwValidator.SetOperator(mockOperators)
 		mockOperators.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
 		hapi = NewManager(
 			common.GetTestLog(),

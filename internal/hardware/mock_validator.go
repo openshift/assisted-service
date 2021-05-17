@@ -8,6 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
+	operators "github.com/openshift/assisted-service/internal/operators"
 	models "github.com/openshift/assisted-service/models"
 	reflect "reflect"
 )
@@ -108,6 +109,21 @@ func (mr *MockValidatorMockRecorder) ListEligibleDisks(inventory interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEligibleDisks", reflect.TypeOf((*MockValidator)(nil).ListEligibleDisks), inventory)
 }
 
+// GetOCPRequirementsForVersion mocks base method
+func (m *MockValidator) GetOCPRequirementsForVersion(cluster *common.Cluster) (*models.VersionedHostRequirements, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetOCPRequirementsForVersion", cluster)
+	ret0, _ := ret[0].(*models.VersionedHostRequirements)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetOCPRequirementsForVersion indicates an expected call of GetOCPRequirementsForVersion
+func (mr *MockValidatorMockRecorder) GetOCPRequirementsForVersion(cluster interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetOCPRequirementsForVersion", reflect.TypeOf((*MockValidator)(nil).GetOCPRequirementsForVersion), cluster)
+}
+
 // GetInstallationDiskSpeedThresholdMs mocks base method
 func (m *MockValidator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
 	m.ctrl.T.Helper()
@@ -151,4 +167,16 @@ func (m *MockValidator) GetDefaultVersionRequirements(singleNode bool) (*models.
 func (mr *MockValidatorMockRecorder) GetDefaultVersionRequirements(singleNode interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultVersionRequirements", reflect.TypeOf((*MockValidator)(nil).GetDefaultVersionRequirements), singleNode)
+}
+
+// SetOperator mocks base method
+func (m *MockValidator) SetOperator(arg0 operators.API) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "SetOperator", arg0)
+}
+
+// SetOperator indicates an expected call of SetOperator
+func (mr *MockValidatorMockRecorder) SetOperator(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetOperator", reflect.TypeOf((*MockValidator)(nil).SetOperator), arg0)
 }

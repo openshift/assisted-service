@@ -3,11 +3,13 @@ package ocs
 import (
 	"context"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo"
 	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
+	"github.com/openshift/assisted-service/internal/operators/hardware"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
@@ -15,7 +17,9 @@ import (
 var _ = Describe("Ocs Operator", func() {
 	var (
 		ctx                 = context.TODO()
-		operator            = NewOcsOperator(common.GetTestLog())
+		ctrl                = gomock.NewController(GinkgoT())
+		mock_requirements   = hardware.NewMockRequirementsProvider(ctrl)
+		operator            = NewOcsOperator(common.GetTestLog(), mock_requirements)
 		masterWithThreeDisk = &models.Host{Role: models.HostRoleMaster,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{

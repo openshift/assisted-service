@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -34,7 +35,10 @@ type resourceInfo struct {
 	missingInventory  bool
 }
 
-func (o *operator) validateRequirements(cluster *models.Cluster) (api.ValidationStatus, string) {
+func (o *operator) validateRequirements(cluster *common.Cluster) (api.ValidationStatus, string) {
+
+	// call OCP req. once https://github.com/openshift/assisted-service/pull/1677 is merged
+	//	o.req.GetOCPRequirementsForVersion(cluster)
 	var status string
 	hosts := cluster.Hosts
 	numAvailableHosts := int64(len(hosts))
@@ -58,7 +62,7 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 	}
 
 	nodesResourceInfo := &resourceInfo{}
-	status, err := o.computeResourcesAllNodes(cluster, nodesResourceInfo)
+	status, err := o.computeResourcesAllNodes(&cluster.Cluster, nodesResourceInfo)
 	if err != nil {
 		if nodesResourceInfo.missingInventory {
 			return api.Pending, status
@@ -74,6 +78,7 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 		o.config.OCSDisksAvailable = nodesResourceInfo.numDisks
 		return api.Success, status
 	}
+
 	return api.Failure, status
 }
 

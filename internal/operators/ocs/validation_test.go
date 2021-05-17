@@ -18,6 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/hardware"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -86,6 +87,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		clusterApi                                    *clust.Manager
 		mockEvents                                    *events.MockHandler
 		mockHostAPI                                   *host.MockAPI
+		mockRequirements                              *hardware.MockRequirementsProvider
 		mockMetric                                    *metrics.MockAPI
 		ctrl                                          *gomock.Controller
 		dbName                                        string
@@ -104,7 +106,8 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		mockEvents = events.NewMockHandler(ctrl)
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
-		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{})
+		mockRequirements = hardware.NewMockRequirementsProvider(ctrl)
+		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, mockRequirements)
 		var cfg clust.Config
 		Expect(envconfig.Process(common.EnvConfigPrefix, &cfg)).ShouldNot(HaveOccurred())
 		clusterApi = clust.NewManager(cfg, common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
