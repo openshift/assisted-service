@@ -10,7 +10,7 @@ DISCONNECTED="${DISCONNECTED:-false}"
 HIVE_IMAGE="${HIVE_IMAGE:-registry.ci.openshift.org/openshift/hive-v4.0:hive}"
 
 function print_help() {
-  ALL_FUNCS="with_olm|from_upstream|install_dependencies|print_help"
+  ALL_FUNCS="with_olm|from_upstream|print_help"
   if [ "${DISCONNECTED}" == "true" ]; then
     echo "Usage: DISCONNECTED=true AUTHFILE=... LOCAL_REGISTRY=... bash ${0} (${ALL_FUNCS})"
   else
@@ -19,15 +19,15 @@ function print_help() {
 }
 
 if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE:-}" ]; then
-    echo "On disconnected mode, you must provide AUTHFILE env-var."
-    print_help
-    exit 1
+  echo "On disconnected mode, you must provide AUTHFILE env-var."
+  print_help
+  exit 1
 fi
 
 if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY:-}" ]; then
-    echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
-    print_help
-    exit 1
+  echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
+  print_help
+  exit 1
 fi
 
 function with_olm() {
@@ -82,23 +82,6 @@ function from_upstream() {
   wait_for_pod "hive-controllers" "hive" "control-plane=controller-manager"
 
   popd
-}
-
-function install_dependencies() {
-  echo "Installing kustomize..."
-  (cd /usr/local/bin && curl -s "https://raw.githubusercontent.com/\
-kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash)
-
-  echo "Installing golang..."
-  curl -L https://storage.googleapis.com/golang/getgo/installer_linux -o /tmp/golang_installer
-  chmod u+x /tmp/golang_installer
-  /tmp/golang_installer
-  rm /tmp/golang_installer
-
-  echo "Activating go command on current shell..."
-  set +u
-  source /root/.bash_profile
-  set -u
 }
 
 declare -F $@ || (print_help && exit 1)
