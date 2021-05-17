@@ -5,6 +5,8 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,21 +20,50 @@ var _ = Describe("StaticNetworkConfig", func() {
 		staticNetworkGenerator = StaticNetworkConfigGenerator{log: logrus.New()}
 	)
 
-	It("hw interface name validation", func() {
-		mac, err := staticNetworkGenerator.validateAndCalculateMAC("09230fd892AA")
+	It("validate mac interface", func() {
+		input := models.MacInterfaceMap{
+			{LogicalNicName: "eth0", MacAddress: "macaddress0"},
+			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
+			{LogicalNicName: "eth2", MacAddress: "macaddress2"},
+		}
+		err := staticNetworkGenerator.validateMacInterfaceName(0, input)
 		Expect(err).ToNot(HaveOccurred())
-		Expect(mac).To(Equal("09:23:0f:d8:92:AA"))
 
-		mac, err = staticNetworkGenerator.validateAndCalculateMAC("09230fd892AA89")
+		input = models.MacInterfaceMap{
+			{LogicalNicName: "eth0", MacAddress: "macaddress0"},
+			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
+			{LogicalNicName: "eth0", MacAddress: "macaddress2"},
+		}
+		err = staticNetworkGenerator.validateMacInterfaceName(0, input)
 		Expect(err).To(HaveOccurred())
-		Expect(mac).To(Equal(""))
 
-		mac, err = staticNetworkGenerator.validateAndCalculateMAC("09230Gd892AA")
+		input = models.MacInterfaceMap{
+			{LogicalNicName: "eth0", MacAddress: "macaddress0"},
+			{LogicalNicName: "eth1", MacAddress: "macaddress1"},
+			{LogicalNicName: "eth2", MacAddress: "macaddress0"},
+		}
+		err = staticNetworkGenerator.validateMacInterfaceName(0, input)
 		Expect(err).To(HaveOccurred())
-		Expect(mac).To(Equal(""))
+	})
 
-		mac, err = staticNetworkGenerator.validateAndCalculateMAC("09230d892AA")
-		Expect(err).To(HaveOccurred())
-		Expect(mac).To(Equal(""))
+	It("check formating static network for DB", func() {
+		map1 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
+		}
+		map2 := models.MacInterfaceMap{
+			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
+		}
+		staticNetworkConfig := []*models.HostStaticNetworkConfig{
+			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
+			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
+		}
+		expectedOutput := staticNetworkConfig[0].NetworkYaml + hostStaticNetworkDelimeter + "mac10=nic10" + staticNetworkConfigHostsDelimeter + staticNetworkConfig[1].NetworkYaml + hostStaticNetworkDelimeter + "mac20=nic20"
+		formattedOutput := staticNetworkGenerator.FormatStaticNetworkConfigForDB(staticNetworkConfig)
+		Expect(formattedOutput).To(Equal(expectedOutput))
+	})
+
+	It("check empty formating static network for DB", func() {
+		formattedOutput := staticNetworkGenerator.FormatStaticNetworkConfigForDB(nil)
+		Expect(formattedOutput).To(Equal(""))
 	})
 })

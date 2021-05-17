@@ -6,6 +6,7 @@ package staticnetworkconfig
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	models "github.com/openshift/assisted-service/models"
 	reflect "reflect"
 )
 
@@ -45,4 +46,32 @@ func (m *MockStaticNetworkConfig) GenerateStaticNetworkConfigData(hostsYAMLS str
 func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigData(hostsYAMLS interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateStaticNetworkConfigData", reflect.TypeOf((*MockStaticNetworkConfig)(nil).GenerateStaticNetworkConfigData), hostsYAMLS)
+}
+
+// FormatStaticNetworkConfigForDB mocks base method
+func (m *MockStaticNetworkConfig) FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "FormatStaticNetworkConfigForDB", staticNetworkConfig)
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// FormatStaticNetworkConfigForDB indicates an expected call of FormatStaticNetworkConfigForDB
+func (mr *MockStaticNetworkConfigMockRecorder) FormatStaticNetworkConfigForDB(staticNetworkConfig interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatStaticNetworkConfigForDB", reflect.TypeOf((*MockStaticNetworkConfig)(nil).FormatStaticNetworkConfigForDB), staticNetworkConfig)
+}
+
+// ValidateStaticConfigParams mocks base method
+func (m *MockStaticNetworkConfig) ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateStaticConfigParams", staticNetworkConfig)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateStaticConfigParams indicates an expected call of ValidateStaticConfigParams
+func (mr *MockStaticNetworkConfigMockRecorder) ValidateStaticConfigParams(staticNetworkConfig interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateStaticConfigParams", reflect.TypeOf((*MockStaticNetworkConfig)(nil).ValidateStaticConfigParams), staticNetworkConfig)
 }

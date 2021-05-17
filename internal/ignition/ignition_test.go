@@ -990,16 +990,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	Context("static network config", func() {
-		map1 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac10", LogicalNicName: "nic10"},
-		}
-		map2 := models.MacInterfaceMap{
-			&models.MacInterfaceMapItems0{MacAddress: "mac20", LogicalNicName: "nic20"},
-		}
-		staticNetworkConfig := []*models.HostStaticNetworkConfig{
-			common.FormatStaticConfigHostYAML("nic10", "02000048ba38", "192.168.126.30", "192.168.141.30", "192.168.126.1", map1),
-			common.FormatStaticConfigHostYAML("nic20", "02000048ba48", "192.168.126.31", "192.168.141.31", "192.168.126.1", map2),
-		}
+		formattedInput := "some formated input"
 		staticnetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
 			{
 				FilePath:     "nic10.nmconnection",
@@ -1016,7 +1007,6 @@ var _ = Describe("IgnitionBuilder", func() {
 		}
 
 		It("produces a valid ignition v3.1 spec with static ips paramters", func() {
-			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			cluster.ImageInfo.StaticNetworkConfig = formattedInput
 			cluster.ImageInfo.Type = models.ImageTypeFullIso
@@ -1035,7 +1025,6 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(count).Should(Equal(4))
 		})
 		It("Doesn't include static network config for minimal isos", func() {
-			formattedInput := staticnetworkconfig.FormatStaticNetworkConfigForDB(staticNetworkConfig)
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
 			cluster.ImageInfo.StaticNetworkConfig = formattedInput
 			cluster.ImageInfo.Type = models.ImageTypeMinimalIso

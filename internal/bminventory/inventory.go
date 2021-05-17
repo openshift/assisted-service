@@ -156,6 +156,7 @@ type bareMetalInventory struct {
 	IgnitionBuilder      ignition.IgnitionBuilder
 	hwValidator          hardware.Validator
 	installConfigBuilder installcfg.InstallConfigBuilder
+	staticNetworkConfig  staticnetworkconfig.StaticNetworkConfig
 }
 
 func NewBareMetalInventory(
@@ -182,6 +183,7 @@ func NewBareMetalInventory(
 	hwValidator hardware.Validator,
 	dnsApi dns.DNSApi,
 	installConfigBuilder installcfg.InstallConfigBuilder,
+	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -207,6 +209,7 @@ func NewBareMetalInventory(
 		IgnitionBuilder:      IgnitionBuilder,
 		hwValidator:          hwValidator,
 		installConfigBuilder: installConfigBuilder,
+		staticNetworkConfig:  staticNetworkConfig,
 	}
 }
 
@@ -851,6 +854,13 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		}
 	}
 
+	if params.ImageCreateParams.StaticNetworkConfig != nil {
+		if err := b.staticNetworkConfig.ValidateStaticConfigParams(params.ImageCreateParams.StaticNetworkConfig); err != nil {
+			log.Error(err)
+			return nil, common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	// set the default value for REST API case, in case it was not provided in the request
 	if params.ImageCreateParams.ImageType == "" {
 		params.ImageCreateParams.ImageType = models.ImageType(b.Config.ISOImageType)
@@ -911,7 +921,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
-	staticNetworkConfig := staticnetworkconfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
+	staticNetworkConfig := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
 
 	var imageExists bool
 	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
