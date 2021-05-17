@@ -98,6 +98,17 @@ function generate_manifests() {
     cp ${controller_crd_path}/resources.yaml ${BUILD_FOLDER}/resources.yaml
 }
 
+function generate_bundle() {
+    ENABLE_KUBE_API=true generate_manifests
+    operator-sdk generate kustomize manifests --apis-dir internal/controller/api -q
+    # TODO(djzager) use this line to pin images in the future
+    # cd config/manager && kustomize edit set image controller=${SERVICE}
+    kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --output-dir ${BUNDLE_OUTPUT_DIR} ${BUNDLE_METADATA_OPTS}
+    # TODO(djzager) structure config/rbac in such a way to avoid need for this
+    rm ${BUNDLE_OUTPUT_DIR}/manifests/assisted-service_v1_serviceaccount.yaml
+    operator-sdk bundle validate ${BUNDLE_OUTPUT_DIR}
+}
+
 function generate_all() {
     generate_from_swagger
     generate_mocks
