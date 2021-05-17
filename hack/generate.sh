@@ -132,7 +132,7 @@ function generate_all() {
     generate_from_swagger
     generate_mocks
     generate_configuration
-    ENABLE_KUBE_API=true generate_manifests
+    generate_bundle
 }
 
 function print_help() {
