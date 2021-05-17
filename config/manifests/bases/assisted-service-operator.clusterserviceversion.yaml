@@ -5,6 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Basic Install
     categories: OpenShift Optional
+    createdAt: ""
     description: Assisted Service is used to orchestrate baremetal OpenShift installations.
     olm.skipRange: '>=0.0.0 <0.0.4'
     operatorframework.io/suggested-namespace: assisted-installer
