@@ -960,7 +960,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      host.ID.String(),
 		}
 
-		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key)}
+		image := &bmhv1alpha1.Image{URL: "http://buzz.lightyear.io/discovery-image.iso"}
+		bmhSpec := bmhv1alpha1.BareMetalHostSpec{BootMACAddress: getAgentMac(ctx, kubeClient, key), Image: image}
 		deployBMHCRD(ctx, kubeClient, host.ID.String(), &bmhSpec)
 
 		installerArgs := `["--append-karg", "ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none", "--save-partindex", "1", "-n"]`
