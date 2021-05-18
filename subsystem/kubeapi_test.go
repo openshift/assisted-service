@@ -459,7 +459,16 @@ func cleanUP(ctx context.Context, client k8sclient.Client) {
 		Type: corev1.SecretTypeDockerConfigJson,
 	}
 	Expect(client.Delete(ctx, ps)).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &hiveext.AgentClusterInstall{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+}
+
+func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
+	By("Verify AgentClusterInstall Cleanup")
+	Eventually(func() int {
+		aciList := &hiveext.AgentClusterInstallList{}
+		err := client.List(ctx, aciList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(aciList.Items)
+	}, "2m", "2s").Should(Equal(0))
 }
 
 func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
@@ -481,6 +490,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	AfterEach(func() {
 		cleanUP(ctx, kubeClient)
+		verifyCleanUP(ctx, kubeClient)
 		clearDB()
 	})
 
@@ -1525,6 +1535,35 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// Create ClusterImageSet
 		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.SyncedOkReason)
+	})
+
+	It("Delete clusterDeployment and validate deletion of ACI", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultSNOAgentClusterInstallSpec()
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterAgentCLusterInstallName,
+		}
+		Eventually(func() bool {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.ObjectMeta.OwnerReferences != nil
+		}, "30s", "10s").Should(Equal(true))
+
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKey)
+		Expect(kubeClient.Delete(ctx, clusterDeploymentCRD)).ShouldNot(HaveOccurred())
+
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
 	})
 
 	It("deploy agentClusterInstall with manifest reference with bad manifest and then fixing it ", func() {

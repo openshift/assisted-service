@@ -77,7 +77,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterName string) hiveext.AgentClust
 	}
 }
 
-func newAgentClusterInstall(name, namespace string, spec hiveext.AgentClusterInstallSpec) *hiveext.AgentClusterInstall {
+func newAgentClusterInstall(name, namespace string, spec hiveext.AgentClusterInstallSpec, cd *hivev1.ClusterDeployment) *hiveext.AgentClusterInstall {
 	return &hiveext.AgentClusterInstall{
 		Spec: spec,
 		TypeMeta: metav1.TypeMeta{
@@ -87,6 +87,13 @@ func newAgentClusterInstall(name, namespace string, spec hiveext.AgentClusterIns
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
 			Namespace: namespace,
+			OwnerReferences: []metav1.OwnerReference{{
+				APIVersion:         cd.APIVersion,
+				Kind:               cd.Kind,
+				Name:               cd.Name,
+				UID:                cd.UID,
+				BlockOwnerDeletion: swag.Bool(true),
+			}},
 		},
 	}
 }
@@ -261,7 +268,7 @@ var _ = Describe("cluster reconcile", func() {
 
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 				validateCreation(cluster)
 			})
@@ -277,7 +284,7 @@ var _ = Describe("cluster reconcile", func() {
 					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName))
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 				validateCreation(cluster)
@@ -294,7 +301,7 @@ var _ = Describe("cluster reconcile", func() {
 				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 				aci.Spec.ProvisionRequirements.WorkerAgents = 0
 				aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
@@ -312,7 +319,7 @@ var _ = Describe("cluster reconcile", func() {
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName))
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 			request := newClusterDeploymentRequest(cluster)
@@ -352,12 +359,45 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(result).Should(Equal(ctrl.Result{}))
 	})
 
+	It("validate owner reference creation", func() {
+		sId := strfmt.UUID(uuid.New().String())
+		backEndCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID: &sId,
+			},
+		}
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		aci.ObjectMeta.OwnerReferences = nil
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+		_, err := cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		clusterInstall := &hiveext.AgentClusterInstall{}
+		agentClusterInstallKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      agentClusterInstallName,
+		}
+		ownref := metav1.OwnerReference{
+			APIVersion: cluster.APIVersion,
+			Kind:       cluster.Kind,
+			Name:       cluster.Name,
+			UID:        cluster.UID,
+		}
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
+		Expect(clusterInstall.ObjectMeta.OwnerReferences).NotTo(BeNil())
+		Expect(clusterInstall.ObjectMeta.OwnerReferences[0]).To(Equal(ownref))
+	})
+
 	It("failed to get cluster from backend", func() {
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 		cluster.Status = hivev1.ClusterDeploymentStatus{}
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 		expectedErr := "expected-error"
@@ -448,7 +488,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			cluster = newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 			request = newClusterDeploymentRequest(cluster)
@@ -475,7 +515,7 @@ var _ = Describe("cluster reconcile", func() {
 			id := uuid.New()
 			sId = strfmt.UUID(id.String())
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
-			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 			backEndCluster = &common.Cluster{
 				Cluster: models.Cluster{
@@ -1094,7 +1134,7 @@ var _ = Describe("cluster reconcile", func() {
 			getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName))
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName))
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
 		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 		request := newClusterDeploymentRequest(cluster)
@@ -1120,7 +1160,7 @@ var _ = Describe("cluster reconcile", func() {
 
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			aci = newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 		})
 
@@ -1404,7 +1444,7 @@ var _ = Describe("cluster reconcile", func() {
 			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
 
-			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec)
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
 			sshPublicKeySuffixSpace := fmt.Sprintf("%s ", defaultAgentClusterInstallSpec.SSHPublicKey)
 			aci.Spec.SSHPublicKey = sshPublicKeySuffixSpace
 			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
@@ -1452,7 +1492,7 @@ var _ = Describe("TestConditions", func() {
 		}
 		clusterDeployment := newClusterDeployment(clusterKey.Name, clusterKey.Namespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", agentClusterInstallKey.Name, "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		aci := newAgentClusterInstall(agentClusterInstallKey.Name, agentClusterInstallKey.Namespace, getDefaultAgentClusterInstallSpec(clusterKey.Name))
+		aci := newAgentClusterInstall(agentClusterInstallKey.Name, agentClusterInstallKey.Namespace, getDefaultAgentClusterInstallSpec(clusterKey.Name), clusterDeployment)
 		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 		clusterRequest = newClusterDeploymentRequest(clusterDeployment)
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
