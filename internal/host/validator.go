@@ -14,6 +14,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
@@ -949,5 +950,85 @@ func (v *validator) printDefaultRoute(c *validationContext, status ValidationSta
 		return "Missing default routing information."
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func isNonePlatformMultiNodeInstallation(c *validationContext) bool {
+	return swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster)
+}
+
+func domainNameToResolve(c *validationContext, name string) string {
+	return fmt.Sprintf("%s.%s.%s", name, c.cluster.Name, c.cluster.BaseDNSDomain)
+}
+
+func (v *validator) isAPIDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+	if !isNonePlatformMultiNodeInstallation(c) {
+		return ValidationSuccess
+	}
+	apiDomainName := domainNameToResolve(c, constants.APIName)
+	return checkDomainNameResolution(c, apiDomainName)
+}
+
+func (v *validator) printIsAPIDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
+	apiDomainName := domainNameToResolve(c, constants.APIName)
+	return printIsDomainNameResolvedCorrectly(c, status, apiDomainName)
+}
+
+func (v *validator) isAPIInternalDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+	if !isNonePlatformMultiNodeInstallation(c) {
+		return ValidationSuccess
+	}
+	apiInternalDomainName := domainNameToResolve(c, constants.APIInternalName)
+	return checkDomainNameResolution(c, apiInternalDomainName)
+}
+
+func (v *validator) printIsAPIInternalDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
+	apiInternalDomainName := domainNameToResolve(c, constants.APIInternalName)
+	return printIsDomainNameResolvedCorrectly(c, status, apiInternalDomainName)
+}
+
+func (v *validator) isAppsDomainNameResolvedCorrectly(c *validationContext) ValidationStatus {
+	if !isNonePlatformMultiNodeInstallation(c) {
+		return ValidationSuccess
+	}
+	appsDomainName := fmt.Sprintf("%s.apps.%s.%s", constants.AppsSubDomainNameHostDNSValidation, c.cluster.Name, c.cluster.BaseDNSDomain)
+	return checkDomainNameResolution(c, appsDomainName)
+}
+
+func (v *validator) printIsAppsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus) string {
+	appsDomainName := domainNameToResolve(c, "*.apps")
+	return printIsDomainNameResolvedCorrectly(c, status, appsDomainName)
+}
+
+func checkDomainNameResolution(c *validationContext, domainName string) ValidationStatus {
+	var response *models.DomainResolutionResponse
+
+	if err := json.Unmarshal([]byte(c.host.DomainNameResolutions), &response); err != nil {
+		return ValidationError
+	}
+
+	for _, domain := range response.Resolutions {
+		if domain.DomainName != nil && *domain.DomainName == domainName {
+			if len(domain.IPV4Addresses) != 0 || len(domain.IPV6Addresses) != 0 {
+				return ValidationSuccess
+			}
+		}
+	}
+	return ValidationFailure
+}
+
+func printIsDomainNameResolvedCorrectly(c *validationContext, status ValidationStatus, domainName string) string {
+	switch status {
+	case ValidationSuccess:
+		if !swag.BoolValue(c.cluster.UserManagedNetworking) {
+			return "Domain name resolution is not required (managed networking)"
+		}
+		return fmt.Sprintf("Domain name resolution was successful for domain %s", domainName)
+	case ValidationFailure:
+		return fmt.Sprintf("Failed to resolve domain name %s correctly on the host. Expected name to resolve to something. The installation will not be able to complete as long as the DNS resolution is empty. Please create the necessary DNS entries to continue.", domainName)
+	case ValidationError:
+		return "Parse error for domain name resolutions result"
+	default:
+		return "Unexpected status"
 	}
 }

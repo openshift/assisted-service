@@ -2,9 +2,12 @@ package common
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 
+	"github.com/go-openapi/strfmt"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
@@ -24,8 +27,10 @@ type TestConfiguration struct {
 	StatusInfo        string
 	HostProgressStage models.HostStage
 
-	Disks     *models.Disk
-	ImageName string
+	Disks         *models.Disk
+	ImageName     string
+	ClusterName   string
+	BaseDNSDomain string
 
 	MonitoredOperator models.MonitoredOperator
 }
@@ -71,6 +76,10 @@ var TestDefaultConfig = &TestConfiguration{
 
 	ImageName: "image",
 
+	ClusterName: "test",
+
+	BaseDNSDomain: "example.com",
+
 	MonitoredOperator: models.MonitoredOperator{
 		Name:         "dummy",
 		OperatorType: models.OperatorTypeBuiltin,
@@ -90,6 +99,30 @@ var TestImageStatusesFailure = &models.ContainerImageAvailability{
 	Name:   TestDefaultConfig.ImageName,
 	Result: models.ContainerImageAvailabilityResultFailure,
 }
+
+var DomainAPI = "api.test.example.com"
+var DomainAPIInternal = "api-int.test.example.com"
+var DomainApps = fmt.Sprintf("%s.apps.test.example.com", constants.AppsSubDomainNameHostDNSValidation)
+
+var DomainResolution = []*models.DomainResolutionResponseDomain{
+	{
+		DomainName:    &DomainAPI,
+		IPV4Addresses: []strfmt.IPv4{"1.2.3.4/24"},
+		IPV6Addresses: []strfmt.IPv6{"1001:db8::10/120"},
+	},
+	{
+		DomainName:    &DomainAPIInternal,
+		IPV4Addresses: []strfmt.IPv4{"4.5.6.7/24"},
+		IPV6Addresses: []strfmt.IPv6{"1002:db8::10/120"},
+	},
+	{
+		DomainName:    &DomainApps,
+		IPV4Addresses: []strfmt.IPv4{"7.8.9.10/24"},
+		IPV6Addresses: []strfmt.IPv6{"1003:db8::10/120"},
+	}}
+
+var TestDomainNameResolutionSuccess = &models.DomainResolutionResponse{
+	Resolutions: DomainResolution}
 
 var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "192.168.1.1", Destination: "0.0.0.0"}}
 
@@ -164,6 +197,30 @@ func GenerateTestInventoryWithNetwork(netAddress NetAddress) string {
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Hostname:     netAddress.Hostname,
+		Routes:       TestDefaultRouteConfiguration,
+	}
+	b, err := json.Marshal(inventory)
+	Expect(err).To(Not(HaveOccurred()))
+	return string(b)
+}
+
+func GenerateTestInventoryWithSetNetwork() string {
+	inventory := &models.Inventory{
+		Interfaces: []*models.Interface{
+			{
+				Name: "eth0",
+				IPV4Addresses: []string{
+					"1.2.3.4/24",
+				},
+				IPV6Addresses: []string{
+					"1001:db8::10/120",
+				},
+			},
+		},
+		Disks:        []*models.Disk{{SizeBytes: conversions.GibToBytes(120), DriveType: "HDD"}},
+		CPU:          &models.CPU{Count: 16},
+		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
+		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Routes:       TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(inventory)

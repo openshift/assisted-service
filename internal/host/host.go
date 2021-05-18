@@ -149,6 +149,7 @@ type API interface {
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
 	ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error
 	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
+	UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error
 }
 
 type Manager struct {
@@ -626,6 +627,22 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 
 	m.log.Infof("Updateing ntp source of host %s to %s", h.ID, string(bytes))
 	return db.Model(h).Update("ntp_sources", string(bytes)).Error
+}
+
+func (m *Manager) UpdateDomainNameResolution(ctx context.Context, h *models.Host, domainResolutionResponse models.DomainResolutionResponse, db *gorm.DB) error {
+	response, err := json.Marshal(domainResolutionResponse)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to marshal domain name resolution for host %s", h.ID.String())
+	}
+	if db == nil {
+		db = m.db
+	}
+	if string(response) != h.DomainNameResolutions {
+		if err := db.Model(h).Update("domain_name_resolutions", string(response)).Error; err != nil {
+			return errors.Wrapf(err, "failed to update api_domain_name_resolution to host %s", h.ID.String())
+		}
+	}
+	return nil
 }
 
 func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImageStatus *models.ContainerImageAvailability, db *gorm.DB) error {

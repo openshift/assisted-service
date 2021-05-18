@@ -3245,6 +3245,19 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 	return b.hostApi.SetDiskSpeed(ctx, h, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration, exitCode, nil)
 }
 
+func (b *bareMetalInventory) updateDomainNameResolutionResponse(ctx context.Context, host *models.Host, domainResolutionResponseJson string) error {
+	var domainResolutionResponse models.DomainResolutionResponse
+
+	log := logutil.FromContext(ctx, b.log)
+	log.Debugf("The response for domain name resolution on host %s is: %s", host.ID.String(), domainResolutionResponseJson)
+
+	if err := json.Unmarshal([]byte(domainResolutionResponseJson), &domainResolutionResponse); err != nil {
+		log.WithError(err).Warnf("Json unmarshal domain name resolution of host %s", host.ID.String())
+		return err
+	}
+	return b.hostApi.UpdateDomainNameResolution(ctx, host, domainResolutionResponse, b.db)
+}
+
 func (b *bareMetalInventory) getInstallationDiskSpeedThresholdMs(ctx context.Context, h *models.Host) (int64, error) {
 	cluster, err := common.GetClusterFromDB(b.db, h.ClusterID, common.UseEagerLoading)
 	if err != nil {
@@ -3292,6 +3305,8 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.processImageAvailabilityResponse(ctx, &host, stepReply)
 	case models.StepTypeInstallationDiskSpeedCheck:
 		err = b.processDiskSpeedCheckResponse(ctx, &host, stepReply, 0)
+	case models.StepTypeDomainResolution:
+		err = b.updateDomainNameResolutionResponse(ctx, &host, stepReply)
 	}
 	return err
 }
@@ -3350,6 +3365,8 @@ func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
 		stepReply, err = filterReply(&models.ContainerImageAvailabilityResponse{}, params.Reply.Output)
 	case models.StepTypeInstallationDiskSpeedCheck:
 		stepReply, err = filterReply(&models.DiskSpeedCheckResponse{}, params.Reply.Output)
+	case models.StepTypeDomainResolution:
+		stepReply, err = filterReply(&models.DomainResolutionResponse{}, params.Reply.Output)
 	}
 
 	return stepReply, err

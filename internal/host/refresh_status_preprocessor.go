@@ -235,6 +235,21 @@ func newValidations(v *validator) []validation {
 			condition: v.hasDefaultRoute,
 			formatter: v.printDefaultRoute,
 		},
+		{
+			id:        IsAPIDomainNameResolvedCorrectly,
+			condition: v.isAPIDomainNameResolvedCorrectly,
+			formatter: v.printIsAPIDomainNameResolvedCorrectly,
+		},
+		{
+			id:        IsAPIInternalDomainNameResolvedCorrectly,
+			condition: v.isAPIInternalDomainNameResolvedCorrectly,
+			formatter: v.printIsAPIInternalDomainNameResolvedCorrectly,
+		},
+		{
+			id:        IsAppsDomainNameResolvedCorrectly,
+			condition: v.isAppsDomainNameResolvedCorrectly,
+			formatter: v.printIsAppsDomainNameResolvedCorrectly,
+		},
 	}
 }
 
