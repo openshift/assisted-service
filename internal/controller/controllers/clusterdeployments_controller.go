@@ -160,24 +160,24 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
-		if !clusterDeployment.Spec.Installed {
+		if !isInstalled(clusterDeployment, clusterInstall) {
+			// create secrets and update status
 			err = r.updateClusterMetadata(ctx, clusterDeployment, cluster, clusterInstall)
+			return r.updateStatus(ctx, clusterInstall, cluster, err)
+		} else {
+			// Delete Day1 Cluster
+			err = r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
+				ClusterID: *cluster.ID,
+			})
 			if err != nil {
 				return r.updateStatus(ctx, clusterInstall, cluster, err)
 			}
-		}
-		// Delete Day1 Cluster
-		err = r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
-			ClusterID: *cluster.ID,
-		})
-		if err != nil {
+			if !r.isSNO(clusterInstall) {
+				//Create Day2 cluster
+				return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment, clusterInstall)
+			}
 			return r.updateStatus(ctx, clusterInstall, cluster, err)
 		}
-		if !r.isSNO(clusterInstall) {
-			//Create Day2 cluster
-			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment, clusterInstall)
-		}
-		return r.updateStatus(ctx, clusterInstall, cluster, err)
 	}
 
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
