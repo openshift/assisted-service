@@ -165,7 +165,7 @@ func (h *handler) GetReleaseVersion(openshiftVersion string) (string, error) {
 	}
 
 	if h.openshiftVersions[versionKey].ReleaseVersion == nil {
-		return h.GetOCPSemVer(openshiftVersion)
+		return "", errors.Errorf("Release version was missing for openshift version %s", versionKey)
 	}
 
 	return *h.openshiftVersions[versionKey].ReleaseVersion, nil
@@ -199,15 +199,6 @@ func (h *handler) GetKey(openshiftVersion string) (string, error) {
 	return fmt.Sprintf("%d.%d", v.Segments()[0], v.Segments()[1]), nil
 }
 
-// Returns version in major.minor.patch format
-func (h *handler) GetOCPSemVer(openshiftVersion string) (string, error) {
-	v, err := version.NewVersion(openshiftVersion)
-	if err != nil {
-		return "", err
-	}
-	return fmt.Sprintf("%d.%d.%d", v.Segments()[0], v.Segments()[1], v.Segments()[2]), nil
-}
-
 func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error) {
 	// Check whether ocpReleaseImage already exists in cache
 	for _, v := range h.openshiftVersions {
@@ -219,25 +210,19 @@ func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*mode
 	}
 
 	// Get openshift version from release image metadata (oc adm release info)
-	ocpVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, ocpReleaseImage, h.releaseImageMirror, pullSecret)
+	ocpReleaseVersion, err := h.releaseHandler.GetOpenshiftVersion(h.log, ocpReleaseImage, h.releaseImageMirror, pullSecret)
 	if err != nil {
 		return nil, err
 	}
 
 	// Return if version is not specified in OPENSHIFT_VERSIONS
-	ocpVersionKey, err := h.GetKey(ocpVersion)
+	ocpVersionKey, err := h.GetKey(ocpReleaseVersion)
 	if err != nil {
 		return nil, err
 	}
 	versionFromCache, ok := h.openshiftVersions[ocpVersionKey]
 	if !ok {
 		return nil, errors.Errorf("OCP version is not specified in OPENSHIFT_VERSIONS: %s", ocpVersionKey)
-	}
-
-	// Get version in major.minor.patch format
-	ocpSemVer, err := h.GetOCPSemVer(ocpVersion)
-	if err != nil {
-		return nil, err
 	}
 
 	// Get SupportLevel or default to 'custom'
@@ -249,9 +234,9 @@ func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*mode
 
 	// Create OpenshiftVersion according to fetched data
 	openshiftVersion := &models.OpenshiftVersion{
-		DisplayName:    &ocpVersion,
+		DisplayName:    &ocpReleaseVersion,
 		ReleaseImage:   &ocpReleaseImage,
-		ReleaseVersion: &ocpSemVer,
+		ReleaseVersion: &ocpReleaseVersion,
 		RhcosImage:     versionFromCache.RhcosImage,
 		RhcosVersion:   versionFromCache.RhcosVersion,
 		SupportLevel:   &supportLevel,
@@ -259,7 +244,7 @@ func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*mode
 
 	// Store in map
 	h.openshiftVersions[ocpVersionKey] = *openshiftVersion
-	h.log.Infof("Stored OCP version: %s", ocpSemVer)
+	h.log.Infof("Stored OCP version: %s", ocpReleaseVersion)
 
 	return openshiftVersion, nil
 }
