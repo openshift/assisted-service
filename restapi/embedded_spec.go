@@ -7093,6 +7093,12 @@ func init() {
         "memory": {
           "$ref": "#/definitions/memory"
         },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/route"
+          }
+        },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
         },
@@ -7560,6 +7566,28 @@ func init() {
       ],
       "properties": {
         "url": {
+          "type": "string"
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "description": "The destination network or destination host",
+          "type": "string"
+        },
+        "family": {
+          "description": "Defines whether this is an IPv4 (4) or IPv6 route (6)",
+          "type": "integer",
+          "format": "int32"
+        },
+        "gateway": {
+          "description": "Gateway address where the packets are sent",
+          "type": "string"
+        },
+        "interface": {
+          "description": "Interface to which packets for this route will be sent",
           "type": "string"
         }
       }
@@ -14930,6 +14958,12 @@ func init() {
         "memory": {
           "$ref": "#/definitions/memory"
         },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/route"
+          }
+        },
         "system_vendor": {
           "$ref": "#/definitions/system_vendor"
         },
@@ -15386,6 +15420,28 @@ func init() {
       ],
       "properties": {
         "url": {
+          "type": "string"
+        }
+      }
+    },
+    "route": {
+      "type": "object",
+      "properties": {
+        "destination": {
+          "description": "The destination network or destination host",
+          "type": "string"
+        },
+        "family": {
+          "description": "Defines whether this is an IPv4 (4) or IPv6 route (6)",
+          "type": "integer",
+          "format": "int32"
+        },
+        "gateway": {
+          "description": "Gateway address where the packets are sent",
+          "type": "string"
+        },
+        "interface": {
+          "description": "Interface to which packets for this route will be sent",
           "type": "string"
         }
       }
