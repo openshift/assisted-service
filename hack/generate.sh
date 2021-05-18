@@ -58,8 +58,8 @@ function generate_from_swagger() {
 }
 
 function generate_configuration() {
-    OPENSHIFT_VERSIONS=$(< ${__root}/default_ocp_versions.json tr -d "\n\t ")
-    PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/default_public_container_registries.txt)
+    OPENSHIFT_VERSIONS=$(< ${__root}/data/default_ocp_versions.json tr -d "\n\t ")
+    PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/data/default_public_container_registries.txt)
     HW_VALIDATOR_REQUIREMENTS=$(< ${__root}/data/default_hw_requirements.json tr -d "\n\t ")
 
     sed -i "s|value: '.*' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/openshift/template.yaml

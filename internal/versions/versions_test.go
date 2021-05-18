@@ -109,7 +109,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		readDefaultOpenshiftVersions := func() {
-			bytes, err := ioutil.ReadFile("../../default_ocp_versions.json")
+			bytes, err := ioutil.ReadFile("../../data/default_ocp_versions.json")
 			Expect(err).ShouldNot(HaveOccurred())
 			err = json.Unmarshal(bytes, openshiftVersions)
 			Expect(err).ShouldNot(HaveOccurred())

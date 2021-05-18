@@ -11,7 +11,7 @@ from typing import List
 
 from utils import check_output
 
-OCP_VERSIONS_FILE = "default_ocp_versions.json"
+OCP_VERSIONS_FILE = os.path.join("data", "default_ocp_versions.json")
 
 # 4.8.0-0.nightly SNO require pull secret, this should allow the deployment to skip this validation.
 # This entry disables the validation for that mismatch. Safe to remove this line and all

@@ -72,7 +72,7 @@ IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, True)
 MIRROR_REG_CA_FILE = mirror_ca.crt
 REGISTRIES_FILE_PATH = registries.conf
 MIRROR_REGISTRY_SUPPORT := $(or ${MIRROR_REGISTRY_SUPPORT},False)
-HW_REQUIREMENTS := $(or ${HW_REQUIREMENTS}, $(shell cat data/default_hw_requirements.json | tr -d "\n\t "))
+HW_REQUIREMENTS := $(or ${HW_REQUIREMENTS}, $(shell cat $(ROOT_DIR)/data/default_hw_requirements.json | tr -d "\n\t "))
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 	STORAGE = filesystem
@@ -303,8 +303,8 @@ deploy-ui-on-ocp-cluster:
 create-ocp-manifests:
 	export APPLY_MANIFEST=False && export APPLY_NAMESPACE=False && \
 	export ENABLE_KUBE_API=true && export TARGET=ocp && \
-	export OPENSHIFT_VERSIONS="$(subst ",\", $(shell cat default_ocp_versions.json | tr -d "\n\t "))" && \
-	export HW_REQUIREMENTS="$(subst ",\", $(shell cat data/default_hw_requirements.json | tr -d "\n\t "))" && \
+	export OPENSHIFT_VERSIONS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_ocp_versions.json | tr -d "\n\t "))" && \
+	export HW_REQUIREMENTS="$(subst ",\", $(shell cat $(ROOT_DIR)/data/default_hw_requirements.json | tr -d "\n\t "))" && \
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
 ci-deploy-for-subsystem: _verify_cluster generate-keys
