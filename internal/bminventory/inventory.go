@@ -783,7 +783,7 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 			return errors.New("Failed to generate image: error generating URL")
 		}
 	} else {
-		var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: *cluster.ID}
+		var downloadClusterISOURL = &installer.DownloadClusterISOCloneURL{ClusterID: *cluster.ID}
 		clusterISOURL, err := downloadClusterISOURL.Build()
 		if err != nil {
 			return errors.New("Failed to generate image: error generating cluster ISO URL")
