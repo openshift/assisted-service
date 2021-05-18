@@ -1181,6 +1181,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
+		Skip("MGMT-6469 Day1 cluster recreated after install completed")
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
