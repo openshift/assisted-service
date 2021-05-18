@@ -26,7 +26,8 @@ type Config struct {
 	ServiceCACertPath  string `envconfig:"SERVICE_CA_CERT_PATH" default:""`
 	ServiceIPs         string `envconfig:"SERVICE_IPS" default:""`
 	ReleaseImageMirror string
-	DummyIgnition      bool `envconfig:"DUMMY_IGNITION"`
+	DummyIgnition      bool   `envconfig:"DUMMY_IGNITION"`
+	InstallInvoker     string `envconfig:"INSTALL_INVOKER" default:"assisted-installer"`
 }
 
 type installGenerator struct {
@@ -84,7 +85,7 @@ func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster co
 	if k.Config.DummyIgnition {
 		generator = ignition.NewDummyGenerator(clusterWorkDir, &cluster, k.s3Client, log)
 	} else {
-		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror, k.Config.ServiceCACertPath, k.s3Client, log, k.operatorsApi)
+		generator = ignition.NewGenerator(clusterWorkDir, installerCacheDir, &cluster, releaseImage, k.Config.ReleaseImageMirror, k.Config.ServiceCACertPath, k.Config.InstallInvoker, k.s3Client, log, k.operatorsApi)
 	}
 	err = generator.Generate(ctx, cfg)
 	if err != nil {
