@@ -3806,11 +3806,6 @@ func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.
 		return common.GenerateErrorResponder(err)
 	}
 
-	// abort installation files generation job if running.
-	if err := b.generator.AbortInstallConfig(ctx, *cluster); err != nil {
-		return installer.NewResetClusterInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-	}
-
 	for _, h := range cluster.Hosts {
 		if err := b.hostApi.ResetHost(ctx, h, "cluster was reset by user", tx); err != nil {
 			return common.GenerateErrorResponder(err)

@@ -159,12 +159,6 @@ func mockGetInstallConfigSuccess(mockInstallConfigBuilder *installcfg.MockInstal
 	mockInstallConfigBuilder.EXPECT().GetInstallConfig(gomock.Any(), gomock.Any(), gomock.Any()).Return([]byte("some string"), nil).Times(1)
 }
 
-func mockAbortInstallConfig(mockGenerator *generator.MockISOInstallConfigGenerator) {
-	if mockGenerator != nil {
-		mockGenerator.EXPECT().AbortInstallConfig(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
-	}
-}
-
 var _ = Describe("GenerateClusterISO", func() {
 	var (
 		bm             *bareMetalInventory
@@ -1871,19 +1865,16 @@ var _ = Describe("cluster", func() {
 		mockClusterApi.EXPECT().CancelInstallation(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}
 	setResetClusterSuccess := func() {
-		mockAbortInstallConfig(mockGenerator)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockClusterApi.EXPECT().DeleteClusterFiles(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 		mockHostApi.EXPECT().ResetHost(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	}
 	setResetClusterConflict := func() {
-		mockAbortInstallConfig(mockGenerator)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusConflict, nil)).Times(1)
 	}
 	setResetClusterInternalServerError := func() {
-		mockAbortInstallConfig(mockGenerator)
 		mockS3Client.EXPECT().DeleteObject(gomock.Any(), gomock.Any()).Return(true, nil).AnyTimes()
 		mockClusterApi.EXPECT().ResetCluster(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(common.NewApiError(http.StatusInternalServerError, nil)).Times(1)
 	}

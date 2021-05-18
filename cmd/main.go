@@ -55,7 +55,6 @@ import (
 	dbPkg "github.com/openshift/assisted-service/pkg/db"
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/openshift/assisted-service/pkg/generator"
-	"github.com/openshift/assisted-service/pkg/job"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logconfig "github.com/openshift/assisted-service/pkg/log"
@@ -80,8 +79,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
@@ -102,7 +99,7 @@ var Options struct {
 	BMConfig                    bminventory.Config
 	DBConfig                    dbPkg.Config
 	HWValidatorConfig           hardware.ValidatorCfg
-	JobConfig                   job.Config
+	GeneratorConfig             generator.Config
 	InstructionConfig           hostcommands.InstructionConfig
 	OperatorsConfig             operators.Options
 	GCConfig                    garbagecollector.Config
@@ -136,6 +133,7 @@ var Options struct {
 	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
 	FileSystemUsageThreshold    int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableElasticAPM            bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
+	WorkDir                     string        `envconfig:"WORK_DIR" default:"/data/"`
 }
 
 func InitLogs() *logrus.Entry {
@@ -220,7 +218,7 @@ func main() {
 	Options.InstructionConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 	Options.InstructionConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
-	Options.JobConfig.ReleaseImageMirror = Options.ReleaseImageMirror
+	Options.GeneratorConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
@@ -240,7 +238,7 @@ func main() {
 	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
-		Options.JobConfig.WorkDir, log, versionHandler, isoEditorFactory, metricsManager, Options.FileSystemUsageThreshold)
+		Options.WorkDir, log, versionHandler, isoEditorFactory, metricsManager, Options.FileSystemUsageThreshold)
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
@@ -270,11 +268,6 @@ func main() {
 	failOnError(err, "failed to create pull secret validator")
 
 	log.Println("DeployTarget: " + Options.DeployTarget)
-
-	var newUrl string
-	newUrl, err = s3wrapper.FixEndpointURL(Options.JobConfig.S3EndpointURL)
-	failOnError(err, "failed to create valid job config S3 endpoint URL from %s", Options.JobConfig.S3EndpointURL)
-	Options.JobConfig.S3EndpointURL = newUrl
 
 	var ocpClient k8sclient.K8SClient = nil
 	switch Options.DeployTarget {
@@ -331,11 +324,11 @@ func main() {
 	hostStateMonitor.Start()
 	defer hostStateMonitor.Stop()
 
-	newUrl, err = s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
+	newUrl, err := s3wrapper.FixEndpointURL(Options.BMConfig.S3EndpointURL)
 	failOnError(err, "failed to create valid bm config S3 endpoint URL from %s", Options.BMConfig.S3EndpointURL)
 	Options.BMConfig.S3EndpointURL = newUrl
 
-	generator := newISOInstallConfigGenerator(log, objectHandler, operatorsManager)
+	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, operatorsManager)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
 		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient())
@@ -529,23 +522,6 @@ func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.Op
 	}
 
 	return errs.Wait()
-}
-
-func newISOInstallConfigGenerator(log *logrus.Entry, objectHandler s3wrapper.API, operatorsApi operators.API) generator.ISOInstallConfigGenerator {
-	var configGenerator generator.ISOInstallConfigGenerator
-	switch Options.Storage {
-	case storage_s3:
-		kclient, err := client.New(config.GetConfigOrDie(), client.Options{Scheme: scheme.Scheme})
-		if err != nil {
-			log.WithError(err).Fatalf("failed to create controller-runtime client")
-		}
-		configGenerator = job.New(log.WithField("pkg", "k8s-job-wrapper"), kclient, objectHandler, Options.JobConfig, operatorsApi)
-	case storage_filesystem:
-		configGenerator = job.NewLocalJob(log.WithField("pkg", "local-job-wrapper"), objectHandler, Options.JobConfig, operatorsApi)
-	default:
-		log.Fatalf("not supported deploy target %s", Options.DeployTarget)
-	}
-	return configGenerator
 }
 
 func setupDB(log logrus.FieldLogger) *gorm.DB {
