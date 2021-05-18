@@ -414,6 +414,25 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 	})
 
+	It("create cluster without pull secret reference", func() {
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		cluster.Spec.PullSecretRef = nil
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
+
+		_, err := cr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+
+		aci = getTestClusterInstall()
+
+		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(InputErrorReason))
+		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+	})
+
 	Context("cluster deletion", func() {
 		var (
 			sId     strfmt.UUID

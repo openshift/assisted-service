@@ -2,7 +2,22 @@ package controllers
 
 import (
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/pkg/errors"
 )
+
+type InputError struct {
+	err error
+}
+
+func (i *InputError) Error() string {
+	return i.err.Error()
+}
+
+func newInputError(format string, args ...interface{}) *InputError {
+	return &InputError{
+		err: errors.Errorf(format, args...),
+	}
+}
 
 type KubeAPIError struct {
 	err           error
@@ -44,7 +59,7 @@ func IsHTTPError(err error, httpErrorCode int) bool {
 	}
 }
 
-func IsHTTP4XXError(err error) bool {
+func IsUserError(err error) bool {
 	switch serr := err.(type) {
 	case *common.ApiErrorResponse:
 		if serr.StatusCode() >= 400 && serr.StatusCode() < 500 {
@@ -54,6 +69,8 @@ func IsHTTP4XXError(err error) bool {
 		if serr.StatusCode() >= 400 && serr.StatusCode() < 500 {
 			return true
 		}
+	case *InputError:
+		return true
 	default:
 		return false
 	}

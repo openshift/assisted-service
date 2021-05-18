@@ -149,7 +149,7 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	// check for updates from user, compare spec and update if needed
 	err = r.updateIfNeeded(ctx, agent, cluster)
 	if err != nil {
-		return r.updateStatus(ctx, agent, host, err, !IsHTTP4XXError(err))
+		return r.updateStatus(ctx, agent, host, err, !IsUserError(err))
 	}
 
 	err = r.updateInventory(host, agent)

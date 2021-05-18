@@ -23,11 +23,15 @@ const (
 	mirrorRegistryCertVolume         = "mirror-registry-ca"
 )
 
-func getPullSecret(ctx context.Context, c client.Client, name, namespace string) (string, error) {
+func getPullSecret(ctx context.Context, c client.Client, ref *corev1.LocalObjectReference, namespace string) (string, error) {
+	if ref == nil {
+		return "", newInputError("Missing reference to pull secret")
+	}
+
 	secret := &corev1.Secret{}
 	key := types.NamespacedName{
 		Namespace: namespace,
-		Name:      name,
+		Name:      ref.Name,
 	}
 	if err := c.Get(ctx, key, secret); err != nil {
 		return "", errors.Wrapf(err, "failed to get pull secret %s", key)
@@ -35,7 +39,7 @@ func getPullSecret(ctx context.Context, c client.Client, name, namespace string)
 
 	data, ok := secret.Data[corev1.DockerConfigJsonKey]
 	if !ok {
-		return "", errors.Errorf("secret %s did not contain key %s", name, corev1.DockerConfigJsonKey)
+		return "", errors.Errorf("secret %s did not contain key %s", ref.Name, corev1.DockerConfigJsonKey)
 	}
 
 	return string(data), nil
