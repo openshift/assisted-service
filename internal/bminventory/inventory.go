@@ -49,6 +49,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
+	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -4332,6 +4333,24 @@ func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, param
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetPreflightRequirementsOK().WithPayload(requirements)
+}
+
+func (b *bareMetalInventory) GetHostRequirements(_ context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
+	requirements := b.hwValidator.GetHostRequirements(swag.BoolValue(params.SingleNode))
+	return installer.NewGetHostRequirementsOK().WithPayload(
+		&models.HostRequirements{
+			Master: hostRequirementsRoleFrom(requirements.MasterRequirements),
+			Worker: hostRequirementsRoleFrom(requirements.WorkerRequirements),
+		})
+}
+
+func hostRequirementsRoleFrom(requirements *models.ClusterHostRequirementsDetails) *models.HostRequirementsRole {
+	return &models.HostRequirementsRole{
+		CPUCores:                         requirements.CPUCores,
+		DiskSizeGb:                       requirements.DiskSizeGb,
+		InstallationDiskSpeedThresholdMs: requirements.InstallationDiskSpeedThresholdMs,
+		RAMGib:                           conversions.MibToGiB(requirements.RAMMib),
+	}
 }
 
 /*

@@ -491,6 +491,11 @@ var _ = Describe("authz", func() {
 			apiCall:      listSupportedOpenshiftVersions,
 		},
 		{
+			name:         "get host requirements",
+			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.ReadOnlyAdminRole, ocm.UserRole},
+			apiCall:      getHostRequirements,
+		},
+		{
 			name:         "register add hosts cluster",
 			allowedRoles: []ocm.RoleType{ocm.AdminRole, ocm.UserRole},
 			apiCall:      registerAddHostsCluster,
@@ -977,6 +982,13 @@ func listSupportedOpenshiftVersions(ctx context.Context, cli *client.AssistedIns
 	_, err := cli.Versions.ListSupportedOpenshiftVersions(
 		ctx,
 		&versions.ListSupportedOpenshiftVersionsParams{})
+	return err
+}
+
+func getHostRequirements(ctx context.Context, cli *client.AssistedInstall) error {
+	_, err := cli.Installer.GetHostRequirements(
+		ctx,
+		&installer.GetHostRequirementsParams{})
 	return err
 }
 
