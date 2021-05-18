@@ -2401,11 +2401,9 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
+	// we need to fetch Hosts association to allow AfterFind hook to run
 	for _, c := range dbClusters {
-		for _, h := range c.Hosts {
-			// Clear this field as it is not needed to be sent via API
-			h.FreeAddresses = ""
-		}
+		c.Hosts = []*models.Host{}
 		clusters = append(clusters, &c.Cluster)
 	}
 	return installer.NewListClustersOK().WithPayload(clusters)

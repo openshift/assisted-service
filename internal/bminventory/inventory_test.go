@@ -4443,7 +4443,7 @@ var _ = Describe("List clusters", func() {
 		Expect(payload[0].TotalHostCount).Should(Equal(int64(1)))
 		Expect(payload[0].EnabledHostCount).Should(Equal(int64(1)))
 		Expect(payload[0].ReadyHostCount).Should(Equal(int64(1)))
-		Expect(payload[0].Hosts[0].ID.String()).Should(Equal(hostID.String()))
+		Expect(len(payload[0].Hosts)).Should(Equal(0))
 	})
 
 	It("List unregistered clusters failure - cluster was permanently deleted", func() {
