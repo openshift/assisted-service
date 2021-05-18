@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/alessio/shellescape"
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
@@ -293,10 +294,11 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []
 			return installerArgs, err
 		}
 		for _, nic := range inventory.Interfaces {
-			installerArgs, err = appendDHCPPerNIC(network, nic, ipv6, installerArgs)
+			dhcpArgs, err := getDHCPArgPerNIC(network, nic, ipv6, host.ID, log)
 			if err != nil {
 				return installerArgs, err
 			}
+			installerArgs = append(installerArgs, dhcpArgs...)
 		}
 		return installerArgs, nil
 	}
@@ -312,7 +314,8 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []
 	return installerArgs, nil
 }
 
-func appendDHCPPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, args []string) ([]string, error) {
+func getDHCPArgPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, hostID *strfmt.UUID, log logrus.FieldLogger) ([]string, error) {
+	args := make([]string, 0)
 	var addresses []string
 	var dhcp string
 	if ipv6 {
@@ -327,6 +330,7 @@ func appendDHCPPerNIC(network *net.IPNet, nic *models.Interface, ipv6 bool, args
 		return nil, err
 	}
 	if found {
+		log.Debugf("Host %s: Added kernel argument ip=%s:%s", hostID, nic.Name, dhcp)
 		return append(args, "--append-karg", fmt.Sprintf("ip=%s:%s", nic.Name, dhcp)), nil
 	}
 	return args, nil
