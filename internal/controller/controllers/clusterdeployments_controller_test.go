@@ -540,7 +540,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			password := "test"
 			username := "admin"
 			kubeconfig := "kubeconfig content"
@@ -573,6 +573,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(string(secretAdmin.Data["username"])).To(Equal(username))
 			secretKubeConfig := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
 			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfig))
+
+			By("Call reconcile again to test delete of day1 cluster")
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
 		It("installed SNO no day2", func() {
@@ -581,7 +586,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.StatusInfo = swag.String("Done")
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			password := "test"
 			username := "admin"
 			kubeconfig := "kubeconfig content"
@@ -615,6 +620,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(string(secretAdmin.Data["username"])).To(Equal(username))
 			secretKubeConfig := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
 			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfig))
+
+			By("Call reconcile again to test delete of day1 cluster")
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
 		It("Fail to delete day1", func() {
@@ -623,18 +633,15 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-			password := "test"
-			username := "admin"
-			kubeconfig := "kubeconig content"
-			cred := &models.Credentials{
-				Password: password,
-				Username: username,
-			}
-
 			expectedError := errors.New("internal error")
-			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(expectedError).Times(1)
+			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
+				Type:    ClusterCompletedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  InstalledReason,
+				Message: InstalledMsg,
+			})
+			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -655,20 +662,17 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.OpenshiftClusterID = openshiftID
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-			password := "test"
-			username := "admin"
-			kubeconfig := "kubeconfig content"
-			cred := &models.Credentials{
-				Password: password,
-				Username: username,
-			}
-
 			expectedErr := "internal error"
-			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New(expectedErr))
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
+			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
+				Type:    ClusterCompletedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  InstalledReason,
+				Message: InstalledMsg,
+			})
+			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
