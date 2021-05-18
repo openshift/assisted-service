@@ -283,9 +283,9 @@ var _ = Describe("Transition tests", func() {
 
 				if t.updateSuccessfullyFinished {
 					if t.updateAMSSubscription && t.updateAMSSubscriptionSuccess {
-						mockAccountsMgmt.EXPECT().UpdateSubscriptionPostInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+						mockAccountsMgmt.EXPECT().UpdateSubscriptionStatusActive(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 					} else {
-						mockAccountsMgmt.EXPECT().UpdateSubscriptionPostInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
+						mockAccountsMgmt.EXPECT().UpdateSubscriptionStatusActive(gomock.Any(), gomock.Any()).Return(errors.New("error")).Times(1)
 					}
 				}
 

@@ -531,13 +531,19 @@ func completeInstallationAndVerify(ctx context.Context, client *client.AssistedI
 	waitForClusterState(ctx, clusterID, expectedStatus, defaultWaitForClusterStateTimeout, IgnoreStateInfo)
 }
 
-func setClusterAsFinalizing(ctx context.Context, clusterID strfmt.UUID) {
+func setClusterAsInstalling(ctx context.Context, clusterID strfmt.UUID) {
 	c := installCluster(clusterID)
 	Expect(swag.StringValue(c.Status)).Should(Equal("installing"))
 	Expect(swag.StringValue(c.StatusInfo)).Should(Equal("Installation in progress"))
+
 	for _, host := range c.Hosts {
 		Expect(swag.StringValue(host.Status)).Should(Equal("installing"))
 	}
+}
+
+func setClusterAsFinalizing(ctx context.Context, clusterID strfmt.UUID) {
+	setClusterAsInstalling(ctx, clusterID)
+	c := getCluster(clusterID)
 
 	for _, host := range c.Hosts {
 		updateProgress(*host.ID, clusterID, models.HostStageDone)

@@ -107,16 +107,30 @@ func (mr *MockOCMAccountsMgmtMockRecorder) UpdateSubscriptionDisplayName(arg0, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscriptionDisplayName", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).UpdateSubscriptionDisplayName), arg0, arg1, arg2)
 }
 
-// UpdateSubscriptionPostInstallation mocks base method
-func (m *MockOCMAccountsMgmt) UpdateSubscriptionPostInstallation(arg0 context.Context, arg1, arg2 strfmt.UUID) error {
+// UpdateSubscriptionOpenshiftClusterID mocks base method
+func (m *MockOCMAccountsMgmt) UpdateSubscriptionOpenshiftClusterID(arg0 context.Context, arg1, arg2 strfmt.UUID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateSubscriptionPostInstallation", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "UpdateSubscriptionOpenshiftClusterID", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// UpdateSubscriptionPostInstallation indicates an expected call of UpdateSubscriptionPostInstallation
-func (mr *MockOCMAccountsMgmtMockRecorder) UpdateSubscriptionPostInstallation(arg0, arg1, arg2 interface{}) *gomock.Call {
+// UpdateSubscriptionOpenshiftClusterID indicates an expected call of UpdateSubscriptionOpenshiftClusterID
+func (mr *MockOCMAccountsMgmtMockRecorder) UpdateSubscriptionOpenshiftClusterID(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscriptionPostInstallation", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).UpdateSubscriptionPostInstallation), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscriptionOpenshiftClusterID", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).UpdateSubscriptionOpenshiftClusterID), arg0, arg1, arg2)
+}
+
+// UpdateSubscriptionStatusActive mocks base method
+func (m *MockOCMAccountsMgmt) UpdateSubscriptionStatusActive(arg0 context.Context, arg1 strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateSubscriptionStatusActive", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateSubscriptionStatusActive indicates an expected call of UpdateSubscriptionStatusActive
+func (mr *MockOCMAccountsMgmtMockRecorder) UpdateSubscriptionStatusActive(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateSubscriptionStatusActive", reflect.TypeOf((*MockOCMAccountsMgmt)(nil).UpdateSubscriptionStatusActive), arg0, arg1)
 }

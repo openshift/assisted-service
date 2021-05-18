@@ -1120,13 +1120,13 @@ func (b *bareMetalInventory) refreshAllHosts(ctx context.Context, cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, clusterID string) error {
+func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, clusterID string) (string, error) {
 	log := logutil.FromContext(ctx, b.log)
 	log.Debug("Downloading bootstrap ignition file")
 	reader, _, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", clusterID, "bootstrap.ign"))
 	if err != nil {
 		log.WithError(err).Error("Failed downloading bootstrap ignition file")
-		return err
+		return "", err
 	}
 
 	var openshiftClusterID string
@@ -1134,7 +1134,7 @@ func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, cluste
 	openshiftClusterID, err = ignition.ExtractClusterID(reader)
 	if err != nil {
 		log.WithError(err).Error("Failed extracting Openshift cluster ID from ignition file")
-		return err
+		return "", err
 	}
 	log.Debugf("Got OpenShift cluster ID of %s", openshiftClusterID)
 
@@ -1142,10 +1142,10 @@ func (b *bareMetalInventory) storeOpenshiftClusterID(ctx context.Context, cluste
 	if err = b.db.Model(&common.Cluster{}).Where("id = ?", clusterID).Update(
 		"openshift_cluster_id", openshiftClusterID).Error; err != nil {
 		log.WithError(err).Errorf("Failed storing Openshift cluster ID of cluster %s to DB", clusterID)
-		return err
+		return "", err
 	}
 
-	return nil
+	return openshiftClusterID, nil
 }
 
 func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installer.InstallClusterParams) middleware.Responder {
@@ -1154,6 +1154,16 @@ func (b *bareMetalInventory) InstallCluster(ctx context.Context, params installe
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewInstallClusterAccepted().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) integrateWithAMSClusterPreInstallation(ctx context.Context, amsSubscriptionID, openshiftClusterID strfmt.UUID) error {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("Updating AMS subscription %s with openshift cluster ID %s", amsSubscriptionID, openshiftClusterID)
+	if err := b.ocmClient.AccountsMgmt.UpdateSubscriptionOpenshiftClusterID(ctx, amsSubscriptionID, openshiftClusterID); err != nil {
+		log.WithError(err).Errorf("Failed to update AMS subscription with openshift cluster ID %s", openshiftClusterID)
+		return err
+	}
+	return nil
 }
 
 func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error) {
@@ -1246,7 +1256,17 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 		log.Infof("generated ignition for cluster %s", cluster.ID.String())
 
 		log.Infof("Storing OpenShift cluster ID of cluster %s to DB", cluster.ID.String())
-		err = b.storeOpenshiftClusterID(ctx, cluster.ID.String())
+		var openshiftClusterID string
+		if openshiftClusterID, err = b.storeOpenshiftClusterID(ctx, cluster.ID.String()); err != nil {
+			return
+		}
+
+		if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
+			if err = b.integrateWithAMSClusterPreInstallation(asyncCtx, cluster.AmsSubscriptionID, strfmt.UUID(openshiftClusterID)); err != nil {
+				log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster pre installation", params.ClusterID)
+				return
+			}
+		}
 	}()
 
 	log.Infof("Successfully prepared cluster <%s> for installation", params.ClusterID.String())

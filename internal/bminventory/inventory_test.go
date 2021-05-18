@@ -2345,6 +2345,69 @@ var _ = Describe("cluster", func() {
 			Expect(actual.Payload.MachineNetworkCidr).To(Equal(wrongMachineCidr))
 		})
 
+		It("update cluster day1 with APIVipDNSName failed", func() {
+			mockOperators := operators.NewMockAPI(ctrl)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
+
+			mockClusterRegisterSuccess(bm, true)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
+			Expect(err).ToNot(HaveOccurred())
+
+			newClusterName := "day1-cluster-new-name"
+
+			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: *c.ID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					Name:          &newClusterName,
+					APIVipDNSName: swag.String("some dns name"),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
+		})
+
+		It("cluster update failure on inventory refresh failure", func() {
+			mockOperators := operators.NewMockAPI(ctrl)
+			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
+
+			mockClusterRegisterSuccess(bm, true)
+
+			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					Name:             swag.String("some-cluster-name"),
+					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				},
+			})
+			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+			actual := reply.(*installer.RegisterClusterCreated)
+
+			clusterId := *actual.Payload.ID
+			addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, "known", models.HostKindHost, clusterId, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
+			newClusterName := "new-cluster-name"
+
+			refreshError := errors.New("boom!")
+			mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(refreshError)
+
+			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterId,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					Name: &newClusterName,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+			Expect(reply.(*common.ApiErrorResponse).Error()).To(BeEquivalentTo(refreshError.Error()))
+		})
+
 		Context("Monitored Operators", func() {
 			var (
 				testOLMOperators = []*models.MonitoredOperator{
@@ -5999,37 +6062,6 @@ var _ = Describe("AMS subscriptions", func() {
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 		})
 
-		It("update cluster day1 with APIVipDNSName failed", func() {
-			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
-
-			mockClusterRegisterSuccess(bm, true)
-			mockAMSSubscription(ctx)
-
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String(clusterName),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
-			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
-			c, err := bm.getCluster(ctx, actual.Payload.ID.String())
-			Expect(err).ToNot(HaveOccurred())
-
-			newClusterName := "day1-cluster-new-name"
-
-			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-				ClusterID: *c.ID,
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					Name:          &newClusterName,
-					APIVipDNSName: swag.String("some dns name"),
-				},
-			})
-			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusBadRequest, errors.Errorf("error"))))
-		})
-
 		It("update cluster name with same name", func() {
 			mockOperators := operators.NewMockAPI(ctrl)
 			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
@@ -6097,6 +6129,84 @@ var _ = Describe("AMS subscriptions", func() {
 			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
 		})
 
+		tests := []struct {
+			status string
+		}{
+			{status: "succeed"},
+			{status: "failed"},
+		}
+
+		for i := range tests {
+			test := tests[i]
+
+			ignitionReader := ioutil.NopCloser(strings.NewReader(`{
+					"ignition":{"version":"3.1.0"},
+					"storage":{
+						"files":[
+							{
+								"path":"/opt/openshift/manifests/cvo-overrides.yaml",
+								"contents":{
+									"source":"data:text/plain;charset=utf-8;base64,YXBpVmVyc2lvbjogY29uZmlnLm9wZW5zaGlmdC5pby92MQpraW5kOiBDbHVzdGVyVmVyc2lvbgptZXRhZGF0YToKICBuYW1lc3BhY2U6IG9wZW5zaGlmdC1jbHVzdGVyLXZlcnNpb24KICBuYW1lOiB2ZXJzaW9uCnNwZWM6CiAgdXBzdHJlYW06IGh0dHBzOi8vYXBpLm9wZW5zaGlmdC5jb20vYXBpL3VwZ3JhZGVzX2luZm8vdjEvZ3JhcGgKICBjaGFubmVsOiBzdGFibGUtNC42CiAgY2x1c3RlcklEOiA0MTk0MGVlOC1lYzk5LTQzZGUtODc2Ni0xNzQzODFiNDkyMWQK"
+								}
+							}
+						]
+					},
+					"systemd":{}
+			}`))
+
+			It(fmt.Sprintf("InstallCluster %s to update openshift_cluster_id in AMS", test.status), func() {
+
+				doneChannel := make(chan int)
+				waitForDoneChannel := func() {
+					select {
+					case <-doneChannel:
+						break
+					case <-time.After(1 * time.Second):
+						panic("not all api calls where made")
+					}
+				}
+
+				bm.clusterApi = mockClusterApi
+				clusterID := strfmt.UUID(uuid.New().String())
+
+				By("register cluster", func() {
+					err := db.Create(&common.Cluster{Cluster: models.Cluster{
+						ID:               &clusterID,
+						OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+						Status:           swag.String(models.ClusterStatusReady),
+					}}).Error
+					Expect(err).ShouldNot(HaveOccurred())
+				})
+
+				By("install cluster", func() {
+					mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+					mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).AnyTimes()
+					mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "")
+					mockClusterApi.EXPECT().PrepareForInstallation(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					masterHostId := strfmt.UUID(uuid.New().String())
+					mockClusterApi.EXPECT().GetMasterNodesIds(ctx, gomock.Any(), gomock.Any()).Return([]*strfmt.UUID{&masterHostId, &masterHostId, &masterHostId}, nil)
+					mockClusterApi.EXPECT().GenerateAdditionalManifests(gomock.Any(), gomock.Any()).Return(nil)
+					mockClusterApi.EXPECT().DeleteClusterLogs(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+					mockGetInstallConfigSuccess(mockInstallConfigBuilder)
+					mockGenerateInstallConfigSuccess(mockGenerator, mockVersions)
+					mockS3Client.EXPECT().Download(gomock.Any(), gomock.Any()).Return(ignitionReader, int64(0), nil).MinTimes(0)
+					if test.status == "succeed" {
+						mockAccountsMgmt.EXPECT().UpdateSubscriptionOpenshiftClusterID(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+						mockClusterApi.EXPECT().HandlePreInstallSuccess(gomock.Any(), gomock.Any()).Times(1).Do(func(ctx, c interface{}) { doneChannel <- 1 })
+					} else {
+						mockAccountsMgmt.EXPECT().UpdateSubscriptionOpenshiftClusterID(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New("dummy"))
+						mockClusterApi.EXPECT().HandlePreInstallError(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Do(func(ctx, c, err interface{}) { doneChannel <- 1 })
+					}
+
+					reply := bm.InstallCluster(ctx, installer.InstallClusterParams{
+						ClusterID: clusterID,
+					})
+					Expect(reply).Should(BeAssignableToTypeOf(installer.NewInstallClusterAccepted()))
+					waitForDoneChannel()
+				})
+			})
+		}
+
 		It("register and deregister cluster happy flow - nil OCM client", func() {
 			mockS3Client = s3wrapper.NewMockAPI(ctrl)
 			mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
@@ -6120,40 +6230,6 @@ var _ = Describe("AMS subscriptions", func() {
 
 			reply = bm.DeregisterCluster(ctx, installer.DeregisterClusterParams{ClusterID: clusterID})
 			Expect(reply).Should(BeAssignableToTypeOf(&installer.DeregisterClusterNoContent{}))
-		})
-
-		It("cluster update failure on inventory refresh failure", func() {
-			mockOperators := operators.NewMockAPI(ctrl)
-			bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog(), db, mockEvents, nil, nil, nil, nil, mockOperators, nil, nil, nil)
-
-			mockClusterRegisterSuccess(bm, true)
-			mockAMSSubscription(ctx)
-
-			reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
-				NewClusterParams: &models.ClusterCreateParams{
-					Name:             swag.String(clusterName),
-					OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
-					PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
-				},
-			})
-			Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
-			actual := reply.(*installer.RegisterClusterCreated)
-
-			clusterId := *actual.Payload.ID
-			addHost(strfmt.UUID(uuid.New().String()), models.HostRoleMaster, "known", models.HostKindHost, clusterId, getInventoryStr("hostname0", "bootMode", "1.2.3.4/24", "10.11.50.90/16"), db)
-			newClusterName := "new-cluster-name"
-
-			refreshError := errors.New("boom!")
-			mockHostApi.EXPECT().RefreshInventory(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(refreshError)
-
-			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
-				ClusterID: clusterId,
-				ClusterUpdateParams: &models.ClusterUpdateParams{
-					Name: &newClusterName,
-				},
-			})
-			Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
-			Expect(reply.(*common.ApiErrorResponse).Error()).To(BeEquivalentTo(refreshError.Error()))
 		})
 	})
 })
