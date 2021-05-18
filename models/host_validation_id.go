@@ -79,6 +79,12 @@ const (
 
 	// HostValidationIDCnvRequirementsSatisfied captures enum value "cnv-requirements-satisfied"
 	HostValidationIDCnvRequirementsSatisfied HostValidationID = "cnv-requirements-satisfied"
+
+	// HostValidationIDSufficientNetworkLatencyRequirementForRole captures enum value "sufficient-network-latency-requirement-for-role"
+	HostValidationIDSufficientNetworkLatencyRequirementForRole HostValidationID = "sufficient-network-latency-requirement-for-role"
+
+	// HostValidationIDSufficientPacketLossRequirementForRole captures enum value "sufficient-packet-loss-requirement-for-role"
+	HostValidationIDSufficientPacketLossRequirementForRole HostValidationID = "sufficient-packet-loss-requirement-for-role"
 )
 
 // for schema
@@ -86,7 +92,7 @@ var hostValidationIdEnum []interface{}
 
 func init() {
 	var res []HostValidationID
-	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group","valid-platform","ntp-synced","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied"]`), &res); err != nil {
+	if err := json.Unmarshal([]byte(`["connected","has-inventory","has-min-cpu-cores","has-min-valid-disks","has-min-memory","machine-cidr-defined","has-cpu-cores-for-role","has-memory-for-role","hostname-unique","hostname-valid","belongs-to-machine-cidr","api-vip-connected","belongs-to-majority-group","valid-platform","ntp-synced","container-images-available","lso-requirements-satisfied","ocs-requirements-satisfied","sufficient-installation-disk-speed","cnv-requirements-satisfied","sufficient-network-latency-requirement-for-role","sufficient-packet-loss-requirement-for-role"]`), &res); err != nil {
 		panic(err)
 	}
 	for _, v := range res {

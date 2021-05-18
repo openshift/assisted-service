@@ -215,6 +215,15 @@ func newValidations(v *validator) []validation {
 			condition: v.sufficientOrUnknownInstallationDiskSpeed,
 			formatter: v.printSufficientOrUnknownInstallationDiskSpeed,
 		},
+		{
+			id:        HasSufficientNetworkLatencyRequirementForRole,
+			condition: v.hasSufficientNetworkLatencyRequirementForRole,
+			formatter: v.printSufficientNetworkLatencyRequirementForRole,
+		}, {
+			id:        HasSufficientPacketLossRequirementForRole,
+			condition: v.hasSufficientPacketLossRequirementForRole,
+			formatter: v.printSufficientPacketLossRequirementForRole,
+		},
 	}
 }
 

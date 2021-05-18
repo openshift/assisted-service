@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"math"
 	"os"
 	"testing"
 
@@ -22,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
+	"k8s.io/utils/pointer"
 )
 
 func TestValidator(t *testing.T) {
@@ -331,12 +333,16 @@ var _ = Describe("Cluster host requirements", func() {
 				"ram_mib":                              17408,
 				"disk_size_gb":                         121,
 				"installation_disk_speed_threshold_ms": 1,
+				"network_latency_threshold_ms":         100,
+				"packet_loss_percentage":               0,
 			},
 			"worker": map[string]interface{}{
 				"cpu_cores":                            3,
 				"ram_mib":                              9216,
 				"disk_size_gb":                         122,
 				"installation_disk_speed_threshold_ms": 2,
+				"network_latency_threshold_ms":         1000,
+				"packet_loss_percentage":               10,
 			},
 		},
 	}
@@ -369,12 +375,15 @@ var _ = Describe("Cluster host requirements", func() {
 			RAMMib:                           1024,
 			CPUCores:                         4,
 			DiskSizeGb:                       10,
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(150),
+			PacketLossPercentage:             pointer.Float64Ptr(5),
 		}
 		details2 = models.ClusterHostRequirementsDetails{
 			InstallationDiskSpeedThresholdMs: 5,
 			RAMMib:                           256,
 			CPUCores:                         2,
 			DiskSizeGb:                       5,
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(500),
 		}
 
 		operatorRequirements = []*models.OperatorHostRequirements{
@@ -416,6 +425,8 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Total.CPUCores).To(BeEquivalentTo(defaultMasterCores + details1.CPUCores + details2.CPUCores))
 		Expect(result.Total.RAMMib).To(BeEquivalentTo(defaultMasterRam + details1.RAMMib + details2.RAMMib))
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
+		Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(details1.NetworkLatencyThresholdMs))
+		Expect(result.Total.PacketLossPercentage).To(Equal(details1.PacketLossPercentage))
 	})
 
 	It("should contain correct default requirements for sno master host", func() {
@@ -467,6 +478,8 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result.Total.CPUCores).To(BeEquivalentTo(defaultWorkerCores + details1.CPUCores + details2.CPUCores))
 		Expect(result.Total.RAMMib).To(BeEquivalentTo(defaultWorkerRam + details1.RAMMib + details2.RAMMib))
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultWorkerDiskSpeedThreshold))
+		Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(details1.NetworkLatencyThresholdMs))
+		Expect(result.Total.PacketLossPercentage).To(Equal(details1.PacketLossPercentage))
 	})
 
 	It("should fail providing on operator API error", func() {
@@ -505,21 +518,64 @@ var _ = Describe("Cluster host requirements", func() {
 			Expect(result.Total.CPUCores).To(BeEquivalentTo(expectedOcpRequirements.CPUCores + details1.CPUCores + details2.CPUCores))
 			Expect(result.Total.RAMMib).To(BeEquivalentTo(expectedOcpRequirements.RAMMib + details1.RAMMib + details2.RAMMib))
 			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(expectedOcpRequirements.InstallationDiskSpeedThresholdMs))
+			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(pointer.Float64Ptr(math.Min(*expectedOcpRequirements.NetworkLatencyThresholdMs, *details1.NetworkLatencyThresholdMs))))
+			Expect(result.Total.PacketLossPercentage).To(Equal(pointer.Float64Ptr(math.Min(*expectedOcpRequirements.PacketLossPercentage, *details1.PacketLossPercentage))))
 		},
 		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
 			CPUCores:                         3,
 			DiskSizeGb:                       122,
 			RAMMib:                           9 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 2,
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
+			PacketLossPercentage:             pointer.Float64Ptr(10),
 		}),
 		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
 			CPUCores:                         5,
 			DiskSizeGb:                       121,
 			RAMMib:                           17 * int64(units.KiB),
 			InstallationDiskSpeedThresholdMs: 1,
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
+			PacketLossPercentage:             pointer.Float64Ptr(0),
 		}),
 	)
+	table.DescribeTable("should contain correct requirements when no network latency or packet loss is defined in the OCP requirements",
+		func(role models.HostRole, expectedOcpRequirements models.ClusterHostRequirementsDetails) {
 
+			id1 := strfmt.UUID(uuid.New().String())
+			host = &models.Host{ID: &id1, ClusterID: *cluster.ID, Role: role}
+			cluster.OpenshiftVersion = "4.6"
+
+			operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Eq(cluster), gomock.Eq(host)).Return(operatorRequirements, nil)
+
+			result, err := hwvalidator.GetClusterHostRequirements(context.TODO(), cluster, host)
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).ToNot(BeNil())
+
+			Expect(*result.Ocp).To(BeEquivalentTo(expectedOcpRequirements))
+
+			Expect(result.Operators).To(ConsistOf(operatorRequirements))
+
+			Expect(result.Total.DiskSizeGb).To(Equal(expectedOcpRequirements.DiskSizeGb + details1.DiskSizeGb + details2.DiskSizeGb))
+			Expect(result.Total.CPUCores).To(Equal(expectedOcpRequirements.CPUCores + details1.CPUCores + details2.CPUCores))
+			Expect(result.Total.RAMMib).To(Equal(expectedOcpRequirements.RAMMib + details1.RAMMib + details2.RAMMib))
+			Expect(result.Total.InstallationDiskSpeedThresholdMs).To(Equal(details2.InstallationDiskSpeedThresholdMs))
+			Expect(result.Total.NetworkLatencyThresholdMs).To(Equal(pointer.Float64Ptr(math.Min(*details1.NetworkLatencyThresholdMs, *details2.NetworkLatencyThresholdMs))))
+			Expect(result.Total.PacketLossPercentage).To(Equal(details1.PacketLossPercentage))
+		},
+		table.Entry("Worker", models.HostRoleWorker, models.ClusterHostRequirementsDetails{
+			CPUCores:                         2,
+			DiskSizeGb:                       120,
+			RAMMib:                           8 * int64(units.KiB),
+			InstallationDiskSpeedThresholdMs: 0,
+		}),
+		table.Entry("Master", models.HostRoleMaster, models.ClusterHostRequirementsDetails{
+			CPUCores:                         4,
+			DiskSizeGb:                       120,
+			RAMMib:                           16 * int64(units.KiB),
+			InstallationDiskSpeedThresholdMs: 0,
+		}),
+	)
 })
 
 var _ = Describe("Preflight host requirements", func() {

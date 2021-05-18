@@ -84,5 +84,7 @@ func copyClusterHostRequirementsDetails(details *models.ClusterHostRequirementsD
 		DiskSizeGb:                       details.DiskSizeGb,
 		InstallationDiskSpeedThresholdMs: details.InstallationDiskSpeedThresholdMs,
 		RAMMib:                           details.RAMMib,
+		NetworkLatencyThresholdMs:        details.NetworkLatencyThresholdMs,
+		PacketLossPercentage:             details.PacketLossPercentage,
 	}
 }

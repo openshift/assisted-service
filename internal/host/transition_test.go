@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/thoas/go-funk"
+	"k8s.io/utils/pointer"
 )
 
 func createValidatorCfg() *hardware.ValidatorCfg {
@@ -3933,6 +3934,182 @@ var _ = Describe("Refresh Host", func() {
 			})
 		}
 	})
+	Context("L3 network latency and packet loss validation", func() {
+
+		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+		Expect(err).ShouldNot(HaveOccurred())
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+			hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
+		})
+
+		const (
+			ipv4 = iota
+			ipv6
+		)
+		tests := []struct {
+			name                   string
+			srcState               string
+			dstState               string
+			hostRole               models.HostRole
+			latencyInMs            float64
+			packetLossInPercentage float64
+			statusInfoChecker      statusInfoChecker
+			validationsChecker     *validationsChecker
+			IPAddressPool          []string
+			machineNetworkCIDR     string
+			ipType                 int
+		}{
+			{name: "Nominal: IPv4 and 3 masters",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusKnown,
+				hostRole:               models.HostRoleMaster,
+				latencyInMs:            50,
+				packetLossInPercentage: 0,
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, "1.2.3.1/24"),
+				machineNetworkCIDR:     "1.2.3.0/24",
+				ipType:                 ipv4,
+				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
+				}),
+			}, {name: "Nominal: IPv6 and 3 masters",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusKnown,
+				hostRole:               models.HostRoleMaster,
+				latencyInMs:            50,
+				packetLossInPercentage: 0,
+				IPAddressPool:          hostutil.GenerateIPv6Addresses(2, "1001:db8::1/120"),
+				machineNetworkCIDR:     "1001:db8::/120",
+				ipType:                 ipv4,
+				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
+				}),
+			}, {name: "Nominal: IPv4 and 2 workers",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusKnown,
+				hostRole:               models.HostRoleWorker,
+				latencyInMs:            50,
+				packetLossInPercentage: 0,
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, "1.2.3.1/24"),
+				machineNetworkCIDR:     "1.2.3.0/24",
+				ipType:                 ipv4,
+				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
+				}),
+			}, {name: "Nominal: IPv6 and 2 workers",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusKnown,
+				hostRole:               models.HostRoleWorker,
+				latencyInMs:            50,
+				packetLossInPercentage: 0,
+				IPAddressPool:          hostutil.GenerateIPv6Addresses(2, "1001:db8::1/120"),
+				machineNetworkCIDR:     "1001:db8::/120",
+				ipType:                 ipv6,
+				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
+				}),
+			}, {name: "Nominal: Single Node Openshift",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusKnown,
+				hostRole:               models.HostRoleMaster,
+				latencyInMs:            200,
+				packetLossInPercentage: 50,
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(1, "1.2.3.1/24"),
+				machineNetworkCIDR:     "1.2.3.0/24",
+				ipType:                 ipv4,
+				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
+				}),
+			}, {name: "KO: IPv4 and 3 masters with high latency and packet loss",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusInsufficient,
+				hostRole:               models.HostRoleMaster,
+				latencyInMs:            200,
+				packetLossInPercentage: 1,
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, "1.2.3.1/24"),
+				machineNetworkCIDR:     "1.2.3.0/24",
+				ipType:                 ipv4,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Network latency requirements of less or equals than 100.000 ms not met for connectivity between master-0 and master-1,master-2.",
+					"Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between master-0 and master-1,master-2.")),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less or equals than 100.000 ms not met for connectivity between master-0 and master-1,master-2."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between master-0 and master-1,master-2."},
+				}),
+			}, {name: "KO: IPv6 and 3 masters with high latency and packet loss",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusInsufficient,
+				hostRole:               models.HostRoleMaster,
+				latencyInMs:            200,
+				packetLossInPercentage: 1,
+				IPAddressPool:          hostutil.GenerateIPv6Addresses(3, "1001:db8::1/120"),
+				machineNetworkCIDR:     "1001:db8::/120",
+				ipType:                 ipv6,
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Network latency requirements of less or equals than 100.000 ms not met for connectivity between master-0 and master-1,master-2.",
+					"Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between master-0 and master-1,master-2.")),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less or equals than 100.000 ms not met for connectivity between master-0 and master-1,master-2."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between master-0 and master-1,master-2."},
+				}),
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCIDR)
+				cluster.UserManagedNetworking = swag.Bool(true)
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+				hosts := []*models.Host{}
+				for n := 0; n < len(t.IPAddressPool); n++ {
+					netAddr := common.NetAddress{Hostname: fmt.Sprintf("%s-%d", t.hostRole, n)}
+					if t.ipType == ipv4 {
+						netAddr.IPv4Address = []string{t.IPAddressPool[n]}
+					} else {
+						netAddr.IPv6Address = []string{t.IPAddressPool[n]}
+					}
+					h := hostutil.GenerateTestHostWithNetworkAddress(strfmt.UUID(uuid.New().String()), clusterId, t.hostRole, t.srcState, netAddr)
+					h.NtpSources = string(defaultNTPSourcesInBytes)
+					hosts = append(hosts, h)
+				}
+				for n, h := range hosts {
+					tmpHosts := []*models.Host{}
+					tmpHosts = append(tmpHosts, hosts[:n]...)
+					tmpHosts = append(tmpHosts, hosts[n+1:]...)
+					rep := hostutil.GenerateL3ConnectivityReport(tmpHosts, t.latencyInMs, t.packetLossInPercentage)
+					b, err := json.Marshal(&rep)
+					h.Connectivity = string(b)
+					Expect(db.Create(h).Error).ShouldNot(HaveOccurred())
+					Expect(err).NotTo(HaveOccurred())
+				}
+				if t.srcState != t.dstState {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+						gomock.Any(), gomock.Any())
+				}
+				Expect(hapi.RefreshStatus(ctx, hosts[0], db)).NotTo(HaveOccurred())
+
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hosts[0].ID, clusterId.String()).Error).ToNot(HaveOccurred())
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+				fmt.Printf(*resultHost.StatusInfo)
+				t.statusInfoChecker.check(resultHost.StatusInfo)
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(resultHost.ValidationsInfo)
+				}
+			})
+		}
+	})
 
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
@@ -3961,15 +4138,19 @@ func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator)
 		var details models.ClusterHostRequirementsDetails
 		if host.Role == models.HostRoleMaster {
 			details = models.ClusterHostRequirementsDetails{
-				CPUCores:   4,
-				DiskSizeGb: 120,
-				RAMMib:     16384,
+				CPUCores:                  4,
+				DiskSizeGb:                120,
+				RAMMib:                    16384,
+				NetworkLatencyThresholdMs: pointer.Float64Ptr(100),
+				PacketLossPercentage:      pointer.Float64Ptr(0),
 			}
 		} else {
 			details = models.ClusterHostRequirementsDetails{
-				CPUCores:   2,
-				DiskSizeGb: 120,
-				RAMMib:     8192,
+				CPUCores:                  2,
+				DiskSizeGb:                120,
+				RAMMib:                    8192,
+				NetworkLatencyThresholdMs: pointer.Float64Ptr(100),
+				PacketLossPercentage:      pointer.Float64Ptr(0),
 			}
 		}
 		return &models.ClusterHostRequirements{Total: &details}, nil

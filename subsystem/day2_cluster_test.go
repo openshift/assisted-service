@@ -133,7 +133,7 @@ var _ = Describe("Day2 cluster tests", func() {
 		steps := getNextSteps(clusterID, *host.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory}, 1)
 
-		By("checking insufficient state state - one host, no conenctivity check")
+		By("checking insufficient state state - one host, no connectivity check")
 		generateEssentialHostSteps(ctx, h, "h1host")
 		waitForHostState(ctx, clusterID, *h.ID, "insufficient", 60*time.Second)
 		steps = getNextSteps(clusterID, *host.ID)

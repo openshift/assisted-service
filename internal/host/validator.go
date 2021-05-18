@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 	"time"
 
@@ -644,5 +645,135 @@ func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationC
 		return "Error occured while getting boot device"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status.String())
+	}
+
+}
+
+func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) ValidationStatus {
+
+	if len(c.cluster.Hosts) == 1 {
+		// Single Node use case
+		return ValidationSuccess
+	}
+	if len(c.host.Connectivity) == 0 {
+		return ValidationPending
+	}
+	latency, err := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+	if err != nil || len(latency) > 0 {
+		return ValidationFailure
+	}
+	return ValidationSuccess
+}
+
+func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host) ([]string, error) {
+	if clusterRoleReqs.Total.NetworkLatencyThresholdMs == nil {
+		return nil, nil
+	}
+	var connectivityReport *models.ConnectivityReport
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshall host connectivity for %s:%s", host.ID, err)
+	}
+	failedHostIPs := map[string]struct{}{}
+	failedHostNames := []string{}
+	for _, r := range connectivityReport.RemoteHosts {
+		for _, l3 := range r.L3Connectivity {
+			if l3.AverageRTTMs > *clusterRoleReqs.Total.NetworkLatencyThresholdMs {
+				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
+					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
+					if err != nil {
+						return nil, err
+					}
+					if role == host.Role {
+						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
+						failedHostNames = append(failedHostNames, hostname)
+					}
+				}
+			}
+		}
+	}
+	return failedHostNames, nil
+}
+
+func (v *validator) printSufficientNetworkLatencyRequirementForRole(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Network latency requirement has been satisfied."
+	case ValidationFailure:
+		hostNames, err := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+		if hostNames == nil && err != nil {
+			return fmt.Sprintf("Error while attempting to validate network latency: %s", err)
+		}
+		sort.Strings(hostNames)
+		return fmt.Sprintf("Network latency requirements of less or equals than %.3f ms not met for connectivity between %s and %s.", *c.clusterHostRequirements.Total.NetworkLatencyThresholdMs, c.host.RequestedHostname, strings.Join(hostNames, ","))
+	case ValidationPending:
+		return "Missing network latency information."
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}
+
+func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationContext) ValidationStatus {
+
+	if len(c.cluster.Hosts) == 1 {
+		// Single Node use case
+		return ValidationSuccess
+	}
+
+	if len(c.host.Connectivity) == 0 {
+		return ValidationPending
+	}
+	hosts, err := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+	if err != nil || len(hosts) > 0 {
+		return ValidationFailure
+	}
+	return ValidationSuccess
+}
+
+func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host) ([]string, error) {
+	if clusterRoleReqs.Total.PacketLossPercentage == nil {
+		return nil, nil
+	}
+	var connectivityReport *models.ConnectivityReport
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
+	if err != nil {
+		return nil, fmt.Errorf("unable to unmarshall host connectivity for %s:%s", host.ID, err)
+	}
+	failedHostIPs := map[string]struct{}{}
+	failedHostNames := []string{}
+	for _, r := range connectivityReport.RemoteHosts {
+		for _, l3 := range r.L3Connectivity {
+			if l3.PacketLossPercentage > *clusterRoleReqs.Total.PacketLossPercentage {
+				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
+					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
+					if err != nil {
+						return nil, err
+					}
+					if role == host.Role {
+						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
+						failedHostNames = append(failedHostNames, hostname)
+					}
+				}
+			}
+		}
+	}
+	return failedHostNames, nil
+}
+
+func (v *validator) printSufficientPacketLossRequirementForRole(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Packet loss requirement has been satisfied."
+	case ValidationFailure:
+		hostNames, err := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
+		if hostNames == nil && err != nil {
+			return fmt.Sprintf("Error while attempting to validate packet loss validation: %s", err)
+		}
+		sort.Strings(hostNames)
+		return fmt.Sprintf("Packet loss percentage requirement of less or equals than %.2f%% not met for connectivity between %s and %s.", *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.RequestedHostname, strings.Join(hostNames, ","))
+	case ValidationPending:
+		return "Missing packet loss information."
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
