@@ -9,6 +9,7 @@ fi
 
 kubectl delete namespace assisted-installer
 kubectl delete agentserviceconfigs.agent-install.openshift.io agent
+kubectl patch localvolume -n openshift-local-storage assisted-service -p '{"metadata":{"finalizers": null}}' --type=merge
 kubectl delete localvolume -n openshift-local-storage assisted-service
 kubectl delete catalogsource assisted-service-catalog -n openshift-marketplace
 
