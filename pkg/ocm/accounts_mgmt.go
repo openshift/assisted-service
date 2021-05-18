@@ -24,7 +24,8 @@ const (
 type OCMAccountsMgmt interface {
 	CreateSubscription(ctx context.Context, clusterID strfmt.UUID, clusterName string) (*amgmtv1.Subscription, error)
 	GetSubscription(ctx context.Context, subscriptionID strfmt.UUID) (*amgmtv1.Subscription, error)
-	UpdateSubscriptionPostInstallation(ctx context.Context, subscriptionID, openshiftClusterID strfmt.UUID) error
+	UpdateSubscriptionOpenshiftClusterID(ctx context.Context, subscriptionID, openshiftClusterID strfmt.UUID) error
+	UpdateSubscriptionStatusActive(ctx context.Context, subscriptionID strfmt.UUID) error
 	UpdateSubscriptionDisplayName(ctx context.Context, subscriptionID strfmt.UUID, displayName string) error
 	UpdateSubscriptionConsoleUrl(ctx context.Context, subscriptionID strfmt.UUID, consoleUrl string) error
 	DeleteSubscription(ctx context.Context, subscriptionID strfmt.UUID) error
@@ -90,15 +91,24 @@ func (a accountsMgmt) updateSubscription(ctx context.Context, subscriptionID str
 	return a.sendSubscriptionUpdateRequest(ctx, subscriptionID, sub)
 }
 
-// This function updates all the subscription's data that we didn't know at the subscription creation time
-// and we know only after installation is done such openshift_cluster_id.
-func (a accountsMgmt) UpdateSubscriptionPostInstallation(ctx context.Context, subscriptionID, openshiftClusterID strfmt.UUID) error {
-	defer commonutils.MeasureOperation("OCM-UpdateSubscriptionPostInstallation", a.client.log, a.client.metricsApi)()
+func (a accountsMgmt) UpdateSubscriptionOpenshiftClusterID(ctx context.Context, subscriptionID, openshiftClusterID strfmt.UUID) error {
+	defer commonutils.MeasureOperation("OCM-UpdateSubscriptionOpenshiftClusterID", a.client.log, a.client.metricsApi)()
 
-	sub, err := amgmtv1.NewSubscription().ExternalClusterID(openshiftClusterID.String()).Status(SubscriptionStatusActive).Build()
+	sub, err := amgmtv1.NewSubscription().ExternalClusterID(openshiftClusterID.String()).Build()
 	err = a.updateSubscription(ctx, subscriptionID, sub, err)
 	if err == nil {
-		a.client.logger.Info(ctx, "Updated post installation changes in subscription %s", subscriptionID)
+		a.client.logger.Info(ctx, "Updated openshift cluster ID in subscription %s", subscriptionID)
+	}
+	return err
+}
+
+func (a accountsMgmt) UpdateSubscriptionStatusActive(ctx context.Context, subscriptionID strfmt.UUID) error {
+	defer commonutils.MeasureOperation("OCM-UpdateSubscriptionStatusActive", a.client.log, a.client.metricsApi)()
+
+	sub, err := amgmtv1.NewSubscription().Status(SubscriptionStatusActive).Build()
+	err = a.updateSubscription(ctx, subscriptionID, sub, err)
+	if err == nil {
+		a.client.logger.Info(ctx, "Updated status 'Active' in subscription %s", subscriptionID)
 	}
 	return err
 }
