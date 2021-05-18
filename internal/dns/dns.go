@@ -8,12 +8,22 @@ import (
 
 	"github.com/danielerez/go-dns-client/pkg/dnsproviders"
 	"github.com/go-openapi/swag"
+	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+)
+
+const (
+	apiDomainNameFormat    = "api.%s.%s"
+	apiINTDomainNameFormat = "api-int.%s.%s"
+	appsDomainNameFormat   = "apps.%s.%s"
+	dnsDomainLabelLen      = 63
+	dnsDomainTotalLen      = 255
+	dnsDomainPrefixMaxLen  = dnsDomainTotalLen - dnsDomainLabelLen - 1 // reserve for another label and the separating '.'
 )
 
 type DNSDomain struct {
@@ -29,6 +39,7 @@ type DNSApi interface {
 	CreateDNSRecordSets(ctx context.Context, cluster *common.Cluster) error
 	DeleteDNSRecordSets(ctx context.Context, cluster *common.Cluster) error
 	GetDNSDomain(clusterName, baseDNSDomainName string) (*DNSDomain, error)
+	ValidateDNSName(clusterName, baseDNSDomainName string) error
 	ValidateBaseDNS(domain *DNSDomain) error
 	ValidateDNSRecords(cluster common.Cluster, domain *DNSDomain) error
 }
@@ -175,10 +186,31 @@ func (h *handler) GetDNSDomain(clusterName, baseDNSDomainName string) (*DNSDomai
 		Name:              baseDNSDomainName,
 		ID:                dnsDomainID,
 		Provider:          dnsProvider,
-		APIDomainName:     fmt.Sprintf("%s.%s.%s", "api", clusterName, baseDNSDomainName),
-		APIINTDomainName:  fmt.Sprintf("%s.%s.%s", "api-int", clusterName, baseDNSDomainName),
-		IngressDomainName: fmt.Sprintf("*.%s.%s.%s", "apps", clusterName, baseDNSDomainName),
+		APIDomainName:     fmt.Sprintf(apiDomainNameFormat, clusterName, baseDNSDomainName),
+		APIINTDomainName:  fmt.Sprintf(apiINTDomainNameFormat, clusterName, baseDNSDomainName),
+		IngressDomainName: fmt.Sprintf("*.%s", fmt.Sprintf(appsDomainNameFormat, clusterName, baseDNSDomainName)),
 	}, nil
+}
+
+//ValidateDNSName checks if a combination of cluster name and base DNS domain
+// leaves enough room for automatically added domain names,
+// e.g. "alertmanager-main-openshift-monitoring.apps.test-infra-cluster-assisted-installer.example.com").
+// The max total length of a domain name is 255 bytes, including the dots. An individual label can be
+// up to 63 bytes. A single char may occupy more than one byte in Internationalized Domain Names (IDNs).
+func (h *handler) ValidateDNSName(clusterName, baseDNSDomainName string) error {
+	appsDomainNameSuffix := fmt.Sprintf(appsDomainNameFormat, clusterName, baseDNSDomainName)
+	if err := validations.ValidateDomainNameFormat(appsDomainNameSuffix); err != nil {
+		return err
+	}
+	if len(appsDomainNameSuffix) > dnsDomainPrefixMaxLen {
+		return errors.Errorf("Combination of cluster name and base DNS domain too long")
+	}
+	for _, label := range strings.Split(appsDomainNameSuffix, ".") {
+		if len(label) > dnsDomainLabelLen {
+			return errors.Errorf("DNS label '%s' is longer than 63 bytes", label)
+		}
+	}
+	return nil
 }
 
 // ValidateBaseDNS validates the specified base domain name
