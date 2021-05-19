@@ -76,3 +76,17 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddDisableVmwareTunnelOffloadin
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDisableVmwareTunnelOffloading", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddDisableVmwareTunnelOffloading), ctx, log, c)
 }
+
+// AddTelemeterManifest mocks base method
+func (m *MockManifestsGeneratorAPI) AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddTelemeterManifest", ctx, log, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddTelemeterManifest indicates an expected call of AddTelemeterManifest
+func (mr *MockManifestsGeneratorAPIMockRecorder) AddTelemeterManifest(ctx, log, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTelemeterManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddTelemeterManifest), ctx, log, c)
+}

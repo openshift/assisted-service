@@ -2285,6 +2285,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 	It("Single node manifests success", func() {
 		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		manifestsGenerator.EXPECT().AddDnsmasqForSingleNode(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		err := capi.GenerateAdditionalManifests(ctx, &c)
@@ -2304,6 +2305,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 		cfg2.EnableSingleNodeDnsmasq = false
 		capi = NewManager(cfg2, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil)
 		manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+		manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 		mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
 		err := capi.GenerateAdditionalManifests(ctx, &c)
@@ -2317,6 +2319,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			capi = NewManager(cfg2, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil)
 			manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsGenerator.EXPECT().AddDisableVmwareTunnelOffloading(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 			mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 
@@ -2332,6 +2335,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			capi = NewManager(cfg2, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil)
 			manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsGenerator.EXPECT().AddDisableVmwareTunnelOffloading(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 			mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 
@@ -2349,6 +2353,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			capi = NewManager(cfg2, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil)
 			manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			manifestsGenerator.EXPECT().AddDisableVmwareTunnelOffloading(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 			mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 
@@ -2366,6 +2371,7 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			cfg2.EnableSingleNodeDnsmasq = false
 			capi = NewManager(cfg2, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil)
 			manifestsGenerator.EXPECT().AddChronyManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
 			mockOperatorMgr.EXPECT().GenerateManifests(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			c.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
 
@@ -2374,6 +2380,39 @@ var _ = Describe("GenerateAdditionalManifests", func() {
 			})
 			err := capi.GenerateAdditionalManifests(ctx, &c)
 			Expect(err).To(Not(HaveOccurred()))
+		})
+	})
+
+	Context("Telemeter", func() {
+
+		var (
+			telemeterCfg Config
+			capi         API
+		)
+
+		BeforeEach(func() {
+			telemeterCfg = getDefaultConfig()
+			capi = NewManager(telemeterCfg, common.GetTestLog(), db, eventsHandler, nil, mockMetric, manifestsGenerator, nil, mockOperatorMgr, nil, nil, nil)
+		})
+
+		It("Happy flow", func() {
+
+			manifestsGenerator.EXPECT().AddChronyManifest(ctx, gomock.Any(), &c).Return(nil)
+			mockOperatorMgr.EXPECT().GenerateManifests(ctx, &c).Return(nil)
+			manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(nil)
+
+			err := capi.GenerateAdditionalManifests(ctx, &c)
+			Expect(err).To(Not(HaveOccurred()))
+		})
+
+		It("AddTelemeterManifest failed", func() {
+
+			manifestsGenerator.EXPECT().AddChronyManifest(ctx, gomock.Any(), &c).Return(nil)
+			mockOperatorMgr.EXPECT().GenerateManifests(ctx, &c).Return(nil)
+			manifestsGenerator.EXPECT().AddTelemeterManifest(ctx, gomock.Any(), &c).Return(errors.New("dummy"))
+
+			err := capi.GenerateAdditionalManifests(ctx, &c)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
