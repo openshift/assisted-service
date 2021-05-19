@@ -427,7 +427,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	if userManagedNetwork := isUserManagedNetwork(clusterInstall); userManagedNetwork != swag.BoolValue(cluster.UserManagedNetworking) {
 		params.UserManagedNetworking = swag.Bool(userManagedNetwork)
 	}
-	pullSecretData, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, clusterDeployment.Namespace)
+	pullSecretData, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, clusterDeployment.Namespace)
 	if err != nil {
 		return errors.Wrap(err, "failed to get pull secret for update")
 	}
@@ -578,7 +578,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	r.Log.Infof("Creating a new clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
-	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, key.Namespace)
+	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, key.Namespace)
 	if err != nil {
 		r.Log.WithError(err).Error("failed to get pull secret")
 		return r.updateStatus(ctx, clusterInstall, nil, err)
@@ -634,7 +634,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	id := strfmt.UUID(uuid.New().String())
 	apiVipDnsname := fmt.Sprintf("api.%s.%s", spec.ClusterName, spec.BaseDomain)
 
-	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef.Name, key.Namespace)
+	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, key.Namespace)
 	if err != nil {
 		r.Log.WithError(err).Error("failed to get pull secret")
 		return r.updateStatus(ctx, clusterInstall, nil, err)
@@ -790,7 +790,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 		r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
 		return ctrl.Result{Requeue: true}, nil
 	}
-	if syncErr != nil && !IsHTTP4XXError(syncErr) {
+	if syncErr != nil && !IsUserError(syncErr) {
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
 	return ctrl.Result{}, nil
@@ -807,7 +807,7 @@ func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 		msg = SyncedOkMsg
 	} else {
 		condStatus = corev1.ConditionFalse
-		if !IsHTTP4XXError(syncErr) {
+		if !IsUserError(syncErr) {
 			reason = BackendErrorReason
 			msg = BackendErrorMsg + " " + syncErr.Error()
 		} else {
