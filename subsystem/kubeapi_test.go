@@ -39,7 +39,7 @@ const (
 	fakeIgnitionConfigOverride     = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 	badIgnitionConfigOverride      = `bad ignition config`
 	clusterDeploymentName          = "test-cluster"
-	clusterAgentCLusterInstallName = "test-agent-cluster-install"
+	clusterAgentClusterInstallName = "test-agent-cluster-install"
 )
 
 var (
@@ -118,7 +118,7 @@ func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 		},
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		},
 		Spec: *spec,
 	})
@@ -355,7 +355,7 @@ func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hi
 			Group:   hiveext.Group,
 			Version: hiveext.Version,
 			Kind:    "AgentClusterInstall",
-			Name:    clusterAgentCLusterInstallName,
+			Name:    clusterAgentClusterInstallName,
 		},
 	}
 }
@@ -529,7 +529,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterAlreadyInstallingReason)
 	})
@@ -905,7 +905,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -955,7 +955,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 
@@ -998,7 +998,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1022,7 +1022,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1056,7 +1056,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1086,7 +1086,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1131,7 +1131,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
@@ -1172,7 +1172,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
@@ -1219,7 +1219,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Wait for installing")
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 
@@ -1314,7 +1314,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Wait for installing")
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
@@ -1411,7 +1411,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Wait for installing")
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
@@ -1474,7 +1474,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 	})
@@ -1488,7 +1488,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 	})
@@ -1502,7 +1502,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
 	})
@@ -1521,14 +1521,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: Options.Namespace,
-				Name:      clusterAgentCLusterInstallName,
+				Name:      clusterAgentClusterInstallName,
 			},
 			Spec: *aciSpec,
 		})
 		Expect(err).To(BeNil())
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
 
@@ -1549,7 +1549,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		Eventually(func() bool {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
@@ -1605,7 +1605,7 @@ spec:
 		}, "30s", "10s").Should(BeNil())
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterReadyReason)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
@@ -1643,7 +1643,7 @@ spec:
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentCLusterInstallName,
+			Name:      clusterAgentClusterInstallName,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
