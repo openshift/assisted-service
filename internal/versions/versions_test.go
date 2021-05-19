@@ -27,12 +27,14 @@ func TestHandler_ListComponentVersions(t *testing.T) {
 
 var defaultOpenShiftVersions = models.OpenshiftVersions{
 	"4.5": models.OpenshiftVersion{
-		DisplayName: swag.String("4.5.1"), ReleaseImage: swag.String("release_4.5"),
+		DisplayName:  swag.String("4.5.1"),
+		ReleaseImage: swag.String("release_4.5"), ReleaseVersion: swag.String("4.5.1"),
 		RhcosImage: swag.String("rhcos_4.5"), RhcosVersion: swag.String("version-45.123-0"),
 		SupportLevel: swag.String("oldie"),
 	},
 	"4.6": models.OpenshiftVersion{
-		DisplayName: swag.String("4.6-candidate"), ReleaseImage: swag.String("release_4.6"),
+		DisplayName:  swag.String("4.6-candidate"),
+		ReleaseImage: swag.String("release_4.6"), ReleaseVersion: swag.String("4.6-candidate"),
 		RhcosImage: swag.String("rhcos_4.6"), RhcosVersion: swag.String("version-46.123-0"),
 		SupportLevel: swag.String("newbie"),
 	},
@@ -41,7 +43,7 @@ var defaultOpenShiftVersions = models.OpenshiftVersions{
 var supportedCustomOpenShiftVersions = models.OpenshiftVersions{
 	"4.8": models.OpenshiftVersion{
 		DisplayName:  swag.String("4.8.0"),
-		ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8.0"),
+		ReleaseImage: swag.String("release_4.8"), ReleaseVersion: swag.String("4.8.0-fc.1"),
 		RhcosImage: swag.String("rhcos_4.8"), RhcosVersion: swag.String("version-48.123-0"),
 		SupportLevel: swag.String(models.OpenshiftVersionSupportLevelCustom),
 	},
@@ -214,7 +216,6 @@ var _ = Describe("list versions", func() {
 	Context("GetReleaseVersion", func() {
 		var (
 			releaseVersion string
-			ocpSemVer      string
 			err            error
 		)
 
@@ -227,9 +228,7 @@ var _ = Describe("list versions", func() {
 			for key := range *openshiftVersions {
 				releaseVersion, err = h.GetReleaseVersion(key)
 				Expect(err).ShouldNot(HaveOccurred())
-				ocpSemVer, err = h.GetOCPSemVer(key)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(releaseVersion).Should(Equal(ocpSemVer))
+				Expect(releaseVersion).Should(Equal(*(*openshiftVersions)[key].ReleaseVersion))
 			}
 		})
 
@@ -237,16 +236,6 @@ var _ = Describe("list versions", func() {
 			releaseVersion, err = h.GetReleaseVersion("unsupported")
 			Expect(err).Should(HaveOccurred())
 			Expect(releaseVersion).Should(BeEmpty())
-		})
-
-		It("release version exists", func() {
-			openshiftVersions = &supportedCustomOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
-			for key := range *openshiftVersions {
-				releaseVersion, err = h.GetReleaseVersion(key)
-				Expect(err).ShouldNot(HaveOccurred())
-				Expect(releaseVersion).Should(Equal(*(*openshiftVersions)[key].ReleaseVersion))
-			}
 		})
 	})
 
@@ -275,24 +264,6 @@ var _ = Describe("list versions", func() {
 		})
 	})
 
-	Context("GetOCPSemVer", func() {
-		BeforeEach(func() {
-			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
-		})
-
-		It("positive", func() {
-			for key := range *openshiftVersions {
-				Expect(h.GetOCPSemVer(key)).Should(Equal(key + ".0"))
-			}
-		})
-
-		It("negative", func() {
-			_, err := h.GetOCPSemVer("unknown")
-			Expect(err).Should(HaveOccurred())
-		})
-	})
-
 	Context("IsOpenshiftVersionSupported", func() {
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
@@ -314,9 +285,9 @@ var _ = Describe("list versions", func() {
 		var (
 			pullSecret              = "test_pull_secret"
 			releaseImage            = "releaseImage"
-			ocpVersion              = "4.7.0"
+			ocpVersion              = "4.7.0-fc.1"
 			keyVersion              = "4.7"
-			customOcpVersion        = "4.8.0"
+			customOcpVersion        = "4.8.0-fc.1"
 			customKeyVersion        = "4.8"
 			customOpenShiftVersions models.OpenshiftVersions
 		)
