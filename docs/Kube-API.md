@@ -129,6 +129,9 @@ In case that the Bare Metal Operator is installed, the Baremetal Agent Controlle
 
 See BMAC documentation [here](./baremetal-agent-controller.md).
 
+## Working with mirror registry
+In case all of your images are in mirror registries, the service, discovery ISO, and installed nodes must be configured with the proper registries.conf and authentication certificate.  To do so, see the Mirror Registry Configuration section [here](.operator.md).
+
 ## Assisted Installer Kube API CR examples
 
 [docs/crds](https://github.com/openshift/assisted-service/tree/master/docs/crds) stores working examples of various resources we spawn via kube-api in assisted-installer, for Hive integration.
