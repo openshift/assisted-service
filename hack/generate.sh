@@ -125,6 +125,7 @@ function generate_bundle() {
             sed -i "s,${full_image},${image}@${digest},g" ${csv}
         done
     fi
+    cat ${csv}
     operator-sdk bundle validate ${BUNDLE_OUTPUT_DIR}
 }
 

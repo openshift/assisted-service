@@ -17,7 +17,7 @@ RUN export ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm6
   && install operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
 COPY . .
-RUN export BUNDLE_OUTPUT_DIR=/bundle; make operator-bundle
+RUN export BUNDLE_OUTPUT_DIR=/bundle; make generate-bundle
 
 FROM scratch
 

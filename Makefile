@@ -458,9 +458,6 @@ clean-onprem:
 ############
 # Operator #
 ############
-# TODO(djzager): remove when prow/ci-index is updated to use generate-bundle
-operator-bundle: generate-bundle
-
 # Build the bundle and index images.
 .PHONY: operator-bundle-build operator-bundle-update
 operator-bundle-build: generate-bundle
