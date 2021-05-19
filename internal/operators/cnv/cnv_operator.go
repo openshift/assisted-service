@@ -32,8 +32,8 @@ type operator struct {
 
 var Operator = models.MonitoredOperator{
 	Name:             "cnv",
+	Namespace:        DownstreamNamespace,
 	OperatorType:     models.OperatorTypeOlm,
-	Namespace:        "openshift-cnv",
 	SubscriptionName: "hco-operatorhub",
 	TimeoutSeconds:   60 * 60,
 }
@@ -120,7 +120,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 // GenerateManifests generates manifests for the operator
 func (o *operator) GenerateManifests(c *common.Cluster) (map[string][]byte, error) {
-	return Manifests()
+	return Manifests(o.config)
 }
 
 // GetProperties provides description of operator properties: none required
@@ -130,7 +130,11 @@ func (o *operator) GetProperties() models.OperatorProperties {
 
 // GetMonitoredOperator returns MonitoredOperator corresponding to the CNV Operator
 func (o *operator) GetMonitoredOperator() *models.MonitoredOperator {
-	return &Operator
+	opt := Operator
+	if !o.config.Mode {
+		opt.Namespace = UpstreamNamespace
+	}
+	return &opt
 }
 
 // GetHostRequirements provides operator's requirements towards the host
