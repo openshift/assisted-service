@@ -70,14 +70,6 @@ const (
 
 // reconcileResult is an interface that encapsulates the result of a Reconcile
 // call, as returned by the action corresponding to the current state.
-type reconcileResult interface {
-	Result() (reconcile.Result, error)
-	Dirty() bool
-	Stop() bool
-}
-
-// reconcileComplete is a result indicating that the current reconcile has completed,
-// and there is nothing else to do.
 //
 // Set the `dirty` flag when the BMH CR (or any CR) has been modified and an `Update`
 // is required.
@@ -85,6 +77,15 @@ type reconcileResult interface {
 // Set the `stop` flag when the `Reconcile` flow should be stopped. For example, the
 // required data for the current step is not ready yet. This will prevent the Reconcile
 // from going to the next step.
+type reconcileResult interface {
+	Result() (reconcile.Result, error)
+	Dirty() bool
+	Stop(ctx context.Context) bool
+}
+
+// reconcileComplete is a result indicating that the current reconcile has completed,
+// and there is nothing else to do. It allows for setting the implementation or the
+// stop flag.
 type reconcileComplete struct {
 	dirty bool
 	stop  bool
@@ -98,8 +99,8 @@ func (r reconcileComplete) Dirty() bool {
 	return r.dirty
 }
 
-func (r reconcileComplete) Stop() bool {
-	return r.stop
+func (r reconcileComplete) Stop(ctx context.Context) bool {
+	return r.stop || ctx.Err() != nil
 }
 
 // reconcileError is a result indicating that an error occurred while attempting
@@ -117,7 +118,7 @@ func (r reconcileError) Dirty() bool {
 	return false
 }
 
-func (r reconcileError) Stop() bool {
+func (r reconcileError) Stop(ctx context.Context) bool {
 	return true
 }
 
@@ -156,7 +157,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	if result.Stop() {
+	if result.Stop(ctx) {
 		return result.Result()
 	}
 
@@ -186,7 +187,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	if result.Stop() {
+	if result.Stop(ctx) {
 		return result.Result()
 	}
 
@@ -199,7 +200,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	if result.Stop() {
+	if result.Stop(ctx) {
 		return result.Result()
 	}
 
@@ -214,7 +215,7 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	if result.Stop() {
+	if result.Stop(ctx) {
 		return result.Result()
 	}
 
