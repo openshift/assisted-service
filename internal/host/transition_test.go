@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"sort"
 	"strings"
@@ -4155,7 +4156,179 @@ var _ = Describe("Refresh Host", func() {
 			})
 		}
 	})
+	Context("Default route", func() {
 
+		ipv4Routes := []*models.Route{
+			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "10.254.0.1"},
+			{Family: common.FamilyIPv4, Destination: "192.168.122.0", Gateway: "0.0.0.0"}}
+		ipv6Routes := []*models.Route{
+			{Family: common.FamilyIPv6, Destination: net.IPv6zero.String(), Gateway: "2001:1::1"},
+			{Family: common.FamilyIPv6, Destination: "2001:1::1", Gateway: net.IPv6zero.String()},
+			{Family: common.FamilyIPv6, Destination: net.IPv6zero.String(), Gateway: net.IPv6zero.String()}}
+
+		noDefaultRoute := []*models.Route{
+			{Family: common.FamilyIPv4, Destination: "10.254.2.2", Gateway: "10.254.2.1"},
+			{Family: common.FamilyIPv4, Destination: "172.17.0.15", Gateway: "172.17.0.1"},
+			{Family: common.FamilyIPv6, Destination: "2001:1::10", Gateway: "2001:1::1"},
+		}
+
+		invalidDestination := []*models.Route{
+			{Family: common.FamilyIPv4, Destination: "invalid", Gateway: "10.254.2.1"},
+		}
+
+		invalidGateway := []*models.Route{
+			{Family: common.FamilyIPv4, Destination: "0.0.0.0", Gateway: "invalid"},
+		}
+		defaultNTPSourcesInBytes, err := json.Marshal(defaultNTPSources)
+		Expect(err).ShouldNot(HaveOccurred())
+		BeforeEach(func() {
+			mockDefaultClusterHostRequirements(mockHwValidator)
+			hapi = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, nil, defaultConfig, nil, operatorsManager)
+			mockDefaultClusterHostRequirements(mockHwValidator)
+			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
+			cluster.UserManagedNetworking = swag.Bool(true)
+			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
+
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,
+				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+				AnyTimes()
+
+		})
+
+		tests := []struct {
+			name               string
+			srcState           string
+			dstState           string
+			statusInfoChecker  statusInfoChecker
+			validationsChecker *validationsChecker
+			routes             []*models.Route
+			inventory          string
+		}{
+			{name: "known with default route on IPv4 only",
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusKnown,
+				routes:            ipv4Routes,
+				inventory:         hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationSuccess, messagePattern: "Host has been configured with at least one default route."},
+				}),
+			},
+			{name: "known with default route on IPv6",
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusKnown,
+				routes:            ipv6Routes,
+				inventory:         hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationSuccess, messagePattern: "Host has been configured with at least one default route."},
+				}),
+			},
+			{name: "known with default route on IPv4 and IPv6",
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusKnown,
+				routes:            append(ipv4Routes, ipv6Routes...),
+				inventory:         hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(statusInfoKnown),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationSuccess, messagePattern: "Host has been configured with at least one default route."},
+				}),
+			},
+			{name: "insufficient with no default route",
+				srcState:  models.HostStatusDiscovering,
+				dstState:  models.HostStatusInsufficient,
+				routes:    noDefaultRoute,
+				inventory: hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Host has not yet been configured with a default route.")),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationFailure, messagePattern: "Host has not yet been configured with a default route."},
+				}),
+			},
+			{name: "insufficient with no routes",
+				srcState:  models.HostStatusDiscovering,
+				dstState:  models.HostStatusInsufficient,
+				routes:    []*models.Route{},
+				inventory: hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Host has not yet been configured with a default route.")),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationFailure, messagePattern: "Host has not yet been configured with a default route."},
+				}),
+			},
+			{name: "discovering with pending inventory",
+				srcState:          models.HostStatusDiscovering,
+				dstState:          models.HostStatusDiscovering,
+				inventory:         "",
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoDiscovering)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationPending, messagePattern: "Missing default routing information."},
+				}),
+			},
+			{name: "insufficient with no default route recorded",
+				srcState:  models.HostStatusDiscovering,
+				dstState:  models.HostStatusInsufficient,
+				inventory: hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Host has not yet been configured with a default route.")),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationFailure, messagePattern: "Host has not yet been configured with a default route."},
+				}),
+			},
+			{name: "insufficient with invalid destination",
+				srcState:  models.HostStatusDiscovering,
+				dstState:  models.HostStatusInsufficient,
+				routes:    invalidDestination,
+				inventory: hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Host has not yet been configured with a default route.")),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationFailure, messagePattern: "Host has not yet been configured with a default route."},
+				}),
+			},
+			{name: "insufficient with invalid gateway",
+				srcState:  models.HostStatusDiscovering,
+				dstState:  models.HostStatusInsufficient,
+				routes:    invalidGateway,
+				inventory: hostutil.GenerateMasterInventory(),
+				statusInfoChecker: makeValueChecker(formatStatusInfoFailedValidation(statusInfoNotReadyForInstall,
+					"Host has not yet been configured with a default route.")),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasDefaultRoute: {status: ValidationFailure, messagePattern: "Host has not yet been configured with a default route."},
+				}),
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				var inventory string
+				if len(t.inventory) > 0 {
+					inv, err := hostutil.UnmarshalInventory(t.inventory)
+					Expect(err).To(Not(HaveOccurred()))
+					inv.Routes = t.routes
+					inventory, err = hostutil.MarshalInventory(inv)
+					Expect(err).To(Not(HaveOccurred()))
+				}
+				host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
+				host.Inventory = inventory
+				host.NtpSources = string(defaultNTPSourcesInBytes)
+				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+				if t.srcState != t.dstState {
+					mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+						gomock.Any(), gomock.Any())
+				}
+				Expect(hapi.RefreshStatus(ctx, &host, db)).NotTo(HaveOccurred())
+				var resultHost models.Host
+				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", host.ID, clusterId.String()).Error).ToNot(HaveOccurred())
+				t.statusInfoChecker.check(resultHost.StatusInfo)
+				Expect(resultHost.Status).To(Equal(&t.dstState))
+				if t.validationsChecker != nil {
+					t.validationsChecker.check(resultHost.ValidationsInfo)
+				}
+			})
+		}
+	})
 	AfterEach(func() {
 		common.DeleteTestDB(db, dbName)
 		ctrl.Finish()

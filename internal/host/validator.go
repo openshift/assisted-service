@@ -793,3 +793,51 @@ func (v *validator) printSufficientPacketLossRequirementForRole(c *validationCon
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
+
+func (v *validator) hasDefaultRoute(c *validationContext) ValidationStatus {
+
+	if len(c.host.Inventory) == 0 {
+		return ValidationPending
+	}
+
+	inv, err := hostutil.UnmarshalInventory(c.host.Inventory)
+	if err != nil || len(inv.Routes) == 0 {
+		return ValidationFailure
+	}
+	if v.validateDefaultRoute(inv.Routes) {
+		return ValidationSuccess
+	}
+	return ValidationFailure
+}
+
+func (v *validator) validateDefaultRoute(routes []*models.Route) bool {
+	for _, r := range routes {
+		dst := net.ParseIP(r.Destination)
+		if dst == nil {
+			v.log.Errorf("unable to parse destination IP: %s", r.Destination)
+			continue
+		}
+		gw := net.ParseIP(r.Gateway)
+		if gw == nil {
+			v.log.Errorf("unable to parse gateway IP: %s", r.Gateway)
+			continue
+		}
+		if dst.IsUnspecified() && !gw.IsUnspecified() {
+			return true
+		}
+	}
+	return false
+}
+
+func (v *validator) printDefaultRoute(c *validationContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		return "Host has been configured with at least one default route."
+	case ValidationFailure:
+		return "Host has not yet been configured with a default route."
+	case ValidationPending:
+		return "Missing default routing information."
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
+}

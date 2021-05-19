@@ -238,6 +238,7 @@ var _ = Describe("hardware_validator", func() {
 				{DriveType: "ODD", Name: "loop0"},
 				{DriveType: "HDD", Name: "sdb"},
 			},
+			Routes: common.TestDefaultRouteConfiguration,
 		}
 		cluster = &common.Cluster{Cluster: models.Cluster{
 			ID:                 &clusterID,

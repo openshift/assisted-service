@@ -224,6 +224,11 @@ func newValidations(v *validator) []validation {
 			condition: v.hasSufficientPacketLossRequirementForRole,
 			formatter: v.printSufficientPacketLossRequirementForRole,
 		},
+		{
+			id:        HasDefaultRoute,
+			condition: v.hasDefaultRoute,
+			formatter: v.printDefaultRoute,
+		},
 	}
 }
 

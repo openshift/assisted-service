@@ -303,6 +303,7 @@ func generateValidInventoryWithInterface(networkInterface string) string {
 		Disks:        []*models.Disk{{Name: "sda1", DriveType: "HDD", SizeBytes: validDiskSize}},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Interfaces:   []*models.Interface{{IPV4Addresses: []string{networkInterface}}},
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -531,6 +532,7 @@ var _ = Describe("Metrics tests", func() {
 				Disks:        []*models.Disk{&sda1},
 				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 				Interfaces:   []*models.Interface{{IPV4Addresses: []string{"1.2.3.4/24"}}},
+				Routes:       common.TestDefaultRouteConfiguration,
 			}
 			generateHWPostStepReply(ctx, h, nonValidInventory, "master-0")
 			waitForHostValidationStatus(clusterID, *h.ID, "failure",
@@ -572,6 +574,7 @@ var _ = Describe("Metrics tests", func() {
 				Disks:        []*models.Disk{&sda1},
 				SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 				Interfaces:   []*models.Interface{{IPV4Addresses: []string{"1.2.3.4/24"}}},
+				Routes:       common.TestDefaultRouteConfiguration,
 			}
 			generateHWPostStepReply(ctx, h, nonValidInventory, "master-0")
 			waitForHostValidationStatus(clusterID, *h.ID, "failure",

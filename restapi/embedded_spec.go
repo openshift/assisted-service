@@ -6618,7 +6618,8 @@ func init() {
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
-        "sufficient-packet-loss-requirement-for-role"
+        "sufficient-packet-loss-requirement-for-role",
+        "has-default-route"
       ]
     },
     "host_network": {
@@ -14262,7 +14263,8 @@ func init() {
         "sufficient-installation-disk-speed",
         "cnv-requirements-satisfied",
         "sufficient-network-latency-requirement-for-role",
-        "sufficient-packet-loss-requirement-for-role"
+        "sufficient-packet-loss-requirement-for-role",
+        "has-default-route"
       ]
     },
     "host_network": {
