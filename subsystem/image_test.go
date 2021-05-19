@@ -59,10 +59,10 @@ var _ = Describe("system-test image tests", func() {
 				macInterfaceMap := models.MacInterfaceMap{
 					&models.MacInterfaceMapItems0{
 						LogicalNicName: "eth0",
-						MacAddress:     "00:00:5E:00:53:EF",
+						MacAddress:     "00:00:5E:00:53:EE",
 					},
 					&models.MacInterfaceMapItems0{
-						LogicalNicName: "eth0",
+						LogicalNicName: "eth1",
 						MacAddress:     "00:00:5E:00:53:EF",
 					},
 				}
