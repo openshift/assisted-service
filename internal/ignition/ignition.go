@@ -313,6 +313,7 @@ type installerGenerator struct {
 	s3Client                 s3wrapper.API
 	enableMetal3Provisioning bool
 	operatorsApi             operators.API
+	installInvoker           string
 }
 
 // IgnitionConfig contains the attributes required to build the discovery ignition file
@@ -343,7 +344,7 @@ func NewBuilder(log logrus.FieldLogger, staticNetworkConfig staticnetworkconfig.
 
 // NewGenerator returns a generator that can generate ignition files
 func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, releaseImage string, releaseImageMirror string,
-	serviceCACert string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API) Generator {
+	serviceCACert, installInvoker string, s3Client s3wrapper.API, log logrus.FieldLogger, operatorsApi operators.API) Generator {
 	return &installerGenerator{
 		cluster:                  cluster,
 		log:                      log,
@@ -355,6 +356,7 @@ func NewGenerator(workDir string, installerDir string, cluster *common.Cluster, 
 		s3Client:                 s3Client,
 		enableMetal3Provisioning: true,
 		operatorsApi:             operatorsApi,
+		installInvoker:           installInvoker,
 	}
 }
 
@@ -385,7 +387,7 @@ func (g *installerGenerator) Generate(ctx context.Context, installConfig []byte)
 	}
 	envVars := append(os.Environ(),
 		"OPENSHIFT_INSTALL_RELEASE_IMAGE_OVERRIDE="+g.releaseImage,
-		"OPENSHIFT_INSTALL_INVOKER=assisted-installer",
+		"OPENSHIFT_INSTALL_INVOKER="+g.installInvoker,
 	)
 
 	// write installConfig to install-config.yaml so openshift-install can read it
