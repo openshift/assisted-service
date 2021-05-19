@@ -20,6 +20,8 @@ AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMe
 |RequirementsMet|False|ClusterNotReady|The cluster is not ready to begin the installation|If the cluster is before installation ("insufficient"/"pending-for-input")|
 |RequirementsMet|True|ClusterAlreadyInstalling|The cluster requirements are met|If the cluster has begun installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action", "adding-hosts") |
 |RequirementsMet|True|ClusterInstallationStopped|The cluster installation stopped|If the cluster has stopped installing ("installed", "error") |
+|RequirementsMet|False|InsufficientAgents|The cluster currently requires `X` agents but only `Y` are ready|If the cluster is ready but we don't have the expected number of ready agents |
+|RequirementsMet|False|UnapprovedAgents|The installation is pending on the approval of `X` agents|If the cluster is ready with the expected number of ready agents, but not all have been approved |
 ||||||
 |Completed|True|InstallationCompleted|The installation has completed: "status_info"|If the cluster status is "installed"|
 |Completed|False|InstallationFailed|The installation has failed: "status_info"|If the cluster status is "error"|
