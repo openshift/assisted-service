@@ -175,7 +175,7 @@ _update-private-registry-image: update-image
 
 _update-local-k8s-image:
 	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
-    # Should be replaced after installing a local registry
+	# Should be replaced after installing a local registry
 	./hack/update_local_image.sh
 
 update-local-image: $(UPDATE_LOCAL_SERVICE)

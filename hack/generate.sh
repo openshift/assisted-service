@@ -101,11 +101,30 @@ function generate_manifests() {
 function generate_bundle() {
     ENABLE_KUBE_API=true generate_manifests
     operator-sdk generate kustomize manifests --apis-dir internal/controller/api -q
-    # TODO(djzager) use this line to pin images in the future
-    # cd config/manager && kustomize edit set image controller=${SERVICE}
     kustomize build config/manifests | operator-sdk generate bundle -q --overwrite --output-dir ${BUNDLE_OUTPUT_DIR} ${BUNDLE_METADATA_OPTS}
     # TODO(djzager) structure config/rbac in such a way to avoid need for this
     rm ${BUNDLE_OUTPUT_DIR}/manifests/assisted-service_v1_serviceaccount.yaml
+
+    # Reference all images by digest when asked
+    if [ "${IMAGES_BY_DIGEST:-}" == "true" ]; then
+        local csv="${BUNDLE_OUTPUT_DIR}/manifests/assisted-service-operator.clusterserviceversion.yaml"
+        local created_at=$(date +"%Y-%m-%dT%H:%M:%SZ")
+        sed -i "s|createdAt: \"\"|createdAt: ${created_at}|" $csv
+        local images=$(grep '\- image:' ${csv} | awk '{ print $3 }')
+        for full_image in $images; do
+            local tag=${full_image#*:}
+            local image=${full_image%:*}
+            local registry=${image%%/*}
+            local image_name=${image#*/}
+            local digest=$(curl -G https://${registry}/api/v1/repository/${image_name}/tag/ | \
+                jq -r --arg TAG "${tag}" '
+                            .tags[]
+                            | select(.name==$TAG and (has("expiration")
+                            | not))
+                            | .manifest_digest')
+            sed -i "s,${full_image},${image}@${digest},g" ${csv}
+        done
+    fi
     operator-sdk bundle validate ${BUNDLE_OUTPUT_DIR}
 }
 
@@ -113,7 +132,7 @@ function generate_all() {
     generate_from_swagger
     generate_mocks
     generate_configuration
-    ENABLE_KUBE_API=true generate_manifests
+    generate_bundle
 }
 
 function print_help() {
