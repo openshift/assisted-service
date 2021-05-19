@@ -173,6 +173,25 @@ var _ = Describe("Disk eligibility", func() {
 		Expect(eligible).To(ContainElements(existingReasons))
 		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
 	})
+
+	It("Check that a old service reasons have been purged", func() {
+		operatorsMock.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).Return([]*models.OperatorHostRequirements{}, nil)
+		existingReasons := []string{"Reason 1", "Reason 2"}
+		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
+
+		testDisk.SizeBytes = tooSmallSize
+
+		eligible, err := hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ContainElements(existingReasons))
+		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+
+		testDisk.InstallationEligibility.NotEligibleReasons = existingReasons
+		eligible, err = hwvalidator.DiskIsEligible(ctx, &testDisk, &cluster, &host)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(eligible).To(ContainElements(existingReasons))
+		Expect(eligible).To(HaveLen(len(existingReasons) + 1))
+	})
 })
 
 var _ = Describe("hardware_validator", func() {

@@ -289,8 +289,8 @@ func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) (*mode
 	return requirements, nil
 }
 
-func compileDiskReasonTemplate(template string, wildcards ...string) *regexp.Regexp {
-	tmp, err := regexp.Compile(fmt.Sprintf(regexp.QuoteMeta(template), wildcards))
+func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regexp.Regexp {
+	tmp, err := regexp.Compile(fmt.Sprintf(regexp.QuoteMeta(template), wildcards...))
 	if err != nil {
 		panic(err)
 	}
