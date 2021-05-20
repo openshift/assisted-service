@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
 
@@ -22,13 +24,18 @@ function create() {
     for node in ${NODES}; do
         for disk in ${DISKS}; do
             img_path="/tmp/${node}-${disk}.img"
-            if [ -f ${img_path} ]; then
+            if [ ! -f "${img_path}" ]; then
+                qemu-img create -f raw "${img_path}" "${SIZE}"
+            else
                 echo "Image ${img_path} already existing. Skipping creation"
-                continue
             fi
 
-            qemu-img create -f raw "${img_path}" "${SIZE}"
-            virsh attach-disk "${node}" "${img_path}" "${disk}"
+            node_disks=$(virsh domblklist "${node}" | awk '{print $1}')
+            if [[ ! "${node_disks}" =~ "${disk}" ]]; then
+                virsh attach-disk "${node}" "${img_path}" "${disk}"
+            else
+                echo "Disk ${disk} is already attached to ${node}. Skipping attachment"
+            fi
         done
     done
 
@@ -40,9 +47,13 @@ function destroy() {
 
     for node in ${NODES}; do
         for disk in ${DISKS}; do
+            node_disks=$(virsh domblklist "${node}" | awk '{print $1}')
+            if [[ "${node_disks}" =~ "${disk}" ]]; then
+                virsh detach-disk "${node}" "${disk}" || true
+            fi
+
             img_path="/tmp/${node}-${disk}.img"
-            if [ -f ${img_path} ]; then
-                virsh detach-disk "${node}" "${disk}"
+            if [ -f "${img_path}" ]; then
                 rm -rf "${img_path}"
             fi
         done
@@ -51,6 +62,6 @@ function destroy() {
     echo "Done destroying libvirt disks!"
 }
 
-declare -F $@ || (print_help && exit 1)
+declare -F "$@" || (print_help && exit 1)
 
 "$@"
