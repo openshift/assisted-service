@@ -22,7 +22,8 @@ func GetNextStepRunnerCommand(config *NextStepRunnerConfig) (string, *[]string) 
 	arguments := []string{"run", "--rm", "-ti", "--privileged", "--pid=host", "--net=host",
 		"-v", "/dev:/dev:rw", "-v", "/opt:/opt:rw",
 		"-v", "/run/systemd/journal/socket:/run/systemd/journal/socket",
-		"-v", "/var/log:/var/log:rw"}
+		"-v", "/var/log:/var/log:rw",
+		"-v", "/run/media:/run/media:rw"}
 
 	if config.UseCustomCACert {
 		arguments = append(arguments, "-v", fmt.Sprintf("%s:%s", common.HostCACertPath, common.HostCACertPath))
