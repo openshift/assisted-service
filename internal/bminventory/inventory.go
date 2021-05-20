@@ -1573,7 +1573,7 @@ func (b *bareMetalInventory) refreshClusterHosts(ctx context.Context, cluster *c
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	for _, dbHost := range cluster.Hosts {
+	for _, dbHost := range dbCluster.Hosts {
 		var err error
 
 		// Refresh inventory - especially disk eligibility. The host requirements might have changed.
