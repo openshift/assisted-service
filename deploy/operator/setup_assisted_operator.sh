@@ -38,24 +38,24 @@ cat <<EOF
 EOF
     fi
 
+    if [ -n "${SERVICE_IMAGE:-}" ]; then
+cat <<EOF
+    - name: SERVICE_IMAGE
+      value: '${SERVICE_IMAGE}'
+EOF
+    fi
+}
+
+function configmap_config() {
     if [ -n "${OPENSHIFT_VERSIONS:-}" ]; then
 cat <<EOF
-    - name: OPENSHIFT_VERSIONS
-      value: '${OPENSHIFT_VERSIONS}'
+  OPENSHIFT_VERSIONS: '${OPENSHIFT_VERSIONS}'
 EOF
     fi
 
     if [ -n "${SERVICE_BASE_URL:-}" ]; then
 cat <<EOF
-    - name: SERVICE_BASE_URL
-      value: '${SERVICE_BASE_URL}'
-EOF
-    fi
-
-    if [ -n "${SERVICE_IMAGE:-}" ]; then
-cat <<EOF
-    - name: SERVICE_IMAGE
-      value: '${SERVICE_IMAGE}'
+  SERVICE_BASE_URL: '${SERVICE_BASE_URL}'
 EOF
     fi
 }
@@ -106,10 +106,23 @@ EOCR
 wait_for_crd "agentserviceconfigs.agent-install.openshift.io"
 
 tee << EOCR >(oc apply -f -)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: assisted-service-config
+  namespace: ${ASSISTED_NAMESPACE}
+data:
+  LOG_LEVEL: "debug"
+$(configmap_config)
+EOCR
+
+tee << EOCR >(oc apply -f -)
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
  name: agent
+ annotations:
+  unsupported.agent-install.openshift.io/assisted-service-configmap: "assisted-service-config"
 spec:
  databaseStorage:
   storageClassName: ${STORAGE_CLASS_NAME}
