@@ -149,7 +149,7 @@ skipper make deploy-all
 
 ### Deploy to OpenShift
 
-Besides default minikube deployment, the service support deployment to OpenShift cluster using ingress as the access point to the service.
+Besides default minikube deployment, the service supports deployment to OpenShift cluster using ingress as the access point to the service.
 
 ```shell
 skipper make deploy-all TARGET=oc-ingress
@@ -170,7 +170,7 @@ Note: All deployment configurations are under the `deploy` directory in case mor
 
 ### Deploy UI
 
-This service support optional UI deployment.
+This service supports optional UI deployment.
 
 ```shell
 skipper make deploy-ui
@@ -297,8 +297,8 @@ The live ISO boots up and deploys the assisted-service using containers on host.
 
 assisted-service maintains a cache of openshift-baremetal-install binaries at
 `$WORK_DIR/installercache/`. Persistent storage can optionally be mounted
-there to persist the cache accross container restarts. However, that storage
-should not be shared accross multiple assisted-service processes.
+there to persist the cache across container restarts. However, that storage
+should not be shared across multiple assisted-service processes.
 
 #### Cache Expiration
 

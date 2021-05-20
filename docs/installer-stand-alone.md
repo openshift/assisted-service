@@ -49,7 +49,7 @@ Once you have made any adjustments to ports as necessary, you can create the
 assisted-installer pod.
 
 ```
-podman pod create --name assisted-installer -p 5432,8080,8090
+podman pod create --name assisted-installer -p 5432:5432,8080:8080,8090:8090
 ```
 
 **NOTE**
