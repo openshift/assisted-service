@@ -98,7 +98,7 @@ type Config struct {
 	IPv6Support                     bool              `envconfig:"IPV6_SUPPORT" default:"true"`
 }
 
-const minimalOpenShiftVersionForSingleNode = "4.8.0-fc.0"
+const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
 
 type OCPClusterAPI interface {
 	RegisterOCPCluster(ctx context.Context) error

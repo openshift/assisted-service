@@ -2174,6 +2174,30 @@ var _ = Describe("cluster", func() {
 			Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
 		})
 	})
+	It("create non ha cluster success, release version is ci-release and greater than minimal", func() {
+		bm.clusterApi = cluster.NewManager(cluster.Config{}, common.GetTestLog().WithField("pkg", "cluster-monitor"),
+			db, mockEvents, nil, nil, nil, nil, nil, nil, nil, nil)
+
+		mockClusterRegisterSuccess(bm, true)
+		noneHaMode := models.ClusterHighAvailabilityModeNone
+		openShiftVersionForNoneHA := "4.8.0-0.ci.test-2021-05-20-000749-ci-op-7xrzwgwy-latest"
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:                 swag.String("some-cluster-name"),
+				OpenshiftVersion:     swag.String(openShiftVersionForNoneHA),
+				PullSecret:           swag.String("{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"),
+				HighAvailabilityMode: &noneHaMode,
+				VipDhcpAllocation:    swag.Bool(true),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.HighAvailabilityMode).To(Equal(swag.String(noneHaMode)))
+		Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
+		// verify VipDhcpAllocation was set to false even though it was sent as true
+		Expect(actual.Payload.VipDhcpAllocation).To(Equal(swag.Bool(false)))
+	})
+
 	Context("Update", func() {
 		BeforeEach(func() {
 			mockDurationsSuccess()
