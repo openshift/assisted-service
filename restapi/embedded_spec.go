@@ -1993,6 +1993,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Lists events for a cluster.",
@@ -9761,6 +9764,9 @@ func init() {
               "read-only-admin",
               "user"
             ]
+          },
+          {
+            "urlAuth": []
           }
         ],
         "description": "Lists events for a cluster.",

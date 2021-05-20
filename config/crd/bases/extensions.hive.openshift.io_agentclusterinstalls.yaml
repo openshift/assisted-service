@@ -276,6 +276,15 @@ spec:
                 description: ControlPlaneAgentsDiscovered is the number of Agents
                   currently linked to this ClusterDeployment that are ready for use.
                 type: integer
+              debugInfo:
+                description: DebugInfo includes information for debugging the installation
+                  process.
+                properties:
+                  eventsURL:
+                    description: EventsURL specifies an HTTP/S URL that contains events
+                      which occured during the cluster installation process
+                    type: string
+                type: object
               workerAgentsDiscovered:
                 description: WorkerAgentsDiscovered is the number of worker Agents
                   currently linked to this ClusterDeployment.
