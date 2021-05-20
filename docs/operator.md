@@ -16,8 +16,12 @@ Build the bundle:
 
 ```
 export BUNDLE_IMAGE=quay.io/${QUAY_NAMESPACE}/assisted-service-operator-bundle:${TAG}
-make operator-bundle-build
+skipper make operator-bundle-build
 ```
+
+**NOTE**
+
+It is possible to run `make` command without using Skipper. In such a scenario all the required dependencies can be installed using the [setup_env.sh script](../hack/setup_env.sh).
 
 ## Deploying the operator
 
