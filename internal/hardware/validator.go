@@ -53,9 +53,7 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 }
 
 type ValidatorCfg struct {
-	MinCPUCores                   int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES" default:"2"`
 	MinCPUCoresSno                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_SNO" default:"8"`
-	MinRamGib                     int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB" default:"8"`
 	MinRamGibSno                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_SNO" default:"32"`
 	MaximumAllowedTimeDiffMinutes int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
 	VersionedRequirements         VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`

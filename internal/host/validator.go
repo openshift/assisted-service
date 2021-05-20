@@ -19,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"github.com/openshift/assisted-service/pkg/mathutils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -56,6 +57,8 @@ type validationContext struct {
 	inventory               *models.Inventory
 	db                      *gorm.DB
 	clusterHostRequirements *models.ClusterHostRequirements
+	minCPUCoresRequirement  int64
+	minRAMMibRequirement    int64
 }
 
 type validationCondition func(context *validationContext) ValidationStatus
@@ -126,6 +129,18 @@ func (c *validationContext) loadClusterHostRequirements(hwValidator hardware.Val
 	return err
 }
 
+func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Validator) error {
+	requirements, err := hwValidator.GetPreflightHardwareRequirements(context.TODO(), c.cluster)
+	if err != nil {
+		return err
+	}
+
+	c.minCPUCoresRequirement = mathutils.Min(requirements.Ocp.Master.Quantitative.CPUCores, requirements.Ocp.Worker.Quantitative.CPUCores)
+	c.minRAMMibRequirement = mathutils.Min(requirements.Ocp.Master.Quantitative.RAMMib, requirements.Ocp.Worker.Quantitative.RAMMib)
+
+	return err
+}
+
 func newValidationContext(host *models.Host, c *common.Cluster, db *gorm.DB, hwValidator hardware.Validator) (*validationContext, error) {
 	ret := &validationContext{
 		host:    host,
@@ -144,6 +159,9 @@ func newValidationContext(host *models.Host, c *common.Cluster, db *gorm.DB, hwV
 	}
 	if err == nil {
 		err = ret.loadClusterHostRequirements(hwValidator)
+	}
+	if err == nil {
+		err = ret.loadGeneralMinRequirements(hwValidator)
 	}
 	if err != nil {
 		return nil, err
@@ -200,7 +218,7 @@ func (v *validator) hasMinCpuCores(c *validationContext) ValidationStatus {
 	if c.inventory == nil {
 		return ValidationPending
 	}
-	return boolValue(c.inventory.CPU.Count >= v.hwValidatorCfg.MinCPUCores)
+	return boolValue(c.inventory.CPU.Count >= c.minCPUCoresRequirement)
 }
 
 func (v *validator) printHasMinCpuCores(c *validationContext, status ValidationStatus) string {
@@ -208,7 +226,7 @@ func (v *validator) printHasMinCpuCores(c *validationContext, status ValidationS
 	case ValidationSuccess:
 		return "Sufficient CPU cores"
 	case ValidationFailure:
-		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is %d, found only %d", v.hwValidatorCfg.MinCPUCores, c.inventory.CPU.Count)
+		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required CPU cores for any role is %d, found only %d", c.minCPUCoresRequirement, c.inventory.CPU.Count)
 	case ValidationPending:
 		return "Missing inventory"
 	default:
@@ -221,7 +239,7 @@ func (v *validator) hasMinMemory(c *validationContext) ValidationStatus {
 		return ValidationPending
 	}
 
-	return boolValue(c.inventory.Memory.PhysicalBytes >= conversions.GibToBytes(v.hwValidatorCfg.MinRamGib))
+	return boolValue(c.inventory.Memory.PhysicalBytes >= conversions.MibToBytes(c.minRAMMibRequirement))
 }
 
 func (v *validator) printHasMinMemory(c *validationContext, status ValidationStatus) string {
@@ -230,7 +248,7 @@ func (v *validator) printHasMinMemory(c *validationContext, status ValidationSta
 		return "Sufficient minimum RAM"
 	case ValidationFailure:
 		return fmt.Sprintf("The host is not eligible to participate in Openshift Cluster because the minimum required RAM for any role is %s, found only %s",
-			conversions.BytesToString(conversions.GibToBytes(v.hwValidatorCfg.MinRamGib)), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
+			conversions.BytesToString(conversions.MibToBytes(c.minRAMMibRequirement)), conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
 	case ValidationPending:
 		return "Missing inventory"
 	default:

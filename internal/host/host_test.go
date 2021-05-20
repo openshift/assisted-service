@@ -1877,24 +1877,38 @@ var _ = Describe("AutoAssignRole", func() {
 			{Status: api.Success, ValidationId: string(models.HostValidationIDLsoRequirementsSatisfied)},
 			{Status: api.Success, ValidationId: string(models.HostValidationIDCnvRequirementsSatisfied)},
 		}, nil)
+		masterRequirements := models.ClusterHostRequirementsDetails{
+			CPUCores:   4,
+			DiskSizeGb: 120,
+			RAMMib:     16384,
+		}
+
+		workerRequirements := models.ClusterHostRequirementsDetails{
+			CPUCores:   2,
+			DiskSizeGb: 120,
+			RAMMib:     8192,
+		}
 
 		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 			var details models.ClusterHostRequirementsDetails
 			if host.Role == models.HostRoleMaster {
-				details = models.ClusterHostRequirementsDetails{
-					CPUCores:   4,
-					DiskSizeGb: 120,
-					RAMMib:     16384,
-				}
+				details = masterRequirements
 			} else {
-				details = models.ClusterHostRequirementsDetails{
-					CPUCores:   2,
-					DiskSizeGb: 120,
-					RAMMib:     8192,
-				}
+				details = workerRequirements
 			}
 			return &models.ClusterHostRequirements{Total: &details}, nil
 		})
+		mockHwValidator.EXPECT().GetPreflightHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(
+			&models.PreflightHardwareRequirements{
+				Ocp: &models.HostTypeHardwareRequirementsWrapper{
+					Master: &models.HostTypeHardwareRequirements{
+						Quantitative: &masterRequirements,
+					},
+					Worker: &models.HostTypeHardwareRequirements{
+						Quantitative: &workerRequirements,
+					},
+				},
+			}, nil)
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("abc").AnyTimes()
 	})
 
@@ -2000,6 +2014,7 @@ var _ = Describe("IsValidMasterCandidate", func() {
 		mockOperators := operators.NewMockAPI(ctrl)
 		hwValidator := hardware.NewValidator(testLog, *hwValidatorCfg, mockOperators)
 		mockOperators.EXPECT().GetRequirementsBreakdownForHostInCluster(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHostRequirements{}, nil)
+		mockOperators.EXPECT().GetPreflightRequirementsBreakdownForCluster(gomock.Any(), gomock.Any()).AnyTimes().Return([]*models.OperatorHardwareRequirements{}, nil)
 		hapi = NewManager(
 			common.GetTestLog(),
 			db,

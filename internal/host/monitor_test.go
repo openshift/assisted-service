@@ -48,6 +48,16 @@ var _ = Describe("monitor_disconnection", func() {
 		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
 			Total: &models.ClusterHostRequirementsDetails{},
 		}, nil)
+		mockHwValidator.EXPECT().GetPreflightHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(&models.PreflightHardwareRequirements{
+			Ocp: &models.HostTypeHardwareRequirementsWrapper{
+				Worker: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+				Master: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+			},
+		}, nil)
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
 		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, createValidatorCfg(),
@@ -156,6 +166,16 @@ var _ = Describe("TestHostMonitoring", func() {
 		mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).AnyTimes()
 		mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{
 			Total: &models.ClusterHostRequirementsDetails{},
+		}, nil)
+		mockHwValidator.EXPECT().GetPreflightHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(&models.PreflightHardwareRequirements{
+			Ocp: &models.HostTypeHardwareRequirementsWrapper{
+				Worker: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+				Master: &models.HostTypeHardwareRequirements{
+					Quantitative: &models.ClusterHostRequirementsDetails{},
+				},
+			},
 		}, nil)
 		mockHwValidator.EXPECT().GetHostValidDisks(gomock.Any()).Return(nil, nil).AnyTimes()
 		mockOperators := operators.NewMockAPI(ctrl)
