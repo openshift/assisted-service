@@ -352,7 +352,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(instance *aiv1beta1.AgentSe
 		}
 
 		cm.Data = map[string]string{
-			"SERVICE_BASE_URL": serviceURL.String(),
+			"SERVICE_BASE_URL": getEnvVar("SERVICE_BASE_URL", serviceURL.String()),
 
 			// image overrides
 			"AGENT_DOCKER_IMAGE": AgentImage(),
