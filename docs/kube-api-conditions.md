@@ -87,7 +87,7 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `ReadyForIns
 |SpecSynced|False|InputError|The Spec could not be synced due to an input error: <err>|If the Spec was not applied due to 40X error|
 ||||||
 |Validated|True|ValidationsPassing|The agent's validations are passing|Otherwise than other conditions|
-|Validated|False|ValidationsFailing|The agent's validations are failing: "summary of failed validations"|If the host status is "insufficient"|
+|Validated|False|ValidationsFailing|The agent's validations are failing: "summary of failed validations"|If the host status is "insufficient" or "pending-for-input"|
 |Validated|Unknown|ValidationsUnknown|The agent's validations have not yet been calculated|If the validations have not yet been calculated|
 ||||||
 |ReadyForInstallation|True|AgentIsReady|The agent is ready to begin the installation|if the host status is "known"|
