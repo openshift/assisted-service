@@ -107,7 +107,7 @@ GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.v -ginkgo.skip="$(SKIP)" -ginkgo
 all: build
 
 init:
-	./hack/setup_env.sh
+	./hack/setup_env.sh assisted_service
 
 ci-lint:
 ifdef SKIPPER_USERNAME

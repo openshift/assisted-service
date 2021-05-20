@@ -4,7 +4,7 @@ ENV GO111MODULE=on
 ENV GOFLAGS=""
 
 COPY ./hack/setup_env.sh ./dev-requirements.txt ./
-RUN ./setup_env.sh
+RUN ./setup_env.sh assisted_service
 
 COPY --from=quay.io/openshift/origin-cli:latest /usr/bin/oc /usr/bin
 COPY --from=quay.io/operator-framework/upstream-opm-builder:v1.16.1 /bin/opm /bin
