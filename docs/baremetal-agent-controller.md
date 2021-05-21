@@ -7,9 +7,9 @@ and maintained in this repo) resources for the agent-based deployment scenario.
 Testing
 ==
 
-The testing environment for BMAC consists in:
+The testing environment for BMAC consists of
 
-- [Downstream dev-scripts](https://github.com/openshift-metal3/dev-scripts/) deployment
+- [Downstream dev-scripts][dev-scripts] deployment
 - [Baremetal Operator][bmo]: It defines the BareMetalHost custom resource
 - [Assisted Installer Operator](./operator.md): To deploy and manage the  assisted installer
   deployment. Read the operator docs to know more about its dependencies and installation process.
@@ -28,14 +28,16 @@ Dev Scripts
 export MASTER_VCPU=4
 export MASTER_MEMORY=20000
 
-# Set memory and CPU for workers
+# Set specs for workers
 export WORKER_VCPU=4
 export WORKER_MEMORY=20000
+export WORKER_DISK=60
 
 # No workers are needed to test BMAC
 export NUM_WORKERS=0
 
-# Add extra workers so we can use it for the deployment
+# Add extra workers so we can use it for the deployment.
+# SNO requires 1 extra machine to be created.
 export NUM_EXTRA_WORKERS=1
 
 # At the time of this writing, this requires the 1195 PR
@@ -47,17 +49,40 @@ The config above should provide you with an environment that is ready to be used
 assisted installer, and BMAC tests. Here are a few tips that would help simplifying the environment
 and the steps required:
 
-- Clone [baremetal-operator][bmo] somewhere and set the BAREMETAL_OPERATOR_LOCAL_IMAGE in your config.
+- Clone [baremetal-operator][bmo] somewhere and set the `BAREMETAL_OPERATOR_LOCAL_IMAGE` in your config.
 
 Once dev-script is up and running, modify the worker(s) and add 2 more disks (10GB should be enough)
-as they are required by the Assisted Installer Operator.
+as they are required by the Local Storage Operator.
+
+You can use the following snippet to attach a disk to the libvirt VM
+
+```bash
+export CLUSTERNAME=ostest
+export VMNAME=master_0
+export DISK=sdb
+
+qemu-img create -f raw /home/dev-scripts/pool/${VMNAME}_manual_${DISK}.img 10G
+
+virsh attach-disk ${CLUSTERNAME}_${VMNAME} \
+--source /home/dev-scripts/pool/${VMNAME}_manual_${DISK}.img \
+--target ${DISK} \
+--persistent
+```
+
+**NOTE**
+
+Target device name must match the one defined later (during installation of the Assisted Service) in the `LocalVolume` manifest - https://github.com/openshift-metal3/dev-scripts/blob/master/assisted_deployment.sh#L64-L65. In this case `/dev/sdb` and `/dev/sdc` are expected.
+
+**NOTE**
+
+The default hardware requirements for the OCP cluster are higher than the values provided below. A guide on how to customize validator requirements can be found [here](dev/hardware-requirements.md).
 
 Local Baremetal Operator (optional)
 ==
 
 The [baremetal-operator][bmo] will define the BareMetalHost custom resource required by the agent
 based install process. Setting the `BAREMETAL_OPERATOR_LOCAL_IMAGE` should build and run the BMO
-already. However, it's recommended to run the [local-bmo][local-bmo] script to facilitated the
+already. However, it's recommended to run the [local-bmo][local-bmo] script to facilitate the
 deployment and monitoring of the BMO. Here's what using [local-bmo][local-bmo] looks like:
 
 It's possible to disable inspection for the master (and workers) nodes before running the local-bmo
@@ -99,8 +124,35 @@ facilitates this step:
 [dev@edge-10 dev-scripts]$ make assisted_deployment
 ```
 
-Take a look at the [script itself](https://github.com/openshift-metal3/dev-scripts/blob/master/assisted_deployment.sh)
+Take a look at the [script itself][assisted-deployment-sh]
 to know what variables can be customized for the Assisted Installer Operator deployment.
+
+Creating AgentClusterInstall, ClusterDeployment and InfraEnv resources
+===
+
+A number of resources has to be created in order to have the deployment fully ready for deploying OCP clusters. A typical workflow is as follows
+
+* create the [PullSecret](crds/pullsecret.yaml)
+  * in order to create it directly from file you can use the following
+  ```
+  kubectl create secret -n assisted-installer generic pull-secret --from-file=.dockerconfigjson=pull_secret.json
+  ```
+* create the [ClusterImageSet](crds/clusterImageSet.yaml)
+* optionally create a [custom `ConfigMap` overriding default Assisted Service configuration](operator.md#specifying-environmental-variables-via-configmap)
+* create the [AgentClusterInstall](crds/agentClusterInstall.yaml) or [AgentClusterInstall for SNO](crds/agentClusterInstall-SNO.yaml)
+  * more manifests (e.g. IPv6 deployments) can be found [here](https://docs.google.com/document/d/1jDrwSyKFssIh-yxJ-wSdB-OCcPvsfm06P54oTk1C6BI/edit#heading=h.acv4csx2xph6)
+* create the [ClusterDeployment](crds/clusterDeployment.yaml)
+* create the [InfraEnv](crds/infraEnv.yaml)
+* patch BareMetalOperator to watch namespaces other than `openshift-machine-api`
+  ```
+  $ oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
+  ```
+
+**NOTE**
+
+When deploying `AgentClusterInstall` for SNO it is important to make sure that `machineNetwork` subnet matches the subnet used by libvirt VMs (configured by passing `EXTERNAL_SUBNET_V4` to the [dev-scripts config](https://github.com/openshift-metal3/dev-scripts/blob/master/config_example.sh)). It defaults to `192.168.111.0/24` therefore the sample manifest linked above needs to be adapted.
+
+At this moment it's good to check logs and verify that there are no conflicting parameters, the ISO has been created correctly and that the installation can be started once a suitable node is provided.
 
 Creating BareMetalHost resources
 ===
@@ -114,7 +166,7 @@ prepared the manifest for us already.
 less ocp/ostest/extra_host_manifests.yaml
 ```
 
-You can modify this manifest to disable inspection, and cleaning. Here's an example on what it would look like:
+Make sure the manifests creates `BareMetalHost` in the proper namespace. You can further modify this manifest to disable inspection, and cleaning. Here's an example on what it would look like:
 
 ```
 apiVersion: metal3.io/v1alpha1
@@ -136,7 +188,7 @@ spec:
     credentialsName: bmc-secret
 ```
 
-Setting `automatedCleaningMode` field and the `inspect.metal3.io` annotations are both optional. If
+Setting `automatedCleaningMode` field and the `inspect.metal3.io` is optional. If
 skipped, the `BareMetalHost` will boot IPA and spend some time in the inspecting phase when the
 manifest is applied. Setting the `infraenvs.agent-install.openshift.io` is required and it must be
 set to the name of the InfraEnv to use. Without it, BMAC won't be able to set the ISO Url in the
@@ -146,23 +198,34 @@ It is possible to specify `RootDeviceHints` for the `BareMetalHost` resource. Ro
 used to tell the installer what disk to use as the installation disk. Refer to the
 [baremetal-operator documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/api.md#rootdevicehints) to know more.
 
+Installation flow
+===
 
-[bmo]: https://github.com/openshift/baremetal-operator
-[local-bmo]: https://github.com/openshift-metal3/dev-scripts/blob/master/metal3-dev/local-bmo.sh
-[aspi-custom]: https://github.com/openshift/assisted-service/blob/master/config/default/assisted-service-patch-image.yaml
+After all the resources described above are created the installation starts automatically. A detailed flow is out of scope of this document and can be found [here](architecture.md#installation-flow).
 
-
-Creating ClusterDeployment and InfraEnv
-==
-
-Before deploying the ClusterDeployment, make sure you have created a secret with your pull-secret.
-In this environment it's called `my-pull-secret`
+An `Agent` resource will be created that can be monitored during the installation proces as in the example below
 
 ```
-kubectl create secret -n assisted-installer generic my-pull-secret --from-file=.dockerconfigjson=pull_secret.json
+$ oc get agent -A
+$ oc get agentclusterinstalls test-agent-cluster-install -o json | jq '.status.conditions[] |select(.type | contains("Completed"))'
 ```
 
-At this point, it's possible to deploy the SNO cluster by modifying and applying [the SNO manifest](./crds/clusterDeployment-SNO.yaml)
+After the installation succeeds there are two new secrets created in the `assisted-installer` namespace
+
+```
+assisted-installer  single-node-admin-kubeconfig  Opaque  1  12h
+assisted-installer  single-node-admin-password    Opaque  2  12h
+```
+
+Kubeconfig can be exported to the file with
+
+```
+$ oc get secret single-node-admin-kubeconfig -o json -n assisted-installer | jq '.data' | cut -d '"' -f 4 | tr -d '{}' | base64 --decode > /tmp/kubeconfig-sno.yml
+```
+
+**NOTE**
+
+`ClusterDeployment` resource defines `baseDomain` for the installed OCP cluster. This one will be used in the generated kubeconfig file so it may happen (depending on the domain chosen) that there is no connectivity caused by name not being resolved. In such a scenario a manual intervention may be needed (e.g. manual entry in `/etc/hosts`).
 
 Troubleshooting
 ==
@@ -207,3 +270,9 @@ the existing agents and find the one that has an interface with a MacAddress tha
 
 If there is an agent, the next thing to check is that all validations have passed. This can be done
 by inspecting the `ClusterDeployment` and verify that the validation phase has succeeded.
+
+
+[bmo]: https://github.com/openshift/baremetal-operator
+[local-bmo]: https://github.com/openshift-metal3/dev-scripts/blob/master/metal3-dev/local-bmo.sh
+[dev-scripts]: https://github.com/openshift-metal3/dev-scripts/
+[assisted-deployment-sh]: https://github.com/openshift-metal3/dev-scripts/blob/master/assisted_deployment.sh
