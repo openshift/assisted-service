@@ -3239,6 +3239,58 @@ var _ = Describe("Update cluster with OLM operators", func() {
 	})
 })
 
+var _ = Describe("Verify ISO is deleted on cluster de-registration", func() {
+	var (
+		ctx       context.Context = context.Background()
+		clusterID strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		var err error
+		clusterID, err = registerCluster(ctx, userBMClient, "test-deregister-cluster", pullSecret)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	Context("Deregister cluster deletes cluster resources test", func() {
+		It("Deregister cluster deletes discovery image from Filesystem test", func() {
+			By("Generate discovery image for cluster")
+			imageType := models.ImageTypeMinimalIso
+			_, err := userBMClient.Installer.GenerateClusterISO(ctx, &installer.GenerateClusterISOParams{
+				ClusterID: clusterID,
+				ImageCreateParams: &models.ImageCreateParams{
+					ImageType: imageType,
+				},
+			})
+
+			Expect(err).NotTo(HaveOccurred())
+			verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
+
+			By("verify discovery-image existence")
+			file, err := ioutil.TempFile("", "tmp")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer os.Remove(file.Name())
+			_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: clusterID}, file)
+			Expect(err).NotTo(HaveOccurred())
+
+			By("deregister cluster")
+			_, err = userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{
+				ClusterID: clusterID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("verify discovery-image cannot be downloaded")
+			_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{ClusterID: clusterID}, file)
+			Expect(err).To(HaveOccurred())
+		})
+	})
+})
+
 func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Host {
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
