@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/go-openapi/swag"
@@ -24,6 +25,7 @@ const (
 	MirrorRegistriesConfigDir       = "/etc/containers"
 	MirrorRegistriesConfigFile      = "registries.conf"
 	MirrorRegistriesConfigPath      = MirrorRegistriesConfigDir + "/" + MirrorRegistriesConfigFile
+	MaximumAllowedTimeDiffMinutes   = 4
 )
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same
@@ -85,4 +87,29 @@ func IsSingleNodeCluster(cluster *Cluster) bool {
 
 func GetConsoleUrl(clusterName, baseDomain string) string {
 	return fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, clusterName, baseDomain)
+}
+
+func IsNtpSynced(c *Cluster) (bool, error) {
+	var min int64
+	var max int64
+	for _, h := range c.Hosts {
+		if h.Inventory == "" || *h.Status == models.HostStatusDisconnected ||
+			*h.Status == models.HostStatusDisabled || *h.Status == models.HostStatusResettingPendingUserAction ||
+			*h.Status == models.HostStatusDiscovering {
+			continue
+		}
+		var inventory models.Inventory
+		err := json.Unmarshal([]byte(h.Inventory), &inventory)
+		if err != nil {
+			return false, err
+		}
+
+		if inventory.Timestamp < min || min == 0 {
+			min = inventory.Timestamp
+		}
+		if inventory.Timestamp > max {
+			max = inventory.Timestamp
+		}
+	}
+	return (max-min)/60 <= MaximumAllowedTimeDiffMinutes, nil
 }

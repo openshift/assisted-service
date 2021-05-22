@@ -2770,7 +2770,7 @@ func (b *bareMetalInventory) GetNextSteps(ctx context.Context, params installer.
 	}
 
 	host.CheckedInAt = strfmt.DateTime(time.Now())
-	if err = tx.Model(&host).Update("checked_in_at", host.CheckedInAt).Error; err != nil {
+	if err = tx.Model(&host).UpdateColumn("checked_in_at", host.CheckedInAt).Error; err != nil {
 		log.WithError(err).Errorf("failed to update host: %s", params.ClusterID)
 		return installer.NewGetNextStepsInternalServerError()
 	}
@@ -2886,7 +2886,7 @@ func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host
 		return err
 	}
 	if err = b.db.Model(&common.Host{}).Where("id = ? and cluster_id = ?", host.ID.String(),
-		host.ClusterID.String()).Updates(map[string]interface{}{"free_addresses": freeAddressesReport}).Error; err != nil {
+		host.ClusterID.String()).UpdateColumn("free_addresses", freeAddressesReport).Error; err != nil {
 		log.WithError(err).Warnf("Update free addresses of host %s", host.ID.String())
 		return err
 	}

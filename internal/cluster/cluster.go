@@ -138,6 +138,7 @@ type Manager struct {
 	ocmClient             *ocm.Client
 	objectHandler         s3wrapper.API
 	dnsApi                dns.DNSApi
+	monitorQueryGenerator *common.MonitorQueryGenerator
 }
 
 func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler,
@@ -431,32 +432,26 @@ func (m *Manager) tryAssignMachineCidrNonDHCPMode(cluster *common.Cluster) error
 	).Error
 }
 
-func (m *Manager) autoAssignMachineNetworkCidrs() error {
-	var clusters []*common.Cluster
+func (m *Manager) autoAssignMachineNetworkCidr(c *common.Cluster) error {
+	if !funk.ContainsString([]string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}, swag.StringValue(c.Status)) {
+		return nil
+	}
 	/*
-	 * The aim is to get from DB only clusters that are candidates for machine network CIDR auto assign
+	 * This handles two cases: Auto assign for DHCP mode when there is a single host network in cluster and in non DHCP mode
+	 * when at least one of the VIPs is defined.
+	 * In DHCP mode the aim is to get from DB only clusters that are candidates for machine network CIDR auto assign
 	 * The cluster query is for clusters that have their DHCP mode set (vip_dhcp_allocation), the machine network CIDR empty, and in status insufficient, or pending for input.
-	 * For these clusters the hosts query is all hosts that are not in status (disabled, disconnected, discovering),
-	 * since we want to calculate the host networks only from hosts wkith relevant inventory
 	 */
-	err := common.LoadTableFromDB(m.db, common.HostsTable, "status not in (?)",
-		[]string{models.HostStatusDisabled, models.HostStatusDisconnected, models.HostStatusDiscovering}).
-		Find(&clusters, "status in (?)", []string{models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient}).Error
+	var err error
+	if swag.BoolValue(c.VipDhcpAllocation) {
+		err = m.tryAssignMachineCidrDHCPMode(c)
+	} else if !swag.BoolValue(c.UserManagedNetworking) {
+		err = m.tryAssignMachineCidrNonDHCPMode(c)
+	}
 	if err != nil {
-		m.log.WithError(err).Warn("Query for clusters for machine network cidr allocation")
-		return err
+		m.log.WithError(err).Warnf("Set machine cidr for cluster %s", c.ID.String())
 	}
-	for _, cluster := range clusters {
-		if swag.BoolValue(cluster.VipDhcpAllocation) {
-			err = m.tryAssignMachineCidrDHCPMode(cluster)
-		} else if !swag.BoolValue(cluster.UserManagedNetworking) {
-			err = m.tryAssignMachineCidrNonDHCPMode(cluster)
-		}
-		if err != nil {
-			m.log.WithError(err).Warnf("Set machine cidr for cluster %s", cluster.ID.String())
-		}
-	}
-	return nil
+	return err
 }
 
 func (m *Manager) shouldTriggerLeaseTimeoutEvent(c *common.Cluster, curMonitorInvokedAt time.Time) bool {
@@ -484,6 +479,18 @@ func (m *Manager) SkipMonitoring(c *common.Cluster) bool {
 	return result
 }
 
+func (m *Manager) initMonitorQueryGenerator() {
+	if m.monitorQueryGenerator == nil {
+		noNeedToMonitorInStates := []string{
+			models.ClusterStatusInstalled,
+		}
+
+		dbWithCondition := m.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Preload(common.MonitoredOperatorsTable).
+			Where("status NOT IN (?)", noNeedToMonitorInStates)
+		m.monitorQueryGenerator = common.NewMonitorQueryGenerator(m.db, dbWithCondition, m.MonitorBatchSize)
+	}
+}
+
 func (m *Manager) ClusterMonitoring() {
 	if !m.leaderElector.IsLeader() {
 		m.log.Debugf("Not a leader, exiting ClusterMonitoring")
@@ -503,7 +510,6 @@ func (m *Manager) ClusterMonitoring() {
 		err                 error
 	)
 
-	_ = m.autoAssignMachineNetworkCidrs()
 	curMonitorInvokedAt := time.Now()
 	defer func() {
 		m.prevMonitorInvokedAt = curMonitorInvokedAt
@@ -512,14 +518,12 @@ func (m *Manager) ClusterMonitoring() {
 	//no need to refresh cluster status if the cluster is in the following statuses
 	//when cluster is in error. it should be still monitored until all the logs are collected.
 	//Then, SkipMonitoring() stops the logic from running forever
-	noNeedToMonitorInStates := []string{
-		models.ClusterStatusInstalled,
-	}
+	m.initMonitorQueryGenerator()
 
+	query := m.monitorQueryGenerator.NewQuery()
 	for {
-		clusters = make([]*common.Cluster, 0, limit)
-		if err = m.db.Preload("Hosts", "status <> ?", models.HostStatusDisabled).Preload(common.MonitoredOperatorsTable).
-			Offset(offset).Limit(limit).Order("id").Find(&clusters, "status NOT IN (?)", noNeedToMonitorInStates).Error; err != nil {
+		clusters, err = query.Next()
+		if err != nil {
 			log.WithError(err).Errorf("failed to get clusters")
 			return
 		}
@@ -533,6 +537,7 @@ func (m *Manager) ClusterMonitoring() {
 			}
 			if !m.SkipMonitoring(cluster) {
 				monitored += 1
+				_ = m.autoAssignMachineNetworkCidr(cluster)
 				if err = m.setConnectivityMajorityGroupsForClusterInternal(cluster, m.db); err != nil {
 					log.WithError(err).Error("failed to set majority group for clusters")
 				}
@@ -741,14 +746,22 @@ func (m *Manager) SetVipsData(ctx context.Context, c *common.Cluster, apiVip, in
 		db = m.db
 	}
 	log := logutil.FromContext(ctx, m.log)
+	formattedApiLease := network.FormatLease(apiVipLease)
+	formattedIngressVip := network.FormatLease(ingressVipLease)
+	if apiVip == c.APIVip &&
+		ingressVip == c.IngressVip &&
+		formattedApiLease == c.ApiVipLease &&
+		formattedIngressVip == c.IngressVipLease {
+		return nil
+	}
 	switch swag.StringValue(c.Status) {
 	case models.ClusterStatusPendingForInput, models.ClusterStatusInsufficient, models.ClusterStatusReady:
 		if err = db.Model(&common.Cluster{}).Where("id = ?", c.ID.String()).
 			Updates(map[string]interface{}{
 				"api_vip":           apiVip,
 				"ingress_vip":       ingressVip,
-				"api_vip_lease":     network.FormatLease(apiVipLease),
-				"ingress_vip_lease": network.FormatLease(ingressVipLease),
+				"api_vip_lease":     formattedApiLease,
+				"ingress_vip_lease": formattedIngressVip,
 			}).Error; err != nil {
 			log.WithError(err).Warnf("Update vips of cluster %s", c.ID.String())
 			return err
