@@ -2806,8 +2806,7 @@ func shouldHandle(params installer.PostStepReplyParams) bool {
 
 func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer.PostStepReplyParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	msg := fmt.Sprintf("Received step reply <%s> from cluster <%s> host <%s>  exit-code <%d> stdout <%s> stderr <%s>", params.Reply.StepID, params.ClusterID,
-		params.HostID, params.Reply.ExitCode, params.Reply.Output, params.Reply.Error)
+
 	host, err := common.GetHostFromDB(b.db, params.ClusterID.String(), params.HostID.String())
 
 	if err != nil {
@@ -2817,10 +2816,9 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
-	//check the output exit code
+	logReplyReceived(params, log)
+
 	if params.Reply.ExitCode != 0 {
-		err = errors.New(msg)
-		log.WithError(err).Errorf("Exit code is <%d> ", params.Reply.ExitCode)
 		handlingError := b.handleReplyError(params, ctx, log, &host.Host, params.Reply.ExitCode)
 		if handlingError != nil {
 			log.WithError(handlingError).Errorf("Failed handling reply error for host <%s> cluster <%s>", params.HostID, params.ClusterID)
@@ -2828,25 +2826,26 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 		return installer.NewPostStepReplyNoContent()
 	}
 
-	log.Infof(msg)
-	if shouldHandle(params) {
-		var stepReply string
-		stepReply, err = filterReplyByType(params)
-		if err != nil {
-			log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
-				params.Reply.StepID, params.HostID, params.ClusterID)
-			return installer.NewPostStepReplyBadRequest().
-				WithPayload(common.GenerateError(http.StatusBadRequest, err))
-		}
-
-		err = handleReplyByType(params, b, ctx, host.Host, stepReply)
-		if err != nil {
-			log.WithError(err).Errorf("Failed to update step reply for host <%s> cluster <%s> step <%s>",
-				params.HostID, params.ClusterID, params.Reply.StepID)
-			return installer.NewPostStepReplyInternalServerError().
-				WithPayload(common.GenerateError(http.StatusInternalServerError, err))
-		}
+	if !shouldHandle(params) {
+		return installer.NewPostStepReplyNoContent()
 	}
+
+	stepReply, err := filterReplyByType(params)
+	if err != nil {
+		log.WithError(err).Errorf("Failed decode <%s> reply for host <%s> cluster <%s>",
+			params.Reply.StepID, params.HostID, params.ClusterID)
+		return installer.NewPostStepReplyBadRequest().
+			WithPayload(common.GenerateError(http.StatusBadRequest, err))
+	}
+
+	err = handleReplyByType(params, b, ctx, host.Host, stepReply)
+	if err != nil {
+		log.WithError(err).Errorf("Failed to update step reply for host <%s> cluster <%s> step <%s>",
+			params.HostID, params.ClusterID, params.Reply.StepID)
+		return installer.NewPostStepReplyInternalServerError().
+			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+	}
+
 	return installer.NewPostStepReplyNoContent()
 }
 
@@ -2876,6 +2875,8 @@ func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host
 		freeAddresses models.FreeNetworksAddresses
 	)
 	log := logutil.FromContext(ctx, b.log)
+	log.Debugf("Free addresses for host %s are: %s", host.ID.String(), freeAddresses)
+
 	if err = json.Unmarshal([]byte(freeAddressesReport), &freeAddresses); err != nil {
 		log.WithError(err).Warnf("Json unmarshal free addresses of host %s", host.ID.String())
 		return err
@@ -3041,6 +3042,23 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 		err = b.processDiskSpeedCheckResponse(ctx, &host, stepReply, 0)
 	}
 	return err
+}
+
+func logReplyReceived(params installer.PostStepReplyParams, log logrus.FieldLogger) {
+	message := fmt.Sprintf("Received step reply <%s> from cluster <%s> host <%s> exit-code <%d> stderr <%s>",
+		params.Reply.StepID, params.ClusterID, params.HostID, params.Reply.ExitCode, params.Reply.Error)
+	messageWithOutput := fmt.Sprintf("%s stdout <%s>", message, params.Reply.Output)
+
+	if params.Reply.ExitCode != 0 {
+		log.Error(messageWithOutput)
+		return
+	}
+
+	if params.Reply.StepType == models.StepTypeFreeNetworkAddresses {
+		log.Info(message)
+	} else {
+		log.Info(messageWithOutput)
+	}
 }
 
 func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
