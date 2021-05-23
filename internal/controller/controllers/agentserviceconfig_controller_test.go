@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 	"encoding/json"
+	"net/url"
 	"os"
 
 	. "github.com/onsi/ginkgo"
@@ -382,6 +383,26 @@ var _ = Describe("getOpenshiftVersions", func() {
 			ascr = newTestReconciler(asc)
 			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
 		})
+	})
+})
+
+var _ = Describe("Default ConfigMap values", func() {
+
+	var (
+		configMap *corev1.ConfigMap
+		log       = logrus.New()
+	)
+
+	BeforeEach(func() {
+		asc := newASCDefault()
+		r := newTestReconciler(asc)
+		cm, mutateFn := r.newAssistedCM(log, asc, &url.URL{Scheme: "https", Host: "localhost"})
+		Expect(mutateFn()).ShouldNot(HaveOccurred())
+		configMap = cm
+	})
+
+	It("INSTALL_INVOKER", func() {
+		Expect(configMap.Data["INSTALL_INVOKER"]).To(Equal("assisted-installer-operator"))
 	})
 })
 
