@@ -92,7 +92,7 @@ func (c *validationContext) loadInventory() error {
 }
 
 func (v *validator) getBootDeviceInfo(host *models.Host) (*models.DiskInfo, error) {
-	bootDevice, err := hardware.GetBootDevice(v.log, v.hwValidator, host)
+	bootDevice, err := hardware.GetBootDevice(v.hwValidator, host)
 	if err != nil {
 		return nil, err
 	}
@@ -642,7 +642,7 @@ func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationC
 	case ValidationFailure:
 		return "While preparing the previous installation the installation disk speed measurement failed or was found to be insufficient"
 	case ValidationError:
-		return "Error occured while getting boot device"
+		return "Error occurred while getting boot device"
 	default:
 		return fmt.Sprintf("Unexpected status %s", status.String())
 	}

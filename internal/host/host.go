@@ -998,7 +998,7 @@ func (m *Manager) SetDiskSpeed(ctx context.Context, h *models.Host, path string,
 }
 
 func (m *Manager) resetDiskSpeedValidation(host *models.Host, log logrus.FieldLogger, db *gorm.DB) error {
-	bootDevice, err := hardware.GetBootDevice(log, m.hwValidator, host)
+	bootDevice, err := hardware.GetBootDevice(m.hwValidator, host)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, errors.New("Get boot device"))
 	}

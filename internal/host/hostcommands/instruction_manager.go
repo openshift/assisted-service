@@ -129,7 +129,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 			steps, err := cmd.GetSteps(ctx, host)
 			if err != nil {
 				// Allow to return additional steps if the current one failed
-				log.WithError(err).Warn("Failed to generate steps for command")
+				log.WithError(err).Warnf("Failed to generate steps for command %T", cmd)
 				continue
 			}
 			if steps == nil {

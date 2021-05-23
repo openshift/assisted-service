@@ -28,8 +28,8 @@ func NewDiskPerfCheckCmd(log logrus.FieldLogger, diskPerfCheckImage string, hwVa
 	}
 }
 
-func (c *diskPerfCheckCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models.Step, error) {
-	bootDevice, err := hardware.GetBootDevice(c.log, c.hwValidator, host)
+func (c *diskPerfCheckCmd) GetSteps(_ context.Context, host *models.Host) ([]*models.Step, error) {
+	bootDevice, err := hardware.GetBootDevice(c.hwValidator, host)
 	if err != nil {
 		return nil, err
 	}
