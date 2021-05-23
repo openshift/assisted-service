@@ -28,14 +28,17 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
+	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -75,6 +78,8 @@ type ClusterDeploymentsReconciler struct {
 	HostApi          host.API
 	CRDEventsHandler CRDEventsHandler
 	Manifests        manifests.ClusterManifestsInternals
+	ServiceBaseURL   string
+	AuthType         auth.AuthType
 }
 
 // +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch;update;create
@@ -139,7 +144,12 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if !r.isSNO(clusterInstall) {
 			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
-		// cluster  is installed and SNO nothing to do
+		// cluster  is installed and SNO. Clear EventsURL
+		clusterInstall.Status.DebugInfo.EventsURL = ""
+		if updateErr := r.Status().Update(ctx, clusterInstall); updateErr != nil {
+			r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
+			return ctrl.Result{Requeue: true}, nil
+		}
 		return ctrl.Result{Requeue: false}, nil
 	}
 	if err != nil {
@@ -774,6 +784,13 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
+		eventUrl, err := r.eventsURL(string(*c.ID))
+		if err != nil {
+			return ctrl.Result{Requeue: true}, nil
+		}
+		clusterInstall.Status.DebugInfo = hiveext.DebugInfo{
+			EventsURL: eventUrl,
+		}
 		if c.Status != nil {
 			status := *c.Status
 			clusterRequirementsMet(clusterInstall, status)
@@ -794,6 +811,19 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ClusterDeploymentsReconciler) eventsURL(clusterId string) (string, error) {
+	eventsURL := fmt.Sprintf("%s%s/clusters/%s/events", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
+	if r.AuthType != auth.TypeLocal {
+		return eventsURL, nil
+	}
+	eventsURL, err := gencrypto.SignURL(eventsURL, clusterId)
+	if err != nil {
+		r.Log.WithError(err).Error("failed to get Events URL")
+		return "", err
+	}
+	return eventsURL, nil
 }
 
 // clusterSpecSynced is updating the Cluster SpecSynced Condition.

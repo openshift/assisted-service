@@ -1209,6 +1209,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
 		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterAgentClusterInstallName,
+		}
+		By("Check Event URL exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.EventsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
+
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -1217,10 +1227,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "30s", "10s").Should(BeNil())
 
 		By("Wait for installing")
-		installkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
-		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 
 		Eventually(func() bool {
@@ -1268,6 +1274,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
+		By("Check Event URL does not exist")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.EventsURL
+		}, "30s", "10s").Should(Equal(""))
 	})
 
 	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {

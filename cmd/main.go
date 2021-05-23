@@ -461,6 +461,8 @@ func main() {
 				HostApi:          hostApi,
 				CRDEventsHandler: crdEventsHandler,
 				Manifests:        manifestsApi,
+				ServiceBaseURL:   Options.BMConfig.ServiceBaseURL,
+				AuthType:         Options.Auth.AuthType,
 			}).SetupWithManager(ctrlMgr), "unable to create controller ClusterDeployment")
 
 			failOnError((&controllers.AgentReconciler{

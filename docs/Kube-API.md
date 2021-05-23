@@ -27,6 +27,12 @@ The AgentClusterInstall reflects the Cluster/Installation status through Conditi
 
 More details on conditions is available [here](kube-api-conditions.md)
 
+#### Debug Information
+
+The `DebugInfo` field under `Status` provides additional information for debugging installation process:
+- `EventsURL` specifies an HTTP/S URL that contains events occured during cluster installation process
+
+
 
 ### [InfraEnv](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/v1beta1/infraenv_types.go)
 The InfraEnv CRD represents the configuration needed to create the discovery ISO.

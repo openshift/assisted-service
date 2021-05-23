@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/models"
@@ -390,6 +392,40 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
 		Expect(clusterInstall.ObjectMeta.OwnerReferences).NotTo(BeNil())
 		Expect(clusterInstall.ObjectMeta.OwnerReferences[0]).To(Equal(ownref))
+	})
+
+	It("validate Event URL", func() {
+		_, priv, err := gencrypto.ECDSAKeyPairPEM()
+		Expect(err).NotTo(HaveOccurred())
+		os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+		defer os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		Expect(err).NotTo(HaveOccurred())
+		serviceBaseURL := "http://acme.com"
+		cr.ServiceBaseURL = serviceBaseURL
+		sId := strfmt.UUID(uuid.New().String())
+		backEndCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID: &sId,
+			},
+		}
+		expectedEventUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/events", serviceBaseURL, sId)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+		_, err = cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		clusterInstall := &hiveext.AgentClusterInstall{}
+		agentClusterInstallKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      agentClusterInstallName,
+		}
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
+		Expect(clusterInstall.Status.DebugInfo.EventsURL).NotTo(BeNil())
+		Expect(clusterInstall.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
 	})
 
 	It("failed to get cluster from backend", func() {
@@ -1806,6 +1842,8 @@ var _ = Describe("TestConditions", func() {
 			backEndCluster.Status = swag.String(t.clusterStatus)
 			backEndCluster.StatusInfo = swag.String(t.statusInfo)
 			backEndCluster.ValidationsInfo = t.validationInfo
+			cid := strfmt.UUID(uuid.New().String())
+			backEndCluster.ID = &cid
 			_, err := cr.Reconcile(ctx, clusterRequest)
 			Expect(err).To(BeNil())
 			cluster := &hivev1.ClusterDeployment{}
