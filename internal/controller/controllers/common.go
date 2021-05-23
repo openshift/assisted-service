@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
-	logutil "github.com/openshift/assisted-service/pkg/log"
+	"github.com/openshift/assisted-service/pkg/requestid"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -46,8 +46,7 @@ func getPullSecret(ctx context.Context, c client.Client, ref *corev1.LocalObject
 	return string(data), nil
 }
 
-func getInfraEnvByClusterDeployment(ctx context.Context, logger logrus.FieldLogger, c client.Client, name, namespace string) (*aiv1beta1.InfraEnv, error) {
-	log := logutil.FromContext(ctx, logger)
+func getInfraEnvByClusterDeployment(ctx context.Context, log logrus.FieldLogger, c client.Client, name, namespace string) (*aiv1beta1.InfraEnv, error) {
 	infraEnvs := &aiv1beta1.InfraEnvList{}
 	if err := c.List(ctx, infraEnvs); err != nil {
 		log.WithError(err).Errorf("failed to search for infraEnv for clusterDeployment %s", name)
@@ -126,4 +125,12 @@ func getReleaseImage(ctx context.Context, c client.Client, imageSetName string) 
 	}
 
 	return clusterImageSet.Spec.ReleaseImage, nil
+}
+
+func addRequestIdIfNeeded(ctx context.Context) context.Context {
+	ctxWithReqID := ctx
+	if requestid.FromContext(ctx) == "" {
+		ctxWithReqID = requestid.ToContext(ctx, requestid.NewID())
+	}
+	return ctxWithReqID
 }
