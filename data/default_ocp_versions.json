@@ -9,9 +9,9 @@
         "support_level": "production"
     },
     "4.7": {
-        "display_name": "4.7.9",
-        "release_version": "4.7.9",
-        "release_image": "quay.io/openshift-release-dev/ocp-release:4.7.9-x86_64",
+        "display_name": "4.7.12",
+        "release_version": "4.7.12",
+        "release_image": "quay.io/openshift-release-dev/ocp-release:4.7.12-x86_64",
         "rhcos_image": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
         "rhcos_rootfs": "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
         "rhcos_version": "47.83.202103251640-0",
