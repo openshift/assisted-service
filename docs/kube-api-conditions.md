@@ -18,7 +18,8 @@ AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMe
 ||||||
 |RequirementsMet|True|ClusterIsReady|The cluster is ready to begin the installation|if the cluster status is "ready"|
 |RequirementsMet|False|ClusterNotReady|The cluster is not ready to begin the installation|If the cluster is before installation ("insufficient"/"pending-for-input")|
-|RequirementsMet|True|ClusterAlreadyInstalling|The cluster requirements are met|If the cluster has begun installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action", "adding-hosts", "installed", "error") |
+|RequirementsMet|True|ClusterAlreadyInstalling|The cluster requirements are met|If the cluster has begun installing ("preparing-for-installation", "installing", "finalizing", "installing-pending-user-action", "adding-hosts") |
+|RequirementsMet|True|ClusterInstallationStopped|The cluster installation stopped|If the cluster has stopped installing ("installed", "error") |
 ||||||
 |Completed|True|InstallationCompleted|The installation has completed: "status_info"|If the cluster status is "installed"|
 |Completed|False|InstallationFailed|The installation has failed: "status_info"|If the cluster status is "error"|
@@ -92,8 +93,10 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `ReadyForIns
 ||||||
 |ReadyForInstallation|True|AgentIsReady|The agent is ready to begin the installation|If the host is approved and in status "known"|
 |ReadyForInstallation|False|AgentNotReady|The agent is not ready to begin the installation|If the host is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input")|
-|ReadyForInstallation|False|AgentAlreadyInstalling|The agent cannot begin the installation because it has already started|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing", "installed", "error") |
+|ReadyForInstallation|False|AgentAlreadyInstalling|The agent cannot begin the installation because it has already started|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing") |
 |ReadyForInstallation|False|AgentIsNotApproved|The agent is not approved|If the host is not approved and in status "known"|
+|ReadyForInstallation|False|AgentAlreadyInstalling|The agent cannot begin the installation because it has already started|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing") |
+|ReadyForInstallation|False|AgentInstallationStopped|The agent installation stopped|If the agent has stopped installing ("installed", "error") |
 ||||||
 |Installed|True|InstallationCompleted|The installation has completed: "status_info"|If the host status is "installed"|
 |Installed|False|InstallationFailed|The installation has failed: "status_info"|If the host status is "error"|

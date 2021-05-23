@@ -1731,8 +1731,8 @@ var _ = Describe("TestConditions", func() {
 			conditions: []hivev1.ClusterInstallCondition{
 				{
 					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterAlreadyInstallingMsg,
-					Reason:  ClusterAlreadyInstallingReason,
+					Message: ClusterInstallationStoppedMsg,
+					Reason:  ClusterInstallationStoppedReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
@@ -1845,8 +1845,8 @@ var _ = Describe("TestConditions", func() {
 			conditions: []hivev1.ClusterInstallCondition{
 				{
 					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterAlreadyInstallingMsg,
-					Reason:  ClusterAlreadyInstallingReason,
+					Message: ClusterInstallationStoppedMsg,
+					Reason:  ClusterInstallationStoppedReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{

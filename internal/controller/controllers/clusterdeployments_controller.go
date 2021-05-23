@@ -1073,12 +1073,16 @@ func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status 
 		condStatus = corev1.ConditionFalse
 		reason = ClusterNotReadyReason
 		msg = ClusterNotReadyMsg
-	case models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalled,
+	case models.ClusterStatusPreparingForInstallation,
 		models.ClusterStatusInstalling, models.ClusterStatusInstallingPendingUserAction,
-		models.ClusterStatusError, models.ClusterStatusAddingHosts, models.ClusterStatusFinalizing:
+		models.ClusterStatusAddingHosts, models.ClusterStatusFinalizing:
 		condStatus = corev1.ConditionTrue
 		reason = ClusterAlreadyInstallingReason
 		msg = ClusterAlreadyInstallingMsg
+	case models.ClusterStatusInstalled, models.ClusterStatusError:
+		condStatus = corev1.ConditionTrue
+		reason = ClusterInstallationStoppedReason
+		msg = ClusterInstallationStoppedMsg
 	default:
 		condStatus = corev1.ConditionUnknown
 		reason = UnknownStatusReason
