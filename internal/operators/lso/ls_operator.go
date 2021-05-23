@@ -56,7 +56,8 @@ func (l *lsOperator) ValidateHost(_ context.Context, _ *common.Cluster, _ *model
 }
 
 // GenerateManifests generates manifests for the operator
-func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, error) {
+
+func (l *lsOperator) GenerateManifests(c *common.Cluster) (map[string][]byte, map[string][]byte, error) {
 	return Manifests()
 }
 
