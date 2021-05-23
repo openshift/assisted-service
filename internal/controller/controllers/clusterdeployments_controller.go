@@ -391,6 +391,52 @@ func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
 	return false
 }
 
+func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
+	//see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
+	return len(clusterInstall.Spec.Compute) > 0 || clusterInstall.Spec.ControlPlane != nil
+}
+
+func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
+	const (
+		None    = 0
+		Workers = 1
+		Masters = 2
+		All     = 3
+	)
+	var config uint = 0
+
+	//if there is no configuration of hyperthreading in the Spec then
+	//we are opting of the default behavior which is all enabled
+	if !hyperthreadingInSpec(clusterInstall) {
+		config = All
+	}
+
+	//check if the Spec enables hyperthreading for workers
+	if len(clusterInstall.Spec.Compute) > 0 {
+		if clusterInstall.Spec.Compute[0].Hyperthreading == hiveext.HyperthreadingEnabled {
+			config = config | Workers
+		}
+	}
+	//check if the Spec enables hyperthreading for masters
+	if clusterInstall.Spec.ControlPlane != nil {
+		if clusterInstall.Spec.ControlPlane.Hyperthreading == hiveext.HyperthreadingEnabled {
+			config = config | Masters
+		}
+	}
+
+	//map between CRD Spec and cluster API
+	switch config {
+	case None:
+		return swag.String(models.ClusterHyperthreadingNone)
+	case Workers:
+		return swag.String(models.ClusterHyperthreadingWorkers)
+	case Masters:
+		return swag.String(models.ClusterHyperthreadingMasters)
+	default:
+		return swag.String(models.ClusterHyperthreadingAll)
+	}
+}
+
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall,
@@ -447,6 +493,14 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		update = true
 		notifyInfraEnv = true
 	}
+
+	// update hyperthreading settings
+	hyperthreading := getHyperthreading(clusterInstall)
+	if cluster.Hyperthreading != *hyperthreading {
+		params.Hyperthreading = hyperthreading
+		update = true
+	}
+
 	if !update {
 		return nil
 	}
@@ -624,6 +678,10 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	if clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents == 1 &&
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents == 0 {
 		clusterParams.HighAvailabilityMode = swag.String(HighAvailabilityModeNone)
+	}
+
+	if hyperthreadingInSpec(clusterInstall) {
+		clusterParams.Hyperthreading = getHyperthreading(clusterInstall)
 	}
 
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{

@@ -109,6 +109,14 @@ func deployPullSecretResource(ctx context.Context, client k8sclient.Client, name
 	Expect(client.Create(ctx, s)).To(BeNil())
 }
 
+func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, installkey types.NamespacedName, spec *hiveext.AgentClusterInstallSpec) {
+	Eventually(func() error {
+		agent := getAgentClusterInstallCRD(ctx, client, installkey)
+		agent.Spec = *spec
+		return kubeClient.Update(ctx, agent)
+	}, "30s", "10s").Should(BeNil())
+}
+
 func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, spec *hiveext.AgentClusterInstallSpec) {
 	deployClusterImageSetCRD(ctx, client, spec.ImageSetRef)
 	err := client.Create(ctx, &hiveext.AgentClusterInstall{
@@ -914,6 +922,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.HTTPProxy).Should(Equal(""))
 		Expect(cluster.HTTPSProxy).Should(Equal(""))
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
+		Expect(cluster.Hyperthreading).Should(Equal("all"))
 
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.Proxy = &v1beta1.Proxy{
@@ -1042,6 +1051,56 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.IgnitionConfigOverrides).ShouldNot(Equal(fakeIgnitionConfigOverride))
 		Expect(cluster.ImageGenerated).Should(Equal(false))
 
+	})
+
+	It("deploy clusterDeployment with hyperthreading configuration", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterAgentClusterInstallName,
+		}
+		verifyHyperthreadingSetup := func(mode string) {
+			Eventually(func() string {
+				c := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+				return c.Hyperthreading
+			}, "1m", "10s").Should(Equal(mode))
+		}
+
+		By("new deployment with hyperthreading disabled")
+		aciSpec := getDefaultAgentClusterInstallSpec()
+		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
+			Hyperthreading: hiveext.HyperthreadingDisabled,
+		}
+		aciSpec.Compute = []hiveext.AgentMachinePool{
+			{Hyperthreading: hiveext.HyperthreadingDisabled},
+		}
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
+		verifyHyperthreadingSetup(models.ClusterHyperthreadingNone)
+
+		By("update deployment with hyperthreading enabled on master only")
+		aciSpec = getDefaultAgentClusterInstallSpec()
+		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
+			Hyperthreading: hiveext.HyperthreadingEnabled,
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
+		verifyHyperthreadingSetup(models.ClusterHyperthreadingMasters)
+
+		By("update deployment with hyperthreading enabled on workers only")
+		aciSpec = getDefaultAgentClusterInstallSpec()
+		aciSpec.Compute = []hiveext.AgentMachinePool{
+			{Hyperthreading: hiveext.HyperthreadingEnabled},
+		}
+		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
+		verifyHyperthreadingSetup(models.ClusterHyperthreadingWorkers)
 	})
 
 	It("deploy clusterDeployment with install config override", func() {
