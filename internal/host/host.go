@@ -56,27 +56,28 @@ var manualRebootStages = []models.HostStage{
 }
 
 var InstallationProgressTimeout = map[models.HostStage]time.Duration{
-	models.HostStageStartingInstallation:        30 * time.Minute,
-	models.HostStageWaitingForControlPlane:      60 * time.Minute,
-	models.HostStageStartWaitingForControlPlane: 60 * time.Minute,
-	models.HostStageInstalling:                  60 * time.Minute,
-	models.HostStageJoined:                      60 * time.Minute,
-	models.HostStageWritingImageToDisk:          30 * time.Minute,
-	models.HostStageRebooting:                   70 * time.Minute,
-	models.HostStageConfiguring:                 60 * time.Minute,
-	models.HostStageWaitingForIgnition:          24 * time.Hour,
-	"DEFAULT":                                   60 * time.Minute,
+	models.HostStageStartingInstallation:   30 * time.Minute,
+	models.HostStageWaitingForControlPlane: 60 * time.Minute,
+	models.HostStageWaitingForController:   60 * time.Minute,
+	models.HostStageWaitingForBootkube:     60 * time.Minute,
+	models.HostStageInstalling:             60 * time.Minute,
+	models.HostStageJoined:                 60 * time.Minute,
+	models.HostStageWritingImageToDisk:     30 * time.Minute,
+	models.HostStageRebooting:              70 * time.Minute,
+	models.HostStageConfiguring:            60 * time.Minute,
+	models.HostStageWaitingForIgnition:     24 * time.Hour,
+	"DEFAULT":                              60 * time.Minute,
 }
 
 var disconnectionValidationStages = []models.HostStage{
 	models.HostStageWritingImageToDisk,
 	models.HostStageInstalling,
-	models.HostStageStartWaitingForControlPlane,
 }
 
 var WrongBootOrderIgnoreTimeoutStages = []models.HostStage{
-	models.HostStageStartWaitingForControlPlane,
 	models.HostStageWaitingForControlPlane,
+	models.HostStageWaitingForController,
+	models.HostStageWaitingForBootkube,
 	models.HostStageRebooting,
 }
 
