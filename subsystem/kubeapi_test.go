@@ -1271,7 +1271,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
-		Skip("MGMT-6025 day2 test")
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
@@ -1352,9 +1351,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
 		By("Verify Cluster Metadata")
-		Eventually(func() bool {
-			return getClusterDeploymentCRD(ctx, kubeClient, clusterKey).Spec.Installed
-		}, "2m", "2s").Should(BeTrue())
 		passwordSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminPasswordSecretRef
 		Expect(passwordSecretRef).NotTo(BeNil())
 		passwordkey := types.NamespacedName{
@@ -1375,7 +1371,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("None SNO deploy clusterDeployment full install and Day 2 new host", func() {
-		Skip("MGMT-6025 day2 test")
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		spec := getDefaultClusterDeploymentSpec(secretRef)
