@@ -14,4 +14,4 @@ fi
 
 ${__dir}/setup_lso.sh create_local_volume
 ${__dir}/setup_hive.sh with_olm
-${__dir}/setup_assisted_operator.sh
+${__dir}/setup_assisted_operator.sh from_index_image

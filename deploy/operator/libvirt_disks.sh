@@ -66,6 +66,9 @@ function destroy() {
     echo "Done destroying libvirt disks!"
 }
 
-declare -F "$@" || (print_help && exit 1)
+if [ -z "$@" ] || ! declare -F "$@"; then
+  print_help
+  exit 1
+fi
 
 "$@"
