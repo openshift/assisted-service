@@ -842,12 +842,12 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
-		eventUrl, err := r.eventsURL(string(*c.ID))
-		if err != nil {
-			return ctrl.Result{Requeue: true}, nil
-		}
-		clusterInstall.Status.DebugInfo = hiveext.DebugInfo{
-			EventsURL: eventUrl,
+		if clusterInstall.Status.DebugInfo.EventsURL == "" {
+			eventUrl, err := r.eventsURL(string(*c.ID))
+			if err != nil {
+				return ctrl.Result{Requeue: true}, nil
+			}
+			clusterInstall.Status.DebugInfo.EventsURL = eventUrl
 		}
 		if c.Status != nil {
 			status := *c.Status
