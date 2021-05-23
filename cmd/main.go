@@ -530,8 +530,8 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 			log.WithError(err).Info("Failed to connect to DB, retrying")
 			return
 		}
-		db.DB().SetMaxIdleConns(0)
-		db.DB().SetMaxOpenConns(0)
+		db.DB().SetMaxIdleConns(100)
+		db.DB().SetMaxOpenConns(100)
 		db.DB().SetConnMaxLifetime(0)
 		cancel()
 	}, retryInterval)
