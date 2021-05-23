@@ -22,12 +22,14 @@ import (
 	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	agentv1 "github.com/openshift/hive/apis/hive/v1/agent"
+	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -1864,6 +1866,64 @@ spec:
 			return len(getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout).Hosts)
 		}, "2m", "2s").Should(Equal(0))
 	})
+
+	It("Verify garbage collector inactive cluster deregistration isn't triggered for clusters created via ClusterDeployment", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+
+		By("Update cluster's updated_at attribute to become eligible for deregistration due to inactivity")
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		db.Model(&cluster).UpdateColumn("updated_at", time.Now().AddDate(-1, 0, 0))
+
+		By("Verify no event for deregistering the cluster was emitted")
+		msg := "Cluster is deregistered"
+		Consistently(func() []*common.Event {
+			cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, 1)
+			eventsHandler := events.New(db, logrus.New())
+			events, err := eventsHandler.GetEvents(*cluster.ID, nil)
+			Expect(err).NotTo(HaveOccurred())
+			return events
+		}, "15s", "5s").ShouldNot(ContainElement(eventMatcher{event: &common.Event{Event: models.Event{Message: &msg, ClusterID: cluster.ID}}}))
+	})
+
+	It("Verify garbage collector deletes unregistered cluster for clusters created via ClusterDeployment", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+
+		By("Delete clusterdeployment to deregister the cluster")
+		Expect(kubeClient.Delete(ctx, getAgentClusterInstallCRD(ctx, kubeClient, installkey))).ShouldNot(HaveOccurred())
+		Expect(kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))).ShouldNot(HaveOccurred())
+
+		By("Verify cluster record remains in the DB")
+		Consistently(func() error {
+			_, err := common.GetClusterFromDBWhere(db, common.UseEagerLoading, common.IncludeDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", clusterKey.Name, clusterKey.Namespace)
+			return err
+		}, "15s", "5s").ShouldNot(HaveOccurred())
+
+		By("Update cluster's deleted_at attribute to become eligible for permanent removal")
+		db.Unscoped().Where("id = ?", cluster.ID.String()).Model(&cluster).UpdateColumn("deleted_at", time.Now().AddDate(-1, 0, 0))
+
+		By("Fetch cluster to make sure it was permanently removed by the garbage collector")
+		Eventually(func() error {
+			_, err := common.GetClusterFromDBWhere(db, common.UseEagerLoading, common.IncludeDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", clusterKey.Name, clusterKey.Namespace)
+			return err
+		}, "1m", "10s").Should(HaveOccurred())
+	})
 })
 
 var _ = Describe("bmac reconcile flow", func() {
@@ -1946,3 +2006,30 @@ var _ = Describe("bmac reconcile flow", func() {
 		})
 	})
 })
+
+// custom matcher for events based on partial attributes (cluster ID and message)
+type eventMatcher struct {
+	event *common.Event
+}
+
+func (e eventMatcher) Match(input interface{}) (bool, error) {
+	event, ok := input.(*common.Event)
+	if !ok {
+		return false, nil
+	}
+	if *e.event.ClusterID != *event.Event.ClusterID {
+		return false, nil
+	}
+	if !strings.Contains(*event.Message, *e.event.Message) {
+		return false, nil
+	}
+	return true, nil
+}
+
+func (e eventMatcher) FailureMessage(actual interface{}) string {
+	return "event does not match"
+}
+
+func (e eventMatcher) NegatedFailureMessage(actual interface{}) string {
+	return "event matches"
+}
