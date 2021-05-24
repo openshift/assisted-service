@@ -620,19 +620,21 @@ var _ = Describe("agent reconcile", func() {
 
 var _ = Describe("TestConditions", func() {
 	var (
-		c              client.Client
-		hr             *AgentReconciler
-		ctx            = context.Background()
-		mockCtrl       *gomock.Controller
-		backEndCluster *common.Cluster
-		hostRequest    ctrl.Request
-		agentKey       types.NamespacedName
+		c                     client.Client
+		hr                    *AgentReconciler
+		ctx                   = context.Background()
+		mockCtrl              *gomock.Controller
+		backEndCluster        *common.Cluster
+		hostRequest           ctrl.Request
+		agentKey              types.NamespacedName
+		hostId                strfmt.UUID
+		mockInstallerInternal *bminventory.MockInstallerInternals
 	)
 
 	BeforeEach(func() {
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
-		mockInstallerInternal := bminventory.NewMockInstallerInternals(mockCtrl)
+		mockInstallerInternal = bminventory.NewMockInstallerInternals(mockCtrl)
 		hr = &AgentReconciler{
 			Client:    c,
 			Scheme:    scheme.Scheme,
@@ -641,7 +643,7 @@ var _ = Describe("TestConditions", func() {
 		}
 		sId := strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &sId}}
-		hostId := strfmt.UUID(uuid.New().String())
+		hostId = strfmt.UUID(uuid.New().String())
 		backEndCluster = &common.Cluster{Cluster: models.Cluster{
 			ID: &sId,
 			Hosts: []*models.Host{
@@ -653,9 +655,6 @@ var _ = Describe("TestConditions", func() {
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
-		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
-		Expect(c.Create(ctx, host)).To(BeNil())
-		hostRequest = newHostRequest(host)
 		agentKey = types.NamespacedName{
 			Namespace: testNamespace,
 			Name:      hostId.String(),
@@ -669,6 +668,7 @@ var _ = Describe("TestConditions", func() {
 	tests := []struct {
 		name           string
 		hostStatus     string
+		hostApproved   bool
 		statusInfo     string
 		validationInfo string
 		conditions     []conditionsv1.Condition
@@ -708,6 +708,7 @@ var _ = Describe("TestConditions", func() {
 		{
 			name:           "Known",
 			hostStatus:     models.HostStatusKnown,
+			hostApproved:   true,
 			statusInfo:     "",
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
@@ -716,6 +717,39 @@ var _ = Describe("TestConditions", func() {
 					Message: AgentReadyMsg,
 					Reason:  AgentReadyReason,
 					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    ConnectedCondition,
+					Message: AgentConnectedMsg,
+					Reason:  AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    InstalledCondition,
+					Message: InstallationNotStartedMsg,
+					Reason:  InstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    ValidatedCondition,
+					Message: AgentValidationsPassingMsg,
+					Reason:  ValidationsPassingReason,
+					Status:  corev1.ConditionTrue,
+				},
+			},
+		},
+		{
+			name:           "Known",
+			hostStatus:     models.HostStatusKnown,
+			hostApproved:   false,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    ReadyForInstallationCondition,
+					Message: AgentIsNotApprovedMsg,
+					Reason:  AgentIsNotApprovedReason,
+					Status:  corev1.ConditionFalse,
 				},
 				{
 					Type:    ConnectedCondition,
@@ -873,10 +907,20 @@ var _ = Describe("TestConditions", func() {
 			backEndCluster.Hosts[0].Status = swag.String(t.hostStatus)
 			backEndCluster.Hosts[0].StatusInfo = swag.String(t.statusInfo)
 			backEndCluster.Hosts[0].ValidationsInfo = t.validationInfo
+
+			host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+			if t.hostApproved {
+				host.Spec.Approved = true
+				mockInstallerInternal.EXPECT().UpdateHostApprovedInternal(gomock.Any(), gomock.Any(), gomock.Any(), true).Return(nil)
+			}
+			Expect(c.Create(ctx, host)).To(BeNil())
+
+			hostRequest = newHostRequest(host)
 			result, err := hr.Reconcile(ctx, hostRequest)
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 			agent := &v1beta1.Agent{}
+			agent.Spec.Approved = true
 			Expect(c.Get(ctx, agentKey, agent)).To(BeNil())
 			for _, cond := range t.conditions {
 				Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, cond.Type).Message).To(Equal(cond.Message))

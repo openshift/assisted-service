@@ -443,9 +443,15 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 	var msg string
 	switch status {
 	case models.HostStatusKnown:
-		condStatus = corev1.ConditionTrue
-		reason = AgentReadyReason
-		msg = AgentReadyMsg
+		if agent.Spec.Approved {
+			condStatus = corev1.ConditionTrue
+			reason = AgentReadyReason
+			msg = AgentReadyMsg
+		} else {
+			condStatus = corev1.ConditionFalse
+			reason = AgentIsNotApprovedReason
+			msg = AgentIsNotApprovedMsg
+		}
 	case models.HostStatusInsufficient, models.HostStatusDisconnected,
 		models.HostStatusDiscovering, models.HostStatusPendingForInput:
 		condStatus = corev1.ConditionFalse

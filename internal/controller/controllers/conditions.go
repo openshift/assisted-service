@@ -101,6 +101,8 @@ const (
 	AgentNotReadyMsg              string                     = "The agent is not ready to begin the installation"
 	AgentAlreadyInstallingReason  string                     = "AgentAlreadyInstalling"
 	AgentAlreadyInstallingMsg     string                     = "The agent cannot begin the installation because it has already started"
+	AgentIsNotApprovedReason      string                     = "AgentIsNotApproved"
+	AgentIsNotApprovedMsg         string                     = "The agent is not approved"
 
 	ValidatedCondition         conditionsv1.ConditionType = "Validated"
 	AgentValidationsPassingMsg string                     = "The agent's validations are passing"
