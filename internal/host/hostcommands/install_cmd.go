@@ -69,7 +69,7 @@ func (i *installCmd) GetSteps(ctx context.Context, host *models.Host) ([]*models
 		return nil, err
 	}
 
-	bootdevice, err := hardware.GetBootDevice(i.log, i.hwValidator, host)
+	bootdevice, err := hardware.GetBootDevice(i.hwValidator, host)
 	if err != nil {
 		return nil, err
 	}
