@@ -602,7 +602,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		return err
 	}
 
-	infraEnv, err = getInfraEnvByClusterDeployment(ctx, r.Client, clusterDeployment)
+	infraEnv, err = getInfraEnvByClusterDeployment(ctx, r.Log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
 	}

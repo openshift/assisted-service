@@ -549,6 +549,27 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	ctx := context.Background()
 
+	var (
+		clusterDeploymentSpec *hivev1.ClusterDeploymentSpec
+		infraEnvSpec          *v1beta1.InfraEnvSpec
+		infraNsName           types.NamespacedName
+		aciSpec               *hiveext.AgentClusterInstallSpec
+		aciSNOSpec            *hiveext.AgentClusterInstallSpec
+	)
+
+	BeforeEach(func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+
+		infraNsName = types.NamespacedName{
+			Name:      "infraenv",
+			Namespace: Options.Namespace,
+		}
+		infraEnvSpec = getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
+	})
+
 	AfterEach(func() {
 		cleanUP(ctx, kubeClient)
 		verifyCleanUP(ctx, kubeClient)
@@ -556,10 +577,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete CD and verify ACI and agents deletion", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -611,10 +630,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -660,10 +677,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent and update agent", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -703,10 +718,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent,bmh and ignition config override", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -771,10 +784,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent and invalid ignition config", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -812,10 +823,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent and update installer args", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -877,10 +886,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent and invalid installer args", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -938,10 +945,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with agent,bmh and installer args", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1018,11 +1023,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment and infraEnv and verify cluster updates", func() {
-		infraEnvName := "infraenv"
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1041,17 +1042,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.AdditionalNtpSource).Should(Equal(""))
 		Expect(cluster.Hyperthreading).Should(Equal("all"))
 
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.Proxy = &v1beta1.Proxy{
 			NoProxy:    "192.168.1.1",
 			HTTPProxy:  "http://192.168.1.2",
 			HTTPSProxy: "http://192.168.1.3",
 		}
 		infraEnvSpec.AdditionalNTPSources = []string{"192.168.1.4"}
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      infraEnvName,
+			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
@@ -1069,11 +1069,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment and infraEnv with ignition override", func() {
-		infraEnvName := "infraenv"
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1089,13 +1085,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.IgnitionConfigOverride = fakeIgnitionConfigOverride
 
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      infraEnvName,
+			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
@@ -1105,18 +1100,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy infraEnv before clusterDeployment", func() {
-		infraEnvName := "infraenv"
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
-
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      infraEnvName,
+			Name:      infraNsName.Name,
 		}
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1136,11 +1125,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment and infraEnv and with an invalid ignition override", func() {
-		infraEnvName := "infraenv"
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1155,13 +1140,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configureLocalAgentClient(cluster.ID.String())
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(""))
 
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.IgnitionConfigOverride = badIgnitionConfigOverride
-
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      infraEnvName,
+			Name:      infraNsName.Name,
 		}
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateFailedToCreate+": error parsing ignition: config is not valid")
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1171,8 +1154,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with hyperthreading configuration", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1190,7 +1171,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		By("new deployment with hyperthreading disabled")
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
 			Hyperthreading: hiveext.HyperthreadingDisabled,
 		}
@@ -1221,10 +1201,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with install config override", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1251,10 +1229,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with malformed install config override", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1295,11 +1271,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			})
 		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, hostStaticNetworkConfig.NetworkYaml)
 		deployNMStateConfigCRD(ctx, kubeClient, "nmstate1", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
-		infraEnvName := "infraenv"
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1310,12 +1282,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      infraEnvName,
+			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
@@ -1336,11 +1307,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		)
 		nmstateConfigSpec := getDefaultNMStateConfigSpec(nicPrimary, nicSecondary, macPrimary, macSecondary, "foo: bar")
 		deployNMStateConfigCRD(ctx, kubeClient, "nmstate2", NMStateLabelName, NMStateLabelValue, nmstateConfigSpec)
-		infraEnvName := "infraenv"
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1351,12 +1318,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
-		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
 		infraEnvSpec.NMStateConfigLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{NMStateLabelName: NMStateLabelValue}}
-		deployInfraEnvCRD(ctx, kubeClient, infraEnvName, infraEnvSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      infraEnvName,
+			Name:      infraNsName.Name,
 		}
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, fmt.Sprintf("%s: internal error", v1beta1.ImageStateFailedToCreate))
@@ -1366,14 +1332,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		// Add space suffix to SSHPublicKey to validate proper install
-		sshPublicKeySuffixSpace := fmt.Sprintf("%s ", aciSpec.SSHPublicKey)
-		aciSpec.SSHPublicKey = sshPublicKeySuffixSpace
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		sshPublicKeySuffixSpace := fmt.Sprintf("%s ", aciSNOSpec.SSHPublicKey)
+		aciSNOSpec.SSHPublicKey = sshPublicKeySuffixSpace
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
@@ -1459,10 +1424,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1564,10 +1527,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("None SNO deploy clusterDeployment full install and Day 2 new host", func() {
 		By("Create cluster")
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1658,12 +1619,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with invalid machine cidr", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
-
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
-		aciSpec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{{CIDR: "1.2.3.5/24"}}
+		aciSNOSpec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{{CIDR: "1.2.3.5/24"}}
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1673,12 +1630,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment without machine cidr", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
-		aciSpec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{}
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		aciSNOSpec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{}
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
@@ -1687,10 +1641,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with invalid clusterImageSet", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.ImageSetRef.Name = "invalid"
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		installkey := types.NamespacedName{
@@ -1701,11 +1652,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with missing clusterImageSet", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		// Create AgentClusterInstall without creating the clusterImageSet
 		err := kubeClient.Create(ctx, &hiveext.AgentClusterInstall{
 			TypeMeta: metav1.TypeMeta{
@@ -1731,10 +1679,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("Delete clusterDeployment and validate deletion of ACI", func() {
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -1761,11 +1706,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("deploy agentClusterInstall with manifest reference with bad manifest and then fixing it ", func() {
 		By("Create cluster")
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
-		aciSpec.ManifestsConfigMapRef = ref
+		aciSNOSpec.ManifestsConfigMapRef = ref
 		content := `apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
@@ -1778,7 +1720,8 @@ spec:
 
 		By("Start installation without config map")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
@@ -1825,11 +1768,9 @@ spec:
 
 	It("delete agent and validate host deregistration", func() {
 		By("Deploy SNO cluster")
-		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,

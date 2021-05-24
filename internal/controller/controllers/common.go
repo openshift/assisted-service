@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -45,18 +46,20 @@ func getPullSecret(ctx context.Context, c client.Client, ref *corev1.LocalObject
 	return string(data), nil
 }
 
-func getInfraEnvByClusterDeployment(ctx context.Context, c client.Client, clusterDeployment *hivev1.ClusterDeployment) (*aiv1beta1.InfraEnv, error) {
+func getInfraEnvByClusterDeployment(ctx context.Context, logger logrus.FieldLogger, c client.Client, name, namespace string) (*aiv1beta1.InfraEnv, error) {
+	log := logutil.FromContext(ctx, logger)
 	infraEnvs := &aiv1beta1.InfraEnvList{}
 	if err := c.List(ctx, infraEnvs); err != nil {
-		logrus.WithError(err).Errorf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name)
+		log.WithError(err).Errorf("failed to search for infraEnv for clusterDeployment %s", name)
 		return nil, err
 	}
 	for _, infraEnv := range infraEnvs.Items {
-		if infraEnv.Spec.ClusterRef.Name == clusterDeployment.Name {
+		clusterRef := infraEnv.Spec.ClusterRef
+		if clusterRef.Name == name && clusterRef.Namespace == namespace {
 			return &infraEnv, nil
 		}
 	}
-	logrus.Infof("no infraEnv for the clusterDeployment %s", clusterDeployment.Name)
+	log.Infof("no infraEnv for the clusterDeployment %s in namespace %s", name, namespace)
 	return nil, nil
 }
 

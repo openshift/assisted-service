@@ -4,6 +4,7 @@ import (
 	"context"
 
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +41,15 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 	}
 
 	if k8serrors.IsNotFound(err) {
+		infraEnv, err1 := getInfraEnvByClusterDeployment(ctx, log, u.client, clusterName, clusterNamespace)
+		if err1 != nil {
+			return errors.Wrapf(err, "Failed to search an InfraEnv for Cluster %s", clusterName)
+		}
+		if infraEnv == nil {
+			log.Warnf("ClusterDeployment %s has no InfraEnv resources.", clusterName)
+			return errors.Wrapf(err, "No InfraEnv resource for ClusterDeployment %s", clusterName)
+		}
+
 		host := &aiv1beta1.Agent{
 			Spec: aiv1beta1.AgentSpec{
 				ClusterDeploymentName: &aiv1beta1.ClusterReference{
@@ -50,10 +60,10 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      hostId,
-				Namespace: clusterNamespace,
+				Namespace: infraEnv.Namespace,
 			},
 		}
-		log.Infof("Creating Agent CR. Namespace: %s, Cluster: %s, HostID: %s", clusterNamespace, clusterName, hostId)
+		log.Infof("Creating Agent CR. Namespace: %s, Cluster: %s, HostID: %s", infraEnv.Namespace, clusterName, hostId)
 		return u.client.Create(ctx, host)
 	}
 	return err
