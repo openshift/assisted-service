@@ -1337,7 +1337,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "30s", "10s").Should(Equal(""))
+		}, "1m", "10s").Should(Equal(""))
 	})
 
 	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
