@@ -587,8 +587,16 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		updateString(clusterInstall.Spec.Networking.MachineNetwork[0].CIDR, cluster.MachineNetworkCidr, &params.MachineNetworkCidr)
 	}
 
-	updateString(clusterInstall.Spec.APIVIP, cluster.APIVip, &params.APIVip)
-	updateString(clusterInstall.Spec.IngressVIP, cluster.IngressVip, &params.IngressVip)
+	// Update APIVIP and IngressVIP only if cluster is not SNO or VipDhcpAllocation is not enabled
+	// In absence of this check, the reconcile loop in the controller fails all the time
+	isDHCPEnabled := swag.BoolValue(cluster.VipDhcpAllocation)
+	isSNO := common.IsSingleNodeCluster(cluster)
+
+	if !isSNO && !isDHCPEnabled {
+		updateString(clusterInstall.Spec.APIVIP, cluster.APIVip, &params.APIVip)
+		updateString(clusterInstall.Spec.IngressVIP, cluster.IngressVip, &params.IngressVip)
+	}
+
 	// Trim key before comapring as done in RegisterClusterInternal
 	sshPublicKey := strings.TrimSpace(clusterInstall.Spec.SSHPublicKey)
 	updateString(sshPublicKey, cluster.SSHPublicKey, &params.SSHPublicKey)

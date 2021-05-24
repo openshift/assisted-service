@@ -1596,6 +1596,81 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
+
+		It("APIVIP and Ingress VIP set in the backend in case of SNO cluster", func() {
+			hostIP := "1.2.3.4"
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInstalling),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               hostIP,
+					APIVip:                   hostIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					HighAvailabilityMode:     swag.String(models.ClusterHighAvailabilityModeNone),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(aci.Spec.APIVIP).NotTo(Equal(hostIP))
+			Expect(aci.Spec.IngressVIP).NotTo(Equal(hostIP))
+		})
+
+		It("DHCP is enabled", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInstalling),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+					VipDhcpAllocation:        swag.Bool(true),
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+
+			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
+			Expect(c.Create(ctx, pullSecret)).To(BeNil())
+
+			cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+			aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+		})
 	})
 })
 
