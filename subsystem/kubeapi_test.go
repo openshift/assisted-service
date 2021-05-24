@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	bmhv1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	. "github.com/onsi/ginkgo"
@@ -36,10 +37,10 @@ import (
 )
 
 const (
-	fakeIgnitionConfigOverride     = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
-	badIgnitionConfigOverride      = `bad ignition config`
-	clusterDeploymentName          = "test-cluster"
-	clusterAgentClusterInstallName = "test-agent-cluster-install"
+	fakeIgnitionConfigOverride           = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+	badIgnitionConfigOverride            = `bad ignition config`
+	clusterDeploymentNamePrefix          = "test-cluster"
+	clusterAgentClusterInstallNamePrefix = "test-agent-cluster-install"
 )
 
 var (
@@ -117,7 +118,8 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 	}, "30s", "10s").Should(BeNil())
 }
 
-func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, spec *hiveext.AgentClusterInstallSpec) {
+func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, spec *hiveext.AgentClusterInstallSpec,
+	clusterAgentClusterInstallName string) {
 	deployClusterImageSetCRD(ctx, client, spec.ImageSetRef)
 	err := client.Create(ctx, &hiveext.AgentClusterInstall{
 		TypeMeta: metav1.TypeMeta{
@@ -353,7 +355,7 @@ func checkInfraEnvCondition(ctx context.Context, key types.NamespacedName, condi
 
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
 	return &hivev1.ClusterDeploymentSpec{
-		ClusterName: clusterDeploymentName,
+		ClusterName: clusterDeploymentNamePrefix + randomNameSuffix(),
 		BaseDomain:  "hive.example.com",
 		Platform: hivev1.Platform{
 			AgentBareMetal: &agentv1.BareMetalPlatform{},
@@ -363,12 +365,12 @@ func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hi
 			Group:   hiveext.Group,
 			Version: hiveext.Version,
 			Kind:    "AgentClusterInstall",
-			Name:    clusterAgentClusterInstallName,
+			Name:    clusterAgentClusterInstallNamePrefix + randomNameSuffix(),
 		},
 	}
 }
 
-func getDefaultAgentClusterInstallSpec() *hiveext.AgentClusterInstallSpec {
+func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
 	return &hiveext.AgentClusterInstallSpec{
 		Networking: hiveext.Networking{
 			MachineNetwork: []hiveext.MachineNetworkEntry{},
@@ -390,7 +392,7 @@ func getDefaultAgentClusterInstallSpec() *hiveext.AgentClusterInstallSpec {
 	}
 }
 
-func getDefaultSNOAgentClusterInstallSpec() *hiveext.AgentClusterInstallSpec {
+func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.AgentClusterInstallSpec {
 	return &hiveext.AgentClusterInstallSpec{
 		Networking: hiveext.Networking{
 			MachineNetwork: []hiveext.MachineNetworkEntry{{CIDR: "1.2.3.0/24"}},
@@ -448,12 +450,15 @@ func getAgentMac(ctx context.Context, client k8sclient.Client, key types.Namespa
 	return mac
 }
 
+func randomNameSuffix() string {
+	return fmt.Sprintf("-%s", strings.Split(uuid.New().String(), "-")[0])
+}
+
 func cleanUP(ctx context.Context, client k8sclient.Client) {
-	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
+	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterDeployment{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil()) // Should also delete all agents
 	Expect(client.DeleteAllOf(ctx, &hivev1.ClusterImageSet{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &v1beta1.NMStateConfig{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
-	Expect(client.DeleteAllOf(ctx, &v1beta1.Agent{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	Expect(client.DeleteAllOf(ctx, &bmhv1alpha1.BareMetalHost{}, k8sclient.InNamespace(Options.Namespace))).To(BeNil())
 	ps := &corev1.Secret{
 		TypeMeta: metav1.TypeMeta{
@@ -470,12 +475,60 @@ func cleanUP(ctx context.Context, client k8sclient.Client) {
 }
 
 func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
+	By("Verify ClusterDeployment Cleanup")
+	Eventually(func() int {
+		clusterDeploymentList := &hivev1.ClusterDeploymentList{}
+		err := client.List(ctx, clusterDeploymentList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(clusterDeploymentList.Items)
+	}, "2m", "2s").Should(Equal(0))
+
 	By("Verify AgentClusterInstall Cleanup")
 	Eventually(func() int {
 		aciList := &hiveext.AgentClusterInstallList{}
 		err := client.List(ctx, aciList, k8sclient.InNamespace(Options.Namespace))
 		Expect(err).To(BeNil())
 		return len(aciList.Items)
+	}, "2m", "2s").Should(Equal(0))
+
+	By("Verify ClusterImageSet Cleanup")
+	Eventually(func() int {
+		clusterImageSetList := &hivev1.ClusterImageSetList{}
+		err := client.List(ctx, clusterImageSetList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(clusterImageSetList.Items)
+	}, "2m", "2s").Should(Equal(0))
+
+	By("Verify InfraEnv Cleanup")
+	Eventually(func() int {
+		infraEnvList := &v1beta1.InfraEnvList{}
+		err := client.List(ctx, infraEnvList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(infraEnvList.Items)
+	}, "2m", "2s").Should(Equal(0))
+
+	By("Verify NMStateConfig Cleanup")
+	Eventually(func() int {
+		nmStateConfigList := &v1beta1.NMStateConfigList{}
+		err := client.List(ctx, nmStateConfigList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(nmStateConfigList.Items)
+	}, "2m", "10s").Should(Equal(0))
+
+	By("Verify Agent Cleanup")
+	Eventually(func() int {
+		agentList := &v1beta1.AgentList{}
+		err := client.List(ctx, agentList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(agentList.Items)
+	}, "2m", "2s").Should(Equal(0))
+
+	By("Verify BareMetalHost Cleanup")
+	Eventually(func() int {
+		bareMetalHostList := &bmhv1alpha1.BareMetalHostList{}
+		err := client.List(ctx, bareMetalHostList, k8sclient.InNamespace(Options.Namespace))
+		Expect(err).To(BeNil())
+		return len(bareMetalHostList.Items)
 	}, "2m", "2s").Should(Equal(0))
 }
 
@@ -502,17 +555,17 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		clearDB()
 	})
 
-	It("deploy clusterDeployment with agents and wait for ready", func() {
+	It("deploy CD with ACI and agents - wait for ready, delete CD and verify ACI and agents deletion", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
-		key := types.NamespacedName{
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
-		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
@@ -524,6 +577,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			checkAgentCondition(ctx, host.ID.String(), controllers.ValidatedCondition, controllers.ValidationsFailingReason)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		By("Approve Agents")
 		for _, host := range hosts {
 			hostkey := types.NamespacedName{
 				Namespace: Options.Namespace,
@@ -537,20 +591,83 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
+		By("Verify ClusterDeployment ReadyForInstallation")
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterAlreadyInstallingReason)
+		By("Delete ClusterDeployment")
+		err := kubeClient.Delete(ctx, getClusterDeploymentCRD(ctx, kubeClient, clusterKey))
+		Expect(err).To(BeNil())
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+	})
+
+	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		hosts := make([]*models.Host, 0)
+		for i := 0; i < 3; i++ {
+			hostname := fmt.Sprintf("h%d", i)
+			host := setupNewHost(ctx, hostname, *cluster.ID)
+			hosts = append(hosts, host)
+		}
+		for _, host := range hosts {
+			checkAgentCondition(ctx, host.ID.String(), controllers.ValidatedCondition, controllers.ValidationsFailingReason)
+		}
+		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		By("Approve Agents")
+		for _, host := range hosts {
+			hostkey := types.NamespacedName{
+				Namespace: Options.Namespace,
+				Name:      host.ID.String(),
+			}
+			Eventually(func() error {
+				agent := getAgentCRD(ctx, kubeClient, hostkey)
+				agent.Spec.Approved = true
+				return kubeClient.Update(ctx, agent)
+			}, "30s", "10s").Should(BeNil())
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("Verify ClusterDeployment ReadyForInstallation")
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterAlreadyInstallingReason)
+		By("Delete AgentClusterInstall")
+		err := kubeClient.Delete(ctx, getAgentClusterInstallCRD(ctx, kubeClient, installkey))
+		Expect(err).To(BeNil())
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
 	})
 
 	It("deploy clusterDeployment with agent and update agent", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -587,13 +704,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("deploy clusterDeployment with agent,bmh and ignition config override", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -655,13 +772,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("deploy clusterDeployment with agent and invalid ignition config", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -696,13 +813,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("deploy clusterDeployment with agent and update installer args", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -761,13 +878,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("deploy clusterDeployment with agent and invalid installer args", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -822,13 +939,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("deploy clusterDeployment with agent,bmh and installer args", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -905,15 +1022,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -956,15 +1073,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 
@@ -999,15 +1116,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      infraEnvName,
 		}
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1023,15 +1140,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1063,7 +1180,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		verifyHyperthreadingSetup := func(mode string) {
 			Eventually(func() string {
@@ -1073,19 +1190,19 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		By("new deployment with hyperthreading disabled")
-		aciSpec := getDefaultAgentClusterInstallSpec()
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
 			Hyperthreading: hiveext.HyperthreadingDisabled,
 		}
 		aciSpec.Compute = []hiveext.AgentMachinePool{
 			{Hyperthreading: hiveext.HyperthreadingDisabled},
 		}
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		verifyHyperthreadingSetup(models.ClusterHyperthreadingNone)
 
 		By("update deployment with hyperthreading enabled on master only")
-		aciSpec = getDefaultAgentClusterInstallSpec()
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
 			Hyperthreading: hiveext.HyperthreadingEnabled,
 		}
@@ -1094,7 +1211,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		verifyHyperthreadingSetup(models.ClusterHyperthreadingMasters)
 
 		By("update deployment with hyperthreading enabled on workers only")
-		aciSpec = getDefaultAgentClusterInstallSpec()
+		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.Compute = []hiveext.AgentMachinePool{
 			{Hyperthreading: hiveext.HyperthreadingEnabled},
 		}
@@ -1107,15 +1224,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1137,15 +1254,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
@@ -1182,15 +1299,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
@@ -1223,15 +1340,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		infraEnvSpec := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec)
@@ -1250,16 +1367,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		// Add space suffix to SSHPublicKey to validate proper install
 		sshPublicKeySuffixSpace := fmt.Sprintf("%s ", aciSpec.SSHPublicKey)
 		aciSpec.SSHPublicKey = sshPublicKeySuffixSpace
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -1270,7 +1387,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		By("Check Event URL exists")
 		Eventually(func() string {
@@ -1343,13 +1460,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -1383,7 +1500,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Wait for installing")
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
@@ -1420,6 +1537,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+
 		By("Verify Cluster Metadata")
 		passwordSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminPasswordSecretRef
 		Expect(passwordSecretRef).NotTo(BeNil())
@@ -1443,13 +1565,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	It("None SNO deploy clusterDeployment full install and Day 2 new host", func() {
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      spec.ClusterName,
+			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
@@ -1476,7 +1598,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Wait for installing")
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
 		Eventually(func() bool {
@@ -1509,6 +1631,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
+
 		By("Add Day 2 host and approve agent")
 		configureLocalAgentClient(cluster.ID.String())
 		host := setupNewHost(ctx, "hostnameday2", *cluster.ID)
@@ -1533,13 +1660,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	It("deploy clusterDeployment with invalid machine cidr", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{{CIDR: "1.2.3.5/24"}}
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 	})
@@ -1548,12 +1676,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
+		aciSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.Networking.MachineNetwork = []hiveext.MachineNetworkEntry{}
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 	})
@@ -1562,22 +1690,22 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultAgentClusterInstallSpec()
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.ImageSetRef.Name = "invalid"
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
 	})
 
 	It("deploy clusterDeployment with missing clusterImageSet", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
-		spec := getDefaultClusterDeploymentSpec(secretRef)
-		deployClusterDeploymentCRD(ctx, kubeClient, spec)
+		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 
-		aciSpec := getDefaultAgentClusterInstallSpec()
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		// Create AgentClusterInstall without creating the clusterImageSet
 		err := kubeClient.Create(ctx, &hiveext.AgentClusterInstall{
 			TypeMeta: metav1.TypeMeta{
@@ -1586,14 +1714,14 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			},
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: Options.Namespace,
-				Name:      clusterAgentClusterInstallName,
+				Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 			},
 			Spec: *aciSpec,
 		})
 		Expect(err).To(BeNil())
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
 
@@ -1606,15 +1734,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		Eventually(func() bool {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
@@ -1635,7 +1763,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Create cluster")
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
+		aciSpec := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		ref := &corev1.LocalObjectReference{Name: "cluster-install-config"}
 		aciSpec.ManifestsConfigMapRef = ref
 		content := `apiVersion: machineconfiguration.openshift.io/v1
@@ -1650,7 +1778,7 @@ spec:
 
 		By("Start installation without config map")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
@@ -1670,7 +1798,7 @@ spec:
 		}, "30s", "10s").Should(BeNil())
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterReadyReason)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterSpecSyncedCondition, controllers.BackendErrorReason)
@@ -1700,15 +1828,15 @@ spec:
 		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
 		clusterDeploymentSpec := getDefaultClusterDeploymentSpec(secretRef)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		aciSpec := getDefaultSNOAgentClusterInstallSpec()
-		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec)
+		aciSpec := getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		clusterKey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterName,
 		}
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
-			Name:      clusterAgentClusterInstallName,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)

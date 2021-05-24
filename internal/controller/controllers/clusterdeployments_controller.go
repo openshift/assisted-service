@@ -33,7 +33,7 @@ import (
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
-	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
@@ -44,6 +44,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -62,7 +63,9 @@ import (
 const (
 	adminPasswordSecretStringTemplate = "%s-admin-password"
 	adminKubeConfigStringTemplate     = "%s-admin-kubeconfig"
-	InstallConfigOverrides            = v1beta1.Group + "/install-config-overrides"
+	InstallConfigOverrides            = aiv1beta1.Group + "/install-config-overrides"
+	ClusterDeploymentFinalizerName    = "clusterdeployments." + aiv1beta1.Group + "/ai-deprovision"
+	AgentClusterInstallFinalizerName  = "agentclusterinstall." + aiv1beta1.Group + "/ai-deprovision"
 )
 
 const HighAvailabilityModeNone = "None"
@@ -90,18 +93,17 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups=hive.openshift.io,resources=clusterimagesets,verbs=get;list;watch
 // +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls/finalizers,verbs=update
 
 func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	r.Log.Infof("Reconcile has been called for ClusterDeployment name=%s namespace=%s", req.Name, req.Namespace)
 
 	clusterDeployment := &hivev1.ClusterDeployment{}
-	err := r.Get(ctx, req.NamespacedName, clusterDeployment)
-	if err != nil {
-		if k8serrors.IsNotFound(err) {
-			return r.deregisterClusterIfNeeded(ctx, req.NamespacedName)
-		}
-		r.Log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
-		return ctrl.Result{Requeue: true}, nil
+	clusterInstallDeleted := false
+
+	if err := r.Get(ctx, req.NamespacedName, clusterDeployment); err != nil {
+		r.Log.WithError(err).Errorf("failed to get ClusterDeployment name=%s namespace=%s", req.Name, req.Namespace)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
 	// ignore unsupported platforms
@@ -116,7 +118,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	aciName := clusterDeployment.Spec.ClusterInstallRef.Name
-	err = r.Get(ctx,
+	err := r.Get(ctx,
 		types.NamespacedName{
 			Namespace: clusterDeployment.Namespace,
 			Name:      aciName,
@@ -124,11 +126,29 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		clusterInstall)
 	if err != nil {
 		if k8serrors.IsNotFound(err) {
+			// mark that clusterInstall was already deleted so we skip it if needed.
+			clusterInstallDeleted = true
 			r.Log.WithField("AgentClusterInstall", aciName).Infof("AgentClusterInstall does not exist for ClusterDeployment %s", clusterDeployment.Name)
-			return ctrl.Result{}, nil
+			if clusterDeployment.ObjectMeta.DeletionTimestamp.IsZero() {
+				// we have no agentClusterInstall and clusterDeployment is not being deleted. stop reconciliation.
+				return ctrl.Result{}, nil
+			}
+		} else {
+			r.Log.WithError(err).Errorf("failed to get AgentClusterInstall name=%s namespace=%s", aciName, clusterDeployment.Namespace)
+			return ctrl.Result{Requeue: true}, err
 		}
-		r.Log.WithError(err).Errorf("Failed to get AgentClusterInstall %s", aciName)
-		return ctrl.Result{Requeue: true}, err
+	}
+
+	if !clusterInstallDeleted {
+		aciReply, aciErr := r.agentClusterInstallFinalizer(ctx, req, clusterInstall)
+		if aciReply != nil {
+			return *aciReply, aciErr
+		}
+	}
+
+	cdReplay, cdErr := r.clusterDeploymentFinalizer(ctx, clusterDeployment)
+	if cdReplay != nil {
+		return *cdReplay, cdErr
 	}
 
 	err = r.ensureOwnerRef(ctx, clusterDeployment, clusterInstall)
@@ -144,7 +164,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if !r.isSNO(clusterInstall) {
 			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
-		// cluster  is installed and SNO. Clear EventsURL
+		// cluster is installed and SNO. Clear EventsURL
 		clusterInstall.Status.DebugInfo.EventsURL = ""
 		if updateErr := r.Status().Update(ctx, clusterInstall); updateErr != nil {
 			r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
@@ -176,9 +196,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 			return r.updateStatus(ctx, clusterInstall, cluster, err)
 		} else {
 			// Delete Day1 Cluster
-			err = r.Installer.DeregisterClusterInternal(ctx, installer.DeregisterClusterParams{
-				ClusterID: *cluster.ID,
-			})
+			_, err = r.deregisterClusterIfNeeded(ctx, req.NamespacedName)
 			if err != nil {
 				return r.updateStatus(ctx, clusterInstall, cluster, err)
 			}
@@ -200,6 +218,78 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 
 	return r.updateStatus(ctx, clusterInstall, cluster, nil)
+}
+
+func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.Context, req ctrl.Request,
+	clusterInstall *hiveext.AgentClusterInstall) (*ctrl.Result, error) {
+	if clusterInstall.ObjectMeta.DeletionTimestamp.IsZero() { // clusterInstall not being deleted
+		// Register a finalizer if it is absent.
+		if !funk.ContainsString(clusterInstall.GetFinalizers(), AgentClusterInstallFinalizerName) {
+			controllerutil.AddFinalizer(clusterInstall, AgentClusterInstallFinalizerName)
+			if err := r.Update(ctx, clusterInstall); err != nil {
+				r.Log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s",
+					AgentClusterInstallFinalizerName, clusterInstall.Name, clusterInstall.Namespace)
+				return &ctrl.Result{Requeue: true}, err
+			}
+		}
+	} else { // clusterInstall is being deleted
+		if funk.ContainsString(clusterInstall.GetFinalizers(), AgentClusterInstallFinalizerName) {
+			// deletion finalizer found, deregister the backend cluster and delete agents
+			reply, cleanUpErr := r.deregisterClusterIfNeeded(ctx, req.NamespacedName)
+			if cleanUpErr != nil {
+				r.Log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s",
+					AgentClusterInstallFinalizerName, clusterInstall.Name, clusterInstall.Namespace)
+				return &reply, cleanUpErr
+			}
+
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(clusterInstall, AgentClusterInstallFinalizerName)
+			if err := r.Update(ctx, clusterInstall); err != nil {
+				r.Log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s",
+					AgentClusterInstallFinalizerName, clusterInstall.Name, clusterInstall.Namespace)
+				return &ctrl.Result{Requeue: true}, err
+			}
+		}
+		// Stop reconciliation as the item is being deleted
+		return &ctrl.Result{}, nil
+	}
+	return nil, nil
+}
+
+func (r *ClusterDeploymentsReconciler) clusterDeploymentFinalizer(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) (*ctrl.Result, error) {
+	if clusterDeployment.ObjectMeta.DeletionTimestamp.IsZero() { // clusterDeployment not being deleted
+		// Register a finalizer if it is absent.
+		if !funk.ContainsString(clusterDeployment.GetFinalizers(), ClusterDeploymentFinalizerName) {
+			controllerutil.AddFinalizer(clusterDeployment, ClusterDeploymentFinalizerName)
+			if err := r.Update(ctx, clusterDeployment); err != nil {
+				r.Log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s",
+					ClusterDeploymentFinalizerName, clusterDeployment.Name, clusterDeployment.Namespace)
+				return &ctrl.Result{Requeue: true}, err
+			}
+		}
+	} else { // clusterDeployment is being deleted
+		if funk.ContainsString(clusterDeployment.GetFinalizers(), ClusterDeploymentFinalizerName) {
+			reply, cleanUpErr := r.deleteClusterInstall(ctx, clusterDeployment)
+			if cleanUpErr != nil {
+				r.Log.WithError(cleanUpErr).Errorf(
+					"clusterDeployment %s %s is still waiting for clusterInstall %s to be deleted",
+					clusterDeployment.Name, clusterDeployment.Namespace, clusterDeployment.Spec.ClusterInstallRef.Name,
+				)
+				return &reply, cleanUpErr
+			}
+
+			// remove our finalizer from the list and update it.
+			controllerutil.RemoveFinalizer(clusterDeployment, ClusterDeploymentFinalizerName)
+			if err := r.Update(ctx, clusterDeployment); err != nil {
+				r.Log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s",
+					ClusterDeploymentFinalizerName, clusterDeployment.Name, clusterDeployment.Namespace)
+				return &ctrl.Result{Requeue: true}, err
+			}
+		}
+		// Stop reconciliation as the item is being deleted
+		return &ctrl.Result{}, nil
+	}
+	return nil, nil
 }
 
 func isInstalled(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall) bool {
@@ -444,7 +534,7 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 
 	update := false
 	notifyInfraEnv := false
-	var infraEnv *v1beta1.InfraEnv
+	var infraEnv *aiv1beta1.InfraEnv
 
 	params := &models.ClusterUpdateParams{}
 
@@ -783,10 +873,69 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 	}); err != nil {
 		return buildReply(err)
 	}
+	// Delete agents because their backend cluster got deregistered.
+	if err = r.DeleteClusterDeploymentAgents(ctx, key); err != nil {
+		return buildReply(err)
+	}
 
 	r.Log.Infof("Cluster resource deleted, Unregistered cluster: %s", c.ID.String())
 
 	return buildReply(nil)
+}
+
+func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
+
+	buildReply := func(err error) (ctrl.Result, error) {
+		reply := ctrl.Result{}
+		if err == nil {
+			return reply, nil
+		}
+		reply.RequeueAfter = defaultRequeueAfterOnError
+		err = errors.Wrapf(err, "clusterInstall: %s not deleted", clusterDeployment.Spec.ClusterInstallRef.Name)
+		r.Log.Error(err)
+		return reply, err
+	}
+
+	clusterInstall := &hiveext.AgentClusterInstall{}
+	err := r.Get(ctx,
+		types.NamespacedName{
+			Name:      clusterDeployment.Spec.ClusterInstallRef.Name,
+			Namespace: clusterDeployment.Namespace,
+		},
+		clusterInstall)
+
+	if err != nil {
+		if k8serrors.IsNotFound(err) {
+			return buildReply(nil)
+		}
+		return buildReply(err)
+	}
+
+	if err = r.Delete(ctx, clusterInstall); err != nil {
+		return buildReply(err)
+	}
+	// place this err so we requeue and verify deletion
+	err = errors.Errorf("could not confirm clusterInstall %s deletion was successfuly completed", clusterDeployment.Spec.ClusterInstallRef.Name)
+	return buildReply(err)
+}
+
+func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context.Context, clusterDeployment types.NamespacedName) error {
+	agents := &aiv1beta1.AgentList{}
+	r.Log = r.Log.WithFields(logrus.Fields{"clusterDeployment": clusterDeployment.Name, "namespace": clusterDeployment.Namespace})
+	if err := r.List(ctx, agents); err != nil {
+		return err
+	}
+	for i, clusterAgent := range agents.Items {
+		if clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
+			clusterAgent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
+			r.Log.Infof("delete agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
+			if err := r.Client.Delete(ctx, &agents.Items[i]); err != nil {
+				r.Log.WithError(err).Errorf("Failed to delete resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error {

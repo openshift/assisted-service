@@ -350,6 +350,12 @@ spec:
         - apiGroups:
           - extensions.hive.openshift.io
           resources:
+          - agentclusterinstalls/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - extensions.hive.openshift.io
+          resources:
           - agentclusterinstalls/status
           verbs:
           - get
