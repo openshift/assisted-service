@@ -432,12 +432,13 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			err            error
 			updatedCluster *common.Cluster
 		)
-		extra, err := addExtraParams(logutil.FromContext(params.ctx, th.log), sCluster.cluster, reason)
-		if err != nil {
-			return err
-		}
 
 		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
+			var extra []interface{}
+			extra, err = addExtraParams(logutil.FromContext(params.ctx, th.log), sCluster.cluster, sCluster.srcState)
+			if err != nil {
+				return err
+			}
 			updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
 				reason, extra...)
 		}
@@ -573,11 +574,11 @@ func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, ho
 	return nil
 }
 
-func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, statusInfo string) ([]interface{}, error) {
+func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, clusterState string) ([]interface{}, error) {
 	extra := []interface{}{}
-	switch statusInfo {
+	switch clusterState {
 	case statusInfoInstalling:
-		// In case of SNO cluster, set api_vip and ingress_vip with host
+		// In case of SNO cluster, set api_vip and ingress_vip with host ip
 		if common.IsSingleNodeCluster(cluster) {
 			hostIP, err := network.GetIpForSingleNodeInstallation(cluster, log)
 			if err != nil {
