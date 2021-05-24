@@ -1282,8 +1282,9 @@ var _ = Describe("Refresh Host", func() {
 			expectTimeout bool
 		}{
 			{models.HostStageRebooting, false},
-			{models.HostStageStartWaitingForControlPlane, false},
 			{models.HostStageWaitingForControlPlane, false},
+			{models.HostStageWaitingForController, false},
+			{models.HostStageWaitingForBootkube, false},
 			{models.HostStageStartingInstallation, true},
 			{models.HostStageInstalling, true},
 			{models.HostStageWritingImageToDisk, true},
@@ -1354,7 +1355,6 @@ var _ = Describe("Refresh Host", func() {
 		installationStages := []models.HostStage{
 			models.HostStageInstalling,
 			models.HostStageWritingImageToDisk,
-			models.HostStageStartWaitingForControlPlane,
 		}
 
 		for j := range installationStages {
@@ -3820,7 +3820,7 @@ var _ = Describe("Refresh Host", func() {
 			for _, installationStage := range []models.HostStage{
 				models.HostStageStartingInstallation,
 				models.HostStageWaitingForControlPlane,
-				models.HostStageStartWaitingForControlPlane,
+				models.HostStageWaitingForController,
 				models.HostStageInstalling,
 				models.HostStageWritingImageToDisk,
 				models.HostStageRebooting,

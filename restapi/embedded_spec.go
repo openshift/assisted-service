@@ -6779,7 +6779,8 @@ func init() {
       "enum": [
         "Starting installation",
         "Waiting for control plane",
-        "Start waiting for control plane",
+        "Waiting for bootkube",
+        "Waiting for controller",
         "Installing",
         "Writing image to disk",
         "Rebooting",
@@ -14619,7 +14620,8 @@ func init() {
       "enum": [
         "Starting installation",
         "Waiting for control plane",
-        "Start waiting for control plane",
+        "Waiting for bootkube",
+        "Waiting for controller",
         "Installing",
         "Writing image to disk",
         "Rebooting",
