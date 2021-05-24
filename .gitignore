@@ -22,6 +22,3 @@ reports
 # Files used for onprem testing
 coreos-installer
 livecd.iso
-
-# Operator bundle files
-/bundle*
