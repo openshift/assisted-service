@@ -90,9 +90,10 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `ReadyForIns
 |Validated|False|ValidationsFailing|The agent's validations are failing: "summary of failed validations"|If the host status is "insufficient" or "pending-for-input"|
 |Validated|Unknown|ValidationsUnknown|The agent's validations have not yet been calculated|If the validations have not yet been calculated|
 ||||||
-|ReadyForInstallation|True|AgentIsReady|The agent is ready to begin the installation|if the host status is "known"|
+|ReadyForInstallation|True|AgentIsReady|The agent is ready to begin the installation|If the host is approved and in status "known"|
 |ReadyForInstallation|False|AgentNotReady|The agent is not ready to begin the installation|If the host is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input")|
 |ReadyForInstallation|False|AgentAlreadyInstalling|The agent cannot begin the installation because it has already started|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing", "installed", "error") |
+|ReadyForInstallation|False|AgentIsNotApproved|The agent is not approved|If the host is not approved and in status "known"|
 ||||||
 |Installed|True|InstallationCompleted|The installation has completed: "status_info"|If the host status is "installed"|
 |Installed|False|InstallationFailed|The installation has failed: "status_info"|If the host status is "error"|
