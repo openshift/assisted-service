@@ -195,7 +195,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
@@ -306,7 +306,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
-		Expect(err).ToNot(BeNil())
+		Expect(err).To(BeNil())
 		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
 
 		key := types.NamespacedName{
@@ -415,7 +415,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			}).Return(errors.Errorf("error")).Times(1)
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
 	})
 
 	It("failed to update cluster with proxy", func() {
@@ -434,7 +434,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
@@ -520,7 +520,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
-			expectedError := common.NewApiError(http.StatusInternalServerError, errors.New("error")) // TODO: change to http.StatusBadRequest when MGMT-4695 and MGMT-4696 get resolved.
+			expectedError := common.NewApiError(http.StatusBadRequest, errors.New("internal error"))
 			mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
 				Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
 					Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
@@ -531,8 +531,8 @@ var _ = Describe("infraEnv reconcile", func() {
 			})
 			Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 			res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
-			Expect(err).To(Equal(expectedError))
-			Expect(res).To(Equal(ctrl.Result{Requeue: true}))
+			Expect(err).To(BeNil())
+			Expect(res).To(Equal(ctrl.Result{Requeue: false, RequeueAfter: 0}))
 
 			key := types.NamespacedName{
 				Namespace: testNamespace,
