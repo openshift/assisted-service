@@ -166,14 +166,25 @@ const (
 	HyperthreadingDisabled HyperthreadingMode = "Disabled"
 )
 
+const (
+	MasterAgentMachinePool string = "master"
+	WorkerAgentMachinePool string = "worker"
+)
+
 // AgentMachinePool is a pool of machines to be installed.
 type AgentMachinePool struct {
 	// Hyperthreading determines the mode of hyperthreading that machines in the
 	// pool will utilize.
 	// Default is for hyperthreading to be enabled.
 	//
+	// +kubebuilder:default=Enabled
 	// +optional
 	Hyperthreading HyperthreadingMode `json:"hyperthreading,omitempty"`
+
+	// Name is the name of the machine pool.
+	// For the control plane machine pool, the name will always be "master".
+	// For the compute machine pools, the only valid name is "worker".
+	Name string `json:"name"`
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

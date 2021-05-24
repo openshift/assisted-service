@@ -492,9 +492,13 @@ func isUserManagedNetwork(clusterInstall *hiveext.AgentClusterInstall) bool {
 	return false
 }
 
+//see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
 func hyperthreadingInSpec(clusterInstall *hiveext.AgentClusterInstall) bool {
-	//see https://docs.openshift.com/container-platform/4.7/installing/installing_platform_agnostic/installing-platform-agnostic.html#installation-bare-metal-config-yaml_installing-platform-agnostic
-	return len(clusterInstall.Spec.Compute) > 0 || clusterInstall.Spec.ControlPlane != nil
+	//check if either master or worker pool hyperthreading settings are explicitly specified
+	return clusterInstall.Spec.ControlPlane != nil ||
+		funk.Contains(clusterInstall.Spec.Compute, func(pool hiveext.AgentMachinePool) bool {
+			return pool.Name == hiveext.WorkerAgentMachinePool
+		})
 }
 
 func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
@@ -513,11 +517,12 @@ func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
 	}
 
 	//check if the Spec enables hyperthreading for workers
-	if len(clusterInstall.Spec.Compute) > 0 {
-		if clusterInstall.Spec.Compute[0].Hyperthreading == hiveext.HyperthreadingEnabled {
+	for _, machinePool := range clusterInstall.Spec.Compute {
+		if machinePool.Name == hiveext.WorkerAgentMachinePool && machinePool.Hyperthreading == hiveext.HyperthreadingEnabled {
 			config = config | Workers
 		}
 	}
+
 	//check if the Spec enables hyperthreading for masters
 	if clusterInstall.Spec.ControlPlane != nil {
 		if clusterInstall.Spec.ControlPlane.Hyperthreading == hiveext.HyperthreadingEnabled {
