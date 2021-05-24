@@ -50,6 +50,7 @@ var (
 )
 
 func deployLocalObjectSecretIfNeeded(ctx context.Context, client k8sclient.Client) *corev1.LocalObjectReference {
+
 	err := client.Get(
 		ctx,
 		types.NamespacedName{Namespace: Options.Namespace, Name: pullSecretName},
