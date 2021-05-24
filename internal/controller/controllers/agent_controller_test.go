@@ -674,6 +674,38 @@ var _ = Describe("TestConditions", func() {
 		conditions     []conditionsv1.Condition
 	}{
 		{
+			name:           "PendingForInput",
+			hostStatus:     models.HostStatusPendingForInput,
+			statusInfo:     "",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"}]}",
+			conditions: []conditionsv1.Condition{
+				{
+					Type:    ReadyForInstallationCondition,
+					Message: AgentNotReadyMsg,
+					Reason:  AgentNotReadyReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    ConnectedCondition,
+					Message: AgentConnectedMsg,
+					Reason:  AgentConnectedReason,
+					Status:  corev1.ConditionTrue,
+				},
+				{
+					Type:    InstalledCondition,
+					Message: InstallationNotStartedMsg,
+					Reason:  InstallationNotStartedReason,
+					Status:  corev1.ConditionFalse,
+				},
+				{
+					Type:    ValidatedCondition,
+					Message: AgentValidationsFailingMsg + " Host check1 is not OK,Host check3 is not OK",
+					Reason:  ValidationsFailingReason,
+					Status:  corev1.ConditionFalse,
+				},
+			},
+		},
+		{
 			name:           "Unsufficient",
 			hostStatus:     models.HostStatusInsufficient,
 			statusInfo:     "",
