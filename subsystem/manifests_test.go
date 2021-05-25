@@ -10,6 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/client/manifests"
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
 )
 
@@ -46,6 +47,7 @@ spec:
 				OpenshiftVersion: swag.String(openshiftVersion),
 				PullSecret:       swag.String(pullSecret),
 				SSHPublicKey:     sshPublicKey,
+				BaseDNSDomain:    "example.com",
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
@@ -131,6 +133,43 @@ spec:
 			}
 
 			Expect(found).Should(BeFalse())
+		})
+	})
+
+	It("check installation telemeter manifests", func() {
+
+		isProdDeployment := func() bool {
+			return Options.InventoryHost == "api.openshift.com"
+		}
+
+		if isProdDeployment() {
+			Skip("No manifest is generated for prod cloud deployment")
+		}
+
+		clusterID := *cluster.ID
+
+		By("install cluster", func() {
+			registerHostsAndSetRoles(clusterID, minHosts)
+			reply, err := userBMClient.Installer.InstallCluster(context.Background(), &installer.InstallClusterParams{ClusterID: clusterID})
+			Expect(err).NotTo(HaveOccurred())
+			c := reply.GetPayload()
+			Expect(*c.Status).Should(Equal(models.ClusterStatusPreparingForInstallation))
+			generateEssentialPrepareForInstallationSteps(ctx, c.Hosts...)
+			waitForInstallationPreparationCompletionStatus(clusterID, common.InstallationPreparationSucceeded)
+		})
+
+		By("list manifests", func() {
+			response, err := userBMClient.Manifests.ListClusterManifests(ctx, &manifests.ListClusterManifestsParams{
+				ClusterID: clusterID,
+			})
+			Expect(err).ShouldNot(HaveOccurred())
+			found := false
+			for _, manifest := range response.Payload {
+				if manifest.FileName == "redirect-telemeter.yaml" && manifest.Folder == models.ManifestFolderOpenshift {
+					found = true
+				}
+			}
+			Expect(found).To(BeTrue())
 		})
 	})
 })

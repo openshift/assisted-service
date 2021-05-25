@@ -14,6 +14,7 @@ import (
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/models"
+	"k8s.io/apimachinery/pkg/util/wait"
 )
 
 const (
@@ -365,4 +366,14 @@ func verifyUsageNotSet(featureUsage string, features ...string) {
 	for _, name := range features {
 		Expect(usages[name]).To(BeNil())
 	}
+}
+
+func waitForInstallationPreparationCompletionStatus(clusterID strfmt.UUID, status string) {
+
+	waitFunc := func() (bool, error) {
+		c := getCommonCluster(context.Background(), clusterID)
+		return c.InstallationPreparationCompletionStatus == status, nil
+	}
+	err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
+	Expect(err).NotTo(HaveOccurred())
 }
