@@ -22,3 +22,6 @@ reports
 # Files used for onprem testing
 coreos-installer
 livecd.iso
+
+# Generated manifests
+deploy/operator/ztp/generated/**
