@@ -326,16 +326,6 @@ var _ = Describe("test AMS subscriptions", func() {
 		// ATTENTION: this test override a wiremock stub - DO NOT RUN IN PARALLEL
 		It("UpdateSubscription failed", func() {
 
-			waitForInstallationPreparationCompletionStatus := func(clusterID strfmt.UUID, status string) {
-
-				waitFunc := func() (bool, error) {
-					c := getCommonCluster(ctx, clusterID)
-					return c.InstallationPreparationCompletionStatus == status, nil
-				}
-				err := wait.Poll(pollDefaultInterval, pollDefaultTimeout, waitFunc)
-				Expect(err).NotTo(HaveOccurred())
-			}
-
 			var clusterID strfmt.UUID
 			var reply *installer.InstallClusterAccepted
 			var err error
