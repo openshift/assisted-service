@@ -1415,11 +1415,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
-		By("Check Event URL does not exist")
-		Eventually(func() string {
-			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.DebugInfo.EventsURL
-		}, "1m", "10s").Should(Equal(""))
+		// By("Check Event URL does not exist")
+		// Eventually(func() string {
+		// 	aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+		// 	return aci.Status.DebugInfo.EventsURL
+		// }, "1m", "10s").Should(Equal(""))
 	})
 
 	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
