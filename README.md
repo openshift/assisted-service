@@ -1,5 +1,5 @@
 # assisted-service
-
+TEST
 [![Swagger API](https://raw.githubusercontent.com/swagger-api/swagger-ui/master/src/img/logo_small.png)](https://generator.swagger.io/?url=https://raw.githubusercontent.com/openshift/assisted-service/master/swagger.yaml)
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/openshift/assisted-service)](https://goreportcard.com/report/github.com/openshift/assisted-service)
