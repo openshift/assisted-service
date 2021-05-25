@@ -59,6 +59,7 @@ function generate_from_swagger() {
 
 function generate_configuration() {
     OPENSHIFT_VERSIONS=$(< ${__root}/data/default_ocp_versions.json tr -d "\n\t ")
+    OPERATOR_OPENSHIFT_VERSIONS=$(< ${__root}/data/default_ocp_versions.json jq -c 'del (.["4.6", "4.7"])')
     PUBLIC_CONTAINER_REGISTRIES=$(< ${__root}/data/default_public_container_registries.txt)
     HW_VALIDATOR_REQUIREMENTS=$(< ${__root}/data/default_hw_requirements.json tr -d "\n\t ")
 
@@ -71,9 +72,32 @@ function generate_configuration() {
     sed -i "s|OPENSHIFT_VERSIONS=.*|OPENSHIFT_VERSIONS=${OPENSHIFT_VERSIONS}|" ${__root}/config/onprem-iso-fcc.yaml
     sed -i "s|PUBLIC_CONTAINER_REGISTRIES=.*|PUBLIC_CONTAINER_REGISTRIES=${PUBLIC_CONTAINER_REGISTRIES}|" ${__root}/config/onprem-iso-fcc.yaml
 
-    sed -i "s|value: '.*' # openshift version|value: '${OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/config/manager/manager.yaml
     sed -i "s|HW_VALIDATOR_REQUIREMENTS=.*|HW_VALIDATOR_REQUIREMENTS=${HW_VALIDATOR_REQUIREMENTS}|" ${__root}/config/onprem-iso-fcc.yaml
     docker run --rm -v ${__root}/config/onprem-iso-fcc.yaml:/config.fcc:z quay.io/coreos/fcct:release --pretty --strict /config.fcc > ${__root}/config/onprem-iso-config.ign
+
+    # Updated operator manifests with openshift versions
+    sed -i "s|value: '.*' # openshift version|value: '${OPERATOR_OPENSHIFT_VERSIONS}' # openshift version|" ${__root}/config/manager/manager.yaml
+    # This python is responsible for updating the sample AgentServiceConfig to include the latest + correct osImages
+    # When the CSV is built, this is included in the `almExamples` so that when a user goes through the OpenShift console
+    # to create the `agent` this will give them the correct defaults.
+    python3 -c '
+import json
+import sys
+import yaml
+
+with open("'${__root}/config/samples/agent-install.openshift.io_v1beta1_agentserviceconfig.yaml'", "r+") as f:
+    doc = yaml.load(f, Loader=yaml.FullLoader)
+    doc["spec"]["osImages"] = [
+        {
+            "openshiftVersion": k,
+            "version": v["rhcos_version"],
+            "url": v["rhcos_image"],
+            "rootFSUrl": v["rhcos_rootfs"]
+        } for (k,v) in json.loads(r"""'${OPERATOR_OPENSHIFT_VERSIONS}'""").items()
+    ]
+    f.seek(0)
+    f.truncate()
+    yaml.dump(doc, f)'
 }
 
 # Generate manifests e.g. CRD, RBAC etc.
