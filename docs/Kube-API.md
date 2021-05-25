@@ -150,7 +150,7 @@ You will likely need to adapt those for your own needs.
 * [Hive PullSecret Secret](crds/pullsecret.yaml)
 * [Hive ClusterDeployment](crds/clusterDeployment.yaml)
 * [AgentClusterInstall](crds/agentClusterInstall.yaml)
-* [AgentClusterInstall SNO](crds/agentClusterInstallSNO.yaml)
+* [AgentClusterInstall SNO](crds/agentClusterInstall-SNO.yaml)
 
 
 
