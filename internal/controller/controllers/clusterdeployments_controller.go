@@ -179,12 +179,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		if !r.isSNO(clusterInstall) {
 			return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
-		// cluster is installed and SNO. Clear EventsURL
-		clusterInstall.Status.DebugInfo.EventsURL = ""
-		if updateErr := r.Status().Update(ctx, clusterInstall); updateErr != nil {
-			log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
-			return ctrl.Result{Requeue: true}, nil
-		}
+		// cluster is installed and SNO nothing to do.
 		return ctrl.Result{Requeue: false}, nil
 	}
 	if err != nil {
@@ -1015,15 +1010,13 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
-		if clusterInstall.Status.DebugInfo.EventsURL == "" {
-			eventUrl, err := r.eventsURL(log, string(*c.ID))
+
+		if c.Status != nil {
+			status := *c.Status
+			err := r.populateEventsURL(log, clusterInstall, c)
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
-			clusterInstall.Status.DebugInfo.EventsURL = eventUrl
-		}
-		if c.Status != nil {
-			status := *c.Status
 			clusterRequirementsMet(clusterInstall, status)
 			clusterValidated(clusterInstall, status, c)
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo))
@@ -1042,6 +1035,22 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
+	if *c.Status != models.ClusterStatusInstalled {
+		if clusterInstall.Status.DebugInfo.EventsURL == "" {
+			eventUrl, err := r.eventsURL(log, string(*c.ID))
+			if err != nil {
+				log.WithError(err).Error("failed to generate Events URL")
+				return err
+			}
+			clusterInstall.Status.DebugInfo.EventsURL = eventUrl
+		}
+	} else {
+		clusterInstall.Status.DebugInfo.EventsURL = ""
+	}
+	return nil
 }
 
 func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, clusterId string) (string, error) {
