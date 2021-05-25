@@ -1059,6 +1059,11 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 			return errors.Wrapf(err, "Cluster %s - failed to generate manifests for vmware hosts", cluster.ID.String())
 		}
 	}
+
+	if err := m.manifestsGeneratorAPI.AddTelemeterManifest(ctx, log, cluster); err != nil {
+		return errors.Wrap(err, "failed to add telemeter manifest")
+	}
+
 	return nil
 }
 

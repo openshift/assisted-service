@@ -24,15 +24,22 @@ type ManifestsGeneratorAPI interface {
 	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDisableVmwareTunnelOffloading(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+}
+
+type Config struct {
+	ServiceBaseURL string `envconfig:"SERVICE_BASE_URL"`
 }
 
 type ManifestsGenerator struct {
 	manifestsApi restapi.ManifestsAPI
+	Config       Config
 }
 
-func NewManifestsGenerator(manifestsApi restapi.ManifestsAPI) *ManifestsGenerator {
+func NewManifestsGenerator(manifestsApi restapi.ManifestsAPI, config Config) *ManifestsGenerator {
 	return &ManifestsGenerator{
 		manifestsApi: manifestsApi,
+		Config:       config,
 	}
 }
 
@@ -338,5 +345,62 @@ func (m *ManifestsGenerator) AddDisableVmwareTunnelOffloading(ctx context.Contex
 			return err
 		}
 	}
+	return nil
+}
+
+const (
+	redirectTelemeterStageManifest = `
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-monitoring-config
+  namespace: openshift-monitoring
+data:
+  config.yaml: |
+    telemeterClient:
+      telemeterServerURL: {{.TELEMETER_SERVER_URL}}
+`
+
+	prodServiceBaseURL  = "https://api.openshift.com"
+	stageServiceBaseURL = "https://api.stage.openshift.com"
+	stageTelemeterURL   = "https://infogw.stage.api.openshift.com"
+	dummyURL            = "https://dummy.com"
+)
+
+// Default Telemeter server is prod.
+// In case the cluster is created in stage env we need to redirct to Telemter-stage
+// Note: There is no Telemeter-integraion so in this and any other cases we will redirect the metrics to a dummy URL
+func (m *ManifestsGenerator) AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+
+	manifestParams := map[string]string{}
+
+	if m.Config.ServiceBaseURL == prodServiceBaseURL {
+		return nil
+	}
+
+	if m.Config.ServiceBaseURL == stageServiceBaseURL {
+
+		log.Infof("Creating manifest to redirect metrics from installed cluster to telemeter-stage")
+		manifestParams["TELEMETER_SERVER_URL"] = stageTelemeterURL
+
+	} else {
+
+		log.Infof("Creating manifest to redirect metrics from installed cluster to a dummy URL")
+		manifestParams["TELEMETER_SERVER_URL"] = dummyURL
+
+	}
+
+	content, err := fillTemplate(manifestParams, redirectTelemeterStageManifest, log)
+	if err != nil {
+		log.WithError(err).Error("Failed to parse metrics redirection's template")
+		return err
+	}
+
+	if err := m.createManifests(ctx, c, "redirect-telemeter.yaml", content); err != nil {
+
+		log.WithError(err).Error("Failed to create manifest to redirect metrics from installed cluster")
+		return err
+	}
+
 	return nil
 }

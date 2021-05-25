@@ -123,7 +123,7 @@ var _ = Describe("chrony manifest", func() {
 			log = logrus.New()
 			ctrl = gomock.NewController(GinkgoT())
 			manifestsApi = mocks.NewMockManifestsAPI(ctrl)
-			ntpUtils = NewManifestsGenerator(manifestsApi)
+			ntpUtils = NewManifestsGenerator(manifestsApi, Config{})
 			db, dbName = common.PrepareTestDB()
 			clusterId = strfmt.UUID(uuid.New().String())
 
@@ -304,4 +304,83 @@ var _ = Describe("dnsmasq manifest", func() {
 		})
 	})
 
+})
+
+var _ = Describe("telemeter manifest", func() {
+
+	var (
+		ctx                   = context.Background()
+		log                   *logrus.Logger
+		ctrl                  *gomock.Controller
+		mockManifestsApi      *mocks.MockManifestsAPI
+		manifestsGeneratorApi ManifestsGeneratorAPI
+		db                    *gorm.DB
+		dbName                string
+		clusterId             strfmt.UUID
+		cluster               common.Cluster
+	)
+
+	BeforeEach(func() {
+
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		mockManifestsApi = mocks.NewMockManifestsAPI(ctrl)
+		db, dbName = common.PrepareTestDB()
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterId,
+			},
+		}
+		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	for _, test := range []struct {
+		envName        string
+		serviceBaseURL string
+	}{
+		{
+			envName:        "Prod env",
+			serviceBaseURL: prodServiceBaseURL,
+		},
+		{
+			envName:        "Stage env",
+			serviceBaseURL: stageServiceBaseURL,
+		},
+		{
+			envName:        "Other envs",
+			serviceBaseURL: dummyURL,
+		},
+	} {
+		test := test
+		Context(test.envName, func() {
+
+			BeforeEach(func() {
+				manifestsGeneratorApi = NewManifestsGenerator(mockManifestsApi, Config{ServiceBaseURL: test.serviceBaseURL})
+			})
+
+			It("happy flow", func() {
+				if test.envName != "Prod env" {
+					mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(operations.NewCreateClusterManifestCreated())
+				}
+				err := manifestsGeneratorApi.AddTelemeterManifest(ctx, log, &cluster)
+				Expect(err).ShouldNot(HaveOccurred())
+			})
+
+			It("AddTelemeterManifest failure", func() {
+				if test.envName == "Prod env" {
+					Skip("We don't create any additional manifest in prod")
+				}
+				mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(common.GenerateErrorResponder(errors.Errorf("failed to upload to s3")))
+				err := manifestsGeneratorApi.AddTelemeterManifest(ctx, log, &cluster)
+				Expect(err).Should(HaveOccurred())
+			})
+		})
+	}
 })
