@@ -5,6 +5,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 )
 
+const EventsChannelSize = 200
+
 //go:generate mockgen -package controllers -destination mock_crd_events_handler.go . CRDEventsHandler
 type CRDEventsHandler interface {
 	NotifyClusterDeploymentUpdates(clusterDeploymentName string, clusterDeploymentNamespace string)
@@ -23,9 +25,9 @@ type CRDEventsHandlerChannels struct {
 
 func NewCRDEventsHandler() CRDEventsHandler {
 	return &CRDEventsHandlerChannels{
-		clusterDeploymentUpdates: make(chan event.GenericEvent),
-		infraEnvUpdates:          make(chan event.GenericEvent),
-		agentUpdates:             make(chan event.GenericEvent),
+		clusterDeploymentUpdates: make(chan event.GenericEvent, EventsChannelSize),
+		infraEnvUpdates:          make(chan event.GenericEvent, EventsChannelSize),
+		agentUpdates:             make(chan event.GenericEvent, EventsChannelSize),
 	}
 }
 
