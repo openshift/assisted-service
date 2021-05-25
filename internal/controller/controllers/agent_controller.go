@@ -26,11 +26,14 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
+	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -61,6 +64,8 @@ type AgentReconciler struct {
 	Scheme           *runtime.Scheme
 	Installer        bminventory.InstallerInternals
 	CRDEventsHandler CRDEventsHandler
+	ServiceBaseURL   string
+	AuthType         auth.AuthType
 }
 
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents,verbs=get;list;watch;create;update;patch;delete
@@ -136,7 +141,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 		// Update that we failed to retrieve the clusterDeployment
-		return r.updateStatus(ctx, log, agent, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
+		return r.updateStatus(ctx, log, agent, nil, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
 	}
 
 	// Retrieve cluster by ClusterDeploymentName from the database
@@ -147,10 +152,11 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 			return r.deleteAgent(ctx, log, req.NamespacedName)
 		}
 		// Update that we failed to retrieve the cluster from the database
-		return r.updateStatus(ctx, log, agent, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
+		return r.updateStatus(ctx, log, agent, nil, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
 	}
 
 	//Retrieve host from cluster
+	clusterId := cluster.ID.String()
 	host := getHostFromCluster(cluster, agent.Name)
 	if host == nil {
 		// Host is not a part of the cluster, which may happen with newly created day2 clusters.
@@ -161,15 +167,15 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	// check for updates from user, compare spec and update if needed
 	err = r.updateIfNeeded(ctx, log, agent, cluster)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, host, err, !IsUserError(err))
+		return r.updateStatus(ctx, log, agent, host, &clusterId, err, !IsUserError(err))
 	}
 
 	err = r.updateInventory(log, host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, log, agent, host, err, true)
+		return r.updateStatus(ctx, log, agent, host, &clusterId, err, true)
 	}
 
-	return r.updateStatus(ctx, log, agent, host, nil, false)
+	return r.updateStatus(ctx, log, agent, host, &clusterId, nil, false)
 }
 
 func (r *AgentReconciler) deleteAgent(ctx context.Context, log logrus.FieldLogger, agent types.NamespacedName) (ctrl.Result, error) {
@@ -232,12 +238,18 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 // updateStatus is updating all the Agent Conditions.
 // In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
-func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, syncErr error, internal bool) (ctrl.Result, error) {
+func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, clusterId *string, syncErr error, internal bool) (ctrl.Result, error) {
 
 	specSynced(agent, syncErr, internal)
 
 	if h != nil && h.Status != nil {
 		status := *h.Status
+		if clusterId != nil {
+			err := r.populateEventsURL(log, agent, *clusterId)
+			if err != nil {
+				return ctrl.Result{Requeue: true}, nil
+			}
+		}
 		connected(agent, status)
 		readyForInstallation(agent, status)
 		validated(agent, status, h)
@@ -253,6 +265,31 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		return ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}, nil
 	}
 	return ctrl.Result{}, nil
+}
+
+func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterId string) error {
+	if agent.Status.DebugInfo.EventsURL == "" {
+		eventUrl, err := r.eventsURL(log, clusterId, agent.Name)
+		if err != nil {
+			log.WithError(err).Error("failed to generate Events URL")
+			return err
+		}
+		agent.Status.DebugInfo.EventsURL = eventUrl
+	}
+	return nil
+}
+
+func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, clusterId, agentId string) (string, error) {
+	eventsURL := fmt.Sprintf("%s%s/clusters/%s/events?host_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId, agentId)
+	if r.AuthType != auth.TypeLocal {
+		return eventsURL, nil
+	}
+	eventsURL, err := gencrypto.SignURL(eventsURL, clusterId)
+	if err != nil {
+		log.WithError(err).Error("failed to get Events URL")
+		return "", err
+	}
+	return eventsURL, nil
 }
 
 func setConditionsUnknown(agent *aiv1beta1.Agent) {

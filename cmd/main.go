@@ -472,6 +472,8 @@ func main() {
 				Scheme:           ctrlMgr.GetScheme(),
 				Installer:        bm,
 				CRDEventsHandler: crdEventsHandler,
+				ServiceBaseURL:   Options.BMConfig.ServiceBaseURL,
+				AuthType:         Options.Auth.AuthType,
 			}).SetupWithManager(ctrlMgr), "unable to create controller Agent")
 
 			failOnError((&controllers.BMACReconciler{

@@ -1354,7 +1354,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
-		By("Check Event URL exists")
+		By("Check ACI Event URL exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
@@ -1366,6 +1366,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			agent.Spec.Approved = true
 			return kubeClient.Update(ctx, agent)
 		}, "30s", "10s").Should(BeNil())
+
+		By("Check Agent Event URL exists")
+		Eventually(func() string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.DebugInfo.EventsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Wait for installing")
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
