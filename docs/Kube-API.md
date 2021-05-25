@@ -15,6 +15,8 @@ See Hive documentation [here](https://github.com/openshift/hive/blob/master/docs
 
 The ClusterDeployment can have a reference to an AgentClusterInstall (`Spec.ClusterInstallRef`) that defines the required parameters of the Cluster.
 
+Deletion of ClusterDeployment will trigger the `clusterdeployments.agent-install.openshift.io/ai-deprovision` finalizer pre-deletion logic, which will delete the referenced AgentClusterInstall.
+
 
 ### [AgentClusterInstall](https://github.com/openshift/assisted-service/blob/master/internal/controller/api/hiveextension/v1beta1/agentclusterinstall_types.go)
 In the AgentClusterInstall, the user can specify requirements like Networking, number of Control Plane and Worker nodes and more.
@@ -24,6 +26,9 @@ The installation will start automatically if the required number of hosts is ava
 Selecting a specific OCP release version is done using a ClusterImageSet, see documentation [here](kube-api-select-ocp-versions.md).
 
 The AgentClusterInstall reflects the Cluster/Installation status through Conditions.
+
+Deletion of AgentClusterInstall will trigger the `agentclusterinstall
+.agent-install.openshift.io/ai-deprovision` finalizer pre-deletion logic, which will deregister the backend cluster and delete all the related Agent CRs.
 
 More details on conditions is available [here](kube-api-conditions.md)
 
