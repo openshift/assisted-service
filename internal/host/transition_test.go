@@ -31,27 +31,34 @@ import (
 	"k8s.io/utils/pointer"
 )
 
+var (
+	defaultMasterRequirements = models.ClusterHostRequirementsDetails{
+		CPUCores:                         4,
+		RAMMib:                           16384,
+		DiskSizeGb:                       120,
+		InstallationDiskSpeedThresholdMs: 10,
+		NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
+		PacketLossPercentage:             pointer.Float64Ptr(0),
+	}
+	defaultWorkerRequirements = models.ClusterHostRequirementsDetails{
+		CPUCores:                         2,
+		RAMMib:                           8192,
+		DiskSizeGb:                       120,
+		InstallationDiskSpeedThresholdMs: 10,
+		NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
+		PacketLossPercentage:             pointer.Float64Ptr(0),
+	}
+)
+
 func createValidatorCfg() *hardware.ValidatorCfg {
 	return &hardware.ValidatorCfg{
 		VersionedRequirements: hardware.VersionedRequirementsDecoder{
 			"default": {
-				Version: "default",
-				MasterRequirements: &models.ClusterHostRequirementsDetails{
-					CPUCores:                         4,
-					RAMMib:                           16384,
-					DiskSizeGb:                       120,
-					InstallationDiskSpeedThresholdMs: 10,
-				},
-				WorkerRequirements: &models.ClusterHostRequirementsDetails{
-					CPUCores:                         2,
-					RAMMib:                           8192,
-					DiskSizeGb:                       120,
-					InstallationDiskSpeedThresholdMs: 10,
-				},
+				Version:            "default",
+				MasterRequirements: &defaultMasterRequirements,
+				WorkerRequirements: &defaultWorkerRequirements,
 			},
 		},
-		MinCPUCores:                   2,
-		MinRamGib:                     8,
 		MaximumAllowedTimeDiffMinutes: 4,
 	}
 }
@@ -834,6 +841,7 @@ var _ = Describe("Install", func() {
 				},
 			}
 			mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).Return(&clusterRequirements, nil)
+			mockPreflightHardwareRequirements(mockHwValidator, &defaultMasterRequirements, &defaultWorkerRequirements)
 			mockHwValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return([]*models.Disk{}).AnyTimes()
 			mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
 		})
@@ -1871,6 +1879,7 @@ var _ = Describe("Refresh Host", func() {
 				Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 				if t.hostRequirements != nil {
 					mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{Total: t.hostRequirements}, nil)
+					mockPreflightHardwareRequirements(mockHwValidator, &defaultMasterRequirements, &defaultWorkerRequirements)
 				} else {
 					mockDefaultClusterHostRequirements(mockHwValidator)
 				}
@@ -3239,6 +3248,7 @@ var _ = Describe("Refresh Host", func() {
 			It(t.name, func() {
 				if t.hostRequirements != nil {
 					mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().Return(&models.ClusterHostRequirements{Total: t.hostRequirements}, nil)
+					mockPreflightHardwareRequirements(mockHwValidator, &defaultMasterRequirements, &defaultWorkerRequirements)
 				} else {
 					mockDefaultClusterHostRequirements(mockHwValidator)
 				}
@@ -4133,28 +4143,32 @@ var _ = Describe("validationResult sort", func() {
 	})
 })
 
-func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator) *gomock.Call {
-	return mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+func mockDefaultClusterHostRequirements(mockHwValidator *hardware.MockValidator) {
+	mockHwValidator.EXPECT().GetClusterHostRequirements(gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes().DoAndReturn(func(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
 		var details models.ClusterHostRequirementsDetails
 		if host.Role == models.HostRoleMaster {
-			details = models.ClusterHostRequirementsDetails{
-				CPUCores:                  4,
-				DiskSizeGb:                120,
-				RAMMib:                    16384,
-				NetworkLatencyThresholdMs: pointer.Float64Ptr(100),
-				PacketLossPercentage:      pointer.Float64Ptr(0),
-			}
+			details = defaultMasterRequirements
 		} else {
-			details = models.ClusterHostRequirementsDetails{
-				CPUCores:                  2,
-				DiskSizeGb:                120,
-				RAMMib:                    8192,
-				NetworkLatencyThresholdMs: pointer.Float64Ptr(100),
-				PacketLossPercentage:      pointer.Float64Ptr(0),
-			}
+			details = defaultWorkerRequirements
 		}
 		return &models.ClusterHostRequirements{Total: &details}, nil
 	})
+
+	mockPreflightHardwareRequirements(mockHwValidator, &defaultMasterRequirements, &defaultWorkerRequirements)
+}
+
+func mockPreflightHardwareRequirements(mockHwValidator *hardware.MockValidator, masterRequirements, workerRequirements *models.ClusterHostRequirementsDetails) *gomock.Call {
+	return mockHwValidator.EXPECT().GetPreflightHardwareRequirements(gomock.Any(), gomock.Any()).AnyTimes().Return(
+		&models.PreflightHardwareRequirements{
+			Ocp: &models.HostTypeHardwareRequirementsWrapper{
+				Master: &models.HostTypeHardwareRequirements{
+					Quantitative: masterRequirements,
+				},
+				Worker: &models.HostTypeHardwareRequirements{
+					Quantitative: workerRequirements,
+				},
+			},
+		}, nil)
 }
 
 func formatProgressTimedOutInfo(stage models.HostStage) string {
