@@ -3390,6 +3390,10 @@ definitions:
         x-go-name: WorkerRequirements
         $ref: '#/definitions/cluster-host-requirements-details'
         description: Worker node requirements
+      sno:
+        x-go-name: SNORequirements
+        $ref: '#/definitions/cluster-host-requirements-details'
+        description: SNO deployment node requirements
 
   host-requirements-role:
     type: object
