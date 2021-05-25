@@ -417,7 +417,8 @@ var _ = Describe("cluster reconcile", func() {
 		sId := strfmt.UUID(uuid.New().String())
 		backEndCluster := &common.Cluster{
 			Cluster: models.Cluster{
-				ID: &sId,
+				ID:     &sId,
+				Status: swag.String(models.ClusterStatusInsufficient),
 			},
 		}
 		expectedEventUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/events", serviceBaseURL, sId)
