@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"sort"
 	"strings"
@@ -19,7 +20,6 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
-	"github.com/openshift/assisted-service/pkg/mathutils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
@@ -135,8 +135,8 @@ func (c *validationContext) loadGeneralMinRequirements(hwValidator hardware.Vali
 		return err
 	}
 
-	c.minCPUCoresRequirement = mathutils.Min(requirements.Ocp.Master.Quantitative.CPUCores, requirements.Ocp.Worker.Quantitative.CPUCores)
-	c.minRAMMibRequirement = mathutils.Min(requirements.Ocp.Master.Quantitative.RAMMib, requirements.Ocp.Worker.Quantitative.RAMMib)
+	c.minCPUCoresRequirement = int64(math.Min(float64(requirements.Ocp.Master.Quantitative.CPUCores), float64(requirements.Ocp.Worker.Quantitative.CPUCores)))
+	c.minRAMMibRequirement = int64(math.Min(float64(requirements.Ocp.Master.Quantitative.RAMMib), float64(requirements.Ocp.Worker.Quantitative.RAMMib)))
 
 	return err
 }
