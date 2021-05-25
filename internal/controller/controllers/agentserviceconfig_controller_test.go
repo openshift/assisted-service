@@ -10,6 +10,7 @@ import (
 	routev1 "github.com/openshift/api/route/v1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
+	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -34,7 +35,7 @@ func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler
 	return &AgentServiceConfigReconciler{
 		Client:    c,
 		Scheme:    scheme.Scheme,
-		Log:       ctrl.Log.WithName("testLog"),
+		Log:       logrus.New(),
 		Namespace: testNamespace,
 	}
 }
@@ -91,6 +92,7 @@ var _ = Describe("ensureAgentRoute", func() {
 		asc  *aiv1beta1.AgentServiceConfig
 		ascr *AgentServiceConfigReconciler
 		ctx  = context.Background()
+		log  = logrus.New()
 	)
 
 	BeforeEach(func() {
@@ -104,7 +106,7 @@ var _ = Describe("ensureAgentRoute", func() {
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
 				Namespace: testNamespace}, found)).ToNot(Succeed())
 
-			Expect(ascr.ensureAgentRoute(ctx, asc)).To(Succeed())
+			Expect(ascr.ensureAgentRoute(ctx, log, asc)).To(Succeed())
 
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
 				Namespace: testNamespace}, found)).To(Succeed())
@@ -118,7 +120,7 @@ var _ = Describe("ensureAgentRoute", func() {
 			route.Spec.Host = routeHost
 			Expect(ascr.Client.Create(ctx, route)).To(Succeed())
 
-			Expect(ascr.ensureAgentRoute(ctx, asc)).To(Succeed())
+			Expect(ascr.ensureAgentRoute(ctx, log, asc)).To(Succeed())
 
 			found := &routev1.Route{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName,
@@ -133,6 +135,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 		asc        *aiv1beta1.AgentServiceConfig
 		ascr       *AgentServiceConfigReconciler
 		ctx        = context.Background()
+		log        = logrus.New()
 		privateKey = "test-private-key"
 		publicKey  = "test-public-key"
 	)
@@ -157,7 +160,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			}
 			Expect(ascr.Client.Create(ctx, localAuthSecret)).To(Succeed())
 
-			err := ascr.ensureAgentLocalAuthSecret(ctx, asc)
+			err := ascr.ensureAgentLocalAuthSecret(ctx, log, asc)
 			Expect(err).To(BeNil())
 
 			found := &corev1.Secret{}
@@ -171,7 +174,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 
 	Context("with no existing local auth secret", func() {
 		It("should create new keys and not overwrite them in subsequent reconciles", func() {
-			err := ascr.ensureAgentLocalAuthSecret(ctx, asc)
+			err := ascr.ensureAgentLocalAuthSecret(ctx, log, asc)
 			Expect(err).To(BeNil())
 
 			found := &corev1.Secret{}
@@ -186,7 +189,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			Expect(foundPublicKey).ToNot(Equal(publicKey))
 			Expect(foundPublicKey).ToNot(BeNil())
 
-			err = ascr.ensureAgentLocalAuthSecret(ctx, asc)
+			err = ascr.ensureAgentLocalAuthSecret(ctx, log, asc)
 			Expect(err).To(BeNil())
 
 			foundAfterNextEnsure := &corev1.Secret{}
@@ -217,7 +220,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			}
 			Expect(ascr.Client.Create(ctx, mirrorMap)).To(Succeed())
 			asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: "user-configmap"}
-			err := ascr.validateMirrorRegistriesConfigMap(ctx, asc)
+			err := ascr.validateMirrorRegistriesConfigMap(ctx, log, asc)
 			Expect(err).To(BeNil())
 		})
 		It("invalid config map, keys", func() {
@@ -237,7 +240,7 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			}
 			Expect(ascr.Client.Create(ctx, mirrorMap)).To(Succeed())
 			asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: "user-configmap"}
-			err := ascr.validateMirrorRegistriesConfigMap(ctx, asc)
+			err := ascr.validateMirrorRegistriesConfigMap(ctx, log, asc)
 			Expect(err).To(HaveOccurred())
 		})
 
@@ -249,6 +252,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		asc   *aiv1beta1.AgentServiceConfig
 		ascr  *AgentServiceConfigReconciler
 		ctx   = context.Background()
+		log   = logrus.New()
 		route = &routev1.Route{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      serviceName,
@@ -264,7 +268,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		It("should not modify assisted-service deployment", func() {
 			asc = newASCDefault()
 			ascr = newTestReconciler(asc, route)
-			Expect(ascr.ensureAssistedServiceDeployment(ctx, asc)).To(Succeed())
+			Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
 
 			found := &appsv1.Deployment{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -284,7 +288,7 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		It("should modify assisted-service deployment", func() {
 			asc = newASCWithCMAnnotation()
 			ascr = newTestReconciler(asc, route)
-			Expect(ascr.ensureAssistedServiceDeployment(ctx, asc)).To(Succeed())
+			Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
 			found := &appsv1.Deployment{}
 			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
 
@@ -319,6 +323,7 @@ var _ = Describe("getOpenshiftVersions", func() {
 	var (
 		asc         *aiv1beta1.AgentServiceConfig
 		ascr        *AgentServiceConfigReconciler
+		log         = logrus.New()
 		expectedEnv string
 	)
 
@@ -333,28 +338,28 @@ var _ = Describe("getOpenshiftVersions", func() {
 
 			asc = newASCDefault()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with OpenShift versions specified", func() {
 		It("should build OpenShift versions", func() {
 			asc, expectedEnv = newASCWithOpenshiftVersions()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with multiple OpenShift versions specified", func() {
 		It("should build OpenShift versions with multiple keys", func() {
 			asc, expectedEnv = newASCWithMultipleOpenshiftVersions()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with duplicate OpenShift versions specified", func() {
 		It("should take the last specified version", func() {
 			asc, expectedEnv = newASCWithDuplicateOpenshiftVersions()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with invalid OpenShift versions specified", func() {
@@ -368,14 +373,14 @@ var _ = Describe("getOpenshiftVersions", func() {
 
 			asc = newASCWithInvalidOpenshiftVersion()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
 	Context("with OpenShift version x.y.z specified", func() {
 		It("should only specify x.y", func() {
 			asc, expectedEnv = newASCWithLongOpenshiftVersion()
 			ascr = newTestReconciler(asc)
-			Expect(ascr.getOpenshiftVersions(asc)).To(MatchJSON(expectedEnv))
+			Expect(ascr.getOpenshiftVersions(log, asc)).To(MatchJSON(expectedEnv))
 		})
 	})
 })

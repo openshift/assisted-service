@@ -62,22 +62,32 @@ type InfraEnvReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=infraenvs/status,verbs=get;update;patch
 
-func (r *InfraEnvReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Infof("Reconcile has been called for InfraEnv name=%s namespace=%s", req.Name, req.Namespace)
+func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx := addRequestIdIfNeeded(origCtx)
+	log := logutil.FromContext(ctx, r.Log).WithFields(
+		logrus.Fields{
+			"infra_env":           req.Name,
+			"infra_env_namespace": req.Namespace,
+		})
+
+	defer func() {
+		log.Info("InfraEnv Reconcile ended")
+	}()
+
+	log.Info("InfraEnv Reconcile started")
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	return r.ensureISO(ctx, infraEnv)
+	return r.ensureISO(ctx, log, infraEnv)
 }
 
-func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
+func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
 	var (
 		params = &models.ClusterUpdateParams{}
 		update bool
-		log    = logutil.FromContext(ctx, r.Log)
 	)
 
 	if infraEnv.Spec.Proxy != nil {
@@ -116,11 +126,10 @@ func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, infraEnv
 	return nil
 }
 
-func (r *InfraEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.Context, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
+func (r *InfraEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, cluster *common.Cluster) error {
 	var (
 		discoveryIgnitionParams = &models.DiscoveryIgnitionParams{}
 		updateClusterIgnition   bool
-		log                     = logutil.FromContext(ctx, r.Log)
 	)
 	if infraEnv.Spec.IgnitionConfigOverride != "" && cluster.IgnitionConfigOverrides != infraEnv.Spec.IgnitionConfigOverride {
 		discoveryIgnitionParams.Config = *swag.String(infraEnv.Spec.IgnitionConfigOverride)
@@ -142,10 +151,10 @@ func (r *InfraEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.
 	return nil
 }
 
-func (r *InfraEnvReconciler) buildMacInterfaceMap(nmStateConfig aiv1beta1.NMStateConfig) models.MacInterfaceMap {
+func (r *InfraEnvReconciler) buildMacInterfaceMap(log logrus.FieldLogger, nmStateConfig aiv1beta1.NMStateConfig) models.MacInterfaceMap {
 	macInterfaceMap := make(models.MacInterfaceMap, 0, len(nmStateConfig.Spec.Interfaces))
 	for _, cfg := range nmStateConfig.Spec.Interfaces {
-		r.Log.Debugf("adding MAC interface map to host static network config - Name: %s, MacAddress: %s ,",
+		log.Debugf("adding MAC interface map to host static network config - Name: %s, MacAddress: %s ,",
 			cfg.Name, cfg.MacAddress)
 		macInterfaceMap = append(macInterfaceMap, &models.MacInterfaceMapItems0{
 			MacAddress:     cfg.MacAddress,
@@ -155,7 +164,7 @@ func (r *InfraEnvReconciler) buildMacInterfaceMap(nmStateConfig aiv1beta1.NMStat
 	return macInterfaceMap
 }
 
-func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) ([]*models.HostStaticNetworkConfig, error) {
+func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) ([]*models.HostStaticNetworkConfig, error) {
 	var staticNetworkConfig []*models.HostStaticNetworkConfig
 
 	if infraEnv.Spec.NMStateConfigLabelSelector.MatchLabels == nil {
@@ -168,9 +177,9 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, infraEnv 
 			return staticNetworkConfig, err
 		}
 		for _, nmStateConfig := range nmStateConfigs.Items {
-			r.Log.Debugf("found nmStateConfig: %s for infraEnv: %s", nmStateConfig.Name, infraEnv.Name)
+			log.Debugf("found nmStateConfig: %s for infraEnv: %s", nmStateConfig.Name, infraEnv.Name)
 			staticNetworkConfig = append(staticNetworkConfig, &models.HostStaticNetworkConfig{
-				MacInterfaceMap: r.buildMacInterfaceMap(nmStateConfig),
+				MacInterfaceMap: r.buildMacInterfaceMap(log, nmStateConfig),
 				NetworkYaml:     string(nmStateConfig.Spec.NetConfig.Raw),
 			})
 		}
@@ -180,7 +189,7 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, infraEnv 
 
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
 // It returns a result that includes ISODownloadURL.
-func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.InfraEnv) (ctrl.Result, error) {
+func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (ctrl.Result, error) {
 	var inventoryErr error
 	var Requeue bool
 	var updatedCluster *common.Cluster
@@ -211,7 +220,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 			Message: aiv1beta1.ImageStateFailedToCreate + ": " + clusterDeploymentRefErr.Error(),
 		})
 		if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-			r.Log.WithError(updateErr).Error("failed to update infraEnv status")
+			log.WithError(updateErr).Error("failed to update infraEnv status")
 		}
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
@@ -237,19 +246,19 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 			Message: aiv1beta1.ImageStateFailedToCreate + ": " + inventoryErr.Error(),
 		})
 		if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-			r.Log.WithError(updateErr).Error("failed to update infraEnv status")
+			log.WithError(updateErr).Error("failed to update infraEnv status")
 		}
 		return ctrl.Result{Requeue: Requeue}, nil
 	}
 
 	// Check for updates from user, compare spec and update the cluster
-	if err = r.updateClusterIfNeeded(ctx, infraEnv, cluster); err != nil {
-		return r.handleEnsureISOErrors(ctx, infraEnv, err)
+	if err = r.updateClusterIfNeeded(ctx, log, infraEnv, cluster); err != nil {
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
 	}
 
 	// Check for discovery ignition specific updates from user, compare spec and update the ignition config
-	if err = r.updateClusterDiscoveryIgnitionIfNeeded(ctx, infraEnv, cluster); err != nil {
-		return r.handleEnsureISOErrors(ctx, infraEnv, err)
+	if err = r.updateClusterDiscoveryIgnitionIfNeeded(ctx, log, infraEnv, cluster); err != nil {
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
 	}
 
 	isoParams := installer.GenerateClusterISOParams{
@@ -260,9 +269,9 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 		},
 	}
 
-	staticNetworkConfig, err := r.processNMStateConfig(ctx, infraEnv)
+	staticNetworkConfig, err := r.processNMStateConfig(ctx, log, infraEnv)
 	if err != nil {
-		return r.handleEnsureISOErrors(ctx, infraEnv, err)
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
 	}
 	if len(staticNetworkConfig) > 0 {
 		isoParams.ImageCreateParams.StaticNetworkConfig = staticNetworkConfig
@@ -271,21 +280,21 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, infraEnv *aiv1beta1.
 	// Add openshift version to ensure it isn't missing in versions cache
 	_, err = r.Installer.AddOpenshiftVersion(ctx, cluster.OcpReleaseImage, cluster.PullSecret)
 	if err != nil {
-		return r.handleEnsureISOErrors(ctx, infraEnv, err)
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
 	}
 
 	// GenerateClusterISOInternal will generate an ISO only if there it was not generated before,
 	// or something has changed in isoParams.
 	updatedCluster, inventoryErr = r.Installer.GenerateClusterISOInternal(ctx, isoParams)
 	if inventoryErr != nil {
-		return r.handleEnsureISOErrors(ctx, infraEnv, inventoryErr)
+		return r.handleEnsureISOErrors(ctx, log, infraEnv, inventoryErr)
 	}
 	// Image successfully generated. Reflect that in infraEnv obj and conditions
-	return r.updateEnsureISOSuccess(ctx, infraEnv, updatedCluster.ImageInfo)
+	return r.updateEnsureISOSuccess(ctx, log, infraEnv, updatedCluster.ImageInfo)
 }
 
 func (r *InfraEnvReconciler) updateEnsureISOSuccess(
-	ctx context.Context, infraEnv *aiv1beta1.InfraEnv, imageInfo *models.ImageInfo) (ctrl.Result, error) {
+	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, imageInfo *models.ImageInfo) (ctrl.Result, error) {
 	conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 		Type:    aiv1beta1.ImageCreatedCondition,
 		Status:  corev1.ConditionTrue,
@@ -294,14 +303,14 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 	})
 	infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update infraEnv status")
+		log.WithError(updateErr).Error("failed to update infraEnv status")
 		return ctrl.Result{Requeue: true}, nil
 	}
 	return ctrl.Result{Requeue: false}, nil
 }
 
 func (r *InfraEnvReconciler) handleEnsureISOErrors(
-	ctx context.Context, infraEnv *aiv1beta1.InfraEnv, err error) (ctrl.Result, error) {
+	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, err error) (ctrl.Result, error) {
 	var (
 		currentReason = ""
 		errMsg        string
@@ -315,7 +324,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 	if imageBeingCreated(err) && currentReason != aiv1beta1.ImageCreationErrorReason { // Not an actual error, just an image generation in progress.
 		err = nil
 		Requeue = false
-		r.Log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.ClusterName)
+		log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.ClusterName)
 		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ImageCreatedCondition,
 			Status:  corev1.ConditionTrue,
@@ -323,7 +332,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 			Message: aiv1beta1.ImageStateCreated,
 		})
 	} else { // Actual errors
-		r.Log.WithError(err).Error("infraEnv reconcile failed")
+		log.WithError(err).Error("infraEnv reconcile failed")
 		if isClientError(err) {
 			Requeue = false
 			errMsg = ": " + err.Error()
@@ -341,7 +350,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		infraEnv.Status.ISODownloadURL = ""
 	}
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update infraEnv status")
+		log.WithError(updateErr).Error("failed to update infraEnv status")
 	}
 	return ctrl.Result{Requeue: Requeue}, err
 }
@@ -352,23 +361,28 @@ func imageBeingCreated(err error) bool {
 
 func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	mapNMStateConfigToInfraEnv := func(a client.Object) []reconcile.Request {
+		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+			logrus.Fields{
+				"nmstate_config":           a.GetName(),
+				"nmstate_config_namespace": a.GetNamespace(),
+			})
 		infraEnvs := &aiv1beta1.InfraEnvList{}
 		if len(a.GetLabels()) == 0 {
-			r.Log.Debugf("NMState config: %s has no labels", a.GetName())
+			log.Debugf("NMState config: %s has no labels", a.GetName())
 			return []reconcile.Request{}
 		}
 		if err := r.List(context.Background(), infraEnvs, client.InNamespace(a.GetNamespace())); err != nil {
-			r.Log.Debugf("failed to list InfraEnvs")
+			log.Debugf("failed to list InfraEnvs")
 			return []reconcile.Request{}
 		}
 
 		reply := make([]reconcile.Request, 0, len(infraEnvs.Items))
 		for labelName, labelValue := range a.GetLabels() {
-			r.Log.Debugf("Detected NMState config with label name: %s with value %s, about to search for a matching InfraEnv",
+			log.Debugf("Detected NMState config with label name: %s with value %s, about to search for a matching InfraEnv",
 				labelName, labelValue)
 			for _, infraEnv := range infraEnvs.Items {
 				if infraEnv.Spec.NMStateConfigLabelSelector.MatchLabels[labelName] == labelValue {
-					r.Log.Debugf("Detected NMState config for InfraEnv: %s in namespace: %s", infraEnv.Name, infraEnv.Namespace)
+					log.Debugf("Detected NMState config for InfraEnv: %s in namespace: %s", infraEnv.Name, infraEnv.Namespace)
 					reply = append(reply, reconcile.Request{NamespacedName: types.NamespacedName{
 						Namespace: infraEnv.Namespace,
 						Name:      infraEnv.Name,
@@ -380,9 +394,14 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	mapClusterDeploymentToInfraEnv := func(clusterDeployment client.Object) []reconcile.Request {
+		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+			logrus.Fields{
+				"cluster_deployment":           clusterDeployment.GetName(),
+				"cluster_deployment_namespace": clusterDeployment.GetNamespace(),
+			})
 		infraEnvs := &aiv1beta1.InfraEnvList{}
 		if err := r.List(context.Background(), infraEnvs, client.InNamespace(clusterDeployment.GetNamespace())); err != nil {
-			r.Log.Debugf("failed to list InfraEnvs")
+			log.Debugf("failed to list InfraEnvs")
 			return []reconcile.Request{}
 		}
 

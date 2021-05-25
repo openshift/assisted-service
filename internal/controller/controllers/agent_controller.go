@@ -31,6 +31,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -66,18 +67,29 @@ type AgentReconciler struct {
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=agent-install.openshift.io,resources=agents/ai-deprovision,verbs=update
 
-func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Infof("Reconcile has been called for Agent name=%s namespace=%s", req.Name, req.Namespace)
+func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx := addRequestIdIfNeeded(origCtx)
+	log := logutil.FromContext(ctx, r.Log).WithFields(
+		logrus.Fields{
+			"agent":           req.Name,
+			"agent_namespace": req.Namespace,
+		})
+
+	defer func() {
+		log.Info("Agent Reconcile ended")
+	}()
+
+	log.Info("Agent Reconcile started")
 
 	agent := &aiv1beta1.Agent{}
 
 	err := r.Get(ctx, req.NamespacedName, agent)
 	if err != nil {
-		r.Log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
+		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 	if agent.Spec.ClusterDeploymentName == nil {
-		r.Log.Debugf("ClusterDeploymentName not set in Agent %s. Skipping Reconcile", agent.Name)
+		log.Debugf("ClusterDeploymentName not set in Agent %s. Skipping Reconcile", agent.Name)
 		return ctrl.Result{Requeue: false}, nil
 	}
 
@@ -86,22 +98,22 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 		if !funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
 			controllerutil.AddFinalizer(agent, AgentFinalizerName)
 			if err = r.Update(ctx, agent); err != nil {
-				r.Log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+				log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
 				return ctrl.Result{Requeue: true}, err
 			}
 		}
 	} else { // agent is being deleted
 		if funk.ContainsString(agent.GetFinalizers(), AgentFinalizerName) {
 			// deletion finalizer found, deregister the backend host and delete the agent
-			reply, cleanUpErr := r.deregisterHostIfNeeded(ctx, req.NamespacedName)
+			reply, cleanUpErr := r.deregisterHostIfNeeded(ctx, log, req.NamespacedName)
 			if cleanUpErr != nil {
-				r.Log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+				log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
 				return reply, err
 			}
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(agent, AgentFinalizerName)
 			if err = r.Update(ctx, agent); err != nil {
-				r.Log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
+				log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s", AgentFinalizerName, agent.Name, agent.Namespace)
 				return ctrl.Result{Requeue: true}, err
 			}
 		}
@@ -119,12 +131,12 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
 		if k8serrors.IsNotFound(err) {
 			// Delete the agent, using a finalizer with pre-delete to deregister the host.
-			return r.deleteAgent(ctx, req.NamespacedName)
+			return r.deleteAgent(ctx, log, req.NamespacedName)
 		}
 		errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 		// Update that we failed to retrieve the clusterDeployment
-		return r.updateStatus(ctx, agent, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
+		return r.updateStatus(ctx, log, agent, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
 	}
 
 	// Retrieve cluster by ClusterDeploymentName from the database
@@ -132,10 +144,10 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Delete the agent, using a finalizer with pre-delete to deregister the host.
-			return r.deleteAgent(ctx, req.NamespacedName)
+			return r.deleteAgent(ctx, log, req.NamespacedName)
 		}
 		// Update that we failed to retrieve the cluster from the database
-		return r.updateStatus(ctx, agent, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
+		return r.updateStatus(ctx, log, agent, nil, err, !errors.Is(err, gorm.ErrRecordNotFound))
 	}
 
 	//Retrieve host from cluster
@@ -143,24 +155,24 @@ func (r *AgentReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	if host == nil {
 		// Host is not a part of the cluster, which may happen with newly created day2 clusters.
 		// Delete the agent, using a finalizer with pre-delete to deregister the host.
-		return r.deleteAgent(ctx, req.NamespacedName)
+		return r.deleteAgent(ctx, log, req.NamespacedName)
 	}
 
 	// check for updates from user, compare spec and update if needed
-	err = r.updateIfNeeded(ctx, agent, cluster)
+	err = r.updateIfNeeded(ctx, log, agent, cluster)
 	if err != nil {
-		return r.updateStatus(ctx, agent, host, err, !IsUserError(err))
+		return r.updateStatus(ctx, log, agent, host, err, !IsUserError(err))
 	}
 
-	err = r.updateInventory(host, agent)
+	err = r.updateInventory(log, host, agent)
 	if err != nil {
-		return r.updateStatus(ctx, agent, host, err, true)
+		return r.updateStatus(ctx, log, agent, host, err, true)
 	}
 
-	return r.updateStatus(ctx, agent, host, nil, false)
+	return r.updateStatus(ctx, log, agent, host, nil, false)
 }
 
-func (r *AgentReconciler) deleteAgent(ctx context.Context, agent types.NamespacedName) (ctrl.Result, error) {
+func (r *AgentReconciler) deleteAgent(ctx context.Context, log logrus.FieldLogger, agent types.NamespacedName) (ctrl.Result, error) {
 	agentToDelete := &aiv1beta1.Agent{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      agent.Name,
@@ -168,13 +180,13 @@ func (r *AgentReconciler) deleteAgent(ctx context.Context, agent types.Namespace
 		},
 	}
 	if delErr := r.Client.Delete(ctx, agentToDelete); delErr != nil {
-		r.Log.WithError(delErr).Errorf("Failed to delete resource %s %s", agent.Name, agent.Namespace)
+		log.WithError(delErr).Errorf("Failed to delete resource %s %s", agent.Name, agent.Namespace)
 		return ctrl.Result{Requeue: true}, delErr
 	}
 	return ctrl.Result{}, nil
 }
 
-func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
+func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {
 
 	buildReply := func(err error) (ctrl.Result, error) {
 		reply := ctrl.Result{}
@@ -183,7 +195,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, key types.
 		}
 		reply.RequeueAfter = defaultRequeueAfterOnError
 		err = errors.Wrapf(err, "failed to deregister host: %s", key.Name)
-		r.Log.Error(err)
+		log.Error(err)
 		return reply, err
 	}
 
@@ -212,7 +224,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, key types.
 		}
 	}
 
-	r.Log.Infof("Host resource deleted, Unregistered host: %s", h.ID.String())
+	log.Infof("Host resource deleted, Unregistered host: %s", h.ID.String())
 
 	return buildReply(nil)
 }
@@ -220,7 +232,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, key types.
 // updateStatus is updating all the Agent Conditions.
 // In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
-func (r *AgentReconciler) updateStatus(ctx context.Context, agent *aiv1beta1.Agent, h *models.Host, syncErr error, internal bool) (ctrl.Result, error) {
+func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, h *models.Host, syncErr error, internal bool) (ctrl.Result, error) {
 
 	specSynced(agent, syncErr, internal)
 
@@ -234,7 +246,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, agent *aiv1beta1.Age
 		setConditionsUnknown(agent)
 	}
 	if updateErr := r.Status().Update(ctx, agent); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update agent Status")
+		log.WithError(updateErr).Error("failed to update agent Status")
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if internal {
@@ -299,10 +311,10 @@ func specSynced(agent *aiv1beta1.Agent, syncErr error, internal bool) {
 	})
 }
 
-func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, log logrus.FieldLogger, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
 
 	if agent.Spec.InstallerArgs == host.InstallerArgs {
-		r.Log.Debugf("Nothing to update, installer args were already set")
+		log.Debugf("Nothing to update, installer args were already set")
 		return nil
 	}
 
@@ -316,7 +328,7 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Clu
 		err := json.Unmarshal([]byte(agent.Spec.InstallerArgs), &agentSpecInstallerArgs.Args)
 		if err != nil {
 			msg := fmt.Sprintf("Fail to unmarshal installer args for host %s in cluster %s", agent.Name, c.Name)
-			r.Log.WithError(err).Errorf(msg)
+			log.WithError(err).Errorf(msg)
 			return common.NewApiError(http.StatusBadRequest, errors.Wrapf(err, msg))
 		}
 	}
@@ -325,7 +337,7 @@ func (r *AgentReconciler) updateInstallerArgs(ctx context.Context, c *common.Clu
 	argsBytes, _ := json.Marshal(agentSpecInstallerArgs.Args)
 	// we need to validate if the equal one more after marshalling
 	if string(argsBytes) == host.InstallerArgs {
-		r.Log.Debugf("Nothing to update, installer args were already set")
+		log.Debugf("Nothing to update, installer args were already set")
 		return nil
 	}
 
@@ -479,9 +491,9 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 	})
 }
 
-func (r *AgentReconciler) updateInventory(host *models.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, host *models.Host, agent *aiv1beta1.Agent) error {
 	if host.Inventory == "" {
-		r.Log.Debugf("Skip update inventory: Host %s inventory not set", agent.Name)
+		log.Debugf("Skip update inventory: Host %s inventory not set", agent.Name)
 		return nil
 	}
 	var inventory models.Inventory
@@ -585,9 +597,9 @@ func (r *AgentReconciler) updateInventory(host *models.Host, agent *aiv1beta1.Ag
 	return nil
 }
 
-func (r *AgentReconciler) updateHostIgnition(ctx context.Context, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
+func (r *AgentReconciler) updateHostIgnition(ctx context.Context, log logrus.FieldLogger, c *common.Cluster, host *common.Host, agent *aiv1beta1.Agent) error {
 	if agent.Spec.IgnitionConfigOverrides == host.IgnitionConfigOverrides {
-		r.Log.Debugf("Nothing to update, ignition config override was already set")
+		log.Debugf("Nothing to update, ignition config override was already set")
 		return nil
 	}
 	agentHostIgnitionParams := models.HostIgnitionParams{Config: ""}
@@ -604,11 +616,11 @@ func (r *AgentReconciler) updateHostIgnition(ctx context.Context, c *common.Clus
 	return err
 }
 
-func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.Agent, c *common.Cluster) error {
+func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLogger, agent *aiv1beta1.Agent, c *common.Cluster) error {
 	spec := agent.Spec
 	host := getHostFromCluster(c, agent.Name)
 	if host == nil {
-		r.Log.Errorf("Host %s not found in cluster %s", agent.Name, c.Name)
+		log.Errorf("Host %s not found in cluster %s", agent.Name, c.Name)
 		return errors.New("Host not found in cluster")
 	}
 
@@ -630,7 +642,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 		}
 	}
 
-	err = r.updateInstallerArgs(ctx, c, internalHost, agent)
+	err = r.updateInstallerArgs(ctx, log, c, internalHost, agent)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
@@ -638,7 +650,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 		return err
 	}
 
-	err = r.updateHostIgnition(ctx, c, internalHost, agent)
+	err = r.updateHostIgnition(ctx, log, c, internalHost, agent)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
@@ -702,7 +714,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, agent *aiv1beta1.A
 		return err
 	}
 
-	r.Log.Infof("Updated Agent spec %s %s", agent.Name, agent.Namespace)
+	log.Infof("Updated Agent spec %s %s", agent.Name, agent.Namespace)
 
 	return nil
 }

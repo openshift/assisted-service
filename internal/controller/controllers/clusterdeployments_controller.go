@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/manifests"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
+	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -95,14 +96,25 @@ type ClusterDeploymentsReconciler struct {
 // +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=extensions.hive.openshift.io,resources=agentclusterinstalls/finalizers,verbs=update
 
-func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	r.Log.Infof("Reconcile has been called for ClusterDeployment name=%s namespace=%s", req.Name, req.Namespace)
+func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	ctx := addRequestIdIfNeeded(origCtx)
+	logFields := logrus.Fields{
+		"cluster_deployment":           req.Name,
+		"cluster_deployment_namespace": req.Namespace,
+	}
+	log := logutil.FromContext(ctx, r.Log).WithFields(logFields)
+
+	defer func() {
+		log.Info("ClusterDeployment Reconcile ended")
+	}()
+
+	log.Info("ClusterDeployment Reconcile started")
 
 	clusterDeployment := &hivev1.ClusterDeployment{}
 	clusterInstallDeleted := false
 
 	if err := r.Get(ctx, req.NamespacedName, clusterDeployment); err != nil {
-		r.Log.WithError(err).Errorf("failed to get ClusterDeployment name=%s namespace=%s", req.Name, req.Namespace)
+		log.WithError(err).Errorf("failed to get ClusterDeployment name=%s namespace=%s", req.Name, req.Namespace)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
@@ -113,7 +125,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	clusterInstall := &hiveext.AgentClusterInstall{}
 	if clusterDeployment.Spec.ClusterInstallRef == nil {
-		r.Log.Infof("AgentClusterInstall not set for ClusterDeployment %s", clusterDeployment.Name)
+		log.Infof("AgentClusterInstall not set for ClusterDeployment %s", clusterDeployment.Name)
 		return ctrl.Result{}, nil
 	}
 
@@ -128,30 +140,33 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 		if k8serrors.IsNotFound(err) {
 			// mark that clusterInstall was already deleted so we skip it if needed.
 			clusterInstallDeleted = true
-			r.Log.WithField("AgentClusterInstall", aciName).Infof("AgentClusterInstall does not exist for ClusterDeployment %s", clusterDeployment.Name)
+			log.WithField("AgentClusterInstall", aciName).Infof("AgentClusterInstall does not exist for ClusterDeployment %s", clusterDeployment.Name)
 			if clusterDeployment.ObjectMeta.DeletionTimestamp.IsZero() {
 				// we have no agentClusterInstall and clusterDeployment is not being deleted. stop reconciliation.
 				return ctrl.Result{}, nil
 			}
 		} else {
-			r.Log.WithError(err).Errorf("failed to get AgentClusterInstall name=%s namespace=%s", aciName, clusterDeployment.Namespace)
+			log.WithError(err).Errorf("failed to get AgentClusterInstall name=%s namespace=%s", aciName, clusterDeployment.Namespace)
 			return ctrl.Result{Requeue: true}, err
 		}
 	}
 
 	if !clusterInstallDeleted {
-		aciReply, aciErr := r.agentClusterInstallFinalizer(ctx, req, clusterInstall)
+		logFields["agent_cluster_install"] = clusterInstall.Name
+		logFields["agent_cluster_install_namespace"] = clusterInstall.Namespace
+		log = logutil.FromContext(ctx, log).WithFields(logFields)
+		aciReply, aciErr := r.agentClusterInstallFinalizer(ctx, log, req, clusterInstall)
 		if aciReply != nil {
 			return *aciReply, aciErr
 		}
 	}
 
-	cdReplay, cdErr := r.clusterDeploymentFinalizer(ctx, clusterDeployment)
+	cdReplay, cdErr := r.clusterDeploymentFinalizer(ctx, log, clusterDeployment)
 	if cdReplay != nil {
 		return *cdReplay, cdErr
 	}
 
-	err = r.ensureOwnerRef(ctx, clusterDeployment, clusterInstall)
+	err = r.ensureOwnerRef(ctx, log, clusterDeployment, clusterInstall)
 	if err != nil {
 		return ctrl.Result{Requeue: true}, err
 	}
@@ -159,75 +174,75 @@ func (r *ClusterDeploymentsReconciler) Reconcile(ctx context.Context, req ctrl.R
 	cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		if !isInstalled(clusterDeployment, clusterInstall) {
-			return r.createNewCluster(ctx, req.NamespacedName, clusterDeployment, clusterInstall)
+			return r.createNewCluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
 		if !r.isSNO(clusterInstall) {
-			return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment, clusterInstall)
+			return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
 		// cluster is installed and SNO. Clear EventsURL
 		clusterInstall.Status.DebugInfo.EventsURL = ""
 		if updateErr := r.Status().Update(ctx, clusterInstall); updateErr != nil {
-			r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
+			log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
 			return ctrl.Result{Requeue: true}, nil
 		}
 		return ctrl.Result{Requeue: false}, nil
 	}
 	if err != nil {
-		return r.updateStatus(ctx, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
 	// check for updates from user, compare spec and update if needed
-	err = r.updateIfNeeded(ctx, clusterDeployment, clusterInstall, cluster)
+	err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
-		return r.updateStatus(ctx, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
 	// check for install config overrides and update if needed
-	err = r.updateInstallConfigOverrides(ctx, clusterInstall, cluster)
+	err = r.updateInstallConfigOverrides(ctx, log, clusterInstall, cluster)
 	if err != nil {
-		return r.updateStatus(ctx, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
 	// In case the Cluster is a Day 1 cluster and is installed, update the Metadata and create secrets for credentials
 	if *cluster.Status == models.ClusterStatusInstalled && swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
 		if !isInstalled(clusterDeployment, clusterInstall) {
 			// create secrets and update status
-			err = r.updateClusterMetadata(ctx, clusterDeployment, cluster, clusterInstall)
-			return r.updateStatus(ctx, clusterInstall, cluster, err)
+			err = r.updateClusterMetadata(ctx, log, clusterDeployment, cluster, clusterInstall)
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		} else {
 			// Delete Day1 Cluster
-			_, err = r.deregisterClusterIfNeeded(ctx, req.NamespacedName)
+			_, err = r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
 			if err != nil {
-				return r.updateStatus(ctx, clusterInstall, cluster, err)
+				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 			}
 			if !r.isSNO(clusterInstall) {
 				//Create Day2 cluster
-				return r.createNewDay2Cluster(ctx, req.NamespacedName, clusterDeployment, clusterInstall)
+				return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 			}
-			return r.updateStatus(ctx, clusterInstall, cluster, err)
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 	}
 
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
 		// Day 1
-		return r.installDay1(ctx, clusterDeployment, clusterInstall, cluster)
+		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster)
 
 	} else if swag.StringValue(cluster.Kind) == models.ClusterKindAddHostsCluster {
 		// Day 2
-		return r.installDay2Hosts(ctx, clusterDeployment, clusterInstall, cluster)
+		return r.installDay2Hosts(ctx, log, clusterDeployment, clusterInstall, cluster)
 	}
 
-	return r.updateStatus(ctx, clusterInstall, cluster, nil)
+	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.Context, req ctrl.Request,
+func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.Context, log logrus.FieldLogger, req ctrl.Request,
 	clusterInstall *hiveext.AgentClusterInstall) (*ctrl.Result, error) {
 	if clusterInstall.ObjectMeta.DeletionTimestamp.IsZero() { // clusterInstall not being deleted
 		// Register a finalizer if it is absent.
 		if !funk.ContainsString(clusterInstall.GetFinalizers(), AgentClusterInstallFinalizerName) {
 			controllerutil.AddFinalizer(clusterInstall, AgentClusterInstallFinalizerName)
 			if err := r.Update(ctx, clusterInstall); err != nil {
-				r.Log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s",
+				log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s",
 					AgentClusterInstallFinalizerName, clusterInstall.Name, clusterInstall.Namespace)
 				return &ctrl.Result{Requeue: true}, err
 			}
@@ -235,9 +250,9 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 	} else { // clusterInstall is being deleted
 		if funk.ContainsString(clusterInstall.GetFinalizers(), AgentClusterInstallFinalizerName) {
 			// deletion finalizer found, deregister the backend cluster and delete agents
-			reply, cleanUpErr := r.deregisterClusterIfNeeded(ctx, req.NamespacedName)
+			reply, cleanUpErr := r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
 			if cleanUpErr != nil {
-				r.Log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s",
+				log.WithError(cleanUpErr).Errorf("failed to run pre-deletion cleanup for finalizer %s on resource %s %s",
 					AgentClusterInstallFinalizerName, clusterInstall.Name, clusterInstall.Namespace)
 				return &reply, cleanUpErr
 			}
@@ -245,7 +260,7 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(clusterInstall, AgentClusterInstallFinalizerName)
 			if err := r.Update(ctx, clusterInstall); err != nil {
-				r.Log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s",
+				log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s",
 					AgentClusterInstallFinalizerName, clusterInstall.Name, clusterInstall.Namespace)
 				return &ctrl.Result{Requeue: true}, err
 			}
@@ -256,22 +271,22 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 	return nil, nil
 }
 
-func (r *ClusterDeploymentsReconciler) clusterDeploymentFinalizer(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) (*ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) clusterDeploymentFinalizer(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment) (*ctrl.Result, error) {
 	if clusterDeployment.ObjectMeta.DeletionTimestamp.IsZero() { // clusterDeployment not being deleted
 		// Register a finalizer if it is absent.
 		if !funk.ContainsString(clusterDeployment.GetFinalizers(), ClusterDeploymentFinalizerName) {
 			controllerutil.AddFinalizer(clusterDeployment, ClusterDeploymentFinalizerName)
 			if err := r.Update(ctx, clusterDeployment); err != nil {
-				r.Log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s",
+				log.WithError(err).Errorf("failed to add finalizer %s to resource %s %s",
 					ClusterDeploymentFinalizerName, clusterDeployment.Name, clusterDeployment.Namespace)
 				return &ctrl.Result{Requeue: true}, err
 			}
 		}
 	} else { // clusterDeployment is being deleted
 		if funk.ContainsString(clusterDeployment.GetFinalizers(), ClusterDeploymentFinalizerName) {
-			reply, cleanUpErr := r.deleteClusterInstall(ctx, clusterDeployment)
+			reply, cleanUpErr := r.deleteClusterInstall(ctx, log, clusterDeployment)
 			if cleanUpErr != nil {
-				r.Log.WithError(cleanUpErr).Errorf(
+				log.WithError(cleanUpErr).Errorf(
 					"clusterDeployment %s %s is still waiting for clusterInstall %s to be deleted",
 					clusterDeployment.Name, clusterDeployment.Namespace, clusterDeployment.Spec.ClusterInstallRef.Name,
 				)
@@ -281,7 +296,7 @@ func (r *ClusterDeploymentsReconciler) clusterDeploymentFinalizer(ctx context.Co
 			// remove our finalizer from the list and update it.
 			controllerutil.RemoveFinalizer(clusterDeployment, ClusterDeploymentFinalizerName)
 			if err := r.Update(ctx, clusterDeployment); err != nil {
-				r.Log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s",
+				log.WithError(err).Errorf("failed to remove finalizer %s from resource %s %s",
 					ClusterDeploymentFinalizerName, clusterDeployment.Name, clusterDeployment.Namespace)
 				return &ctrl.Result{Requeue: true}, err
 			}
@@ -300,61 +315,62 @@ func isInstalled(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hi
 	return cond != nil && cond.Reason == InstalledReason
 }
 
-func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment,
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
-		return r.updateStatus(ctx, clusterInstall, cluster, err)
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 	if ready {
 
 		// create custom manifests if needed before installation
-		err = r.addCustomManifests(ctx, clusterInstall, cluster)
+		err = r.addCustomManifests(ctx, log, clusterInstall, cluster)
 		if err != nil {
-			_, _ = r.updateStatus(ctx, clusterInstall, cluster, err)
+			_, _ = r.updateStatus(ctx, log, clusterInstall, cluster, err)
 			// We decided to requeue with one minute timeout in order to give user a chance to fix manifest
 			// this timeout allows us not to run reconcile too much time and
 			// still have a nice feedback when user will fix the error
 			return ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}, nil
 		}
 
-		r.Log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+		log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 		var ic *common.Cluster
 		ic, err = r.Installer.InstallClusterInternal(ctx, installer.InstallClusterParams{
 			ClusterID: *cluster.ID,
 		})
 		if err != nil {
-			return r.updateStatus(ctx, clusterInstall, cluster, err)
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
-		return r.updateStatus(ctx, clusterInstall, ic, err)
+		return r.updateStatus(ctx, log, clusterInstall, ic, err)
 	}
-	return r.updateStatus(ctx, clusterInstall, cluster, nil)
+	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
 
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
 		if err != nil {
-			return r.updateStatus(ctx, clusterInstall, cluster, err)
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 		if r.HostApi.IsInstallable(h) && commonh.Approved {
-			r.Log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
+			log.Infof("Installing Day2 host %s in %s %s", *h.ID, clusterDeployment.Name, clusterDeployment.Namespace)
 			err = r.Installer.InstallSingleDay2HostInternal(ctx, *cluster.ID, *h.ID)
 			if err != nil {
-				return r.updateStatus(ctx, clusterInstall, cluster, err)
+				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 			}
 		}
 	}
-	return r.updateStatus(ctx, clusterInstall, cluster, nil)
+	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
 }
 
-func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster, clusterInstall *hiveext.AgentClusterInstall) error {
+func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster, clusterInstall *hiveext.AgentClusterInstall) error {
 
-	s, err := r.ensureAdminPasswordSecret(ctx, cluster, c)
+	s, err := r.ensureAdminPasswordSecret(ctx, log, cluster, c)
 	if err != nil {
 		return err
 	}
-	k, err := r.ensureKubeConfigSecret(ctx, cluster, c)
+	k, err := r.ensureKubeConfigSecret(ctx, log, cluster, c)
 	if err != nil {
 		return err
 	}
@@ -371,7 +387,7 @@ func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context
 	return r.Update(ctx, clusterInstall)
 }
 
-func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	s := &corev1.Secret{}
 	name := fmt.Sprintf(adminPasswordSecretStringTemplate, cluster.Name)
 	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
@@ -388,10 +404,10 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 		"username": []byte(cred.Username),
 		"password": []byte(cred.Password),
 	}
-	return r.createClusterCredentialSecret(ctx, cluster, c, name, data, "kubeadmincreds")
+	return r.createClusterCredentialSecret(ctx, log, cluster, c, name, data, "kubeadmincreds")
 }
 
-func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	s := &corev1.Secret{}
 	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
 	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
@@ -412,10 +428,10 @@ func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Contex
 		"kubeconfig": respBytes,
 	}
 
-	return r.createClusterCredentialSecret(ctx, cluster, c, name, data, "kubeconfig")
+	return r.createClusterCredentialSecret(ctx, log, cluster, c, name, data, "kubeconfig")
 }
 
-func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, cluster *hivev1.ClusterDeployment, c *common.Cluster, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -429,7 +445,7 @@ func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context
 
 	deploymentGVK, err := apiutil.GVKForObject(cluster, r.Scheme)
 	if err != nil {
-		r.Log.WithError(err).Errorf("error getting GVK for clusterdeployment")
+		log.WithError(err).Errorf("error getting GVK for clusterdeployment")
 		return nil, err
 	}
 
@@ -528,6 +544,7 @@ func getHyperthreading(clusterInstall *hiveext.AgentClusterInstall) *string {
 }
 
 func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
+	log logrus.FieldLogger,
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall,
 	cluster *common.Cluster) error {
@@ -602,20 +619,20 @@ func (r *ClusterDeploymentsReconciler) updateIfNeeded(ctx context.Context,
 		return err
 	}
 
-	infraEnv, err = getInfraEnvByClusterDeployment(ctx, r.Log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
+	infraEnv, err = getInfraEnvByClusterDeployment(ctx, log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to search for infraEnv for clusterDeployment %s", clusterDeployment.Name))
 	}
 
-	r.Log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
+	log.Infof("Updated clusterDeployment %s/%s", clusterDeployment.Namespace, clusterDeployment.Name)
 	if notifyInfraEnv && infraEnv != nil {
-		r.Log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s", infraEnv.Name, clusterDeployment.ClusterName)
+		log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s", infraEnv.Name, clusterDeployment.ClusterName)
 		r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
 	}
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, clusterInstall *hiveext.AgentClusterInstall,
+func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall,
 	cluster *common.Cluster) error {
 	// handle InstallConfigOverrides
 	update := false
@@ -633,18 +650,18 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 		if err != nil {
 			return err
 		}
-		r.Log.Infof("Updated InstallConfig overrides on clusterInstall %s/%s", clusterInstall.Namespace, clusterInstall.Name)
+		log.Infof("Updated InstallConfig overrides on clusterInstall %s/%s", clusterInstall.Namespace, clusterInstall.Name)
 		return nil
 	}
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluster *common.Cluster,
+func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster,
 	clusterInstall *hiveext.AgentClusterInstall, alreadyCreatedManifests models.ListManifests) error {
 
-	r.Log.Debugf("Going to sync list of given with already created manifests")
+	log.Debugf("Going to sync list of given with already created manifests")
 
-	manifestsFromConfigMap, err := r.getClusterDeploymentManifest(ctx, clusterInstall)
+	manifestsFromConfigMap, err := r.getClusterDeploymentManifest(ctx, log, clusterInstall)
 	if err != nil {
 		return err
 	}
@@ -653,7 +670,7 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluste
 	// skip errors
 	for _, manifest := range alreadyCreatedManifests {
 		if _, ok := manifestsFromConfigMap[manifest.FileName]; !ok {
-			r.Log.Infof("Deleting cluster deployment %s manifest %s", cluster.KubeKeyName, manifest.FileName)
+			log.Infof("Deleting cluster deployment %s manifest %s", cluster.KubeKeyName, manifest.FileName)
 			_ = r.Manifests.DeleteClusterManifestInternal(ctx, operations.DeleteClusterManifestParams{
 				ClusterID: *cluster.ID,
 				FileName:  manifest.FileName,
@@ -664,7 +681,7 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluste
 
 	// create/update all manifests provided by configmap data
 	for filename, manifest := range manifestsFromConfigMap {
-		r.Log.Infof("Creating cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
+		log.Infof("Creating cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
 		_, err := r.Manifests.CreateClusterManifestInternal(ctx, operations.CreateClusterManifestParams{
 			ClusterID: *cluster.ID,
 			CreateManifestParams: &models.CreateManifestParams{
@@ -673,14 +690,14 @@ func (r *ClusterDeploymentsReconciler) syncManifests(ctx context.Context, cluste
 				Folder:   swag.String(models.ManifestFolderOpenshift),
 			}})
 		if err != nil {
-			r.Log.WithError(err).Errorf("Failed to create cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
+			log.WithError(err).Errorf("Failed to create cluster deployment %s manifest %s", cluster.KubeKeyName, filename)
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.Context, clusterInstall *hiveext.AgentClusterInstall) (map[string]string, error) {
+func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall) (map[string]string, error) {
 	configuredManifests := &corev1.ConfigMap{}
 	configuredManifests.Data = map[string]string{}
 	// get manifests from configmap if we have reference for it
@@ -688,7 +705,7 @@ func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.
 		err := r.Get(ctx, types.NamespacedName{Namespace: clusterInstall.Namespace,
 			Name: clusterInstall.Spec.ManifestsConfigMapRef.Name}, configuredManifests)
 		if err != nil {
-			r.Log.WithError(err).Errorf("Failed to get configmap %s in %s",
+			log.WithError(err).Errorf("Failed to get configmap %s in %s",
 				clusterInstall.Spec.ManifestsConfigMapRef.Name, clusterInstall.Namespace)
 			return nil, err
 		}
@@ -696,14 +713,14 @@ func (r *ClusterDeploymentsReconciler) getClusterDeploymentManifest(ctx context.
 	return configuredManifests.Data, nil
 }
 
-func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, clusterInstall *hiveext.AgentClusterInstall,
-	cluster *common.Cluster) error {
+func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, log logrus.FieldLogger,
+	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) error {
 
 	alreadyCreatedManifests, err := r.Manifests.ListClusterManifestsInternal(ctx, operations.ListClusterManifestsParams{
 		ClusterID: *cluster.ID,
 	})
 	if err != nil {
-		r.Log.WithError(err).Errorf("Failed to list manifests for %q cluster install", clusterInstall.Name)
+		log.WithError(err).Errorf("Failed to list manifests for %q cluster install", clusterInstall.Name)
 		return err
 	}
 
@@ -711,11 +728,11 @@ func (r *ClusterDeploymentsReconciler) addCustomManifests(ctx context.Context, c
 	// but we already added some in previous reconcile loop, we want to clean them.
 	// if no reference were provided we will delete all manifests that were in the list
 	if clusterInstall.Spec.ManifestsConfigMapRef == nil && len(alreadyCreatedManifests) == 0 {
-		r.Log.Debugf("Nothing to do, skipping manifest creation")
+		log.Debugf("Nothing to do, skipping manifest creation")
 		return nil
 	}
 
-	return r.syncManifests(ctx, cluster, clusterInstall, alreadyCreatedManifests)
+	return r.syncManifests(ctx, log, cluster, clusterInstall, alreadyCreatedManifests)
 }
 
 func (r *ClusterDeploymentsReconciler) isSNO(clusterInstall *hiveext.AgentClusterInstall) bool {
@@ -725,23 +742,24 @@ func (r *ClusterDeploymentsReconciler) isSNO(clusterInstall *hiveext.AgentCluste
 
 func (r *ClusterDeploymentsReconciler) createNewCluster(
 	ctx context.Context,
+	log logrus.FieldLogger,
 	key types.NamespacedName,
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 
-	r.Log.Infof("Creating a new clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	log.Infof("Creating a new clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
 	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, key.Namespace)
 	if err != nil {
-		r.Log.WithError(err).Error("failed to get pull secret")
-		return r.updateStatus(ctx, clusterInstall, nil, err)
+		log.WithError(err).Error("failed to get pull secret")
+		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
 	openshiftVersion, err := r.addOpenshiftVersion(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
-		r.Log.WithError(err).Error("failed to add OCP version")
-		return r.updateStatus(ctx, clusterInstall, nil, err)
+		log.WithError(err).Error("failed to add OCP version")
+		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
 	clusterParams := &models.ClusterCreateParams{
@@ -778,30 +796,31 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 		NewClusterParams: clusterParams,
 	})
 
-	return r.updateStatus(ctx, clusterInstall, c, err)
+	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	ctx context.Context,
+	log logrus.FieldLogger,
 	key types.NamespacedName,
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 
-	r.Log.Infof("Creating a new Day2 Cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	log.Infof("Creating a new Day2 Cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 	id := strfmt.UUID(uuid.New().String())
 	apiVipDnsname := fmt.Sprintf("api.%s.%s", spec.ClusterName, spec.BaseDomain)
 
 	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, key.Namespace)
 	if err != nil {
-		r.Log.WithError(err).Error("failed to get pull secret")
-		return r.updateStatus(ctx, clusterInstall, nil, err)
+		log.WithError(err).Error("failed to get pull secret")
+		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
 	openshiftVersion, err := r.addOpenshiftVersion(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
-		r.Log.WithError(err).Error("failed to add OCP version")
-		return r.updateStatus(ctx, clusterInstall, nil, err)
+		log.WithError(err).Error("failed to add OCP version")
+		return r.updateStatus(ctx, log, clusterInstall, nil, err)
 	}
 
 	clusterParams := &models.AddHostsClusterCreateParams{
@@ -815,7 +834,7 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 		NewAddHostsClusterParams: clusterParams,
 	})
 
-	return r.updateStatus(ctx, clusterInstall, c, err)
+	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
 
 func (r *ClusterDeploymentsReconciler) getReleaseImage(ctx context.Context, spec hiveext.AgentClusterInstallSpec) (string, error) {
@@ -844,7 +863,7 @@ func (r *ClusterDeploymentsReconciler) addOpenshiftVersion(
 	return openshiftVersion, nil
 }
 
-func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Context, key types.NamespacedName) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Context, log logrus.FieldLogger, key types.NamespacedName) (ctrl.Result, error) {
 
 	buildReply := func(err error) (ctrl.Result, error) {
 		reply := ctrl.Result{}
@@ -853,7 +872,7 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 		}
 		reply.RequeueAfter = defaultRequeueAfterOnError
 		err = errors.Wrapf(err, "failed to deregister cluster: %s", key.Name)
-		r.Log.Error(err)
+		log.Error(err)
 		return reply, err
 	}
 
@@ -874,16 +893,16 @@ func (r *ClusterDeploymentsReconciler) deregisterClusterIfNeeded(ctx context.Con
 		return buildReply(err)
 	}
 	// Delete agents because their backend cluster got deregistered.
-	if err = r.DeleteClusterDeploymentAgents(ctx, key); err != nil {
+	if err = r.DeleteClusterDeploymentAgents(ctx, log, key); err != nil {
 		return buildReply(err)
 	}
 
-	r.Log.Infof("Cluster resource deleted, Unregistered cluster: %s", c.ID.String())
+	log.Infof("Cluster resource deleted, Unregistered cluster: %s", c.ID.String())
 
 	return buildReply(nil)
 }
 
-func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context, clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment) (ctrl.Result, error) {
 
 	buildReply := func(err error) (ctrl.Result, error) {
 		reply := ctrl.Result{}
@@ -892,7 +911,7 @@ func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context,
 		}
 		reply.RequeueAfter = defaultRequeueAfterOnError
 		err = errors.Wrapf(err, "clusterInstall: %s not deleted", clusterDeployment.Spec.ClusterInstallRef.Name)
-		r.Log.Error(err)
+		log.Error(err)
 		return reply, err
 	}
 
@@ -919,18 +938,18 @@ func (r *ClusterDeploymentsReconciler) deleteClusterInstall(ctx context.Context,
 	return buildReply(err)
 }
 
-func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context.Context, clusterDeployment types.NamespacedName) error {
+func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context.Context, log logrus.FieldLogger, clusterDeployment types.NamespacedName) error {
 	agents := &aiv1beta1.AgentList{}
-	r.Log = r.Log.WithFields(logrus.Fields{"clusterDeployment": clusterDeployment.Name, "namespace": clusterDeployment.Namespace})
+	log = log.WithFields(logrus.Fields{"clusterDeployment": clusterDeployment.Name, "namespace": clusterDeployment.Namespace})
 	if err := r.List(ctx, agents); err != nil {
 		return err
 	}
 	for i, clusterAgent := range agents.Items {
 		if clusterAgent.Spec.ClusterDeploymentName.Name == clusterDeployment.Name &&
 			clusterAgent.Spec.ClusterDeploymentName.Namespace == clusterDeployment.Namespace {
-			r.Log.Infof("delete agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
+			log.Infof("delete agent %s namespace %s", clusterAgent.Name, clusterAgent.Namespace)
 			if err := r.Client.Delete(ctx, &agents.Items[i]); err != nil {
-				r.Log.WithError(err).Errorf("Failed to delete resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
+				log.WithError(err).Errorf("Failed to delete resource %s %s", clusterAgent.Name, clusterAgent.Namespace)
 				return err
 			}
 		}
@@ -959,12 +978,17 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 
 	// Reconcile the ClusterDeployment referenced by this AgentClusterInstall.
 	mapClusterInstallToClusterDeployment := func(a client.Object) []reconcile.Request {
+		log := logutil.FromContext(context.Background(), r.Log).WithFields(
+			logrus.Fields{
+				"agent_cluster_install":           a.GetName(),
+				"agent_cluster_install_namespace": a.GetNamespace(),
+			})
 		aci, ok := a.(*hiveext.AgentClusterInstall)
 		if !ok {
-			r.Log.Errorf("%v was not an AgentClusterInstall", a) // shouldn't be possible
+			log.Errorf("%v was not an AgentClusterInstall", a) // shouldn't be possible
 			return []reconcile.Request{}
 		}
-		r.Log.Debugf("Map ACI : %s %s CD ref name %s", aci.Namespace, aci.Name, aci.Spec.ClusterDeploymentRef.Name)
+		log.Debugf("Map ACI : %s %s CD ref name %s", aci.Namespace, aci.Name, aci.Spec.ClusterDeploymentRef.Name)
 		return []reconcile.Request{
 			{
 				NamespacedName: types.NamespacedName{
@@ -987,12 +1011,12 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 // updateStatus is updating all the AgentClusterInstall Conditions.
 // In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
-func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster, syncErr error) (ctrl.Result, error) {
+func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster, syncErr error) (ctrl.Result, error) {
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
 		if clusterInstall.Status.DebugInfo.EventsURL == "" {
-			eventUrl, err := r.eventsURL(string(*c.ID))
+			eventUrl, err := r.eventsURL(log, string(*c.ID))
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -1011,7 +1035,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 	}
 
 	if updateErr := r.Status().Update(ctx, clusterInstall); updateErr != nil {
-		r.Log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
+		log.WithError(updateErr).Error("failed to update ClusterDeployment Status")
 		return ctrl.Result{Requeue: true}, nil
 	}
 	if syncErr != nil && !IsUserError(syncErr) {
@@ -1020,14 +1044,14 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, cluster
 	return ctrl.Result{}, nil
 }
 
-func (r *ClusterDeploymentsReconciler) eventsURL(clusterId string) (string, error) {
+func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, clusterId string) (string, error) {
 	eventsURL := fmt.Sprintf("%s%s/clusters/%s/events", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}
 	eventsURL, err := gencrypto.SignURL(eventsURL, clusterId)
 	if err != nil {
-		r.Log.WithError(err).Error("failed to get Events URL")
+		log.WithError(err).Error("failed to get Events URL")
 		return "", err
 	}
 	return eventsURL, nil
@@ -1306,10 +1330,10 @@ func FindStatusCondition(conditions []hivev1.ClusterInstallCondition, conditionT
 }
 
 // ensureOwnerRef sets the owner reference of ClusterDeployment on AgentClusterInstall
-func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, cd *hivev1.ClusterDeployment, ci *hiveext.AgentClusterInstall) error {
+func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log logrus.FieldLogger, cd *hivev1.ClusterDeployment, ci *hiveext.AgentClusterInstall) error {
 
 	if err := controllerutil.SetOwnerReference(cd, ci, r.Scheme); err != nil {
-		r.Log.WithError(err).Error("error setting owner reference Agent Cluster Install")
+		log.WithError(err).Error("error setting owner reference Agent Cluster Install")
 		return err
 	}
 	return r.Update(ctx, ci)
