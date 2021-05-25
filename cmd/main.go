@@ -132,6 +132,9 @@ var Options struct {
 	ServeHTTPS                  bool          `envconfig:"SERVE_HTTPS" default:"false"`
 	HTTPSKeyFile                string        `envconfig:"HTTPS_KEY_FILE" default:""`
 	HTTPSCertFile               string        `envconfig:"HTTPS_CERT_FILE" default:""`
+	MaxIdleConns                int           `envconfig:"DB_MAX_IDLE_CONNECTIONS" default:"50"`
+	MaxOpenConns                int           `envconfig:"DB_MAX_OPEN_CONNECTIONS" default:"100"`
+	ConnMaxLifetime             time.Duration `envconfig:"DB_CONNECTIONS_MAX_LIFETIME" default:"30m"`
 	FileSystemUsageThreshold    int           `envconfig:"FILESYSTEM_USAGE_THRESHOLD" default:"80"`
 	EnableElasticAPM            bool          `envconfig:"ENABLE_ELASTIC_APM" default:"false"`
 	WorkDir                     string        `envconfig:"WORK_DIR" default:"/data/"`
@@ -544,9 +547,9 @@ func setupDB(log logrus.FieldLogger) *gorm.DB {
 			log.WithError(err).Info("Failed to connect to DB, retrying")
 			return
 		}
-		db.DB().SetMaxIdleConns(0)
-		db.DB().SetMaxOpenConns(0)
-		db.DB().SetConnMaxLifetime(0)
+		db.DB().SetMaxIdleConns(Options.MaxIdleConns)
+		db.DB().SetMaxOpenConns(Options.MaxOpenConns)
+		db.DB().SetConnMaxLifetime(Options.ConnMaxLifetime)
 		cancel()
 	}, retryInterval)
 	if ctx.Err().Error() == context.DeadlineExceeded.Error() {
