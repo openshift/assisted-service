@@ -4,7 +4,7 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
 
 function print_help() {
-  echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (create|destroy|print_help)"
+    echo "Usage: DISKS=\$(echo sd{b..f}) bash ${0} (create|destroy|print_help)"
 }
 
 if [ -z "${NODES:-}" ]; then
@@ -32,7 +32,11 @@ function create() {
 
             node_disks=$(virsh domblklist "${node}" | awk '{print $1}')
             if [[ ! "${node_disks}" =~ "${disk}" ]]; then
-                virsh attach-disk "${node}" "${img_path}" "${disk}"
+                # Libvirt cannot guarantee the device name on the guest OS (It's controlled by udev)
+                # In order to make an absolute expected destination, we provide a WWN
+                # that could be derived from the disk name.
+                # The disk would be available as a link on /dev/disk/by-id/wwn-.
+                virsh attach-disk "${node}" "${img_path}" "${disk}" --wwn "$(disk_to_wwn ${disk})"
             else
                 echo "Disk ${disk} is already attached to ${node}. Skipping attachment"
             fi

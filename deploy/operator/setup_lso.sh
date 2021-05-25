@@ -90,7 +90,7 @@ spec:
   managementState: Managed
   storageClassDevices:
     - devicePaths:
-$(printf '        - /dev/%s\n' ${DISKS})
+$(printf '        - /dev/disk/by-id/wwn-%s\n' $(for disk in ${DISKS}; do disk_to_wwn ${disk}; done))
       storageClassName: ${STORAGE_CLASS_NAME}
       volumeMode: Filesystem
 EOCR
