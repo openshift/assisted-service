@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
@@ -38,13 +37,6 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 	var status string
 	hosts := cluster.Hosts
 	numAvailableHosts := int64(len(hosts))
-
-	// TODO: Remove this validation once OCS 4.7 is GA
-	if strings.HasPrefix(cluster.OpenshiftVersion, "4.8") {
-		status = "OCS is not supported on OCP 4.8."
-		o.log.Info("OCS requirements validation status ", status)
-		return api.Failure, status
-	}
 
 	if numAvailableHosts < o.config.OCSRequiredHosts {
 		status = "Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS."
