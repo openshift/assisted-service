@@ -457,12 +457,15 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 		condStatus = corev1.ConditionFalse
 		reason = AgentNotReadyReason
 		msg = AgentNotReadyMsg
-	case models.HostStatusPreparingForInstallation, models.HostStatusPreparingSuccessful, models.HostStatusInstalled,
-		models.HostStatusInstalling, models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction,
-		models.HostStatusError:
+	case models.HostStatusPreparingForInstallation, models.HostStatusPreparingSuccessful, models.HostStatusInstalling,
+		models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction:
 		condStatus = corev1.ConditionFalse
 		reason = AgentAlreadyInstallingReason
 		msg = AgentAlreadyInstallingMsg
+	case models.HostStatusInstalled, models.HostStatusError:
+		condStatus = corev1.ConditionFalse
+		reason = AgentInstallationStoppedReason
+		msg = AgentInstallationStoppedMsg
 	default:
 		condStatus = corev1.ConditionUnknown
 		reason = UnknownStatusReason

@@ -811,8 +811,8 @@ var _ = Describe("TestConditions", func() {
 			conditions: []conditionsv1.Condition{
 				{
 					Type:    ReadyForInstallationCondition,
-					Message: AgentAlreadyInstallingMsg,
-					Reason:  AgentAlreadyInstallingReason,
+					Message: AgentInstallationStoppedMsg,
+					Reason:  AgentInstallationStoppedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
@@ -875,8 +875,8 @@ var _ = Describe("TestConditions", func() {
 			conditions: []conditionsv1.Condition{
 				{
 					Type:    ReadyForInstallationCondition,
-					Message: AgentAlreadyInstallingMsg,
-					Reason:  AgentAlreadyInstallingReason,
+					Message: AgentInstallationStoppedMsg,
+					Reason:  AgentInstallationStoppedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{

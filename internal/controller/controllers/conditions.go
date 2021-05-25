@@ -54,13 +54,15 @@ const (
 
 	ClusterCompletedCondition string = hivev1.ClusterInstallCompleted
 
-	ClusterRequirementsMetCondition string = hivev1.ClusterInstallRequirementsMet
-	ClusterReadyReason              string = "ClusterIsReady"
-	ClusterReadyMsg                 string = "The cluster is ready to begin the installation"
-	ClusterNotReadyReason           string = "ClusterNotReady"
-	ClusterNotReadyMsg              string = "The cluster is not ready to begin the installation"
-	ClusterAlreadyInstallingReason  string = "ClusterAlreadyInstalling"
-	ClusterAlreadyInstallingMsg     string = "The cluster requirements are met"
+	ClusterRequirementsMetCondition  string = hivev1.ClusterInstallRequirementsMet
+	ClusterReadyReason               string = "ClusterIsReady"
+	ClusterReadyMsg                  string = "The cluster is ready to begin the installation"
+	ClusterNotReadyReason            string = "ClusterNotReady"
+	ClusterNotReadyMsg               string = "The cluster is not ready to begin the installation"
+	ClusterAlreadyInstallingReason   string = "ClusterAlreadyInstalling"
+	ClusterAlreadyInstallingMsg      string = "The cluster requirements are met"
+	ClusterInstallationStoppedReason string = "ClusterInstallationStopped"
+	ClusterInstallationStoppedMsg    string = "The cluster installation stopped"
 
 	ClusterValidatedCondition    string = "Validated"
 	ClusterValidationsOKMsg      string = "The cluster's validations are passing"
@@ -94,15 +96,17 @@ const (
 
 	InstalledCondition conditionsv1.ConditionType = "Installed"
 
-	ReadyForInstallationCondition conditionsv1.ConditionType = "ReadyForInstallation"
-	AgentReadyReason              string                     = "AgentIsReady"
-	AgentReadyMsg                 string                     = "The agent is ready to begin the installation"
-	AgentNotReadyReason           string                     = "AgentNotReady"
-	AgentNotReadyMsg              string                     = "The agent is not ready to begin the installation"
-	AgentAlreadyInstallingReason  string                     = "AgentAlreadyInstalling"
-	AgentAlreadyInstallingMsg     string                     = "The agent cannot begin the installation because it has already started"
-	AgentIsNotApprovedReason      string                     = "AgentIsNotApproved"
-	AgentIsNotApprovedMsg         string                     = "The agent is not approved"
+	ReadyForInstallationCondition  conditionsv1.ConditionType = "ReadyForInstallation"
+	AgentReadyReason               string                     = "AgentIsReady"
+	AgentReadyMsg                  string                     = "The agent is ready to begin the installation"
+	AgentNotReadyReason            string                     = "AgentNotReady"
+	AgentNotReadyMsg               string                     = "The agent is not ready to begin the installation"
+	AgentAlreadyInstallingReason   string                     = "AgentAlreadyInstalling"
+	AgentAlreadyInstallingMsg      string                     = "The agent cannot begin the installation because it has already started"
+	AgentIsNotApprovedReason       string                     = "AgentIsNotApproved"
+	AgentIsNotApprovedMsg          string                     = "The agent is not approved"
+	AgentInstallationStoppedReason string                     = "AgentInstallationStopped"
+	AgentInstallationStoppedMsg    string                     = "The agent installation stopped"
 
 	ValidatedCondition         conditionsv1.ConditionType = "Validated"
 	AgentValidationsPassingMsg string                     = "The agent's validations are passing"
