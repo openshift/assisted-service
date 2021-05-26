@@ -15,8 +15,8 @@ import (
 )
 
 type Config struct {
-	DeletedUnregisteredAfter time.Duration `envconfig:"DELETED_UNREGISTERED_AFTER" default:"24h"` // 1d
-	DeregisterInactiveAfter  time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"720h"`    // 20d
+	DeletedUnregisteredAfter time.Duration `envconfig:"DELETED_UNREGISTERED_AFTER" default:"72h"` // 3d
+	DeregisterInactiveAfter  time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"`    // 20d
 	MaxGCClustersPerInterval int           `envconfig:"MAX_GC_CLUSTERS_PER_INTERVAL" default:"100"`
 }
 
