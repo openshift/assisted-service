@@ -4854,6 +4854,23 @@ definitions:
         type: string
         description: Device address (for example "0000:00:02.0")
 
+  route:
+    type: object
+    properties:
+      interface:
+        type: string
+        description: Interface to which packets for this route will be sent
+      gateway:
+        type: string
+        description: Gateway address where the packets are sent
+      destination:
+        type: string
+        description: The destination network or destination host
+      family:
+        type: integer
+        format: int32
+        description: Defines whether this is an IPv4 (4) or IPv6 route (6)
+
   inventory:
     type: object
     properties:
@@ -4885,6 +4902,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/gpu'
+      routes:
+          type: array
+          items:
+            $ref: '#/definitions/route'
 
 
   free_network_addresses:
