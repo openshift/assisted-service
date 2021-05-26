@@ -63,6 +63,10 @@ const (
 	ClusterAlreadyInstallingMsg      string = "The cluster requirements are met"
 	ClusterInstallationStoppedReason string = "ClusterInstallationStopped"
 	ClusterInstallationStoppedMsg    string = "The cluster installation stopped"
+	ClusterInsufficientAgentsReason  string = "InsufficientAgents"
+	ClusterInsufficientAgentsMsg     string = "The cluster currently requires %d agents but only %d have registered"
+	ClusterUnapprovedAgentsReason    string = "UnapprovedAgents"
+	ClusterUnapprovedAgentsMsg       string = "The installation is pending on the approval of %d agents"
 
 	ClusterValidatedCondition    string = "Validated"
 	ClusterValidationsOKMsg      string = "The cluster's validations are passing"

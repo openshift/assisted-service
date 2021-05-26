@@ -313,12 +313,11 @@ func isInstalled(clusterDeployment *hivev1.ClusterDeployment, clusterInstall *hi
 
 func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logrus.FieldLogger, clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
-	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, clusterInstall, cluster)
+	ready, err := r.isReadyForInstallation(ctx, log, clusterInstall, cluster)
 	if err != nil {
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 	if ready {
-
 		// create custom manifests if needed before installation
 		err = r.addCustomManifests(ctx, log, clusterInstall, cluster)
 		if err != nil {
@@ -455,25 +454,20 @@ func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context
 	return s, r.Create(ctx, s)
 }
 
-func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, cluster *hivev1.ClusterDeployment, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) (bool, error) {
+func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) (bool, error) {
 	if ready, _ := r.ClusterApi.IsReadyForInstallation(c); !ready {
 		return false, nil
 	}
 
-	readyHosts := 0
-	for _, h := range c.Hosts {
-		commonh, err := r.Installer.GetCommonHostInternal(ctx, c.ID.String(), h.ID.String())
-		if err != nil {
-			return false, err
-		}
-		if r.HostApi.IsInstallable(h) && commonh.Approved {
-			readyHosts += 1
-		}
+	_, approvedHosts, err := r.getNumOfClusterAgents(ctx, clusterInstall, c)
+	if err != nil {
+		log.WithError(err).Error("failed to fetch agents")
+		return false, err
 	}
 
 	expectedHosts := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents +
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents
-	return readyHosts == expectedHosts, nil
+	return approvedHosts == expectedHosts, nil
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
@@ -1005,7 +999,7 @@ func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error 
 }
 
 // updateStatus is updating all the AgentClusterInstall Conditions.
-// In case that an error has occured when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
+// In case that an error has occurred when trying to sync the Spec, the error (syncErr) is presented in SpecSyncedCondition.
 // Internal bool differentiate between backend server error (internal HTTP 5XX) and user input error (HTTP 4XXX)
 func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster, syncErr error) (ctrl.Result, error) {
 	clusterSpecSynced(clusterInstall, syncErr)
@@ -1014,11 +1008,20 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 
 		if c.Status != nil {
 			status := *c.Status
-			err := r.populateEventsURL(log, clusterInstall, c)
+			var err error
+			err = r.populateEventsURL(log, clusterInstall, c)
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
-			clusterRequirementsMet(clusterInstall, status)
+			var registeredHosts, approvedHosts int
+			if status == models.ClusterStatusReady {
+				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(ctx, clusterInstall, c)
+				if err != nil {
+					log.WithError(err).Error("failed to fetch cluster's agents")
+					return ctrl.Result{Requeue: true}, nil
+				}
+			}
+			clusterRequirementsMet(clusterInstall, status, c, registeredHosts, approvedHosts)
 			clusterValidated(clusterInstall, status, c)
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
@@ -1067,6 +1070,25 @@ func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, cluster
 	return eventsURL, nil
 }
 
+func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(ctx context.Context, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) (int, int, error) {
+	registeredHosts := 0
+	approvedHosts := 0
+	for _, h := range c.Hosts {
+		if r.HostApi.IsInstallable(h) {
+			registeredHosts += 1
+			commonh, err := r.Installer.GetCommonHostInternal(ctx, c.ID.String(), h.ID.String())
+			if err != nil {
+				return 0, 0, err
+			}
+			if commonh.Approved {
+				approvedHosts += 1
+			}
+		}
+	}
+
+	return registeredHosts, approvedHosts, nil
+}
+
 // clusterSpecSynced is updating the Cluster SpecSynced Condition.
 func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 	var condStatus corev1.ConditionStatus
@@ -1094,15 +1116,28 @@ func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 	})
 }
 
-func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string) {
+func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, c *common.Cluster, registeredHosts, approvedHosts int) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
+
 	switch status {
 	case models.ClusterStatusReady:
-		condStatus = corev1.ConditionTrue
-		reason = ClusterReadyReason
-		msg = ClusterReadyMsg
+		expectedHosts := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents +
+			clusterInstall.Spec.ProvisionRequirements.WorkerAgents
+		if registeredHosts < expectedHosts {
+			condStatus = corev1.ConditionFalse
+			reason = ClusterInsufficientAgentsReason
+			msg = fmt.Sprintf(ClusterInsufficientAgentsMsg, expectedHosts, approvedHosts)
+		} else if approvedHosts < expectedHosts {
+			condStatus = corev1.ConditionFalse
+			reason = ClusterUnapprovedAgentsReason
+			msg = fmt.Sprintf(ClusterUnapprovedAgentsMsg, expectedHosts-approvedHosts)
+		} else {
+			condStatus = corev1.ConditionTrue
+			reason = ClusterReadyReason
+			msg = ClusterReadyMsg
+		}
 	case models.ClusterStatusInsufficient, models.ClusterStatusPendingForInput:
 		condStatus = corev1.ConditionFalse
 		reason = ClusterNotReadyReason
