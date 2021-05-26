@@ -400,7 +400,7 @@ func (r *InfraEnvReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				"cluster_deployment_namespace": clusterDeployment.GetNamespace(),
 			})
 		infraEnvs := &aiv1beta1.InfraEnvList{}
-		if err := r.List(context.Background(), infraEnvs, client.InNamespace(clusterDeployment.GetNamespace())); err != nil {
+		if err := r.List(context.Background(), infraEnvs); err != nil {
 			log.Debugf("failed to list InfraEnvs")
 			return []reconcile.Request{}
 		}
