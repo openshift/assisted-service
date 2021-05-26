@@ -58,7 +58,7 @@ require (
 	github.com/slok/go-http-metrics v0.8.0
 	github.com/stretchr/testify v1.6.1
 	github.com/thedevsaddam/retry v0.0.0-20200324223450-9769a859cc6d
-	github.com/thoas/go-funk v0.6.0
+	github.com/thoas/go-funk v0.8.0
 	github.com/vincent-petithory/dataurl v0.0.0-20191104211930-d1553a71de50
 	go.elastic.co/apm/module/apmhttp v1.11.0
 	go.elastic.co/apm/module/apmlogrus v1.11.0

@@ -1172,10 +1172,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("new deployment with hyperthreading disabled")
 		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
+			Name:           hiveext.MasterAgentMachinePool,
 			Hyperthreading: hiveext.HyperthreadingDisabled,
 		}
 		aciSpec.Compute = []hiveext.AgentMachinePool{
-			{Hyperthreading: hiveext.HyperthreadingDisabled},
+			{Name: hiveext.WorkerAgentMachinePool, Hyperthreading: hiveext.HyperthreadingDisabled},
 		}
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
@@ -1184,6 +1185,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("update deployment with hyperthreading enabled on master only")
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.ControlPlane = &hiveext.AgentMachinePool{
+			Name:           hiveext.MasterAgentMachinePool,
 			Hyperthreading: hiveext.HyperthreadingEnabled,
 		}
 		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
@@ -1193,7 +1195,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("update deployment with hyperthreading enabled on workers only")
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSpec.Compute = []hiveext.AgentMachinePool{
-			{Hyperthreading: hiveext.HyperthreadingEnabled},
+			{Name: hiveext.WorkerAgentMachinePool, Hyperthreading: hiveext.HyperthreadingEnabled},
 		}
 		updateAgentClusterInstallCRD(ctx, kubeClient, installkey, aciSpec)
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)

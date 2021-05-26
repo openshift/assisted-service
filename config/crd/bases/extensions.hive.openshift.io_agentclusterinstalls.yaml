@@ -100,6 +100,7 @@ spec:
                   description: AgentMachinePool is a pool of machines to be installed.
                   properties:
                     hyperthreading:
+                      default: Enabled
                       description: Hyperthreading determines the mode of hyperthreading
                         that machines in the pool will utilize. Default is for hyperthreading
                         to be enabled.
@@ -108,6 +109,13 @@ spec:
                       - Enabled
                       - Disabled
                       type: string
+                    name:
+                      description: Name is the name of the machine pool. For the control
+                        plane machine pool, the name will always be "master". For
+                        the compute machine pools, the only valid name is "worker".
+                      type: string
+                  required:
+                  - name
                   type: object
                 type: array
               controlPlane:
@@ -115,6 +123,7 @@ spec:
                   comprise the control plane.
                 properties:
                   hyperthreading:
+                    default: Enabled
                     description: Hyperthreading determines the mode of hyperthreading
                       that machines in the pool will utilize. Default is for hyperthreading
                       to be enabled.
@@ -123,6 +132,13 @@ spec:
                     - Enabled
                     - Disabled
                     type: string
+                  name:
+                    description: Name is the name of the machine pool. For the control
+                      plane machine pool, the name will always be "master". For the
+                      compute machine pools, the only valid name is "worker".
+                    type: string
+                required:
+                - name
                 type: object
               imageSetRef:
                 description: ImageSetRef is a reference to a ClusterImageSet. The
