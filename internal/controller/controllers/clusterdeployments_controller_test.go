@@ -712,6 +712,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("installed SNO no day2", func() {
+			cr.EnableDay2Cluster = true
 			openshiftID := strfmt.UUID(uuid.New().String())
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.StatusInfo = swag.String("Done")
@@ -789,6 +790,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("Fail to create day2", func() {
+			cr.EnableDay2Cluster = true
 			openshiftID := strfmt.UUID(uuid.New().String())
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
@@ -820,6 +822,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("Create day2 if day1 is already deleted none SNO", func() {
+			cr.EnableDay2Cluster = true
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, gorm.ErrRecordNotFound)
 			id := strfmt.UUID(uuid.New().String())
 			clusterReply := &common.Cluster{
@@ -963,6 +966,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("install day2 host", func() {
+			cr.EnableDay2Cluster = true
 			openshiftID := strfmt.UUID(uuid.New().String())
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
@@ -992,6 +996,7 @@ var _ = Describe("cluster reconcile", func() {
 		})
 
 		It("install failure day2 host", func() {
+			cr.EnableDay2Cluster = true
 			openshiftID := strfmt.UUID(uuid.New().String())
 			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
 			backEndCluster.OpenshiftClusterID = openshiftID
