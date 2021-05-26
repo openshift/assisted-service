@@ -136,10 +136,14 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	if err = r.Get(ctx, kubeKey, clusterDeployment); err != nil {
 		if k8serrors.IsNotFound(err) {
 			// Delete the agent, using a finalizer with pre-delete to deregister the host.
+			log.Infof("Cluster Deployment name: %s namespace: %s not found, deleting Agent",
+				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			return r.deleteAgent(ctx, log, req.NamespacedName)
 		}
+
 		errMsg := fmt.Sprintf("failed to get clusterDeployment with name %s in namespace %s",
 			agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
+		log.WithError(err).Error(errMsg)
 		// Update that we failed to retrieve the clusterDeployment
 		return r.updateStatus(ctx, log, agent, nil, nil, errors.Wrapf(err, errMsg), !k8serrors.IsNotFound(err))
 	}
@@ -149,6 +153,8 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Delete the agent, using a finalizer with pre-delete to deregister the host.
+			log.Infof("Cluster name: %s namespace: %s not found in backend, deleting Agent",
+				agent.Spec.ClusterDeploymentName.Name, agent.Spec.ClusterDeploymentName.Namespace)
 			return r.deleteAgent(ctx, log, req.NamespacedName)
 		}
 		// Update that we failed to retrieve the cluster from the database
@@ -161,6 +167,7 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 	if host == nil {
 		// Host is not a part of the cluster, which may happen with newly created day2 clusters.
 		// Delete the agent, using a finalizer with pre-delete to deregister the host.
+		log.Infof("Host not found in Cluster ID :%s deleting Agent", string(*cluster.ID))
 		return r.deleteAgent(ctx, log, req.NamespacedName)
 	}
 
@@ -535,6 +542,7 @@ func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, host *models.H
 	}
 	var inventory models.Inventory
 	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal host inventory")
 		return err
 	}
 	agent.Status.Inventory.Hostname = inventory.Hostname
@@ -666,6 +674,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
 		}
+		log.WithError(err).Errorf("Failed to get common host from cluster %s", string(*c.ID))
 		return err
 	}
 
@@ -675,6 +684,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				err = common.NewApiError(http.StatusNotFound, err)
 			}
+			log.WithError(err).Errorf("Failed to approve Agent")
 			return err
 		}
 	}
@@ -684,6 +694,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
 		}
+		log.WithError(err).Errorf("Failed to update installer args")
 		return err
 	}
 
@@ -692,6 +703,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			err = common.NewApiError(http.StatusNotFound, err)
 		}
+		log.WithError(err).Errorf("Failed to update host ignition")
 		return err
 	}
 
@@ -748,6 +760,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		ClusterID:           *c.ID,
 	})
 	if err != nil {
+		log.WithError(err).Errorf("Failed to update host params in cluster %s", string(*c.ID))
 		return err
 	}
 
