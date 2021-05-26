@@ -18,5 +18,4 @@ spec:
     - 172.30.0.0/16
   provisionRequirements:
     controlPlaneAgents: 3
-  sshPublicKey: ssh-rsa your-public-key-here
-
+ #sshPublicKey: ssh-rsa your-public-key-here (optional)
