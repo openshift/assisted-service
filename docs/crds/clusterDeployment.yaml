@@ -1,7 +1,7 @@
 apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
-  name: test-cluster
+  name: single-node
   namespace: assisted-installer
 spec:
   baseDomain: hive.example.com
