@@ -199,7 +199,7 @@ func main() {
 	failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
 		"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
 
-	log.Println(fmt.Sprintf("Started service with OCP versions %v", openshiftVersionsMap))
+	log.Println(fmt.Sprintf("Started service with OCP versions %v", Options.OpenshiftVersions))
 
 	failOnError(os.MkdirAll(Options.BMConfig.ISOCacheDir, 0700), "Failed to create ISO cache directory %s", Options.BMConfig.ISOCacheDir)
 
