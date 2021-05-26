@@ -79,21 +79,6 @@ func (mr *MockAPIMockRecorder) DeleteObject(arg0, arg1 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteObject", reflect.TypeOf((*MockAPI)(nil).DeleteObject), arg0, arg1)
 }
 
-// DoAllBootFilesExist mocks base method
-func (m *MockAPI) DoAllBootFilesExist(arg0 context.Context, arg1 string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DoAllBootFilesExist", arg0, arg1)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// DoAllBootFilesExist indicates an expected call of DoAllBootFilesExist
-func (mr *MockAPIMockRecorder) DoAllBootFilesExist(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DoAllBootFilesExist", reflect.TypeOf((*MockAPI)(nil).DoAllBootFilesExist), arg0, arg1)
-}
-
 // DoesObjectExist mocks base method
 func (m *MockAPI) DoesObjectExist(arg0 context.Context, arg1 string) (bool, error) {
 	m.ctrl.T.Helper()
@@ -138,23 +123,6 @@ func (m *MockAPI) Download(arg0 context.Context, arg1 string) (io.ReadCloser, in
 func (mr *MockAPIMockRecorder) Download(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Download", reflect.TypeOf((*MockAPI)(nil).Download), arg0, arg1)
-}
-
-// DownloadBootFile mocks base method
-func (m *MockAPI) DownloadBootFile(arg0 context.Context, arg1, arg2 string) (io.ReadCloser, string, int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DownloadBootFile", arg0, arg1, arg2)
-	ret0, _ := ret[0].(io.ReadCloser)
-	ret1, _ := ret[1].(string)
-	ret2, _ := ret[2].(int64)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
-}
-
-// DownloadBootFile indicates an expected call of DownloadBootFile
-func (mr *MockAPIMockRecorder) DownloadBootFile(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DownloadBootFile", reflect.TypeOf((*MockAPI)(nil).DownloadBootFile), arg0, arg1, arg2)
 }
 
 // DownloadPublic mocks base method
@@ -245,20 +213,6 @@ func (mr *MockAPIMockRecorder) GetObjectSizeBytes(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetObjectSizeBytes", reflect.TypeOf((*MockAPI)(nil).GetObjectSizeBytes), arg0, arg1)
 }
 
-// GetS3BootFileURL mocks base method
-func (m *MockAPI) GetS3BootFileURL(arg0, arg1 string) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetS3BootFileURL", arg0, arg1)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetS3BootFileURL indicates an expected call of GetS3BootFileURL
-func (mr *MockAPIMockRecorder) GetS3BootFileURL(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetS3BootFileURL", reflect.TypeOf((*MockAPI)(nil).GetS3BootFileURL), arg0, arg1)
-}
-
 // IsAwsS3 mocks base method
 func (m *MockAPI) IsAwsS3() bool {
 	m.ctrl.T.Helper()
@@ -317,20 +271,6 @@ func (mr *MockAPIMockRecorder) Upload(arg0, arg1, arg2 interface{}) *gomock.Call
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upload", reflect.TypeOf((*MockAPI)(nil).Upload), arg0, arg1, arg2)
 }
 
-// UploadBootFiles mocks base method
-func (m *MockAPI) UploadBootFiles(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UploadBootFiles", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UploadBootFiles indicates an expected call of UploadBootFiles
-func (mr *MockAPIMockRecorder) UploadBootFiles(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadBootFiles", reflect.TypeOf((*MockAPI)(nil).UploadBootFiles), arg0, arg1, arg2, arg3)
-}
-
 // UploadFile mocks base method
 func (m *MockAPI) UploadFile(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
@@ -371,6 +311,20 @@ func (m *MockAPI) UploadISO(arg0 context.Context, arg1, arg2, arg3 string) error
 func (mr *MockAPIMockRecorder) UploadISO(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISO", reflect.TypeOf((*MockAPI)(nil).UploadISO), arg0, arg1, arg2, arg3)
+}
+
+// UploadISOs mocks base method
+func (m *MockAPI) UploadISOs(arg0 context.Context, arg1 string, arg2 bool) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UploadISOs", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UploadISOs indicates an expected call of UploadISOs
+func (mr *MockAPIMockRecorder) UploadISOs(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadISOs", reflect.TypeOf((*MockAPI)(nil).UploadISOs), arg0, arg1, arg2)
 }
 
 // UploadStream mocks base method

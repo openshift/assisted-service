@@ -16,7 +16,6 @@ import (
 
 	"github.com/openshift/assisted-service/restapi/operations"
 	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
-	"github.com/openshift/assisted-service/restapi/operations/bootfiles"
 	"github.com/openshift/assisted-service/restapi/operations/events"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	"github.com/openshift/assisted-service/restapi/operations/managed_domains"
@@ -41,14 +40,6 @@ type AssistedServiceIsoAPI interface {
 
 	/* GetPresignedForAssistedServiceISO Retrieves a pre-signed S3 URL for downloading assisted-service ISO. */
 	GetPresignedForAssistedServiceISO(ctx context.Context, params assisted_service_iso.GetPresignedForAssistedServiceISOParams) middleware.Responder
-}
-
-//go:generate mockery -name BootfilesAPI -inpkg
-
-/* BootfilesAPI  */
-type BootfilesAPI interface {
-	/* DownloadBootFiles Downloads files used for booting servers. */
-	DownloadBootFiles(ctx context.Context, params bootfiles.DownloadBootFilesParams) middleware.Responder
 }
 
 //go:generate mockery -name EventsAPI -inpkg
@@ -273,7 +264,6 @@ type VersionsAPI interface {
 // Config is configuration for Handler
 type Config struct {
 	AssistedServiceIsoAPI
-	BootfilesAPI
 	EventsAPI
 	InstallerAPI
 	ManagedDomainsAPI
@@ -400,10 +390,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DisableHost(ctx, params)
-	})
-	api.BootfilesDownloadBootFilesHandler = bootfiles.DownloadBootFilesHandlerFunc(func(params bootfiles.DownloadBootFilesParams) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		return c.BootfilesAPI.DownloadBootFiles(ctx, params)
 	})
 	api.InstallerDownloadClusterFilesHandler = installer.DownloadClusterFilesHandlerFunc(func(params installer.DownloadClusterFilesParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

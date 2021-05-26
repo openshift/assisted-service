@@ -133,29 +133,6 @@ var _ = Describe("s3client", func() {
 		client.handleObject(ctx, log, &obj, now, deleteTime, func(ctx context.Context, log logrus.FieldLogger, objectName string) { called = true })
 		Expect(called).To(Equal(false))
 	})
-	It("download_boot_file", func() {
-		objectName := BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz")
-		publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(objectName)}).
-			Return(&s3.HeadObjectOutput{ETag: aws.String("abcdefg"), ContentLength: aws.Int64(100)}, nil)
-		publicMockAPI.EXPECT().GetObject(&s3.GetObjectInput{Bucket: &publicBucket, Key: aws.String(objectName)}).
-			Return(&s3.GetObjectOutput{Body: ioutil.NopCloser(bytes.NewReader([]byte("Hi!")))}, nil)
-		_, name, length, err := client.DownloadBootFile(ctx, defaultTestRhcosObject, "vmlinuz")
-		Expect(name).To(Equal(objectName))
-		Expect(length).To(Equal(int64(100)))
-		Expect(err).To(BeNil())
-	})
-	It("get_s3_boot_file_url", func() {
-		client1 := &S3Client{cfg: &Config{PublicS3Bucket: "public", Region: "us-east-1"}}
-		url := client1.GetS3BootFileURL(defaultTestRhcosObject, "rootfs.img")
-		Expect(url).To(Equal(fmt.Sprintf("https://public.s3.us-east-1.amazonaws.com/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))))
-		client2 := &S3Client{cfg: &Config{PublicS3Bucket: "public", S3EndpointURL: "http://foo.com:1234"}}
-		url = client2.GetS3BootFileURL(defaultTestRhcosObject, "initrd.img")
-		Expect(url).To(Equal(fmt.Sprintf("http://foo.com:1234/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))))
-
-		client3 := &S3Client{cfg: &Config{PublicS3Bucket: "public", Region: "us-east-1", S3EndpointURL: "s3.us-east-1.amazonaws.com"}}
-		url = client3.GetS3BootFileURL(defaultTestRhcosObject, "rootfs.img")
-		Expect(url).To(Equal(fmt.Sprintf("https://public.s3.us-east-1.amazonaws.com/%s", BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))))
-	})
 	Context("upload iso", func() {
 		success := func(hexBytes []byte, baseISOSize, areaOffset, areaLength int64, cached bool) {
 			uploadID := "12345"
@@ -325,39 +302,27 @@ var _ = Describe("s3client", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-	Context("upload boot files", func() {
+	Context("upload isos", func() {
 		It("all exist", func() {
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObjectMinimal)}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{Bucket: &publicBucket, Key: aws.String(defaultTestRhcosObject)}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz"))}).
 				Return(&s3.HeadObjectOutput{}, nil)
 			mockVersions.EXPECT().GetRHCOSImage(defaultTestOpenShiftVersion).Return(defaultTestRhcosURL, nil).Times(1)
 
 			// Called once for GetBaseIsoObject and once for GetMinimalIsoObjectName
 			mockVersions.EXPECT().GetRHCOSVersion(defaultTestOpenShiftVersion).Return(defaultTestRhcosVersion, nil).Times(2)
 
-			err := client.UploadBootFiles(ctx, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, true)
+			err := client.UploadISOs(ctx, defaultTestOpenShiftVersion, true)
 			Expect(err).ToNot(HaveOccurred())
 		})
 		It("unsupported openshift version", func() {
 			unsupportedVersion := "999"
 			mockVersions.EXPECT().GetRHCOSImage(unsupportedVersion).Return("", errors.New("unsupported")).Times(1)
-			err := client.UploadBootFiles(ctx, unsupportedVersion, defaultTestServiceBaseURL, false)
+			err := client.UploadISOs(ctx, unsupportedVersion, false)
 			Expect(err).To(HaveOccurred())
 		})
-		It("missing iso and rootfs", func() {
+		It("missing isos", func() {
 			ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				filesDir, err := ioutil.TempDir("", "isotest")
 				Expect(err).ToNot(HaveOccurred())
@@ -392,26 +357,14 @@ var _ = Describe("s3client", func() {
 			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
 				Bucket: &publicBucket,
 				Key:    aws.String(defaultTestRhcosObject)}).
-				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound"))).Times(2)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "initrd.img"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "rootfs.img"))}).
 				Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound")))
-			publicMockAPI.EXPECT().HeadObject(&s3.HeadObjectInput{
-				Bucket: &publicBucket,
-				Key:    aws.String(BootFileTypeToObjectName(defaultTestRhcosObject, "vmlinuz"))}).
-				Return(&s3.HeadObjectOutput{}, nil)
-			publicUploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(3)
+			publicUploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(2)
 
 			// Should upload version file
 			uploader.EXPECT().Upload(gomock.Any()).Return(nil, nil).Times(1)
 			mockVersions.EXPECT().GetRHCOSRootFS(defaultTestOpenShiftVersion).Return("https://example.com/rootfs/url", nil)
 
-			err := client.uploadBootFiles(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, defaultTestServiceBaseURL, false)
+			err := client.uploadISOs(ctx, defaultTestRhcosObject, defaultTestRhcosObjectMinimal, ts.URL, defaultTestOpenShiftVersion, false)
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})

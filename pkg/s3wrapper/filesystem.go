@@ -314,14 +314,13 @@ func (f *FSClient) ListObjectsByPrefix(ctx context.Context, prefix string) ([]st
 	return matches, nil
 }
 
-// UploadBootFiles is responsible for downloading to the filesystem the RHCOS
-// live cd (if needed) based on the openshiftVersion and constructing the boot
-// files and minimal iso for later use.
+// UploadISOs is responsible for downloading to the filesystem the RHCOS
+// live cd (if needed) based on the openshiftVersion and constructing the minimal iso for later use.
 // The order of operations here is important, we determine if we have all
 // necessary boot files and the minimal template has been created, download the
 // livecd iso if not available, extract the boot files from the iso, and
 // construct the minimal iso on the filesystem.
-func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
+func (f *FSClient) UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error {
 	log := logutil.FromContext(ctx, f.log)
 	rhcosImage, err := f.versionsHandler.GetRHCOSImage(openshiftVersion)
 	if err != nil {
@@ -338,7 +337,7 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 		return err
 	}
 
-	baseExists, err := f.DoAllBootFilesExist(ctx, baseIsoObject)
+	baseExists, err := f.DoesPublicObjectExist(ctx, baseIsoObject)
 	if err != nil {
 		return err
 	}
@@ -358,11 +357,7 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 		return nil
 	}
 
-	existsInBucket, err := f.DoesObjectExist(ctx, baseIsoObject)
-	if err != nil {
-		return err
-	}
-	if !existsInBucket {
+	if !baseExists {
 		err = UploadFromURLToPublicBucket(ctx, baseIsoObject, rhcosImage, f)
 		if err != nil {
 			return err
@@ -371,13 +366,6 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 	}
 
 	isoFilePath := filepath.Join(f.basedir, baseIsoObject)
-
-	if !baseExists {
-		if err = ExtractBootFilesFromISOAndUpload(ctx, log, isoFilePath, baseIsoObject, rhcosImage, f); err != nil {
-			return err
-		}
-	}
-
 	if !minimalExists {
 		rootFSURL, err := f.versionsHandler.GetRHCOSRootFS(openshiftVersion)
 		if err != nil {
@@ -388,20 +376,6 @@ func (f *FSClient) UploadBootFiles(ctx context.Context, openshiftVersion, servic
 		}
 	}
 	return nil
-}
-
-func (f *FSClient) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
-	return DoAllBootFilesExist(ctx, isoObjectName, f)
-}
-
-func (f *FSClient) DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error) {
-	objectName := BootFileTypeToObjectName(isoObjectName, fileType)
-	reader, contentLength, err := f.Download(ctx, objectName)
-	return reader, objectName, contentLength, err
-}
-
-func (f *FSClient) GetS3BootFileURL(isoObjectName, fileType string) string {
-	return ""
 }
 
 func (f *FSClient) GetBaseIsoObject(openshiftVersion string) (string, error) {
@@ -553,24 +527,12 @@ func (d *FSClientDecorator) ListObjectsByPrefix(ctx context.Context, prefix stri
 	return d.fsClient.ListObjectsByPrefix(ctx, prefix)
 }
 
-func (d *FSClientDecorator) UploadBootFiles(ctx context.Context, openshiftVersion, serviceBaseURL string, haveLatestMinimalTemplate bool) error {
-	err := d.fsClient.UploadBootFiles(ctx, openshiftVersion, serviceBaseURL, haveLatestMinimalTemplate)
+func (d *FSClientDecorator) UploadISOs(ctx context.Context, openshiftVersion string, haveLatestMinimalTemplate bool) error {
+	err := d.fsClient.UploadISOs(ctx, openshiftVersion, haveLatestMinimalTemplate)
 	if err != nil {
 		d.reportFilesystemUsageMetrics()
 	}
 	return err
-}
-
-func (d *FSClientDecorator) DoAllBootFilesExist(ctx context.Context, isoObjectName string) (bool, error) {
-	return d.fsClient.DoAllBootFilesExist(ctx, isoObjectName)
-}
-
-func (d *FSClientDecorator) DownloadBootFile(ctx context.Context, isoObjectName, fileType string) (io.ReadCloser, string, int64, error) {
-	return d.fsClient.DownloadBootFile(ctx, isoObjectName, fileType)
-}
-
-func (d *FSClientDecorator) GetS3BootFileURL(isoObjectName, fileType string) string {
-	return d.fsClient.GetS3BootFileURL(isoObjectName, fileType)
 }
 
 func (d *FSClientDecorator) GetBaseIsoObject(openshiftVersion string) (string, error) {

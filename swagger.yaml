@@ -13,8 +13,6 @@ tags:
     description: Agent-driven installation
   - name: assisted-service-iso
     description: ISO that contains the Assisted Service.
-  - name: bootfiles
-    description: Non-customized files used to boot hosts.
   - name: events
     description: Events related to a cluster installation.
   - name: installer
@@ -3044,50 +3042,6 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
-        "401":
-          description: Unauthorized.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "403":
-          description: Forbidden.
-          schema:
-            $ref: '#/definitions/infra_error'
-        "500":
-          description: Error.
-          schema:
-            $ref: '#/definitions/error'
-
-  /boot-files:
-    get:
-      tags:
-        - bootfiles
-      security: []
-      description: Downloads files used for booting servers.
-      operationId: DownloadBootFiles
-      produces:
-        - application/octet-stream
-      parameters:
-        - in: query
-          name: openshift_version
-          description: The corresponding OpenShift version for the boot file.
-          type: string
-          required: true
-        - in: query
-          name: file_type
-          description: The file type to download.
-          type: string
-          enum: [initrd.img, rootfs.img, vmlinuz]
-          required: true
-      responses:
-        "200":
-          description: Success.
-          schema:
-            type: file
-        "307":
-          description: Redirect.
-          headers:
-            Location:
-              type: string
         "401":
           description: Unauthorized.
           schema:

@@ -246,74 +246,6 @@ func init() {
         }
       }
     },
-    "/boot-files": {
-      "get": {
-        "security": [],
-        "description": "Downloads files used for booting servers.",
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "bootfiles"
-        ],
-        "operationId": "DownloadBootFiles",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The corresponding OpenShift version for the boot file.",
-            "name": "openshift_version",
-            "in": "query",
-            "required": true
-          },
-          {
-            "enum": [
-              "initrd.img",
-              "rootfs.img",
-              "vmlinuz"
-            ],
-            "type": "string",
-            "description": "The file type to download.",
-            "name": "file_type",
-            "in": "query",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "file"
-            }
-          },
-          "307": {
-            "description": "Redirect.",
-            "headers": {
-              "Location": {
-                "type": "string"
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/clusters": {
       "get": {
         "security": [
@@ -7628,10 +7560,6 @@ func init() {
       "name": "assisted-service-iso"
     },
     {
-      "description": "Non-customized files used to boot hosts.",
-      "name": "bootfiles"
-    },
-    {
       "description": "Events related to a cluster installation.",
       "name": "events"
     },
@@ -7875,74 +7803,6 @@ func init() {
             "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/boot-files": {
-      "get": {
-        "security": [],
-        "description": "Downloads files used for booting servers.",
-        "produces": [
-          "application/octet-stream"
-        ],
-        "tags": [
-          "bootfiles"
-        ],
-        "operationId": "DownloadBootFiles",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The corresponding OpenShift version for the boot file.",
-            "name": "openshift_version",
-            "in": "query",
-            "required": true
-          },
-          {
-            "enum": [
-              "initrd.img",
-              "rootfs.img",
-              "vmlinuz"
-            ],
-            "type": "string",
-            "description": "The file type to download.",
-            "name": "file_type",
-            "in": "query",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "file"
-            }
-          },
-          "307": {
-            "description": "Redirect.",
-            "headers": {
-              "Location": {
-                "type": "string"
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
             }
           },
           "500": {
@@ -15324,10 +15184,6 @@ func init() {
     {
       "description": "ISO that contains the Assisted Service.",
       "name": "assisted-service-iso"
-    },
-    {
-      "description": "Non-customized files used to boot hosts.",
-      "name": "bootfiles"
     },
     {
       "description": "Events related to a cluster installation.",

@@ -19,7 +19,6 @@ import (
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
-	"github.com/openshift/assisted-service/internal/bootfiles"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
@@ -317,7 +316,6 @@ func main() {
 	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.manifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi)
-	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
 
 	clusterStateMonitor := thread.New(
 		log.WithField("pkg", "cluster-monitor"), "Cluster State Monitor", Options.ClusterStateMonitorInterval, clusterApi.ClusterMonitoring)
@@ -412,7 +410,6 @@ func main() {
 		ManagedDomainsAPI:     domainHandler,
 		InnerMiddleware:       innerHandler(),
 		ManifestsAPI:          manifestsApi,
-		BootfilesAPI:          bootFilesApi,
 		OperatorsAPI:          operatorsHandler,
 	})
 	failOnError(err, "Failed to init rest handler")
@@ -431,17 +428,17 @@ func main() {
 	h = spec.WithSpecMiddleware(h)
 
 	go func() {
-		// Upload boot files with a leader lock if we're running with multiple replicas
+		// Upload ISOs with a leader lock if we're running with multiple replicas
 		if Options.DeployTarget == deployment_type_k8s {
 			baseISOUploadLeader := leader.NewElector(k8sClient, leader.Config{LeaseDuration: 5 * time.Second,
 				RetryInterval: 2 * time.Second, Namespace: Options.LeaderConfig.Namespace, RenewDeadline: 4 * time.Second},
 				"assisted-service-baseiso-helper",
 				log.WithField("pkg", "baseISOUploadLeader"))
 
-			uploadFunc := func() error { return uploadBootFiles(objectHandler, openshiftVersionsMap, log) }
+			uploadFunc := func() error { return uploadISOs(objectHandler, openshiftVersionsMap, log) }
 			failOnError(baseISOUploadLeader.RunWithLeader(context.Background(), uploadFunc), "Failed to upload boot files")
 		} else {
-			failOnError(uploadBootFiles(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
+			failOnError(uploadISOs(objectHandler, openshiftVersionsMap, log), "Failed to upload boot files")
 		}
 
 		apiEnabler.Enable()
@@ -514,7 +511,7 @@ func generateAPMTransactionName(request *http.Request) string {
 	return route.Operation.ID
 }
 
-func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
+func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.OpenshiftVersions, log logrus.FieldLogger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	errs, _ := errgroup.WithContext(ctx)
 	//cancel the context in case this method ends
@@ -526,7 +523,7 @@ func uploadBootFiles(objectHandler s3wrapper.API, openshiftVersionsMap models.Op
 	for version := range openshiftVersionsMap {
 		currVersion := version
 		errs.Go(func() error {
-			err := objectHandler.UploadBootFiles(context.Background(), currVersion, Options.BMConfig.ServiceBaseURL, haveLatestMinimalTemplate)
+			err := objectHandler.UploadISOs(context.Background(), currVersion, haveLatestMinimalTemplate)
 			return errors.Wrapf(err, "Failed uploading boot files for OCP version %s", currVersion)
 		})
 	}
