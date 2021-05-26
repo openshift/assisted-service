@@ -3393,7 +3393,7 @@ definitions:
       sno:
         x-go-name: SNORequirements
         $ref: '#/definitions/cluster-host-requirements-details'
-        description: SNO deployment node requirements
+        description: Single node OpenShift node requirements
 
   host-requirements-role:
     type: object

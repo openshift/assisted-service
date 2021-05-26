@@ -19,7 +19,7 @@ type VersionedHostRequirements struct {
 	// Master node requirements
 	MasterRequirements *ClusterHostRequirementsDetails `json:"master,omitempty"`
 
-	// SNO deployment node requirements
+	// Single node OpenShift node requirements
 	SNORequirements *ClusterHostRequirementsDetails `json:"sno,omitempty"`
 
 	// Worker node requirements

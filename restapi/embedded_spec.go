@@ -7508,7 +7508,7 @@ func init() {
           "$ref": "#/definitions/cluster-host-requirements-details"
         },
         "sno": {
-          "description": "SNO deployment node requirements",
+          "description": "Single node OpenShift node requirements",
           "x-go-name": "SNORequirements",
           "$ref": "#/definitions/cluster-host-requirements-details"
         },
@@ -15139,7 +15139,7 @@ func init() {
           "$ref": "#/definitions/cluster-host-requirements-details"
         },
         "sno": {
-          "description": "SNO deployment node requirements",
+          "description": "Single node OpenShift node requirements",
           "x-go-name": "SNORequirements",
           "$ref": "#/definitions/cluster-host-requirements-details"
         },
