@@ -84,14 +84,8 @@ type InstallerAPI interface {
 	/* DownloadClusterISO Downloads the OpenShift per-cluster Discovery ISO. */
 	DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder
 
-	/* DownloadClusterISOClone Downloads the OpenShift per-cluster Discovery ISO. Provided for compatability with Dell IDRAC. */
-	DownloadClusterISOClone(ctx context.Context, params installer.DownloadClusterISOCloneParams) middleware.Responder
-
 	/* DownloadClusterISOHeaders Downloads the OpenShift per-cluster Discovery ISO Headers only. */
 	DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder
-
-	/* DownloadClusterISOHeadersClone Downloads the OpenShift per-cluster Discovery ISO Headers only. */
-	DownloadClusterISOHeadersClone(ctx context.Context, params installer.DownloadClusterISOHeadersCloneParams) middleware.Responder
 
 	/* DownloadClusterKubeconfig Downloads the kubeconfig file for this cluster. */
 	DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder
@@ -421,20 +415,10 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterISO(ctx, params)
 	})
-	api.InstallerDownloadClusterISOCloneHandler = installer.DownloadClusterISOCloneHandlerFunc(func(params installer.DownloadClusterISOCloneParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.DownloadClusterISOClone(ctx, params)
-	})
 	api.InstallerDownloadClusterISOHeadersHandler = installer.DownloadClusterISOHeadersHandlerFunc(func(params installer.DownloadClusterISOHeadersParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.DownloadClusterISOHeaders(ctx, params)
-	})
-	api.InstallerDownloadClusterISOHeadersCloneHandler = installer.DownloadClusterISOHeadersCloneHandlerFunc(func(params installer.DownloadClusterISOHeadersCloneParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.DownloadClusterISOHeadersClone(ctx, params)
 	})
 	api.InstallerDownloadClusterKubeconfigHandler = installer.DownloadClusterKubeconfigHandlerFunc(func(params installer.DownloadClusterKubeconfigParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

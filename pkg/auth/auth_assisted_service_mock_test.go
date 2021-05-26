@@ -64,18 +64,6 @@ func (f fakeInventory) DownloadClusterFiles(ctx context.Context, params installe
 		0)
 }
 
-func (f fakeInventory) DownloadClusterISOClone(ctx context.Context, params installer.DownloadClusterISOCloneParams) middleware.Responder {
-	file, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadClusterISOCloneInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
-	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterISOCloneOK().WithPayload(io.ReadCloser(file)),
-		"test",
-		0)
-}
-
 func (f fakeInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
 	file, err := ioutil.TempFile("/tmp", "test.file")
 	if err != nil {
@@ -89,18 +77,6 @@ func (f fakeInventory) DownloadClusterISO(ctx context.Context, params installer.
 }
 
 func (f fakeInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
-	_, err := ioutil.TempFile("/tmp", "test.file")
-	if err != nil {
-		return installer.NewDownloadClusterISOHeadersInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, err))
-	}
-	return filemiddleware.NewResponder(
-		installer.NewDownloadClusterISOHeadersOK(),
-		"test",
-		0)
-}
-
-func (f fakeInventory) DownloadClusterISOHeadersClone(ctx context.Context, params installer.DownloadClusterISOHeadersCloneParams) middleware.Responder {
 	_, err := ioutil.TempFile("/tmp", "test.file")
 	if err != nil {
 		return installer.NewDownloadClusterISOHeadersInternalServerError().WithPayload(
