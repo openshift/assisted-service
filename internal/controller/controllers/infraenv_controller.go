@@ -78,6 +78,7 @@ func (r *InfraEnvReconciler) Reconcile(origCtx context.Context, req ctrl.Request
 
 	infraEnv := &aiv1beta1.InfraEnv{}
 	if err := r.Get(ctx, req.NamespacedName, infraEnv); err != nil {
+		log.WithError(err).Errorf("Failed to get resource %s", req.NamespacedName)
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 

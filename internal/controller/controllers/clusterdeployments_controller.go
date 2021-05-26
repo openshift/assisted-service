@@ -161,13 +161,14 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		}
 	}
 
-	cdReplay, cdErr := r.clusterDeploymentFinalizer(ctx, log, clusterDeployment)
-	if cdReplay != nil {
-		return *cdReplay, cdErr
+	cdReply, cdErr := r.clusterDeploymentFinalizer(ctx, log, clusterDeployment)
+	if cdReply != nil {
+		return *cdReply, cdErr
 	}
 
 	err = r.ensureOwnerRef(ctx, log, clusterDeployment, clusterInstall)
 	if err != nil {
+		log.WithError(err).Error("error setting owner reference")
 		return ctrl.Result{Requeue: true}, err
 	}
 
@@ -189,12 +190,14 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 	// check for updates from user, compare spec and update if needed
 	err = r.updateIfNeeded(ctx, log, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
+		log.WithError(err).Error("failed to update cluster")
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
 	// check for install config overrides and update if needed
 	err = r.updateInstallConfigOverrides(ctx, log, clusterInstall, cluster)
 	if err != nil {
+		log.WithError(err).Error("failed to update install config overrides")
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
@@ -203,11 +206,15 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		if !isInstalled(clusterDeployment, clusterInstall) {
 			// create secrets and update status
 			err = r.updateClusterMetadata(ctx, log, clusterDeployment, cluster, clusterInstall)
+			if err != nil {
+				log.WithError(err).Error("failed to update cluster metadata")
+			}
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		} else {
 			// Delete Day1 Cluster
 			_, err = r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
 			if err != nil {
+				log.WithError(err).Error("failed to deregister cluster")
 				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 			}
 			if !r.isSNO(clusterInstall) {
@@ -314,6 +321,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 	clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) (ctrl.Result, error) {
 	ready, err := r.isReadyForInstallation(ctx, clusterDeployment, clusterInstall, cluster)
 	if err != nil {
+		log.WithError(err).Error("failed to check if cluster ready for installation")
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 	if ready {
@@ -321,6 +329,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 		// create custom manifests if needed before installation
 		err = r.addCustomManifests(ctx, log, clusterInstall, cluster)
 		if err != nil {
+			log.WithError(err).Error("failed to add custom manifests")
 			_, _ = r.updateStatus(ctx, log, clusterInstall, cluster, err)
 			// We decided to requeue with one minute timeout in order to give user a chance to fix manifest
 			// this timeout allows us not to run reconcile too much time and
@@ -334,6 +343,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 			ClusterID: *cluster.ID,
 		})
 		if err != nil {
+			log.WithError(err).Error("failed to start cluster install")
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 		return r.updateStatus(ctx, log, clusterInstall, ic, err)
@@ -346,6 +356,7 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
 		if err != nil {
+			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", h.ID.String(), cluster.ID.String())
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
 		if r.HostApi.IsInstallable(h) && commonh.Approved {
@@ -742,7 +753,7 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 
-	log.Infof("Creating a new clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
+	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
 	pullSecret, err := getPullSecret(ctx, r.Client, spec.PullSecretRef, key.Namespace)
@@ -828,7 +839,9 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	c, err := r.Installer.RegisterAddHostsClusterInternal(ctx, &key, installer.RegisterAddHostsClusterParams{
 		NewAddHostsClusterParams: clusterParams,
 	})
-
+	if err != nil {
+		log.WithError(err).Error("failed to create day2 cluster")
+	}
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
 
