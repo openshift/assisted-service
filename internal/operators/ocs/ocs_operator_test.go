@@ -16,70 +16,88 @@ var _ = Describe("Ocs Operator", func() {
 	var (
 		ctx                 = context.TODO()
 		operator            = NewOcsOperator(common.GetTestLog())
-		masterWithThreeDisk = &models.Host{Role: models.HostRoleMaster,
+		diskID1             = "/dev/disk/by-id/test-disk-1"
+		diskID2             = "/dev/disk/by-id/test-disk-2"
+		diskID3             = "/dev/disk/by-id/test-disk-3"
+		masterWithThreeDisk = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
 				}})}
 		masterWithNoDisk      = &models.Host{Role: models.HostRoleMaster, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB})}
 		masterWithNoInventory = &models.Host{Role: models.HostRoleMaster}
-		masterWithOneDisk     = &models.Host{Role: models.HostRoleMaster,
+		masterWithOneDisk     = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"}}})}
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1}}})}
 
-		masterWithLessCPU = &models.Host{Role: models.HostRoleMaster,
+		masterWithLessCPU = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
 				}})}
 
-		masterWithLessRAM = &models.Host{Role: models.HostRoleMaster,
+		masterWithLessRAM = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
 				}})}
-		workerWithOneDisk = &models.Host{Role: models.HostRoleWorker,
+		masterWithLessDiskSize = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				}})}
+		workerWithOneDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
 				}})}
-		workerWithTwoDisk = &models.Host{Role: models.HostRoleWorker,
+		workerWithTwoDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
 				}})}
-		workerWithThreeDisk = &models.Host{Role: models.HostRoleWorker,
+		workerWithThreeDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "HDD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3},
 				}})}
 		workerWithNoDisk      = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
 		workerWithNoInventory = &models.Host{Role: models.HostRoleWorker}
-		workerWithLessCPU     = &models.Host{Role: models.HostRoleWorker,
+		workerWithLessCPU     = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
 				}})}
-		workerWithLessRAM = &models.Host{Role: models.HostRoleWorker,
+		workerWithLessRAM = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
 				}})}
-		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
-			Disks: []*models.Disk{
-				{SizeBytes: 20 * conversions.GB, DriveType: "HDD"},
-				{SizeBytes: 40 * conversions.GB, DriveType: "SSD"},
-			}})}
+		workerWithLessDiskSize = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				}})}
+		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+				}})}
 	)
 
 	Context("GetHostRequirements", func() {
@@ -92,49 +110,49 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk,
 				}}},
 				masterWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("there are three masters",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("no disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithNoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("no inventory in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoInventory, masterWithOneDisk,
 				}}},
 				masterWithNoInventory,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("only one disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithOneDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("there are 3 hosts, role of one as auto-assign",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, autoAssignHost,
 				}}},
 				autoAssignHost,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUCompactMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBCompactMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("there are two master and one worker",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, workerWithTwoDisk,
 				}}},
 				workerWithTwoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 		)
 
@@ -147,7 +165,7 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, autoAssignHost, masterWithOneDisk,
 				}}},
 				autoAssignHost,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("there are 6 hosts, master requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -161,14 +179,14 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithThreeDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + 2*operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + 2*operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("there are 6 hosts, worker with two disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
 				workerWithTwoDisk,
-				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: MinDiskSize},
+				&models.ClusterHostRequirementsDetails{CPUCores: CPUMinimalMode + operator.config.OCSRequiredDiskCPUCount, RAMMib: conversions.GibToMib(MemoryGiBMinimalMode + operator.config.OCSRequiredDiskRAMGiB), DiskSizeGb: ocsMinDiskSize},
 			),
 			table.Entry("there are 6 hosts, worker with one disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -261,6 +279,13 @@ var _ = Describe("Ocs Operator", func() {
 				masterWithLessRAM,
 				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 24 GiB but found 5 GiB."}},
 			),
+			table.Entry("there is disk with less size than expected",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, masterWithLessDiskSize,
+				}}},
+				masterWithLessDiskSize,
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"OCS Invalid Disk Size all the disks present should be more than 25 GB"}},
+			),
 		)
 
 		table.DescribeTable("standard and minimal mode scenario: validateHosts when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
@@ -315,6 +340,13 @@ var _ = Describe("Ocs Operator", func() {
 				}}},
 				workerWithLessRAM,
 				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 16 GiB but found 5 GiB."}},
+			),
+			table.Entry("there is disk with less size than expected",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessDiskSize,
+				}}},
+				workerWithLessDiskSize,
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"OCS Invalid Disk Size all the disks present should be more than 25 GB"}},
 			),
 		)
 	})
