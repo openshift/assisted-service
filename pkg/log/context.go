@@ -27,6 +27,11 @@ func FromContext(ctx context.Context, inner logrus.FieldLogger) logrus.FieldLogg
 	return requestid.RequestIDLogger(inner, requestID).WithFields(getFields(ctx))
 }
 
+func EntryFromContext(ctx context.Context, inner logrus.FieldLogger) *logrus.Entry {
+	requestID := requestid.FromContext(ctx)
+	return requestid.RequestIDLogger(inner, requestID).WithFields(getFields(ctx))
+}
+
 //values to be added to the decorated log
 func getFields(ctx context.Context) logrus.Fields {
 	var fields = make(map[string]interface{})
