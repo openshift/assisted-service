@@ -125,6 +125,22 @@ allow chronyd_t container_file_t:sock_file write;
 allow chronyd_t spc_t:unix_dgram_socket sendto;
 `
 
+const agentFixBZ1964591 = `#!/usr/bin/sh
+
+# This script is a workaround for bugzilla 1964591 where symlinks inside /var/lib/containers/ get
+# corrupted under some circumstances.
+#
+# In order to let agent.service start correctly we are checking here whether the requested
+# container image exists and in case "podman images" returns an error we try removing the faulty
+# image.
+#
+# In such a scenario agent.service will detect the image is not present and pull it again. In case
+# the image is present and can be detected correctly, no any action is required.
+
+IMAGE=$(echo $1 | sed 's/:.*//')
+podman images | grep $IMAGE || podman rmi --force $1 || true
+`
+
 const discoveryIgnitionConfigFormat = `{
   "ignition": {
     "version": "3.1.0"{{if .PROXY_SETTINGS}},
@@ -139,7 +155,7 @@ const discoveryIgnitionConfigFormat = `{
     "units": [{
       "name": "agent.service",
       "enabled": true,
-      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
+      "contents": "[Service]\nType=simple\nRestart=always\nRestartSec=3\nStartLimitInterval=0\nEnvironment=HTTP_PROXY={{.HTTPProxy}}\nEnvironment=http_proxy={{.HTTPProxy}}\nEnvironment=HTTPS_PROXY={{.HTTPSProxy}}\nEnvironment=https_proxy={{.HTTPSProxy}}\nEnvironment=NO_PROXY={{.NoProxy}}\nEnvironment=no_proxy={{.NoProxy}}{{if .PullSecretToken}}\nEnvironment=PULL_SECRET_TOKEN={{.PullSecretToken}}{{end}}\nTimeoutStartSec={{.AgentTimeoutStartSec}}\nExecStartPre=/usr/local/bin/agent-fix-bz1964591 {{.AgentDockerImg}}\nExecStartPre=podman run --privileged --rm -v /usr/local/bin:/hostbin {{.AgentDockerImg}} cp /usr/bin/agent /hostbin\nExecStart=/usr/local/bin/agent --url {{.ServiceBaseURL}} --cluster-id {{.clusterId}} --agent-version {{.AgentDockerImg}} --insecure={{.SkipCertVerification}}  {{if .HostCACertPath}}--cacert {{.HostCACertPath}}{{end}}\n\n[Unit]\nWants=network-online.target\nAfter=network-online.target\n\n[Install]\nWantedBy=multi-user.target"
     },
     {
         "name": "selinux.service",
@@ -155,6 +171,15 @@ const discoveryIgnitionConfigFormat = `{
   },
   "storage": {
     "files": [{
+      "overwrite": true,
+      "path": "/usr/local/bin/agent-fix-bz1964591",
+      "mode": 755,
+      "user": {
+          "name": "root"
+      },
+      "contents": { "source": "data:,{{.AGENT_FIX_BZ1964591}}" }
+    },
+    {
       "overwrite": true,
       "path": "/etc/motd",
       "mode": 420,
@@ -1251,6 +1276,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		"clusterId":            cluster.ID.String(),
 		"PullSecretToken":      pullSecretToken,
 		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
+		"AGENT_FIX_BZ1964591":  url.PathEscape(agentFixBZ1964591),
 		"IPv6_CONF":            url.PathEscape(common.Ipv6DuidDiscoveryConf),
 		"PULL_SECRET":          url.PathEscape(cluster.PullSecret),
 		"RH_ROOT_CA":           rhCa,
