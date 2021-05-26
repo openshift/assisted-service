@@ -71,6 +71,10 @@ func (l *SdKLogger) Error(ctx context.Context, format string, args ...interface{
 	l.FieldLogger.Errorf(format, args...)
 }
 
+func (l *SdKLogger) Fatal(ctx context.Context, format string, args ...interface{}) {
+	l.FieldLogger.Fatalf(format, args...)
+}
+
 func NewClient(config Config, log logrus.FieldLogger, metricsApi metrics.API) (*Client, error) {
 	entry := log.(*logrus.Entry)
 	logger := &SdKLogger{Log: entry.Logger, FieldLogger: log}
