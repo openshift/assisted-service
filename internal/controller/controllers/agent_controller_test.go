@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -16,6 +17,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -350,6 +352,47 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Message).To(Equal(SyncedOkMsg))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+	})
+
+	It("validate Event URL", func() {
+		_, priv, err := gencrypto.ECDSAKeyPairPEM()
+		Expect(err).NotTo(HaveOccurred())
+		os.Setenv("EC_PRIVATE_KEY_PEM", priv)
+		defer os.Unsetenv("EC_PRIVATE_KEY_PEM")
+		Expect(err).NotTo(HaveOccurred())
+		serviceBaseURL := "http://acme.com"
+		hr.ServiceBaseURL = serviceBaseURL
+		hostId := strfmt.UUID(uuid.New().String())
+		expectedEventUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/events?host_id=%s", serviceBaseURL, sId, hostId.String())
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				{
+					ID:         &hostId,
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+				},
+			}}}
+
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+
+		Expect(agent.Status.DebugInfo.EventsURL).NotTo(BeNil())
+		Expect(agent.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
 	})
 
 	It("Agent update ignition override valid cases", func() {

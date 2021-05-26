@@ -146,6 +146,13 @@ spec:
                   - hostDeploymentName
                   type: object
                 type: array
+              debugInfo:
+                description: DebugInfo includes information for debugging the installation process.
+                properties:
+                  eventsURL:
+                    description: EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
+                    type: string
+                type: object
               discoveryAgentVersion:
                 type: string
               hostValidationInfo:

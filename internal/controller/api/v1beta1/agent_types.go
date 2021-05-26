@@ -216,6 +216,15 @@ type AgentStatus struct {
 	APIVipConnectivity    bool                             `json:"apiVIPConnectivity,omitempty"`
 	NtpSources            []HostNTPSources                 `json:"ntpSources,omitempty"`
 	Conditions            []conditionsv1.Condition         `json:"conditions,omitempty"`
+	// DebugInfo includes information for debugging the installation process.
+	// +optional
+	DebugInfo DebugInfo `json:"debugInfo"`
+}
+
+type DebugInfo struct {
+	// EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
+	// +optional
+	EventsURL string `json:"eventsURL,omitempty"`
 }
 
 // +kubebuilder:object:root=true
