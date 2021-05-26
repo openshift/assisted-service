@@ -99,6 +99,9 @@ type DebugInfo struct {
 	// EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
 	// +optional
 	EventsURL string `json:"eventsURL,omitempty"`
+
+	// LogsURL specifies a url for download controller logs tar file.
+	LogsURL string `json:"logsURL,omitempty"`
 }
 
 // Networking defines the pod network provider in the cluster.

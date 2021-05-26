@@ -35,6 +35,19 @@ AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMe
 |Stopped|True|InstallationCancelled|The installation has stopped because it was cancelled|if the cluster status is "cancelled"|
 |Stopped|True|InstallationCompleted|The installation has stopped because it completed successfully|if the cluster status is "installed"|
 |Stopped|False|InstallationNotStopped|The installation is waiting to start or in progress|If the cluster status is not "error", "cancelled" or "installed|
+||||||
+|LogCollectionCompleted|True|Completed|Logs are available|after installation completed or failed and logs are collected|
+|LogCollectionCompleted|False|Requested|Logs have been requested but not yet collected|a request for logs has been made before gathering|
+|LogCollectionCompleted|False|Collecting|Logs are currently being collected|after installation completed or failed|
+|LogCollectionCompleted|False|Timeout|Log collection has failed due to timeout|after installation has completed or failed|
+|LogCollectionCompleted|False|Unavailable|Log collection not yet started|before and during installation|
+||||||
+|LogCollectionStopped|True|Completed|Logs are available|after installation completed or failed and logs are collected|
+|LogCollectionStopped|False|Requested|Logs have been requested but not yet collected|a request for logs has been made before it was uploaded|
+|LogCollectionStopped|False|Collecting|Logs are currently being collected|after installation completed or failed|
+|LogCollectionStopped|False|Timeout|Log collection has failed due to timeout|after installation has completed or failed|
+|LogCollectionStopped|False|Unavailable|Log collection not yet started|before and during installation|
+
 
 Here an example of AgentClusterInstall conditions:
 
@@ -77,6 +90,18 @@ Status:
     Reason:                      InstallationNotStopped
     Status:                      False
     Type:                        Stopped
+    Last Probe Time:             2021-05-21T21:11:47Z
+    Last Transition Time:        2021-05-21T21:11:47Z
+    Message:                     Log collection not yet started
+    Reason:                      Unavailable
+    Status:                      False
+    Type:                        LogCollectionCompleted
+    Last Probe Time:             2021-05-21T21:11:47Z
+    Last Transition Time:        2021-05-21T21:11:47Z
+    Message:                     Log collection not yet started
+    Reason:                      Unavailable
+    Status:                      False
+    Type:                        LogCollectionStopped
 ```
 
 ## Agent Conditions

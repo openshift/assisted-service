@@ -116,4 +116,18 @@ const (
 	AgentValidationsPassingMsg string                     = "The agent's validations are passing"
 	AgentValidationsUnknownMsg string                     = "The agent's validations have not yet been calculated"
 	AgentValidationsFailingMsg string                     = "The agent's validations are failing:"
+
+	LogCollectionCompletedCondition string = "LogCollectionCompleted"
+	LogCollectionStoppedCondition   string = "LogCollectionStopped"
+
+	LogCollectionCompletedReason   string = "Completed"
+	LogCollectionCompletedMsg      string = "Logs are available"
+	LogCollectionRequestedReason   string = "Requested"
+	LogCollectionRequestedMsg      string = "Logs have been requested but not yet collected"
+	LogCollectionCollectingReason  string = "Collecting"
+	LogCollectionCollectingMsg     string = "Logs are currently being collected"
+	LogCollectionTimeoutReason     string = "Timeout"
+	LogCollectionTimeoutMsg        string = "Log collection has failed due to timeout"
+	LogCollectionUnavailableReason string = "Unavailable"
+	LogCollectionUnavailableMsg    string = "Log collection not yet started"
 )

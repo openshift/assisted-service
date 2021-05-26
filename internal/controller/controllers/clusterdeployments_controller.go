@@ -1031,6 +1031,10 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
+			err = r.populateLogsURL(log, clusterInstall, c)
+			if err != nil {
+				return ctrl.Result{Requeue: true}, nil
+			}
 			var registeredHosts, approvedHosts int
 			if status == models.ClusterStatusReady {
 				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(ctx, clusterInstall, c)
@@ -1044,6 +1048,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterStopped(clusterInstall, status)
+			clusterControllerLogs(clusterInstall, c)
+
 		}
 	} else {
 		setClusterConditionsUnknown(clusterInstall)
@@ -1071,6 +1077,18 @@ func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger,
 		}
 	} else {
 		clusterInstall.Status.DebugInfo.EventsURL = ""
+	}
+	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) populateLogsURL(log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
+	if *c.Status != models.ClusterStatusInstalled {
+		if err := r.setControllerLogsDownloadURL(clusterInstall, c); err != nil {
+			log.WithError(err).Error("failed to generate controller logs URL")
+			return err
+		}
+	} else {
+		clusterInstall.Status.DebugInfo.LogsURL = ""
 	}
 	return nil
 }
@@ -1348,6 +1366,18 @@ func setClusterConditionsUnknown(clusterInstall *hiveext.AgentClusterInstall) {
 		Reason:  NotAvailableReason,
 		Message: NotAvailableMsg,
 	})
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    LogCollectionCompletedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
+	})
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    LogCollectionStoppedCondition,
+		Status:  corev1.ConditionUnknown,
+		Reason:  NotAvailableReason,
+		Message: NotAvailableMsg,
+	})
 }
 
 // SetStatusCondition sets the corresponding condition in conditions to newCondition.
@@ -1400,4 +1430,77 @@ func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log l
 		return err
 	}
 	return r.Update(ctx, ci)
+}
+
+func clusterControllerLogs(clusterInstall *hiveext.AgentClusterInstall, cluster *common.Cluster) {
+	var status corev1.ConditionStatus
+	var reason, message string
+	switch {
+	case !swag.IsZero(cluster.ControllerLogsCollectedAt):
+		status = corev1.ConditionTrue
+		reason = LogCollectionCompletedReason
+		message = LogCollectionCompletedMsg
+	case cluster.LogsInfo == models.LogsStateTimeout:
+		status = corev1.ConditionFalse
+		reason = LogCollectionTimeoutReason
+		message = LogCollectionTimeoutMsg
+	case cluster.LogsInfo == models.LogsStateRequested:
+		status = corev1.ConditionFalse
+		reason = LogCollectionRequestedReason
+		message = LogCollectionRequestedMsg
+	case cluster.LogsInfo == models.LogsStateCollecting:
+		status = corev1.ConditionFalse
+		reason = LogCollectionCollectingReason
+		message = LogCollectionCollectingMsg
+	default:
+		status = corev1.ConditionFalse
+		reason = LogCollectionUnavailableReason
+		message = LogCollectionUnavailableMsg
+	}
+
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    LogCollectionCompletedCondition,
+		Status:  status,
+		Reason:  reason,
+		Message: message,
+	})
+	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
+		Type:    LogCollectionStoppedCondition,
+		Status:  status,
+		Reason:  reason,
+		Message: message,
+	})
+}
+
+func (r *ClusterDeploymentsReconciler) setControllerLogsDownloadURL(
+	clusterInstall *hiveext.AgentClusterInstall,
+	cluster *common.Cluster) error {
+	if clusterInstall.Status.DebugInfo.LogsURL != "" || swag.IsZero(cluster.ControllerLogsCollectedAt) {
+		return nil
+	}
+
+	logsUrl, err := r.generateControllerLogsDownloadURL(cluster)
+	if err != nil {
+		return err
+	}
+	clusterInstall.Status.DebugInfo.LogsURL = logsUrl
+
+	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster *common.Cluster) (string, error) {
+	downloadURL := fmt.Sprintf("%s%s/clusters/%s/logs",
+		r.ServiceBaseURL, restclient.DefaultBasePath, cluster.ID.String())
+
+	if r.AuthType != auth.TypeLocal {
+		return downloadURL, nil
+	}
+
+	var err error
+	downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String())
+	if err != nil {
+		return "", errors.Wrap(err, "failed to sign cluster controller logs URL")
+	}
+
+	return downloadURL, nil
 }

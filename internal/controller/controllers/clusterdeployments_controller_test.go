@@ -15,6 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	restclient "github.com/openshift/assisted-service/client"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -1600,347 +1601,523 @@ var _ = Describe("cluster reconcile", func() {
 })
 
 var _ = Describe("TestConditions", func() {
-	var (
-		c                      client.Client
-		cr                     *ClusterDeploymentsReconciler
-		ctx                    = context.Background()
-		mockCtrl               *gomock.Controller
-		backEndCluster         *common.Cluster
-		clusterRequest         ctrl.Request
-		clusterKey             types.NamespacedName
-		agentClusterInstallKey types.NamespacedName
-	)
+	Context("Installation phases conditions", func() {
+		var (
+			c                      client.Client
+			cr                     *ClusterDeploymentsReconciler
+			ctx                    = context.Background()
+			mockCtrl               *gomock.Controller
+			backEndCluster         *common.Cluster
+			clusterRequest         ctrl.Request
+			clusterKey             types.NamespacedName
+			agentClusterInstallKey types.NamespacedName
+		)
 
-	BeforeEach(func() {
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-		mockCtrl = gomock.NewController(GinkgoT())
-		mockInstallerInternal := bminventory.NewMockInstallerInternals(mockCtrl)
-		mockClusterApi := cluster.NewMockAPI(mockCtrl)
-		cr = &ClusterDeploymentsReconciler{
-			Client:     c,
-			Scheme:     scheme.Scheme,
-			Log:        common.GetTestLog(),
-			Installer:  mockInstallerInternal,
-			ClusterApi: mockClusterApi,
-		}
-		backEndCluster = &common.Cluster{}
-		clusterKey = types.NamespacedName{
-			Namespace: testNamespace,
-			Name:      "clusterDeployment",
-		}
-		agentClusterInstallKey = types.NamespacedName{
-			Namespace: testNamespace,
-			Name:      "agentClusterInstall",
-		}
-		clusterDeployment := newClusterDeployment(clusterKey.Name, clusterKey.Namespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", agentClusterInstallKey.Name, "pull-secret"))
-		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
-		aci := newAgentClusterInstall(agentClusterInstallKey.Name, agentClusterInstallKey.Namespace, getDefaultAgentClusterInstallSpec(clusterKey.Name), clusterDeployment)
-		aci.Spec.ProvisionRequirements.WorkerAgents = 0
-		aci.Spec.ProvisionRequirements.ControlPlaneAgents = 0
-		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
-		clusterRequest = newClusterDeploymentRequest(clusterDeployment)
-		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-	})
-
-	AfterEach(func() {
-		mockCtrl.Finish()
-	})
-
-	tests := []struct {
-		name           string
-		clusterStatus  string
-		statusInfo     string
-		validationInfo string
-		conditions     []hivev1.ClusterInstallCondition
-	}{
-		{
-			name:           "Unsufficient",
-			clusterStatus:  models.ClusterStatusInsufficient,
-			statusInfo:     "",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
-			conditions: []hivev1.ClusterInstallCondition{
-				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterNotReadyMsg,
-					Reason:  ClusterNotReadyReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationNotStartedMsg,
-					Reason:  InstallationNotStartedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK",
-					Reason:  ValidationsFailingReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
-					Status:  corev1.ConditionFalse,
-				},
-			},
-		},
-		{
-			name:           "PendingForInput",
-			clusterStatus:  models.ClusterStatusPendingForInput,
-			statusInfo:     "",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
-			conditions: []hivev1.ClusterInstallCondition{
-				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterNotReadyMsg,
-					Reason:  ClusterNotReadyReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationNotStartedMsg,
-					Reason:  InstallationNotStartedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK",
-					Reason:  ValidationsFailingReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
-					Status:  corev1.ConditionFalse,
-				},
-			},
-		},
-		{
-			name:           "AddingHosts",
-			clusterStatus:  models.ClusterStatusAddingHosts,
-			statusInfo:     "Done",
-			validationInfo: "",
-			conditions: []hivev1.ClusterInstallCondition{
-				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterAlreadyInstallingMsg,
-					Reason:  ClusterAlreadyInstallingReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterCompletedCondition,
-					Message: InstalledMsg + " Done",
-					Reason:  InstalledReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
-					Status:  corev1.ConditionFalse,
-				},
-			},
-		},
-		{
-			name:           "Installed",
-			clusterStatus:  models.ClusterStatusInstalled,
-			statusInfo:     "Done",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
-			conditions: []hivev1.ClusterInstallCondition{
-				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterInstallationStoppedMsg,
-					Reason:  ClusterInstallationStoppedReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterCompletedCondition,
-					Message: InstalledMsg + " Done",
-					Reason:  InstalledReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterStoppedCompletedMsg,
-					Reason:  ClusterStoppedCompletedReason,
-					Status:  corev1.ConditionTrue,
-				},
-			},
-		},
-		{
-			name:           "Installing",
-			clusterStatus:  models.ClusterStatusInstalling,
-			statusInfo:     "Phase 1",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
-			conditions: []hivev1.ClusterInstallCondition{
-				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterAlreadyInstallingMsg,
-					Reason:  ClusterAlreadyInstallingReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationInProgressMsg + " Phase 1",
-					Reason:  InstallationInProgressReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
-					Status:  corev1.ConditionFalse,
-				},
-			},
-		},
-		{
-			name:           "Ready",
-			clusterStatus:  models.ClusterStatusReady,
-			statusInfo:     "",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
-			conditions: []hivev1.ClusterInstallCondition{
-				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterReadyMsg,
-					Reason:  ClusterReadyReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationNotStartedMsg,
-					Reason:  InstallationNotStartedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
-					Status:  corev1.ConditionFalse,
-				},
-			},
-		},
-		{
-			name:           "Error",
-			clusterStatus:  models.ClusterStatusError,
-			statusInfo:     "failed due to some error",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
-			conditions: []hivev1.ClusterInstallCondition{
-				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterInstallationStoppedMsg,
-					Reason:  ClusterInstallationStoppedReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationFailedMsg + " failed due to some error",
-					Reason:  InstallationFailedReason,
-					Status:  corev1.ConditionFalse,
-				},
-				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterFailedMsg + " failed due to some error",
-					Reason:  ClusterFailedReason,
-					Status:  corev1.ConditionTrue,
-				},
-				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterStoppedFailedMsg,
-					Reason:  ClusterStoppedFailedReason,
-					Status:  corev1.ConditionTrue,
-				},
-			},
-		},
-	}
-
-	for i := range tests {
-		t := tests[i]
-		It(t.name, func() {
-			backEndCluster.Status = swag.String(t.clusterStatus)
-			backEndCluster.StatusInfo = swag.String(t.statusInfo)
-			backEndCluster.ValidationsInfo = t.validationInfo
-			cid := strfmt.UUID(uuid.New().String())
-			backEndCluster.ID = &cid
-			_, err := cr.Reconcile(ctx, clusterRequest)
-			Expect(err).To(BeNil())
-			cluster := &hivev1.ClusterDeployment{}
-			Expect(c.Get(ctx, clusterKey, cluster)).To(BeNil())
-			clusterInstall := &hiveext.AgentClusterInstall{}
-			Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
-			for _, cond := range t.conditions {
-				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Message).To(Equal(cond.Message))
-				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
-				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
+		BeforeEach(func() {
+			c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+			mockCtrl = gomock.NewController(GinkgoT())
+			mockInstallerInternal := bminventory.NewMockInstallerInternals(mockCtrl)
+			mockClusterApi := cluster.NewMockAPI(mockCtrl)
+			cr = &ClusterDeploymentsReconciler{
+				Client:     c,
+				Scheme:     scheme.Scheme,
+				Log:        common.GetTestLog(),
+				Installer:  mockInstallerInternal,
+				ClusterApi: mockClusterApi,
 			}
-
+			backEndCluster = &common.Cluster{}
+			clusterKey = types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "clusterDeployment",
+			}
+			agentClusterInstallKey = types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "agentClusterInstall",
+			}
+			clusterDeployment := newClusterDeployment(clusterKey.Name, clusterKey.Namespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", agentClusterInstallKey.Name, "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			aci := newAgentClusterInstall(agentClusterInstallKey.Name, agentClusterInstallKey.Namespace, getDefaultAgentClusterInstallSpec(clusterKey.Name), clusterDeployment)
+			aci.Spec.ProvisionRequirements.WorkerAgents = 0
+			aci.Spec.ProvisionRequirements.ControlPlaneAgents = 0
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+			clusterRequest = newClusterDeploymentRequest(clusterDeployment)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		})
-	}
+
+		AfterEach(func() {
+			mockCtrl.Finish()
+		})
+
+		tests := []struct {
+			name           string
+			clusterStatus  string
+			statusInfo     string
+			validationInfo string
+			conditions     []hivev1.ClusterInstallCondition
+		}{
+			{
+				name:           "Unsufficient",
+				clusterStatus:  models.ClusterStatusInsufficient,
+				statusInfo:     "",
+				validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    ClusterRequirementsMetCondition,
+						Message: ClusterNotReadyMsg,
+						Reason:  ClusterNotReadyReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterCompletedCondition,
+						Message: InstallationNotStartedMsg,
+						Reason:  InstallationNotStartedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterValidatedCondition,
+						Message: ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK",
+						Reason:  ValidationsFailingReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterFailedCondition,
+						Message: ClusterNotFailedMsg,
+						Reason:  ClusterNotFailedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterStoppedCondition,
+						Message: ClusterNotStoppedMsg,
+						Reason:  ClusterNotStoppedReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:           "PendingForInput",
+				clusterStatus:  models.ClusterStatusPendingForInput,
+				statusInfo:     "",
+				validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    ClusterRequirementsMetCondition,
+						Message: ClusterNotReadyMsg,
+						Reason:  ClusterNotReadyReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterCompletedCondition,
+						Message: InstallationNotStartedMsg,
+						Reason:  InstallationNotStartedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterValidatedCondition,
+						Message: ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK",
+						Reason:  ValidationsFailingReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterFailedCondition,
+						Message: ClusterNotFailedMsg,
+						Reason:  ClusterNotFailedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterStoppedCondition,
+						Message: ClusterNotStoppedMsg,
+						Reason:  ClusterNotStoppedReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:           "AddingHosts",
+				clusterStatus:  models.ClusterStatusAddingHosts,
+				statusInfo:     "Done",
+				validationInfo: "",
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    ClusterRequirementsMetCondition,
+						Message: ClusterAlreadyInstallingMsg,
+						Reason:  ClusterAlreadyInstallingReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterCompletedCondition,
+						Message: InstalledMsg + " Done",
+						Reason:  InstalledReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterValidatedCondition,
+						Message: ClusterValidationsOKMsg,
+						Reason:  ValidationsPassingReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterFailedCondition,
+						Message: ClusterNotFailedMsg,
+						Reason:  ClusterNotFailedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterStoppedCondition,
+						Message: ClusterNotStoppedMsg,
+						Reason:  ClusterNotStoppedReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:           "Installed",
+				clusterStatus:  models.ClusterStatusInstalled,
+				statusInfo:     "Done",
+				validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    ClusterRequirementsMetCondition,
+						Message: ClusterInstallationStoppedMsg,
+						Reason:  ClusterInstallationStoppedReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterCompletedCondition,
+						Message: InstalledMsg + " Done",
+						Reason:  InstalledReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterValidatedCondition,
+						Message: ClusterValidationsOKMsg,
+						Reason:  ValidationsPassingReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterFailedCondition,
+						Message: ClusterNotFailedMsg,
+						Reason:  ClusterNotFailedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterStoppedCondition,
+						Message: ClusterStoppedCompletedMsg,
+						Reason:  ClusterStoppedCompletedReason,
+						Status:  corev1.ConditionTrue,
+					},
+				},
+			},
+			{
+				name:           "Installing",
+				clusterStatus:  models.ClusterStatusInstalling,
+				statusInfo:     "Phase 1",
+				validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    ClusterRequirementsMetCondition,
+						Message: ClusterAlreadyInstallingMsg,
+						Reason:  ClusterAlreadyInstallingReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterCompletedCondition,
+						Message: InstallationInProgressMsg + " Phase 1",
+						Reason:  InstallationInProgressReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterValidatedCondition,
+						Message: ClusterValidationsOKMsg,
+						Reason:  ValidationsPassingReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterFailedCondition,
+						Message: ClusterNotFailedMsg,
+						Reason:  ClusterNotFailedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterStoppedCondition,
+						Message: ClusterNotStoppedMsg,
+						Reason:  ClusterNotStoppedReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:           "Ready",
+				clusterStatus:  models.ClusterStatusReady,
+				statusInfo:     "",
+				validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    ClusterRequirementsMetCondition,
+						Message: ClusterReadyMsg,
+						Reason:  ClusterReadyReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterCompletedCondition,
+						Message: InstallationNotStartedMsg,
+						Reason:  InstallationNotStartedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterValidatedCondition,
+						Message: ClusterValidationsOKMsg,
+						Reason:  ValidationsPassingReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterFailedCondition,
+						Message: ClusterNotFailedMsg,
+						Reason:  ClusterNotFailedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterStoppedCondition,
+						Message: ClusterNotStoppedMsg,
+						Reason:  ClusterNotStoppedReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:           "Error",
+				clusterStatus:  models.ClusterStatusError,
+				statusInfo:     "failed due to some error",
+				validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    ClusterRequirementsMetCondition,
+						Message: ClusterInstallationStoppedMsg,
+						Reason:  ClusterInstallationStoppedReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterCompletedCondition,
+						Message: InstallationFailedMsg + " failed due to some error",
+						Reason:  InstallationFailedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    ClusterValidatedCondition,
+						Message: ClusterValidationsOKMsg,
+						Reason:  ValidationsPassingReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterFailedCondition,
+						Message: ClusterFailedMsg + " failed due to some error",
+						Reason:  ClusterFailedReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    ClusterStoppedCondition,
+						Message: ClusterStoppedFailedMsg,
+						Reason:  ClusterStoppedFailedReason,
+						Status:  corev1.ConditionTrue,
+					},
+				},
+			},
+		}
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				backEndCluster.Status = swag.String(t.clusterStatus)
+				backEndCluster.StatusInfo = swag.String(t.statusInfo)
+				backEndCluster.ValidationsInfo = t.validationInfo
+				cid := strfmt.UUID(uuid.New().String())
+				backEndCluster.ID = &cid
+				_, err := cr.Reconcile(ctx, clusterRequest)
+				Expect(err).To(BeNil())
+				cluster := &hivev1.ClusterDeployment{}
+				Expect(c.Get(ctx, clusterKey, cluster)).To(BeNil())
+				clusterInstall := &hiveext.AgentClusterInstall{}
+				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
+				for _, cond := range t.conditions {
+					Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Message).To(Equal(cond.Message))
+					Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
+					Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
+				}
+
+			})
+		}
+	})
+
+	Context("Controller Logs Conditions Tests", func() {
+		var (
+			c                      client.Client
+			cr                     *ClusterDeploymentsReconciler
+			ctx                    = context.Background()
+			mockCtrl               *gomock.Controller
+			backEndCluster         *common.Cluster
+			clusterRequest         ctrl.Request
+			clusterKey             types.NamespacedName
+			agentClusterInstallKey types.NamespacedName
+			clusterID              strfmt.UUID
+		)
+
+		clusterID = strfmt.UUID(uuid.New().String())
+
+		tests := []struct {
+			name                      string
+			logsState                 models.LogsState
+			ControllerLogsCollectedAt strfmt.DateTime
+			conditions                []hivev1.ClusterInstallCondition
+			expectedLogsUrl           string
+		}{
+			{
+				name:      "Unavailable",
+				logsState: models.LogsStateEmpty,
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    LogCollectionCompletedCondition,
+						Message: LogCollectionUnavailableMsg,
+						Reason:  LogCollectionUnavailableReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    LogCollectionStoppedCondition,
+						Message: LogCollectionUnavailableMsg,
+						Reason:  LogCollectionUnavailableReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:      "Timeout",
+				logsState: models.LogsStateTimeout,
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    LogCollectionCompletedCondition,
+						Message: LogCollectionTimeoutMsg,
+						Reason:  LogCollectionTimeoutReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    LogCollectionStoppedCondition,
+						Message: LogCollectionTimeoutMsg,
+						Reason:  LogCollectionTimeoutReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:      "Requested",
+				logsState: models.LogsStateRequested,
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    LogCollectionCompletedCondition,
+						Message: LogCollectionRequestedMsg,
+						Reason:  LogCollectionRequestedReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    LogCollectionStoppedCondition,
+						Message: LogCollectionRequestedMsg,
+						Reason:  LogCollectionRequestedReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:      "Collecting",
+				logsState: models.LogsStateCollecting,
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    LogCollectionCompletedCondition,
+						Message: LogCollectionCollectingMsg,
+						Reason:  LogCollectionCollectingReason,
+						Status:  corev1.ConditionFalse,
+					},
+					{
+						Type:    LogCollectionStoppedCondition,
+						Message: LogCollectionCollectingMsg,
+						Reason:  LogCollectionCollectingReason,
+						Status:  corev1.ConditionFalse,
+					},
+				},
+			},
+			{
+				name:                      "Completed",
+				ControllerLogsCollectedAt: strfmt.DateTime(time.Now()),
+				conditions: []hivev1.ClusterInstallCondition{
+					{
+						Type:    LogCollectionCompletedCondition,
+						Message: LogCollectionCompletedMsg,
+						Reason:  LogCollectionCompletedReason,
+						Status:  corev1.ConditionTrue,
+					},
+					{
+						Type:    LogCollectionStoppedCondition,
+						Message: LogCollectionCompletedMsg,
+						Reason:  LogCollectionCompletedReason,
+						Status:  corev1.ConditionTrue,
+					},
+				},
+				expectedLogsUrl: fmt.Sprintf("assisted-service-url%s/clusters/%s/logs",
+					restclient.DefaultBasePath, clusterID.String()),
+			},
+		}
+
+		BeforeEach(func() {
+			c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+			mockCtrl = gomock.NewController(GinkgoT())
+			mockInstallerInternal := bminventory.NewMockInstallerInternals(mockCtrl)
+			cr = &ClusterDeploymentsReconciler{
+				Client:         c,
+				Scheme:         scheme.Scheme,
+				Log:            common.GetTestLog(),
+				Installer:      mockInstallerInternal,
+				ServiceBaseURL: "assisted-service-url",
+			}
+			backEndCluster = &common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
+			clusterKey = types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "clusterDeployment",
+			}
+			agentClusterInstallKey = types.NamespacedName{
+				Namespace: testNamespace,
+				Name:      "agentClusterInstall",
+			}
+			clusterDeployment := newClusterDeployment(clusterKey.Name, clusterKey.Namespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", agentClusterInstallKey.Name, "pull-secret"))
+			Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+			aci := newAgentClusterInstall(agentClusterInstallKey.Name, agentClusterInstallKey.Namespace, getDefaultAgentClusterInstallSpec(clusterKey.Name), clusterDeployment)
+			Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+			clusterRequest = newClusterDeploymentRequest(clusterDeployment)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		})
+
+		AfterEach(func() {
+			mockCtrl.Finish()
+		})
+
+		for i := range tests {
+			t := tests[i]
+			It(t.name, func() {
+				backEndCluster.Status = swag.String(models.ClusterStatusInstalling)
+				backEndCluster.StatusInfo = swag.String("")
+				backEndCluster.ID = &clusterID
+				backEndCluster.LogsInfo = t.logsState
+				backEndCluster.ControllerLogsCollectedAt = t.ControllerLogsCollectedAt
+				_, err := cr.Reconcile(ctx, clusterRequest)
+				Expect(err).To(BeNil())
+				cluster := &hivev1.ClusterDeployment{}
+				Expect(c.Get(ctx, clusterKey, cluster)).To(BeNil())
+				clusterInstall := &hiveext.AgentClusterInstall{}
+				Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).To(BeNil())
+				for _, cond := range t.conditions {
+					Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Message).To(Equal(cond.Message))
+					Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
+					Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
+				}
+				if t.expectedLogsUrl != "" {
+					Expect(clusterInstall.Status.DebugInfo.LogsURL).Should(Equal(t.expectedLogsUrl))
+				}
+			})
+		}
+	})
 })
