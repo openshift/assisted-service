@@ -767,7 +767,9 @@ func (g *installerGenerator) modifyBMHFile(file *config_latest_types.File, bmh *
 		return err
 	}
 
-	encodedBMH := base64.StdEncoding.EncodeToString(buf.Bytes())
+	// remove status if exists
+	res := bytes.Split(buf.Bytes(), []byte("status:\n"))
+	encodedBMH := base64.StdEncoding.EncodeToString(res[0])
 	source := "data:text/plain;charset=utf-8;base64," + encodedBMH
 	file.Contents.Source = &source
 
