@@ -287,9 +287,9 @@ objects:
               - name: ENABLE_SINGLE_NODE_DNSMASQ
                 value: ${ENABLE_SINGLE_NODE_DNSMASQ}
               - name: DB_MAX_IDLE_CONNECTIONS
-                  value: ${DB_MAX_IDLE_CONNECTIONS}
+                value: ${DB_MAX_IDLE_CONNECTIONS}
               - name: DB_MAX_OPEN_CONNECTIONS
-                  value: ${DB_MAX_OPEN_CONNECTIONS}
+                value: ${DB_MAX_OPEN_CONNECTIONS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
