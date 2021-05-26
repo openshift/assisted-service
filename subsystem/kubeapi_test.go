@@ -1124,6 +1124,47 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.ImageGenerated).Should(Equal(true))
 	})
 
+	It("deploy infraEnv in default namespace before clusterDeployment", func() {
+		// Deploy InfraEnv in default namespace
+		err := kubeClient.Create(ctx, &v1beta1.InfraEnv{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "InfraEnv",
+				APIVersion: getAPIVersion(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      infraNsName.Name,
+			},
+			Spec: *infraEnvSpec,
+		})
+		Expect(err).To(BeNil())
+		defer func() {
+			Expect(kubeClient.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace("default"))).To(BeNil())
+		}()
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: "default",
+			Name:      infraNsName.Name,
+		}
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		clusterKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterRequirementsMetCondition, controllers.ClusterNotReadyReason)
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+
+		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		Expect(cluster.ImageGenerated).Should(Equal(true))
+	})
+
 	It("deploy clusterDeployment and infraEnv and with an invalid ignition override", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
