@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
@@ -44,6 +45,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
+
+const defaultRequeueAfterPerClientError = 2 * bminventory.WindowBetweenRequestsInSeconds
 
 type InfraEnvConfig struct {
 	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`
@@ -312,11 +315,13 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 func (r *InfraEnvReconciler) handleEnsureISOErrors(
 	ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv, err error) (ctrl.Result, error) {
 	var (
-		currentReason = ""
+		currentReason               = ""
+		RequeueAfter  time.Duration = 0
 		errMsg        string
 		Requeue       bool
 	)
-	// TODO: Checking currentCondition as a workaround until MGMT-4695 and MGMT-4696 get resolved.
+
+	// TODO: Checking currentCondition as a workaround until MGMT-4695 get resolved.
 	// If the current condition is in an error state, avoid clearing it up.
 	if currentCondition := conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition); currentCondition != nil {
 		currentReason = currentCondition.Reason
@@ -336,8 +341,10 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		if isClientError(err) {
 			Requeue = false
 			errMsg = ": " + err.Error()
+			err = nil // clear the error, to avoid requeue.
 		} else {
 			Requeue = true
+			RequeueAfter = defaultRequeueAfterPerClientError
 			errMsg = ": internal error"
 		}
 		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
@@ -352,7 +359,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update infraEnv status")
 	}
-	return ctrl.Result{Requeue: Requeue}, err
+	return ctrl.Result{Requeue: Requeue, RequeueAfter: RequeueAfter}, err
 }
 
 func imageBeingCreated(err error) bool {

@@ -72,6 +72,7 @@ const DefaultUser = "kubeadmin"
 
 // 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
 const ContainerAlreadyRunningExitCode = 125
+const WindowBetweenRequestsInSeconds = 10 * time.Second
 
 type Config struct {
 	ignition.IgnitionConfig
@@ -906,7 +907,7 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	*/
 	now := time.Now()
 	previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
-	if previousCreatedAt.Add(10 * time.Second).After(now) {
+	if previousCreatedAt.Add(WindowBetweenRequestsInSeconds).After(now) {
 		log.Error("request came too soon after previous request")
 		return nil, common.NewApiError(
 			http.StatusConflict,
