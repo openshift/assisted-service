@@ -14,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	serviceHost "github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 )
@@ -115,6 +116,61 @@ var _ = Describe("Host tests", func() {
 		Expect(err).To(Not(HaveOccurred()))
 		return string(b)
 	}
+
+	It("should update host installation disk id successfully", func() {
+		host := &registerHost(clusterID).Host
+		host = getHost(clusterID, *host.ID)
+		Expect(host).NotTo(BeNil())
+		inventory, error := hostutil.UnmarshalInventory(defaultInventory())
+		Expect(error).ToNot(HaveOccurred())
+		inventory.Disks = []*models.Disk{
+			{
+				ID:        "wwn-0x1111111111111111111111",
+				ByID:      "wwn-0x1111111111111111111111",
+				DriveType: "HDD",
+				Name:      "sda",
+				SizeBytes: int64(120) * (int64(1) << 30),
+				Bootable:  true,
+			},
+			{
+				ID:        "wwn-0x2222222222222222222222",
+				ByID:      "wwn-0x2222222222222222222222",
+				DriveType: "HDD",
+				Name:      "sdb",
+				SizeBytes: int64(120) * (int64(1) << 30),
+				Bootable:  true,
+			},
+		}
+
+		inventoryStr, err := hostutil.MarshalInventory(inventory)
+		Expect(err).ToNot(HaveOccurred())
+		host = updateInventory(ctx, clusterID, *host.ID, inventoryStr)
+
+		Expect(host.InstallationDiskID).To(Equal(inventory.Disks[0].ID))
+		Expect(host.InstallationDiskPath).To(Equal(hostutil.GetDeviceFullName(inventory.Disks[0])))
+
+		diskSelectionRequest := &installer.UpdateClusterParams{
+			ClusterID: clusterID,
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				DisksSelectedConfig: []*models.ClusterUpdateParamsDisksSelectedConfigItems0{
+					{
+						DisksConfig: []*models.DiskConfigParams{
+							{ID: &inventory.Disks[1].ID, Role: models.DiskRoleInstall},
+							{ID: &inventory.Disks[0].ID, Role: models.DiskRoleNone},
+						},
+						ID: *host.ID,
+					},
+				},
+			},
+		}
+
+		updatedCluster := updateCluster(ctx, diskSelectionRequest)
+		Expect(updatedCluster.Hosts).NotTo(BeEmpty())
+		Expect(updatedCluster.Hosts).Should(HaveLen(1))
+		host = updatedCluster.Hosts[0]
+		Expect(host.InstallationDiskID).To(Equal(inventory.Disks[1].ID))
+		Expect(host.InstallationDiskPath).To(Equal(hostutil.GetDeviceFullName(inventory.Disks[1])))
+	})
 
 	It("next step", func() {
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -649,3 +705,29 @@ var _ = Describe("Host tests", func() {
 		Expect(registration.NextStepRunnerCommand.RetrySeconds).Should(Equal(int64(0))) //default, just to have in the API
 	})
 })
+
+func updateInventory(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID, inventory string) *models.Host {
+	_, err := agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		ClusterID: clusterId,
+		HostID:    hostId,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			Output:   inventory,
+			StepID:   uuid.New().String(),
+			StepType: models.StepTypeInventory,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+	host := getHost(clusterId, hostId)
+	Expect(host).NotTo(BeNil())
+	Expect(host.Inventory).NotTo(BeEmpty())
+	return host
+}
+
+func updateCluster(ctx context.Context, request *installer.UpdateClusterParams) *models.Cluster {
+	response, error := userBMClient.Installer.UpdateCluster(ctx, request)
+	Expect(error).ShouldNot(HaveOccurred())
+	Expect(response).NotTo(BeNil())
+	Expect(response.Payload).NotTo(BeNil())
+	return response.Payload
+}
