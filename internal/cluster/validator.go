@@ -1,7 +1,6 @@
 package cluster
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -19,10 +18,10 @@ import (
 type ValidationStatus string
 
 const (
-	ValidationSuccess             ValidationStatus = "success"
-	ValidationFailure             ValidationStatus = "failure"
-	ValidationPending             ValidationStatus = "pending"
-	MaximumAllowedTimeDiffMinutes                  = 4
+	ValidationSuccess ValidationStatus = "success"
+	ValidationFailure ValidationStatus = "failure"
+	ValidationPending ValidationStatus = "pending"
+	ValidationError   ValidationStatus = "error"
 )
 
 const (
@@ -485,31 +484,11 @@ func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, 
 }
 
 func (v *clusterValidator) isNtpServerConfigured(c *clusterPreprocessContext) ValidationStatus {
-	var min int64
-	var max int64
-	for _, h := range c.cluster.Hosts {
-		var inventory models.Inventory
-		if err := json.Unmarshal([]byte(h.Inventory), &inventory); err != nil {
-			v.log.WithError(err).Warnf("Illegal inventory for host %s", h.ID.String())
-			continue
-		}
-		if inventory.Timestamp == 0 || *h.Status == models.HostStatusDisconnected ||
-			*h.Status == models.HostStatusDisabled || *h.Status == models.HostStatusResettingPendingUserAction ||
-			*h.Status == models.HostStatusDiscovering {
-			continue
-		}
-
-		if inventory.Timestamp < min || min == 0 {
-			min = inventory.Timestamp
-		}
-		if inventory.Timestamp > max {
-			max = inventory.Timestamp
-		}
+	synced, err := common.IsNtpSynced(c.cluster)
+	if err != nil {
+		return ValidationError
 	}
-	if (max-min)/60 > MaximumAllowedTimeDiffMinutes {
-		return ValidationFailure
-	}
-	return ValidationSuccess
+	return boolValue(synced)
 }
 
 func (v *clusterValidator) printNtpServerConfigured(c *clusterPreprocessContext, status ValidationStatus) string {

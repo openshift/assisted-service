@@ -18,23 +18,7 @@ func (m *Manager) SkipMonitoring(h *models.Host) bool {
 	return result
 }
 
-func (m *Manager) HostMonitoring() {
-	if !m.leaderElector.IsLeader() {
-		m.log.Debugf("Not a leader, exiting HostMonitoring")
-		return
-	}
-	m.log.Debugf("Running HostMonitoring")
-	defer commonutils.MeasureOperation("HostMonitoring", m.log, m.metricApi)()
-	var (
-		offset    int
-		limit     = m.Config.MonitorBatchSize
-		monitored int64
-		requestID = requestid.NewID()
-		ctx       = requestid.ToContext(context.Background(), requestID)
-		log       = requestid.RequestIDLogger(m.log, requestID)
-		err       error
-	)
-
+func (m *Manager) initMonitoringQueryGenerator() {
 	monitorStates := []string{
 		models.HostStatusDiscovering,
 		models.HostStatusKnown,
@@ -51,16 +35,41 @@ func (m *Manager) HostMonitoring() {
 		models.HostStatusCancelled, // for limited time, until log collection finished or timed-out
 		models.HostStatusError,     // for limited time, until log collection finished or timed-out
 	}
+	if m.monitorQueryGenerator == nil {
+		dbWithCondition := m.db.Preload("Hosts", "status in (?)", monitorStates).Preload(common.MonitoredOperatorsTable).
+			Where("exists (select 1 from hosts where clusters.id = hosts.cluster_id)")
+		m.monitorQueryGenerator = common.NewMonitorQueryGenerator(m.db, dbWithCondition, m.Config.MonitorBatchSize)
+	}
+}
+
+func (m *Manager) HostMonitoring() {
+	if !m.leaderElector.IsLeader() {
+		m.log.Debugf("Not a leader, exiting HostMonitoring")
+		return
+	}
+	m.log.Debugf("Running HostMonitoring")
+	defer commonutils.MeasureOperation("HostMonitoring", m.log, m.metricApi)()
+	m.initMonitoringQueryGenerator()
+	var (
+		monitored int64
+		requestID = requestid.NewID()
+		ctx       = requestid.ToContext(context.Background(), requestID)
+		log       = requestid.RequestIDLogger(m.log, requestID)
+		clusters  []*common.Cluster
+		err       error
+	)
+
+	query := m.monitorQueryGenerator.NewQuery()
 	for {
-		var clusters []*common.Cluster
-		if err = m.db.Preload("Hosts", "status in (?)", monitorStates).Preload(common.MonitoredOperatorsTable).
-			Offset(offset).Limit(limit).Order("id").Find(&clusters, "exists (select 1 from hosts where clusters.id = hosts.cluster_id)").Error; err != nil {
-			log.WithError(err).Errorf("failed to get clusters for host monitoring")
-			return
+		if clusters, err = query.Next(); err != nil {
+			m.log.WithError(err).Error("Getting clusters")
+			break
 		}
+
 		if len(clusters) == 0 {
 			break
 		}
+
 		for _, c := range clusters {
 			for _, host := range c.Hosts {
 				if !m.leaderElector.IsLeader() {
@@ -76,7 +85,6 @@ func (m *Manager) HostMonitoring() {
 				}
 			}
 		}
-		offset += limit
 	}
 	m.metricApi.MonitoredHostsCount(monitored)
 }

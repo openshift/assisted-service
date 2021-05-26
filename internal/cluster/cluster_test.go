@@ -905,8 +905,7 @@ var _ = Describe("Auto assign machine CIDR", func() {
 			srcState: models.ClusterStatusPendingForInput,
 			hosts: []*models.Host{
 				{
-					Status:    swag.String(models.HostStatusDiscovering),
-					Inventory: common.GenerateTestDefaultInventory(),
+					Status: swag.String(models.HostStatusDiscovering),
 				},
 			},
 			dhcpEnabled: false,

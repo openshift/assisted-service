@@ -18,7 +18,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/events"
 	"github.com/openshift/assisted-service/client/installer"
-	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
@@ -996,7 +995,7 @@ var _ = Describe("Metrics tests", func() {
 
 			// create a validation failure
 			nonSyncedInventory := &models.Inventory{
-				Timestamp: validHwInfo.Timestamp + (cluster.MaximumAllowedTimeDiffMinutes+1)*60,
+				Timestamp: validHwInfo.Timestamp + (common.MaximumAllowedTimeDiffMinutes+1)*60,
 			}
 			generateHWPostStepReply(ctx, h1, nonSyncedInventory, "h1")
 			Expect(db.Model(h1).Update("status", "known").Error).NotTo(HaveOccurred())
@@ -1017,7 +1016,7 @@ var _ = Describe("Metrics tests", func() {
 			h1 := registerNode(ctx, clusterID, "h1")
 			registerNode(ctx, clusterID, "h2")
 			nonSyncedInventory := &models.Inventory{
-				Timestamp: validHwInfo.Timestamp + (cluster.MaximumAllowedTimeDiffMinutes+1)*60,
+				Timestamp: validHwInfo.Timestamp + (common.MaximumAllowedTimeDiffMinutes+1)*60,
 			}
 			generateHWPostStepReply(ctx, h1, nonSyncedInventory, "h1")
 			Expect(db.Model(h1).Update("status", "known").Error).NotTo(HaveOccurred())
