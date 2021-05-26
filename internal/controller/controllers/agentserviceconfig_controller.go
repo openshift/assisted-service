@@ -550,7 +550,7 @@ func (r *AgentServiceConfigReconciler) newAgentService(instance *aiv1beta1.Agent
 		svc.Spec.Ports[0].TargetPort = intstr.IntOrString{Type: intstr.Int, IntVal: servicePort}
 		svc.Spec.Ports[0].Protocol = corev1.ProtocolTCP
 		svc.Spec.Selector = map[string]string{"app": serviceName}
-		svc.Spec.Type = corev1.ServiceTypeLoadBalancer
+		svc.Spec.Type = corev1.ServiceTypeClusterIP
 		return nil
 	}
 
