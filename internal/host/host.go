@@ -1142,7 +1142,7 @@ func (m *Manager) ResetHostValidation(ctx context.Context, hostID, clusterID str
 	h, err := common.GetHostFromDB(db, clusterID.String(), hostID.String())
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return common.NewApiError(http.StatusNotFound, errors.Wrapf(err, "Host %s if cluster %s was not found", hostID.String(), clusterID.String()))
+			return common.NewApiError(http.StatusNotFound, errors.Wrapf(err, "Host %s of cluster %s was not found", hostID.String(), clusterID.String()))
 		}
 		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "Unexpected error while getting host %s of cluster %s", hostID.String(), clusterID.String()))
 	}
@@ -1154,7 +1154,7 @@ func (m *Manager) ResetHostValidation(ctx context.Context, hostID, clusterID str
 	case string(models.HostValidationIDContainerImagesAvailable):
 		return m.resetContainerImagesValidation(host, db)
 	default:
-		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Validation \"%s\" cannot be reset", validationID))
+		return common.NewApiError(http.StatusBadRequest, errors.Errorf("Validation \"%s\" cannot be reset or does not exist", validationID))
 	}
 }
 
