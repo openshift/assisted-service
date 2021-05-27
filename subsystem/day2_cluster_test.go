@@ -164,12 +164,14 @@ var _ = Describe("Day2 cluster tests", func() {
 
 		By("checking insufficient state state host2 ")
 		generateEssentialHostSteps(ctx, h2, "h2host")
+		generateConnectivityCheckPostStepReply(ctx, h2, true)
 		waitForHostState(ctx, clusterID, *h2.ID, "insufficient", 60*time.Second)
 		steps = getNextSteps(clusterID, *h2.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck}, 2)
 
 		By("checking insufficient state state")
 		generateEssentialHostSteps(ctx, h1, "h1host")
+		generateConnectivityCheckPostStepReply(ctx, h1, true)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 		steps = getNextSteps(clusterID, *h1.ID)
 		checkStepsInList(steps, []models.StepType{models.StepTypeInventory, models.StepTypeAPIVipConnectivityCheck, models.StepTypeConnectivityCheck}, 3)
@@ -230,11 +232,13 @@ var _ = Describe("Day2 cluster tests", func() {
 		h2 := getHost(clusterID, *host.ID)
 
 		generateEssentialHostSteps(ctx, h1, "hostname1")
+		generateConnectivityCheckPostStepReply(ctx, h1, true)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(ctx, h1, true)
 		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
 
 		generateEssentialHostSteps(ctx, h2, "hostname2")
+		generateConnectivityCheckPostStepReply(ctx, h2, true)
 		waitForHostState(ctx, clusterID, *h2.ID, "insufficient", 60*time.Second)
 		generateApiVipPostStepReply(ctx, h2, true)
 		waitForHostState(ctx, clusterID, *h2.ID, "known", 60*time.Second)

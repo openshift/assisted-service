@@ -97,7 +97,7 @@ type Config struct {
 	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
-	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:"sufficient-network-latency-requirement-for-role,sufficient-packet-loss-requirement-for-role"` // Which host validations to disable (should not run in preprocess)
+	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:""` // Which host validations to disable (should not run in preprocess)
 }
 
 //go:generate mockgen -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
@@ -1206,6 +1206,10 @@ type DisabledHostValidations map[string]struct{}
 
 func (d *DisabledHostValidations) Decode(value string) error {
 	disabledHostValidations := DisabledHostValidations{}
+	if len(strings.Trim(value, "")) == 0 {
+		*d = disabledHostValidations
+		return nil
+	}
 	for _, element := range strings.Split(value, ",") {
 		if len(element) == 0 {
 			return fmt.Errorf("empty host validation ID found in '%s'", value)
