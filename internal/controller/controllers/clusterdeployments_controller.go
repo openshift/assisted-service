@@ -1031,6 +1031,10 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
+			err = r.populateLogsURL(log, clusterInstall, c)
+			if err != nil {
+				return ctrl.Result{Requeue: true}, nil
+			}
 			var registeredHosts, approvedHosts int
 			if status == models.ClusterStatusReady {
 				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(ctx, clusterInstall, c)
@@ -1071,6 +1075,18 @@ func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger,
 		}
 	} else {
 		clusterInstall.Status.DebugInfo.EventsURL = ""
+	}
+	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) populateLogsURL(log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
+	if swag.StringValue(c.Status) != models.ClusterStatusInstalled {
+		if err := r.setControllerLogsDownloadURL(clusterInstall, c); err != nil {
+			log.WithError(err).Error("failed to generate controller logs URL")
+			return err
+		}
+	} else {
+		clusterInstall.Status.DebugInfo.LogsURL = ""
 	}
 	return nil
 }
@@ -1400,4 +1416,37 @@ func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log l
 		return err
 	}
 	return r.Update(ctx, ci)
+}
+
+func (r *ClusterDeploymentsReconciler) setControllerLogsDownloadURL(
+	clusterInstall *hiveext.AgentClusterInstall,
+	cluster *common.Cluster) error {
+	if clusterInstall.Status.DebugInfo.LogsURL != "" {
+		return nil
+	}
+
+	logsUrl, err := r.generateControllerLogsDownloadURL(cluster)
+	if err != nil {
+		return err
+	}
+	clusterInstall.Status.DebugInfo.LogsURL = logsUrl
+
+	return nil
+}
+
+func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster *common.Cluster) (string, error) {
+	downloadURL := fmt.Sprintf("%s%s/clusters/%s/logs",
+		r.ServiceBaseURL, restclient.DefaultBasePath, cluster.ID.String())
+
+	if r.AuthType != auth.TypeLocal {
+		return downloadURL, nil
+	}
+
+	var err error
+	downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String())
+	if err != nil {
+		return "", errors.Wrap(err, "failed to sign cluster controller logs URL")
+	}
+
+	return downloadURL, nil
 }

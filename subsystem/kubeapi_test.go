@@ -1403,6 +1403,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.EventsURL
 		}, "30s", "10s").ShouldNot(Equal(""))
 
+		By("Check ACI Logs URL exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
+
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -1464,10 +1470,17 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
+
 		By("Check Event URL does not exist")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
+		}, "1m", "10s").Should(Equal(""))
+
+		By("Check Logs URL does not exist")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
 		}, "1m", "10s").Should(Equal(""))
 	})
 
