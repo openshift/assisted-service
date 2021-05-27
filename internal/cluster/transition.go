@@ -411,6 +411,51 @@ func (th *transitionHandler) IsPreparingTimedOut(sw stateswitch.StateSwitch, arg
 	return false, nil
 }
 
+func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
+	sCluster, ok := sw.(*stateCluster)
+	if !ok {
+		return errors.New("PostRefreshCluster incompatible type of StateSwitch")
+	}
+	params, ok := args.(*TransitionArgsRefreshCluster)
+	if !ok {
+		return errors.New("PostRefreshCluster invalid argument")
+	}
+
+	var (
+		err            error
+		updatedCluster *common.Cluster
+	)
+
+	reason := statusInfoPreparingForInstallationTimeout
+	if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
+		updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+			reason)
+	}
+
+	//update hosts status to models.HostStatusResettingPendingUserAction if needed
+	cluster := sCluster.cluster
+	if updatedCluster != nil {
+		cluster = updatedCluster
+		params.updatedCluster = updatedCluster
+	}
+	setPendingUserResetIfNeeded(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, params.hostApi, cluster)
+
+	if err != nil {
+		return err
+	}
+
+	msg := fmt.Sprintf("Preparing for installation was timed out for cluster %s", cluster.Name)
+	params.eventHandler.AddEvent(params.ctx, *cluster.ID, nil, models.EventSeverityWarning, msg, time.Now())
+
+	//if status was changed - we need to send event and metrics
+	if updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
+		msg = fmt.Sprintf("Updated status of cluster %s to %s", updatedCluster.Name, *updatedCluster.Status)
+		params.eventHandler.AddEvent(params.ctx, *updatedCluster.ID, nil, models.EventSeverityInfo, msg, time.Now())
+	}
+
+	return nil
+}
+
 // Return a post transition function with a constant reason
 func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostTransition {
 	ret := func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
