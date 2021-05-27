@@ -201,7 +201,7 @@ var _ = Describe("authz", func() {
 		})
 	}
 
-	userToken, JwkCert := GetTokenAndCert()
+	userToken, JwkCert := GetTokenAndCert(false)
 	h, err := restapi.Handler(
 		restapi.Config{
 			AuthAgentAuth:       mockAgentAuth,

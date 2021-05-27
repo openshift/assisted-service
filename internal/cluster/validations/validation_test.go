@@ -36,7 +36,7 @@ var _ = Describe("Pull secret validation", func() {
 
 	log := logrus.New()
 	authHandlerDisabled := auth.NewNoneAuthenticator(log.WithField("pkg", "auth"))
-	_, JwkCert := auth.GetTokenAndCert()
+	_, JwkCert := auth.GetTokenAndCert(false)
 	fakeConfig := &auth.Config{
 		JwkCertURL: "",
 		JwkCert:    string(JwkCert),
