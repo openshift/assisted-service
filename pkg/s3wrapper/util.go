@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -56,6 +57,9 @@ func DownloadURLToTemporaryFile(url string) (string, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed fetching from URL %s", url)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return "", fmt.Errorf("Failed fetching from URL %s: Received %s", url, resp.Status)
 	}
 
 	_, err = io.Copy(tmpfile, resp.Body)

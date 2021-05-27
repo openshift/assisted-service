@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"strings"
 	"testing"
@@ -137,6 +139,43 @@ var _ = Describe("HaveLatestMinimalTemplate", func() {
 
 		latestExists := HaveLatestMinimalTemplate(ctx, log, client)
 		Expect(latestExists).To(Equal(false))
+	})
+})
+
+var _ = Describe("DownloadURLToTemporaryFile", func() {
+	var ts *httptest.Server
+
+	BeforeEach(func() {
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch p := r.URL.Path; p {
+			case "/ok":
+				_, err := w.Write([]byte("ok"))
+				Expect(err).NotTo(HaveOccurred())
+			case "/notfound":
+				w.WriteHeader(http.StatusNotFound)
+			case "/servererror":
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}))
+	})
+
+	AfterEach(func() {
+		ts.Close()
+	})
+
+	It("Succeeds when the download succeeds", func() {
+		f, err := DownloadURLToTemporaryFile(ts.URL + "/ok")
+		defer os.Remove(f)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ioutil.ReadFile(f)).To(Equal([]byte("ok")))
+	})
+
+	It("Fails when the download fails", func() {
+		_, err := DownloadURLToTemporaryFile(ts.URL + "/notfound")
+		Expect(err).To(HaveOccurred())
+
+		_, err = DownloadURLToTemporaryFile(ts.URL + "/servererror")
+		Expect(err).To(HaveOccurred())
 	})
 })
 
