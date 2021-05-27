@@ -1,0 +1,14 @@
+apiVersion: agent-install.openshift.io/v1beta1
+kind: InfraEnv
+metadata:
+  name: '{{ infraenv_name }}'
+  namespace: '{{ assisted_namespace }}'
+spec:
+  clusterRef:
+    name: '{{ cluster_deployment_name }}'
+    namespace: '{{ assisted_namespace }}'
+  agentLabelSelector:
+    matchLabels: {}
+  pullSecretRef:
+    name: '{{ pull_secret_name }}'
+  sshAuthorizedKey: '{{ ssh_public_key }}'

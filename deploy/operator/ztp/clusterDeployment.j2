@@ -1,0 +1,21 @@
+apiVersion: hive.openshift.io/v1
+kind: ClusterDeployment
+metadata:
+  name: '{{ cluster_deployment_name }}'
+  namespace: '{{ assisted_namespace }}'
+spec:
+  baseDomain: redhat.com
+  clusterName: '{{ cluster_name }}'
+  clusterInstallRef:
+    group: extensions.hive.openshift.io
+    kind: AgentClusterInstall
+    name: '{{ agent_cluster_install_name }}'
+    version: v1beta1
+  platform:
+    agentBareMetal:
+      apiVIP: ""
+      ingressVIP: ""
+      agentSelector: {}
+  pullSecretRef:
+    name: '{{ pull_secret_name }}'
+    namespace: '{{ assisted_namespace }}'

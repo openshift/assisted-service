@@ -1,0 +1,51 @@
+- name: Create CRDs for Assisted Installer
+  hosts: localhost
+  collections:
+   - community.general
+  gather_facts: no
+  vars:
+    - assisted_namespace: "{{ lookup('env', 'ASSISTED_NAMESPACE') }}"
+    - cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') }}"
+    - cluster_image_set_name: "{{ lookup('env', 'DS_OPENSHIFT_VERSION') }}"
+    - cluster_release_image: "{{ lookup('env', 'OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"
+    - cluster_deployment_name: "{{ lookup('env', 'ASSISTED_CLUSTER_DEPLOYMENT_NAME') }}"
+    - infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') }}"
+    - agent_cluster_install_name: "{{ lookup('env', 'ASSISTED_AGENT_CLUSTER_INSTALL_NAME') }}"
+    - pull_secret_name: "{{ lookup('env', 'ASSISTED_PULLSECRET_NAME') }}"
+    - ssh_private_key_name: "{{ lookup('env', 'ASSISTED_PRIVATEKEY_NAME') }}"
+    - ssh_public_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
+    - bmh_name: "{{ lookup('env', 'BMH_NAME') }}"
+    - mac_address: "{{ lookup('env', 'MAC_ADDRESS') }}"
+    - encoded_username: "{{ lookup('env', 'ENCODED_USERNAME') }}"
+    - encoded_password: "{{ lookup('env', 'ENCODED_PASSWORD') }}"
+    - address: "{{ lookup('env', 'ADDRESS') }}"
+
+  tasks:
+  - name: create directory for generated CRDs
+    file:
+      name: generated
+      state: directory
+  - name: write the cluster image set crd
+    template:
+      src: "clusterImageSet.j2"
+      dest: "generated/clusterImageSet.yaml"
+
+  - name: write the infraEnv crd
+    template:
+      src: "infraEnv.j2"
+      dest: "generated/infraEnv.yaml"
+
+  - name: write the clusterDeployment crd
+    template:
+      src: "clusterDeployment.j2"
+      dest: "generated/clusterDeployment.yaml"
+
+  - name: write the agentClusterInstall crd
+    template:
+      src: "agentClusterInstall.j2"
+      dest: "generated/agentClusterInstall.yaml"
+
+  - name: write the baremetalHost crd
+    template:
+      src: "baremetalHost.j2"
+      dest: "generated/baremetalHost.yaml"
