@@ -120,7 +120,7 @@ var Options struct {
 	LeaderConfig                leader.Config
 	ValidationsConfig           validations.Config
 	AssistedServiceISOConfig    assistedserviceiso.Config
-	manifestsGeneratorConfig    network.Config
+	ManifestsGeneratorConfig    network.Config
 	EnableKubeAPI               bool `envconfig:"ENABLE_KUBE_API" default:"false"`
 	EnableKubeAPIDay2Cluster    bool `envconfig:"ENABLE_KUBE_API_DAY2" default:"false"`
 	InfraEnvConfig              controllers.InfraEnvConfig
@@ -314,7 +314,7 @@ func main() {
 	hostApi := host.NewManager(log.WithField("pkg", "host-state"), db, eventsHandler, hwValidator,
 		instructionApi, &Options.HWValidatorConfig, metricsManager, &Options.HostConfig, lead, operatorsManager)
 	dnsApi := dns.NewDNSHandler(Options.BMConfig.BaseDNSDomains, log)
-	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.manifestsGeneratorConfig)
+	manifestsGenerator := network.NewManifestsGenerator(manifestsApi, Options.ManifestsGeneratorConfig)
 	clusterApi := cluster.NewManager(Options.ClusterConfig, log.WithField("pkg", "cluster-state"), db,
 		eventsHandler, hostApi, metricsManager, manifestsGenerator, lead, operatorsManager, ocmClient, objectHandler, dnsApi)
 	bootFilesApi := bootfiles.NewBootFilesAPI(log.WithField("pkg", "bootfiles"), objectHandler)
