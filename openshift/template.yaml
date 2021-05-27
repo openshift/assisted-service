@@ -92,6 +92,8 @@ parameters:
   required: false
 - name: DB_MAX_OPEN_CONNECTIONS
   value: "600"
+- name: DISABLED_HOST_VALIDATIONS
+  value: ""  
   required: false
 apiVersion: v1
 kind: Template
@@ -290,6 +292,8 @@ objects:
                 value: ${DB_MAX_IDLE_CONNECTIONS}
               - name: DB_MAX_OPEN_CONNECTIONS
                 value: ${DB_MAX_OPEN_CONNECTIONS}
+              - name: DISABLED_HOST_VALIDATIONS
+                value: ${DISABLED_HOST_VALIDATIONS}                
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
