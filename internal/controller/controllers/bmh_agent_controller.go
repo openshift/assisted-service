@@ -395,26 +395,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 
 }
 
-// Reconcile the `BareMetalHost` resource
-//
-// This reconcile step sets the Image.URL value in the `BareMetalHost`
-// spec by copying it from the `InfraEnv` referenced in the resource's
-// labels. If the previous action succeeds, this step will also set the
-// BMH_INSPECT_ANNOTATION to disabled on the BareMetalHost.
-//
-// The above changes will be done only if the ISODownloadURL value has already
-// been set in the `InfraEnv` resource and the Image.URL value has not been
-// set in the `BareMetalHost`
-func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
-	// No need to reconcile if the image URL has been set in
-	// the BMH already.
-	if bmh.Spec.Image != nil && bmh.Spec.Image.URL != "" {
-		return reconcileComplete{}
-	}
-
-	log.Debugf("Started BMH reconcile for %s/%s", bmh.Namespace, bmh.Name)
-	log.Debugf("BMH value %v", bmh)
-
+func (r *BMACReconciler) findInfraEnvForBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (*aiv1beta1.InfraEnv, error) {
 	for ann, value := range bmh.Labels {
 		log.Debugf("BMH label %s value %s", ann, value)
 
@@ -426,54 +407,95 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 			log.Debugf("Loading InfraEnv %s", value)
 			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, infraEnv); err != nil {
 				log.WithError(err).Errorf("failed to get infraEnv resource %s/%s", bmh.Namespace, value)
-				return reconcileError{client.IgnoreNotFound(err)}
+				return nil, client.IgnoreNotFound(err)
 			}
 
 			if infraEnv.Status.ISODownloadURL == "" {
 				// the image has not been created yet, try later.
 				log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Waiting for new reconcile for BareMetalHost  %s/%s",
 					infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
-				return reconcileComplete{}
+				return nil, nil
 			}
 
-			log.Debugf("Setting attributes in BMH")
-			// We'll just overwrite this at this point
-			// since the nullness and emptyness checks
-			// are done at the beginning of this function.
-			bmh.Spec.Image = &bmh_v1alpha1.Image{}
-			liveIso := "live-iso"
-			bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
-			bmh.Spec.Image.DiskFormat = &liveIso
-
-			bmh.Spec.AutomatedCleaningMode = "disabled"
-			bmh.Spec.Online = true
-
-			// Let's make sure inspection is disabled for BMH resources
-			// that are associated with an agent-based deployment.
-			//
-			// Ideally, the user would do this while creating the BMH
-			// we are just taking extra care that this is the case.
-			if bmh.ObjectMeta.Annotations == nil {
-				bmh.ObjectMeta.Annotations = make(map[string]string)
-			}
-
-			bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
-
-			// This state is reached if the BMH was part of a
-			// previous cluster installation. At that point
-			// the detached annotation was added and set to true.
-			// Now the user would like to reinstall or use the BMH
-			// in another installation. The user has removed bmh.Spec.Image
-			// thus triggering this code path again. The annotation
-			// now needs to be removed so that Ironic can manage the host.
-			delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
-
-			log.Infof("Image URL has been set in the BareMetalHost  %s/%s", bmh.Namespace, bmh.Name)
-			return reconcileComplete{true}
+			return infraEnv, nil
 		}
 	}
 
-	return reconcileComplete{}
+	return nil, nil
+}
+
+// Reconcile the `BareMetalHost` resource
+//
+// This reconcile step sets the Image.URL value in the `BareMetalHost`
+// spec by copying it from the `InfraEnv` referenced in the resource's
+// labels. If the previous action succeeds, this step will also set the
+// BMH_INSPECT_ANNOTATION to disabled on the BareMetalHost.
+//
+// The above changes will be done only if the ISODownloadURL value has already
+// been set in the `InfraEnv` resource and the Image.URL value has not been
+// set in the `BareMetalHost`
+func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) reconcileResult {
+	log.Debugf("Started BMH reconcile for %s/%s", bmh.Namespace, bmh.Name)
+	log.Debugf("BMH value %v", bmh)
+
+	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
+
+	if err != nil {
+		return reconcileError{err}
+	}
+
+	if infraEnv == nil {
+		return reconcileComplete{}
+	}
+
+	// The Image URL exists and InfraEnv's URL has not changed
+	// nothing else to do.
+	if bmh.Spec.Image != nil && bmh.Spec.Image.URL == infraEnv.Status.ISODownloadURL {
+		return reconcileComplete{}
+	}
+
+	// BMH is set to `detached` after a cluster deployment. The
+	// following call makes sure the node is attached an image
+	// update happens. In the case of a `non-ready` node, Ironic
+	// will first deprovision the node (meaning the cache will be
+	// invalidated) and then it will provision the new image once
+	// the BMH.Spec.Image field is set.
+	delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
+
+	// Set the bmh.Spec.Image field to nil if the BMH is in a non-ready state.
+	// This will make sure that any existing image will be de-provisioned first
+	// and, therefore, removed from Ironic's cache. The deprovision step is critical
+	// to guarantee that Ironic will fetch the latest version of the image.
+	if bmh.Status.Provisioning.State != bmh_v1alpha1.StateReady && bmh.Status.Provisioning.State != bmh_v1alpha1.StateAvailable {
+		bmh.Spec.Image = nil
+		return reconcileComplete{true}
+	}
+
+	r.Log.Debugf("Setting attributes in BMH")
+	// We'll just overwrite this at this point
+	// since the nullness and emptyness checks
+	// are done at the beginning of this function.
+	bmh.Spec.Image = &bmh_v1alpha1.Image{}
+	liveIso := "live-iso"
+	bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
+	bmh.Spec.Image.DiskFormat = &liveIso
+
+	bmh.Spec.AutomatedCleaningMode = "disabled"
+	bmh.Spec.Online = true
+
+	// Let's make sure inspection is disabled for BMH resources
+	// that are associated with an agent-based deployment.
+	//
+	// Ideally, the user would do this while creating the BMH
+	// we are just taking extra care that this is the case.
+	if bmh.ObjectMeta.Annotations == nil {
+		bmh.ObjectMeta.Annotations = make(map[string]string)
+	}
+
+	bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
+
+	r.Log.Infof("Image URL has been set in the BareMetalHost  %s/%s", bmh.Namespace, bmh.Name)
+	return reconcileComplete{true}
 }
 
 // Reconcile the `BareMetalHost` resource on the spoke cluster

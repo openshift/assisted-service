@@ -94,6 +94,7 @@ var _ = Describe("bmac reconcile", func() {
 			labels := make(map[string]string)
 			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
 			host.ObjectMeta.Labels = labels
+			host.Status.Provisioning.State = bmh_v1alpha1.StateReady
 			Expect(c.Create(ctx, host)).To(BeNil())
 
 		})
@@ -228,6 +229,7 @@ var _ = Describe("bmac reconcile", func() {
 			labels := make(map[string]string)
 			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
 			host.ObjectMeta.Labels = labels
+			host.Status.Provisioning.State = bmh_v1alpha1.StateReady
 			Expect(c.Create(ctx, host)).To(BeNil())
 		})
 
@@ -816,6 +818,7 @@ var _ = Describe("bmac reconcile", func() {
 			labels := make(map[string]string)
 			labels[BMH_INFRA_ENV_LABEL] = "testInfraEnv"
 			host.ObjectMeta.Labels = labels
+			host.Status.Provisioning.State = bmh_v1alpha1.StateReady
 			Expect(c.Create(ctx, host)).To(BeNil())
 		})
 
@@ -825,7 +828,7 @@ var _ = Describe("bmac reconcile", func() {
 			Expect(c.Delete(ctx, infraEnv)).ShouldNot(HaveOccurred())
 		})
 
-		Context("when bmh.Spec.Image does not exist", func() {
+		Context("when bmh.Spec.Image should be updated", func() {
 			It("the detached annotation is removed", func() {
 				host.Spec.Image = nil
 				Expect(c.Update(ctx, host)).To(BeNil())
@@ -842,8 +845,11 @@ var _ = Describe("bmac reconcile", func() {
 			})
 		})
 
-		Context("when bmh.Spec.Image exists", func() {
+		Context("when bmh.Spec.Image doesn't need to be updated", func() {
 			It("the detached annotation is not removed", func() {
+				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+				Expect(c.Update(ctx, host)).To(BeNil())
+
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{}))
@@ -852,7 +858,6 @@ var _ = Describe("bmac reconcile", func() {
 				err = c.Get(ctx, types.NamespacedName{Name: host.Name, Namespace: testNamespace}, updatedHost)
 				Expect(err).To(BeNil())
 
-				Expect(updatedHost.Spec.Image).ToNot(BeNil())
 				Expect(updatedHost.ObjectMeta.Annotations).To(HaveKey(BMH_DETACHED_ANNOTATION))
 			})
 		})
