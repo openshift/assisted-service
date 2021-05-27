@@ -353,6 +353,13 @@ func checkInfraEnvCondition(ctx context.Context, key types.NamespacedName, condi
 	}, "2m", "1s").Should(Equal(message))
 }
 
+func checkAgentClusterInstallLogsURL(ctx context.Context, key types.NamespacedName, isEmpty bool) {
+	Eventually(func() bool {
+		logsURL := getAgentClusterInstallCRD(ctx, kubeClient, key).Status.DebugInfo.LogsURL
+		return logsURL == ""
+	}, "2m", "2s").Should(Equal(isEmpty))
+}
+
 func getDefaultClusterDeploymentSpec(secretRef *corev1.LocalObjectReference) *hivev1.ClusterDeploymentSpec {
 	return &hivev1.ClusterDeploymentSpec{
 		ClusterName: clusterDeploymentNamePrefix + randomNameSuffix(),
@@ -1514,24 +1521,24 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
-		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
-		Eventually(func() bool {
-			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-			for _, h := range c.Hosts {
-				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
-					return false
-				}
-			}
-			return true
-		}, "1m", "2s").Should(BeTrue())
 
-		for _, host := range hosts {
-			checkAgentCondition(ctx, host.ID.String(), controllers.InstalledCondition, controllers.InstallationInProgressReason)
-		}
+		By("Upload logs and verify conditions")
+		updateClusterLogProgress(*cluster.ID, models.LogsStateRequested)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionCompletedCondition, controllers.LogCollectionRequestedReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionStoppedCondition, controllers.LogCollectionRequestedReason)
 
-		for _, host := range hosts {
-			updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
-		}
+		updateClusterLogProgress(*cluster.ID, models.LogsStateCollecting)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionCompletedCondition, controllers.LogCollectionCollectingReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionStoppedCondition, controllers.LogCollectionCollectingReason)
+
+		updateClusterLogProgress(*cluster.ID, models.LogsStateTimeout)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionCompletedCondition, controllers.LogCollectionTimeoutReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionStoppedCondition, controllers.LogCollectionTimeoutReason)
+
+		uploadClusterLogs(*cluster.ID)
+		checkAgentClusterInstallLogsURL(ctx, installkey, false)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionCompletedCondition, controllers.LogCollectionCompletedReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.LogCollectionStoppedCondition, controllers.LogCollectionCompletedReason)
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
@@ -1543,6 +1550,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+		checkAgentClusterInstallLogsURL(ctx, installkey, true)
 
 		By("Verify Day 2 Cluster")
 		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstalledReason)
