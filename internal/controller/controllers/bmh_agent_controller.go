@@ -70,15 +70,25 @@ const (
 
 // reconcileResult is an interface that encapsulates the result of a Reconcile
 // call, as returned by the action corresponding to the current state.
+//
+// Set the `dirty` flag when the BMH CR (or any CR) has been modified and an `Update`
+// is required.
+//
+// Set the `stop` flag when the `Reconcile` flow should be stopped. For example, the
+// required data for the current step is not ready yet. This will prevent the Reconcile
+// from going to the next step.
 type reconcileResult interface {
 	Result() (reconcile.Result, error)
 	Dirty() bool
+	Stop(ctx context.Context) bool
 }
 
 // reconcileComplete is a result indicating that the current reconcile has completed,
-// and there is nothing else to do.
+// and there is nothing else to do. It allows for setting the implementation or the
+// stop flag.
 type reconcileComplete struct {
 	dirty bool
+	stop  bool
 }
 
 func (r reconcileComplete) Result() (result reconcile.Result, err error) {
@@ -87,6 +97,10 @@ func (r reconcileComplete) Result() (result reconcile.Result, err error) {
 
 func (r reconcileComplete) Dirty() bool {
 	return r.dirty
+}
+
+func (r reconcileComplete) Stop(ctx context.Context) bool {
+	return r.stop || ctx.Err() != nil
 }
 
 // reconcileError is a result indicating that an error occurred while attempting
@@ -102,6 +116,10 @@ func (r reconcileError) Result() (result reconcile.Result, err error) {
 
 func (r reconcileError) Dirty() bool {
 	return false
+}
+
+func (r reconcileError) Stop(ctx context.Context) bool {
+	return true
 }
 
 // +kubebuilder:rbac:groups=metal3.io,resources=baremetalhosts,verbs=get;list;watch;update;patch
@@ -137,7 +155,9 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 			log.WithError(err).Errorf("Error updating after BMH reconcile")
 			return reconcileError{err}.Result()
 		}
+	}
 
+	if result.Stop(ctx) {
 		return result.Result()
 	}
 
@@ -167,6 +187,10 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
+	if result.Stop(ctx) {
+		return result.Result()
+	}
+
 	result = r.reconcileAgentSpec(log, bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, agent)
@@ -174,6 +198,10 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 			log.WithError(err).Errorf("Error updating agent")
 			return reconcileError{err}.Result()
 		}
+	}
+
+	if result.Stop(ctx) {
+		return result.Result()
 	}
 
 	// After the agent has started installation, Ironic should not manage the host.
@@ -187,8 +215,11 @@ func (r *BMACReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (c
 		}
 	}
 
-	result = r.reconcileSpokeBMH(ctx, log, bmh, agent)
+	if result.Stop(ctx) {
+		return result.Result()
+	}
 
+	result = r.reconcileSpokeBMH(ctx, log, bmh, agent)
 	if result.Dirty() {
 		err := r.Client.Update(ctx, bmh)
 		if err != nil {
@@ -256,7 +287,7 @@ func (r *BMACReconciler) reconcileAgentSpec(log logrus.FieldLogger, bmh *bmh_v1a
 	// is ""
 	agent.Spec.InstallationDiskID = r.findInstallationDiskID(agent.Status.Inventory.Disks, bmh.Spec.RootDeviceHints)
 
-	return reconcileComplete{true}
+	return reconcileComplete{dirty: true}
 }
 
 // The detached annotation is added if the installation of the agent associated with
@@ -287,7 +318,7 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 
 	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
 
-	return reconcileComplete{true}
+	return reconcileComplete{dirty: true}
 }
 
 // Reconcile BMH's HardwareDetails using the agent's inventory
@@ -391,7 +422,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 	}
 
 	bmh.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION] = string(bytes)
-	return reconcileComplete{true}
+	return reconcileComplete{dirty: true}
 
 }
 
@@ -408,13 +439,6 @@ func (r *BMACReconciler) findInfraEnvForBMH(ctx context.Context, log logrus.Fiel
 			if err := r.Get(ctx, types.NamespacedName{Name: value, Namespace: bmh.Namespace}, infraEnv); err != nil {
 				log.WithError(err).Errorf("failed to get infraEnv resource %s/%s", bmh.Namespace, value)
 				return nil, client.IgnoreNotFound(err)
-			}
-
-			if infraEnv.Status.ISODownloadURL == "" {
-				// the image has not been created yet, try later.
-				log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Waiting for new reconcile for BareMetalHost  %s/%s",
-					infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
-				return nil, nil
 			}
 
 			return infraEnv, nil
@@ -448,6 +472,14 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		return reconcileComplete{}
 	}
 
+	if infraEnv.Status.ISODownloadURL == "" {
+		// the image has not been created yet, try later.
+		log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Waiting for new reconcile for BareMetalHost  %s/%s",
+			infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
+
+		return reconcileComplete{stop: true}
+	}
+
 	// The Image URL exists and InfraEnv's URL has not changed
 	// nothing else to do.
 	if bmh.Spec.Image != nil && bmh.Spec.Image.URL == infraEnv.Status.ISODownloadURL {
@@ -468,7 +500,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// to guarantee that Ironic will fetch the latest version of the image.
 	if bmh.Status.Provisioning.State != bmh_v1alpha1.StateReady && bmh.Status.Provisioning.State != bmh_v1alpha1.StateAvailable {
 		bmh.Spec.Image = nil
-		return reconcileComplete{true}
+		return reconcileComplete{stop: true, dirty: true}
 	}
 
 	r.Log.Debugf("Setting attributes in BMH")
@@ -495,7 +527,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
 
 	r.Log.Infof("Image URL has been set in the BareMetalHost  %s/%s", bmh.Namespace, bmh.Name)
-	return reconcileComplete{true}
+	return reconcileComplete{dirty: true, stop: true}
 }
 
 // Reconcile the `BareMetalHost` resource on the spoke cluster
@@ -576,7 +608,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 			bmh.ObjectMeta.Annotations = make(map[string]string)
 		}
 		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
-		return reconcileComplete{true}
+		return reconcileComplete{dirty: true}
 	}
 
 	return reconcileComplete{}
@@ -1003,6 +1035,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
+		Named("baremetal-agent-controller").
 		For(&bmh_v1alpha1.BareMetalHost{}).
 		Watches(&source.Kind{Type: &aiv1beta1.Agent{}}, handler.EnqueueRequestsFromMapFunc(mapAgentToBMH)).
 		Watches(&source.Kind{Type: &aiv1beta1.InfraEnv{}}, handler.EnqueueRequestsFromMapFunc(mapInfraEnvToBMH)).
