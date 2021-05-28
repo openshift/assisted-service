@@ -98,7 +98,11 @@ type AgentClusterInstallStatus struct {
 type DebugInfo struct {
 	// EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
 	// +optional
-	EventsURL string `json:"eventsURL,omitempty"`
+	EventsURL string `json:"eventsURL"`
+
+	// LogsURL specifies a url for download controller logs tar file.
+	// +optional
+	LogsURL string `json:"logsURL"`
 }
 
 // Networking defines the pod network provider in the cluster.

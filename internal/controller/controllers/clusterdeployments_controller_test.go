@@ -441,6 +441,53 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(clusterInstall.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
 	})
 
+	It("validate Logs URL", func() {
+		serviceBaseURL := "http://acme.com"
+		cr.ServiceBaseURL = serviceBaseURL
+		sId := strfmt.UUID(uuid.New().String())
+		backEndCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &sId,
+				Status: swag.String(models.ClusterStatusInsufficient),
+			},
+		}
+
+		expectedLogUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/logs", serviceBaseURL, sId)
+
+		By("before installation")
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err := cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		clusterInstall := &hiveext.AgentClusterInstall{}
+		agentClusterInstallKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      agentClusterInstallName,
+		}
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(HavePrefix(expectedLogUrlPrefix))
+
+		By("during installation")
+		backEndCluster.Status = swag.String(models.ClusterStatusInstalling)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err = cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(HavePrefix(expectedLogUrlPrefix))
+
+		By("after installation")
+		backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err = cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(Equal(""))
+	})
+
 	It("failed to get cluster from backend", func() {
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 		cluster.Status = hivev1.ClusterDeploymentStatus{}
