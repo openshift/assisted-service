@@ -338,10 +338,12 @@ func main() {
 	} else {
 		crdUtils = controllers.NewDummyCRDUtils()
 	}
-	if !Options.EnableKubeAPI && (Options.EnableDeregisterInactiveGC || Options.EnableDeletedUnregisteredGC) {
+
+	if Options.EnableDeregisterInactiveGC || Options.EnableDeletedUnregisteredGC {
 		gc := garbagecollector.NewGarbageCollectors(Options.GCConfig, db, log.WithField("pkg", "garbage_collector"), hostApi, clusterApi, objectHandler, lead)
 
-		if Options.EnableDeregisterInactiveGC {
+		// In operator-deployment, ClusterDeployment is responsible for managing the lifetime of the cluster resource.
+		if !Options.EnableKubeAPI && Options.EnableDeregisterInactiveGC {
 			deregisterWorker := thread.New(
 				log.WithField("garbagecollector", "Deregister Worker"),
 				"Deregister Worker",
