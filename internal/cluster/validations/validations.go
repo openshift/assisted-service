@@ -37,6 +37,12 @@ const (
 	ignoreListSeparator = ","
 )
 
+var regexpSshPublicKey *regexp.Regexp
+
+func init() {
+	regexpSshPublicKey, _ = regexp.Compile(sshPublicKeyRegex)
+}
+
 // PullSecretValidator is used run validations on a provided pull secret
 // it verifies the format of the pull secrete and access to required image registries
 // go:generate mockgen -source=validations.go -package=validations -destination=mock_validations.go
@@ -291,19 +297,25 @@ func ValidateNoProxyFormat(noProxy string) error {
 	return nil
 }
 
-func ValidateSSHPublicKey(sshPublicKey string) (err error) {
-	keyBytes := []byte(sshPublicKey)
-	isMatched, err := regexp.Match(sshPublicKeyRegex, keyBytes)
-	if err != nil {
-		err = errors.Wrapf(err, "Error parsing SSH key: %s", sshPublicKey)
-	} else if !isMatched {
-		err = errors.Errorf(
-			"SSH key: %s does not match any supported type: ssh-rsa, ssh-ed25519, ecdsa-[VARIANT]",
-			sshPublicKey)
-	} else if _, _, _, _, err = ssh.ParseAuthorizedKey(keyBytes); err != nil {
-		err = errors.Errorf("Malformed SSH key: %s", sshPublicKey)
+func ValidateSSHPublicKey(sshPublicKeys string) error {
+	if regexpSshPublicKey == nil {
+		return fmt.Errorf("Can't parse SSH keys.")
 	}
-	return
+
+	for _, sshPublicKey := range strings.Split(sshPublicKeys, "\n") {
+		sshPublicKey = strings.TrimSpace(sshPublicKey)
+		keyBytes := []byte(sshPublicKey)
+		isMatched := regexpSshPublicKey.Match(keyBytes)
+		if !isMatched {
+			return errors.Errorf(
+				"SSH key: %s does not match any supported type: ssh-rsa, ssh-ed25519, ecdsa-[VARIANT]",
+				sshPublicKey)
+		} else if _, _, _, _, err := ssh.ParseAuthorizedKey(keyBytes); err != nil {
+			return errors.Wrapf(err, fmt.Sprintf("Malformed SSH key: %s", sshPublicKey))
+		}
+	}
+
+	return nil
 }
 
 // ParseRegistry extracts the registry from a full image name, or returns
