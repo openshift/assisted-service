@@ -154,7 +154,7 @@ func NewClusterStateMachine(th *transitionHandler) stateswitch.StateMachine {
 		SourceStates:     []stateswitch.State{stateswitch.State(models.ClusterStatusPreparingForInstallation)},
 		Condition:        th.IsPreparingTimedOut,
 		DestinationState: stateswitch.State(models.ClusterStatusReady),
-		PostTransition:   th.PostRefreshCluster(statusInfoPreparingForInstallationTimeout),
+		PostTransition:   th.PostPreparingTimedOut,
 	})
 
 	sm.AddTransition(stateswitch.TransitionRule{
