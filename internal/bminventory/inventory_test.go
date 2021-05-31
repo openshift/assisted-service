@@ -2948,6 +2948,26 @@ var _ = Describe("cluster", func() {
 					VipDhcpAllocation:     swag.Bool(true),
 				},
 			})
+
+			verifyApiError(reply, http.StatusBadRequest)
+		})
+
+		It("Fail Update VIP DHCP while UserManagedNetworking was set", func() {
+
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID:                    &clusterID,
+				UserManagedNetworking: swag.Bool(true),
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					VipDhcpAllocation: swag.Bool(true),
+				},
+			})
+
 			verifyApiError(reply, http.StatusBadRequest)
 		})
 
