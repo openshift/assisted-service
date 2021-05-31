@@ -575,8 +575,26 @@ var _ = Describe("cluster reconcile", func() {
 					ID: &sId,
 				},
 			}
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+
+			simulateACIDeletionWithFinalizer(ctx, c, aci)
+			request := newClusterDeploymentRequest(cd)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(result).Should(Equal(ctrl.Result{}))
+		})
+
+		It("agentClusterInstall resource deleted - verify call to cancel installation", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:     &sId,
+					Status: swag.String(models.ClusterStatusInstalling),
+				},
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
+			mockInstallerInternal.EXPECT().CancelInstallationInternal(gomock.Any(), gomock.Any()).Return(backEndCluster, nil).Times(1)
 
 			simulateACIDeletionWithFinalizer(ctx, c, aci)
 			request := newClusterDeploymentRequest(cd)
@@ -591,7 +609,7 @@ var _ = Describe("cluster reconcile", func() {
 					ID: &sId,
 				},
 			}
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(errors.New("internal error"))
 
 			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: internal error", cd.Name)
@@ -611,7 +629,7 @@ var _ = Describe("cluster reconcile", func() {
 					ID: &sId,
 				},
 			}
-			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil)
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 

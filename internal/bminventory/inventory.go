@@ -125,6 +125,7 @@ type InstallerInternals interface {
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
+	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 	GetHostById(hostId string) (*common.Host, error)
 }
@@ -3733,6 +3734,15 @@ func setPullSecret(cluster *common.Cluster, pullSecret string) {
 }
 
 func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params installer.CancelInstallationParams) middleware.Responder {
+	c, err := b.CancelInstallationInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return installer.NewCancelInstallationAccepted().WithPayload(&c.Cluster)
+}
+
+func (b *bareMetalInventory) CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("canceling installation for cluster %s", params.ClusterID)
 
@@ -3756,29 +3766,28 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 		msg := "Failed to cancel installation: error starting DB transaction"
 		log.WithError(tx.Error).Errorf(msg)
 		b.eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
-		return installer.NewCancelInstallationInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New(msg)))
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 
 	var err error
 	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("Failed to cancel installation: could not find cluster %s", params.ClusterID)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return installer.NewCancelInstallationNotFound().WithPayload(common.GenerateError(http.StatusNotFound, err))
+			return nil, common.NewApiError(http.StatusNotFound, err)
 		}
-		return installer.NewCancelInstallationInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
 	// cancellation is made by setting the cluster and and hosts states to error.
 	if err := b.clusterApi.CancelInstallation(ctx, cluster, "Installation was cancelled by user", tx); err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, err
 	}
 	for _, h := range cluster.Hosts {
 		if err := b.hostApi.CancelInstallation(ctx, h, "Installation was cancelled by user", tx); err != nil {
-			return common.GenerateErrorResponder(err)
+			return nil, err
 		}
 		if err := b.customizeHost(h); err != nil {
-			return installer.NewCancelInstallationInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+			return nil, err
 		}
 	}
 
@@ -3786,12 +3795,11 @@ func (b *bareMetalInventory) CancelInstallation(ctx context.Context, params inst
 		log.Errorf("Failed to cancel installation: error committing DB transaction (%s)", err)
 		msg := "Failed to cancel installation: error committing DB transaction"
 		b.eventsHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityError, msg, time.Now())
-		return installer.NewCancelInstallationInternalServerError().WithPayload(
-			common.GenerateError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction")))
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New("DB error, failed to commit transaction"))
 	}
 	txSuccess = true
 
-	return installer.NewCancelInstallationAccepted().WithPayload(&cluster.Cluster)
+	return cluster, nil
 }
 
 func (b *bareMetalInventory) ResetCluster(ctx context.Context, params installer.ResetClusterParams) middleware.Responder {

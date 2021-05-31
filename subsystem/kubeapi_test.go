@@ -1487,6 +1487,56 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "1m", "10s").Should(Equal(""))
 	})
 
+	It("SNO deploy clusterDeployment delete while install", func() {
+		By("Create cluster")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("Approve Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Wait for installing")
+
+		Eventually(func() string {
+			condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, installkey).Status.Conditions, controllers.ClusterCompletedCondition)
+			if condition != nil {
+				return condition.Message
+			}
+			return ""
+		}, "2m", "2s").Should(HaveSuffix("Installation in progress"))
+
+		By("Delete clusterDeployment")
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKey)
+		Expect(kubeClient.Delete(ctx, clusterDeploymentCRD)).ShouldNot(HaveOccurred())
+
+		By("Verify cluster record is deleted")
+		Eventually(func() bool {
+			_, err := common.GetClusterFromDBWhere(db, common.UseEagerLoading, common.SkipDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", clusterKey.Name, clusterKey.Namespace)
+			return errors.Is(err, gorm.ErrRecordNotFound)
+		}, "1m", "10s").Should(BeTrue())
+
+	})
+
 	It("None SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
