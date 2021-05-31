@@ -36,12 +36,6 @@ parameters:
 - name: IMAGE_BUILDER
   value: ''
   required: true
-- name: HW_VALIDATOR_MIN_CPU_CORES
-  value: ''
-  required: true
-- name: HW_VALIDATOR_MIN_RAM_GIB
-  value: ''
-  required: true
 - name: HW_VALIDATOR_REQUIREMENTS
   value: ''
   required: true
@@ -248,10 +242,6 @@ objects:
                 value: ${OCM_LOG_LEVEL}
               - name: IMAGE_BUILDER
                 value: ${IMAGE_BUILDER}:${IMAGE_TAG}
-              - name: HW_VALIDATOR_MIN_CPU_CORES
-                value: ${HW_VALIDATOR_MIN_CPU_CORES}
-              - name: HW_VALIDATOR_MIN_RAM_GIB
-                value: ${HW_VALIDATOR_MIN_RAM_GIB}
               - name: HW_VALIDATOR_REQUIREMENTS
                 value: ${HW_VALIDATOR_REQUIREMENTS}
               - name: INSTALLER_IMAGE
