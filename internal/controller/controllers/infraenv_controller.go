@@ -97,19 +97,23 @@ func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, log logr
 	if infraEnv.Spec.Proxy != nil {
 		if infraEnv.Spec.Proxy.NoProxy != "" && infraEnv.Spec.Proxy.NoProxy != cluster.NoProxy {
 			params.NoProxy = swag.String(infraEnv.Spec.Proxy.NoProxy)
+			log.Debugf("NoProxy changed from %s to %s", cluster.NoProxy, infraEnv.Spec.Proxy.NoProxy)
 			update = true
 		}
 		if infraEnv.Spec.Proxy.HTTPProxy != "" && infraEnv.Spec.Proxy.HTTPProxy != cluster.HTTPProxy {
 			params.HTTPProxy = swag.String(infraEnv.Spec.Proxy.HTTPProxy)
+			log.Debugf("HTTPProxy changed from %s to %s", cluster.HTTPProxy, infraEnv.Spec.Proxy.HTTPProxy)
 			update = true
 		}
 		if infraEnv.Spec.Proxy.HTTPSProxy != "" && infraEnv.Spec.Proxy.HTTPSProxy != cluster.HTTPSProxy {
 			params.HTTPSProxy = swag.String(infraEnv.Spec.Proxy.HTTPSProxy)
+			log.Debugf("HTTPProxy changed from %s to %s", cluster.HTTPSProxy, infraEnv.Spec.Proxy.HTTPSProxy)
 			update = true
 		}
 	}
 	if len(infraEnv.Spec.AdditionalNTPSources) > 0 && cluster.AdditionalNtpSource != infraEnv.Spec.AdditionalNTPSources[0] {
 		params.AdditionalNtpSource = swag.String(strings.Join(infraEnv.Spec.AdditionalNTPSources[:], ","))
+		log.Debugf("AdditionalNTPSources changed from %s to %s", cluster.AdditionalNtpSource, infraEnv.Spec.AdditionalNTPSources[0])
 		update = true
 	}
 
@@ -137,6 +141,7 @@ func (r *InfraEnvReconciler) updateClusterDiscoveryIgnitionIfNeeded(ctx context.
 	)
 	if infraEnv.Spec.IgnitionConfigOverride != "" && cluster.IgnitionConfigOverrides != infraEnv.Spec.IgnitionConfigOverride {
 		discoveryIgnitionParams.Config = *swag.String(infraEnv.Spec.IgnitionConfigOverride)
+		log.Debugf("AdditionalNTPSources changed from %s to %s", cluster.IgnitionConfigOverrides, infraEnv.Spec.IgnitionConfigOverride)
 		updateClusterIgnition = true
 	}
 	if updateClusterIgnition {
@@ -305,7 +310,12 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 		Reason:  aiv1beta1.ImageCreatedReason,
 		Message: aiv1beta1.ImageStateCreated,
 	})
-	infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
+
+	if infraEnv.Status.ISODownloadURL != imageInfo.DownloadURL {
+		infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
+		log.Infof("ISODownloadURL changed from %s to %s", imageInfo.DownloadURL, infraEnv.Status.ISODownloadURL)
+	}
+
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update infraEnv status")
 		return ctrl.Result{Requeue: true}, nil
@@ -355,6 +365,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 			Message: aiv1beta1.ImageStateFailedToCreate + errMsg,
 		})
 		// In a case of an error, clear the download URL.
+		log.Debugf("cleanup up ISODownloadURL due to %s", errMsg)
 		infraEnv.Status.ISODownloadURL = ""
 	}
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
