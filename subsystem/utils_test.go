@@ -243,6 +243,7 @@ func generateEssentialHostSteps(ctx context.Context, h *models.Host, name string
 
 func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {
 	generateHWPostStepReply(ctx, h, inventory, name)
+	generateFAPostStepReply(ctx, h, validFreeAddresses)
 	generateNTPPostStepReply(ctx, h, []*models.NtpSource{common.TestNTPSourceSynced})
 }
 
@@ -256,6 +257,7 @@ func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...
 func registerNode(ctx context.Context, clusterID strfmt.UUID, name string) *models.Host {
 	h := &registerHost(clusterID).Host
 	generateEssentialHostSteps(ctx, h, name)
+	generateEssentialPrepareForInstallationSteps(ctx, h)
 	return h
 }
 
@@ -329,7 +331,6 @@ func updateVipParams(ctx context.Context, clusterID strfmt.UUID) {
 
 func register3nodes(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
 	h1 := registerNode(ctx, clusterID, "h1")
-	generateFAPostStepReply(ctx, h1, validFreeAddresses)
 	h2 := registerNode(ctx, clusterID, "h2")
 	h3 := registerNode(ctx, clusterID, "h3")
 	updateVipParams(ctx, clusterID)
