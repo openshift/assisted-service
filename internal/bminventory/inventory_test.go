@@ -1160,6 +1160,88 @@ var _ = Describe("PostStepReply", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 
+	Context("Media disconnection", func() {
+		var (
+			clusterId *strfmt.UUID
+			hostId    *strfmt.UUID
+			host      *models.Host
+		)
+
+		BeforeEach(func() {
+			clusterId = strToUUID(uuid.New().String())
+			hostId = strToUUID(uuid.New().String())
+			host = &models.Host{
+				ID:        hostId,
+				ClusterID: *clusterId,
+				Status:    swag.String("insufficient"),
+			}
+			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
+		})
+
+		It("Media disconnection occurred", func() {
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, hostId, models.EventSeverityError, gomock.Any(), gomock.Any())
+
+			params := installer.PostStepReplyParams{
+				ClusterID: *clusterId,
+				HostID:    *hostId,
+				Reply: &models.StepReply{
+					ExitCode: MediaDisconnected,
+					Output:   "output",
+					StepType: models.StepTypeFreeNetworkAddresses,
+				},
+			}
+
+			Expect(bm.PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected"))
+		})
+
+		It("Media disconnection - wrapping an existing error", func() {
+			updates := map[string]interface{}{}
+			updates["Status"] = models.HostStatusError
+			updates["StatusInfo"] = models.HostStatusError
+			updateErr := db.Model(&common.Host{}).Where("id = ?", hostId).Updates(updates).Error
+			Expect(updateErr).ShouldNot(HaveOccurred())
+			params := installer.PostStepReplyParams{
+				ClusterID: *clusterId,
+				HostID:    *hostId,
+				Reply: &models.StepReply{
+					ExitCode: MediaDisconnected,
+					Output:   "output",
+					StepType: models.StepTypeFreeNetworkAddresses,
+				},
+			}
+
+			Expect(bm.PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
+		})
+
+		It("Media disconnection - appending stderr", func() {
+			updates := map[string]interface{}{}
+			updates["Status"] = models.HostStatusError
+			updateErr := db.Model(&common.Host{}).Where("id = ?", hostId).Updates(updates).Error
+			Expect(updateErr).ShouldNot(HaveOccurred())
+			params := installer.PostStepReplyParams{
+				ClusterID: *clusterId,
+				HostID:    *hostId,
+				Reply: &models.StepReply{
+					ExitCode: MediaDisconnected,
+					Output:   "output",
+					Error:    "error",
+					StepType: models.StepTypeFreeNetworkAddresses,
+				},
+			}
+
+			Expect(bm.PostStepReply(ctx, params)).Should(BeAssignableToTypeOf(installer.NewPostStepReplyNoContent()))
+			Expect(db.Take(host, "cluster_id = ? and id = ?", clusterId.String(), hostId.String()).Error).ToNot(HaveOccurred())
+			Expect(*host.Status).To(BeEquivalentTo(models.HostStatusError))
+			Expect(*host.StatusInfo).To(BeEquivalentTo("Failed - Cannot read from the media (ISO) - media was likely disconnected. error"))
+		})
+	})
+
 	Context("Free addresses", func() {
 		var makeStepReply = func(clusterID, hostID strfmt.UUID, freeAddresses models.FreeNetworksAddresses) installer.PostStepReplyParams {
 			b, _ := json.Marshal(&freeAddresses)
