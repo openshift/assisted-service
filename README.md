@@ -182,6 +182,8 @@ For OpenShift users, look at the service deployment options on OpenShift platfor
 
 ### Deploy Monitoring
 
+Note: This target is only for development purpose.
+
 This will allow you to deploy Prometheus and Grafana already integrated with Assisted installer:
 
 - On Minikube
