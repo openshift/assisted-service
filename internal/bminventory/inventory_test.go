@@ -272,7 +272,7 @@ var _ = Describe("GenerateClusterISO", func() {
 
 	})
 
-	It("sets the auth token when using local auth", func() {
+	It("sets the auth token when using local auth and retry image creation", func() {
 		// Use a local auth handler
 		pub, priv, err := gencrypto.ECDSAKeyPairPEM()
 		Expect(err).NotTo(HaveOccurred())
@@ -308,6 +308,15 @@ var _ = Describe("GenerateClusterISO", func() {
 		tok := u.Query().Get("api_key")
 		_, err = bm.authHandler.AuthURLAuth(tok)
 		Expect(err).NotTo(HaveOccurred())
+		firstURL := getReply.Payload.ImageInfo.DownloadURL
+
+		// Attempt to create the image again and validate that the URL was not changed
+		bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
+			ClusterID:         *clusterId,
+			ImageCreateParams: &models.ImageCreateParams{},
+		})
+		getReply = bm.GetCluster(ctx, installer.GetClusterParams{ClusterID: *clusterId}).(*installer.GetClusterOK)
+		Expect(getReply.Payload.ImageInfo.DownloadURL).To(Equal(firstURL))
 	})
 
 	It("image already exists", func() {
@@ -325,10 +334,8 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
-		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
-		mockS3Client.EXPECT().GeneratePresignedDownloadURL(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo,
 			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`, cluster.ImageInfo.Type),
 			gomock.Any())
@@ -359,7 +366,7 @@ var _ = Describe("GenerateClusterISO", func() {
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
-		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any())
+		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockUploadIso(&cluster, nil)
 		mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(false, nil).Times(1)
@@ -542,7 +549,6 @@ var _ = Describe("GenerateClusterISO", func() {
 
 			mockStaticNetworkConfig.EXPECT().ValidateStaticConfigParams(staticNetworkConfig).Return(nil).Times(1)
 			mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
-			mockS3Client.EXPECT().IsAwsS3().Return(false)
 			mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(staticNetworkConfig).Return(staticNetworkFormatRes).Times(1)
 			mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 			mockEvents.EXPECT().AddEvent(gomock.Any(), *clusterId, nil, models.EventSeverityInfo,

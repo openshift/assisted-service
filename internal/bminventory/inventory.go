@@ -794,28 +794,32 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 	cluster.ImageInfo.SizeBytes = &imgSize
 
 	// Presigned URL only works with AWS S3 because Scality is not exposed
-	downloadURL := ""
-	if b.objectHandler.IsAwsS3() {
-		downloadURL, err = b.objectHandler.GeneratePresignedDownloadURL(ctx, imgName, imgName, b.Config.ImageExpirationTime)
-		if err != nil {
-			return errors.New("Failed to generate image: error generating URL")
-		}
-	} else {
-		var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: *cluster.ID}
-		clusterISOURL, err := downloadClusterISOURL.Build()
-		if err != nil {
-			return errors.New("Failed to generate image: error generating cluster ISO URL")
-		}
-		downloadURL = fmt.Sprintf("%s%s", b.Config.ServiceBaseURL, clusterISOURL.RequestURI())
-		if b.authHandler.AuthType() == auth.TypeLocal {
-			downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String())
+	if generated {
+		downloadURL := ""
+		if b.objectHandler.IsAwsS3() {
+			downloadURL, err = b.objectHandler.GeneratePresignedDownloadURL(ctx, imgName, imgName, b.Config.ImageExpirationTime)
 			if err != nil {
-				return errors.Wrap(err, "Failed to sign cluster ISO URL")
+				return errors.New("Failed to generate image: error generating URL")
+			}
+		} else {
+			var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: *cluster.ID}
+			clusterISOURL, err := downloadClusterISOURL.Build()
+			if err != nil {
+				return errors.New("Failed to generate image: error generating cluster ISO URL")
+			}
+			downloadURL = fmt.Sprintf("%s%s", b.Config.ServiceBaseURL, clusterISOURL.RequestURI())
+			if b.authHandler.AuthType() == auth.TypeLocal {
+				downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String())
+				if err != nil {
+					return errors.Wrap(err, "Failed to sign cluster ISO URL")
+				}
 			}
 		}
+		updates["image_download_url"] = downloadURL
+		cluster.ImageInfo.DownloadURL = downloadURL
+		updates["image_generated"] = true
+		cluster.ImageGenerated = true
 	}
-	updates["image_download_url"] = downloadURL
-	cluster.ImageInfo.DownloadURL = downloadURL
 
 	if cluster.ProxyHash != clusterProxyHash {
 		updates["proxy_hash"] = clusterProxyHash
@@ -825,10 +829,6 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 	updates["image_type"] = imageType
 	cluster.ImageInfo.Type = imageType
 
-	if generated {
-		updates["image_generated"] = true
-		cluster.ImageGenerated = true
-	}
 	dbReply := b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.New("Failed to generate image: error updating image record")
@@ -945,12 +945,12 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	updates["image_ssh_public_key"] = params.ImageCreateParams.SSHPublicKey
 	updates["image_created_at"] = strfmt.DateTime(now)
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
-	updates["image_download_url"] = ""
 	updates["image_static_network_config"] = staticNetworkConfig
 	if !imageExists {
 		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
 		// state of the image creation based on the cluster parameters which will be committed to the DB
 		updates["image_generated"] = false
+		updates["image_download_url"] = ""
 	}
 	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
