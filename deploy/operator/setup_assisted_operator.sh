@@ -58,6 +58,12 @@ cat <<EOF
   SERVICE_BASE_URL: '${SERVICE_BASE_URL}'
 EOF
     fi
+
+    if [ -n "${PUBLIC_CONTAINER_REGISTRIES:-}" ]; then
+cat <<EOF
+  PUBLIC_CONTAINER_REGISTRIES: 'quay.io,${PUBLIC_CONTAINER_REGISTRIES}'
+EOF
+    fi
 }
 
 tee << EOCR >(oc apply -f -)
