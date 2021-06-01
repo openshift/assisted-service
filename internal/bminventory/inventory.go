@@ -4419,10 +4419,19 @@ func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, param
 }
 
 func (b *bareMetalInventory) GetHostRequirements(_ context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
-	requirements, err := b.hwValidator.GetDefaultVersionRequirements(swag.BoolValue(params.SingleNode))
+	requirements, err := b.hwValidator.GetDefaultVersionRequirements()
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	if swag.BoolValue(params.SingleNode) {
+		return installer.NewGetHostRequirementsOK().WithPayload(
+			&models.HostRequirements{
+				Master: hostRequirementsRoleFrom(requirements.SNORequirements),
+				Worker: hostRequirementsRoleFrom(requirements.WorkerRequirements),
+			})
+	}
+
 	return installer.NewGetHostRequirementsOK().WithPayload(
 		&models.HostRequirements{
 			Master: hostRequirementsRoleFrom(requirements.MasterRequirements),

@@ -19,6 +19,9 @@ type VersionedHostRequirements struct {
 	// Master node requirements
 	MasterRequirements *ClusterHostRequirementsDetails `json:"master,omitempty"`
 
+	// Single node OpenShift node requirements
+	SNORequirements *ClusterHostRequirementsDetails `json:"sno,omitempty"`
+
 	// Worker node requirements
 	WorkerRequirements *ClusterHostRequirementsDetails `json:"worker,omitempty"`
 
@@ -31,6 +34,10 @@ func (m *VersionedHostRequirements) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateMasterRequirements(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateSNORequirements(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -54,6 +61,24 @@ func (m *VersionedHostRequirements) validateMasterRequirements(formats strfmt.Re
 		if err := m.MasterRequirements.Validate(formats); err != nil {
 			if ve, ok := err.(*errors.Validation); ok {
 				return ve.ValidateName("master")
+			}
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *VersionedHostRequirements) validateSNORequirements(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.SNORequirements) { // not required
+		return nil
+	}
+
+	if m.SNORequirements != nil {
+		if err := m.SNORequirements.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("sno")
 			}
 			return err
 		}

@@ -40,6 +40,8 @@ const (
 	defaultWorkerRam                = 2048
 	defaultWorkerDiskSize           = 20
 	defaultWorkerDiskSpeedThreshold = 2
+	defaultSnoCores                 = 8
+	defaultSnoRam                   = 32768
 )
 
 var _ = Describe("Disk eligibility", func() {
@@ -60,6 +62,12 @@ var _ = Describe("Disk eligibility", func() {
 				RAMMib:                           defaultWorkerRam,
 				DiskSizeGb:                       minDiskSizeGb,
 				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
+			},
+			SNORequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultSnoCores,
+				RAMMib:                           defaultSnoRam,
+				DiskSizeGb:                       minDiskSizeGb,
+				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
 			},
 		},
 	}
@@ -331,6 +339,12 @@ var _ = Describe("Cluster host requirements", func() {
 				"disk_size_gb":                         defaultWorkerDiskSize,
 				"installation_disk_speed_threshold_ms": defaultWorkerDiskSpeedThreshold,
 			},
+			"sno": map[string]interface{}{
+				"cpu_cores":                            defaultSnoCores,
+				"ram_mib":                              defaultSnoRam,
+				"disk_size_gb":                         defaultMasterDiskSize,
+				"installation_disk_speed_threshold_ms": defaultMasterDiskSpeedThreshold,
+			},
 		},
 		{
 			"version": "4.6",
@@ -342,6 +356,11 @@ var _ = Describe("Cluster host requirements", func() {
 			"worker": map[string]interface{}{
 				"cpu_cores":    2,
 				"ram_mib":      8192,
+				"disk_size_gb": 120,
+			},
+			"sno": map[string]interface{}{
+				"cpu_cores":    8,
+				"ram_mib":      32768,
 				"disk_size_gb": 120,
 			},
 		},
@@ -362,6 +381,14 @@ var _ = Describe("Cluster host requirements", func() {
 				"installation_disk_speed_threshold_ms": 2,
 				"network_latency_threshold_ms":         1000,
 				"packet_loss_percentage":               10,
+			},
+			"sno": map[string]interface{}{
+				"cpu_cores":                            7,
+				"ram_mib":                              31744,
+				"disk_size_gb":                         124,
+				"installation_disk_speed_threshold_ms": 3,
+				"network_latency_threshold_ms":         1100,
+				"packet_loss_percentage":               11,
 			},
 		},
 	}
@@ -462,15 +489,15 @@ var _ = Describe("Cluster host requirements", func() {
 		Expect(result).ToNot(BeNil())
 
 		Expect(result.Ocp.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize))
-		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresSno))
-		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(cfg.MinRamGibSno * int64(units.KiB)))
+		Expect(result.Ocp.CPUCores).To(BeEquivalentTo(defaultSnoCores))
+		Expect(result.Ocp.RAMMib).To(BeEquivalentTo(defaultSnoRam))
 		Expect(result.Ocp.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
 
 		Expect(result.Operators).To(ConsistOf(operatorRequirements))
 
 		Expect(result.Total.DiskSizeGb).To(BeEquivalentTo(defaultMasterDiskSize + details1.DiskSizeGb + details2.DiskSizeGb))
-		Expect(result.Total.CPUCores).To(BeEquivalentTo(cfg.MinCPUCoresSno + details1.CPUCores + details2.CPUCores))
-		Expect(result.Total.RAMMib).To(BeEquivalentTo(cfg.MinRamGibSno*int64(units.KiB) + details1.RAMMib + details2.RAMMib))
+		Expect(result.Total.CPUCores).To(BeEquivalentTo(defaultSnoCores + details1.CPUCores + details2.CPUCores))
+		Expect(result.Total.RAMMib).To(BeEquivalentTo(defaultSnoRam + details1.RAMMib + details2.RAMMib))
 		Expect(result.Total.InstallationDiskSpeedThresholdMs).To(BeEquivalentTo(defaultMasterDiskSpeedThreshold))
 	})
 
@@ -625,6 +652,12 @@ var _ = Describe("Preflight host requirements", func() {
 				DiskSizeGb:                       defaultWorkerDiskSize,
 				InstallationDiskSpeedThresholdMs: defaultWorkerDiskSpeedThreshold,
 			},
+			SNORequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:                         defaultSnoCores,
+				RAMMib:                           defaultSnoRam,
+				DiskSizeGb:                       defaultMasterDiskSize,
+				InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
+			},
 		},
 		"4.6": {
 			Version: "4.6",
@@ -636,6 +669,11 @@ var _ = Describe("Preflight host requirements", func() {
 			WorkerRequirements: &models.ClusterHostRequirementsDetails{
 				CPUCores:   2,
 				RAMMib:     8192,
+				DiskSizeGb: 120,
+			},
+			SNORequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:   8,
+				RAMMib:     32768,
 				DiskSizeGb: 120,
 			},
 		},
@@ -652,6 +690,11 @@ var _ = Describe("Preflight host requirements", func() {
 				RAMMib:                           9216,
 				DiskSizeGb:                       122,
 				InstallationDiskSpeedThresholdMs: 2,
+			},
+			SNORequirements: &models.ClusterHostRequirementsDetails{
+				CPUCores:   7,
+				RAMMib:     31744,
+				DiskSizeGb: 123,
 			},
 		},
 	}
@@ -732,9 +775,9 @@ var _ = Describe("Preflight host requirements", func() {
 		expectedOcpRequirements := models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores:                         cfg.MinCPUCoresSno,
+					CPUCores:                         defaultSnoCores,
 					DiskSizeGb:                       defaultMasterDiskSize,
-					RAMMib:                           cfg.MinRamGibSno * int64(units.KiB),
+					RAMMib:                           defaultSnoRam,
 					InstallationDiskSpeedThresholdMs: defaultMasterDiskSpeedThreshold,
 				},
 			},

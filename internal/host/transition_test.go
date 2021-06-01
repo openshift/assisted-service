@@ -48,6 +48,12 @@ var (
 		NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
 		PacketLossPercentage:             pointer.Float64Ptr(0),
 	}
+	defaultSnoRequirements = models.ClusterHostRequirementsDetails{
+		CPUCores:                         8,
+		RAMMib:                           32768,
+		DiskSizeGb:                       120,
+		InstallationDiskSpeedThresholdMs: 10,
+	}
 )
 
 func createValidatorCfg() *hardware.ValidatorCfg {
@@ -57,6 +63,7 @@ func createValidatorCfg() *hardware.ValidatorCfg {
 				Version:            "default",
 				MasterRequirements: &defaultMasterRequirements,
 				WorkerRequirements: &defaultWorkerRequirements,
+				SNORequirements:    &defaultSnoRequirements,
 			},
 		},
 		MaximumAllowedTimeDiffMinutes: 4,

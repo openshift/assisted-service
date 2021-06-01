@@ -39,11 +39,15 @@ func (d *VersionedRequirementsDecoder) Decode(value string) error {
 
 func (d *VersionedRequirementsDecoder) validate() error {
 	for version, requirements := range *d {
-		err := validateDetails(requirements.WorkerRequirements, version, models.HostRoleWorker)
+		err := validateDetails(requirements.WorkerRequirements, version, string(models.HostRoleWorker))
 		if err != nil {
 			return err
 		}
-		err = validateDetails(requirements.MasterRequirements, version, models.HostRoleMaster)
+		err = validateDetails(requirements.MasterRequirements, version, string(models.HostRoleMaster))
+		if err != nil {
+			return err
+		}
+		err = validateDetails(requirements.SNORequirements, version, "SNO")
 		if err != nil {
 			return err
 		}
@@ -51,7 +55,7 @@ func (d *VersionedRequirementsDecoder) validate() error {
 	return nil
 }
 
-func validateDetails(details *models.ClusterHostRequirementsDetails, version string, role models.HostRole) error {
+func validateDetails(details *models.ClusterHostRequirementsDetails, version string, role string) error {
 	if details == nil {
 		return fmt.Errorf("requirements for %v role must be provided for version %v", role, version)
 	}
@@ -75,6 +79,7 @@ func copyVersionedHostRequirements(requirements *models.VersionedHostRequirement
 		Version:            requirements.Version,
 		MasterRequirements: copyClusterHostRequirementsDetails(requirements.MasterRequirements),
 		WorkerRequirements: copyClusterHostRequirementsDetails(requirements.WorkerRequirements),
+		SNORequirements:    copyClusterHostRequirementsDetails(requirements.SNORequirements),
 	}
 }
 

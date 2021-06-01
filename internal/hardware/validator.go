@@ -36,7 +36,7 @@ type Validator interface {
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
 	GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error)
-	GetDefaultVersionRequirements(singleNode bool) (*models.VersionedHostRequirements, error)
+	GetDefaultVersionRequirements() (*models.VersionedHostRequirements, error)
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
@@ -53,8 +53,6 @@ func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operato
 }
 
 type ValidatorCfg struct {
-	MinCPUCoresSno                int64                        `envconfig:"HW_VALIDATOR_MIN_CPU_CORES_SNO" default:"8"`
-	MinRamGibSno                  int64                        `envconfig:"HW_VALIDATOR_MIN_RAM_GIB_SNO" default:"32"`
 	MaximumAllowedTimeDiffMinutes int64                        `envconfig:"HW_VALIDATOR_MAX_TIME_DIFF_MINUTES" default:"4"`
 	VersionedRequirements         VersionedRequirementsDecoder `envconfig:"HW_VALIDATOR_REQUIREMENTS" default:"[]"`
 }
@@ -192,15 +190,8 @@ func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluste
 	}, nil
 }
 
-func (v *validator) GetDefaultVersionRequirements(singleNode bool) (*models.VersionedHostRequirements, error) {
-	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(DefaultVersion)
-	if err != nil {
-		return nil, err
-	}
-	if singleNode {
-		v.updateSingleNodeHwRequirements(requirements)
-	}
-	return requirements, nil
+func (v *validator) GetDefaultVersionRequirements() (*models.VersionedHostRequirements, error) {
+	return v.VersionedRequirements.GetVersionedHostRequirements(DefaultVersion)
 }
 
 func (v *validator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
@@ -248,7 +239,11 @@ func (v *validator) getOCPHostRoleRequirementsForVersion(cluster *common.Cluster
 	if err != nil {
 		return models.ClusterHostRequirementsDetails{}, err
 	}
+
 	if role == models.HostRoleMaster {
+		if common.IsSingleNodeCluster(cluster) {
+			return *requirements.SNORequirements, nil
+		}
 		return *requirements.MasterRequirements, nil
 	}
 	return *requirements.WorkerRequirements, nil
@@ -261,7 +256,7 @@ func (v *validator) getPreflightOCPRequirements(cluster *common.Cluster) (*model
 	}
 	return &models.HostTypeHardwareRequirementsWrapper{
 		Master: &models.HostTypeHardwareRequirements{
-			Quantitative: requirements.MasterRequirements,
+			Quantitative: v.getMasterRequirements(cluster, requirements),
 		},
 		Worker: &models.HostTypeHardwareRequirements{
 			Quantitative: requirements.WorkerRequirements,
@@ -269,22 +264,15 @@ func (v *validator) getPreflightOCPRequirements(cluster *common.Cluster) (*model
 	}, nil
 }
 
-func (v *validator) updateSingleNodeHwRequirements(requirements *models.VersionedHostRequirements) {
-	requirements.MasterRequirements.CPUCores = v.ValidatorCfg.MinCPUCoresSno
-	requirements.MasterRequirements.RAMMib = conversions.GibToMib(v.ValidatorCfg.MinRamGibSno)
+func (v *validator) getMasterRequirements(cluster *common.Cluster, requirements *models.VersionedHostRequirements) *models.ClusterHostRequirementsDetails {
+	if common.IsSingleNodeCluster(cluster) {
+		return requirements.SNORequirements
+	}
+	return requirements.MasterRequirements
 }
 
 func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) (*models.VersionedHostRequirements, error) {
-	requirements, err := v.VersionedRequirements.GetVersionedHostRequirements(cluster.OpenshiftVersion)
-	if err != nil {
-		return nil, err
-	}
-
-	if common.IsSingleNodeCluster(cluster) {
-		v.updateSingleNodeHwRequirements(requirements)
-	}
-
-	return requirements, nil
+	return v.VersionedRequirements.GetVersionedHostRequirements(cluster.OpenshiftVersion)
 }
 
 func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regexp.Regexp {
