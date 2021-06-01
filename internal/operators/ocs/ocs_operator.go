@@ -153,16 +153,14 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			return &models.ClusterHostRequirementsDetails{
-				CPUCores:   CPUCompactMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
-				RAMMib:     conversions.GibToMib(MemoryGiBCompactMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
-				DiskSizeGb: ocsMinDiskSize,
+				CPUCores: CPUCompactMode + (reqDisks * o.config.OCSRequiredDiskCPUCount),
+				RAMMib:   conversions.GibToMib(MemoryGiBCompactMode + (reqDisks * o.config.OCSRequiredDiskRAMGiB)),
 			}, nil
 		}
 		// regular worker req
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores:   CPUMinimalMode + reqDisks*o.config.OCSRequiredDiskCPUCount,
-			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + reqDisks*o.config.OCSRequiredDiskRAMGiB),
-			DiskSizeGb: ocsMinDiskSize,
+			CPUCores: CPUMinimalMode + (reqDisks * o.config.OCSRequiredDiskCPUCount),
+			RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode + (reqDisks * o.config.OCSRequiredDiskRAMGiB)),
 		}, nil
 	}
 
@@ -176,9 +174,8 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 	if diskCount > 0 {
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores:   CPUMinimalMode + diskCount*o.config.OCSRequiredDiskCPUCount,
-			RAMMib:     conversions.GibToMib(MemoryGiBMinimalMode + diskCount*o.config.OCSRequiredDiskRAMGiB),
-			DiskSizeGb: ocsMinDiskSize,
+			CPUCores: CPUMinimalMode + (diskCount * o.config.OCSRequiredDiskCPUCount),
+			RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode + (diskCount * o.config.OCSRequiredDiskRAMGiB)),
 		}, nil
 	}
 	return &models.ClusterHostRequirementsDetails{
