@@ -70,7 +70,7 @@ parameters:
 - name: PUBLIC_CONTAINER_REGISTRIES
   value: ""
 - name: CHECK_CLUSTER_VERSION
-  value: "false"
+  value: "true"
 - name: IPV6_SUPPORT
   value: "true"
   required: false
