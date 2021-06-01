@@ -316,25 +316,29 @@ var _ = Describe("Cluster", func() {
 	})
 })
 
-func isClusterInState(ctx context.Context, clusterID strfmt.UUID, state, stateInfo string) (bool, string) {
+func isClusterInState(ctx context.Context, clusterID strfmt.UUID, state, stateInfo string) (bool, string, string) {
 	rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 	Expect(err).NotTo(HaveOccurred())
 	c := rep.GetPayload()
 	if swag.StringValue(c.Status) == state {
-		return stateInfo == IgnoreStateInfo || swag.StringValue(c.StatusInfo) == stateInfo, swag.StringValue(c.Status)
+		return stateInfo == IgnoreStateInfo ||
+			swag.StringValue(c.StatusInfo) == stateInfo, swag.StringValue(c.Status), swag.StringValue(c.StatusInfo)
 	}
 	Expect(swag.StringValue(c.Status)).NotTo(Equal("error"))
 
-	return false, swag.StringValue(c.Status)
+	return false, swag.StringValue(c.Status), swag.StringValue(c.StatusInfo)
 }
 
 func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state string, timeout time.Duration, stateInfo string) {
 	log.Infof("Waiting for cluster %s status %s", clusterID, state)
-	var lastState string = ""
-	var success bool
+	var (
+		lastState      string
+		lastStatusInfo string
+		success        bool
+	)
 
 	for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
-		success, lastState = isClusterInState(ctx, clusterID, state, stateInfo)
+		success, lastState, lastStatusInfo = isClusterInState(ctx, clusterID, state, stateInfo)
 
 		if success {
 			successInRow++
@@ -351,24 +355,27 @@ func waitForClusterState(ctx context.Context, clusterID strfmt.UUID, state strin
 		time.Sleep(time.Second)
 	}
 
-	Expect(lastState).Should(Equal(state), fmt.Sprintf("Cluster %s wasn't in state %s for %d times in a row.",
-		clusterID, state, minSuccessesInRow))
+	Expect(lastState).Should(Equal(state), fmt.Sprintf("Cluster %s wasn't in state %s for %d times in a row. Actual %s (%s)",
+		clusterID, state, minSuccessesInRow, lastState, lastStatusInfo))
 }
 
-func isHostInState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string) (bool, string) {
+func isHostInState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string) (bool, string, string) {
 	rep, err := userBMClient.Installer.GetHost(ctx, &installer.GetHostParams{ClusterID: clusterID, HostID: hostID})
 	Expect(err).NotTo(HaveOccurred())
 	h := rep.GetPayload()
-	return swag.StringValue(h.Status) == state, swag.StringValue(h.Status)
+	return swag.StringValue(h.Status) == state, swag.StringValue(h.Status), swag.StringValue(h.StatusInfo)
 }
 
 func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.UUID, state string, timeout time.Duration) {
 	log.Infof("Waiting for host %s state %s", hostID, state)
-	var lastState string = ""
-	var success bool
+	var (
+		lastState      string
+		lastStatusInfo string
+		success        bool
+	)
 
 	for start, successInRow := time.Now(), 0; time.Since(start) < timeout; {
-		success, lastState = isHostInState(ctx, clusterID, hostID, state)
+		success, lastState, lastStatusInfo = isHostInState(ctx, clusterID, hostID, state)
 
 		if success {
 			successInRow++
@@ -385,8 +392,8 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 		time.Sleep(time.Second)
 	}
 
-	Expect(lastState).Should(Equal(state), fmt.Sprintf("Host %s in Cluster %s wasn't in state %s for %d times in a row.",
-		hostID, clusterID, state, minSuccessesInRow))
+	Expect(lastState).Should(Equal(state), fmt.Sprintf("Host %s in Cluster %s wasn't in state %s for %d times in a row. Actual %s (%s)",
+		hostID, clusterID, state, minSuccessesInRow, lastState, lastStatusInfo))
 }
 
 func waitForMachineNetworkCIDR(
@@ -1454,7 +1461,7 @@ var _ = Describe("cluster install", func() {
 			})
 			Expect(err).NotTo(HaveOccurred())
 			By("Verify host status is still installing")
-			_, status := isHostInState(ctx, clusterID, *c.Hosts[0].ID, models.HostStatusInstalling)
+			_, status, _ := isHostInState(ctx, clusterID, *c.Hosts[0].ID, models.HostStatusInstalling)
 			Expect(status).Should(Equal(models.HostStatusInstalling))
 
 		})
