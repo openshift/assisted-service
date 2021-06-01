@@ -54,6 +54,21 @@ func (mr *MockInstallerInternalsMockRecorder) AddOpenshiftVersion(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddOpenshiftVersion", reflect.TypeOf((*MockInstallerInternals)(nil).AddOpenshiftVersion), arg0, arg1, arg2)
 }
 
+// CancelInstallationInternal mocks base method
+func (m *MockInstallerInternals) CancelInstallationInternal(arg0 context.Context, arg1 installer.CancelInstallationParams) (*common.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CancelInstallationInternal", arg0, arg1)
+	ret0, _ := ret[0].(*common.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CancelInstallationInternal indicates an expected call of CancelInstallationInternal
+func (mr *MockInstallerInternalsMockRecorder) CancelInstallationInternal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CancelInstallationInternal", reflect.TypeOf((*MockInstallerInternals)(nil).CancelInstallationInternal), arg0, arg1)
+}
+
 // DeregisterClusterInternal mocks base method
 func (m *MockInstallerInternals) DeregisterClusterInternal(arg0 context.Context, arg1 installer.DeregisterClusterParams) error {
 	m.ctrl.T.Helper()

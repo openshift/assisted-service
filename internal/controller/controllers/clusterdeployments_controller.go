@@ -252,6 +252,20 @@ func (r *ClusterDeploymentsReconciler) agentClusterInstallFinalizer(ctx context.
 		}
 	} else { // clusterInstall is being deleted
 		if funk.ContainsString(clusterInstall.GetFinalizers(), AgentClusterInstallFinalizerName) {
+			cluster, err := r.Installer.GetClusterByKubeKey(req.NamespacedName)
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return &ctrl.Result{Requeue: true}, err
+			}
+			if err == nil {
+				if swag.StringValue(cluster.Status) == models.ClusterStatusInstalling {
+					log.Infof("ClusterInstall is being deleted, cancel installation for cluster %s", *cluster.ID)
+					if _, err = r.Installer.CancelInstallationInternal(ctx, installer.CancelInstallationParams{
+						ClusterID: *cluster.ID,
+					}); err != nil {
+						return &ctrl.Result{Requeue: true}, err
+					}
+				}
+			}
 			// deletion finalizer found, deregister the backend cluster and delete agents
 			reply, cleanUpErr := r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
 			if cleanUpErr != nil {
