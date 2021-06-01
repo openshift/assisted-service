@@ -58,12 +58,10 @@ type garbageCollector struct {
 
 func (g garbageCollector) DeregisterInactiveClusters() {
 	if !g.leaderElector.IsLeader() {
-		g.log.Debugf("Not a leader, exiting periodic inactive clusters deregistration")
 		return
 	}
 
 	olderThan := strfmt.DateTime(time.Now().Add(-g.Config.DeregisterInactiveAfter))
-	g.log.Infof("Deregistering up to %d clusters that were inactive since %s", g.MaxGCClustersPerInterval, olderThan)
 	if err := g.clusterApi.DeregisterInactiveCluster(context.Background(), g.MaxGCClustersPerInterval, olderThan); err != nil {
 		g.log.WithError(err).Errorf("Failed deregister inactive clusters")
 		return
@@ -72,14 +70,10 @@ func (g garbageCollector) DeregisterInactiveClusters() {
 
 func (g garbageCollector) PermanentlyDeleteUnregisteredClustersAndHosts() {
 	if !g.leaderElector.IsLeader() {
-		g.log.Debugf("Not a leader, exiting periodic clusters and hosts deletion")
 		return
 	}
 
 	olderThan := strfmt.DateTime(time.Now().Add(-g.Config.DeletedUnregisteredAfter))
-	g.log.Debugf(
-		"Permanently deleting all clusters that were de-registered before %s",
-		olderThan)
 	if err := g.clusterApi.PermanentClustersDeletion(context.Background(), olderThan, g.objectHandler); err != nil {
 		g.log.WithError(err).Errorf("Failed deleting de-registered clusters")
 		return
