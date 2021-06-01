@@ -168,7 +168,7 @@ In case of failure to apply the overrides the clusterdeployment conditions will 
 Add an annotation with the desired options, the clusterdeployment controller will update the install config yaml with the annotation value.
 Note that this configuration must be applied prior to starting the installation
 ```sh
-$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io test-cluster -n assisted-installer agent-install.openshift.io/install-config-overrides="{\"controlPlane\":{\"hyperthreading\":\"Disabled\"}}"
+$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io test-cluster -n assisted-installer agent-install.openshift.io/install-config-overrides="{\"controlPlane\":{\"hyperthreading\":\"Disabled\", \"name\": \"master\"}}"
 agentclusterinstalls.extensions.hive.openshift.io/test-cluster annotated
 ```
 
