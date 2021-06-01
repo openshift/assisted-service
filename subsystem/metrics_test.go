@@ -373,7 +373,7 @@ var _ = Describe("Metrics tests", func() {
 				Expect(len(host_mem_cpu_evs)).To(Equal(1))
 				host_mem_cpu_props := toProps(host_mem_cpu_evs[0].Props)
 				Expect(host_mem_cpu_props["host_role"]).To(Equal("bootstrap"))
-				Expect(host_mem_cpu_props["stage"]).To(Equal(string(t.dstStage)))
+				Expect(host_mem_cpu_props["host_result"]).To(Equal(string(t.dstStage)))
 				Expect(host_mem_cpu_props["core_count"]).NotTo(BeNil())
 				Expect(host_mem_cpu_props["mem_bytes"]).NotTo(BeNil())
 
@@ -381,7 +381,7 @@ var _ = Describe("Metrics tests", func() {
 				Expect(len(disk_size_type_evs)).To(Equal(2))
 				disk_size_type_props := toProps(disk_size_type_evs[0].Props)
 				Expect(disk_size_type_props["host_role"]).To(Equal("bootstrap"))
-				Expect(disk_size_type_props["stage"]).To(Equal(string(t.dstStage)))
+				Expect(disk_size_type_props["host_result"]).To(Equal(string(t.dstStage)))
 				Expect(disk_size_type_props["disk_size"]).NotTo(BeNil())
 				Expect(disk_size_type_props["disk_type"]).NotTo(BeNil())
 
@@ -389,7 +389,7 @@ var _ = Describe("Metrics tests", func() {
 				Expect(len(nic_speed_evs)).To(Equal(1))
 				nic_speed_props := toProps(nic_speed_evs[0].Props)
 				Expect(nic_speed_props["host_role"]).To(Equal("bootstrap"))
-				Expect(nic_speed_props["stage"]).To(Equal(string(t.dstStage)))
+				Expect(nic_speed_props["host_result"]).To(Equal(string(t.dstStage)))
 				Expect(nic_speed_props["nic_speed"]).NotTo(BeNil())
 			})
 		}
