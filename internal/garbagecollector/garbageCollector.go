@@ -77,7 +77,7 @@ func (g garbageCollector) PermanentlyDeleteUnregisteredClustersAndHosts() {
 	}
 
 	olderThan := strfmt.DateTime(time.Now().Add(-g.Config.DeletedUnregisteredAfter))
-	g.log.Infof(
+	g.log.Debugf(
 		"Permanently deleting all clusters that were de-registered before %s",
 		olderThan)
 	if err := g.clusterApi.PermanentClustersDeletion(context.Background(), olderThan, g.objectHandler); err != nil {
