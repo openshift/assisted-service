@@ -38,7 +38,7 @@ var _ = Describe("Operators manager builder", func() {
 		operator2.EXPECT().GetMonitoredOperator().Return(monitoredOperator2)
 
 		options := Options{CheckClusterVersion: false}
-		manager := NewManagerWithOperators(log, nil, options, nil, operator1, operator2)
+		manager := NewManagerWithOperators(log, nil, options, operator1, operator2)
 		Expect(manager).ToNot(BeNil())
 
 		monitoredOperatorsList := manager.GetMonitoredOperatorsList()
@@ -62,7 +62,7 @@ var _ = Describe("Operators manager builder", func() {
 		operator2.EXPECT().GetMonitoredOperator().Return(monitoredOperator2)
 
 		options := Options{CheckClusterVersion: true}
-		manager := NewManagerWithOperators(log, nil, options, nil, operator1, operator2)
+		manager := NewManagerWithOperators(log, nil, options, operator1, operator2)
 		Expect(manager).ToNot(BeNil())
 
 		monitoredOperatorsList := manager.GetMonitoredOperatorsList()
