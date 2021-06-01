@@ -33,6 +33,7 @@ import (
 var BootstrapStages = [...]models.HostStage{
 	models.HostStageStartingInstallation, models.HostStageInstalling,
 	models.HostStageWritingImageToDisk, models.HostStageWaitingForControlPlane,
+	models.HostStageWaitingForBootkube, models.HostStageWaitingForController,
 	models.HostStageRebooting, models.HostStageConfiguring, models.HostStageJoined,
 	models.HostStageDone,
 }
