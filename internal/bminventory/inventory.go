@@ -1967,11 +1967,11 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		userManagedNetworking = swag.BoolValue(params.ClusterUpdateParams.UserManagedNetworking)
 		updates["user_managed_networking"] = userManagedNetworking
 		machineCidr = ""
-		if userManagedNetworking {
-			err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
-			if err != nil {
-				return err
-			}
+	}
+	if userManagedNetworking && !common.IsSingleNodeCluster(cluster) {
+		err, vipDhcpAllocation = setCommonUserNetworkManagedParams(params.ClusterUpdateParams, common.IsSingleNodeCluster(cluster), machineCidr, updates, log)
+		if err != nil {
+			return err
 		}
 	}
 
