@@ -429,7 +429,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
 				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
 			m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.stage.duration", time.Now(),
-				"duration", duration, "stage", string(phaseResult), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType)
+				"duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
 
 			//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
@@ -471,7 +471,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 		clusterVersion, clusterID.String(), emailDomain).Observe(float64(bytesToGib(hwInfo.Memory.PhysicalBytes)))
 
 	m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.mem.cpu", time.Now(),
-		"stage", installationStageStr, "host_role", roleStr, "mem_bytes", bytesToGib(hwInfo.Memory.PhysicalBytes),
+		"host_result", installationStageStr, "host_role", roleStr, "mem_bytes", bytesToGib(hwInfo.Memory.PhysicalBytes),
 		"core_count", hwInfo.CPU.Count)
 
 	//report disk's type, size and role for each disk
@@ -482,7 +482,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 		log.Infof("service Logic Cluster Host DiskGb role %s, result %s diskType %s diskSize %d",
 			roleStr, installationStageStr, diskTypeStr, bytesToGib(disk.SizeBytes))
 		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "disk.size.type", time.Now(),
-			"stage", installationStageStr, "host_role", roleStr, "disk_type", diskTypeStr, "disk_size", bytesToGib(disk.SizeBytes))
+			"host_result", installationStageStr, "host_role", roleStr, "disk_type", diskTypeStr, "disk_size", bytesToGib(disk.SizeBytes))
 
 		//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 		m.serviceLogicClusterHostDiskGb.WithLabelValues(diskTypeStr, roleStr, installationStageStr,
@@ -493,7 +493,7 @@ func (m *MetricsManager) reportHostMetricsOnInstallationComplete(ctx context.Con
 		log.Infof("service Logic Cluster Host NicGb role %s, result %s SpeedMbps %f",
 			roleStr, installationStageStr, float64(inter.SpeedMbps))
 		m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "nic.speed", time.Now(),
-			"stage", installationStageStr, "host_role", roleStr, "nic_speed", inter.SpeedMbps)
+			"host_result", installationStageStr, "host_role", roleStr, "nic_speed", inter.SpeedMbps)
 
 		//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 		m.serviceLogicClusterHostNicGb.WithLabelValues(roleStr, installationStageStr,
