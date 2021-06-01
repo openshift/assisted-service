@@ -145,10 +145,8 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if operator.Name == operators.OperatorCVO.Name {
-		eventInfo := fmt.Sprintf("Cluster version status: %s message: %s", status, statusInfo)
-		h.eventsHandler.AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, eventInfo, time.Now())
-	}
+	eventMsg := fmt.Sprintf("Operator %s status: %s message: %s", operator.Name, status, statusInfo)
+	h.eventsHandler.AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, eventMsg, time.Now())
 
 	txSuccess = true
 	return nil
