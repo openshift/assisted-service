@@ -418,7 +418,7 @@ func (d *FSClientDecorator) shouldLog() bool {
 }
 
 func (d *FSClientDecorator) conditionalLog(msg string, logLevel logrus.Level, fixedPercentage float64) {
-	if d.lastFSUsage != fixedPercentage && d.shouldLog() {
+	if d.shouldLog() {
 		switch logLevel {
 		case logrus.WarnLevel:
 			d.log.Warn(msg)
