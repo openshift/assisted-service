@@ -32,20 +32,6 @@ var _ = Describe("Ocs Operator", func() {
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
 					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1}}})}
-
-		masterWithLessCPU = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
-			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 32 * conversions.GiB,
-				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				}})}
-
-		masterWithLessRAM = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GiB,
-				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				}})}
 		masterWithLessDiskSize = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
@@ -71,20 +57,8 @@ var _ = Describe("Ocs Operator", func() {
 					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
 					{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3},
 				}})}
-		workerWithNoDisk      = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
-		workerWithNoInventory = &models.Host{Role: models.HostRoleWorker}
-		workerWithLessCPU     = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
-			Inventory: Inventory(&InventoryResources{Cpus: 5, Ram: 64 * conversions.GiB,
-				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				}})}
-		workerWithLessRAM = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
-			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 5 * conversions.GiB,
-				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-				}})}
+		workerWithNoDisk       = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
+		workerWithNoInventory  = &models.Host{Role: models.HostRoleWorker}
 		workerWithLessDiskSize = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
@@ -216,13 +190,14 @@ var _ = Describe("Ocs Operator", func() {
 		table.DescribeTable("compact mode scenario: validateHost when ", func(cluster *common.Cluster, host *models.Host, expectedResult api.ValidationResult) {
 			res, _ := operator.ValidateHost(ctx, cluster, host)
 			Expect(res).Should(Equal(expectedResult))
-		}, table.Entry("Single master",
-			&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+		},
+			table.Entry("Single master",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk,
+				}}},
 				masterWithThreeDisk,
-			}}},
-			masterWithThreeDisk,
-			api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
-		),
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
+			),
 			table.Entry("there are three masters",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
@@ -235,14 +210,14 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithNoDisk,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires to have at least one non-bootable on each host in compact mode."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires at least one non-bootable on each host in compact mode."}},
 			),
 			table.Entry("only one disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithOneDisk,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires to have at least one non-bootable on each host in compact mode."}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires at least one non-bootable on each host in compact mode."}},
 			),
 			table.Entry("only one disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -264,20 +239,6 @@ var _ = Describe("Ocs Operator", func() {
 				}}},
 				workerWithTwoDisk,
 				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}},
-			),
-			table.Entry("there are 3 master with less CPU",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
-					masterWithThreeDisk, masterWithNoDisk, masterWithLessCPU,
-				}}},
-				masterWithLessCPU,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient CPU to deploy OCS. Required CPU count is 8 but found 5."}},
-			),
-			table.Entry("there are 3 master with less RAM",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
-					masterWithThreeDisk, masterWithNoDisk, masterWithLessRAM,
-				}}},
-				masterWithLessRAM,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 24 GiB but found 5 GiB."}},
 			),
 			table.Entry("there is disk with less size than expected",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -326,20 +287,6 @@ var _ = Describe("Ocs Operator", func() {
 				}}},
 				workerWithNoInventory,
 				api.ValidationResult{Status: api.Pending, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}},
-			),
-			table.Entry("there are 6 hosts, worker with less CPU",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
-					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessCPU,
-				}}},
-				workerWithLessCPU,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient CPU to deploy OCS. Required CPU count is 6 but found 5."}},
-			),
-			table.Entry("there are 6 hosts, worker with less RAM",
-				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
-					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithLessRAM,
-				}}},
-				workerWithLessRAM,
-				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetHostValidationID(), Reasons: []string{"Insufficient memory to deploy OCS. Required memory is 16 GiB but found 5 GiB."}},
 			),
 			table.Entry("there is disk with less size than expected",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
