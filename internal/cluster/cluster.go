@@ -52,7 +52,6 @@ var S3FileNames = []string{
 	"kubeconfig-noingress",
 	"install-config.yaml",
 	"discovery.ign",
-	"custom_manifests.yaml",
 }
 
 //go:generate mockgen -source=cluster.go -package=cluster -destination=mock_cluster_api.go
