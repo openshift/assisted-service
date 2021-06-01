@@ -6,14 +6,20 @@ import (
 	"math/big"
 	"strings"
 
+	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/pkg/requestid"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
+	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/scale/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -133,4 +139,16 @@ func addRequestIdIfNeeded(ctx context.Context) context.Context {
 		ctxWithReqID = requestid.ToContext(ctx, requestid.NewID())
 	}
 	return ctxWithReqID
+}
+
+func GetKubeClientSchemes() *runtime.Scheme {
+	var schemes = runtime.NewScheme()
+	utilruntime.Must(scheme.AddToScheme(schemes))
+	utilruntime.Must(corev1.AddToScheme(schemes))
+	utilruntime.Must(aiv1beta1.AddToScheme(schemes))
+	utilruntime.Must(hivev1.AddToScheme(schemes))
+	utilruntime.Must(hiveext.AddToScheme(schemes))
+	utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
+	utilruntime.Must(machinev1beta1.AddToScheme(schemes))
+	return schemes
 }

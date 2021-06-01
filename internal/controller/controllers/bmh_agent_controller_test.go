@@ -36,15 +36,14 @@ var _ = Describe("bmac reconcile", func() {
 	)
 
 	BeforeEach(func() {
-		err := machinev1beta1.AddToScheme(scheme.Scheme)
-		Expect(err).To(BeNil())
-		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+		schemes := GetKubeClientSchemes()
+		c = fakeclient.NewClientBuilder().WithScheme(schemes).Build()
 		mockCtrl = gomock.NewController(GinkgoT())
 		bmhr = &BMACReconciler{
 			Client:      c,
 			Scheme:      scheme.Scheme,
 			Log:         common.GetTestLog(),
-			spokeClient: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+			spokeClient: fakeclient.NewClientBuilder().WithScheme(schemes).Build(),
 		}
 	})
 
