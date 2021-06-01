@@ -16,15 +16,12 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/kelseyhightower/envconfig"
-	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	"github.com/openshift/assisted-service/internal/assistedserviceiso"
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/connectivity"
-	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
-	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/domains"
@@ -64,18 +61,14 @@ import (
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/openshift/assisted-service/pkg/thread"
 	"github.com/openshift/assisted-service/restapi"
-	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"
 	"go.elastic.co/apm/module/apmhttp"
 	"go.elastic.co/apm/module/apmlogrus"
 	"golang.org/x/sync/errgroup"
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/clientcmd"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -692,12 +685,7 @@ func createCRDEventsHandler() controllers.CRDEventsHandler {
 
 func createControllerManager() (manager.Manager, error) {
 	if Options.EnableKubeAPI {
-		var schemes = runtime.NewScheme()
-		utilruntime.Must(scheme.AddToScheme(schemes))
-		utilruntime.Must(aiv1beta1.AddToScheme(schemes))
-		utilruntime.Must(hivev1.AddToScheme(schemes))
-		utilruntime.Must(hiveext.AddToScheme(schemes))
-		utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
+		schemes := controllers.GetKubeClientSchemes()
 
 		return ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:           schemes,
