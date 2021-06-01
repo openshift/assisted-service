@@ -56,6 +56,10 @@ else
   ETC_NETWORK_MANAGER="/etc/NetworkManager/system-connections"
 fi
 
+# remove default connection file create by NM(nm-initrd-generator). This is a WA until
+# NM is back to supporting priority between nmconnections
+rm -f ${ETC_NETWORK_MANAGER}/*
+
 # Create a map of host mac addresses to their network interfaces
 function map_host_macs_to_interfaces() {
   SYS_CLASS_NET_DIR='/sys/class/net'
