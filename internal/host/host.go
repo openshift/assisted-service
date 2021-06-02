@@ -522,7 +522,8 @@ func (m *Manager) UpdateInstallProgress(ctx context.Context, h *models.Host, pro
 			return errors.Errorf("Stages %s isn't available for host role %s bootstrap %s",
 				progress.CurrentStage, h.Role, strconv.FormatBool(h.Bootstrap))
 		}
-		if currentIndex < indexOfStage(previousProgress.CurrentStage, stages) {
+		if currentIndex < indexOfStage(previousProgress.CurrentStage, stages) &&
+			!m.allowStageOutOfOrder(h, progress.CurrentStage) {
 			return errors.Errorf("Can't assign lower stage \"%s\" after host has been in stage \"%s\"",
 				progress.CurrentStage, previousProgress.CurrentStage)
 		}
@@ -1168,6 +1169,32 @@ func (m Manager) PermanentHostsDeletion(olderThan strfmt.DateTime) error {
 		m.log.Debugf("Deleted %s hosts from db", reply.RowsAffected)
 	}
 	return nil
+}
+
+func (m *Manager) getHostCluster(host *models.Host) (*common.Cluster, error) {
+	var cluster common.Cluster
+	err := m.db.First(&cluster, "id = ?", host.ClusterID).Error
+	if err != nil {
+		m.log.WithError(err).Errorf("Failed to find cluster %s", host.ClusterID)
+		return nil, errors.Errorf("Failed to find cluster %s", host.ClusterID)
+	}
+	return &cluster, nil
+}
+
+func (m *Manager) allowStageOutOfOrder(h *models.Host, stage models.HostStage) bool {
+	// Return True in case the given stage order is exceptional in case of SNO
+	if stage != models.HostStageWritingImageToDisk {
+		return false
+	}
+	cluster, err := m.getHostCluster(h)
+	if err != nil {
+		m.log.Debug("Can't check if host is part of single node OpenShift")
+		return false
+	}
+	if !common.IsSingleNodeCluster(cluster) {
+		return false
+	}
+	return true
 }
 
 type DisabledHostValidations map[string]struct{}
