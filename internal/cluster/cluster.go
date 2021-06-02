@@ -982,8 +982,9 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 		return reply.Error
 	}
 	for i := range clusters {
+
 		c := clusters[i]
-		m.log.Debugf("Deleting all S3 files for cluster: %s", c.ID.String())
+		m.log.Infof("Permanently deleting cluster %s that was de-registered before %s", c.ID.String(), olderThan)
 
 		deleteFromDB := true
 		if err := m.DeleteClusterFiles(ctx, c, objectHandler); err != nil {
