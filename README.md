@@ -115,7 +115,7 @@ skipper make unit-test FOCUS=cluster
 if you are making changes and don't want to deploy everything once again you can simply run this command:
 
 ```shell
-skipper make patch-service 
+skipper make patch-service
 ```
 
 It will build and push a new image of the service to your Docker registry, then delete the service pod from minikube, the deployment will handle the update and pull the new image to start the service again.
@@ -350,3 +350,9 @@ More information is available here: [Assisted Installer on cloud.redhat.com](doc
 It's possible to modify the discovery ISO (via the API) to enable password login for troubleshooting purposes.
 
 More information is available here: [Set discovery ISO user password example](docs/set-discovery-password.md)
+
+## Contributing
+
+Please, read our [CONTRIBUTING] guidelines for more info about how to create, document, and review PRs.
+
+[CONTRIBUTING]: https://github.com/openshift/assisted-service/blob/master/CONTRIBUTING.md

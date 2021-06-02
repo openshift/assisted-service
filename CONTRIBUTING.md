@@ -1,5 +1,9 @@
 # Contribute to the Assisted Installer Project
 
+## Template
+
+Every PR should fill in the [PULL_REQUEST_TEMPLATE] which is automatically proposed by GitHub when creating a new PR.
+
 ## How to commit?
 
 We enforce contributors behavior with commit messages to reference JIRA/GitHub issues.
@@ -72,3 +76,6 @@ Fixing the very first GitHub issue
 
 Closes: #1
 ```
+
+
+[PULL_REQUEST_TEMPLATE]: https://github.com/openshift/assisted-service/blob/master/docs/pull_request_template.md
