@@ -33,21 +33,21 @@ func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) commo
 /* Host */
 
 func GenerateTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {
-	return GenerateTestHostByKind(hostID, clusterID, state, models.HostKindHost)
+	return GenerateTestHostByKind(hostID, clusterID, state, models.HostKindHost, models.HostRoleWorker)
 }
 
 func GenerateTestHostAddedToCluster(hostID, clusterID strfmt.UUID, state string) models.Host {
-	return GenerateTestHostByKind(hostID, clusterID, state, models.HostKindAddToExistingClusterHost)
+	return GenerateTestHostByKind(hostID, clusterID, state, models.HostKindAddToExistingClusterHost, models.HostRoleWorker)
 }
 
-func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string) models.Host {
+func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string, role models.HostRole) models.Host {
 	now := strfmt.DateTime(time.Now())
 	return models.Host{
 		ID:              &hostID,
 		ClusterID:       clusterID,
 		Status:          swag.String(state),
 		Inventory:       common.GenerateTestDefaultInventory(),
-		Role:            models.HostRoleWorker,
+		Role:            role,
 		Kind:            swag.String(kind),
 		CheckedInAt:     now,
 		StatusUpdatedAt: now,
