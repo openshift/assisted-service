@@ -363,7 +363,7 @@ data:
 
 	prodServiceBaseURL  = "https://api.openshift.com"
 	stageServiceBaseURL = "https://api.stage.openshift.com"
-	stageTelemeterURL   = "https://infogw.stage.api.openshift.com"
+	stageTelemeterURL   = "https://infogw.api.stage.openshift.com"
 	dummyURL            = "https://dummy.com"
 )
 
