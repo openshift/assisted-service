@@ -118,14 +118,7 @@ Validated	The agent's validations are passing
 Installed	The installation is in progress: Waiting for control plane
 ```
 
-## Day 2 worker
 Once the cluster is installed, the ClusterDeployment is set to Installed and secrets for kubeconfig and credentials are created and referenced in the AgentClusterInstall.
-
-In the Assisted Service, the original cluster is deleted and a Day 2 cluster is created instead.
-
-Additional nodes can be added by booting from the new generated ISO. Each additional host will start installation once the Agent is Approved and the Host is in known state.
-
-Note that the user needs to approved the additional nodes in the installed cluster.
 
 ## Bare Metal Operator Integration
 

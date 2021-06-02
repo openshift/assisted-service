@@ -116,7 +116,7 @@ def main():
                 y['data']['ENABLE_KUBE_API'] = 'true'
 
             if deploy_options.kubeapi_day2:
-                y['data']['ENABLE_KUBE_API_DAY2'] = 'true'
+                y['data']['ENABLE_KUBE_API_DAY2'] = deploy_options.kubeapi_day2
 
             data = yaml.dump(y)
             dst.write(data)
