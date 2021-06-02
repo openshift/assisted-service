@@ -46,13 +46,13 @@ metadata:
     categories: OpenShift Optional
     createdAt: ""
     description: Assisted Service is used to orchestrate baremetal OpenShift installations.
-    olm.skipRange: '>=0.0.0 <0.0.4'
+    olm.skipRange: '>=0.0.0 <99.0.0'
     operatorframework.io/suggested-namespace: assisted-installer
     operators.operatorframework.io/builder: operator-sdk-v1.7.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/openshift/assisted-service
     support: https://github.com/openshift/assisted-service/issues/new
-  name: assisted-service-operator.v0.0.4
+  name: assisted-service-operator.v99.0.0-unreleased
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -575,4 +575,6 @@ spec:
   - assisted-service-operator.v0.0.1
   - assisted-service-operator.v0.0.2
   - assisted-service-operator.v0.0.3
-  version: 0.0.4
+  - assisted-service-operator.v0.0.4
+  - assisted-service-operator.v0.0.5-rc.1
+  version: 99.0.0-unreleased
