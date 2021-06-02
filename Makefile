@@ -100,7 +100,7 @@ else
 endif
 
 GOTEST_FLAGS = --format=$(TEST_FORMAT) $(GOTEST_PUBLISH_FLAGS) -- -count=1 -cover -coverprofile=$(REPORTS)/$(TEST_SCENARIO)_coverage.out
-GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.v -ginkgo.skip="$(SKIP)" -ginkgo.reportFile=./junit_$(TEST_SCENARIO)_test.xml
+GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.skip="$(SKIP)" -ginkgo.reportFile=./junit_$(TEST_SCENARIO)_test.xml
 
 .EXPORT_ALL_VARIABLES:
 
