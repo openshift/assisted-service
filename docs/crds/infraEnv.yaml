@@ -9,8 +9,9 @@ spec:
   agentLabelSelector:
     matchLabels:
       bla: aaa
-  pullSecretRef:
-    name: pull-secret
+  # pullSecretRef is currently ignored in infraenv_controller. Use clusterDeployment.Spec.pullSecretRef instead
+  #pullSecretRef:
+  #  name: pull-secret
   proxy:
     httpProxy: http://11.11.11.33
     httpsProxy: http://22.22.22.55
