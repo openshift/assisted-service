@@ -141,12 +141,11 @@ function generate_bundle() {
             local image=${full_image%:*}
             local registry=${image%%/*}
             local image_name=${image#*/}
-            local digest=$(curl -G https://${registry}/api/v1/repository/${image_name}/tag/ | \
-                jq -r --arg TAG "${tag}" '
-                            .tags[]
-                            | select(.name==$TAG and (has("expiration")
-                            | not))
-                            | .manifest_digest')
+            local digest=$(curl -G https://${registry}/api/v1/repository/${image_name}/tag/\?specificTag=${tag} | \
+                jq -er '
+                    .tags[]
+                    | select(has("expiration") | not)
+                    | .manifest_digest')
             sed -i "s,${full_image},${image}@${digest},g" ${csv}
         done
     fi
