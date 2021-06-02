@@ -440,13 +440,13 @@ var _ = Describe("Reset cluster", func() {
 
 	for _, t := range tests {
 		t := t
-		It(fmt.Sprintf("reset from state %s", t.state), func() {
-			clusterId := strfmt.UUID(uuid.New().String())
-			cluster := common.Cluster{
-				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
-			}
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster := common.Cluster{
+			Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
+		}
+		eventsNum := 1
+		It(fmt.Sprintf("resets cluster from state %s", t.state), func() {
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			eventsNum := 1
 			acceptNewEvents(eventsNum)
 			err := capi.ResetCluster(ctx, &cluster, "reason", db)
 			if t.success {
@@ -454,6 +454,33 @@ var _ = Describe("Reset cluster", func() {
 			} else {
 				Expect(err).Should(HaveOccurred())
 				Expect(err.StatusCode()).Should(Equal(t.statusCode))
+			}
+		})
+		It(fmt.Sprintf("resets API VIP and Ingress VIP in case of single node cluster from state %s", t.state), func() {
+			haMode := models.ClusterHighAvailabilityModeNone
+			hostIP := "1.2.3.4"
+			cluster = common.Cluster{
+				Cluster: models.Cluster{
+					ID:                   &clusterId,
+					Status:               swag.String(t.state),
+					HighAvailabilityMode: &haMode,
+					APIVip:               hostIP,
+					IngressVip:           hostIP,
+				},
+			}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			acceptNewEvents(eventsNum)
+			err := capi.ResetCluster(ctx, &cluster, "reason", db)
+			cluster = getClusterFromDB(clusterId, db)
+			if t.success {
+				Expect(err).ShouldNot(HaveOccurred())
+				Expect(cluster.Cluster.APIVip).Should(Equal(""))
+				Expect(cluster.Cluster.IngressVip).Should(Equal(""))
+			} else {
+				Expect(err).Should(HaveOccurred())
+				Expect(err.StatusCode()).Should(Equal(t.statusCode))
+				Expect(cluster.Cluster.APIVip).ShouldNot(Equal(""))
+				Expect(cluster.Cluster.IngressVip).ShouldNot(Equal(""))
 			}
 		})
 	}
@@ -4068,8 +4095,9 @@ var _ = Describe("Single node", func() {
 		mockHostAPI = host.NewMockAPI(ctrl)
 		mockMetric = metrics.NewMockAPI(ctrl)
 		operatorsManager := operators.NewManager(common.GetTestLog(), nil, operators.Options{}, nil)
+		dnsApi := dns.NewDNSHandler(nil, common.GetTestLog())
 		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
-			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, nil)
+			mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, nil, nil, dnsApi)
 		hid1 = strfmt.UUID(uuid.New().String())
 		hid2 = strfmt.UUID(uuid.New().String())
 		hid3 = strfmt.UUID(uuid.New().String())
@@ -4292,6 +4320,34 @@ var _ = Describe("Single node", func() {
 				}),
 				errorExpected: false,
 			},
+			{
+				name:               "set API and Ingress vip for SNO",
+				srcState:           models.ClusterStatusPreparingForInstallation,
+				srcStatusInfo:      statusInfoInstalling,
+				dstState:           models.ClusterStatusInstalling,
+				machineNetworkCidr: "1.2.3.0/24",
+				apiVip:             "1.2.3.5",
+				ingressVip:         "1.2.3.6",
+				dnsDomain:          "test.com",
+				pullSecretSet:      true,
+				hosts: []models.Host{
+					{ID: &hid1, Status: swag.String(models.HostStatusPreparingSuccessful), Inventory: defaultInventoryWithTimestamp(1601909239), Role: models.HostRoleMaster, Bootstrap: true},
+				},
+				statusInfoChecker: makeValueChecker(statusInfoInstalling),
+				validationsChecker: makeJsonChecker(map[ValidationID]validationCheckResult{
+					IsMachineCidrDefined:                {status: ValidationSuccess, messagePattern: "The Machine Network CIDR is defined"},
+					IsMachineCidrEqualsToCalculatedCidr: {status: ValidationSuccess, messagePattern: "The Cluster Machine CIDR is equivalent to the calculated CIDR"},
+					IsApiVipDefined:                     {status: ValidationSuccess, messagePattern: "The API virtual IP is defined"},
+					IsApiVipValid:                       {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					IsIngressVipDefined:                 {status: ValidationSuccess, messagePattern: "The Ingress virtual IP is defined"},
+					IsIngressVipValid:                   {status: ValidationSuccess, messagePattern: "belongs to the Machine CIDR and is not in use."},
+					AllHostsAreReadyToInstall:           {status: ValidationSuccess, messagePattern: "All hosts in the cluster are ready to install"},
+					IsDNSDomainDefined:                  {status: ValidationSuccess, messagePattern: "The base domain is defined"},
+					IsPullSecretSet:                     {status: ValidationSuccess, messagePattern: "The pull secret is set"},
+					SufficientMastersCount:              {status: ValidationSuccess, messagePattern: "The cluster has a sufficient number of master candidates."},
+				}),
+				errorExpected: false,
+			},
 		}
 		for i := range tests {
 			t := tests[i]
@@ -4312,6 +4368,14 @@ var _ = Describe("Single node", func() {
 						ClusterNetworkHostPrefix: 24,
 						HighAvailabilityMode:     &haMode,
 					},
+				}
+				if t.srcState == models.ClusterStatusPreparingForInstallation && t.dstState == models.ClusterStatusInstalling {
+					cluster.Cluster.StatusUpdatedAt = strfmt.DateTime(time.Now())
+					cluster.InstallationPreparationCompletionStatus = common.InstallationPreparationSucceeded
+
+					mockMetric.EXPECT().InstallationStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+					mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 				mockIsValidMasterCandidate()

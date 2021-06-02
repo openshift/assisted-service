@@ -81,6 +81,11 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 
 	//reset log fields and Openshift ClusterID when resetting the cluster
 	extra := append(append(make([]interface{}, 0), "OpenshiftClusterID", ""), resetLogsField...)
+	// reset api_vip and ingress_vip in case of resetting the SNO cluster
+	if common.IsSingleNodeCluster(sCluster.cluster) {
+		extra = append(extra, "api_vip", "", "ingress_vip", "")
+	}
+
 	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason, extra...)
 }
 
@@ -473,8 +478,13 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			updatedCluster *common.Cluster
 		)
 		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
+			var extra []interface{}
+			extra, err = addExtraParams(logutil.FromContext(params.ctx, th.log), sCluster.cluster, swag.StringValue(sCluster.cluster.Status))
+			if err != nil {
+				return err
+			}
 			updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
-				reason)
+				reason, extra...)
 		}
 
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed
@@ -606,4 +616,21 @@ func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, ho
 	}
 	txSuccess = true
 	return nil
+}
+
+func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, clusterStatus string) ([]interface{}, error) {
+	extra := []interface{}{}
+	switch clusterStatus {
+	case models.ClusterStatusInstalling:
+		// In case of SNO cluster, set api_vip and ingress_vip with host ip
+		if common.IsSingleNodeCluster(cluster) {
+			hostIP, err := network.GetIpForSingleNodeInstallation(cluster, log)
+			if err != nil {
+				log.WithError(err).Errorf("Failed to find host ip for single node installation")
+				return nil, err
+			}
+			extra = append(make([]interface{}, 0), "api_vip", hostIP, "ingress_vip", hostIP)
+		}
+	}
+	return extra, nil
 }
