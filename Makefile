@@ -80,7 +80,7 @@ endif
 
 # Operator Vars
 BUNDLE_OUTPUT_DIR ?= deploy/olm-catalog
-BUNDLE_METADATA_OPTS ?= --channels=alpha,ocm-2.3 --default-channel=alpha
+BUNDLE_METADATA_OPTS ?= --channels=alpha --default-channel=alpha
 
 # We decided to have an option to change replicas count only while running locally
 # check if SERVICE_REPLICAS_COUNT was set and if yes change default value to required one
