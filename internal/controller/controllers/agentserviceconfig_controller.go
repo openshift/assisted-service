@@ -389,7 +389,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, ins
 			// from configmap
 			"AUTH_TYPE":                   "local",
 			"BASE_DNS_DOMAINS":            "",
-			"CHECK_CLUSTER_VERSION":       "False",
+			"CHECK_CLUSTER_VERSION":       "True",
 			"CREATE_S3_BUCKET":            "False",
 			"ENABLE_KUBE_API":             "True",
 			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
