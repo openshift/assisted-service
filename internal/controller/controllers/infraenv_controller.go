@@ -283,6 +283,7 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 		return r.handleEnsureISOErrors(ctx, log, infraEnv, err)
 	}
 	if len(staticNetworkConfig) > 0 {
+		log.Infof("the amount of nmStateConfigs included in the image is: %d", len(staticNetworkConfig))
 		isoParams.ImageCreateParams.StaticNetworkConfig = staticNetworkConfig
 	}
 
