@@ -190,23 +190,6 @@ func IsDay2Host(h *models.Host) bool {
 	return swag.StringValue(h.Kind) == models.HostKindAddToExistingClusterHost
 }
 
-// GetAddressFamilies returns if a host has addresses in IPv4, in IPv6 family, or both
-func GetAddressFamilies(host *models.Host) (bool, bool, error) {
-	inventory, err := UnmarshalInventory(host.Inventory)
-	if err != nil {
-		return false, false, err
-	}
-	v4 := false
-	v6 := false
-	for _, i := range inventory.Interfaces {
-		v4 = v4 || len(i.IPV4Addresses) > 0
-		v6 = v6 || len(i.IPV6Addresses) > 0
-		if v4 && v6 {
-			break
-		}
-	}
-	return v4, v6, nil
-}
 func MarshalConnectivityReport(report *models.ConnectivityReport) (string, error) {
 	if data, err := json.Marshal(report); err != nil {
 		return "", err

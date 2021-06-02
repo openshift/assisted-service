@@ -889,11 +889,11 @@ func (g *installerGenerator) updateIgnitions() error {
 		}
 	}
 
-	ipv6Only, err := network.AreIpv6OnlyHosts(g.cluster.Hosts, g.log)
+	_, ipv6, err := network.GetClusterAddressStack(g.cluster.Hosts)
 	if err != nil {
 		return err
 	}
-	if ipv6Only {
+	if ipv6 {
 		for _, ignition := range []string{masterIgn, workerIgn} {
 			if err = g.addIpv6FileInIgnition(ignition); err != nil {
 				return err
