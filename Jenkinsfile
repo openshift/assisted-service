@@ -1,11 +1,45 @@
-String cron_string = BRANCH_NAME == "master" ? "@hourly" : BRANCH_NAME.startsWith("PR") ? "@midnight" : ""
+def now = new Date()
+String current_date = now.format("Ymd")
+String current_hour = now.format("H")
+
+def cronScheduleString(branchName = BRANCH_NAME) {
+    String cronScheduleString
+    if (isCandidateBranch(branchName)) {
+        cronScheduleString = '@hourly'
+    } else if (branchName ==~ /^PR.*/) {
+        cronScheduleString = '@midnight'
+    } else {
+        cronScheduleString = ''
+    }
+    return cronScheduleString
+}
+
+def isCandidateBranch(branchName = BRANCH_NAME) {
+    // List of regex to match branches for release candidate publishing
+    def candidateBranches = [/^master$/, /^ocm-\d[.]{1}\d$/]
+    return branchName && (candidateBranches.collect { branchName =~ it ? true : false }).contains(true)
+}
+
+def releaseBranchPublishTag(branchName = BRANCH_NAME) {
+    String publish_tag
+    if (branchName == 'master') {
+        publish_tag = 'latest'
+    } else {
+        publish_tag = branchName
+    }
+    return publish_tag
+}
 
 pipeline {
     agent { label 'centos_worker' }
-    triggers { cron(cron_string) }
+    triggers { cron(cronScheduleString(env.BRANCH_NAME)) }
     environment {
         PATH = "${PATH}:/usr/local/go/bin"
         BUILD_TYPE = "CI"
+
+        CURRENT_DATE = current_date
+        CURRENT_HOUR = current_hour
+        PUBLISH_TAG = releaseBranchPublishTag(env.BRANCH_NAME)
 
         // Images
         ASSISTED_ORG = "quay.io/ocpmetal"
@@ -61,14 +95,24 @@ pipeline {
             }
         }
 
-        stage('Publish master') {
-            when { branch 'master'}
+        stage("Publish ${BRANCH_NAME}") {
+            when { 
+                expression { isCandidateBranch(env.BRANCH_NAME) }
+            }
             steps {
-                sh "make publish PUBLISH_TAG=latest"
+                sh "make publish PUBLISH_TAG=${PUBLISH_TAG}"
                 // When the index index is being built, the opm tooling pulls the bundle
                 // image from quay, so the index is built after the bundle image has been
                 // published.
-                sh "make build-publish-index PUBLISH_TAG=latest"
+                sh "make build-publish-index PUBLISH_TAG=${PUBLISH_TAG}"
+
+                // Release a nightly build at midnight for ocm branches
+                script {
+                    if (env.BRANCH_NAME ==~ /^ocm-\d[.]{1}\d$/ && env.CURRENT_HOUR == '0') {
+                        sh "make publish PUBLISH_TAG=${PUBLISH_TAG}-${CURRENT_DATE}"
+                        sh "make build-publish-index PUBLISH_TAG=${PUBLISH_TAG}-${CURRENT_DATE}"
+                    }
+                }
             }
         }
     }
