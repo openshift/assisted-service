@@ -211,7 +211,7 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 				log.WithError(err).Error("failed to update cluster metadata")
 			}
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-		} else {
+		} else if r.EnableDay2Cluster {
 			// Delete Day1 Cluster
 			_, err = r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
 			if err != nil {
@@ -222,8 +222,8 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 				//Create Day2 cluster
 				return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 			}
-			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 		}
+		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
@@ -1095,7 +1095,7 @@ func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger,
 			}
 			clusterInstall.Status.DebugInfo.EventsURL = eventUrl
 		}
-	} else {
+	} else if r.EnableDay2Cluster {
 		clusterInstall.Status.DebugInfo.EventsURL = ""
 	}
 	return nil
@@ -1107,7 +1107,7 @@ func (r *ClusterDeploymentsReconciler) populateLogsURL(log logrus.FieldLogger, c
 			log.WithError(err).Error("failed to generate controller logs URL")
 			return err
 		}
-	} else {
+	} else if r.EnableDay2Cluster {
 		clusterInstall.Status.DebugInfo.LogsURL = ""
 	}
 	return nil
