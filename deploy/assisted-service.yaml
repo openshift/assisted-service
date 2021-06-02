@@ -155,7 +155,7 @@ spec:
               mountPath: "/etc/.aws"
               readOnly: true
             - name: mirror-registry-ca
-              mountPath: "/etc/pki/ca-trust/extracted/pem/mirror_ca.pem"
+              mountPath: "/etc/pki/ca-trust/source/anchors/mirror_ca.pem"
               readOnly: true
               subPath: mirror_ca.pem
             - name: mirror-registry-conf

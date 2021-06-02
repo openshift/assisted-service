@@ -21,7 +21,7 @@ const (
 	consoleUrlPrefix = "https://console-openshift-console.apps"
 
 	MirrorRegistriesCertificateFile = "tls-ca-bundle.pem"
-	MirrorRegistriesCertificatePath = "/etc/pki/ca-trust/extracted/pem/" + MirrorRegistriesCertificateFile
+	MirrorRegistriesCertificatePath = "/etc/pki/ca-trust/source/anchors/" + MirrorRegistriesCertificateFile
 	MirrorRegistriesConfigDir       = "/etc/containers"
 	MirrorRegistriesConfigFile      = "registries.conf"
 	MirrorRegistriesConfigPath      = MirrorRegistriesConfigDir + "/" + MirrorRegistriesConfigFile
