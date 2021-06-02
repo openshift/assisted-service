@@ -48,11 +48,6 @@ func Manifests(ocsConfig *Config) (map[string][]byte, map[string][]byte, error) 
 		if err != nil {
 			return nil, nil, err
 		}
-	} else if ocsConfig.OCSDeploymentType == minimalMode { // use separate manifest for minimum deployment of OCS
-		ocsSC, err = generateStorageClusterManifest(ocsMinDeploySC, ocsConfig.OCSDisksAvailable)
-		if err != nil {
-			return nil, nil, err
-		}
 	} else { // use the OCS CR with labelsector to deploy OCS on only worker nodes
 		ocsSC, err = generateStorageClusterManifest(ocsSc, ocsConfig.OCSDisksAvailable)
 		if err != nil {
