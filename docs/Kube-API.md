@@ -170,7 +170,7 @@ In case of failure to apply the overrides the clusterdeployment conditions will 
 Add an annotation with the desired options, the clusterdeployment controller will update the install config yaml with the annotation value.
 Note that this configuration must be applied prior to starting the installation
 ```sh
-$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io test-cluster -n assisted-installer agent-install.openshift.io/install-config-overrides="{\"controlPlane\":{\"hyperthreading\":\"Disabled\", \"name\": \"master\"}}"
+$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io test-cluster -n assisted-installer agent-install.openshift.io/install-config-overrides="{\"networking\":{\"networkType\": \"OVNKubernetes\"},\"fips\":true}"
 agentclusterinstalls.extensions.hive.openshift.io/test-cluster annotated
 ```
 
@@ -182,7 +182,7 @@ apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
   annotations:
-    agent-install.openshift.io/install-config-overrides: '{"controlPlane":{"hyperthreading":"Disabled"}}'
+    agent-install.openshift.io/install-config-overrides: '{"networking":{"networkType": "OVNKubernetes"},"fips":true}'
   creationTimestamp: "2021-04-01T07:04:49Z"
   generation: 1
   name: test-cluster
