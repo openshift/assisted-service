@@ -1524,21 +1524,24 @@ var _ = Describe("PrepareForInstallation", func() {
 		dbName    string
 		ctrl      *gomock.Controller
 
-		mockMetric *metrics.MockAPI
+		mockMetric        *metrics.MockAPI
+		mockEventsHandler *events.MockHandler
 	)
 
 	BeforeEach(func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockMetric = metrics.NewMockAPI(ctrl)
+		mockEventsHandler = events.NewMockHandler(ctrl)
 		db, dbName = common.PrepareTestDB()
 		dummy := &leader.DummyElector{}
 		mockOperators := operators.NewMockAPI(ctrl)
-		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil)
+		capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, mockEventsHandler, nil, mockMetric, nil, dummy, mockOperators, nil, nil, nil)
 		clusterId = strfmt.UUID(uuid.New().String())
 	})
 
 	// state changes to preparing-for-installation
 	success := func(cluster *common.Cluster) {
+		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		Expect(capi.PrepareForInstallation(ctx, cluster, db)).NotTo(HaveOccurred())
 		Expect(db.Take(cluster, "id = ?", clusterId).Error).NotTo(HaveOccurred())
 		Expect(swag.StringValue(cluster.Status)).To(Equal(models.ClusterStatusPreparingForInstallation))
