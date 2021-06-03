@@ -63,20 +63,6 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddDnsmasqForSingleNode(ctx, lo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDnsmasqForSingleNode", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddDnsmasqForSingleNode), ctx, log, c)
 }
 
-// AddDisableVmwareTunnelOffloading mocks base method
-func (m *MockManifestsGeneratorAPI) AddDisableVmwareTunnelOffloading(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddDisableVmwareTunnelOffloading", ctx, log, c)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// AddDisableVmwareTunnelOffloading indicates an expected call of AddDisableVmwareTunnelOffloading
-func (mr *MockManifestsGeneratorAPIMockRecorder) AddDisableVmwareTunnelOffloading(ctx, log, c interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDisableVmwareTunnelOffloading", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddDisableVmwareTunnelOffloading), ctx, log, c)
-}
-
 // AddTelemeterManifest mocks base method
 func (m *MockManifestsGeneratorAPI) AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 	m.ctrl.T.Helper()

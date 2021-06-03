@@ -23,7 +23,6 @@ import (
 type ManifestsGeneratorAPI interface {
 	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
-	AddDisableVmwareTunnelOffloading(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 }
 
@@ -281,71 +280,6 @@ func fillTemplate(manifestParams map[string]string, templateData string, log log
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-const disableTunnelOffloadManifest = `
-apiVersion: machineconfiguration.openshift.io/v1
-kind: MachineConfig
-metadata:
-  labels:
-    machineconfiguration.openshift.io/role: %s
-  name: 50-%ss-disable-tunnel-offload
-spec:
-  config:
-    ignition:
-      config: {}
-      security:
-        tls: {}
-      timeouts: {}
-      version: 2.2.0
-    networkd: {}
-    passwd: {}
-    storage:
-      files:
-      - contents:
-          source: data:text/plain;charset=utf-8;base64,%s
-          verification: {}
-        filesystem: root
-        mode: 493
-        path: /etc/NetworkManager/dispatcher.d/05-disable-tunnel-offload
-  osImageURL: ""
-`
-
-const disableTunnelOffloadScript = `#! /bin/bash
-
-if [ "$2" != "up" ] ; then
-	exit 0
-fi
-
-driver=$(ethtool -i "$1" | awk '/driver:/{print $2;}')
-
-if [ "$driver" != "vmxnet3" ] ; then 
-	exit 0
-fi
-
-current=$(ethtool -k "$1" | grep udp_tnl | grep -v '\[fixed\]')
-
-if [ -z "$current" ] ; then
-	exit 0
-fi
-
-nmcli connection modify $CONNECTION_UUID ethtool.feature-tx-udp_tnl-csum-segmentation off ethtool.feature-tx-udp_tnl-segmentation off
-nmcli connection up $CONNECTION_UUID
-`
-
-func createDisableTunnelOffloadingContext(role string) string {
-	return fmt.Sprintf(disableTunnelOffloadManifest, role, role, base64.StdEncoding.EncodeToString([]byte(disableTunnelOffloadScript)))
-}
-
-func (m *ManifestsGenerator) AddDisableVmwareTunnelOffloading(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
-	for _, role := range []string{"master", "worker"} {
-		fname := fmt.Sprintf("50-%ss-disable-tunnel-offload.yaml", role)
-		if err := m.createManifests(ctx, c, fname, []byte(createDisableTunnelOffloadingContext(role))); err != nil {
-			log.WithError(err).Errorf("Failed to create disable tunnel offloading manifest for role %s", role)
-			return err
-		}
-	}
-	return nil
 }
 
 const (
