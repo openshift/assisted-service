@@ -8,23 +8,20 @@ function mirror_package() {
   # e.g. "local-storage-operator"
   package="${1}"
 
-  # e.g. "redhat-operator-index", "certified-operator-index",
-  # "community-operator-index", "redhat-marketplace-index"
-  catalog="${2}"
-
-  # e.g. "4.8"
-  ocp_release="${3}"
+  # e.g. "registry.redhat.io/redhat/redhat-operator-index:v4.8"
+  remote_index="${2}"
 
   # e.g. "virthost.ostest.test.metalkube.org:5000"
-  local_registry="${4}"
+  local_registry="${3}"
 
   # e.g. "/run/user/0/containers/auth.json", "~/.docker/config.json"
   # should have authentication information for both official registry
   # (pull-secret) and for the local registry
-  authfile="${5}"
+  authfile="${4}"
 
-  remote_index="registry.redhat.io/redhat/${catalog}:v${ocp_release}"
-  local_registry_index_tag="${local_registry}/olm-index/${catalog}:v${ocp_release}"
+  catalog_source_name="${5}"
+
+  local_registry_index_tag="${local_registry}/olm-index/${remote_index##*/}"
   local_registry_image_tag="${local_registry}/olm"
 
   opm index prune \
@@ -53,12 +50,12 @@ function mirror_package() {
 apiVersion: operators.coreos.com/v1alpha1
 kind: CatalogSource
 metadata:
-  name: mirror-catalog-for-${package}
+  name: ${catalog_source_name}
   namespace: openshift-marketplace
 spec:
   sourceType: grpc
   image: ${local_registry_index_tag}
-  displayName: Mirror Index to package ${package} on ${catalog}
+  displayName: Mirror index for package ${package} from ${remote_index}
   publisher: Local
   updateStrategy:
     registryPoll:
@@ -69,6 +66,31 @@ EOF
   cat "${manifests_dir}/catalogSource.yaml"
 
   oc apply -f "${manifests_dir}/catalogSource.yaml"
+}
+
+function mirror_package_from_official_index() {
+  # e.g. "local-storage-operator"
+  package="${1}"
+
+  # e.g. "redhat-operator-index", "certified-operator-index",
+  # "community-operator-index", "redhat-marketplace-index"
+  index="${2}"
+
+  # e.g. "v4.8", "latest"
+  index_tag="${3}"
+
+  # e.g. "virthost.ostest.test.metalkube.org:5000"
+  local_registry="${4}"
+
+  # e.g. "/run/user/0/containers/auth.json", "~/.docker/config.json"
+  # should have authentication information for both official registry
+  # (pull-secret) and for the local registry
+  authfile="${5}"
+
+  catalog_source_name="${6}"
+
+  remote_index="registry.redhat.io/redhat/${index}:${index_tag}"
+  mirror_package "${package}" "${remote_index}" "${local_registry}" "${authfile}" "${catalog_source_name}"
 }
 
 function disable_default_indexes() {

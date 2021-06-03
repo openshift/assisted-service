@@ -3,7 +3,7 @@ source ${__dir}/utils.sh
 source ${__dir}/mirror_utils.sh
 
 STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
-OCP_RELEASE="${OCP_RELEASE:-4.8}"
+INDEX_TAG="${INDEX_TAG:-v4.8}"
 DISCONNECTED="${DISCONNECTED:-false}"
 
 function print_help() {
@@ -21,13 +21,13 @@ if [ -z "${DISKS:-}" ]; then
   exit 1
 fi
 
-if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE}" ]; then
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE:-}" ]; then
   echo "On disconnected mode, you must provide AUTHFILE env-var."
   print_help
   exit 1
 fi
 
-if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY}" ]; then
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY:-}" ]; then
   echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
   print_help
   exit 1
@@ -38,16 +38,17 @@ function install_lso() {
 
   oc annotate project openshift-local-storage openshift.io/node-selector='' --overwrite=true
 
-  catalog_source="redhat-operators"
+  catalog_source_name="redhat-operators"
   if [ "${DISCONNECTED}" = true ]; then
     if ! which opm; then
         install_opm
     fi
 
     disable_default_indexes
-    mirror_package "local-storage-operator" "redhat-operator-index" \
-        "${OCP_RELEASE}" "${LOCAL_REGISTRY}" "${AUTHFILE}"
-    catalog_source="mirror-catalog-for-local-storage-operator"
+
+    catalog_source_name="mirror-catalog-for-local-storage-operator"
+    mirror_package_from_official_index "local-storage-operator" "redhat-operator-index" \
+        "${INDEX_TAG}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
   fi
 
   tee << EOCR >(oc apply -f -)
@@ -68,7 +69,7 @@ metadata:
 spec:
   installPlanApproval: Automatic
   name: local-storage-operator
-  source: ${catalog_source}
+  source: ${catalog_source_name}
   sourceNamespace: openshift-marketplace
 EOCR
 
@@ -98,6 +99,9 @@ EOCR
   echo "Done creating local volume for assisted-service!"
 }
 
-declare -F $@ || (print_help && exit 1)
+if [ -z "$@" ] || ! declare -F "$@"; then
+  print_help
+  exit 1
+fi
 
 "$@"

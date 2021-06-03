@@ -1,11 +1,36 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
+source ${__dir}/mirror_utils.sh
 
 set -xeo pipefail
 
 ASSISTED_NAMESPACE="${ASSISTED_NAMESPACE:-assisted-installer}"
 INDEX_IMAGE="${INDEX_IMAGE:-quay.io/ocpmetal/assisted-service-index:latest}"
 STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
+
+INDEX_TAG="${INDEX_TAG:-latest}"
+DISCONNECTED="${DISCONNECTED:-false}"
+
+function print_help() {
+  ALL_FUNCS="from_community_operators|from_index_image|print_help"
+  if [ "${DISCONNECTED}" == "true" ]; then
+    echo "Usage: DISCONNECTED=true LOCAL_REGISTRY=... AUTHFILE=... bash ${0} (${ALL_FUNCS})"
+  else
+    echo "Usage: bash ${0} (${ALL_FUNCS})"
+  fi
+}
+
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE:-}" ]; then
+  echo "On disconnected mode, you must provide AUTHFILE env-var."
+  print_help
+  exit 1
+fi
+
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY:-}" ]; then
+  echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
+  print_help
+  exit 1
+fi
 
 function subscription_config() {
     # Notice that this list of env variables is alphabetically ordered due to OLM bug
@@ -66,18 +91,9 @@ EOF
     fi
 }
 
-tee << EOCR >(oc apply -f -)
-apiVersion: operators.coreos.com/v1alpha1
-kind: CatalogSource
-metadata:
-  name: assisted-service-catalog
-  namespace: openshift-marketplace
-spec:
-  sourceType: grpc
-  image: ${INDEX_IMAGE}
-  displayName: Assisted Test Registry
-  publisher: Assisted Developer
----
+function install_from_catalog_source() {
+  catalog_source_name="${1}"
+  tee << EOCR >(oc apply -f -)
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -105,13 +121,13 @@ spec:
 $(subscription_config)
   installPlanApproval: Automatic
   name: assisted-service-operator
-  source: assisted-service-catalog
+  source: ${catalog_source_name}
   sourceNamespace: openshift-marketplace
 EOCR
 
-wait_for_crd "agentserviceconfigs.agent-install.openshift.io"
+  wait_for_crd "agentserviceconfigs.agent-install.openshift.io"
 
-tee << EOCR >(oc apply -f -)
+  tee << EOCR >(oc apply -f -)
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -146,7 +162,55 @@ spec:
     storage: 8Gi
 EOCR
 
-wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
-wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
+  wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
+  wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
 
-echo "Installation of Assisted Installer operator passed successfully!"
+  echo "Installation of Assisted Installer operator passed successfully!"
+}
+
+function from_index_image() {
+  if [ "${DISCONNECTED}" = true ]; then
+    catalog_source_name="mirror-catalog-for-assisted-service-operator"
+    mirror_package "assisted-service-operator" \
+        "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+  else
+    catalog_source_name="assisted-service-operator-catalog"
+    tee << EOCR >(oc apply -f -)
+apiVersion: operators.coreos.com/v1alpha1
+kind: CatalogSource
+metadata:
+  name: ${catalog_source_name}
+  namespace: openshift-marketplace
+spec:
+  sourceType: grpc
+  image: ${INDEX_IMAGE}
+  displayName: Assisted Test Registry
+  publisher: Assisted Developer
+EOCR
+  fi
+
+  install_from_catalog_source "${catalog_source_name}"
+}
+
+function from_community_operators() {
+  if [ "${DISCONNECTED}" = true ]; then
+    catalog_source_name="mirror-catalog-for-assisted-service-operator"
+    mirror_package_from_official_index "assisted-service-operator" "community-operator-index" \
+        "${INDEX_TAG}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+  else
+    catalog_source_name="community-operators"
+  fi
+
+  install_from_catalog_source "${catalog_source_name}"
+}
+
+if [ -z "$@" ]; then
+  from_index_image
+fi
+
+if ! declare -F "$@"; then
+  print_help
+  exit 1
+fi
+
+"$@"

@@ -84,6 +84,9 @@ function from_upstream() {
   popd
 }
 
-declare -F $@ || (print_help && exit 1)
+if [ -z "$@" ] || ! declare -F "$@"; then
+  print_help
+  exit 1
+fi
 
 "$@"
