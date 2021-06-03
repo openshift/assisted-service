@@ -43,6 +43,8 @@ The `DebugInfo` field under `Status` provides additional information for debuggi
 The InfraEnv CRD represents the configuration needed to create the discovery ISO.
 The user can specify proxy settings, ignition overrides and specify NMState labels.
 
+Note that the pull-secret that gets baked into the discovery ISO is taken from `clusterDeployment.Spec.pullSecretRef`. The pull-secret found in `infraEnv.Spec.pullSecretRef` is currently being ignored.
+
 When the ISO is ready, an URL will be available in the CR.
 
 The InfraEnv reflects the image creation status through Conditions.
