@@ -7,22 +7,25 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
-func NewInstaller(log logrus.FieldLogger, db *gorm.DB) *installer {
+func NewInstaller(log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *installer {
 	return &installer{
-		log: log,
-		db:  db,
+		log:           log,
+		db:            db,
+		eventsHandler: eventsHandler,
 	}
 }
 
 type installer struct {
-	log logrus.FieldLogger
-	db  *gorm.DB
+	log           logrus.FieldLogger
+	db            *gorm.DB
+	eventsHandler events.Handler
 }
 
 func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
@@ -53,8 +56,8 @@ func (i *installer) Install(ctx context.Context, c *common.Cluster, db *gorm.DB)
 		return errors.Errorf("cluster %s state is unclear - cluster state: %s", c.ID, swag.StringValue(c.Status))
 	}
 
-	if _, err := updateClusterStatus(i.log, db, *c.ID, swag.StringValue(c.Status),
-		models.ClusterStatusInstalling, statusInfoInstalling); err != nil {
+	if _, err := updateClusterStatus(ctx, i.log, db, *c.ID, swag.StringValue(c.Status),
+		models.ClusterStatusInstalling, statusInfoInstalling, i.eventsHandler); err != nil {
 		return err
 	}
 

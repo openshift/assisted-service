@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -9,6 +10,7 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/identity"
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -39,8 +41,8 @@ const (
 	statusInfoClusterFailedToPrepare          = "Cluster failed to prepare for installation"
 )
 
-func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
-	newStatus string, statusInfo string, extra ...interface{}) (*common.Cluster, error) {
+func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, srcStatus string,
+	newStatus string, statusInfo string, events events.Handler, extra ...interface{}) (*common.Cluster, error) {
 	var cluster *common.Cluster
 	var err error
 	extra = append(append(make([]interface{}, 0), "status", newStatus, "status_info", statusInfo), extra...)
@@ -62,6 +64,8 @@ func updateClusterStatus(log logrus.FieldLogger, db *gorm.DB, clusterId strfmt.U
 	}
 
 	if newStatus != srcStatus {
+		msg := fmt.Sprintf("Updated status of cluster %s to %s", cluster.Name, *cluster.Status)
+		events.AddEvent(ctx, clusterId, nil, models.EventSeverityInfo, msg, time.Now())
 		log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
 	}
 

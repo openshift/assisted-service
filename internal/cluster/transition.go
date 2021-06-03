@@ -33,6 +33,7 @@ type transitionHandler struct {
 	log           logrus.FieldLogger
 	db            *gorm.DB
 	prepareConfig PrepareConfig
+	eventsHandler events.Handler
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -55,7 +56,7 @@ func (th *transitionHandler) PostCancelInstallation(sw stateswitch.StateSwitch, 
 		return errors.New("PostCancelInstallation invalid argument")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster,
+	return th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sCluster,
 		params.reason)
 }
 
@@ -86,7 +87,7 @@ func (th *transitionHandler) PostResetCluster(sw stateswitch.StateSwitch, args s
 		extra = append(extra, "api_vip", "", "ingress_vip", "")
 	}
 
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason, extra...)
+	return th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, sCluster, params.reason, extra...)
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -111,7 +112,7 @@ func (th *transitionHandler) PostPrepareForInstallation(sw stateswitch.StateSwit
 		return errors.New("PostPrepareForInstallation invalid argument")
 	}
 	extra := append(append(make([]interface{}, 0), "install_started_at", strfmt.DateTime(time.Now()), "installation_preparation_completion_status", ""), resetLogsField...)
-	err = th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
+	err = th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sCluster,
 		statusInfoPreparingForInstallation, extra...)
 	if err != nil {
 		th.log.WithError(err).Errorf("failed to reset fields in PostPrepareForInstallation on cluster %s", *sCluster.cluster.ID)
@@ -247,14 +248,14 @@ type TransitionArgsHandlePreInstallationError struct {
 func (th *transitionHandler) PostHandlePreInstallationError(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 	sCluster, _ := sw.(*stateCluster)
 	params, _ := args.(*TransitionArgsHandlePreInstallationError)
-	return th.updateTransitionCluster(logutil.FromContext(params.ctx, th.log), th.db, sCluster,
+	return th.updateTransitionCluster(params.ctx, logutil.FromContext(params.ctx, th.log), th.db, sCluster,
 		params.installErr.Error())
 }
 
-func (th *transitionHandler) updateTransitionCluster(log logrus.FieldLogger, db *gorm.DB, state *stateCluster,
+func (th *transitionHandler) updateTransitionCluster(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, state *stateCluster,
 	statusInfo string, extra ...interface{}) error {
-	if cluster, err := updateClusterStatus(log, db, *state.cluster.ID, state.srcState,
-		swag.StringValue(state.cluster.Status), statusInfo, extra...); err != nil {
+	if cluster, err := updateClusterStatus(ctx, log, db, *state.cluster.ID, state.srcState,
+		swag.StringValue(state.cluster.Status), statusInfo, th.eventsHandler, extra...); err != nil {
 		return err
 	} else {
 		state.cluster = cluster
@@ -433,8 +434,8 @@ func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, a
 
 	reason := statusInfoPreparingForInstallationTimeout
 	if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
-		updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
-			reason)
+		updatedCluster, err = updateClusterStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+			reason, params.eventHandler)
 	}
 
 	//update hosts status to models.HostStatusResettingPendingUserAction if needed
@@ -451,12 +452,6 @@ func (th *transitionHandler) PostPreparingTimedOut(sw stateswitch.StateSwitch, a
 
 	msg := fmt.Sprintf("Preparing for installation was timed out for cluster %s", cluster.Name)
 	params.eventHandler.AddEvent(params.ctx, *cluster.ID, nil, models.EventSeverityWarning, msg, time.Now())
-
-	//if status was changed - we need to send event and metrics
-	if updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
-		msg = fmt.Sprintf("Updated status of cluster %s to %s", updatedCluster.Name, *updatedCluster.Status)
-		params.eventHandler.AddEvent(params.ctx, *updatedCluster.ID, nil, models.EventSeverityInfo, msg, time.Now())
-	}
 
 	return nil
 }
@@ -483,8 +478,8 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			if err != nil {
 				return err
 			}
-			updatedCluster, err = updateClusterStatus(logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
-				reason, extra...)
+			updatedCluster, err = updateClusterStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
+				reason, params.eventHandler, extra...)
 		}
 
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed
@@ -498,13 +493,6 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 		if err != nil {
 			return err
 		}
-
-		//if status was changed - we need to send event and metrics
-		if updatedCluster != nil && sCluster.srcState != swag.StringValue(updatedCluster.Status) {
-			msg := fmt.Sprintf("Updated status of cluster %s to %s", updatedCluster.Name, *updatedCluster.Status)
-			params.eventHandler.AddEvent(params.ctx, *updatedCluster.ID, nil, models.EventSeverityInfo, msg, time.Now())
-		}
-
 		return nil
 	}
 	return ret
