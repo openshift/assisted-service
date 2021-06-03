@@ -47,7 +47,7 @@ Please, add one or two reviewers that could help review this PR.
 - [ ] Relevant issues have been associated (see [CONTRIBUTING] guide)
 - [ ] Reviewers have been listed
 - [ ] This change does not require a documentation update (docstring, `docs`, README, etc)
-- [ ] Does this change includes unit-tests (note that code changes require unit-tests)
+- [ ] Does this change include unit-tests (note that code changes require unit-tests)
 
 ## Reviewers Checklist
 
