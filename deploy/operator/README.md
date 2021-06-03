@@ -18,18 +18,12 @@ IP_STACK=v4  # disconnected env is not yet fully supported
 
 # ZTP-related configurations:
 
-# Currently worker and extra-worker specs are using the same specs,
-# so here we're omitting regular workers and provide more memory
-# for the masters so they can offer some workload
-NUM_WORKERS=0
-MASTER_MEMORY=32768
-
 # This will define our single-node host, which is eligible
 # for installation by assisted-service standards
 NUM_EXTRA_WORKERS=1
-WORKER_VCPU=8
-WORKER_MEMORY=32768
-WORKER_DISK=120
+EXTRA_WORKER_VCPU=8
+EXTRA_WORKER_MEMORY=32768
+EXTRA_WORKER_DISK=120
 
 # This will enable us provisioning BMH by BMAC with the
 # redfish-virtualmedia driver, as well as enabling
