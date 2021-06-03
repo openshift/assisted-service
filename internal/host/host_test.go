@@ -491,6 +491,109 @@ var _ = Describe("update_progress", func() {
 	})
 })
 
+var _ = Describe("update progress special cases", func() {
+	var (
+		ctx        = context.Background()
+		db         *gorm.DB
+		state      API
+		host       models.Host
+		ctrl       *gomock.Controller
+		mockEvents *events.MockHandler
+		mockMetric *metrics.MockAPI
+		dbName     string
+		clusterId  strfmt.UUID
+	)
+
+	setDefaultReportHostInstallationMetrics := func(mockMetricApi *metrics.MockAPI) {
+		mockMetricApi.EXPECT().ReportHostInstallationMetrics(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+	}
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		mockEvents = events.NewMockHandler(ctrl)
+		mockMetric = metrics.NewMockAPI(ctrl)
+		dummy := &leader.DummyElector{}
+		setDefaultReportHostInstallationMetrics(mockMetric)
+		state = NewManager(common.GetTestLog(), db, mockEvents, nil, nil, createValidatorCfg(), mockMetric, defaultConfig, dummy, nil)
+		id := strfmt.UUID(uuid.New().String())
+		clusterId = strfmt.UUID(uuid.New().String())
+		host = hostutil.GenerateTestHostByKind(id, clusterId, models.HostStatusInstalling, models.HostKindHost, models.HostRoleMaster)
+		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, host.ID, models.EventSeverityInfo,
+			fmt.Sprintf("Host %s: set as bootstrap", host.ID.String()),
+			gomock.Any())
+		Expect(state.SetBootstrap(ctx, &host, true, db)).ShouldNot(HaveOccurred())
+
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+	Context("installing host", func() {
+		var (
+			progress   models.HostProgress
+			hostFromDB *models.Host
+		)
+		It("Single node special stage order - happy flow", func() {
+			cluster := hostutil.GenerateTestCluster(clusterId, "10.0.0.1/24")
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			progress.CurrentStage = models.HostStageWaitingForBootkube
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
+				fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" (Waiting for bootkube)", host.ID.String()),
+				gomock.Any())
+			Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
+			hostFromDB = hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
+			Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
+			Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageWaitingForBootkube))
+
+			progress.CurrentStage = models.HostStageWritingImageToDisk
+			progress.ProgressInfo = "20%"
+			Expect(state.UpdateInstallProgress(ctx, hostFromDB, &progress)).ShouldNot(HaveOccurred())
+			hostFromDB = hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
+			Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageWritingImageToDisk))
+		})
+		It("Single node special stage order - not allowed", func() {
+			cluster := hostutil.GenerateTestCluster(clusterId, "10.0.0.1/24")
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeNone)
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			progress.CurrentStage = models.HostStageWaitingForBootkube
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
+				fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" (Waiting for bootkube)", host.ID.String()),
+				gomock.Any())
+			Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
+			hostFromDB = hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
+			Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
+			Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageWaitingForBootkube))
+
+			progress.CurrentStage = models.HostStageInstalling
+			Expect(state.UpdateInstallProgress(ctx, hostFromDB, &progress)).Should(HaveOccurred())
+		})
+		It("multi node update should fail", func() {
+			cluster := hostutil.GenerateTestCluster(clusterId, "10.0.0.1/24")
+			cluster.HighAvailabilityMode = swag.String(models.ClusterHighAvailabilityModeFull)
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+
+			progress.CurrentStage = models.HostStageWaitingForBootkube
+			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID, host.ID, models.EventSeverityInfo,
+				fmt.Sprintf("Host %s: updated status from \"installing\" to \"installing-in-progress\" (Waiting for bootkube)", host.ID.String()),
+				gomock.Any())
+			Expect(state.UpdateInstallProgress(ctx, &host, &progress)).ShouldNot(HaveOccurred())
+			hostFromDB = hostutil.GetHostFromDB(*host.ID, host.ClusterID, db)
+			Expect(*hostFromDB.Status).Should(Equal(models.HostStatusInstallingInProgress))
+			Expect(hostFromDB.Progress.CurrentStage).Should(Equal(models.HostStageWaitingForBootkube))
+
+			progress.CurrentStage = models.HostStageWritingImageToDisk
+			progress.ProgressInfo = "20%"
+			Expect(state.UpdateInstallProgress(ctx, hostFromDB, &progress)).Should(HaveOccurred())
+		})
+	})
+})
+
 var _ = Describe("cancel installation", func() {
 	var (
 		ctx           = context.Background()
