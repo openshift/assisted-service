@@ -55,7 +55,7 @@ kind: MachineConfig
 metadata:
   labels:
     machineconfiguration.openshift.io/role: {{.ROLE}}
-  name: {{.ROLE}}s-chrony-configuration
+  name: 50-{{.ROLE}}s-chrony-configuration
 spec:
   config:
     ignition:
@@ -188,7 +188,7 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 			return errors.Wrapf(err, "Failed to create chrony manifest content for role %s cluster id %s", role, *cluster.ID)
 		}
 
-		chronyManifestFileName := fmt.Sprintf("%ss-chrony-configuration.yaml", string(role))
+		chronyManifestFileName := fmt.Sprintf("50-%ss-chrony-configuration.yaml", string(role))
 		err = m.createManifests(ctx, cluster, chronyManifestFileName, content)
 		if err != nil {
 			return err
@@ -289,7 +289,7 @@ kind: MachineConfig
 metadata:
   labels:
     machineconfiguration.openshift.io/role: %s
-  name: %ss-disable-tunnel-offload
+  name: 50-%ss-disable-tunnel-offload
 spec:
   config:
     ignition:
@@ -339,7 +339,7 @@ func createDisableTunnelOffloadingContext(role string) string {
 
 func (m *ManifestsGenerator) AddDisableVmwareTunnelOffloading(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
 	for _, role := range []string{"master", "worker"} {
-		fname := fmt.Sprintf("%ss-disable-tunnel-offload.yaml", role)
+		fname := fmt.Sprintf("50-%ss-disable-tunnel-offload.yaml", role)
 		if err := m.createManifests(ctx, c, fname, []byte(createDisableTunnelOffloadingContext(role))); err != nil {
 			log.WithError(err).Errorf("Failed to create disable tunnel offloading manifest for role %s", role)
 			return err
