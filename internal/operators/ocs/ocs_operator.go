@@ -74,7 +74,7 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 }
 
 // ValidateHost verifies whether this operator is valid for given host
-func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
+func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
 	numOfHosts := len(cluster.Hosts)
 	if host.Inventory == "" {
 		o.log.Info("Empty Inventory of host with hostID ", host.ID)
@@ -86,9 +86,8 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID()}, err
 	}
 
-	/* GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
-	we ignore the number of valid Disks as its handled later based on mode of deployment  */
-	_, err = getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	// GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size
+	diskCount, err := getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	if err != nil {
 		o.log.Errorf("%s %s", err.Error(), host.ID)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
@@ -97,7 +96,10 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 	// compact mode
 	if numOfHosts <= 3 {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
-			return o.checkHostRequirements(ctx, cluster, host, inventory, compactMode)
+			if diskCount == 0 {
+				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires at least one non-bootable on each host in compact mode."}}, nil
+			}
+			return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 		}
 		o.log.Errorf("OCS unsupported Host Role for Compact Mode")
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}}, nil
@@ -110,7 +112,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 		o.log.Info("OCS Validate Requirements status ", status)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 	}
-	return o.checkHostRequirements(ctx, cluster, host, inventory, minimalMode)
+	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 }
 
 // GenerateManifests generates manifests for the operator
@@ -216,28 +218,4 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 			},
 		},
 	}, nil
-}
-
-func (o *operator) checkHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host, inventory *models.Inventory, mode ocsDeploymentMode) (api.ValidationResult, error) {
-	requirements, err := o.GetHostRequirements(ctx, cluster, host)
-	if err != nil {
-		message := fmt.Sprintf("Failed to get host requirements for host with id %s", host.ID)
-		o.log.Error(message)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message, err.Error()}}, err
-	}
-
-	if inventory.CPU.Count < requirements.CPUCores {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient CPU to deploy OCS. Required CPU count is %d but found %d.", requirements.CPUCores, inventory.CPU.Count)}}, nil
-	}
-
-	if inventory.Memory.UsableBytes < conversions.MibToBytes(requirements.RAMMib) {
-		usableMemory := conversions.BytesToGiB(inventory.Memory.UsableBytes)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{fmt.Sprintf("Insufficient memory to deploy OCS. Required memory is %d GiB but found %d GiB.", conversions.MibToGiB(requirements.RAMMib), usableMemory)}}, nil
-	}
-
-	if diskCount, _ := getValidDiskCount(inventory.Disks, host.InstallationDiskID); diskCount <= 0 && mode == compactMode {
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires to have at least one non-bootable on each host in compact mode."}}, nil
-	}
-
-	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 }
