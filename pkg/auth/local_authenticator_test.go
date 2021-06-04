@@ -110,7 +110,7 @@ var _ = Describe("AuthAgentAuth", func() {
 	})
 
 	It("Fails with an RSA token", func() {
-		rsaToken, _ := GetTokenAndCert()
+		rsaToken, _ := GetTokenAndCert(false)
 		_, err := a.AuthAgentAuth(rsaToken)
 		Expect(err).To(HaveOccurred())
 		validateErrorResponse(err)

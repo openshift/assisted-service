@@ -24,7 +24,7 @@ var _ = Describe("NewAuthenticator", func() {
 		Expect(ok).To(BeTrue())
 
 		// RHSSOAuthenticator
-		_, cert := GetTokenAndCert()
+		_, cert := GetTokenAndCert(false)
 		config = &Config{
 			AuthType:   TypeRHSSO,
 			JwkCertURL: "",

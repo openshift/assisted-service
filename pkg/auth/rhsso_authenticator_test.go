@@ -27,12 +27,14 @@ import (
 
 var _ = Describe("auth handler test", func() {
 	var (
-		log                = logrus.New()
-		ctrl               *gomock.Controller
-		server             *ghttp.Server
-		userToken, JwkCert = GetTokenAndCert()
-		agentKeyValue      = "fake_pull_secret"
-		userKeyValue       = "bearer " + userToken
+		log                        = logrus.New()
+		ctrl                       *gomock.Controller
+		server                     *ghttp.Server
+		userToken, JwkCert         = GetTokenAndCert(false)
+		agentKeyValue              = "fake_pull_secret"
+		userKeyValue               = "bearer " + userToken
+		lateUserToken, lateJwkCert = GetTokenAndCert(true)
+		lateUserKeyValue           = "bearer " + lateUserToken
 	)
 
 	BeforeEach(func() {
@@ -48,6 +50,7 @@ var _ = Describe("auth handler test", func() {
 	tests := []struct {
 		name            string
 		authInfo        runtime.ClientAuthInfoWriter
+		isIatTest       bool
 		isListOperation bool
 		addHeaders      bool
 		mockOcmAuth     func(a *ocm.MockOCMAuthentication)
@@ -72,6 +75,13 @@ var _ = Describe("auth handler test", func() {
 			isListOperation: true,
 			addHeaders:      false,
 			expectedError:   installer.NewListClustersUnauthorized(),
+		},
+		{
+			name:            "Ignore 'Token used before issued' error",
+			authInfo:        UserAuthHeaderWriter(lateUserKeyValue),
+			isIatTest:       true,
+			isListOperation: true,
+			addHeaders:      true,
 		},
 		{
 			name:            "Agent Successful Authentication",
@@ -124,6 +134,9 @@ var _ = Describe("auth handler test", func() {
 			fakeConfig := &Config{
 				JwkCertURL: "",
 				JwkCert:    string(JwkCert),
+			}
+			if tt.isIatTest {
+				fakeConfig.JwkCert = string(lateJwkCert)
 			}
 			authHandler := NewRHSSOAuthenticator(fakeConfig, nil, log.WithField("pkg", "auth"), nil)
 

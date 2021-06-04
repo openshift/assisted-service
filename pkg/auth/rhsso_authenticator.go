@@ -151,6 +151,14 @@ func parseOCMPayload(userToken *jwt.Token) (*ocm.AuthPayload, error) {
 	return payload, nil
 }
 
+func isValidationErrorIssuedAt(err error) bool {
+	e, ok := err.(*jwt.ValidationError)
+	if !ok {
+		return false
+	}
+	return e.Errors == jwt.ValidationErrorIssuedAt
+}
+
 func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 	// Handle Bearer
 	authHeaderParts := strings.Fields(token)
@@ -160,10 +168,15 @@ func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 	// Now parse the token
 	parsedToken, err := jwt.Parse(authHeaderParts[1], a.getValidationToken)
 
-	// Check if there was an error in parsing...
-	if err != nil {
-		a.log.Errorf("Error parsing token: %s", err.Error())
-		return nil, errors.Errorf("Error parsing token: %v", err)
+	// Check if there was an error in parsing and if the parsed token is valid
+	if err != nil || !parsedToken.Valid {
+		// Don't report error "Token used before issued"
+		// TODO: This validation is going to be removed in jwt-go v4, once jwt-go v4
+		// is released and we start using it, this validation-skip can be removed.
+		if !isValidationErrorIssuedAt(err) {
+			a.log.WithError(err).Errorf("Error parsing token or token is invalid")
+			return nil, errors.Errorf("Error parsing token or token is invalid")
+		}
 	}
 
 	if jwt.SigningMethodRS256 != nil && jwt.SigningMethodRS256.Alg() != parsedToken.Header["alg"] {
@@ -172,12 +185,6 @@ func (a *RHSSOAuthenticator) AuthUserAuth(token string) (interface{}, error) {
 			parsedToken.Header["alg"])
 		a.log.Errorf("Error validating token algorithm: %s", message)
 		return nil, errors.Errorf("Error validating token algorithm: %s", message)
-	}
-
-	// Check if the parsed token is valid...
-	if !parsedToken.Valid {
-		a.log.Errorf("Token is invalid: %s", parsedToken.Raw)
-		return nil, errors.Errorf("Token is invalid: %s", parsedToken.Raw)
 	}
 
 	payload, err := parseOCMPayload(parsedToken)

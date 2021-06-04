@@ -6,13 +6,14 @@ import (
 	"crypto/rsa"
 	"encoding/base32"
 	"fmt"
+	"time"
 
 	"github.com/dgrijalva/jwt-go"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/json"
 )
 
-func GetTokenAndCert() (string, []byte) {
+func GetTokenAndCert(withLateIat bool) (string, []byte) {
 
 	//Generate RSA Keypair
 	pub, priv, _ := GenKeys(2048)
@@ -20,7 +21,7 @@ func GetTokenAndCert() (string, []byte) {
 	//Generate keys in JWK format
 	pubJSJWKS, _, kid, _ := GenJSJWKS(priv, pub)
 
-	token := jwt.NewWithClaims(jwt.SigningMethodRS256, jwt.MapClaims{
+	mapClaims := jwt.MapClaims{
 		"account_number": "1234567",
 		"is_internal":    false,
 		"is_active":      true,
@@ -34,7 +35,11 @@ func GetTokenAndCert() (string, []byte) {
 		"username":       "jdoe123@example.com",
 		"is_org_admin":   false,
 		"clientId":       "1234",
-	})
+	}
+	if withLateIat {
+		mapClaims["iat"] = time.Now().Add(5 * time.Minute).Unix()
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodRS256, mapClaims)
 	token.Header["kid"] = kid
 	tokenString, _ := token.SignedString(priv)
 	return tokenString, pubJSJWKS
