@@ -203,39 +203,42 @@ func addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) 
 	return writeAt(archiveBytes, int64(ignitionOffset), clusterISOPath)
 }
 
-func addCustomRAMDisk(clusterISOPath string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
+func ramdiskImageArchive(netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) ([]byte, error) {
 	buffer := new(bytes.Buffer)
 	w := cpio.NewWriter(buffer)
 	if len(netFiles) > 0 {
 		for _, file := range netFiles {
 			err := addFileToArchive(w, filepath.Join("/etc/assisted/network", file.FilePath), file.FileContents, 0o600)
 			if err != nil {
-				return err
+				return nil, err
 			}
 		}
 		scriptPath := "/usr/lib/dracut/hooks/initqueue/settled/90-assisted-pre-static-network-config.sh"
 		scriptContent := constants.PreNetworkConfigScript
 
 		if err := addFileToArchive(w, scriptPath, scriptContent, 0o755); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if !clusterProxyInfo.Empty() {
 		rootfsServiceConfigPath := "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf"
 		rootfsServiceConfig, err := formatRootfsServiceConfigFile(clusterProxyInfo)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if err := addFileToArchive(w, rootfsServiceConfigPath, rootfsServiceConfig, 0o664); err != nil {
-			return err
+			return nil, err
 		}
 	}
 	if err := w.Close(); err != nil {
-		return err
+		return nil, err
 	}
 
-	// Compress custom RAM disk
-	compressedArchive, err := getCompressedArchive(buffer)
+	return getCompressedArchive(buffer)
+}
+
+func addCustomRAMDisk(clusterISOPath string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
+	compressedArchive, err := ramdiskImageArchive(netFiles, clusterProxyInfo)
 	if err != nil {
 		return err
 	}
