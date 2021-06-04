@@ -72,7 +72,7 @@ var _ = Context("with test files", func() {
 	Describe("CreateMinimalISOTemplate", func() {
 		It("iso created successfully", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
-			err := editor.(*rhcosEditor).embedOffsetsInSystemArea(isoFile)
+			err := embedOffsetsInSystemArea(isoFile)
 			Expect(err).ToNot(HaveOccurred())
 			file, err := editor.CreateMinimalISOTemplate(testRootFSURL)
 			Expect(err).ToNot(HaveOccurred())

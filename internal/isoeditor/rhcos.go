@@ -93,7 +93,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(rootFSURL string) (string, error)
 		return "", err
 	}
 
-	if err := e.embedOffsetsInSystemArea(isoPath); err != nil {
+	if err := embedOffsetsInSystemArea(isoPath); err != nil {
 		e.log.WithError(err).Errorf("Failed to embed offsets in ISO system area")
 		return "", err
 	}
@@ -116,7 +116,7 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticNetworkConf
 		return "", err
 	}
 
-	if err := e.addIgnitionArchive(clusterISOPath, ignition, ignitionOffsetInfo.Offset); err != nil {
+	if err := addIgnitionArchive(clusterISOPath, ignition, ignitionOffsetInfo.Offset); err != nil {
 		return "", errors.Wrap(err, "failed to add ignition archive")
 	}
 
@@ -142,7 +142,7 @@ func (e *rhcosEditor) embedInitrdPlaceholders() error {
 	return nil
 }
 
-func (e *rhcosEditor) embedOffsetsInSystemArea(isoPath string) error {
+func embedOffsetsInSystemArea(isoPath string) error {
 	ignitionOffset, err := isoutil.GetFileLocation(ignitionImagePath, isoPath)
 	if err != nil {
 		return errors.Wrap(err, "Failed to get ignition image offset")
@@ -191,7 +191,7 @@ func (e *rhcosEditor) createImagePlaceholder(imagePath string, paddingLength uin
 	return nil
 }
 
-func (e *rhcosEditor) addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) error {
+func addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) error {
 	archiveBytes, err := IgnitionImageArchive(ignition)
 	if err != nil {
 		return err
@@ -223,7 +223,7 @@ func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig strin
 	}
 	if clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
 		rootfsServiceConfigPath := "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf"
-		rootfsServiceConfig, err := e.formatRootfsServiceConfigFile(clusterProxyInfo)
+		rootfsServiceConfig, err := formatRootfsServiceConfigFile(clusterProxyInfo)
 		if err != nil {
 			return err
 		}
@@ -250,7 +250,7 @@ func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig strin
 	return writeAt(compressedArchive, int64(ramdiskOffsetInfo.Offset), clusterISOPath)
 }
 
-func (e *rhcosEditor) formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
+func formatRootfsServiceConfigFile(clusterProxyInfo *ClusterProxyInfo) (string, error) {
 	var rootfsServicConfigParams = map[string]string{
 		"HTTP_PROXY":  clusterProxyInfo.HTTPProxy,
 		"HTTPS_PROXY": clusterProxyInfo.HTTPSProxy,
