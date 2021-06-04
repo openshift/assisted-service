@@ -1253,6 +1253,15 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 		return err
 	}
 
+	var netFiles []staticnetworkconfig.StaticNetworkConfigData
+	if infraEnv.StaticNetworkConfig != "" {
+		netFiles, err = b.staticNetworkConfig.GenerateStaticNetworkConfigData(infraEnv.StaticNetworkConfig)
+		if err != nil {
+			log.WithError(err).Errorf("Failed to create static network config data")
+			return err
+		}
+	}
+
 	var clusterISOPath string
 	err = b.isoEditorFactory.WithEditor(ctx, isoPath, log, func(editor isoeditor.Editor) error {
 		log.Infof("Creating minimal ISO for cluster %s", infraEnv.ID)
@@ -1263,7 +1272,7 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 			HTTPSProxy: httpsProxy,
 			NoProxy:    noProxy,
 		}
-		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, infraEnv.StaticNetworkConfig, &infraEnvProxyInfo)
+		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, netFiles, &infraEnvProxyInfo)
 		return createError
 	})
 

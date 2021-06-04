@@ -55,14 +55,13 @@ type OffsetInfo struct {
 //go:generate mockgen -package=isoeditor -destination=mock_editor.go -self_package=github.com/openshift/assisted-service/internal/isoeditor . Editor
 type Editor interface {
 	CreateMinimalISOTemplate(rootFSURL string) (string, error)
-	CreateClusterMinimalISO(ignition string, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error)
+	CreateClusterMinimalISO(ignition string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) (string, error)
 }
 
 type rhcosEditor struct {
-	isoHandler          isoutil.Handler
-	log                 logrus.FieldLogger
-	workDir             string
-	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig
+	isoHandler isoutil.Handler
+	log        logrus.FieldLogger
+	workDir    string
 }
 
 // Creates the template minimal iso by removing the rootfs and adding the url
@@ -101,7 +100,7 @@ func (e *rhcosEditor) CreateMinimalISOTemplate(rootFSURL string) (string, error)
 	return isoPath, nil
 }
 
-func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo) (string, error) {
+func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo) (string, error) {
 	clusterISOPath, err := tempFileName(e.workDir)
 	if err != nil {
 		return "", err
@@ -120,8 +119,8 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, staticNetworkConf
 		return "", errors.Wrap(err, "failed to add ignition archive")
 	}
 
-	if staticNetworkConfig != "" || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
-		if err := e.addCustomRAMDisk(clusterISOPath, staticNetworkConfig, clusterProxyInfo, ramDiskOffsetInfo); err != nil {
+	if len(netFiles) > 0 || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
+		if err := addCustomRAMDisk(clusterISOPath, netFiles, clusterProxyInfo, ramDiskOffsetInfo); err != nil {
 			return "", errors.Wrap(err, "failed to add additional ramdisk")
 		}
 	}
@@ -200,15 +199,11 @@ func addIgnitionArchive(clusterISOPath, ignition string, ignitionOffset uint64) 
 	return writeAt(archiveBytes, int64(ignitionOffset), clusterISOPath)
 }
 
-func (e *rhcosEditor) addCustomRAMDisk(clusterISOPath, staticNetworkConfig string, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
+func addCustomRAMDisk(clusterISOPath string, netFiles []staticnetworkconfig.StaticNetworkConfigData, clusterProxyInfo *ClusterProxyInfo, ramdiskOffsetInfo *OffsetInfo) error {
 	buffer := new(bytes.Buffer)
 	w := cpio.NewWriter(buffer)
-	if staticNetworkConfig != "" {
-		filesList, newErr := e.staticNetworkConfig.GenerateStaticNetworkConfigData(staticNetworkConfig)
-		if newErr != nil {
-			return newErr
-		}
-		for _, file := range filesList {
+	if len(netFiles) > 0 {
+		for _, file := range netFiles {
 			err := addFileToArchive(w, filepath.Join("/etc/assisted/network", file.FilePath), file.FileContents, 0o600)
 			if err != nil {
 				return err

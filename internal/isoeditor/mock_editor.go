@@ -6,6 +6,7 @@ package isoeditor
 
 import (
 	gomock "github.com/golang/mock/gomock"
+	staticnetworkconfig "github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	reflect "reflect"
 )
 
@@ -33,7 +34,7 @@ func (m *MockEditor) EXPECT() *MockEditorMockRecorder {
 }
 
 // CreateClusterMinimalISO mocks base method
-func (m *MockEditor) CreateClusterMinimalISO(arg0, arg1 string, arg2 *ClusterProxyInfo) (string, error) {
+func (m *MockEditor) CreateClusterMinimalISO(arg0 string, arg1 []staticnetworkconfig.StaticNetworkConfigData, arg2 *ClusterProxyInfo) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateClusterMinimalISO", arg0, arg1, arg2)
 	ret0, _ := ret[0].(string)

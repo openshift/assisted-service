@@ -269,7 +269,7 @@ func main() {
 	mirrorRegistriesBuilder := mirrorregistries.New()
 	ignitionBuilder := ignition.NewBuilder(log.WithField("pkg", "ignition"), staticNetworkConfig, mirrorRegistriesBuilder)
 	installConfigBuilder := installcfg.NewInstallConfigBuilder(log.WithField("pkg", "installcfg"), mirrorRegistriesBuilder)
-	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig, staticNetworkConfig)
+	isoEditorFactory := isoeditor.NewFactory(Options.ISOEditorConfig)
 
 	var objectHandler = createStorageClient(Options.DeployTarget, Options.Storage, &Options.S3Config,
 		Options.WorkDir, log, versionHandler, isoEditorFactory, metricsManager, Options.FileSystemUsageThreshold)
