@@ -37,7 +37,6 @@ const (
 	ramdiskHeaderKey      = "ramdisk+"
 	isoSystemAreaSize     = 32768
 	ignitionHeaderSize    = 24
-	headerLength          = int64(32768) // first 32KB in ISO
 )
 
 type ClusterProxyInfo struct {
@@ -432,12 +431,12 @@ func readHeader(isoPath string) (*OffsetInfo, *OffsetInfo, error) {
 
 	// Read 48 bytes with offsets metadata from the end of system area
 	ignitionMetadata := make([]byte, 24)
-	_, err = iso.ReadAt(ignitionMetadata, headerLength-24)
+	_, err = iso.ReadAt(ignitionMetadata, isoSystemAreaSize-24)
 	if err != nil {
 		return nil, nil, err
 	}
 	ramdiskMetadata := make([]byte, 24)
-	_, err = iso.ReadAt(ramdiskMetadata, headerLength-48)
+	_, err = iso.ReadAt(ramdiskMetadata, isoSystemAreaSize-48)
 	if err != nil {
 		return nil, nil, err
 	}
