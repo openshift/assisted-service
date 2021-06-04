@@ -95,7 +95,7 @@ var _ = Context("with test files", func() {
 		It("cluster ISO created successfully", func() {
 			editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 			proxyInfo := &ClusterProxyInfo{}
-			file, err := editor.CreateClusterMinimalISO("ignition", "", proxyInfo)
+			file, err := editor.CreateClusterMinimalISO("ignition", nil, proxyInfo)
 			Expect(err).ToNot(HaveOccurred())
 
 			_, err = os.Stat(workDir)
@@ -178,7 +178,6 @@ var _ = Context("with test files", func() {
 					FileContents: "2.nmconnection contents",
 				},
 			}
-			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData("staticnetworkconfig").Return(staticnetworkConfigOutput, nil).Times(1)
 
 			ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoFile)
 			Expect(err).ToNot(HaveOccurred())
@@ -186,7 +185,7 @@ var _ = Context("with test files", func() {
 			ramDiskSize, err := isoutil.GetFileSize(ramDiskImagePath, isoFile)
 			Expect(err).ToNot(HaveOccurred())
 
-			err = editor.(*rhcosEditor).addCustomRAMDisk(isoFile, "staticnetworkconfig", &clusterProxyInfo,
+			err = addCustomRAMDisk(isoFile, staticnetworkConfigOutput, &clusterProxyInfo,
 				&OffsetInfo{
 					Offset: ramDiskOffset,
 					Length: ramDiskSize,
@@ -242,19 +241,17 @@ var _ = Context("with test files", func() {
 		})
 	})
 	It("custom RAM disk is larger than placeholder", func() {
-		editor := editorForFile(isoFile, workDir, mockStaticNetworkConfig)
 		staticNetworkConfigOutput := []staticnetworkconfig.StaticNetworkConfigData{
 			{
 				FilePath:     "1.nmconnection",
 				FileContents: "1.nmconnection contents",
 			},
 		}
-		mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData("staticnetworkconfig").Return(staticNetworkConfigOutput, nil).Times(1)
 
 		ramDiskOffset, err := isoutil.GetFileLocation(ramDiskImagePath, isoFile)
 		Expect(err).ToNot(HaveOccurred())
 
-		err = editor.(*rhcosEditor).addCustomRAMDisk(isoFile, "staticnetworkconfig", &ClusterProxyInfo{},
+		err = addCustomRAMDisk(isoFile, staticNetworkConfigOutput, &ClusterProxyInfo{},
 			&OffsetInfo{
 				Offset: ramDiskOffset,
 				Length: 10, // Set a tiny value as the archive is compressed
@@ -266,9 +263,8 @@ var _ = Context("with test files", func() {
 
 func editorForFile(iso string, workDir string, staticNetworkConfig staticnetworkconfig.StaticNetworkConfig) Editor {
 	return &rhcosEditor{
-		isoHandler:          isoutil.NewHandler(iso, workDir),
-		log:                 getTestLog(),
-		staticNetworkConfig: staticNetworkConfig,
+		isoHandler: isoutil.NewHandler(iso, workDir),
+		log:        getTestLog(),
 	}
 }
 
