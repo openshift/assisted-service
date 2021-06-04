@@ -46,6 +46,10 @@ type ClusterProxyInfo struct {
 	NoProxy    string
 }
 
+func (i *ClusterProxyInfo) Empty() bool {
+	return i == nil || (i.HTTPProxy == "" && i.HTTPSProxy == "" && i.NoProxy == "")
+}
+
 type OffsetInfo struct {
 	Key    [8]byte
 	Offset uint64
@@ -119,7 +123,7 @@ func (e *rhcosEditor) CreateClusterMinimalISO(ignition string, netFiles []static
 		return "", errors.Wrap(err, "failed to add ignition archive")
 	}
 
-	if len(netFiles) > 0 || clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
+	if len(netFiles) > 0 || !clusterProxyInfo.Empty() {
 		if err := addCustomRAMDisk(clusterISOPath, netFiles, clusterProxyInfo, ramDiskOffsetInfo); err != nil {
 			return "", errors.Wrap(err, "failed to add additional ramdisk")
 		}
@@ -216,7 +220,7 @@ func addCustomRAMDisk(clusterISOPath string, netFiles []staticnetworkconfig.Stat
 			return err
 		}
 	}
-	if clusterProxyInfo.HTTPProxy != "" || clusterProxyInfo.HTTPSProxy != "" {
+	if !clusterProxyInfo.Empty() {
 		rootfsServiceConfigPath := "/etc/systemd/system/coreos-livepxe-rootfs.service.d/10-proxy.conf"
 		rootfsServiceConfig, err := formatRootfsServiceConfigFile(clusterProxyInfo)
 		if err != nil {
