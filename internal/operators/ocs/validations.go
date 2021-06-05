@@ -40,12 +40,10 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 
 	if numAvailableHosts < o.config.OCSRequiredHosts {
 		status = "Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS."
-		o.log.Info("OCS requirements validation status ", status)
 		return api.Failure, status
 	}
 	if numAvailableHosts > o.config.OCSRequiredHosts && numAvailableHosts < o.config.OCSMasterWorkerHosts {
 		status = "Insufficient hosts for OCS installation. A cluster with only 3 masters or with a minimum of 3 workers is required"
-		o.log.Info("OCS requirements validation status ", status)
 		return api.Failure, status
 	}
 
@@ -58,8 +56,6 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 		return api.Failure, status
 	}
 	canDeployOCS, status := o.canOCSBeDeployed(hosts, nodesResourceInfo)
-
-	o.log.Info(status)
 
 	if canDeployOCS {
 		// this will be used to set count of StorageDevices in StorageCluster manifest
@@ -84,7 +80,6 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, nodeInfo *r
 		if !compactMode {
 			if host.Role == models.HostRoleAutoAssign {
 				status = "All host roles must be assigned to enable OCS."
-				o.log.Info("Validate Requirements status ", status)
 				err = errors.New("Role is set to auto-assign for host ")
 				return status, err
 			}
@@ -110,14 +105,12 @@ func (o *operator) computeNodeResourceUtil(host *models.Host, nodeInfo *resource
 
 	// if inventory is empty, return an error
 	if host.Inventory == "" {
-		o.log.Info("Empty Inventory for host with hostID ", *host.ID)
 		nodeInfo.missingInventory = true
 		status = "Missing Inventory in some of the hosts"
 		return status, errors.New("Missing Inventory in some of the hosts ") // to indicate that inventory is empty and the ValidationStatus must be Pending
 	}
 	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 	if err != nil {
-		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
 		return status, err
 	}
 
@@ -133,7 +126,6 @@ func (o *operator) computeNodeResourceUtil(host *models.Host, nodeInfo *resource
 		if inventory.CPU.Count < requiredDiskCPU || inventory.Memory.UsableBytes < conversions.GibToBytes(requiredDiskRAM) {
 			status = fmt.Sprint("Insufficient resources on host with host ID ", *host.ID, " to deploy OCS. The hosts has ", diskCount, " disks that require ", requiredDiskCPU, " CPUs, ", requiredDiskRAM, " GiB RAM")
 			nodeInfo.insufficientHosts = append(nodeInfo.insufficientHosts, status)
-			o.log.Info(status)
 		} else {
 			nodeInfo.cpuCount += inventory.CPU.Count - requiredDiskCPU                             // cpus excluding the cpus required for disks
 			nodeInfo.ram += inventory.Memory.UsableBytes - conversions.GibToBytes(requiredDiskRAM) // ram excluding the ram required for disks
@@ -156,13 +148,11 @@ func (o *operator) canOCSBeDeployed(hosts []*models.Host, nodeInfo *resourceInfo
 		for _, hostStatus := range nodeInfo.insufficientHosts {
 			status = status + hostStatus + ".\n"
 		}
-		o.log.Info("Validate Requirements status ", status)
 		return false, status
 	}
 
 	if nodeInfo.numDisks%3 != 0 {
 		status = "The number of disks in the cluster for OCS must be a multiple of 3."
-		o.log.Info(status)
 		return false, status
 	}
 

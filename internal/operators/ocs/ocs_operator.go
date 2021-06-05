@@ -77,19 +77,17 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
 	numOfHosts := len(cluster.Hosts)
 	if host.Inventory == "" {
-		o.log.Info("Empty Inventory of host with hostID ", host.ID)
 		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
 	}
 	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 	if err != nil {
-		o.log.Errorf("Failed to get inventory from host with id %s", host.ID)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID()}, err
+		message := fmt.Sprintf("Failed to get inventory from host with id %s", host.ID)
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
 	}
 
 	// GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size
 	diskCount, err := getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	if err != nil {
-		o.log.Errorf("%s %s", err.Error(), host.ID)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
 
@@ -101,7 +99,6 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 			}
 			return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 		}
-		o.log.Errorf("OCS unsupported Host Role for Compact Mode")
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}}, nil
 	}
 
@@ -109,7 +106,6 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if host.Role == models.HostRoleAutoAssign {
 		status := "All host roles must be assigned to enable OCS in Standard or Minimal Mode."
-		o.log.Info("OCS Validate Requirements status ", status)
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 	}
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
