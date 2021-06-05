@@ -143,20 +143,22 @@ func filterMetrics(metrics []string, substrings ...string) []string {
 	return res
 }
 
-func getMetricRecords() []string {
+func getMetricRecords(debugMode bool) []string {
 	url := fmt.Sprintf("http://%s/metrics", Options.InventoryHost)
 
 	cmd := exec.Command("curl", "-s", url)
 	output, err := cmd.Output()
 	Expect(err).NotTo(HaveOccurred())
-	_, err = GinkgoWriter.Write(output)
-	Expect(err).NotTo(HaveOccurred())
+	if debugMode {
+		_, err = GinkgoWriter.Write(output)
+		Expect(err).NotTo(HaveOccurred())
+	}
 
 	return strings.Split(string(output), "\n")
 }
 
 func getValidationMetricCounter(validationID, expectedMetric string) int {
-	metrics := getMetricRecords()
+	metrics := getMetricRecords(false)
 	filteredMetrics := filterMetrics(metrics, expectedMetric, fmt.Sprintf("ValidationType=\"%s\"", validationID))
 	if len(filteredMetrics) == 0 {
 		return 0
@@ -169,7 +171,7 @@ func getValidationMetricCounter(validationID, expectedMetric string) int {
 }
 
 func getMetricRecord(name string) (string, error) {
-	metrics := getMetricRecords()
+	metrics := getMetricRecords(false)
 	filteredMetrics := filterMetrics(metrics, name)
 	if len(filteredMetrics) == 0 {
 		return "", errors.New("metric not found")
@@ -398,6 +400,10 @@ var _ = Describe("Metrics tests", func() {
 	Context("Host validation metrics", func() {
 
 		var hostStatusInsufficient string = models.HostStatusInsufficient
+
+		AfterEach(func() {
+			getMetricRecords(true)
+		})
 
 		It("'connected' failed before reboot", func() {
 
@@ -898,6 +904,10 @@ var _ = Describe("Metrics tests", func() {
 			Expect(err).NotTo(HaveOccurred())
 		}
 
+		AfterEach(func() {
+			getMetricRecords(true)
+		})
+
 		It("'all-hosts-are-ready-to-install' failed", func() {
 
 			// create a validation success
@@ -1035,6 +1045,10 @@ var _ = Describe("Metrics tests", func() {
 		if Options.Storage != "filesystem" {
 			return
 		}
+
+		AfterEach(func() {
+			getMetricRecords(true)
+		})
 
 		It("'assisted_installer_filesystem_usage_percentage' metric recorded", func() {
 			By("Generate ISO for cluster")
