@@ -1315,7 +1315,7 @@ func clusterValidated(clusterInstall *hiveext.AgentClusterInstall, status string
 	if err == nil {
 		for _, vRes := range validationRes {
 			for _, v := range vRes {
-				if v.Status == cluster.ValidationFailure {
+				if v.Status != cluster.ValidationSuccess {
 					failures = append(failures, v.Message)
 				}
 			}
@@ -1332,8 +1332,8 @@ func clusterValidated(clusterInstall *hiveext.AgentClusterInstall, status string
 		msg = fmt.Sprintf("%s %s", ClusterValidationsFailingMsg, failedValidationInfo)
 	case models.ClusterStatusPendingForInput == status:
 		condStatus = corev1.ConditionFalse
-		reason = ValidationsFailingReason
-		msg = fmt.Sprintf("%s %s", ClusterValidationsFailingMsg, failedValidationInfo)
+		reason = ValidationsUserPendingReason
+		msg = fmt.Sprintf("%s %s", ClusterValidationsUserPendingMsg, failedValidationInfo)
 	case models.ClusterStatusAddingHosts == status:
 		condStatus = corev1.ConditionTrue
 		reason = ValidationsPassingReason
