@@ -1000,6 +1000,10 @@ func (m Manager) PermanentClustersDeletion(ctx context.Context, olderThan strfmt
 			deleteFromDB = false
 			m.log.WithError(err).Warnf("Failed deleting s3 manifests of cluster %s", c.ID.String())
 		}
+		if _, err := objectHandler.DeleteObject(ctx, c.ID.String()); err != nil {
+			deleteFromDB = false
+			m.log.WithError(err).Warnf("Failed deleting cluster directory %s", c.ID.String())
+		}
 		if !deleteFromDB {
 			continue
 		}
