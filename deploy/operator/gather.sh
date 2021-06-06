@@ -31,7 +31,7 @@ function gather_agentclusterinstall_data() {
 
     logs_url=$(echo ${agentclusterinstall} | jq -r .status.debugInfo.logsURL)
     if [ -n "${logs_url}" ] && [ "${logs_url}" != null ]; then
-      curl "${logs_url}" -o "${cluster_dir}/logs.tar.gz"
+      curl "${logs_url}" -k -o "${cluster_dir}/logs.tar.gz"
     fi
   done
 }
