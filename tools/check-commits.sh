@@ -11,18 +11,16 @@ if [ -z $remote ]; then
     echo "could not find remote for github.com/openshift/assisted-service"
     exit 1
 fi
-master_branch="$remote/master"
+master_branch="$remote/ocm-2.3"
 current_branch="$(git rev-parse --abbrev-ref HEAD)"
 
 revs=$(git rev-list "${master_branch}".."${current_branch}")
 
-for commit in ${revs};
-do
+for commit in ${revs}; do
     commit_message=$(git cat-file commit ${commit} | sed '1,/^$/d')
     tmp_commit_file="$(mktemp)"
-    echo "${commit_message}" > ${tmp_commit_file}
+    echo "${commit_message}" >${tmp_commit_file}
     ${__dir}/check-commit-message.sh "${tmp_commit_file}"
 done
-
 
 exit 0
