@@ -357,7 +357,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	if err = validateProxySettings(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
-		params.NewClusterParams.NoProxy); err != nil {
+		params.NewClusterParams.NoProxy, params.NewClusterParams.OpenshiftVersion); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
@@ -1659,6 +1659,13 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 		*params.ClusterUpdateParams.SSHPublicKey = sshPublicKey
 	}
 
+	return *params, nil
+}
+
+func (b *bareMetalInventory) validateAndUpdateProxyParams(ctx context.Context, params *installer.UpdateClusterParams, ocpVersion *string) (installer.UpdateClusterParams, error) {
+
+	log := logutil.FromContext(ctx, b.log)
+
 	if params.ClusterUpdateParams.HTTPProxy != nil &&
 		(params.ClusterUpdateParams.HTTPSProxy == nil || *params.ClusterUpdateParams.HTTPSProxy == "") {
 		params.ClusterUpdateParams.HTTPSProxy = params.ClusterUpdateParams.HTTPProxy
@@ -1666,7 +1673,7 @@ func (b *bareMetalInventory) validateAndUpdateClusterParams(ctx context.Context,
 
 	if err := validateProxySettings(params.ClusterUpdateParams.HTTPProxy,
 		params.ClusterUpdateParams.HTTPSProxy,
-		params.ClusterUpdateParams.NoProxy); err != nil {
+		params.ClusterUpdateParams.NoProxy, ocpVersion); err != nil {
 		log.WithError(err).Errorf("Failed to validate Proxy settings")
 		return installer.UpdateClusterParams{}, err
 	}
@@ -1717,6 +1724,10 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 	if cluster, err = common.GetClusterFromDB(tx, params.ClusterID, common.UseEagerLoading); err != nil {
 		log.WithError(err).Errorf("failed to get cluster: %s", params.ClusterID)
 		return nil, common.NewApiError(http.StatusNotFound, err)
+	}
+
+	if params, err = b.validateAndUpdateProxyParams(ctx, &params, &cluster.OpenshiftVersion); err != nil {
+		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
 	if err = b.clusterApi.VerifyClusterUpdatability(cluster); err != nil {
@@ -4364,7 +4375,7 @@ func computeClusterProxyHash(httpProxy, httpsProxy, noProxy *string) (string, er
 	return fmt.Sprintf("%x", bs), nil
 }
 
-func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
+func validateProxySettings(httpProxy, httpsProxy, noProxy, ocpVersion *string) error {
 	if httpProxy != nil && *httpProxy != "" {
 		if err := validations.ValidateHTTPProxyFormat(*httpProxy); err != nil {
 			return errors.Errorf("Failed to validate HTTP Proxy: %s", err)
@@ -4376,7 +4387,10 @@ func validateProxySettings(httpProxy, httpsProxy, noProxy *string) error {
 		}
 	}
 	if noProxy != nil && *noProxy != "" {
-		if err := validations.ValidateNoProxyFormat(*noProxy); err != nil {
+		if ocpVersion == nil {
+			return errors.Errorf("Cannot validate NoProxy: Unknown OpenShift version")
+		}
+		if err := validations.ValidateNoProxyFormat(*noProxy, *ocpVersion); err != nil {
 			return err
 		}
 	}

@@ -268,10 +268,14 @@ func ValidateHTTPProxyFormat(proxyURL string) error {
 // ValidateNoProxyFormat validates the no-proxy format which should be a comma-separated list
 // of destination domain names, domains, IP addresses or other network CIDRs. A domain can be
 // prefaced with '.' to include all subdomains of that domain.
-// Use '*' to bypass proxy for all destinations.
-func ValidateNoProxyFormat(noProxy string) error {
+// Use '*' to bypass proxy for all destinations in OCP 4.8 or later.
+func ValidateNoProxyFormat(noProxy string, ocpVersion string) error {
 	if noProxy == "*" {
-		// TODO: Start accepting '*' when https://bugzilla.redhat.com/show_bug.cgi?id=1947066 is fixed, return an error until then
+		if wildcardSupported, err := common.VersionGreaterOrEqual(ocpVersion, "4.8.0-fc.4"); err != nil {
+			return err
+		} else if wildcardSupported {
+			return nil
+		}
 		return errors.Errorf("Sorry, no-proxy value '*' is not supported in this release")
 	}
 	domains := strings.Split(noProxy, ",")
@@ -290,9 +294,7 @@ func ValidateNoProxyFormat(noProxy string) error {
 		}
 		return errors.Errorf("NO Proxy format is not valid: '%s'. "+
 			"NO Proxy is a comma-separated list of destination domain names, domains, IP addresses or other network CIDRs. "+
-			// TODO: Change this to allow '*' when https://bugzilla.redhat.com/show_bug.cgi?id=1947066 is fixed
-			// "A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations.", noProxy)
-			"A domain can be prefaced with '.' to include all subdomains of that domain.", noProxy)
+			"A domain can be prefaced with '.' to include all subdomains of that domain. Use '*' to bypass proxy for all destinations with OpenShift 4.8 or later.", noProxy)
 	}
 	return nil
 }
