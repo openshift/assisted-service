@@ -9,6 +9,7 @@ information on how to link a PR to an existing issue.
 
 # What environments does this code impact?
 
+- [ ] Automation (CI, tools, etc)
 - [ ] Cloud
 - [ ] Operator Managed Deployments
 - [x] None
