@@ -65,6 +65,9 @@ func AutoMigrate(db *gorm.DB) error {
 type Host struct {
 	models.Host
 	Approved bool `json:"approved"`
+
+	// Namespace of the KubeAPI resource
+	KubeKeyNamespace string `json:"kube_key_namespace"`
 }
 
 type EagerLoadingState bool

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/host"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -13,11 +14,12 @@ import (
 )
 
 type CRDUtils struct {
-	client client.Client
+	client  client.Client
+	hostApi host.API
 }
 
-func NewCRDUtils(client client.Client) *CRDUtils {
-	return &CRDUtils{client: client}
+func NewCRDUtils(client client.Client, hostApi host.API) *CRDUtils {
+	return &CRDUtils{client: client, hostApi: hostApi}
 }
 
 // CreateAgentCR Creates an Agent CR representing a Host/Agent.
@@ -29,27 +31,28 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 		return nil
 	}
 
+	infraEnv, err := getInfraEnvByClusterDeployment(ctx, log, u.client, clusterName, clusterNamespace)
+	if err != nil {
+		return errors.Wrapf(err, "Failed to search an InfraEnv for Cluster %s", clusterName)
+	}
+	if infraEnv == nil {
+		log.Warnf("ClusterDeployment %s has no InfraEnv resources.", clusterName)
+		return errors.Errorf("No InfraEnv resource for ClusterDeployment %s", clusterName)
+	}
+
 	host := &aiv1beta1.Agent{}
 	namespacedName := types.NamespacedName{
-		Namespace: clusterNamespace,
 		Name:      hostId,
+		Namespace: infraEnv.Namespace,
 	}
-	err := u.client.Get(ctx, namespacedName, host)
+
+	err = u.client.Get(ctx, namespacedName, host)
 	if err == nil {
 		log.Infof("Skip Agent CR creation. %s already exists", hostId)
 		return nil
 	}
 
 	if k8serrors.IsNotFound(err) {
-		infraEnv, err1 := getInfraEnvByClusterDeployment(ctx, log, u.client, clusterName, clusterNamespace)
-		if err1 != nil {
-			return errors.Wrapf(err, "Failed to search an InfraEnv for Cluster %s", clusterName)
-		}
-		if infraEnv == nil {
-			log.Warnf("ClusterDeployment %s has no InfraEnv resources.", clusterName)
-			return errors.Wrapf(err, "No InfraEnv resource for ClusterDeployment %s", clusterName)
-		}
-
 		host := &aiv1beta1.Agent{
 			Spec: aiv1beta1.AgentSpec{
 				ClusterDeploymentName: &aiv1beta1.ClusterReference{
@@ -63,6 +66,12 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 				Namespace: infraEnv.Namespace,
 			},
 		}
+
+		// Update 'kube_key_namespace' in Host
+		if err1 := u.hostApi.UpdateKubeKeyNS(ctx, hostId, infraEnv.Namespace); err1 != nil {
+			return errors.Wrapf(err, "Failed to update 'kube_key_namespace' in host %s", hostId)
+		}
+
 		log.Infof("Creating Agent CR. Namespace: %s, Cluster: %s, HostID: %s", infraEnv.Namespace, clusterName, hostId)
 		return u.client.Create(ctx, host)
 	}
