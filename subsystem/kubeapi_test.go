@@ -1129,6 +1129,89 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Expect(cluster.ImageGenerated).Should(Equal(true))
 	})
 
+	It("deploy clusterDeployment full install with infraenv in different namespace", func() {
+		By("Create cluster")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		// Deploy InfraEnv in default namespace
+		err := kubeClient.Create(ctx, &v1beta1.InfraEnv{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "InfraEnv",
+				APIVersion: getAPIVersion(),
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "default",
+				Name:      infraNsName.Name,
+			},
+			Spec: *infraEnvSpec,
+		})
+		Expect(err).To(BeNil())
+		defer func() {
+			Expect(kubeClient.DeleteAllOf(ctx, &v1beta1.InfraEnv{}, k8sclient.InNamespace("default"))).To(BeNil())
+		}()
+
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		key := types.NamespacedName{
+			Namespace: "default",
+			Name:      host.ID.String(),
+		}
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+
+		By("Approve Agent")
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
+
+		By("Check Agent Event URL exists")
+		Eventually(func() string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.DebugInfo.EventsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
+
+		By("Wait for installing")
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstallationInProgressReason)
+
+		Eventually(func() bool {
+			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+			for _, h := range c.Hosts {
+				if !funk.ContainsString([]string{models.HostStatusInstalling, models.HostStatusDisabled}, swag.StringValue(h.Status)) {
+					return false
+				}
+			}
+			return true
+		}, "1m", "2s").Should(BeTrue())
+
+		updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+
+		By("Complete Installation")
+		completeInstallation(agentBMClient, *cluster.ID)
+		isSuccess := true
+		_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+			ClusterID: *cluster.ID,
+			CompletionParams: &models.CompletionParams{
+				IsSuccess: &isSuccess,
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+
+		By("Verify Cluster Metadata")
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterCompletedCondition, controllers.InstalledReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterFailedCondition, controllers.ClusterNotFailedReason)
+		checkAgentClusterInstallCondition(ctx, installkey, controllers.ClusterStoppedCondition, controllers.ClusterStoppedCompletedReason)
+	})
+
 	It("deploy infraEnv before clusterDeployment", func() {
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		infraEnvKubeName := types.NamespacedName{
