@@ -462,6 +462,18 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	log.Debugf("Started BMH reconcile for %s/%s", bmh.Namespace, bmh.Name)
 	log.Debugf("BMH value %v", bmh)
 
+	// A detached BMH is considered to be unmanaged by the hub
+	// cluster and, therefore, BMAC reconciles on this BMH should
+	// not happen.
+	//
+	// User is expected to remove the `detached` annotation manually
+	// to bring this BMH back into the pool of reconciled BMH resources.
+	bmhAnnotations := bmh.ObjectMeta.GetAnnotations()
+	if _, ok := bmhAnnotations[BMH_DETACHED_ANNOTATION]; ok {
+		log.Debugf("Stopped BMH reconcile for %s/%s because it has been detached", bmh.Namespace, bmh.Name)
+		return reconcileComplete{stop: true}
+	}
+
 	infraEnv, err := r.findInfraEnvForBMH(ctx, log, bmh)
 
 	if err != nil {
@@ -485,14 +497,6 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	if bmh.Spec.Image != nil && bmh.Spec.Image.URL == infraEnv.Status.ISODownloadURL {
 		return reconcileComplete{}
 	}
-
-	// BMH is set to `detached` after a cluster deployment. The
-	// following call makes sure the node is attached an image
-	// update happens. In the case of a `non-ready` node, Ironic
-	// will first deprovision the node (meaning the cache will be
-	// invalidated) and then it will provision the new image once
-	// the BMH.Spec.Image field is set.
-	delete(bmh.ObjectMeta.Annotations, BMH_DETACHED_ANNOTATION)
 
 	// Set the bmh.Spec.Image field to nil if the BMH is in a non-ready state.
 	// This will make sure that any existing image will be de-provisioned first
