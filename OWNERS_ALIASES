@@ -33,6 +33,7 @@ aliases:
     - osherdp
     - flaper87
     - mkowalski
+    - djzager
   ci-approvers:
     - yuvigold
     - oshercc
