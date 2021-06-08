@@ -10,7 +10,7 @@ DISCONNECTED="${DISCONNECTED:-false}"
 HIVE_IMAGE="${HIVE_IMAGE:-registry.ci.openshift.org/openshift/hive-v4.0:hive}"
 
 function print_help() {
-  ALL_FUNCS="with_olm|from_upstream|print_help"
+  ALL_FUNCS="with_olm|from_upstream|enable_agent_install_strategy|print_help"
   if [ "${DISCONNECTED}" == "true" ]; then
     echo "Usage: DISCONNECTED=true AUTHFILE=... LOCAL_REGISTRY=... bash ${0} (${ALL_FUNCS})"
   else
@@ -53,6 +53,8 @@ EOCR
   wait_for_crd "clusterdeployments.hive.openshift.io"
 
   echo "Hive installed successfully!"
+
+  enable_agent_install_strategy
 }
 
 function from_upstream() {
@@ -81,7 +83,27 @@ function from_upstream() {
   wait_for_pod "hive-operator" "hive" "control-plane=hive-operator"
   wait_for_pod "hive-controllers" "hive" "control-plane=controller-manager"
 
+  echo "Hive installed successfully!"
   popd
+
+  enable_agent_install_strategy
+}
+
+function enable_agent_install_strategy() {
+  tee << EOF >(oc apply -f -)
+apiVersion: hive.openshift.io/v1
+kind: HiveConfig
+metadata:
+  name: hive
+spec:
+  logLevel: debug
+  targetNamespace: hive
+  featureGates:
+    custom:
+      enabled:
+      - AlphaAgentInstallStrategy
+    featureSet: Custom
+EOF
 }
 
 if [ -z "$@" ] || ! declare -F "$@"; then
