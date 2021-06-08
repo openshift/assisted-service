@@ -479,6 +479,10 @@ func main() {
 				Scheme: ctrlMgr.GetScheme(),
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 
+			log.Info("waiting for REST api readiness before starting controllers")
+			apiEnabler.WaitForEnabled()
+
+			log.Infof("REST api is now ready, starting controllers")
 			failOnError(ctrlMgr.Start(ctrl.SetupSignalHandler()), "failed to run manager")
 		}
 	}()
@@ -643,6 +647,12 @@ func (a *ApiEnabler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (a *ApiEnabler) Enable() {
 	a.isEnabled = true
 	a.log.Info("API is enabled")
+}
+
+func (a *ApiEnabler) WaitForEnabled() {
+	for !a.isEnabled {
+		time.Sleep(time.Second)
+	}
 }
 
 func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.DB, log logrus.FieldLogger) error {
