@@ -322,6 +322,28 @@ var _ = Describe("cluster reconcile", func() {
 
 				validateCreation(cluster)
 			})
+
+			It("fail to get openshift version when trying to create a cluster", func() {
+				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
+
+				cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+				aci.Spec.ProvisionRequirements.WorkerAgents = 0
+				aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
+				aci = getTestClusterInstall()
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(NotAvailableReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(NotAvailableMsg))
+				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
+			})
 		})
 
 		It("create new cluster backend failure", func() {
@@ -1189,7 +1211,7 @@ var _ = Describe("cluster reconcile", func() {
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}))
+			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
 			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
@@ -1228,7 +1250,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Update(ctx, aci)).Should(BeNil())
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}))
+			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")
@@ -1254,7 +1276,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(c.Update(ctx, aci)).Should(BeNil())
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
-			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}))
+			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
 			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")

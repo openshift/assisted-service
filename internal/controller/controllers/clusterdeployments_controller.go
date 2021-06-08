@@ -71,6 +71,7 @@ const (
 
 const HighAvailabilityModeNone = "None"
 const defaultRequeueAfterOnError = 10 * time.Second
+const longerRequeueAfterOnError = 1 * time.Minute
 
 // ClusterDeploymentsReconciler reconciles a Cluster object
 type ClusterDeploymentsReconciler struct {
@@ -348,7 +349,7 @@ func (r *ClusterDeploymentsReconciler) installDay1(ctx context.Context, log logr
 			// We decided to requeue with one minute timeout in order to give user a chance to fix manifest
 			// this timeout allows us not to run reconcile too much time and
 			// still have a nice feedback when user will fix the error
-			return ctrl.Result{Requeue: true, RequeueAfter: 1 * time.Minute}, nil
+			return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 		}
 
 		log.Infof("Installing clusterDeployment %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
@@ -779,7 +780,9 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	openshiftVersion, err := r.addOpenshiftVersion(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
 		log.WithError(err).Error("failed to add OCP version")
-		return r.updateStatus(ctx, log, clusterInstall, nil, err)
+		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
+		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
+		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 	}
 
 	clusterParams := &models.ClusterCreateParams{
@@ -840,7 +843,9 @@ func (r *ClusterDeploymentsReconciler) createNewDay2Cluster(
 	openshiftVersion, err := r.addOpenshiftVersion(ctx, clusterInstall.Spec, pullSecret)
 	if err != nil {
 		log.WithError(err).Error("failed to add OCP version")
-		return r.updateStatus(ctx, log, clusterInstall, nil, err)
+		_, _ = r.updateStatus(ctx, log, clusterInstall, nil, err)
+		// The controller will requeue after one minute, giving the user a chance to fix releaseImage
+		return ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}, nil
 	}
 
 	clusterParams := &models.AddHostsClusterCreateParams{
