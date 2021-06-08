@@ -46,13 +46,13 @@ metadata:
     categories: OpenShift Optional
     createdAt: ""
     description: Assisted Service is used to orchestrate baremetal OpenShift installations.
-    olm.skipRange: '>=0.0.0 <0.0.4'
+    olm.skipRange: '>=0.0.0 <0.0.5'
     operatorframework.io/suggested-namespace: assisted-installer
     operators.operatorframework.io/builder: operator-sdk-v1.7.1+git
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/openshift/assisted-service
     support: https://github.com/openshift/assisted-service/issues/new
-  name: assisted-service-operator.v0.0.4
+  name: assisted-service-operator.v0.0.5-unreleased
 spec:
   apiservicedefinitions: {}
   customresourcedefinitions:
@@ -426,15 +426,15 @@ spec:
                 - /assisted-service-operator
                 env:
                 - name: SERVICE_IMAGE
-                  value: quay.io/ocpmetal/assisted-service:latest
+                  value: quay.io/ocpmetal/assisted-service:ocm-2.3
                 - name: DATABASE_IMAGE
                   value: quay.io/ocpmetal/postgresql-12-centos7:latest
                 - name: AGENT_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer-agent:latest
+                  value: quay.io/ocpmetal/assisted-installer-agent:ocm-2.3
                 - name: CONTROLLER_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer-controller:latest
+                  value: quay.io/ocpmetal/assisted-installer-controller:ocm-2.3
                 - name: INSTALLER_IMAGE
-                  value: quay.io/ocpmetal/assisted-installer:latest
+                  value: quay.io/ocpmetal/assisted-installer:ocm-2.3
                 - name: OPENSHIFT_VERSIONS
                   value: '{"4.8":{"display_name":"4.8.0-fc.3","release_version":"4.8.0-fc.3","release_image":"quay.io/openshift-release-dev/ocp-release:4.8.0-fc.3-x86_64","rhcos_image":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-4.8.0-fc.3-x86_64-live.x86_64.iso","rhcos_rootfs":"https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/pre-release/4.8.0-fc.3/rhcos-live-rootfs.x86_64.img","rhcos_version":"48.84.202105062123-0","support_level":"beta"}}'
                 - name: SERVICE_ACCOUNT_NAME
@@ -561,18 +561,19 @@ spec:
   provider:
     name: Red Hat
   relatedImages:
-  - image: quay.io/ocpmetal/assisted-service:latest
+  - image: quay.io/ocpmetal/assisted-service:ocm-2.3
     name: controller
   - image: quay.io/ocpmetal/postgresql-12-centos7:latest
     name: postgresql
-  - image: quay.io/ocpmetal/assisted-installer:latest
+  - image: quay.io/ocpmetal/assisted-installer:ocm-2.3
     name: installer
-  - image: quay.io/ocpmetal/assisted-installer-agent:latest
+  - image: quay.io/ocpmetal/assisted-installer-agent:ocm-2.3
     name: agent
-  - image: quay.io/ocpmetal/assisted-installer-controller:latest
+  - image: quay.io/ocpmetal/assisted-installer-controller:ocm-2.3
     name: reporter
   skips:
   - assisted-service-operator.v0.0.1
   - assisted-service-operator.v0.0.2
   - assisted-service-operator.v0.0.3
-  version: 0.0.4
+  - assisted-service-operator.v0.0.4
+  version: 0.0.5-unreleased
