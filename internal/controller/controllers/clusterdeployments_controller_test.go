@@ -1760,7 +1760,7 @@ var _ = Describe("TestConditions", func() {
 			name:           "PendingForInput",
 			clusterStatus:  models.ClusterStatusPendingForInput,
 			statusInfo:     "",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"},{\"id\":\"checking4\",\"status\":\"pending\",\"message\":\"Check4 is pending\"}]}",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
 					Type:    ClusterRequirementsMetCondition,
@@ -1776,8 +1776,8 @@ var _ = Describe("TestConditions", func() {
 				},
 				{
 					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK",
-					Reason:  ValidationsFailingReason,
+					Message: ClusterValidationsUserPendingMsg + " Check1 is not OK,Check3 is not OK,Check4 is pending",
+					Reason:  ValidationsUserPendingReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{

@@ -720,7 +720,7 @@ var _ = Describe("TestConditions", func() {
 			name:           "PendingForInput",
 			hostStatus:     models.HostStatusPendingForInput,
 			statusInfo:     "",
-			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"}]}",
+			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"},{\"id\":\"checking4\",\"status\":\"pending\",\"message\":\"Host check4 is pending\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
 					Type:    ReadyForInstallationCondition,
@@ -742,8 +742,8 @@ var _ = Describe("TestConditions", func() {
 				},
 				{
 					Type:    ValidatedCondition,
-					Message: AgentValidationsFailingMsg + " Host check1 is not OK,Host check3 is not OK",
-					Reason:  ValidationsFailingReason,
+					Message: AgentValidationsUserPendingMsg + " Host check1 is not OK,Host check3 is not OK,Host check4 is pending",
+					Reason:  ValidationsUserPendingReason,
 					Status:  corev1.ConditionFalse,
 				},
 			},

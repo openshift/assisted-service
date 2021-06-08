@@ -439,7 +439,7 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 	if err == nil {
 		for _, vRes := range validationRes {
 			for _, v := range vRes {
-				if v.Status == host.ValidationFailure {
+				if v.Status != host.ValidationSuccess && v.Status != host.ValidationDisabled {
 					failures = append(failures, v.Message)
 				}
 			}
@@ -450,10 +450,14 @@ func validated(agent *aiv1beta1.Agent, status string, h *models.Host) {
 	var reason string
 	var msg string
 	switch {
-	case models.HostStatusInsufficient == status || models.HostStatusPendingForInput == status:
+	case models.HostStatusInsufficient == status:
 		condStatus = corev1.ConditionFalse
 		reason = ValidationsFailingReason
 		msg = fmt.Sprintf("%s %s", AgentValidationsFailingMsg, failedValidationInfo)
+	case models.HostStatusPendingForInput == status:
+		condStatus = corev1.ConditionFalse
+		reason = ValidationsUserPendingReason
+		msg = fmt.Sprintf("%s %s", AgentValidationsUserPendingMsg, failedValidationInfo)
 	case h.ValidationsInfo == "":
 		condStatus = corev1.ConditionUnknown
 		reason = ValidationsUnknownReason

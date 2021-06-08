@@ -34,9 +34,10 @@ const (
 	NotAvailableReason string = "NotAvailable"
 	NotAvailableMsg    string = "Information not available"
 
-	ValidationsPassingReason string = "ValidationsPassing"
-	ValidationsUnknownReason string = "ValidationsUnknown"
-	ValidationsFailingReason string = "ValidationsFailing"
+	ValidationsPassingReason     string = "ValidationsPassing"
+	ValidationsUnknownReason     string = "ValidationsUnknown"
+	ValidationsFailingReason     string = "ValidationsFailing"
+	ValidationsUserPendingReason string = "ValidationsUserPending"
 
 	InstalledReason              string = "InstallationCompleted"
 	InstalledMsg                 string = "The installation has completed:"
@@ -68,10 +69,11 @@ const (
 	ClusterUnapprovedAgentsReason    string = "UnapprovedAgents"
 	ClusterUnapprovedAgentsMsg       string = "The installation is pending on the approval of %d agents"
 
-	ClusterValidatedCondition    string = "Validated"
-	ClusterValidationsOKMsg      string = "The cluster's validations are passing"
-	ClusterValidationsUnknownMsg string = "The cluster's validations have not yet been calculated"
-	ClusterValidationsFailingMsg string = "The cluster's validations are failing:"
+	ClusterValidatedCondition        string = "Validated"
+	ClusterValidationsOKMsg          string = "The cluster's validations are passing"
+	ClusterValidationsUnknownMsg     string = "The cluster's validations have not yet been calculated"
+	ClusterValidationsFailingMsg     string = "The cluster's validations are failing:"
+	ClusterValidationsUserPendingMsg string = "The cluster's validations are pending for user:"
 
 	ClusterFailedCondition string = hivev1.ClusterInstallFailed
 	ClusterFailedReason    string = "InstallationFailed"
@@ -112,8 +114,9 @@ const (
 	AgentInstallationStoppedReason string                     = "AgentInstallationStopped"
 	AgentInstallationStoppedMsg    string                     = "The agent installation stopped"
 
-	ValidatedCondition         conditionsv1.ConditionType = "Validated"
-	AgentValidationsPassingMsg string                     = "The agent's validations are passing"
-	AgentValidationsUnknownMsg string                     = "The agent's validations have not yet been calculated"
-	AgentValidationsFailingMsg string                     = "The agent's validations are failing:"
+	ValidatedCondition             conditionsv1.ConditionType = "Validated"
+	AgentValidationsPassingMsg     string                     = "The agent's validations are passing"
+	AgentValidationsUnknownMsg     string                     = "The agent's validations have not yet been calculated"
+	AgentValidationsFailingMsg     string                     = "The agent's validations are failing:"
+	AgentValidationsUserPendingMsg string                     = "The agent's validations are pending for user:"
 )
