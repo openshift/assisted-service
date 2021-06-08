@@ -160,7 +160,8 @@ build-in-docker:
 	skipper make build-image operator-bundle-build
 
 build-assisted-service:
-	CGO_ENABLED=0 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service cmd/main.go
+	# We need the CGO_ENABLED for the go-sqlite library build.
+	CGO_ENABLED=1 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service cmd/main.go
 
 build-assisted-service-operator:
 	CGO_ENABLED=0 go build $(DEBUG_ARGS) -o $(BUILD_FOLDER)/assisted-service-operator cmd/operator/main.go

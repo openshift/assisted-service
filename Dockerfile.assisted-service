@@ -19,7 +19,7 @@ COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
 COPY . .
-RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
+RUN CGO_ENABLED=1 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service cmd/main.go
 RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-operator cmd/operator/main.go
 
 FROM quay.io/ocpmetal/oc-image:bug-1823143 as oc-image
