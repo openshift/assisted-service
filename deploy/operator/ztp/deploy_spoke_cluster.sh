@@ -17,9 +17,6 @@ set -o pipefail
 set -o errexit
 set -o xtrace
 
-echo "Enabling configuration of BMH resources outside of openshift-machine-api namespace"
-oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
-
 echo "Extract information about extra worker nodes..."
 config=$(jq --raw-output '.[] | .name + " " + .ports[0].address + " " + .driver_info.username + " " + .driver_info.password + " " + .driver_info.address' "${EXTRA_BAREMETALHOSTS_FILE}")
 IFS=" " read BMH_NAME MAC_ADDRESS username password ADDRESS <<< "${config}"

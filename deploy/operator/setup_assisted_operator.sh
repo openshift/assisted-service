@@ -165,6 +165,9 @@ EOCR
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
   wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
 
+  echo "Enabling configuration of BMH resources outside of openshift-machine-api namespace"
+  oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
+
   echo "Installation of Assisted Installer operator passed successfully!"
 }
 

@@ -34,6 +34,14 @@ REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
 
 ## Operator Installation
 
+A complete installation of hub-cluster consists on the following:
+
+* Setting up several (virtual) disks for persistent storage.
+* Installing Local Storage Operator and creating a storage class.
+* Installing Hive Operator.
+* Installing Assisted Service Operator.
+* Configuring BMO to watch all namespaces searching for BMH objects.
+
 Installation of the operator is pretty simple:
 
 ```
@@ -75,7 +83,6 @@ cd deploy/operator/ztp/
 ```
 
 The following actions are happening in this script:
-* It will instruct BMO to watch all namespaces searching for BMH objects.
 * Secrets for pull-secret and for private SSH key will be created.
 * A BMH object will be created for the extra host specified on the provided json file.
 * The following objects will be created as well: cluster-deployment, infra-env,
