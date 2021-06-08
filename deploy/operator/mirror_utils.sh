@@ -93,6 +93,17 @@ function mirror_package_from_official_index() {
   mirror_package "${package}" "${remote_index}" "${local_registry}" "${authfile}" "${catalog_source_name}"
 }
 
+function mirror_file() {
+  remote_url="${1}"
+  httpd_path="${2}"
+  base_mirror_url="${3}"
+
+  local file_name="$(basename ${remote_url})"
+  curl --retry 5 "${remote_url}" -o "${httpd_path}/${file_name}"
+
+  echo "${base_mirror_url}/${file_name}"
+}
+
 function disable_default_indexes() {
   oc patch OperatorHub cluster --type json \
         -p '[{"op": "add", "path": "/spec/disableAllDefaultSources", "value": true}]'
