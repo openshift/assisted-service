@@ -472,12 +472,35 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		return reconcileComplete{}
 	}
 
+	dirty := false
+	annotations := bmh.ObjectMeta.GetAnnotations()
+
+	// Set the following parameters regardless of the state
+	// of the InfraEnv and the BMH. There is no need for
+	// inspection and cleaning to happen out of assisted
+	// service's loop.
+	if _, ok := annotations[BMH_INSPECT_ANNOTATION]; !ok || bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeDisabled {
+		bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+
+		// Let's make sure inspection is disabled for BMH resources
+		// that are associated with an agent-based deployment.
+		//
+		// Ideally, the user would do this while creating the BMH
+		// we are just taking extra care that this is the case.
+		if bmh.ObjectMeta.Annotations == nil {
+			bmh.ObjectMeta.Annotations = make(map[string]string)
+		}
+
+		bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
+		dirty = true
+	}
+
 	if infraEnv.Status.ISODownloadURL == "" {
 		// the image has not been created yet, try later.
 		log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Waiting for new reconcile for BareMetalHost  %s/%s",
 			infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
 
-		return reconcileComplete{stop: true}
+		return reconcileComplete{stop: true, dirty: dirty}
 	}
 
 	// The Image URL exists and InfraEnv's URL has not changed
@@ -509,22 +532,9 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// are done at the beginning of this function.
 	bmh.Spec.Image = &bmh_v1alpha1.Image{}
 	liveIso := "live-iso"
+	bmh.Spec.Online = true
 	bmh.Spec.Image.URL = infraEnv.Status.ISODownloadURL
 	bmh.Spec.Image.DiskFormat = &liveIso
-
-	bmh.Spec.AutomatedCleaningMode = "disabled"
-	bmh.Spec.Online = true
-
-	// Let's make sure inspection is disabled for BMH resources
-	// that are associated with an agent-based deployment.
-	//
-	// Ideally, the user would do this while creating the BMH
-	// we are just taking extra care that this is the case.
-	if bmh.ObjectMeta.Annotations == nil {
-		bmh.ObjectMeta.Annotations = make(map[string]string)
-	}
-
-	bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
 
 	r.Log.Infof("Image URL has been set in the BareMetalHost  %s/%s", bmh.Namespace, bmh.Name)
 	return reconcileComplete{dirty: true, stop: true}
