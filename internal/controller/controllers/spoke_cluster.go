@@ -4,7 +4,6 @@ import (
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/kubectl/pkg/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -24,7 +23,9 @@ func getSpokeClient(secret *corev1.Secret) (client.Client, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get restconfig for spoke kube client")
 	}
-	targetClient, err := client.New(restConfig, client.Options{Scheme: scheme.Scheme})
+
+	schemes := GetKubeClientSchemes()
+	targetClient, err := client.New(restConfig, client.Options{Scheme: schemes})
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get spoke kube client")
 	}
