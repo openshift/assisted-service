@@ -283,6 +283,40 @@ var _ = Describe("bmac reconcile", func() {
 
 			})
 
+			It("should disable the BMH hardware inspection regardless of the bmh state", func() {
+				// Removing URL so that the Reconcile flow
+				// stops early.
+				infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: ""}
+				Expect(c.Update(ctx, infraEnv)).To(BeNil())
+
+				// Test that only inspection missing will set both parameters
+				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+				host.Status.Provisioning.State = bmh_v1alpha1.StateRegistering
+
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
+				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
+				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
+				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+
+				// Test that only cleaning != disabled will set both parameters
+				host.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeMetadata
+				host.Status.Provisioning.State = bmh_v1alpha1.StateProvisioned
+
+				result = bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
+				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
+				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
+				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+
+				// This should not return a dirty result because label is already set
+				result = bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				Expect(result).To(Equal(reconcileComplete{dirty: false, stop: true}))
+				Expect(host.ObjectMeta.Annotations).To(HaveKey(BMH_INSPECT_ANNOTATION))
+				Expect(host.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION]).To(Equal("disabled"))
+				Expect(host.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+			})
+
 			It("should set the ISODownloadURL in the BMH", func() {
 				result, err := bmhr.Reconcile(ctx, newBMHRequest(host))
 				Expect(err).To(BeNil())
