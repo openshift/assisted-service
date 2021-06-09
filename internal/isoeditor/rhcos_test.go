@@ -137,6 +137,7 @@ var _ = Context("with test files", func() {
 			// Create template
 			isoPath, err := editor.CreateMinimalISOTemplate(testRootFSURL)
 			Expect(err).ToNot(HaveOccurred())
+			defer os.Remove(isoPath)
 
 			// Read offsets
 			ignitionOffsetInfo, ramDiskOffsetInfo, err := readHeader(isoPath)
