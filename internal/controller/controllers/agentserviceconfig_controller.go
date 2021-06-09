@@ -711,7 +711,7 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(log logrus.F
 	annotations := instance.ObjectMeta.GetAnnotations()
 	configmapName, ok := annotations[configmapAnnotation]
 	if ok {
-		log.Info("ConfigMap %v being used to configure assisted-service deployment", configmapName)
+		log.Infof("ConfigMap %v being used to configure assisted-service deployment", configmapName)
 		envFrom = append(envFrom, []corev1.EnvFromSource{
 			{
 				ConfigMapRef: &corev1.ConfigMapEnvSource{
