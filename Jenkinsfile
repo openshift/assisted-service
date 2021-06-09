@@ -43,7 +43,7 @@ pipeline {
         PATH = "${PATH}:/usr/local/go/bin"
         BUILD_TYPE = "CI"
 
-        CURRENT_DATE = now.format("Ymd")
+        CURRENT_DATE = now.format("YMMdd")
         CURRENT_HOUR = now.format("H")
         PUBLISH_TAG = releaseBranchPublishTag(env.BRANCH_NAME)
 
