@@ -195,14 +195,7 @@ EOF
 Add the annotation to the AgentServiceConfig:
 
 ```bash
-cat <<EOF | kubectl apply -f -
-apiVersion: agent-install.openshift.io/v1beta1
-kind: AgentServiceConfig
-metadata:
-  name: agent
-  annotations:
-    unsupported.agent-install.openshift.io/assisted-service-configmap: "my-assisted-service-config"
-EOF
+oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.openshift.io/assisted-service-configmap=my-assisted-service-config
 ```
 
 **NOTE**
