@@ -58,11 +58,23 @@ function gather_infraenv_data() {
   done
 }
 
+function gather_agent_data() {
+  agent_dir="${LOGS_DEST}/agents"
+  mkdir -p "${agent_dir}"
+
+  readarray -t agent_objects < <(oc get agents.agent-install.openshift.io -n assisted-installer -o json | jq -c '.items[]')
+  for agent in "${agent_objects[@]}"; do
+    agent_name=$(echo ${agent} | jq -r .metadata.name)
+    oc get agents.agent-install.openshift.io -n assisted-installer "${agent_name}" -o yaml > "${agent_dir}/${agent_name}.yaml"
+  done
+}
+
 function gather_all() {
   gather_operator_data
   gather_agentclusterinstall_data
   gather_bmh_data
   gather_infraenv_data
+  gather_agent_data
 }
 
 gather_all
