@@ -512,13 +512,16 @@ func uploadISOs(objectHandler s3wrapper.API, openshiftVersionsMap models.Openshi
 	//cancel the context in case this method ends
 	defer cancel()
 
+	//starts a functional context to pass to loggers and derived flows
+	uploadctx := requestid.ToContext(context.Background(), "main-uploadISOs")
+
 	// Checks whether latest version of minimal ISO templates already exists
 	// Must be done while holding the leader lock but outside of the version loop
-	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(context.Background(), log, objectHandler)
+	haveLatestMinimalTemplate := s3wrapper.HaveLatestMinimalTemplate(uploadctx, log, objectHandler)
 	for version := range openshiftVersionsMap {
 		currVersion := version
 		errs.Go(func() error {
-			err := objectHandler.UploadISOs(context.Background(), currVersion, haveLatestMinimalTemplate)
+			err := objectHandler.UploadISOs(uploadctx, currVersion, haveLatestMinimalTemplate)
 			return errors.Wrapf(err, "Failed uploading boot files for OCP version %s", currVersion)
 		})
 	}
