@@ -30,6 +30,21 @@ The AgentClusterInstall reflects the Cluster/Installation status through Conditi
 Deletion of AgentClusterInstall will trigger the `agentclusterinstall
 .agent-install.openshift.io/ai-deprovision` finalizer pre-deletion logic, which will deregister the backend cluster and delete all the related Agent CRs.
 
+Here an example how to print AgentClusterInstall conditions:
+
+```sh
+$ kubectl get agentclusterinstalls.extensions.hive.openshift.io -n assisted-installer -o=jsonpath='{range .items[*]}{"\n"}{.metadata.name}{"\n"}{range .status.conditions[*]}{.type}{"\t"}{.message}{"\n"}{end}'
+```
+```sh
+test-infra-agent-cluster-install
+SpecSynced	The Spec has been successfully applied
+Validated	The cluster's validations are passing
+RequirementsMet	The cluster installation stopped
+Completed	The installation has completed: Cluster is installed
+Failed	The installation has not failed
+Stopped	The installation has stopped because it completed successfully
+```
+
 More details on conditions is available [here](kube-api-conditions.md)
 
 #### Debug Information
