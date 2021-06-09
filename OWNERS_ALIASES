@@ -2,47 +2,16 @@
 
 aliases:
   approvers:
-    - eranco74
-    - filanov
-    - gamli75
-    - ronniel1
-  code-reviewers:
-    - avishayt
-    - empovit
-    - eranco74
-    - filanov
-    - gamli75
-    - ori-amizur
-    - oshercc
-    - razregev
-    - ronniel1
-    - tsorya
-    - yevgeny-shnaidman
-    - yuvigold
-    - nmagnezi
     - carbonin
-    - rollandf
-    - danielerez
-    - ybettan
-    - slaviered
-    - sacharya
-    - rwsu
-    - omertuc
-    - eliorerz
-    - michaellevy101
-    - osherdp
+    - celebdor
+    - eranco74
+    - filanov
     - flaper87
-    - mkowalski
+    - gamli75
+    - osherdp
+    - ronniel1
+    - romfreiman
+    - yuvigold
   ci-approvers:
     - yuvigold
     - oshercc
-  reviewers-only:
-    - jakub-dzon
-    - pkliczewski
-    - masayag
-    - jordigilh
-    - machacekondra
-    - rewantsoni
-    - nbalacha
-    - priyanka19-98
-
