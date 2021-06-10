@@ -2,6 +2,7 @@ package generator
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -51,12 +52,15 @@ func New(log logrus.FieldLogger, s3Client s3wrapper.API, cfg Config, workDir str
 // GenerateInstallConfig creates install config and ignition files
 func (k *installGenerator) GenerateInstallConfig(ctx context.Context, cluster common.Cluster, cfg []byte, releaseImage string) error {
 	log := logutil.FromContext(ctx, k.log)
-	clusterWorkDir := filepath.Join(k.workDir, cluster.ID.String())
-	installerCacheDir := filepath.Join(k.workDir, "installercache")
-	err := os.MkdirAll(clusterWorkDir, 0755)
-	if err != nil && !os.IsExist(err) {
+	err := os.MkdirAll(k.workDir, 0o755)
+	if err != nil {
 		return err
 	}
+	clusterWorkDir, err := ioutil.TempDir(k.workDir, cluster.ID.String()+".")
+	if err != nil {
+		return err
+	}
+	installerCacheDir := filepath.Join(k.workDir, "installercache")
 	defer func() {
 		// keep results in case of failure so a human can debug
 		if err != nil {
