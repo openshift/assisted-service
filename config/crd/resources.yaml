@@ -1016,6 +1016,9 @@ spec:
                   - type
                   type: object
                 type: array
+              createdTime:
+                format: date-time
+                type: string
               isoDownloadURL:
                 description: ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the configuration from this InfraEnv.
                 type: string
