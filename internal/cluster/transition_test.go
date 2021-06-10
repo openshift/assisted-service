@@ -361,15 +361,16 @@ var _ = Describe("Cancel cluster installation", func() {
 		state      string
 		success    bool
 		statusCode int32
+		eventsNum  int
 	}{
-		{state: models.ClusterStatusPreparingForInstallation, success: true},
-		{state: models.ClusterStatusInstalling, success: true},
-		{state: models.ClusterStatusError, success: true},
-		{state: models.ClusterStatusFinalizing, success: true},
-		{state: models.ClusterStatusInstallingPendingUserAction, success: true},
-		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
-		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
-		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
+		{state: models.ClusterStatusPreparingForInstallation, success: true, eventsNum: 2},
+		{state: models.ClusterStatusInstalling, success: true, eventsNum: 2},
+		{state: models.ClusterStatusError, success: true, eventsNum: 2},
+		{state: models.ClusterStatusFinalizing, success: true, eventsNum: 2},
+		{state: models.ClusterStatusInstallingPendingUserAction, success: true, eventsNum: 2},
+		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict, eventsNum: 1},
+		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict, eventsNum: 1},
+		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict, eventsNum: 1},
 	}
 
 	for _, t := range tests {
@@ -380,11 +381,10 @@ var _ = Describe("Cancel cluster installation", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			eventsNum := 1
 			if t.success {
 				acceptClusterInstallationFinished(1)
 			}
-			acceptNewEvents(eventsNum)
+			acceptNewEvents(t.eventsNum)
 			err := capi.CancelInstallation(ctx, &cluster, "reason", db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
@@ -427,15 +427,16 @@ var _ = Describe("Reset cluster", func() {
 		state      string
 		success    bool
 		statusCode int32
+		eventsNum  int
 	}{
-		{state: models.ClusterStatusPreparingForInstallation, success: true},
-		{state: models.ClusterStatusInstalling, success: true},
-		{state: models.ClusterStatusError, success: true},
-		{state: models.ClusterStatusFinalizing, success: true},
-		{state: models.ClusterStatusInstallingPendingUserAction, success: true},
-		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict},
-		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict},
-		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict},
+		{state: models.ClusterStatusPreparingForInstallation, success: true, eventsNum: 2},
+		{state: models.ClusterStatusInstalling, success: true, eventsNum: 2},
+		{state: models.ClusterStatusError, success: true, eventsNum: 2},
+		{state: models.ClusterStatusFinalizing, success: true, eventsNum: 2},
+		{state: models.ClusterStatusInstallingPendingUserAction, success: true, eventsNum: 2},
+		{state: models.ClusterStatusInsufficient, success: false, statusCode: http.StatusConflict, eventsNum: 1},
+		{state: models.ClusterStatusReady, success: false, statusCode: http.StatusConflict, eventsNum: 1},
+		{state: models.ClusterStatusInstalled, success: false, statusCode: http.StatusConflict, eventsNum: 1},
 	}
 
 	for _, t := range tests {
@@ -444,10 +445,9 @@ var _ = Describe("Reset cluster", func() {
 		cluster := common.Cluster{
 			Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
 		}
-		eventsNum := 1
 		It(fmt.Sprintf("resets cluster from state %s", t.state), func() {
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			acceptNewEvents(eventsNum)
+			acceptNewEvents(t.eventsNum)
 			err := capi.ResetCluster(ctx, &cluster, "reason", db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
@@ -469,7 +469,7 @@ var _ = Describe("Reset cluster", func() {
 				},
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			acceptNewEvents(eventsNum)
+			acceptNewEvents(t.eventsNum)
 			err := capi.ResetCluster(ctx, &cluster, "reason", db)
 			cluster = getClusterFromDB(clusterId, db)
 			if t.success {

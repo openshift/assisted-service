@@ -148,13 +148,14 @@ func NewManager(cfg Config, log logrus.FieldLogger, db *gorm.DB, eventsHandler e
 		log:           log,
 		db:            db,
 		prepareConfig: cfg.PrepareConfig,
+		eventsHandler: eventsHandler,
 	}
 	return &Manager{
 		Config:                cfg,
 		log:                   log,
 		db:                    db,
 		registrationAPI:       NewRegistrar(log, db),
-		installationAPI:       NewInstaller(log, db),
+		installationAPI:       NewInstaller(log, db, eventsHandler),
 		eventsHandler:         eventsHandler,
 		sm:                    NewClusterStateMachine(th),
 		metricAPI:             metricApi,
@@ -1072,8 +1073,9 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 		}
 	}
 
-	clusterAfterUpdate, err := updateClusterStatus(log, db, *cluster.ID, models.ClusterStatusFinalizing,
-		destStatus, reason)
+	clusterAfterUpdate, err := updateClusterStatus(ctx, log, db, *cluster.ID, models.ClusterStatusFinalizing,
+		destStatus, reason, m.eventsHandler,
+	)
 	if err != nil {
 		err = errors.Wrapf(err, "Failed to update cluster %s completion in db", *cluster.ID)
 		log.Error(err)

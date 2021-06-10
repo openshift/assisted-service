@@ -10,8 +10,10 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
 	"github.com/pkg/errors"
+	"github.com/sirupsen/logrus"
 )
 
 var _ = Describe("installer", func() {
@@ -23,11 +25,13 @@ var _ = Describe("installer", func() {
 		cluster          common.Cluster
 		hostsIds         []strfmt.UUID
 		dbName           string
+		eventsHandler    events.Handler
 	)
 
 	BeforeEach(func() {
+		eventsHandler = events.New(db, logrus.New())
 		db, dbName = common.PrepareTestDB()
-		installerManager = NewInstaller(common.GetTestLog(), db)
+		installerManager = NewInstaller(common.GetTestLog(), db, eventsHandler)
 
 		id = strfmt.UUID(uuid.New().String())
 		cluster = common.Cluster{Cluster: models.Cluster{
