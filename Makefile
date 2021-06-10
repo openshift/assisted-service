@@ -114,7 +114,7 @@ ifdef SKIPPER_USERNAME
 	$(error Running this target using skipper is not supported, try `make ci-lint` instead)
 endif
 
-	${ROOT_DIR}/tools/check-commits.sh
+	${ROOT_DIR}/hack/check-commits.sh
 	${ROOT_DIR}/tools/handle_ocp_versions.py
 	skipper $(MAKE) generate-all
 	git diff --exit-code  # this will fail if generate-all caused any diff

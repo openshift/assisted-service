@@ -14,7 +14,7 @@ Organized history and to create a CHANGE LOG for each version.
 
 ### How does it work?
 
-[This script](https://github.com/openshift/assisted-service/blob/master/tools/check-commit-message.sh#L7) checks for a valid issue (JIRA or GitHub) reference and fails the build otherwise with the message
+[This script](https://github.com/openshift/assisted-service/blob/master/hack/check-commit-message.sh#L7) checks for a valid issue (JIRA or GitHub) reference and fails the build otherwise with the message
 
 ```bash
 Your commit message is missing either a JIRA issue ('JIRA-1111'), a GitHub issue ('#39').
