@@ -2065,7 +2065,8 @@ var _ = Describe("TestConditions", func() {
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
 				Expect(FindStatusCondition(clusterInstall.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
 			}
-
+			Expect(clusterInstall.Status.DebugInfo.State).To(Equal(t.clusterStatus))
+			Expect(clusterInstall.Status.DebugInfo.StateInfo).To(Equal(t.statusInfo))
 		})
 	}
 })

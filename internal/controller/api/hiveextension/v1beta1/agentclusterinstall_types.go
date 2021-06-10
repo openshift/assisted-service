@@ -103,6 +103,11 @@ type DebugInfo struct {
 	// LogsURL specifies a url for download controller logs tar file.
 	// +optional
 	LogsURL string `json:"logsURL"`
+	// Current state of the AgentClusterInstall
+	State string `json:"state,omitempty"`
+	//Additional information pertaining to the status of the AgentClusterInstall
+	// +optional
+	StateInfo string `json:"stateInfo,omitempty"`
 }
 
 // Networking defines the pod network provider in the cluster.
