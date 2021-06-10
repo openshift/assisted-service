@@ -81,13 +81,23 @@ address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
 address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
 `
 
+const unmanagedResolvConf = `
+[main]
+rc-manager=unmanaged
+`
+
 const forceDnsDispatcherScript = `
 export IP="{{.HOST_IP}}"
+export BASE_RESOLV_CONF=/run/NetworkManager/resolv.conf
 if [ "$2" = "dhcp4-change" ] || [ "$2" = "dhcp6-change" ] || [ "$2" = "up" ] || [ "$2" = "connectivity-change" ]; then
     if ! grep -q "$IP" /etc/resolv.conf; then
-      sed -i "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" /etc/resolv.conf
-      sed -i "s/search /search {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" /etc/resolv.conf
-      sed -i "0,/nameserver/s/nameserver/nameserver $IP\nnameserver/" /etc/resolv.conf
+      export TMP_FILE=$(mktemp /etc/forcedns_resolv.conf.XXXXXX)
+      cp  $BASE_RESOLV_CONF $TMP_FILE
+      chmod --reference=$BASE_RESOLV_CONF $TMP_FILE
+      sed -i -e "s/{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}//" \
+      -e "s/search /& {{.CLUSTER_NAME}}.{{.DNS_DOMAIN}} /" \
+      -e "0,/nameserver/s/nameserver/& $IP\n&/" $TMP_FILE
+      mv $TMP_FILE /etc/resolv.conf
     fi
 fi
 `
@@ -111,33 +121,39 @@ spec:
     passwd: {}
     storage:
       files:
-      - contents:
-          source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
-          verification: {}
-        filesystem: root
-        mode: 420
-        path: /etc/dnsmasq.d/single-node.conf
-      - contents:
-          source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
-          verification: {}
-        filesystem: root
-        mode: 365
-        path: /etc/NetworkManager/dispatcher.d/forcedns
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{.DNSMASQ_CONTENT}}
+            verification: {}
+          filesystem: root
+          mode: 420
+          path: /etc/dnsmasq.d/single-node.conf
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{.FORCE_DNS_SCRIPT}}
+            verification: {}
+          filesystem: root
+          mode: 365
+          path: /etc/NetworkManager/dispatcher.d/forcedns
+        - contents:
+            source: data:text/plain;charset=utf-8;base64,{{.UNMANAGED_RESOLV_CONF}}
+            verification: {}
+          filesystem: root
+          mode: 420
+          path: /etc/NetworkManager/conf.d/single-node.conf
     systemd:
       units:
-      - name: dnsmasq.service
-        enabled: true
-        contents: |
-         [Unit]
-         Description=Run dnsmasq to provide local dns for Single Node OpenShift
-         Before=kubelet.service crio.service
-         After=network.target
-         
-         [Service]
-         ExecStart=/usr/sbin/dnsmasq -k
-         
-         [Install]
-         WantedBy=multi-user.target
+        - name: dnsmasq.service
+          enabled: true
+          contents: |
+            [Unit]
+            Description=Run dnsmasq to provide local dns for Single Node OpenShift
+            Before=kubelet.service crio.service
+            After=network.target
+
+            [Service]
+            ExecStart=/usr/sbin/dnsmasq -k
+
+            [Install]
+            WantedBy=multi-user.target
 `
 
 func createChronyManifestContent(c *common.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
@@ -257,8 +273,9 @@ func createDnsmasqForSingleNode(log logrus.FieldLogger, cluster *common.Cluster)
 	forceDnsDispatcherScriptContent := base64.StdEncoding.EncodeToString(content)
 
 	manifestParams = map[string]string{
-		"DNSMASQ_CONTENT":  dnsmasqContent,
-		"FORCE_DNS_SCRIPT": forceDnsDispatcherScriptContent,
+		"DNSMASQ_CONTENT":       dnsmasqContent,
+		"FORCE_DNS_SCRIPT":      forceDnsDispatcherScriptContent,
+		"UNMANAGED_RESOLV_CONF": base64.StdEncoding.EncodeToString([]byte(unmanagedResolvConf)),
 	}
 
 	content, err = fillTemplate(manifestParams, dnsMachineConfigManifest, log)
