@@ -624,10 +624,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "2s").Should(Equal(0))
 	})
 
-	It("verify InfraEnv ISODownloadURL is not changing", func() {
+	It("verify InfraEnv ISODownloadURL and image CreatedTime are not changing - update Annotations", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Deploy InfraEnv")
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -640,15 +641,63 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
 		firstURL := infraEnv.Status.ISODownloadURL
+		firstCreatedAt := infraEnv.Status.CreatedTime
 
+		By("Update InfraEnv Annotations")
 		Eventually(func() error {
 			infraEnv.SetAnnotations(map[string]string{"foo": "bar"})
 			return kubeClient.Update(ctx, infraEnv)
 		}, "30s", "10s").Should(BeNil())
 
+		By("Verify InfraEnv Status ISODownloadURL has not changed")
 		Consistently(func() string {
 			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
-		}, "10s", "2s").Should(Equal(firstURL))
+		}, "30s", "2s").Should(Equal(firstURL))
+
+		By("Verify InfraEnv Status CreatedTime has not changed")
+		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).To(Equal(firstCreatedAt))
+	})
+
+	It("verify InfraEnv ISODownloadURL and image CreatedTime are changing  - update IgnitionConfigOverride", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Deploy InfraEnv")
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "15s", "5s").Should(Not(BeEmpty()))
+
+		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
+		firstURL := infraEnv.Status.ISODownloadURL
+		firstCreatedAt := infraEnv.Status.CreatedTime
+		By("Update InfraEnv IgnitionConfigOverride")
+		Eventually(func() error {
+			infraEnvSpec.IgnitionConfigOverride = fakeIgnitionConfigOverride
+			infraEnv.Spec = *infraEnvSpec
+			return kubeClient.Update(ctx, infraEnv)
+		}, "30s", "10s").Should(BeNil())
+
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			return getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout).IgnitionConfigOverrides
+		}, "30s", "2s").Should(Equal(fakeIgnitionConfigOverride))
+
+		By("Verify InfraEnv Status ISODownloadURL has changed")
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "30s", "2s").ShouldNot(Equal(firstURL))
+
+		By("Verify InfraEnv Status CreatedTime has changed")
+		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).ShouldNot(Equal(firstCreatedAt))
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
