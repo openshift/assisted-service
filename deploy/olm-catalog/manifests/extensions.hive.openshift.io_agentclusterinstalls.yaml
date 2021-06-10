@@ -235,6 +235,12 @@ spec:
                   logsURL:
                     description: LogsURL specifies a url for download controller logs tar file.
                     type: string
+                  state:
+                    description: Current state of the AgentClusterInstall
+                    type: string
+                  stateInfo:
+                    description: Additional information pertaining to the status of the AgentClusterInstall
+                    type: string
                 type: object
               workerAgentsDiscovered:
                 description: WorkerAgentsDiscovered is the number of worker Agents currently linked to this ClusterDeployment.

@@ -1002,7 +1002,8 @@ var _ = Describe("TestConditions", func() {
 				Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, cond.Type).Reason).To(Equal(cond.Reason))
 				Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, cond.Type).Status).To(Equal(cond.Status))
 			}
-
+			Expect(agent.Status.DebugInfo.State).To(Equal(t.hostStatus))
+			Expect(agent.Status.DebugInfo.StateInfo).To(Equal(t.statusInfo))
 		})
 	}
 })
