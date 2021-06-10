@@ -2,6 +2,7 @@ package ocs
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
 )
 
@@ -39,6 +40,8 @@ func Manifests(ocsConfig *Config) (map[string][]byte, map[string][]byte, error) 
 	manifests := make(map[string][]byte)
 	var ocsSC []byte
 	var err error
+	var ocsSubscriptionManifest string
+	var ocsCatalogSourceManifest string
 
 	if ocsConfig.OCSDeploymentType == compactMode {
 		ocsSC, err = generateStorageClusterManifest(ocsMinDeploySC, ocsConfig.OCSDisksAvailable)
@@ -53,11 +56,28 @@ func Manifests(ocsConfig *Config) (map[string][]byte, map[string][]byte, error) 
 	}
 	manifests["99_openshift-ocssc.yaml"] = ocsSC
 	openshiftManifests["99_openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
-	ocsSubscription, err := ocsSubscription()
-	if err != nil {
-		return map[string][]byte{}, map[string][]byte{}, err
+
+	fmt.Println("TESTING INTERNAL OCS BUILD")
+	ocsInternalBuild := ocsConfig.OCSTestInternalBuild
+	fmt.Println("OCS BUILD VAL ", ocsInternalBuild)
+	if ocsInternalBuild {
+		ocsSubscriptionManifest, err = ocsCustomSubscription(ocsConfig.OCSTestSubscriptionChannel)
+		if err != nil {
+			return map[string][]byte{}, map[string][]byte{}, err
+		}
+		ocsCatalogSourceManifest, err = ocsCatalogSource(ocsConfig.OCSTestImage)
+		if err != nil {
+			return map[string][]byte{}, map[string][]byte{}, err
+		}
+		openshiftManifests["99_openshift-ocs_catalog_source.yaml"] = []byte(ocsCatalogSourceManifest)
+	} else {
+		ocsSubscriptionManifest, err = ocsSubscription()
+		if err != nil {
+			return map[string][]byte{}, map[string][]byte{}, err
+		}
 	}
-	openshiftManifests["99_openshift-ocs_subscription.yaml"] = []byte(ocsSubscription)
+
+	openshiftManifests["99_openshift-ocs_subscription.yaml"] = []byte(ocsSubscriptionManifest)
 	openshiftManifests["99_openshift-ocs_operator_group.yaml"] = []byte(ocsOperatorGroup)
 	return openshiftManifests, manifests, nil
 }

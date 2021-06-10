@@ -23,6 +23,9 @@ type Config struct {
 	OCSPerHostMemoryGiBStandardMode int64             `envconfig:"OCS_PER_HOST_MEMORY_GIB_STANDARD_MODE" default:"19"`
 	OCSMinDiskSizeGB                int64             `envconfig:"OCS_MIN_DISK_SIZE_GB" default:"25"`
 	OCSDeploymentType               ocsDeploymentMode `envconfig:"OCS_DEPLOYMENT_TYPE" default:"None"`
+	OCSTestInternalBuild            bool              `envconfig:"OCS_TEST_INTERNAL_BUILD" default:"false"`
+	OCSTestSubscriptionChannel      string            `envconfig:"OCS_TEST_SUBSCRIPTION_CHANNEL" default:"stable-4.8"`
+	OCSTestImage                    string            `envconfig:"OCS_TEST_IMAGE" default:"quay.io/rhceph-dev/ocs-registry:latest-stable-4.8"`
 }
 
 type ocsClusterResourcesInfo struct {

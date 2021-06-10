@@ -351,6 +351,14 @@ It's possible to modify the discovery ISO (via the API) to enable password login
 
 More information is available here: [Set discovery ISO user password example](docs/set-discovery-password.md)
 
+## Testing internal builds of OCS
+```shell
+export OCS_TEST_IMAGE=<custom build image>
+export OCS_TEST_INTERNAL_BUILD=true
+export OCS_TEST_SUBSCRIPTION_CHANNEL=stable-<ocs_version>
+```
+<custom build image> example: quay.io/rhceph-dev/ocs-registry:4.8.0-420.ci
+
 ## Contributing
 
 Please, read our [CONTRIBUTING] guidelines for more info about how to create, document, and review PRs.

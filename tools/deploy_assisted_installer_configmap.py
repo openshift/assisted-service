@@ -28,6 +28,9 @@ def handle_arguments():
     parser.add_argument("--hw-requirements")
     parser.add_argument("--kubeapi-day2", default="False")
     parser.add_argument("--disabled-host-validations", default="")
+    parser.add_argument("--ocs-test", default="False")
+    parser.add_argument("--ocs-test-image", default="quay.io/rhceph-dev/ocs-registry:latest-stable-4.8")
+    parser.add_argument("--ocs-test-channel", default="stable-4.8")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -74,6 +77,9 @@ def main():
             data = data.replace('REPLACE_IPV6_SUPPORT', '"{}"'.format(deploy_options.ipv6_support))
             data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
             data = data.replace('REPLACE_DISABLED_HOST_VALIDATIONS', '"{}"'.format(deploy_options.disabled_host_validations))
+            data = data.replace('REPLACE_OCS_TEST_INTERNAL_BUILD', '"{}"'.format(deploy_options.ocs_test))
+            data = data.replace('REPLACE_OCS_TEST_SUBSCRIPTION_CHANNEL', '"{}"'.format(deploy_options.ocs_test_channel))
+            data = data.replace('REPLACE_OCS_TEST_IMAGE','"{}"'.format(deploy_options.ocs_test_image))
 
             versions = {"INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",

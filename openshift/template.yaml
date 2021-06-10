@@ -74,6 +74,15 @@ parameters:
 - name: IPV6_SUPPORT
   value: "true"
   required: false
+- name: OCS_TEST_INTERNAL_BUILD
+  value: "false"
+  required: false
+- name: OCS_TEST_SUBSCRIPTION_CHANNEL
+  value: "stable-4.8"
+  required: false
+- name: OCS_TEST_IMAGE
+  value: "quay.io/rhceph-dev/ocs-registry:latest-stable-4.8"
+  required: false
 - name: ENABLE_SINGLE_NODE_DNSMASQ
   value: "true"
   required: false
@@ -276,6 +285,12 @@ objects:
                 value: ${CHECK_CLUSTER_VERSION}
               - name: IPV6_SUPPORT
                 value: ${IPV6_SUPPORT}
+              - name: OCS_TEST_INTERNAL_BUILD
+                value: ${OCS_TEST_INTERNAL_BUILD}
+              - name: OCS_TEST_SUBSCRIPTION_CHANNEL
+                value: ${OCS_TEST_SUBSCRIPTION_CHANNEL}
+              - name: OCS_TEST_IMAGE
+                value: ${OCS_TEST_IMAGE}
               - name: ENABLE_SINGLE_NODE_DNSMASQ
                 value: ${ENABLE_SINGLE_NODE_DNSMASQ}
               - name: DB_MAX_IDLE_CONNECTIONS

@@ -61,5 +61,30 @@ var _ = Describe("OCS manifest generation", func() {
 			}
 		})
 
+		It("Check YAMLs of OCS in Test Mode", func() {
+			operator.config.OCSTestInternalBuild = true
+			operator.config.OCSDeploymentType = "Compact"
+			openshiftManifests, manifests, err := operator.GenerateManifests(&cluster)
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(openshiftManifests).To(HaveLen(4))
+			Expect(openshiftManifests["99_openshift-ocs_catalog_source.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["99_openshift-ocs_ns.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["99_openshift-ocs_subscription.yaml"]).NotTo(HaveLen(0))
+			Expect(openshiftManifests["99_openshift-ocs_operator_group.yaml"]).NotTo(HaveLen(0))
+
+			Expect(manifests).To(HaveLen(1))
+			Expect(manifests["99_openshift-ocssc.yaml"]).NotTo(HaveLen(0))
+
+			for _, manifest := range openshiftManifests {
+				_, err := yaml.YAMLToJSON(manifest)
+				Expect(err).ShouldNot(HaveOccurred())
+			}
+
+			for _, manifest := range manifests {
+				_, err := yaml.YAMLToJSON(manifest)
+				Expect(err).ShouldNot(HaveOccurred())
+			}
+		})
+
 	})
 })

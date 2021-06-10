@@ -68,6 +68,9 @@ STORAGE := $(or ${STORAGE},s3)
 GENERATE_CRD := $(or ${GENERATE_CRD},true)
 PERSISTENT_STORAGE := $(or ${PERSISTENT_STORAGE},True)
 IPV6_SUPPORT := $(or ${IPV6_SUPPORT}, True)
+OCS_TEST_INTERNAL_BUILD := $(or ${OCS_TEST_INTERNAL_BUILD},False)
+OCS_TEST_SUBSCRIPTION_CHANNEL := $(or ${OCS_TEST_SUBSCRIPTION_CHANNEL},stable-4.8)
+OCS_TEST_IMAGE := $(or ${OCS_TEST_IMAGE},quay.io/rhceph-dev/ocs-registry:latest-stable-4.8)
 MIRROR_REG_CA_FILE = mirror_ca.crt
 REGISTRIES_FILE_PATH = registries.conf
 MIRROR_REGISTRY_SUPPORT := $(or ${MIRROR_REGISTRY_SUPPORT},False)
@@ -265,7 +268,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
-		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' --kubeapi-day2 "$(ENABLE_KUBE_API_DAY2)" 
+		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' --kubeapi-day2 "$(ENABLE_KUBE_API_DAY2)" --ocs-test $(OCS_TEST_INTERNAL_BUILD) --ocs-test-image $(OCS_TEST_IMAGE) --ocs-test-channel $(OCS_TEST_SUBSCRIPTION_CHANNEL)
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)"
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
