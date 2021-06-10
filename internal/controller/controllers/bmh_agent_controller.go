@@ -445,9 +445,7 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 // 1. Should we proceed with the BMH's reconcile
 // 2. Should the full `Reconcile` stop as well
 func shouldReconcileBMH(bmh *bmh_v1alpha1.BareMetalHost, infraEnv *aiv1beta1.InfraEnv) (bool, bool) {
-	// The global `Reconcile` flow is not stopped in this case
-	// as we may be reconciling a BMH in the spokeCluster that
-	// doesn't have an InfraEnv.
+	// Stop `Reconcile` if BMH does not have an InfraEnv.
 	if infraEnv == nil {
 		return false, false
 	}
