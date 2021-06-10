@@ -316,7 +316,7 @@ func (r *BMACReconciler) addBMHDetachedAnnotationIfAgentHasStartedInstallation(c
 		bmh.ObjectMeta.Annotations = make(map[string]string)
 	}
 
-	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
+	bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
 
 	return reconcileComplete{dirty: true}
 }
@@ -664,7 +664,7 @@ func (r *BMACReconciler) reconcileSpokeBMH(ctx context.Context, log logrus.Field
 		if bmh.ObjectMeta.Annotations == nil {
 			bmh.ObjectMeta.Annotations = make(map[string]string)
 		}
-		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "true"
+		bmh.ObjectMeta.Annotations[BMH_DETACHED_ANNOTATION] = "assisted-service-controller"
 		return reconcileComplete{dirty: true}
 	}
 
