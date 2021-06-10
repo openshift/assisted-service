@@ -1029,26 +1029,6 @@ func (m *Manager) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster
 	return c, nil
 }
 
-func isVmware(host *models.Host) (bool, error) {
-	var inventory models.Inventory
-	if err := json.Unmarshal([]byte(host.Inventory), &inventory); err != nil {
-		return false, errors.Wrapf(err, "Could not unmarshal inventory for host %s", host.ID.String())
-	}
-	return inventory.SystemVendor != nil && strings.Contains(strings.ToLower(inventory.SystemVendor.Manufacturer), "vmware"), nil
-}
-
-func hasVmwareHosts(cluster *common.Cluster) (bool, error) {
-	ret := false
-	for _, h := range cluster.Hosts {
-		vmwareHost, err := isVmware(h)
-		if err != nil {
-			return false, err
-		}
-		ret = ret || vmwareHost
-	}
-	return ret, nil
-}
-
 func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *common.Cluster) error {
 	log := logutil.FromContext(ctx, m.log)
 	if err := m.manifestsGeneratorAPI.AddChronyManifest(ctx, log, cluster); err != nil {
@@ -1064,16 +1044,6 @@ func (m *Manager) GenerateAdditionalManifests(ctx context.Context, cluster *comm
 	if err := m.rp.operatorsAPI.GenerateManifests(ctx, cluster); err != nil {
 		return errors.Wrap(err, "failed to add operator manifests")
 	}
-	clusterHasVmwareHosts, err := hasVmwareHosts(cluster)
-	if err != nil {
-		return errors.Wrapf(err, "Failed to find if cluster %s has vmware hosts", cluster.ID.String())
-	}
-	if clusterHasVmwareHosts {
-		if err = m.manifestsGeneratorAPI.AddDisableVmwareTunnelOffloading(ctx, log, cluster); err != nil {
-			return errors.Wrapf(err, "Cluster %s - failed to generate manifests for vmware hosts", cluster.ID.String())
-		}
-	}
-
 	if err := m.manifestsGeneratorAPI.AddTelemeterManifest(ctx, log, cluster); err != nil {
 		return errors.Wrap(err, "failed to add telemeter manifest")
 	}
