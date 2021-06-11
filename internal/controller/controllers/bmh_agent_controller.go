@@ -532,18 +532,11 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		dirty = true
 	}
 
-	if infraEnv.Status.ISODownloadURL == "" {
-		// the image has not been created yet, try later.
-		log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Waiting for new reconcile for BareMetalHost  %s/%s",
-			infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
-
-		return reconcileComplete{stop: true, dirty: dirty}
-	}
-
-	proceed, stop := shouldReconcileBMH(bmh, infraEnv)
+	proceed, stopReconcileLoop := shouldReconcileBMH(bmh, infraEnv)
 
 	if !proceed {
-		return reconcileComplete{stop: stop}
+		log.Infof("Stopping reconcileBMH: Either the InfraEnv image is not ready or there is nothing to update.")
+		return reconcileComplete{dirty: dirty, stop: stopReconcileLoop}
 	}
 
 	// BMH is set to `detached` after a cluster deployment. The
