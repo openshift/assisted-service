@@ -1092,6 +1092,45 @@ var _ = Describe("cluster install", func() {
 		Expect(workersCount).Should(Equal(3))
 	})
 
+	It("Schedulable masters", func() {
+		By("register 3 hosts all with master hw information cluster expected to be ready")
+		clusterID := *cluster.ID
+		hosts := register3nodes(ctx, clusterID)
+		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+
+		By("add two more hosts with worker inventory expect the cluster to be ready")
+		h4 := &registerHost(clusterID).Host
+		h5 := &registerHost(clusterID).Host
+		generateEssentialHostStepsWithInventory(ctx, h4, "h4", validWorkerHwInfo)
+		generateEssentialHostStepsWithInventory(ctx, h5, "h5", validWorkerHwInfo)
+		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5)
+		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+
+		updateClusterReply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+			ClusterUpdateParams: &models.ClusterUpdateParams{
+				SchedulableMasters: swag.Bool(true),
+			},
+			ClusterID: clusterID,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(*updateClusterReply.GetPayload().SchedulableMasters).Should(BeTrue())
+
+		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
+			IgnoreStateInfo)
+
+		By("start installation")
+		_, err = userBMClient.Installer.InstallCluster(ctx, &installer.InstallClusterParams{ClusterID: clusterID})
+		Expect(err).NotTo(HaveOccurred())
+		generateEssentialPrepareForInstallationSteps(ctx, h1, h2, h3, h4, h5)
+		waitForClusterState(context.Background(), clusterID, models.ClusterStatusInstalling,
+			3*time.Minute, IgnoreStateInfo)
+	})
+
 	Context("usage", func() {
 		It("report usage on default features with SNO", func() {
 			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{

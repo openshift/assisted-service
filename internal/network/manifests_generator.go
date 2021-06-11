@@ -24,6 +24,7 @@ type ManifestsGeneratorAPI interface {
 	AddChronyManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddDnsmasqForSingleNode(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 	AddTelemeterManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
+	AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error
 }
 
 type Config struct {
@@ -157,6 +158,18 @@ spec:
             WantedBy=multi-user.target
 `
 
+const schedulableMastersManifest = `
+apiVersion: config.openshift.io/v1
+kind: Scheduler
+metadata:
+  name: cluster
+spec:
+  mastersSchedulable: true
+  policy:
+    name: ""
+status: {}
+`
+
 func createChronyManifestContent(c *common.Cluster, role models.HostRole, log logrus.FieldLogger) ([]byte, error) {
 	sources := make([]string, 0)
 
@@ -211,6 +224,16 @@ func (m *ManifestsGenerator) AddChronyManifest(ctx context.Context, log logrus.F
 		}
 	}
 
+	return nil
+}
+
+func (m *ManifestsGenerator) AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) error {
+	content := []byte(schedulableMastersManifest)
+	schedulableMastersManifestFile := "50-schedulable_masters.yaml"
+	err := m.createManifests(ctx, cluster, schedulableMastersManifestFile, content)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 

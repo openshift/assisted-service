@@ -329,6 +329,9 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 	if params.NewClusterParams.Hyperthreading == nil {
 		params.NewClusterParams.Hyperthreading = swag.String(models.ClusterHyperthreadingAll)
 	}
+	if params.NewClusterParams.SchedulableMasters == nil {
+		params.NewClusterParams.SchedulableMasters = swag.Bool(false)
+	}
 
 	return params
 }
@@ -464,6 +467,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			MonitoredOperators:       monitoredOperators,
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 			Hyperthreading:           swag.StringValue(params.NewClusterParams.Hyperthreading),
+			SchedulableMasters:       params.NewClusterParams.SchedulableMasters,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -1967,6 +1971,9 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			log.Error(msg)
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
 		}
+	}
+	if params.ClusterUpdateParams.SchedulableMasters != nil {
+		updates["schedulable_masters"] = swag.BoolValue(params.ClusterUpdateParams.SchedulableMasters)
 	}
 	if len(updates) > 0 {
 		updates["trigger_monitor_timestamp"] = time.Now()

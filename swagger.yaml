@@ -3951,6 +3951,10 @@ definitions:
         description: "The desired network type used."
         enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign']
         default: 'auto-assign'
+      schedulable_masters:
+        type: boolean
+        description: Schedule workloads on masters
+        default: false
 
   cluster-update-params:
     type: object
@@ -4101,6 +4105,10 @@ definitions:
         description: The desired network type used.
         enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign']
         x-nullable: true
+      schedulable_masters:
+        type: boolean
+        description: Schedule workloads on masters
+        default: false
 
   add-hosts-cluster-create-params:
     type: object
@@ -4272,6 +4280,10 @@ definitions:
         format: int64
         description: All hosts associated to this cluster.
         x-go-custom-tag: gorm:"-"
+      schedulable_masters:
+        type: boolean
+        description: Schedule workloads on masters
+        default: false
 
       updated_at:
         type: string

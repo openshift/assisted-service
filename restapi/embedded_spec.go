@@ -5169,6 +5169,11 @@ func init() {
           "format": "int64",
           "x-go-custom-tag": "gorm:\"-\""
         },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
+        },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
@@ -5342,6 +5347,11 @@ func init() {
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string"
+        },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -5611,6 +5621,11 @@ func init() {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
+        },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -13171,6 +13186,11 @@ func init() {
           "format": "int64",
           "x-go-custom-tag": "gorm:\"-\""
         },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
+        },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
           "type": "string",
@@ -13344,6 +13364,11 @@ func init() {
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string"
+        },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",
@@ -13573,6 +13598,11 @@ func init() {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
           "type": "string",
           "x-nullable": true
+        },
+        "schedulable_masters": {
+          "description": "Schedule workloads on masters",
+          "type": "boolean",
+          "default": false
         },
         "service_network_cidr": {
           "description": "The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.",

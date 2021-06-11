@@ -88,6 +88,10 @@ func IsSingleNodeCluster(cluster *Cluster) bool {
 	return swag.StringValue(cluster.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone
 }
 
+func AreMastersSchedulable(cluster *Cluster) bool {
+	return swag.BoolValue(cluster.SchedulableMasters)
+}
+
 func GetConsoleUrl(clusterName, baseDomain string) string {
 	return fmt.Sprintf("%s.%s.%s", consoleUrlPrefix, clusterName, baseDomain)
 }
