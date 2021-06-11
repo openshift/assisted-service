@@ -86,7 +86,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	}
 
 	// GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size
-	diskCount, err := getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+	diskCount, err := o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	if err != nil {
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{err.Error()}}, nil
 	}
@@ -102,10 +102,10 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"OCS unsupported Host Role for Compact Mode."}}, nil
 	}
 
-	// Minimal and Standard mode
+	// Standard mode
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if host.Role == models.HostRoleAutoAssign {
-		status := "All host roles must be assigned to enable OCS in Standard or Minimal Mode."
+		status := "All host roles must be assigned to enable OCS in Standard Mode."
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 	}
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
@@ -140,7 +140,7 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 
 		/* GetValidDiskCount counts the total number of valid disks in each host and return a error if we don't have the disk of required size,
 		we ignore the error as its treated as 500 in the UI */
-		diskCount, _ = getValidDiskCount(inventory.Disks, host.InstallationDiskID)
+		diskCount, _ = o.getValidDiskCount(inventory.Disks, host.InstallationDiskID)
 	}
 
 	if numOfHosts <= 3 { // Compact Mode
@@ -151,19 +151,18 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			return &models.ClusterHostRequirementsDetails{
-				CPUCores: CPUCompactMode + (reqDisks * o.config.OCSRequiredDiskCPUCount),
-				RAMMib:   conversions.GibToMib(MemoryGiBCompactMode + (reqDisks * o.config.OCSRequiredDiskRAMGiB)),
+				CPUCores: o.config.OCSPerHostCPUCompactMode + (reqDisks * o.config.OCSPerDiskCPUCount),
+				RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
 			}, nil
 		}
 		// regular worker req
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: CPUMinimalMode + (reqDisks * o.config.OCSRequiredDiskCPUCount),
-			RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode + (reqDisks * o.config.OCSRequiredDiskRAMGiB)),
+			CPUCores: o.config.OCSPerHostCPUStandardMode + (reqDisks * o.config.OCSPerDiskCPUCount),
+			RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (reqDisks * o.config.OCSPerDiskRAMGiB)),
 		}, nil
 	}
 
-	// The OCS minimal deployment mode sets up a storage cluster using reduced resources. If the resources will be more, standard mode will be deployed automatically.
-	// In minimum and standard mode, OCS does not run on master nodes so return zero
+	// In standard mode, OCS does not run on master nodes so return zero
 	if host.Role == models.HostRoleMaster {
 		return &models.ClusterHostRequirementsDetails{CPUCores: 0, RAMMib: 0}, nil
 	}
@@ -172,13 +171,13 @@ func (o *operator) GetHostRequirements(_ context.Context, cluster *common.Cluste
 	if diskCount > 0 {
 		// for each disk ocs requires 2 CPUs and 5 GiB RAM
 		return &models.ClusterHostRequirementsDetails{
-			CPUCores: CPUMinimalMode + (diskCount * o.config.OCSRequiredDiskCPUCount),
-			RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode + (diskCount * o.config.OCSRequiredDiskRAMGiB)),
+			CPUCores: o.config.OCSPerHostCPUStandardMode + (diskCount * o.config.OCSPerDiskCPUCount),
+			RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode + (diskCount * o.config.OCSPerDiskRAMGiB)),
 		}, nil
 	}
 	return &models.ClusterHostRequirementsDetails{
-		CPUCores: CPUMinimalMode,
-		RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode),
+		CPUCores: o.config.OCSPerHostCPUStandardMode,
+		RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
 	}, nil
 }
 
@@ -190,8 +189,8 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 		Requirements: &models.HostTypeHardwareRequirementsWrapper{
 			Master: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores: CPUCompactMode,
-					RAMMib:   conversions.GibToMib(MemoryGiBCompactMode),
+					CPUCores: o.config.OCSPerHostCPUCompactMode,
+					RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBCompactMode),
 				},
 				Qualitative: []string{
 					"Requirements apply only for master-only clusters",
@@ -201,13 +200,13 @@ func (o *operator) GetPreflightRequirements(context.Context, *common.Cluster) (*
 			},
 			Worker: &models.HostTypeHardwareRequirements{
 				Quantitative: &models.ClusterHostRequirementsDetails{
-					CPUCores: CPUMinimalMode,
-					RAMMib:   conversions.GibToMib(MemoryGiBMinimalMode),
+					CPUCores: o.config.OCSPerHostCPUStandardMode,
+					RAMMib:   conversions.GibToMib(o.config.OCSPerHostMemoryGiBStandardMode),
 				},
 				Qualitative: []string{
 					"Requirements apply only for clusters with workers",
-					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSRequiredDiskRAMGiB),
-					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSRequiredDiskCPUCount),
+					fmt.Sprintf("%v GiB of additional RAM for each non-boot disk", o.config.OCSPerDiskRAMGiB),
+					fmt.Sprintf("%v additional CPUs for each non-boot disk", o.config.OCSPerDiskCPUCount),
 					"At least 3 workers",
 					"At least 1 non-boot disk on 3 workers",
 				},
