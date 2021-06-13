@@ -139,7 +139,7 @@ spec:
 	It("check installation telemeter manifests", func() {
 
 		isProdDeployment := func() bool {
-			return Options.InventoryHost == "api.openshift.com"
+			return Options.InventoryHost != "api.stage.openshift.com" && Options.InventoryHost != "api.integration.openshift.com"
 		}
 
 		if isProdDeployment() {
