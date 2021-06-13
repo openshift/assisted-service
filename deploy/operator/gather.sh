@@ -69,12 +69,36 @@ function gather_agent_data() {
   done
 }
 
+function gather_clusterdeployment_data() {
+  cd_dir="${LOGS_DEST}/clusterdeployment"
+  mkdir -p "${cd_dir}"
+
+  readarray -t cd_objects < <(oc get clusterdeployments.hive.openshift.io -n assisted-installer -o json | jq -c '.items[]')
+  for cd in "${cd_objects[@]}"; do
+    cd_name=$(echo ${cd} | jq -r .metadata.name)
+    oc get clusterdeployments.hive.openshift.io -n assisted-installer "${cd_name}" -o yaml > "${cd_dir}/${cd_name}.yaml"
+  done
+}
+
+function gather_imageset_data() {
+  imageset_dir="${LOGS_DEST}/imageset"
+  mkdir -p "${imageset_dir}"
+
+  readarray -t imageset_objects < <(oc get clusterimagesets.hive.openshift.io -o json | jq -c '.items[]')
+  for is in "${imageset_objects[@]}"; do
+    is_name=$(echo ${is} | jq -r .metadata.name)
+    oc get clusterimagesets.hive.openshift.io "${is_name}" -o yaml > "${imageset_dir}/${is_name}.yaml"
+  done
+}
+
 function gather_all() {
   gather_operator_data
   gather_agentclusterinstall_data
   gather_bmh_data
   gather_infraenv_data
   gather_agent_data
+  gather_clusterdeployment_data
+  gather_imageset_data
 }
 
 gather_all
