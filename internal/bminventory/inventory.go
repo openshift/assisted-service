@@ -70,9 +70,13 @@ import (
 
 const DefaultUser = "kubeadmin"
 
-// 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
-const ContainerAlreadyRunningExitCode = 125
 const WindowBetweenRequestsInSeconds = 10 * time.Second
+
+const (
+	MediaDisconnected int64 = 256
+	// 125 is the generic exit code for cases the error is in podman / docker and not the container we tried to run
+	ContainerAlreadyRunningExitCode = 125
+)
 
 type Config struct {
 	ignition.IgnitionConfig
@@ -2844,6 +2848,12 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 }
 
 func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host, exitCode int64) error {
+	if exitCode == MediaDisconnected {
+		if err := b.handleMediaDisconnection(params, ctx, log, h); err != nil {
+			return err
+		}
+	}
+
 	switch params.Reply.StepType {
 	case models.StepTypeInstall:
 		// Handle case of installation error due to an already running assisted-installer.
@@ -2861,6 +2871,29 @@ func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyPara
 		return b.processDiskSpeedCheckResponse(ctx, h, stepReply, exitCode)
 	}
 	return nil
+}
+
+func (b *bareMetalInventory) handleMediaDisconnection(params installer.PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
+	statusInfo := fmt.Sprintf("%s - %s", string(models.HostStageFailed),
+		"Cannot read from the media (ISO) - media was likely disconnected")
+
+	// Install command reports its status with a different API, directly from the assisted-installer.
+	// Just adding our diagnose to the existing error message.
+	if swag.StringValue(h.Status) == models.HostStatusError && h.StatusInfo != nil {
+		// Add the message only once
+		if strings.Contains(*h.StatusInfo, statusInfo) {
+			return nil
+		}
+
+		statusInfo = fmt.Sprintf("%s. %s", statusInfo, *h.StatusInfo)
+	} else if params.Reply.Error != "" {
+		statusInfo = fmt.Sprintf("%s. %s", statusInfo, params.Reply.Error)
+	}
+
+	_, err := hostutil.UpdateHostStatus(ctx, log, b.db, b.eventsHandler, h.ClusterID, *h.ID,
+		swag.StringValue(h.Status), models.HostStatusError, statusInfo)
+
+	return err
 }
 
 func (b *bareMetalInventory) updateFreeAddressesReport(ctx context.Context, host *models.Host, freeAddressesReport string) error {
