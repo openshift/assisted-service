@@ -306,7 +306,7 @@ func appendDHCPArgs(cluster *common.Cluster, host *models.Host, installerArgs []
 	if swag.StringValue(cluster.Kind) != models.ClusterKindAddHostsCluster {
 		return installerArgs, errors.Errorf("cannot determine machine network address family")
 	}
-	if v4, v6, err := hostutil.GetAddressFamilies(host); err != nil {
+	if v4, v6, err := network.GetHostAddressFamilies(host); err != nil {
 		return installerArgs, err
 	} else if v4 && v6 {
 		log.Warnf("Cannot set DHCP kernel argument for host %s of day-2 cluster %s with dual IP stack. Not doing so may result in failing to download ignition or ISO", host.ID, *cluster.ID)
