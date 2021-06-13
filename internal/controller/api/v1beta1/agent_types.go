@@ -17,22 +17,10 @@ limitations under the License.
 package v1beta1
 
 import (
-	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/models"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-// AgentReference represents a Agent Reference. It has enough information to retrieve an agent
-// in any namespace
-type AgentReference struct {
-	// Name is unique within a namespace to reference an agent resource.
-	// +optional
-	Name string `json:"name,omitempty" protobuf:"bytes,1,opt,name=name"`
-	// Namespace defines the space within which the agent name must be unique.
-	// +optional
-	Namespace string `json:"namespace,omitempty" protobuf:"bytes,2,opt,name=namespace"`
-}
 
 type HostMemory struct {
 	PhysicalBytes int64 `json:"physicalBytes,omitempty"`
@@ -133,32 +121,6 @@ type AgentSpec struct {
 	IgnitionConfigOverrides string `json:"ignitionConfigOverrides,omitempty"`
 }
 
-type HardwareValidationInfo struct {
-	HasInventory       host.ValidationStatus `json:"hasInventory,omitempty"`
-	HasMinCPUCores     host.ValidationStatus `json:"hasMinCPUCores,omitempty"`
-	HasMinMemory       host.ValidationStatus `json:"hasMinMemory,omitempty"`
-	HasMinValidDisks   host.ValidationStatus `json:"hasMinValidDisks,omitempty"`
-	HasCpuCoresForRole host.ValidationStatus `json:"hasCPUCoresForRole,omitempty"`
-	HasMemoryForRole   host.ValidationStatus `json:"hasMemoryForRole,omitempty"`
-	IsHostnameValid    host.ValidationStatus `json:"isHostnameValid,omitempty"`
-	IsHostnameUnique   host.ValidationStatus `json:"isHostnameUnique,omitempty"`
-	IsPlatformValid    host.ValidationStatus `json:"isPlatformValid,omitempty"`
-}
-
-type NetworkValidationInfo struct {
-	Connected              host.ValidationStatus `json:"connected,omitempty"`
-	MachineCidrDefined     host.ValidationStatus `json:"machineCIDRDefined,omitempty"`
-	BelongsToMachineCidr   host.ValidationStatus `json:"belongsToMachineCIDR,omitempty"`
-	APIVipConnected        host.ValidationStatus `json:"apiVIPConnected,omitempty"`
-	BelongsToMajorityGroup host.ValidationStatus `json:"belongsToMajorityGroup,omitempty"`
-	NTPSynced              host.ValidationStatus `json:"ntpSynced,omitempty"`
-}
-
-type HostValidationInfo struct {
-	Hardware HardwareValidationInfo `json:"hardware,omitempty"`
-	Network  NetworkValidationInfo  `json:"network,omitempty"`
-}
-
 type HostProgressInfo struct {
 	CurrentStage models.HostStage `json:"currentStage,omitempty"`
 	ProgressInfo string           `json:"progressInfo,omitempty"`
@@ -168,26 +130,6 @@ type HostProgressInfo struct {
 	StageUpdateTime string `json:"stageUpdateTime,omitempty"`
 }
 
-type L2Connectivity struct {
-	OutgoingIPAddress string `json:"outgoingIPAddress,omitempty"`
-	OutgoingNic       string `json:"outgoingNIC,omitempty"`
-	RemoteIPAddress   string `json:"remoteIPAddress,omitempty"`
-	RemoteMac         string `json:"remoteMAC,omitempty"`
-	Successful        bool   `json:"successful,omitempty"`
-}
-
-type L3Connectivity struct {
-	OutgoingNic     string `json:"outgoingNIC,omitempty"`
-	RemoteIPAddress string `json:"remoteIPAddress,omitempty"`
-	Successful      bool   `json:"successful,omitempty"`
-}
-
-type HostConnectivityValidationInfo struct {
-	HostDeploymentName *AgentReference `json:"hostDeploymentName"`
-	L2Connectivity     L2Connectivity  `json:"l2Connectivity,omitempty"`
-	L3Connectivity     L3Connectivity  `json:"l3Connectivity,omitempty"`
-}
-
 type HostNTPSources struct {
 	SourceName  string             `json:"sourceName,omitempty"`
 	SourceState models.SourceState `json:"sourceState,omitempty"`
@@ -195,25 +137,12 @@ type HostNTPSources struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	// Name in REST API: status_updated_at
-	StateUpdatedTime *metav1.Time `json:"stateUpdatedTime,omitempty"`
-	// Name in REST API: logs_collected_at
-	LogsCollectedTime *metav1.Time `json:"logsCollectedTime,omitempty"`
-	InstallerVersion  string       `json:"installerVersion,omitempty"`
-	// Name in REST API: updated_at
-	UpdateTime *metav1.Time `json:"updateTime,omitempty"`
-	// Name in REST API: checked_in_at
-	CheckedInTime         *metav1.Time                     `json:"checkedInTime,omitempty"`
-	Hostname              string                           `json:"hostname,omitempty"`
-	Bootstrap             bool                             `json:"bootstrap,omitempty"`
-	DiscoveryAgentVersion string                           `json:"discoveryAgentVersion,omitempty"`
-	Inventory             HostInventory                    `json:"inventory,omitempty"`
-	ValidationInfo        HostValidationInfo               `json:"hostValidationInfo,omitempty"`
-	Progress              HostProgressInfo                 `json:"progress,omitempty"`
-	Connectivity          []HostConnectivityValidationInfo `json:"connectivity,omitempty"`
-	APIVipConnectivity    bool                             `json:"apiVIPConnectivity,omitempty"`
-	NtpSources            []HostNTPSources                 `json:"ntpSources,omitempty"`
-	Conditions            []conditionsv1.Condition         `json:"conditions,omitempty"`
+	Hostname   string                   `json:"hostname,omitempty"`
+	Bootstrap  bool                     `json:"bootstrap,omitempty"`
+	Inventory  HostInventory            `json:"inventory,omitempty"`
+	Progress   HostProgressInfo         `json:"progress,omitempty"`
+	NtpSources []HostNTPSources         `json:"ntpSources,omitempty"`
+	Conditions []conditionsv1.Condition `json:"conditions,omitempty"`
 	// DebugInfo includes information for debugging the installation process.
 	// +optional
 	DebugInfo DebugInfo `json:"debugInfo"`
