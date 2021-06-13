@@ -59,12 +59,14 @@ type InfraEnvSpec struct {
 	// +optional
 	SSHAuthorizedKey string `json:"sshAuthorizedKey,omitempty"`
 
+	// This field is currently not used. The Pull Secret from ClusterDeployment will be used for the ISO creation.
 	// PullSecretRef is the reference to the secret to use when pulling images.
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef"`
 
 	// AgentLabelSelector specifies a label that should be applied to Agents that boot from the
 	// installation media of this InfraEnv. This is how a user would identify which agents are
 	// associated with a particular InfraEnv.
+	// +optional
 	AgentLabelSelector metav1.LabelSelector `json:"agentLabelSelector"`
 
 	// AgentLabels lists labels to apply to Agents that are associated with this InfraEnv upon

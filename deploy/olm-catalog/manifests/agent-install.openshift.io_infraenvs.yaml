@@ -125,7 +125,7 @@ spec:
                     type: string
                 type: object
               pullSecretRef:
-                description: PullSecretRef is the reference to the secret to use when pulling images.
+                description: This field is currently not used. The Pull Secret from ClusterDeployment will be used for the ISO creation. PullSecretRef is the reference to the secret to use when pulling images.
                 properties:
                   name:
                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?'
@@ -135,7 +135,6 @@ spec:
                 description: SSHAuthorizedKey is a SSH public keys that will be added to all agents for use in debugging.
                 type: string
             required:
-            - agentLabelSelector
             - clusterRef
             - pullSecretRef
             type: object

@@ -75,14 +75,8 @@ spec:
           status:
             description: AgentStatus defines the observed state of Agent
             properties:
-              apiVIPConnectivity:
-                type: boolean
               bootstrap:
                 type: boolean
-              checkedInTime:
-                description: 'Name in REST API: checked_in_at'
-                format: date-time
-                type: string
               conditions:
                 items:
                   description: Condition represents the state of the operator's reconciliation functionality.
@@ -107,96 +101,20 @@ spec:
                   - type
                   type: object
                 type: array
-              connectivity:
-                items:
-                  properties:
-                    hostDeploymentName:
-                      description: AgentReference represents a Agent Reference. It has enough information to retrieve an agent in any namespace
-                      properties:
-                        name:
-                          description: Name is unique within a namespace to reference an agent resource.
-                          type: string
-                        namespace:
-                          description: Namespace defines the space within which the agent name must be unique.
-                          type: string
-                      type: object
-                    l2Connectivity:
-                      properties:
-                        outgoingIPAddress:
-                          type: string
-                        outgoingNIC:
-                          type: string
-                        remoteIPAddress:
-                          type: string
-                        remoteMAC:
-                          type: string
-                        successful:
-                          type: boolean
-                      type: object
-                    l3Connectivity:
-                      properties:
-                        outgoingNIC:
-                          type: string
-                        remoteIPAddress:
-                          type: string
-                        successful:
-                          type: boolean
-                      type: object
-                  required:
-                  - hostDeploymentName
-                  type: object
-                type: array
               debugInfo:
                 description: DebugInfo includes information for debugging the installation process.
                 properties:
                   eventsURL:
                     description: EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
                     type: string
-                type: object
-              discoveryAgentVersion:
-                type: string
-              hostValidationInfo:
-                properties:
-                  hardware:
-                    properties:
-                      hasCPUCoresForRole:
-                        type: string
-                      hasInventory:
-                        type: string
-                      hasMemoryForRole:
-                        type: string
-                      hasMinCPUCores:
-                        type: string
-                      hasMinMemory:
-                        type: string
-                      hasMinValidDisks:
-                        type: string
-                      isHostnameUnique:
-                        type: string
-                      isHostnameValid:
-                        type: string
-                      isPlatformValid:
-                        type: string
-                    type: object
-                  network:
-                    properties:
-                      apiVIPConnected:
-                        type: string
-                      belongsToMachineCIDR:
-                        type: string
-                      belongsToMajorityGroup:
-                        type: string
-                      connected:
-                        type: string
-                      machineCIDRDefined:
-                        type: string
-                      ntpSynced:
-                        type: string
-                    type: object
+                  state:
+                    description: Current state of the Agent
+                    type: string
+                  stateInfo:
+                    description: Additional information pertaining to the status of the Agent
+                    type: string
                 type: object
               hostname:
-                type: string
-              installerVersion:
                 type: string
               inventory:
                 properties:
@@ -351,10 +269,6 @@ spec:
                         type: boolean
                     type: object
                 type: object
-              logsCollectedTime:
-                description: 'Name in REST API: logs_collected_at'
-                format: date-time
-                type: string
               ntpSources:
                 items:
                   properties:
@@ -379,18 +293,6 @@ spec:
                     description: 'Name in REST API: stage_updated_at'
                     type: string
                 type: object
-              state:
-                type: string
-              stateInfo:
-                type: string
-              stateUpdatedTime:
-                description: 'Name in REST API: status_updated_at'
-                format: date-time
-                type: string
-              updateTime:
-                description: 'Name in REST API: updated_at'
-                format: date-time
-                type: string
             type: object
         type: object
     served: true
