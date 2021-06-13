@@ -1052,6 +1052,8 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
 
 		if c.Status != nil {
+			clusterInstall.Status.DebugInfo.State = swag.StringValue(c.Status)
+			clusterInstall.Status.DebugInfo.StateInfo = swag.StringValue(c.StatusInfo)
 			status := *c.Status
 			var err error
 			err = r.populateEventsURL(log, clusterInstall, c)
@@ -1361,6 +1363,8 @@ func clusterValidated(clusterInstall *hiveext.AgentClusterInstall, status string
 }
 
 func setClusterConditionsUnknown(clusterInstall *hiveext.AgentClusterInstall) {
+	clusterInstall.Status.DebugInfo.State = ""
+	clusterInstall.Status.DebugInfo.StateInfo = ""
 	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
 		Type:    ClusterValidatedCondition,
 		Status:  corev1.ConditionUnknown,

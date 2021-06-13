@@ -195,8 +195,6 @@ type HostNTPSources struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	State     string `json:"state,omitempty"`
-	StateInfo string `json:"stateInfo,omitempty"`
 	// Name in REST API: status_updated_at
 	StateUpdatedTime *metav1.Time `json:"stateUpdatedTime,omitempty"`
 	// Name in REST API: logs_collected_at
@@ -225,6 +223,12 @@ type DebugInfo struct {
 	// EventsURL specifies an HTTP/S URL that contains events which occured during the cluster installation process
 	// +optional
 	EventsURL string `json:"eventsURL,omitempty"`
+	// +optional
+	// Current state of the Agent
+	State string `json:"state,omitempty"`
+	//Additional information pertaining to the status of the Agent
+	// +optional
+	StateInfo string `json:"stateInfo,omitempty"`
 }
 
 // +kubebuilder:object:root=true

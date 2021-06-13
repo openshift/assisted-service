@@ -250,6 +250,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	specSynced(agent, syncErr, internal)
 
 	if h != nil && h.Status != nil {
+		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
+		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
 		status := *h.Status
 		if clusterId != nil {
 			err := r.populateEventsURL(log, agent, *clusterId)
@@ -300,6 +302,8 @@ func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, clusterId, agentId s
 }
 
 func setConditionsUnknown(agent *aiv1beta1.Agent) {
+	agent.Status.DebugInfo.State = ""
+	agent.Status.DebugInfo.StateInfo = ""
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
 		Type:    InstalledCondition,
 		Status:  corev1.ConditionUnknown,
