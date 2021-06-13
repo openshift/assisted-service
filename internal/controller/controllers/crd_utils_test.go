@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	"github.com/openshift/assisted-service/internal/host"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -21,6 +22,7 @@ var _ = Describe("create agent CR", func() {
 		c                       client.Client
 		ctx                     = context.Background()
 		mockCtrl                *gomock.Controller
+		mockHostApi             *host.MockAPI
 		clusterName             = "test-cluster"
 		agentClusterInstallName = "test-cluster-aci"
 		clusterNamespace        = "test-namespace"
@@ -33,8 +35,9 @@ var _ = Describe("create agent CR", func() {
 
 	BeforeEach(func() {
 		c = fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-		crdUtils = NewCRDUtils(c)
 		mockCtrl = gomock.NewController(GinkgoT())
+		mockHostApi = host.NewMockAPI(mockCtrl)
+		crdUtils = NewCRDUtils(c, mockHostApi)
 		defaultClusterSpec = getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, pullSecretName)
 	})
 
@@ -54,6 +57,8 @@ var _ = Describe("create agent CR", func() {
 				},
 			})
 			Expect(c.Create(ctx, infraEnvImage)).ShouldNot(HaveOccurred())
+
+			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 			hostId := uuid.New().String()
 			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName)
@@ -77,10 +82,20 @@ var _ = Describe("create agent CR", func() {
 		})
 
 		It("Already existing agent", func() {
-			id := uuid.New().String()
-			agent := newAgent(id, clusterNamespace, v1beta1.AgentSpec{})
+			clusterDeployment := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, clusterDeployment)).ShouldNot(HaveOccurred())
+			infraEnvImage := newInfraEnvImage("infraEnvImage", infraEnvNamespace, v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      clusterDeployment.Name,
+					Namespace: clusterDeployment.Namespace,
+				},
+			})
+			Expect(c.Create(ctx, infraEnvImage)).ShouldNot(HaveOccurred())
+
+			hostId := uuid.New().String()
+			agent := newAgent(hostId, infraEnvNamespace, v1beta1.AgentSpec{})
 			Expect(c.Create(ctx, agent)).ShouldNot(HaveOccurred())
-			err := crdUtils.CreateAgentCR(ctx, log, id, clusterNamespace, clusterName)
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName)
 			Expect(err).NotTo(HaveOccurred())
 		})
 

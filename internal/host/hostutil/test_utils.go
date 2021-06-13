@@ -15,8 +15,8 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 )
 
-func GetHostFromDB(hostId, clusterId strfmt.UUID, db *gorm.DB) *models.Host {
-	var host models.Host
+func GetHostFromDB(hostId, clusterId strfmt.UUID, db *gorm.DB) *common.Host {
+	var host common.Host
 	Expect(db.First(&host, "id = ? and cluster_id = ?", hostId, clusterId).Error).ShouldNot(HaveOccurred())
 	return &host
 }
