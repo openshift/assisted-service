@@ -3441,9 +3441,7 @@ var _ = Describe("cluster", func() {
 			}
 
 			Context("Non DHCP", func() {
-				It("No machine network (no error)", func() {
-					mockSuccess(1)
-
+				It("No machine network", func() {
 					apiVip := "8.8.8.8"
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
@@ -3451,12 +3449,10 @@ var _ = Describe("cluster", func() {
 							APIVip: &apiVip,
 						},
 					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-					actual := reply.(*installer.UpdateClusterCreated)
-					Expect(actual.Payload.APIVip).To(Equal(apiVip))
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 				})
-				It("Api and ingress mismatch (no error)", func() {
-					mockSuccess(1)
+				It("Api and ingress mismatch", func() {
 					apiVip := "10.11.12.15"
 					ingressVip := "1.2.3.20"
 					reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
@@ -3466,10 +3462,8 @@ var _ = Describe("cluster", func() {
 							IngressVip: &ingressVip,
 						},
 					})
-					Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
-					actual := reply.(*installer.UpdateClusterCreated)
-					Expect(actual.Payload.APIVip).To(Equal(apiVip))
-					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
+					Expect(reply).To(BeAssignableToTypeOf(&common.ApiErrorResponse{}))
+					Expect(reply.(*common.ApiErrorResponse).StatusCode()).To(Equal(int32(http.StatusBadRequest)))
 				})
 				It("Same api and ingress", func() {
 					apiVip := "10.11.12.15"
@@ -3522,7 +3516,7 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.UpdateClusterCreated)
 					Expect(actual.Payload.APIVip).To(Equal(apiVip))
 					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-					Expect(actual.Payload.MachineNetworkCidr).To(Equal(""))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
 						{
 							Cidr: "1.2.3.0/24",
@@ -3589,7 +3583,7 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.UpdateClusterCreated)
 					Expect(actual.Payload.APIVip).To(Equal(apiVip))
 					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-					Expect(actual.Payload.MachineNetworkCidr).To(Equal(""))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
 					Expect(actual.Payload.ClusterNetworkCidr).To(Equal("192.168.0.0/21"))
 					Expect(actual.Payload.ServiceNetworkCidr).To(Equal("193.168.5.0/24"))
 					expectedNetworks := sortedNetworks([]*models.HostNetwork{
@@ -3755,7 +3749,7 @@ var _ = Describe("cluster", func() {
 					actual := reply.(*installer.UpdateClusterCreated)
 					Expect(actual.Payload.APIVip).To(Equal(apiVip))
 					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-					Expect(actual.Payload.MachineNetworkCidr).To(Equal(""))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
 					reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 						ClusterID: clusterID,
 						ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -3809,7 +3803,7 @@ var _ = Describe("cluster", func() {
 					actual = reply.(*installer.UpdateClusterCreated)
 					Expect(actual.Payload.APIVip).To(Equal(apiVip))
 					Expect(actual.Payload.IngressVip).To(Equal(ingressVip))
-					Expect(actual.Payload.MachineNetworkCidr).To(Equal(""))
+					Expect(actual.Payload.MachineNetworkCidr).To(Equal("10.11.0.0/16"))
 				})
 				It("DHCP non existent network (no error)", func() {
 					mockSuccess(1)

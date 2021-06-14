@@ -277,19 +277,19 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInstallConfigInternal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInstallConfigInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInstallConfigInternal), arg0, arg1)
 }
 
-// UpdateClusterInternal mocks base method
-func (m *MockInstallerInternals) UpdateClusterInternal(arg0 context.Context, arg1 installer.UpdateClusterParams) (*common.Cluster, error) {
+// UpdateClusterNonInteractive mocks base method
+func (m *MockInstallerInternals) UpdateClusterNonInteractive(arg0 context.Context, arg1 installer.UpdateClusterParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateClusterInternal", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdateClusterNonInteractive", arg0, arg1)
 	ret0, _ := ret[0].(*common.Cluster)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// UpdateClusterInternal indicates an expected call of UpdateClusterInternal
-func (mr *MockInstallerInternalsMockRecorder) UpdateClusterInternal(arg0, arg1 interface{}) *gomock.Call {
+// UpdateClusterNonInteractive indicates an expected call of UpdateClusterNonInteractive
+func (mr *MockInstallerInternalsMockRecorder) UpdateClusterNonInteractive(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterInternal), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateClusterNonInteractive", reflect.TypeOf((*MockInstallerInternals)(nil).UpdateClusterNonInteractive), arg0, arg1)
 }
 
 // UpdateDiscoveryIgnitionInternal mocks base method

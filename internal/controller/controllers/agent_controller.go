@@ -791,7 +791,7 @@ func (r *AgentReconciler) updateIfNeeded(ctx context.Context, log logrus.FieldLo
 		return nil
 	}
 
-	_, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+	_, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
 		ClusterUpdateParams: params,
 		ClusterID:           *c.ID,
 	})

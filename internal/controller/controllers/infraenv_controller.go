@@ -124,7 +124,7 @@ func (r *InfraEnvReconciler) updateClusterIfNeeded(ctx context.Context, log logr
 		}
 		log.Infof("updating cluster %s %s with %s",
 			infraEnv.Spec.ClusterRef.Name, infraEnv.Spec.ClusterRef.Namespace, string(updateString))
-		_, err = r.Installer.UpdateClusterInternal(ctx, installer.UpdateClusterParams{
+		_, err = r.Installer.UpdateClusterNonInteractive(ctx, installer.UpdateClusterParams{
 			ClusterUpdateParams: params,
 			ClusterID:           *cluster.ID,
 		})

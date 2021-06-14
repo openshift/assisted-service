@@ -105,6 +105,13 @@ type Config struct {
 
 const minimalOpenShiftVersionForSingleNode = "4.8.0-0.0"
 
+type Interactivity bool
+
+const (
+	Interactive    Interactivity = true
+	NonInteractive Interactivity = false
+)
+
 type OCPClusterAPI interface {
 	RegisterOCPCluster(ctx context.Context) error
 }
@@ -113,7 +120,7 @@ type OCPClusterAPI interface {
 type InstallerInternals interface {
 	RegisterClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterClusterParams) (*common.Cluster, error)
 	GetClusterInternal(ctx context.Context, params installer.GetClusterParams) (*common.Cluster, error)
-	UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
+	UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error)
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
@@ -1686,14 +1693,17 @@ func (b *bareMetalInventory) validateAndUpdateProxyParams(ctx context.Context, p
 }
 
 func (b *bareMetalInventory) UpdateCluster(ctx context.Context, params installer.UpdateClusterParams) middleware.Responder {
-	c, err := b.UpdateClusterInternal(ctx, params)
+	c, err := b.updateClusterInternal(ctx, params, Interactive)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewUpdateClusterCreated().WithPayload(&c.Cluster)
 }
+func (b *bareMetalInventory) UpdateClusterNonInteractive(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error) {
+	return b.updateClusterInternal(ctx, params, NonInteractive)
+}
 
-func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params installer.UpdateClusterParams) (*common.Cluster, error) {
+func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params installer.UpdateClusterParams, interactivity Interactivity) (*common.Cluster, error) {
 	log := logutil.FromContext(ctx, b.log)
 	var cluster *common.Cluster
 	var err error
@@ -1754,7 +1764,7 @@ func (b *bareMetalInventory) UpdateClusterInternal(ctx context.Context, params i
 		return nil, err
 	}
 
-	err = b.updateClusterData(ctx, cluster, params, usages, tx, log)
+	err = b.updateClusterData(ctx, cluster, params, usages, tx, log, interactivity)
 	if err != nil {
 		log.WithError(err).Error("updateClusterData")
 		return nil, err
@@ -1827,7 +1837,7 @@ func setMachineNetworkCIDRForUpdate(updates map[string]interface{}, machineNetwo
 	updates["machine_network_cidr_updated_at"] = time.Now()
 }
 
-func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, _ *string) error {
+func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]interface{}, cluster *common.Cluster, params installer.UpdateClusterParams, log logrus.FieldLogger, machineCidr *string, interactivity Interactivity) error {
 	apiVip := cluster.APIVip
 	ingressVip := cluster.IngressVip
 	if params.ClusterUpdateParams.APIVip != nil {
@@ -1843,7 +1853,6 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		log.WithError(err).Warnf("Set Machine Network CIDR")
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
-
 	var err error
 	err = verifyParsableVIPs(apiVip, ingressVip)
 	if err != nil {
@@ -1856,6 +1865,24 @@ func (b *bareMetalInventory) updateNonDhcpNetworkParams(updates map[string]inter
 		log.WithError(err).Errorf("VIP verification failed for cluster: %s", params.ClusterID)
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
+	if interactivity == Interactive && (params.ClusterUpdateParams.APIVip != nil || params.ClusterUpdateParams.IngressVip != nil) {
+		var machineNetworkCidr string
+		matchRequired := apiVip != "" || ingressVip != ""
+		machineNetworkCidr, err = network.CalculateMachineNetworkCIDR(apiVip, ingressVip, cluster.Hosts, matchRequired)
+		if err != nil {
+			return common.NewApiError(http.StatusBadRequest, errors.Wrap(err, "Calculate machine network CIDR"))
+		}
+		if machineNetworkCidr != swag.StringValue(machineCidr) {
+			*machineCidr = machineNetworkCidr
+			setMachineNetworkCIDRForUpdate(updates, machineNetworkCidr)
+		}
+		err = network.VerifyVips(cluster.Hosts, swag.StringValue(machineCidr), apiVip, ingressVip, false, log)
+		if err != nil {
+			log.WithError(err).Warnf("Verify VIPs")
+			return common.NewApiError(http.StatusBadRequest, err)
+		}
+	}
+
 	return nil
 }
 
@@ -1891,7 +1918,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	return nil
 }
 
-func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	updates := map[string]interface{}{}
 	optionalParam(params.ClusterUpdateParams.Name, "name", updates)
@@ -1904,7 +1931,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
-	if err = b.updateNetworkParams(params, cluster, updates, usages, log); err != nil {
+	if err = b.updateNetworkParams(params, cluster, updates, usages, log, interactivity); err != nil {
 		return err
 	}
 
@@ -1941,7 +1968,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	return nil
 }
 
-func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
+func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
 	machineCidr := cluster.MachineNetworkCidr
 	serviceCidr := cluster.ServiceNetworkCidr
@@ -2002,7 +2029,7 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		if vipDhcpAllocation {
 			err = b.updateDhcpNetworkParams(updates, params, log, &machineCidr)
 		} else {
-			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr)
+			err = b.updateNonDhcpNetworkParams(updates, cluster, params, log, &machineCidr, interactivity)
 		}
 		if err != nil {
 			return err
