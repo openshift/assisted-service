@@ -25,31 +25,10 @@ RUN CGO_ENABLED=0 GOFLAGS="" GO111MODULE=on go build -o /build/assisted-service-
 FROM quay.io/ocpmetal/oc-image:bug-1823143 as oc-image
 
 # Create final image
-FROM quay.io/centos/centos:centos8
+FROM quay.io/centos/centos:stream8
 
 # openshift-install requires this
-RUN dnf install -y libvirt-libs python3 && \
-    dnf install -b -y  dnf-plugins-core && \
-    dnf copr enable -y networkmanager/NetworkManager-master && \
-    dnf copr enable -y nmstate/ovs-el8 && \
-    dnf copr enable -y nmstate/nmstate-1.0&& \
-    dnf copr enable -y nmstate/nispor && \
-    dnf install -y pkg-config && \
-    dnf install -y glib2-devel && \
-    dnf install -y gobject-introspection-devel && \
-    dnf install -y cairo-devel && \
-    dnf install -y cairo-gobject-devel && \
-    dnf install -y python3-devel && \
-    dnf install -y python3-nispor && \
-    dnf install -y NetworkManager && \
-    dnf install -y NetworkManager-ovs && \
-    dnf install -y NetworkManager-team && \
-    dnf install -y NetworkManager-config-server && \
-    dnf install -y openvswitch2.11 && \
-    dnf install -y python3-openvswitch2.11 && \
-    dnf install -y nmstate &&\
-    pip3 install pycairo && \
-    dnf remove -y dnf-plugins-core && \
+RUN dnf install -y libvirt-libs nmstate &&\
     dnf clean all
 
 ARG WORK_DIR=/data
