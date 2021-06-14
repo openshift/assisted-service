@@ -154,6 +154,18 @@ kind: AgentServiceConfig
 metadata:
  name: agent
 spec:
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
   osImages:
     - openshiftVersion: "4.6"
       version: "46.82.202012051820-0"
@@ -261,6 +273,18 @@ kind: AgentServiceConfig
 metadata:
   name: agent
 spec:
+  databaseStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 10Gi
+  filesystemStorage:
+    accessModes:
+    - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
   mirrorRegistryRef:
     name: mirrorRegistyMap
 EOF
