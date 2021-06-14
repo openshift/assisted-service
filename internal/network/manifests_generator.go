@@ -312,10 +312,10 @@ data:
       telemeterServerURL: {{.TELEMETER_SERVER_URL}}
 `
 
-	prodServiceBaseURL  = "https://api.openshift.com"
-	stageServiceBaseURL = "https://api.stage.openshift.com"
-	stageTelemeterURL   = "https://infogw.api.stage.openshift.com"
-	dummyURL            = "https://dummy.com"
+	stageServiceBaseURL       = "https://api.stage.openshift.com"
+	integrationServiceBaseURL = "https://api.integration.openshift.com"
+	stageTelemeterURL         = "https://infogw.api.stage.openshift.com"
+	dummyURL                  = "https://dummy.com"
 )
 
 // Default Telemeter server is prod.
@@ -325,19 +325,20 @@ func (m *ManifestsGenerator) AddTelemeterManifest(ctx context.Context, log logru
 
 	manifestParams := map[string]string{}
 
-	if m.Config.ServiceBaseURL == prodServiceBaseURL {
-		return nil
-	}
+	switch m.Config.ServiceBaseURL {
 
-	if m.Config.ServiceBaseURL == stageServiceBaseURL {
+	case stageServiceBaseURL:
 
 		log.Infof("Creating manifest to redirect metrics from installed cluster to telemeter-stage")
 		manifestParams["TELEMETER_SERVER_URL"] = stageTelemeterURL
 
-	} else {
+	case integrationServiceBaseURL:
 
-		log.Infof("Creating manifest to redirect metrics from installed cluster to a dummy URL")
+		log.Infof("Creating manifest to redirect metrics from installed cluster to dummy URL")
 		manifestParams["TELEMETER_SERVER_URL"] = dummyURL
+
+	default:
+		return nil
 
 	}
 
