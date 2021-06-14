@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -710,6 +711,47 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.Status.Role).To(Equal(role))
 		Expect(agent.Status.Bootstrap).To(Equal(bootStrap))
 	})
+
+	It("Agent progress status", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		progress := &models.HostProgressInfo{
+			CurrentStage:   models.HostStageConfiguring,
+			ProgressInfo:   "some info",
+			StageStartedAt: strfmt.DateTime(time.Now()),
+			StageUpdatedAt: strfmt.DateTime(time.Now()),
+		}
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				{
+					ID:         &hostId,
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+					Progress:   progress,
+				},
+			}}}
+
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(agent.Status.Progress.ProgressInfo).To(Equal(progress.ProgressInfo))
+		Expect(agent.Status.Progress.StageStartTime).NotTo(BeNil())
+		Expect(agent.Status.Progress.StageUpdateTime).NotTo(BeNil())
+	})
+
 })
 
 var _ = Describe("TestConditions", func() {
