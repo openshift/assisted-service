@@ -129,11 +129,6 @@ func (o *operator) canOCSBeDeployed(hosts []*models.Host, ocsClusterResources *o
 	var status string
 	numAvailableHosts := int64(len(hosts))
 
-	if ocsClusterResources.numberOfDisks%3 != 0 {
-		status = "The number of disks in the cluster for OCS must be a multiple of 3."
-		return false, status
-	}
-
 	if numAvailableHosts == o.config.OCSNumMinimumHosts { // for 3 hosts
 		if !validateRequirements(o, ocsClusterResources) { // check for master nodes requirements
 			status = o.setStatusInsufficientResources(ocsClusterResources, compactMode)
