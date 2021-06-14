@@ -426,6 +426,47 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 
 }
 
+// Utility to verify whether a BMH should be reconciled based on the InfraEnv
+//
+// This function verifies three things:
+//
+// 1. InfraEnv existsD
+// 2. InfraEnv's ISODownloadURL exists
+// 3. The BMH.Spec.URL is the same to the InfraEnv's ISODownload URL
+//
+// If the three checks above are true, then the reconcile won't happen
+// and the reconcileBMH function will return.
+//
+// Note that this function is also used to decide whether a BMH reconcile should be queued
+// or not. This will help queuing fewer reconciles when we know the BMH is not ready.
+//
+// The function returns 2 booleans:
+//
+// 1. Should we proceed with the BMH's reconcile
+// 2. Should the full `Reconcile` stop as well
+func shouldReconcileBMH(bmh *bmh_v1alpha1.BareMetalHost, infraEnv *aiv1beta1.InfraEnv) (bool, bool) {
+	// Stop `Reconcile` if BMH does not have an InfraEnv.
+	if infraEnv == nil {
+		return false, false
+	}
+
+	// This is a separate check because an existing
+	// InfraEnv with an empty ISODownloadURL means the
+	// global `Reconcile` function should also return
+	// as there is nothing left to do for it.
+	if infraEnv.Status.ISODownloadURL == "" {
+		return false, true
+	}
+
+	// The Image URL exists and InfraEnv's URL has not changed
+	// nothing else to do.
+	if bmh.Spec.Image != nil && bmh.Spec.Image.URL == infraEnv.Status.ISODownloadURL {
+		return false, false
+	}
+
+	return true, false
+}
+
 func (r *BMACReconciler) findInfraEnvForBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (*aiv1beta1.InfraEnv, error) {
 	for ann, value := range bmh.Labels {
 		log.Debugf("BMH label %s value %s", ann, value)
@@ -468,22 +509,34 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		return reconcileError{err}
 	}
 
-	if infraEnv == nil {
-		return reconcileComplete{}
+	dirty := false
+	annotations := bmh.ObjectMeta.GetAnnotations()
+
+	// Set the following parameters regardless of the state
+	// of the InfraEnv and the BMH. There is no need for
+	// inspection and cleaning to happen out of assisted
+	// service's loop.
+	if _, ok := annotations[BMH_INSPECT_ANNOTATION]; !ok || bmh.Spec.AutomatedCleaningMode != bmh_v1alpha1.CleaningModeDisabled {
+		bmh.Spec.AutomatedCleaningMode = bmh_v1alpha1.CleaningModeDisabled
+
+		// Let's make sure inspection is disabled for BMH resources
+		// that are associated with an agent-based deployment.
+		//
+		// Ideally, the user would do this while creating the BMH
+		// we are just taking extra care that this is the case.
+		if bmh.ObjectMeta.Annotations == nil {
+			bmh.ObjectMeta.Annotations = make(map[string]string)
+		}
+
+		bmh.ObjectMeta.Annotations[BMH_INSPECT_ANNOTATION] = "disabled"
+		dirty = true
 	}
 
-	if infraEnv.Status.ISODownloadURL == "" {
-		// the image has not been created yet, try later.
-		log.Infof("Image URL for InfraEnv (%s/%s) not available yet. Waiting for new reconcile for BareMetalHost  %s/%s",
-			infraEnv.Namespace, infraEnv.Name, bmh.Namespace, bmh.Name)
+	proceed, stopReconcileLoop := shouldReconcileBMH(bmh, infraEnv)
 
-		return reconcileComplete{stop: true}
-	}
-
-	// The Image URL exists and InfraEnv's URL has not changed
-	// nothing else to do.
-	if bmh.Spec.Image != nil && bmh.Spec.Image.URL == infraEnv.Status.ISODownloadURL {
-		return reconcileComplete{}
+	if !proceed {
+		log.Infof("Stopping reconcileBMH: Either the InfraEnv image is not ready or there is nothing to update.")
+		return reconcileComplete{dirty: dirty, stop: stopReconcileLoop}
 	}
 
 	// BMH is set to `detached` after a cluster deployment. The
@@ -1024,6 +1077,12 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		requests := make([]reconcile.Request, len(bmhs))
 
 		for i, bmh := range bmhs {
+
+			queue, _ := shouldReconcileBMH(bmh, infraEnv)
+			if !queue {
+				continue
+			}
+
 			requests[i] = reconcile.Request{
 				NamespacedName: types.NamespacedName{
 					Namespace: bmh.Namespace,
