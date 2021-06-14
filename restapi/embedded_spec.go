@@ -5556,6 +5556,9 @@ func init() {
           "maximum": 32,
           "minimum": 1
         },
+        "inactive_deletion_hours": {
+          "type": "integer"
+        },
         "ntp_source": {
           "type": "string",
           "x-omitempty": false
@@ -13232,6 +13235,9 @@ func init() {
           "type": "integer",
           "maximum": 32,
           "minimum": 1
+        },
+        "inactive_deletion_hours": {
+          "type": "integer"
         },
         "ntp_source": {
           "type": "string",
