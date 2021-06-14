@@ -84,6 +84,19 @@ var _ = Describe("installcfg", func() {
 		Expect(len(result.Platform.Baremetal.Hosts)).Should(Equal(3))
 	})
 
+	It("create_configuration_with_hostnames", func() {
+		var result InstallerConfigBaremetal
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(result.Platform.Baremetal.Hosts)).Should(Equal(3))
+		Expect(result.Platform.Baremetal.Hosts[0].Name).Should(Equal("hostname0"))
+		Expect(result.Platform.Baremetal.Hosts[1].Name).Should(Equal("hostname1"))
+		Expect(result.Platform.Baremetal.Hosts[2].Name).Should(Equal("hostname2"))
+	})
+
 	It("create_configuration_with_one_host_disabled", func() {
 		var result InstallerConfigBaremetal
 		host3.Status = swag.String(models.HostStatusDisabled)
