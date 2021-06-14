@@ -305,9 +305,11 @@ spec:
                     type: string
                   stageStartTime:
                     description: 'Name in REST API: stage_started_at'
+                    format: date-time
                     type: string
                   stageUpdateTime:
                     description: 'Name in REST API: stage_updated_at'
+                    format: date-time
                     type: string
                 type: object
               role:
