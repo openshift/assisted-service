@@ -77,7 +77,7 @@ var TestDefaultConfig = &TestConfiguration{
 	},
 }
 
-var TestNTPSourceSynced = &models.NtpSource{SourceName: "clock.dummy.com", SourceState: models.SourceStateSynced}
+var TestNTPSourceSynced = &models.NtpSource{SourceName: "clock.dummy.test", SourceState: models.SourceStateSynced}
 var TestNTPSourceUnsynced = &models.NtpSource{SourceName: "2.2.2.2", SourceState: models.SourceStateUnreachable}
 var TestImageStatusesSuccess = &models.ContainerImageAvailability{
 	Name:         TestDefaultConfig.ImageName,
