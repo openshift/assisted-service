@@ -346,16 +346,15 @@ var _ = Describe("telemeter manifest", func() {
 		serviceBaseURL string
 	}{
 		{
-			envName:        "Prod env",
-			serviceBaseURL: prodServiceBaseURL,
-		},
-		{
 			envName:        "Stage env",
 			serviceBaseURL: stageServiceBaseURL,
 		},
 		{
-			envName:        "Other envs",
-			serviceBaseURL: dummyURL,
+			envName:        "Integration env",
+			serviceBaseURL: integrationServiceBaseURL,
+		},
+		{
+			envName: "Other envs",
 		},
 	} {
 		test := test
@@ -366,7 +365,7 @@ var _ = Describe("telemeter manifest", func() {
 			})
 
 			It("happy flow", func() {
-				if test.envName != "Prod env" {
+				if test.envName == "Stage env" || test.envName == "Integration env" {
 					mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(operations.NewCreateClusterManifestCreated())
 				}
 				err := manifestsGeneratorApi.AddTelemeterManifest(ctx, log, &cluster)
@@ -374,7 +373,7 @@ var _ = Describe("telemeter manifest", func() {
 			})
 
 			It("AddTelemeterManifest failure", func() {
-				if test.envName == "Prod env" {
+				if test.envName != "Stage env" && test.envName != "Integration env" {
 					Skip("We don't create any additional manifest in prod")
 				}
 				mockManifestsApi.EXPECT().CreateClusterManifest(ctx, gomock.Any()).Return(common.GenerateErrorResponder(errors.Errorf("failed to upload to s3")))
