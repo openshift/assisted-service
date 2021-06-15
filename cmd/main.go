@@ -242,6 +242,7 @@ func main() {
 	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler)
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
+	Options.InstructionConfig.SupportFreeAddresses = Options.InstructionConfig.SupportFreeAddresses && !Options.EnableKubeAPI
 	instructionApi := hostcommands.NewInstructionManager(log.WithField("pkg", "instructions"), db, hwValidator,
 		releaseHandler, Options.InstructionConfig, connectivityValidator, eventsHandler, versionHandler)
 
