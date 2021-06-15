@@ -1459,7 +1459,7 @@ var _ = Describe("RefreshCluster - preparing for install", func() {
 					}
 				}
 				mockMetric.EXPECT().InstallationStarted(gomock.Any(), clusterId, gomock.Any(), gomock.Any()).Times(1)
-				mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), gomock.Any(), nonDisabled, gomock.Any()).Times(1)
+				mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), nonDisabled, gomock.Any()).Times(1)
 			}
 			Expect(cluster.ValidationsInfo).To(BeEmpty())
 			clusterAfterRefresh, err := clusterApi.RefreshStatus(ctx, &cluster, db)
@@ -4374,7 +4374,7 @@ var _ = Describe("Single node", func() {
 					cluster.InstallationPreparationCompletionStatus = common.InstallationPreparationSucceeded
 
 					mockMetric.EXPECT().InstallationStarted(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-					mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+					mockMetric.EXPECT().ClusterHostInstallationCount(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 
 				}
 				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
