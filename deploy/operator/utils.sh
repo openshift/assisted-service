@@ -5,10 +5,6 @@ set -o errexit
 function wait_for_crd() {
     crd="$1"
     namespace="${2:-}"
-    echo "Waiting for CRD (${crd}) on namespace (${namespace}) to be defined..."
-    for i in {1..40}; do
-        oc get "crd/${crd}" -n "${namespace}" && break || sleep 10
-    done
 
     wait_for_condition "crd/${crd}" "Established" "60s" "${namespace}"
 }
@@ -39,11 +35,6 @@ function wait_for_pod() {
     namespace="${2:-}"
     selector="${3:-}"
 
-    echo "Waiting for pod (${pod}) on namespace (${namespace}) with labels (${selector}) to be created..."
-    for i in {1..40}; do
-        oc get pod --selector=${selector} --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
-    done
-
     wait_for_condition "pod" "Ready" "20m" "${namespace}" "${selector}"
 }
 
@@ -67,8 +58,13 @@ function wait_for_condition() {
     namespace="${4:-}"
     selector="${5:-}"
 
-    echo "Waiting for (${object}) on namespace (${namespace}) to become (${condition})..."
-    oc wait -n "${namespace}" --for=condition=${condition} --selector "$selector" ${object} --timeout=${timeout}
+    echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to be created..."
+    for i in {1..40}; do
+        oc get ${object} --selector="${selector}" --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
+    done
+
+    echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to become (${condition})..."
+    oc wait -n "${namespace}" --for=condition=${condition} --selector "${selector}" ${object} --timeout=${timeout}
 }
 
 function wait_for_object_amount() {
