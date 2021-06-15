@@ -43,6 +43,8 @@ const (
 	badIgnitionConfigOverride            = `bad ignition config`
 	clusterDeploymentNamePrefix          = "test-cluster"
 	clusterAgentClusterInstallNamePrefix = "test-agent-cluster-install"
+	doneStateInfo                        = "Done"
+	clusterInstallStateInfo              = "Cluster is installed"
 )
 
 var (
@@ -1512,6 +1514,20 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.LogsURL
 		}, "1m", "10s").ShouldNot(Equal(""))
+
+		By("Check ACI DebugInfo state and stateinfo")
+		Eventually(func() bool {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.State == models.ClusterStatusInstalled &&
+				aci.Status.DebugInfo.StateInfo == clusterInstallStateInfo
+		}, "1m", "10s").Should(BeTrue())
+
+		By("Check Agent DebugInfo state and stateinfo")
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.DebugInfo.State == models.HostStatusInstalled &&
+				agent.Status.DebugInfo.StateInfo == doneStateInfo
+		}, "1m", "10s").Should(BeTrue())
 	})
 
 	It("SNO deploy clusterDeployment delete while install", func() {
