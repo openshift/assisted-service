@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"os"
 	"strconv"
 
 	"github.com/go-openapi/swag"
@@ -410,10 +411,19 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, ins
 			"SKIP_CERT_VERIFICATION": "False",
 		}
 
+		copyEnv(cm.Data, "HTTP_PROXY")
+		copyEnv(cm.Data, "HTTPS_PROXY")
+		copyEnv(cm.Data, "NO_PROXY")
 		return nil
 	}
 
 	return cm, mutateFn
+}
+
+func copyEnv(config map[string]string, key string) {
+	if value, ok := os.LookupEnv(key); ok {
+		config[key] = value
+	}
 }
 
 func (r *AgentServiceConfigReconciler) ensureAssistedCM(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
