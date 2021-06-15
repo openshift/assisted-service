@@ -8,6 +8,7 @@ set -o xtrace
 
 DISCONNECTED="${DISCONNECTED:-false}"
 HIVE_IMAGE="${HIVE_IMAGE:-registry.ci.openshift.org/openshift/hive-v4.0:hive}"
+HIVE_NAMESPACE="${HIVE_NAMESPACE:-hive}"
 
 function print_help() {
   ALL_FUNCS="with_olm|from_upstream|enable_agent_install_strategy|print_help"
@@ -41,7 +42,7 @@ apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
   name: hive-operator
-  namespace: openshift-operators
+  namespace: ${HIVE_NAMESPACE}
 spec:
   installPlanApproval: Automatic
   name: hive-operator
@@ -49,7 +50,7 @@ spec:
   sourceNamespace: openshift-marketplace
 EOCR
 
-  wait_for_operator "hive-operator" "openshift-operators"
+  wait_for_operator "hive-operator" "${HIVE_NAMESPACE}"
   wait_for_crd "clusterdeployments.hive.openshift.io"
 
   echo "Hive installed successfully!"
@@ -79,9 +80,9 @@ function from_upstream() {
     export IMG="${HIVE_IMAGE}"
   fi
 
-  make deploy
-  wait_for_pod "hive-operator" "hive" "control-plane=hive-operator"
-  wait_for_pod "hive-controllers" "hive" "control-plane=controller-manager"
+  make deploy HIVE_OPERATOR_NS="${HIVE_NAMESPACE}" HIVE_NS="${HIVE_NAMESPACE}"
+  wait_for_pod "hive-operator" "${HIVE_NAMESPACE}" "control-plane=hive-operator"
+  wait_for_pod "hive-controllers" "${HIVE_NAMESPACE}" "control-plane=controller-manager"
 
   echo "Hive installed successfully!"
   popd
@@ -97,7 +98,7 @@ metadata:
   name: hive
 spec:
   logLevel: debug
-  targetNamespace: hive
+  targetNamespace: ${HIVE_NAMESPACE}
   featureGates:
     custom:
       enabled:

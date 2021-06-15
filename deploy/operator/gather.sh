@@ -2,15 +2,29 @@
 
 set -xeo pipefail
 
+ASSISTED_NAMESPACE="${ASSISTED_NAMESPACE:-assisted-installer}"
+HIVE_NAMESPACE="${HIVE_NAMESPACE:-hive}"
+
+function gather_hive_data() {
+  hive_dir="${LOGS_DEST}/hive"
+  mkdir -p "${hive_dir}"
+  oc get all -n "${HIVE_NAMESPACE}" > ${hive_dir}/oc_get_all.log || true
+
+  oc logs -n "${HIVE_NAMESPACE}" --selector control-plane=hive-operator > ${hive_dir}/hive-operator.log
+  oc logs -n "${HIVE_NAMESPACE}" --selector control-plane=controller-manager > ${hive_dir}/hive-controller-manager.log
+
+  oc get events -n "${HIVE_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${hive_dir}/oc_get_events.log || true
+}
+
 function gather_operator_data() {
-  oc cluster-info > ${LOGS_DEST}/k8s_cluster_info.log
-  oc get all -n assisted-installer > ${LOGS_DEST}/k8s_get_all.log || true
+  oc cluster-info > ${LOGS_DEST}/oc_cluster_info.log
+  oc get all -n "${ASSISTED_NAMESPACE}" > ${LOGS_DEST}/oc_get_all.log || true
 
-  oc logs -n assisted-installer --selector app=assisted-service -c assisted-service > ${LOGS_DEST}/assisted-service.log
-  oc logs -n assisted-installer --selector app=assisted-service -c postgres > ${LOGS_DEST}/postgres.log
-  oc logs -n assisted-installer --selector control-plane=assisted-service-operator > ${LOGS_DEST}/assisted-service-operator.log
+  oc logs -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c assisted-service > ${LOGS_DEST}/assisted-service.log
+  oc logs -n "${ASSISTED_NAMESPACE}" --selector app=assisted-service -c postgres > ${LOGS_DEST}/postgres.log
+  oc logs -n "${ASSISTED_NAMESPACE}" --selector control-plane=assisted-service-operator > ${LOGS_DEST}/assisted-service-operator.log
 
-  oc get events -n assisted-installer --sort-by=.metadata.creationTimestamp > ${LOGS_DEST}/k8s_events.log || true
+  oc get events -n "${ASSISTED_NAMESPACE}" --sort-by=.metadata.creationTimestamp > ${LOGS_DEST}/oc_get_events.log || true
 }
 
 function gather_agentclusterinstall_data() {
@@ -92,6 +106,7 @@ function gather_imageset_data() {
 }
 
 function gather_all() {
+  gather_hive_data
   gather_operator_data
   gather_agentclusterinstall_data
   gather_bmh_data
