@@ -37,10 +37,11 @@ how this code was tested. Here are some questions that may be worth answering:
 
 # Assignees
 
-Please, add one or two reviewers that could help review this PR.
+Please, add one or two reviewers that could help review this PR. Use `/assign` if you want to assign
+this PR directly to someone.
 
-/assign @
-/assign @
+/cc @
+/cc @
 
 ## Checklist
 
