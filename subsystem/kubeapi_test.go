@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -536,14 +535,6 @@ func verifyCleanUP(ctx context.Context, client k8sclient.Client) {
 	}, "2m", "2s").Should(Equal(0))
 }
 
-func setupNewHost(ctx context.Context, hostname string, clusterID strfmt.UUID) *models.Host {
-	host := registerNode(ctx, clusterID, hostname)
-	generateHWPostStepReply(ctx, host, validHwInfo, hostname)
-	generateFAPostStepReply(ctx, host, validFreeAddresses)
-	generateEssentialPrepareForInstallationSteps(ctx, host)
-	return host
-}
-
 const waitForReconcileTimeout = 30
 
 var _ = Describe("[kube-api]cluster installation", func() {
@@ -593,7 +584,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := setupNewHost(ctx, hostname, *cluster.ID)
+			host := registerNode(ctx, *cluster.ID, hostname)
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -673,7 +664,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := setupNewHost(ctx, hostname, *cluster.ID)
+			host := registerNode(ctx, *cluster.ID, hostname)
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -717,7 +708,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -758,7 +749,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -824,7 +815,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -863,7 +854,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -926,7 +917,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -985,7 +976,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1159,7 +1150,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key := types.NamespacedName{
 			Namespace: "default",
 			Name:      host.ID.String(),
@@ -1503,7 +1494,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1625,7 +1616,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1677,7 +1668,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := setupNewHost(ctx, hostname, *cluster.ID)
+			host := registerNode(ctx, *cluster.ID, hostname)
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
@@ -1782,7 +1773,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		hosts := make([]*models.Host, 0)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := setupNewHost(ctx, hostname, *cluster.ID)
+			host := registerNode(ctx, *cluster.ID, hostname)
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
@@ -1859,7 +1850,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		// By("Add Day 2 host and approve agent")
 		// configureLocalAgentClient(cluster.ID.String())
-		// host := setupNewHost(ctx, "hostnameday2", *cluster.ID)
+		// host := registerNode(ctx, *cluster.ID, "hostnameday2")
 		// key := types.NamespacedName{
 		// 	Namespace: Options.Namespace,
 		// 	Name:      host.ID.String(),
@@ -1988,7 +1979,7 @@ spec:
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2053,7 +2044,7 @@ spec:
 
 		By("Register a Host and validate that an agent CR was created")
 		configureLocalAgentClient(cluster.ID.String())
-		setupNewHost(ctx, "hostname1", *cluster.ID)
+		registerNode(ctx, *cluster.ID, "hostname1")
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
 		}, "2m", "2s").Should(Equal(1))
@@ -2167,7 +2158,7 @@ var _ = Describe("bmac reconcile flow", func() {
 
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := setupNewHost(ctx, "hostname1", *cluster.ID)
+		host := registerNode(ctx, *cluster.ID, "hostname1")
 		agentNsName = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),

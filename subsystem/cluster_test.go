@@ -129,6 +129,10 @@ var (
 				"1.2.3.9",
 				"1.2.3.5",
 				"1.2.3.6",
+				"1.2.3.100",
+				"1.2.3.101",
+				"1.2.3.102",
+				"1.2.3.103",
 			},
 		},
 	}
@@ -908,47 +912,6 @@ var _ = Describe("cluster install", func() {
 		cluster = registerClusterReply.GetPayload()
 		log.Infof("Register cluster %s", cluster.ID.String())
 	})
-
-	generateFAPostStepReply := func(h *models.Host, freeAddresses models.FreeNetworksAddresses) {
-		fa, err := json.Marshal(&freeAddresses)
-		Expect(err).NotTo(HaveOccurred())
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: h.ClusterID,
-			HostID:    *h.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				Output:   string(fa),
-				StepID:   string(models.StepTypeFreeNetworkAddresses),
-				StepType: models.StepTypeFreeNetworkAddresses,
-			},
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-	}
-
-	updateVipParams := func(clusterID strfmt.UUID) {
-		apiVip := "1.2.3.5"
-		ingressVip := "1.2.3.6"
-		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
-			ClusterUpdateParams: &models.ClusterUpdateParams{
-				VipDhcpAllocation: swag.Bool(false),
-				APIVip:            &apiVip,
-				IngressVip:        &ingressVip,
-			},
-			ClusterID: clusterID,
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-	}
-
-	register3nodes := func(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
-		h1 := registerNode(ctx, clusterID, "h1")
-		generateFAPostStepReply(h1, validFreeAddresses)
-		h2 := registerNode(ctx, clusterID, "h2")
-		h3 := registerNode(ctx, clusterID, "h3")
-		updateVipParams(clusterID)
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
-
-		return []*models.Host{h1, h2, h3}
-	}
 
 	It("auto-assign", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
@@ -1998,7 +1961,6 @@ var _ = Describe("cluster install", func() {
 			It("cancel installation with a disabled host", func() {
 				By("register a new worker")
 				disabledHost := registerNode(ctx, clusterID, "hostname")
-				generateFAPostStepReply(disabledHost, validFreeAddresses)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2201,7 +2163,6 @@ var _ = Describe("cluster install", func() {
 						}
 					}
 					h := registerNode(ctx, clusterID, "hostname")
-					generateFAPostStepReply(h, validFreeAddresses)
 					_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 						ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 							{ID: *h.ID, Role: models.HostRoleUpdateParamsMaster},
@@ -2292,7 +2253,6 @@ var _ = Describe("cluster install", func() {
 			It("reset cluster with a disabled host", func() {
 				By("register a new worker")
 				disabledHost := registerNode(ctx, clusterID, "hostname")
-				generateFAPostStepReply(disabledHost, validFreeAddresses)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2352,7 +2312,6 @@ var _ = Describe("cluster install", func() {
 			It("reset cluster with hosts after reboot and one disabled host", func() {
 				By("register a new worker")
 				disabledHost := registerNode(ctx, clusterID, "hostname")
-				generateFAPostStepReply(disabledHost, validFreeAddresses)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2575,7 +2534,7 @@ spec:
 		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1.2.3.0/24"))
 
 		mh1 := registerNode(ctx, clusterID, "mh1")
-		generateFAPostStepReply(mh1, validFreeAddresses)
+		generateFAPostStepReply(ctx, mh1, validFreeAddresses)
 		mh2 := registerNode(ctx, clusterID, "mh2")
 		mh3 := registerNode(ctx, clusterID, "mh3")
 		generateFullMeshConnectivity(ctx, "1.2.3.10", mh1, mh2, mh3, wh1, wh2, wh3)
@@ -2680,7 +2639,6 @@ spec:
 		}
 		h1 := &registerHost(clusterID).Host
 		generateEssentialHostStepsWithInventory(ctx, h1, "h1", hwInfo)
-		generateFAPostStepReply(h1, validFreeAddresses)
 		apiVip := "1.2.3.8"
 		ingressVip := "1.2.3.9"
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -3233,25 +3191,9 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
 
-	generateFAPostStepReply := func(h *models.Host, freeAddresses models.FreeNetworksAddresses) {
-		fa, err := json.Marshal(&freeAddresses)
-		Expect(err).NotTo(HaveOccurred())
-		_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
-			ClusterID: h.ClusterID,
-			HostID:    *h.ID,
-			Reply: &models.StepReply{
-				ExitCode: 0,
-				Output:   string(fa),
-				StepID:   string(models.StepTypeFreeNetworkAddresses),
-				StepType: models.StepTypeFreeNetworkAddresses,
-			},
-		})
-		Expect(err).ShouldNot(HaveOccurred())
-	}
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
 		host := registerNode(ctx, clusterID, hostname)
-		generateFAPostStepReply(host, validFreeAddresses)
 		var role models.HostRoleUpdateParams
 		if i < 3 {
 			role = models.HostRoleUpdateParamsMaster
