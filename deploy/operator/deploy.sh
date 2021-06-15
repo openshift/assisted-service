@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+set -o nounset
+set -o pipefail
+set -o errexit
+set -o xtrace
+
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -z "${DISKS:-}" ]; then
