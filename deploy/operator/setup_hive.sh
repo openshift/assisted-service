@@ -38,6 +38,22 @@ function with_olm() {
   fi
 
   cat <<EOCR | oc apply -f -
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ${HIVE_NAMESPACE}
+  labels:
+    name: ${HIVE_NAMESPACE}
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: hive-group
+  namespace: ${HIVE_NAMESPACE}
+spec:
+  targetNamespaces:
+    - ${HIVE_NAMESPACE}
+---
 apiVersion: operators.coreos.com/v1alpha1
 kind: Subscription
 metadata:
