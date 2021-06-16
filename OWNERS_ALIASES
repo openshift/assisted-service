@@ -34,6 +34,7 @@ aliases:
     - flaper87
     - mkowalski
     - djzager
+    - lranjbar
   ci-approvers:
     - yuvigold
     - oshercc
