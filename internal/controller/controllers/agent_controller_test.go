@@ -659,6 +659,57 @@ var _ = Describe("agent reconcile", func() {
 		Expect(agent.Status.Inventory.Interfaces[0].MacAddress).To(Equal(macAddress))
 	})
 
+	It("Agent ntp sources, role, bootstrap status", func() {
+		hostId := strfmt.UUID(uuid.New().String())
+		srcName := "1.1.1.1"
+		srcState := models.SourceStateError
+		role := models.HostRoleMaster
+		bootStrap := true
+		ntpSources := []*models.NtpSource{
+			{
+				SourceName:  srcName,
+				SourceState: srcState,
+			},
+		}
+		ntp, _ := json.Marshal(&ntpSources)
+
+		backEndCluster = &common.Cluster{Cluster: models.Cluster{
+			ID: &sId,
+			Hosts: []*models.Host{
+				{
+					ID:         &hostId,
+					Role:       role,
+					Bootstrap:  bootStrap,
+					NtpSources: string(ntp),
+					Status:     swag.String(models.HostStatusKnown),
+					StatusInfo: swag.String("Some status info"),
+				},
+			}}}
+
+		host := newAgent(hostId.String(), testNamespace, v1beta1.AgentSpec{ClusterDeploymentName: &v1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace}})
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{}, nil)
+		Expect(c.Create(ctx, host)).To(BeNil())
+		result, err := hr.Reconcile(ctx, newHostRequest(host))
+		Expect(err).To(BeNil())
+		Expect(result).To(Equal(ctrl.Result{}))
+		agent := &v1beta1.Agent{}
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      hostId.String(),
+		}
+		Expect(c.Get(ctx, key, agent)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Message).To(Equal(SyncedOkMsg))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, SpecSyncedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(agent.Status.NtpSources[0].SourceName).To(Equal(srcName))
+		Expect(agent.Status.NtpSources[0].SourceState).To(Equal(srcState))
+		Expect(agent.Status.Role).To(Equal(role))
+		Expect(agent.Status.Bootstrap).To(Equal(bootStrap))
+	})
 })
 
 var _ = Describe("TestConditions", func() {
