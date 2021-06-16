@@ -20,14 +20,14 @@ endif
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
-DEBUG_PORT := $(or ${DEBUG_PORT},40000)
+DEBUG_SERVICE_PORT := $(or ${DEBUG_SERVICE_PORT},40000)
 SERVICE := $(or ${SERVICE},${ASSISTED_ORG}/assisted-service:${ASSISTED_TAG})
 BUNDLE_IMAGE := $(or ${BUNDLE_IMAGE},${ASSISTED_ORG}/assisted-service-operator-bundle:${ASSISTED_TAG})
 INDEX_IMAGE := $(or ${INDEX_IMAGE},${ASSISTED_ORG}/assisted-service-index:${ASSISTED_TAG})
 
-ifdef DEBUG
+ifdef DEBUG_SERVICE
 	DEBUG_ARGS=-gcflags "all=-N -l"
-	DEBUG_PORT_OPTIONS= --port ${DEBUG_PORT} debug-port
+	DEBUG_PORT_OPTIONS= --port ${DEBUG_SERVICE_PORT} debug-port
 	UPDATE_IMAGE=update-debug-minimal
 else
 	UPDATE_IMAGE=update-minimal
@@ -162,9 +162,9 @@ update-minimal:
 	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-debug-minimal:
-	export DEBUG=True && $(MAKE) build-minimal
+	export DEBUG_SERVICE=True && $(MAKE) build-minimal
 	mkdir -p build/debug-image && cp Dockerfile.assisted-service-debug $(BUILD_FOLDER)/assisted-service $(BUILD_FOLDER)/assisted-service-operator build/debug-image
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_PORT=$(DEBUG_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
+	docker build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
 	rm -r build/debug-image
 
 update-image: $(UPDATE_IMAGE)

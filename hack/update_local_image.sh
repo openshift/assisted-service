@@ -38,11 +38,11 @@ case "${CLUSTER_CONTEXT}" in
     fi
 
     eval $(SHELL=${SHELL:-/bin/sh} minikube docker-env) && \
-        make update-${DEBUG:+debug-}minimal
+        make update-${DEBUG_SERVICE:+debug-}minimal
     ;;
 
   "k3d")
-    make update-${DEBUG:+debug-}minimal
+    make update-${DEBUG_SERVICE:+debug-}minimal
     k3d image import ${SERVICE}
     ;;
 
