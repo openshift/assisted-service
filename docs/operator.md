@@ -215,17 +215,21 @@ oc rollout restart deployment/assisted-service
 
 ### Mirror Registry Configuration
 
-In case user wants to create an installation that uses mirror registry, the following must be executed:
-1. Create and upload a ConfigMap that will include the following keys:
-   ca-bundle.crt -  contents of the certificate for accessing the mirror registry. I may be a certificate bundle, but it is still one string
-   registries.conf - contents of the registries.conf file that configures mapping to the mirror registry.
+A ConfigMap can be used to configure assisted service to create installations using a mirror registry. The ConfigMap contains two keys:
+
+- *ca-bundle.crt* - This key contains the contents of the certificate for accessing the mirror registry. It may be a certificate bundle and is defined as a single string.
+- *registries.conf* - This key contains the contents of the registries.conf file that configures mappings to the mirror registry.
+
+The mirror registry configuration changes the discovery image's ignition config, with *ca-bundle.crt* written out to */etc/pki/ca-trust/source/anchors/domain.crt* and with *registries.conf* written out to */etc/containers/registries.conf*. The configuration also changes the *install-config.yaml* file used to install a new cluster, with the contents of *ca-bundle.crt* added to *additionalTrustBundle* and with the registries defined *registries.conf* added to *imageContentSources* as mirrors.
+
+1. To configure the mirror registry, first create and upload the ConfigMap containing the *ca-bundle.crt* and *registries.conf* keys.
 
 ``` bash
 cat <<EOF | kubectl create -f -
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: mirror-registry-ca
+  name: mirror-registry-config-map
   namespace: "assisted-installer"
   labels:
     app: assisted-service
@@ -244,15 +248,30 @@ data:
        mirror-by-digest-only = false
 
        [[registry.mirror]]
-       location = "bm-cluster-1-hyper.e2e.bos.redhat.com:5000/ocpmetal"
+       location = "mirror1.registry.corp.com:5000/ocpmetal"
 EOF
 ```
 
-   Note1: ConfigMap should be installed in the same namespace as the assisted-service-operator (ie. `assisted-installer`).
+**NOTE**
 
-   Note2: registry.conf supplied should use "mirror-by-digest-only = false" mode
+The ConfigMap should be installed in the same namespace as the assisted-service-operator (ie. `assisted-installer`).
 
-2. set the mirrorRegistryRef in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
+Registries defined in the *registries.conf* file should use "mirror-by-digest-only = false" mode.
+
+Registries defined in the *registries.conf* must be scoped by repository and not by registry. In the above example, *quay.io/ocpmetal* and *mirror1.registry.corp.com:5000/ocpmetal* are both scoped by the *ocpmetal* repository and this is a valid configuration. In the example below, removing the repository *ocpmetal* from location is an invalid configuration and will not pass openshift-installer validation:
+
+``` 
+# invalid configuration
+    [[registry]]
+       prefix = ""
+       location = "quay.io"
+       mirror-by-digest-only = false
+
+       [[registry.mirror]]
+       location = "mirror1.registry.corp.com:5000"
+```
+
+2. Then set the mirrorRegistryRef in the spec of AgentServiceConfig to the name of uploaded ConfigMap. Example:
 
 ``` bash
 cat <<EOF | kubectl apply -f -
@@ -262,7 +281,7 @@ metadata:
   name: agent
 spec:
   mirrorRegistryRef:
-    name: mirrorRegistyMap
+    name: mirror-registry-config-map
 EOF
 ```
 
