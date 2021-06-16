@@ -89,6 +89,9 @@ func VerifyVip(hosts []*models.Host, machineNetworkCidr string, vip string, vipN
 	if !mustExist && vip == "" {
 		return nil
 	}
+	if machineNetworkCidr == "" {
+		return errors.Errorf("%s <%s> cannot be set if Machine Network CIDR is empty", vipName, vip)
+	}
 	if !ipInCidr(vip, machineNetworkCidr) {
 		return errors.Errorf("%s <%s> does not belong to machine-network-cidr <%s>", vipName, vip, machineNetworkCidr)
 	}

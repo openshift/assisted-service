@@ -359,7 +359,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
+		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
 			Do(func(ctx context.Context, param installer.UpdateClusterParams) {
 				Expect(swag.StringValue(param.ClusterUpdateParams.HTTPProxy)).To(Equal("http://192.168.1.2"))
 				Expect(swag.StringValue(param.ClusterUpdateParams.AdditionalNtpSource)).To(Equal("foo.com,bar.com"))
@@ -429,7 +429,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
 
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
-		mockInstallerInternal.EXPECT().UpdateClusterInternal(gomock.Any(), gomock.Any()).
+		mockInstallerInternal.EXPECT().UpdateClusterNonInteractive(gomock.Any(), gomock.Any()).
 			Return(nil, errors.Errorf("failure")).Times(1)
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
