@@ -179,6 +179,50 @@ var _ = Describe("DownloadURLToTemporaryFile", func() {
 	})
 })
 
+var _ = Describe("UploadFromURLToPublicBucket", func() {
+	var (
+		ctx     = context.Background()
+		ctrl    *gomock.Controller
+		mockAPI *MockAPI
+		ts      *httptest.Server
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		mockAPI = NewMockAPI(ctrl)
+		ts = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			switch p := r.URL.Path; p {
+			case "/ok":
+				_, err := w.Write([]byte("ok"))
+				Expect(err).NotTo(HaveOccurred())
+			case "/notfound":
+				w.WriteHeader(http.StatusNotFound)
+			case "/servererror":
+				w.WriteHeader(http.StatusInternalServerError)
+			}
+		}))
+	})
+
+	AfterEach(func() {
+		ts.Close()
+	})
+
+	It("succeeds when the download and upload are successful", func() {
+		mockAPI.EXPECT().UploadStreamToPublicBucket(ctx, gomock.Any(), "myobject").Return(nil)
+		Expect(UploadFromURLToPublicBucket(ctx, "myobject", ts.URL+"/ok", mockAPI)).To(Succeed())
+	})
+
+	It("fails when the upload fails", func() {
+		mockAPI.EXPECT().UploadStreamToPublicBucket(ctx, gomock.Any(), "myobject").Return(errors.New("ERROR"))
+		Expect(UploadFromURLToPublicBucket(ctx, "myobject", ts.URL+"/ok", mockAPI)).NotTo(Succeed())
+	})
+
+	It("fails when the download fails", func() {
+		Expect(UploadFromURLToPublicBucket(ctx, "myobject", ts.URL+"/notfound", mockAPI)).NotTo(Succeed())
+		Expect(UploadFromURLToPublicBucket(ctx, "myobject", ts.URL+"/servererror", mockAPI)).NotTo(Succeed())
+	})
+})
+
 func getMockTemplatesVersion(version int) ([]byte, error) {
 	versionInBucket := &templatesVersion{
 		Version: version,

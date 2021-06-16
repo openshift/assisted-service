@@ -75,6 +75,9 @@ func UploadFromURLToPublicBucket(ctx context.Context, objectName, url string, ap
 	if err != nil {
 		return errors.Wrapf(err, "Failed fetching from URL %s", url)
 	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("Failed fetching from URL %s: Received %s", url, resp.Status)
+	}
 
 	err = api.UploadStreamToPublicBucket(ctx, resp.Body, objectName)
 	if err != nil {
