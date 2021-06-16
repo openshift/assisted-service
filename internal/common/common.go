@@ -45,12 +45,12 @@ ipv6.dhcp-duid=ll
 path=/etc/NetworkManager/system-connections-merged
 `
 
-// Configuration of the NM hostname mode in case of static network configuration
-// needed in order to prevent hostname update in bootstrap node, which may cause dns resolution
-// failure due to OCPBUGSM-26430
-const StaticNetworkHostnameConf = `
+// configuration of NM to disable handling of /etc/resolv.conf
+// used for configuration of bootstrap node during bootkube (before reboot)
+// and of masters after reboot
+const UnmanagedResolvConf = `
 [main]
-hostname-mode=none
+rc-manager=unmanaged
 `
 
 // NM configuration to be activated (set into discovery ignition) in case we want more logging for NM debugging purposes.

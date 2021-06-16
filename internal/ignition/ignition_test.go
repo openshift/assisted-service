@@ -125,12 +125,17 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		Expect(err1).NotTo(HaveOccurred())
 
 		var file *config_32_types.File
+		foundNMConfig := false
 		for i := range config.Storage.Files {
 			if isBMHFile(&config.Storage.Files[i]) {
 				file = &config.Storage.Files[i]
 			}
+			if config.Storage.Files[i].Node.Path == "/etc/NetworkManager/conf.d/99-kni.conf" {
+				foundNMConfig = true
+			}
 		}
 		bmh, _ = fileToBMH(file)
+		Expect(foundNMConfig).To(BeTrue(), "file /etc/NetworkManager/conf.d/99-kni.conf not present in bootstrap.ign")
 	})
 
 	Describe("update bootstrap.ign", func() {
@@ -1020,11 +1025,11 @@ var _ = Describe("IgnitionBuilder", func() {
 			Expect(report.IsFatal()).To(BeFalse())
 			count := 0
 			for _, f := range config.Storage.Files {
-				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") || strings.HasSuffix(f.Path, "02-hostname-mode.conf") {
+				if strings.HasSuffix(f.Path, "nmconnection") || strings.HasSuffix(f.Path, "mac_interface.ini") {
 					count += 1
 				}
 			}
-			Expect(count).Should(Equal(4))
+			Expect(count).Should(Equal(3))
 		})
 		It("Doesn't include static network config for minimal isos", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)

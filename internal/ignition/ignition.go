@@ -267,15 +267,6 @@ const discoveryIgnitionConfigFormat = `{
             "name": "root"
         },
         "contents": { "source": "data:text/plain;base64,{{.PreNetworkConfigScript}}"}
-    },
-    {
-      "overwrite": true,
-      "path": "/etc/NetworkManager/conf.d/02-hostname-mode.conf",
-      "mode": 420,
-      "user": {
-          "name": "root"
-      },
-      "contents": { "source": "data:,{{.StaticNMHostnameMode}}" }
     }{{end}}{{range .StaticNetworkConfig}},
     {
       "path": "{{.FilePath}}",
@@ -647,6 +638,10 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 	if swag.StringValue(g.cluster.HighAvailabilityMode) != models.ClusterHighAvailabilityModeNone {
 		setFileInIgnition(config, "/opt/openshift/assisted-install-bootstrap", "data:,", false, 420)
 	}
+
+	// add new Network Manager config file that disables handling of /etc/resolv.conf
+	setNMConfigration(config)
+
 	err = writeIgnitionFile(bootstrapPath, config)
 	if err != nil {
 		g.log.Error(err)
@@ -655,6 +650,11 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 	g.log.Infof("Updated file %s", bootstrapPath)
 
 	return nil
+}
+
+func setNMConfigration(config *config_latest_types.Config) {
+	fileContents := "data:text/plain;charset=utf-8;base64," + base64.StdEncoding.EncodeToString([]byte(common.UnmanagedResolvConf))
+	setFileInIgnition(config, "/etc/NetworkManager/conf.d/99-kni.conf", fileContents, false, 420)
 }
 
 func isBMHFile(file *config_latest_types.File) bool {
@@ -1316,7 +1316,6 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		}
 		ignitionParams["StaticNetworkConfig"] = filesList
 		ignitionParams["PreNetworkConfigScript"] = base64.StdEncoding.EncodeToString([]byte(constants.PreNetworkConfigScript))
-		ignitionParams["StaticNMHostnameMode"] = url.PathEscape(common.StaticNetworkHostnameConf)
 	}
 
 	if ib.mirrorRegistriesBuilder.IsMirrorRegistriesConfigured() {
