@@ -14,11 +14,17 @@ DISCONNECTED="${DISCONNECTED:-false}"
 function print_help() {
   ALL_FUNCS="from_community_operators|from_index_image|print_help"
   if [ "${DISCONNECTED}" == "true" ]; then
-    echo "Usage: DISCONNECTED=true LOCAL_REGISTRY=... AUTHFILE=... bash ${0} (${ALL_FUNCS})"
+    echo "Usage: DISCONNECTED=true LOCAL_REGISTRY=... AUTHFILE=... IRONIC_IMAGES_DIR=... MIRROR_BASE_URL=... bash ${0} (${ALL_FUNCS})"
   else
-    echo "Usage: bash ${0} (${ALL_FUNCS})"
+    echo "Usage: OPENSHIFT_VERSIONS=... bash ${0} (${ALL_FUNCS})"
   fi
 }
+
+if [ -z "${OPENSHIFT_VERSIONS:-}" ]; then
+  echo "You must provide OPENSHIFT_VERSIONS env-var."
+  print_help
+  exit 1
+fi
 
 if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE:-}" ]; then
   echo "On disconnected mode, you must provide AUTHFILE env-var."
@@ -28,6 +34,18 @@ fi
 
 if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY:-}" ]; then
   echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
+  print_help
+  exit 1
+fi
+
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${IRONIC_IMAGES_DIR:-}" ]; then
+  echo "On disconnected mode, you must provide IRONIC_IMAGES_DIR env-var."
+  print_help
+  exit 1
+fi
+
+if [ "${DISCONNECTED}" = "true" ] && [ -z "${MIRROR_BASE_URL:-}" ]; then
+  echo "On disconnected mode, you must provide MIRROR_BASE_URL env-var."
   print_help
   exit 1
 fi
@@ -176,6 +194,16 @@ function from_index_image() {
     catalog_source_name="mirror-catalog-for-assisted-service-operator"
     mirror_package "assisted-service-operator" \
         "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+
+    rhcos_image=$(echo ${OPENSHIFT_VERSIONS} | jq -r '.[].rhcos_image')
+    mirror_rhcos_image=$(mirror_file "${rhcos_image}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
+
+    rhcos_rootfs=$(echo ${OPENSHIFT_VERSIONS} | jq -r '.[].rhcos_rootfs')
+    mirror_rhcos_rootfs=$(mirror_file "${rhcos_rootfs}" "${IRONIC_IMAGES_DIR}" "${MIRROR_BASE_URL}")
+
+    OPENSHIFT_VERSIONS=$(echo ${OPENSHIFT_VERSIONS} |
+      jq ".[].rhcos_image=\"${mirror_rhcos_image}\" | .[].rhcos_rootfs=\"${mirror_rhcos_rootfs}\"")
+
   else
     catalog_source_name="assisted-service-operator-catalog"
     tee << EOCR >(oc apply -f -)
