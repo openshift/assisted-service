@@ -313,8 +313,8 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 	})
 
 	if infraEnv.Status.ISODownloadURL != imageInfo.DownloadURL {
-		infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
 		log.Infof("ISODownloadURL changed from %s to %s", imageInfo.DownloadURL, infraEnv.Status.ISODownloadURL)
+		infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
 	}
 
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
