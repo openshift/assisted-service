@@ -31,6 +31,7 @@ import (
 	"github.com/openshift/assisted-service/internal/constants"
 	"github.com/openshift/assisted-service/internal/dns"
 	"github.com/openshift/assisted-service/internal/events"
+	"github.com/openshift/assisted-service/internal/garbagecollector"
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host"
@@ -170,6 +171,7 @@ type bareMetalInventory struct {
 	hwValidator          hardware.Validator
 	installConfigBuilder installcfg.InstallConfigBuilder
 	staticNetworkConfig  staticnetworkconfig.StaticNetworkConfig
+	gcConfig             garbagecollector.Config
 }
 
 func NewBareMetalInventory(
@@ -197,6 +199,7 @@ func NewBareMetalInventory(
 	dnsApi dns.DNSApi,
 	installConfigBuilder installcfg.InstallConfigBuilder,
 	staticNetworkConfig staticnetworkconfig.StaticNetworkConfig,
+	gcConfig garbagecollector.Config,
 ) *bareMetalInventory {
 	return &bareMetalInventory{
 		db:                   db,
@@ -223,6 +226,7 @@ func NewBareMetalInventory(
 		hwValidator:          hwValidator,
 		installConfigBuilder: installConfigBuilder,
 		staticNetworkConfig:  staticNetworkConfig,
+		gcConfig:             gcConfig,
 	}
 }
 
@@ -1498,6 +1502,7 @@ func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ instal
 	body.ClusterNetworkCidr = b.Config.DefaultClusterNetworkCidr
 	body.ServiceNetworkCidr = b.Config.DefaultServiceNetworkCidr
 	body.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
+	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
 
 	return installer.NewGetClusterDefaultConfigOK().WithPayload(&body)
 }

@@ -40,19 +40,20 @@ const (
 )
 
 var Options struct {
-	DBHost               string        `envconfig:"DB_HOST"`
-	DBPort               string        `envconfig:"DB_PORT"`
-	AuthType             auth.AuthType `envconfig:"AUTH_TYPE"`
-	InventoryHost        string        `envconfig:"INVENTORY"`
-	TestToken            string        `envconfig:"TEST_TOKEN"`
-	TestTokenAdmin       string        `envconfig:"TEST_TOKEN_ADMIN"`
-	TestTokenUnallowed   string        `envconfig:"TEST_TOKEN_UNALLOWED"`
-	OCMHost              string        `envconfig:"OCM_HOST"`
-	DeployTarget         string        `envconfig:"DEPLOY_TARGET" default:"k8s"`
-	Storage              string        `envconfig:"STORAGE" default:""`
-	Namespace            string        `envconfig:"NAMESPACE" default:"assisted-installer"`
-	EnableKubeAPI        bool          `envconfig:"ENABLE_KUBE_API" default:"false"`
-	WithAMSSubscriptions bool          `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
+	DBHost                  string        `envconfig:"DB_HOST"`
+	DBPort                  string        `envconfig:"DB_PORT"`
+	AuthType                auth.AuthType `envconfig:"AUTH_TYPE"`
+	InventoryHost           string        `envconfig:"INVENTORY"`
+	TestToken               string        `envconfig:"TEST_TOKEN"`
+	TestTokenAdmin          string        `envconfig:"TEST_TOKEN_ADMIN"`
+	TestTokenUnallowed      string        `envconfig:"TEST_TOKEN_UNALLOWED"`
+	OCMHost                 string        `envconfig:"OCM_HOST"`
+	DeployTarget            string        `envconfig:"DEPLOY_TARGET" default:"k8s"`
+	Storage                 string        `envconfig:"STORAGE" default:""`
+	Namespace               string        `envconfig:"NAMESPACE" default:"assisted-installer"`
+	EnableKubeAPI           bool          `envconfig:"ENABLE_KUBE_API" default:"false"`
+	WithAMSSubscriptions    bool          `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
+	DeregisterInactiveAfter time.Duration `envconfig:"DELETED_INACTIVE_AFTER" default:"480h"` // 20d
 }
 
 func clientcfg(authInfo runtime.ClientAuthInfoWriter) client.Config {

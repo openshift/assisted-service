@@ -4532,6 +4532,8 @@ definitions:
         type: integer
         minimum: 1
         maximum: 32
+      inactive_deletion_hours:
+        type: integer
       service_network_cidr:
         type: string
         pattern: '^((25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)[\/]([1-9]|[1-2][0-9]|3[0-2]?)$'

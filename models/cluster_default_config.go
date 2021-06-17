@@ -26,6 +26,9 @@ type ClusterDefaultConfig struct {
 	// Minimum: 1
 	ClusterNetworkHostPrefix int64 `json:"cluster_network_host_prefix,omitempty"`
 
+	// inactive deletion hours
+	InactiveDeletionHours int64 `json:"inactive_deletion_hours,omitempty"`
+
 	// ntp source
 	NtpSource string `json:"ntp_source"`
 
