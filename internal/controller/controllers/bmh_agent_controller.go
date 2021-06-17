@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
@@ -68,6 +69,10 @@ const (
 	MACHINE_TYPE                        = "machine.openshift.io/cluster-api-machine-type"
 )
 
+var (
+	InfraEnvImageCooldownPeriod = 60 * time.Second
+)
+
 // reconcileResult is an interface that encapsulates the result of a Reconcile
 // call, as returned by the action corresponding to the current state.
 //
@@ -101,6 +106,26 @@ func (r reconcileComplete) Dirty() bool {
 
 func (r reconcileComplete) Stop(ctx context.Context) bool {
 	return r.stop || ctx.Err() != nil
+}
+
+type reconcileRequeue struct {
+	requeueAfter time.Duration
+}
+
+func (r reconcileRequeue) Result() (result reconcile.Result, err error) {
+	result = reconcile.Result{
+		Requeue:      true,
+		RequeueAfter: r.requeueAfter,
+	}
+	return result, err
+}
+
+func (r reconcileRequeue) Dirty() bool {
+	return false
+}
+
+func (r reconcileRequeue) Stop(ctx context.Context) bool {
+	return true
 }
 
 // reconcileError is a result indicating that an error occurred while attempting
@@ -428,26 +453,33 @@ func (r *BMACReconciler) reconcileAgentInventory(bmh *bmh_v1alpha1.BareMetalHost
 
 // Utility to verify whether a BMH should be reconciled based on the InfraEnv
 //
-// This function verifies three things:
+// This function verifies the following things:
 //
-// 1. InfraEnv existsD
+// 1. InfraEnv exists
 // 2. InfraEnv's ISODownloadURL exists
 // 3. The BMH.Spec.URL is the same to the InfraEnv's ISODownload URL
+// 4. The InfraEnv's ISO is at least 60 seconds old
 //
-// If the three checks above are true, then the reconcile won't happen
+// If all the checks above are true, then the reconcile won't happen
 // and the reconcileBMH function will return.
 //
 // Note that this function is also used to decide whether a BMH reconcile should be queued
 // or not. This will help queuing fewer reconciles when we know the BMH is not ready.
 //
-// The function returns 2 booleans:
+// The function returns 2 booleans, time.Duration and a string:
 //
 // 1. Should we proceed with the BMH's reconcile
 // 2. Should the full `Reconcile` stop as well
-func shouldReconcileBMH(bmh *bmh_v1alpha1.BareMetalHost, infraEnv *aiv1beta1.InfraEnv) (bool, bool) {
+// 3. If requeueing is needed, for how long should we back off
+// 4. If reconciling should not continue, a reason that will be printed in the log
+//
+// TODO: This function should return `reconcileResult` or some other interface suitable
+//       to contain multiple informations instead of a bunch of variables that are later on
+//       separately interpreted.
+func shouldReconcileBMH(bmh *bmh_v1alpha1.BareMetalHost, infraEnv *aiv1beta1.InfraEnv) (bool, bool, time.Duration, string) {
 	// Stop `Reconcile` if BMH does not have an InfraEnv.
 	if infraEnv == nil {
-		return false, false
+		return false, false, 0, "BMH does not have an InfraEnv"
 	}
 
 	// This is a separate check because an existing
@@ -455,16 +487,22 @@ func shouldReconcileBMH(bmh *bmh_v1alpha1.BareMetalHost, infraEnv *aiv1beta1.Inf
 	// global `Reconcile` function should also return
 	// as there is nothing left to do for it.
 	if infraEnv.Status.ISODownloadURL == "" {
-		return false, true
+		return false, true, 0, "InfraEnv corresponding to the BMH has no image URL available."
 	}
 
 	// The Image URL exists and InfraEnv's URL has not changed
 	// nothing else to do.
 	if bmh.Spec.Image != nil && bmh.Spec.Image.URL == infraEnv.Status.ISODownloadURL {
-		return false, false
+		return false, false, 0, "BMH and InfraEnv images are in sync. Nothing to update."
 	}
 
-	return true, false
+	// The image has been created sooner than the specified cooldown period
+	imageTime := infraEnv.Status.CreatedTime.Time.Add(InfraEnvImageCooldownPeriod)
+	if imageTime.After(time.Now()) {
+		return false, false, time.Until(imageTime), "InfraEnv image is too recent. Requeuing and retrying again soon."
+	}
+
+	return true, false, 0, ""
 }
 
 func (r *BMACReconciler) findInfraEnvForBMH(ctx context.Context, log logrus.FieldLogger, bmh *bmh_v1alpha1.BareMetalHost) (*aiv1beta1.InfraEnv, error) {
@@ -544,10 +582,14 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 		dirty = true
 	}
 
-	proceed, stopReconcileLoop := shouldReconcileBMH(bmh, infraEnv)
+	proceed, stopReconcileLoop, requeuePeriod, reason := shouldReconcileBMH(bmh, infraEnv)
 
 	if !proceed {
-		log.Infof("Stopping reconcileBMH: Either the InfraEnv image is not ready or there is nothing to update.")
+		if requeuePeriod != 0 {
+			log.Infof("Requeuing reconcileBMH: %s", reason)
+			return reconcileRequeue{requeueAfter: requeuePeriod}
+		}
+		log.Infof("Stopping reconcileBMH: %s", reason)
 		return reconcileComplete{dirty: dirty, stop: stopReconcileLoop}
 	}
 
@@ -556,6 +598,7 @@ func (r *BMACReconciler) reconcileBMH(ctx context.Context, log logrus.FieldLogge
 	// and, therefore, removed from Ironic's cache. The deprovision step is critical
 	// to guarantee that Ironic will fetch the latest version of the image.
 	if bmh.Status.Provisioning.State != bmh_v1alpha1.StateReady && bmh.Status.Provisioning.State != bmh_v1alpha1.StateAvailable {
+		log.Infof("Removing BMH image field to trigger Ironic image refresh")
 		bmh.Spec.Image = nil
 		return reconcileComplete{stop: true, dirty: true}
 	}
@@ -1082,7 +1125,7 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 		for i, bmh := range bmhs {
 
-			queue, _ := shouldReconcileBMH(bmh, infraEnv)
+			queue, _, _, _ := shouldReconcileBMH(bmh, infraEnv)
 			if !queue {
 				continue
 			}
