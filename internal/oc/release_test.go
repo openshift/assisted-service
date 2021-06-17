@@ -76,6 +76,22 @@ var _ = Describe("oc", func() {
 			Expect(err).ShouldNot(HaveOccurred())
 		})
 
+		It("mco image exists in cache", func() {
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mcoImageName, true, releaseImageMirror, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mcoImage, "", 0).Times(1)
+
+			mco, err := oc.GetMCOImage(log, releaseImage, releaseImageMirror, pullSecret)
+			Expect(mco).Should(Equal(mcoImage))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Fetch image again
+			mco, err = oc.GetMCOImage(log, releaseImage, releaseImageMirror, pullSecret)
+			Expect(mco).Should(Equal(mcoImage))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
 		It("mco image with no release image or mirror", func() {
 			mco, err := oc.GetMCOImage(log, "", "", pullSecret)
 			Expect(mco).Should(BeEmpty())
@@ -115,6 +131,22 @@ var _ = Describe("oc", func() {
 			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
 
 			mustGather, err := oc.GetMustGatherImage(log, releaseImage, releaseImageMirror, pullSecret)
+			Expect(mustGather).Should(Equal(mustGatherImage))
+			Expect(err).ShouldNot(HaveOccurred())
+		})
+
+		It("must-gather image exists in cache", func() {
+			command := fmt.Sprintf(templateGetImage+" --registry-config=%s",
+				mustGatherImageName, true, releaseImageMirror, tempFilePath)
+			args := splitStringToInterfacesArray(command)
+			mockExecuter.EXPECT().Execute(args[0], args[1:]...).Return(mustGatherImage, "", 0).Times(1)
+
+			mustGather, err := oc.GetMustGatherImage(log, releaseImage, releaseImageMirror, pullSecret)
+			Expect(mustGather).Should(Equal(mustGatherImage))
+			Expect(err).ShouldNot(HaveOccurred())
+
+			// Fetch image again
+			mustGather, err = oc.GetMustGatherImage(log, releaseImage, releaseImageMirror, pullSecret)
 			Expect(mustGather).Should(Equal(mustGatherImage))
 			Expect(err).ShouldNot(HaveOccurred())
 		})

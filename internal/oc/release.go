@@ -38,10 +38,13 @@ type Release interface {
 type release struct {
 	executer executer.Executer
 	config   Config
+
+	// A map for caching images (image name > release image URL > image)
+	imagesMap map[string]map[string]string
 }
 
 func NewRelease(executer executer.Executer, config Config) Release {
-	return &release{executer, config}
+	return &release{executer, config, make(map[string]map[string]string)}
 }
 
 const (
@@ -123,11 +126,23 @@ func (r *release) GetMajorMinorVersion(log logrus.FieldLogger, releaseImage stri
 }
 
 func (r *release) getImageFromRelease(log logrus.FieldLogger, imageName, releaseImage, pullSecret string, insecure bool) (string, error) {
+	// Fetch image URL from cache
+	if image, ok := r.imagesMap[imageName][releaseImage]; ok {
+		return image, nil
+	}
+
 	cmd := fmt.Sprintf(templateGetImage, imageName, insecure, releaseImage)
+
+	log.Infof("Fetching image from OCP release (%s)", cmd)
 	image, err := r.execute(log, pullSecret, cmd)
 	if err != nil {
 		return "", err
 	}
+
+	// Update image URL in cache
+	r.imagesMap[imageName] = make(map[string]string)
+	r.imagesMap[imageName][releaseImage] = image
+
 	return image, nil
 }
 
