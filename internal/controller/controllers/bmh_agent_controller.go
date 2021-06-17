@@ -834,6 +834,11 @@ func (r *BMACReconciler) findAgent(ctx context.Context, bmh *bmh_v1alpha1.BareMe
 // Only `BareMetalHost` resources that match one of the Agent's
 // MAC addresses will be returned.
 func (r *BMACReconciler) findBMHByAgent(ctx context.Context, agent *aiv1beta1.Agent) (*bmh_v1alpha1.BareMetalHost, error) {
+	log := logutil.FromContext(ctx, r.Log).WithFields(
+		logrus.Fields{
+			"agent": agent.Name,
+		})
+
 	bmhList := bmh_v1alpha1.BareMetalHostList{}
 	err := r.Client.List(ctx, &bmhList, client.InNamespace(agent.Namespace))
 	if err != nil {
@@ -847,6 +852,7 @@ func (r *BMACReconciler) findBMHByAgent(ctx context.Context, agent *aiv1beta1.Ag
 			}
 		}
 	}
+	log.Warn("Did not find BareMetalHost corresponding to the Agent")
 	return nil, nil
 }
 
