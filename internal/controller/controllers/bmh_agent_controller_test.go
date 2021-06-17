@@ -258,11 +258,16 @@ var _ = Describe("bmac reconcile", func() {
 		Context("with an existing infraEnv with ISODownloadURL", func() {
 			var infraEnv *v1beta1.InfraEnv
 			var isoImageURL string
+			var isoTimestamp metav1.Time
 
 			BeforeEach(func() {
 				isoImageURL = "http://buzz.lightyear.io/discovery-image.iso"
+				isoTimestamp = metav1.Time{Time: time.Now().Add(-10 * time.Hour)}
 				infraEnv = newInfraEnvImage("testInfraEnv", testNamespace, v1beta1.InfraEnvSpec{})
-				infraEnv.Status = v1beta1.InfraEnvStatus{ISODownloadURL: isoImageURL}
+				infraEnv.Status = v1beta1.InfraEnvStatus{
+					ISODownloadURL: isoImageURL,
+					CreatedTime:    &isoTimestamp,
+				}
 				Expect(c.Create(ctx, infraEnv)).To(BeNil())
 			})
 
@@ -338,6 +343,49 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(updatedHost.Spec.Online).To(Equal(true))
 				Expect(updatedHost.Spec.AutomatedCleaningMode).To(Equal(bmh_v1alpha1.CleaningModeDisabled))
+			})
+			It("should not reconcile BMH if the updated image has not been around longer than the grace period", func() {
+				// Reconcile with the original ISO
+				_ = bmhr.reconcileBMH(ctx, bmhr.Log, host)
+
+				// Generate a new ISO with the current timestamp
+				infraEnv.Status = v1beta1.InfraEnvStatus{
+					ISODownloadURL: isoImageURL + ".new",
+					CreatedTime:    &metav1.Time{Time: time.Now()},
+				}
+				Expect(c.Update(ctx, infraEnv)).To(BeNil())
+
+				// Should not reconcile because ISO is too recent.
+				// We expect the old URL to be still attached to the BMH.
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				Expect(result).To(BeAssignableToTypeOf(reconcileRequeue{}))
+				Expect(host.Spec.Image.URL).To(Equal(isoImageURL))
+			})
+			It("should not reconcile BMH if the initial image has not been around longer than the grace period", func() {
+				// Generate a new ISO with the current timestamp
+				infraEnv.Status = v1beta1.InfraEnvStatus{
+					ISODownloadURL: isoImageURL,
+					CreatedTime:    &metav1.Time{Time: time.Now()},
+				}
+				Expect(c.Update(ctx, infraEnv)).To(BeNil())
+
+				// There was no previous ISO attached, so the BMH should not have any URL.
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				Expect(result).To(BeAssignableToTypeOf(reconcileRequeue{}))
+				Expect(host.Spec.Image).To(BeNil())
+			})
+			It("should reconcile BMH if the image timestamp is old", func() {
+				infraEnv.Status = v1beta1.InfraEnvStatus{
+					ISODownloadURL: isoImageURL + ".new",
+					CreatedTime:    &metav1.Time{Time: time.Now().Add(-10 * time.Hour)},
+				}
+				Expect(c.Update(ctx, infraEnv)).To(BeNil())
+
+				// The ISO is old enough to pass through the filter, thus we expect the new
+				// URL to be attached to the BMH.
+				result := bmhr.reconcileBMH(ctx, bmhr.Log, host)
+				Expect(result).To(Equal(reconcileComplete{dirty: true, stop: true}))
+				Expect(host.Spec.Image.URL).To(Equal(isoImageURL + ".new"))
 			})
 		})
 	})
