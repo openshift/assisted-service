@@ -370,7 +370,7 @@ func (m *MetricsManager) ClusterHostInstallationCount(clusterID strfmt.UUID, ema
 func (m *MetricsManager) ClusterInstallationFinished(ctx context.Context, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	duration := time.Since(time.Time(installationStartedTime)).Seconds()
 	m.handler.AddMetricsEvent(ctx, clusterID, nil, models.EventSeverityInfo, "cluster.installation.results", time.Now(),
-		"duration", duration)
+		"duration", duration, "result", result)
 
 	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 	log := logutil.FromContext(ctx, logrus.New())
@@ -429,7 +429,7 @@ func (m *MetricsManager) ReportHostInstallationMetrics(ctx context.Context, clus
 			log.Infof("service Logic Host Installation Phase Seconds phase %s, vendor %s product %s disk %s result %s, duration %f",
 				string(previousProgress.CurrentStage), hwVendor, hwProduct, diskType, string(phaseResult), duration)
 			m.handler.AddMetricsEvent(ctx, clusterID, h.ID, models.EventSeverityInfo, "host.stage.duration", time.Now(),
-				"duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
+				"result", string(phaseResult), "duration", duration, "host_stage", string(previousProgress.CurrentStage), "vendor", hwVendor, "product", hwProduct, "disk_type", diskType, "host_role", roleStr)
 
 			//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 			m.serviceLogicHostInstallationPhaseSeconds.WithLabelValues(string(previousProgress.CurrentStage),
