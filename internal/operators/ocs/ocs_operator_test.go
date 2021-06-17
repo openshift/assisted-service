@@ -22,55 +22,69 @@ var _ = Describe("Ocs Operator", func() {
 		masterWithThreeDisk = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID3, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+				}})}
+		masterWithThreeDiskInstallationEligibleFalse = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 10 * conversions.GB, DriveType: "SSD", ID: diskID3, InstallationEligibility: models.DiskInstallationEligibility{Eligible: false}},
 				}})}
 		masterWithNoDisk      = &models.Host{Role: models.HostRoleMaster, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB})}
 		masterWithNoInventory = &models.Host{Role: models.HostRoleMaster}
 		masterWithOneDisk     = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1}}})}
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}}}})}
 		masterWithLessDiskSize = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
 				}})}
 		workerWithOneDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
 				}})}
 		workerWithTwoDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
 				}})}
 		workerWithThreeDisk = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "HDD", ID: diskID3, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+				}})}
+		workerWithThreeDiskInstallationEligibleFalse = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
+			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 10 * conversions.GB, DriveType: "HDD", ID: diskID3, InstallationEligibility: models.DiskInstallationEligibility{Eligible: false}},
 				}})}
 		workerWithNoDisk       = &models.Host{Role: models.HostRoleWorker, Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 64 * conversions.GiB})}
 		workerWithNoInventory  = &models.Host{Role: models.HostRoleWorker}
 		workerWithLessDiskSize = &models.Host{Role: models.HostRoleWorker, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
-					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 20 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
 				}})}
 		autoAssignHost = &models.Host{Role: models.HostRoleAutoAssign, InstallationDiskID: diskID1,
 			Inventory: Inventory(&InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
 				Disks: []*models.Disk{
-					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1},
-					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2},
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
 				}})}
 	)
 
@@ -92,6 +106,13 @@ var _ = Describe("Ocs Operator", func() {
 				}}},
 				masterWithThreeDisk,
 				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + 2*operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + 2*operator.config.OCSPerDiskRAMGiB)},
+			),
+			table.Entry("there are three masters, with disk not Installation eligible",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDiskInstallationEligibleFalse, masterWithNoDisk, masterWithOneDisk,
+				}}},
+				masterWithThreeDiskInstallationEligibleFalse,
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUCompactMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBCompactMode + operator.config.OCSPerDiskRAMGiB)},
 			),
 			table.Entry("no disk in one of the master",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
@@ -155,6 +176,13 @@ var _ = Describe("Ocs Operator", func() {
 				workerWithThreeDisk,
 				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode + 2*operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode + 2*operator.config.OCSPerDiskRAMGiB)},
 			),
+			table.Entry("there are 6 hosts, worker with three disk requirements and Disk not Installation Eligible",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDiskInstallationEligibleFalse, workerWithNoDisk,
+				}}},
+				workerWithThreeDiskInstallationEligibleFalse,
+				&models.ClusterHostRequirementsDetails{CPUCores: operator.config.OCSPerHostCPUStandardMode + operator.config.OCSPerDiskCPUCount, RAMMib: conversions.GibToMib(operator.config.OCSPerHostMemoryGiBStandardMode + operator.config.OCSPerDiskRAMGiB)},
+			),
 			table.Entry("there are 6 hosts, worker with two disk requirements",
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
@@ -203,6 +231,13 @@ var _ = Describe("Ocs Operator", func() {
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk,
 				}}},
 				masterWithThreeDisk,
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
+			),
+			table.Entry("there are three masters with disk not Installation Eligible",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDiskInstallationEligibleFalse, masterWithNoDisk, masterWithOneDisk,
+				}}},
+				masterWithThreeDiskInstallationEligibleFalse,
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
 			),
 			table.Entry("no disk in one of the master",
@@ -264,7 +299,14 @@ var _ = Describe("Ocs Operator", func() {
 				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
 					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDisk, workerWithNoDisk,
 				}}},
-				masterWithThreeDisk,
+				workerWithThreeDisk,
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
+			),
+			table.Entry("there are 6 hosts, master with disk not Installation Eligible",
+				&common.Cluster{Cluster: models.Cluster{Hosts: []*models.Host{
+					masterWithThreeDisk, masterWithNoDisk, masterWithOneDisk, workerWithTwoDisk, workerWithThreeDiskInstallationEligibleFalse, workerWithNoDisk,
+				}}},
+				workerWithThreeDiskInstallationEligibleFalse,
 				api.ValidationResult{Status: api.Success, ValidationId: operator.GetHostValidationID(), Reasons: []string{}},
 			),
 			table.Entry("there are 6 hosts, worker with two disk",
