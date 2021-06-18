@@ -1553,7 +1553,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
-		updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+		installProgress := models.HostStageDone
+		installInfo := "Great Success"
+		updateProgressWithInfo(*host.ID, *cluster.ID, installProgress, installInfo)
+
+		By("Verify Agent Progress Info")
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.Progress.ProgressInfo == installInfo &&
+				agent.Status.Progress.CurrentStage == installProgress
+		}, "30s", "10s").Should(BeTrue())
 
 		By("Check Agent Role and Bootstrap")
 		Eventually(func() bool {
