@@ -1,17 +1,18 @@
+
 # assisted-service
 
 ## Debug Setup
 
-To debug the application first set the `DEBUG` environment variable to any nonempty value
+To debug the application first set the `DEBUG_SERVICE` environment variable to any nonempty value
 
 ```shell
-export DEBUG=true
+export DEBUG_SERVICE=true
 ```
 
-The default remote debug port is 40000 but its configurable by setting the `DEBUG_PORT` env variable:
+The default remote debug port is 40000 but its configurable by setting the `DEBUG_SERVICE_PORT` env variable:
 
 ```shell
-export DEBUG_PORT=8765
+export DEBUG_SERVICE_PORT=8765
 ```
 
 Build the image and push to your local k8s:
@@ -41,7 +42,7 @@ You have two options to update the image:
         ```
 2. Build the image locally(Recommended)
     ```shell
-    unset DEBUG
+    unset DEBUG_SERVICE
     skipper make update-local-image
     ```
 
@@ -66,10 +67,3 @@ Compile the code with debug information and patch the image:
 ```shell
 skipper make update-debug-minimal
 ```
-
-
-
-
-
-
-
