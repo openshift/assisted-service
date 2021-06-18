@@ -6286,7 +6286,7 @@ var _ = Describe("AMS subscriptions", func() {
 				subStrings: []string{"Updated status of cluster", clusterName},
 			}, gomock.Any())
 
-			dummyDNSDomain := "dummy.com"
+			dummyDNSDomain := "dummy.test"
 			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 				ClusterID: *c.ID,
 				ClusterUpdateParams: &models.ClusterUpdateParams{
