@@ -14,9 +14,6 @@ func getOCSOperatorVersion() string {
 }
 
 func generateStorageClusterManifest(StorageClusterManifest string, ocsDiskCounts int64) ([]byte, error) {
-	// Disk counts are a multiple of 3
-	ocsDiskCounts /= 3
-
 	info := &storageInfo{OCSDisks: ocsDiskCounts}
 	tmpl, err := template.New("OcsStorageCluster").Parse(StorageClusterManifest)
 	if err != nil {
@@ -125,6 +122,7 @@ spec:
         values:
         - ""
   manageNodes: false
+  flexibleScaling: true
   resources:
     mds:
       limits:
@@ -190,7 +188,7 @@ spec:
               topologyKey: kubernetes.io/hostname
             weight: 100
       portable: false
-      replica: 3
+      replica: 1
       resources:
         limits:
           cpu: "2"
@@ -220,6 +218,7 @@ spec:
         - ""
 
   manageNodes: false
+  flexibleScaling: true
   monDataDirHostPath: /var/lib/rook
 
   storageDeviceSets:
@@ -285,5 +284,5 @@ spec:
 
     portable: false
 
-    replica: 3
+    replica: 1
 `
