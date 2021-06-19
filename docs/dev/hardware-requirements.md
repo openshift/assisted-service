@@ -9,13 +9,17 @@ For example:
     "cpu_cores": 4,
     "ram_mib": 16384,
     "disk_size_gb": 120,
-    "installation_disk_speed_threshold_ms": 10
+    "installation_disk_speed_threshold_ms": 10,
+    "network_latency_threshold_ms": 100,
+    "packet_loss_percentage":0
   },
   "worker": {
     "cpu_cores": 2,
     "ram_mib": 8192,
     "disk_size_gb": 120,
-    "installation_disk_speed_threshold_ms": 10
+    "installation_disk_speed_threshold_ms": 10,
+    "network_latency_threshold_ms": 1000,
+    "packet_loss_percentage":10
   },
   "sno": {
     "cpu_cores": 8,
@@ -30,13 +34,17 @@ For example:
     "cpu_cores": 8,
     "ram_mib": 32768,
     "disk_size_gb": 150,
-    "installation_disk_speed_threshold_ms": 10
+    "installation_disk_speed_threshold_ms": 10,
+    "network_latency_threshold_ms":100,
+    "packet_loss_percentage":0
   },
   "worker": {
     "cpu_cores": 4,
     "ram_mib": 16384,
     "disk_size_gb": 150,
-    "installation_disk_speed_threshold_ms": 10
+    "installation_disk_speed_threshold_ms": 10,
+    "network_latency_threshold_ms":1000,
+    "packet_loss_percentage":10
   },
   "sno": {
     "cpu_cores": 8,
