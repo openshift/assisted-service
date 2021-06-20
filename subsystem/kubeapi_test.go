@@ -1530,7 +1530,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
+		labels := map[string]string{"foo": "bar", "Alice": "Bob"}
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		infraEnvSpec.AgentLabels = labels
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		// Add space suffix to SSHPublicKey to validate proper install
 		sshPublicKeySuffixSpace := fmt.Sprintf("%s ", aciSNOSpec.SSHPublicKey)
@@ -1575,6 +1577,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				agent.Status.NtpSources[0].SourceState == models.SourceStateUnreachable
 
 		}, "30s", "10s").Should(BeTrue())
+
+		By("Verify Agent labels")
+		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
+		Eventually(func() map[string]string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.ObjectMeta.Labels
+		}, "30s", "1s").Should(Equal(labels))
 
 		By("Approve Agent")
 		Eventually(func() error {
