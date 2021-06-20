@@ -110,6 +110,7 @@ type InfraEnvStatus struct {
 	// ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the
 	// configuration from this InfraEnv.
 	ISODownloadURL string                   `json:"isoDownloadURL,omitempty"`
+	CreatedTime    *metav1.Time             `json:"createdTime,omitempty"`
 	Conditions     []conditionsv1.Condition `json:"conditions,omitempty"`
 }
 
