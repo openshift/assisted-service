@@ -137,8 +137,10 @@ type HostNTPSources struct {
 
 // AgentStatus defines the observed state of Agent
 type AgentStatus struct {
-	Hostname   string                   `json:"hostname,omitempty"`
-	Bootstrap  bool                     `json:"bootstrap,omitempty"`
+	Hostname  string `json:"hostname,omitempty"`
+	Bootstrap bool   `json:"bootstrap,omitempty"`
+	// +optional
+	Role       models.HostRole          `json:"role" protobuf:"bytes,1,opt,name=role,casttype=HostRole,omitempty"`
 	Inventory  HostInventory            `json:"inventory,omitempty"`
 	Progress   HostProgressInfo         `json:"progress,omitempty"`
 	NtpSources []HostNTPSources         `json:"ntpSources,omitempty"`

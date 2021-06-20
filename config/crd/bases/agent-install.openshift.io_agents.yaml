@@ -310,6 +310,9 @@ spec:
                     description: 'Name in REST API: stage_updated_at'
                     type: string
                 type: object
+              role:
+                description: "HostRole host role \n swagger:model host-role"
+                type: string
             type: object
         type: object
     served: true

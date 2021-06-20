@@ -182,6 +182,11 @@ func (r *AgentReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (
 		return r.updateStatus(ctx, log, agent, host, &clusterId, err, true)
 	}
 
+	err = r.updateNtpSources(log, host, agent)
+	if err != nil {
+		return r.updateStatus(ctx, log, agent, host, &clusterId, err, true)
+	}
+
 	return r.updateStatus(ctx, log, agent, host, &clusterId, nil, false)
 }
 
@@ -250,6 +255,8 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 	specSynced(agent, syncErr, internal)
 
 	if h != nil && h.Status != nil {
+		agent.Status.Bootstrap = h.Bootstrap
+		agent.Status.Role = h.Role
 		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
 		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
 		status := *h.Status
@@ -541,6 +548,27 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 		Reason:  reason,
 		Message: msg,
 	})
+}
+
+func (r *AgentReconciler) updateNtpSources(log logrus.FieldLogger, host *models.Host, agent *aiv1beta1.Agent) error {
+	if host.NtpSources == "" {
+		log.Debugf("Skip update NTP Sources: Host %s NTP sources not set", agent.Name)
+		return nil
+	}
+	var ntpSources []*models.NtpSource
+	if err := json.Unmarshal([]byte(host.NtpSources), &ntpSources); err != nil {
+		log.WithError(err).Errorf("Failed to unmarshal NTP Sources %s:", host.NtpSources)
+		return err
+	}
+	if ntpSources != nil {
+		ntps := make([]aiv1beta1.HostNTPSources, len(ntpSources))
+		agent.Status.NtpSources = ntps
+		for i, ntp := range ntpSources {
+			ntps[i].SourceName = ntp.SourceName
+			ntps[i].SourceState = ntp.SourceState
+		}
+	}
+	return nil
 }
 
 func (r *AgentReconciler) updateInventory(log logrus.FieldLogger, host *models.Host, agent *aiv1beta1.Agent) error {

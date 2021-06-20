@@ -1441,6 +1441,18 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").ShouldNot(Equal(""))
 
+		By("Check NTP Source")
+		generateNTPPostStepReply(ctx, host, []*models.NtpSource{
+			{SourceName: common.TestNTPSourceSynced.SourceName, SourceState: models.SourceStateUnreachable},
+		})
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.NtpSources != nil &&
+				agent.Status.NtpSources[0].SourceName == common.TestNTPSourceSynced.SourceName &&
+				agent.Status.NtpSources[0].SourceState == models.SourceStateUnreachable
+
+		}, "30s", "10s").Should(BeTrue())
+
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -1468,6 +1480,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "1m", "2s").Should(BeTrue())
 
 		updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+
+		By("Check Agent Role and Bootstrap")
+		Eventually(func() bool {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.Bootstrap && agent.Status.Role == models.HostRoleMaster
+		}, "30s", "10s").Should(BeTrue())
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
