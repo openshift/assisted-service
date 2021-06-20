@@ -125,9 +125,9 @@ type HostProgressInfo struct {
 	CurrentStage models.HostStage `json:"currentStage,omitempty"`
 	ProgressInfo string           `json:"progressInfo,omitempty"`
 	// Name in REST API: stage_started_at
-	StageStartTime string `json:"stageStartTime,omitempty"`
+	StageStartTime *metav1.Time `json:"stageStartTime,omitempty"`
 	// Name in REST API: stage_updated_at
-	StageUpdateTime string `json:"stageUpdateTime,omitempty"`
+	StageUpdateTime *metav1.Time `json:"stageUpdateTime,omitempty"`
 }
 
 type HostNTPSources struct {

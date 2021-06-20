@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -259,6 +260,14 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 		agent.Status.Role = h.Role
 		agent.Status.DebugInfo.State = swag.StringValue(h.Status)
 		agent.Status.DebugInfo.StateInfo = swag.StringValue(h.StatusInfo)
+		if h.Progress != nil && h.Progress.CurrentStage != "" {
+			agent.Status.Progress.CurrentStage = h.Progress.CurrentStage
+			agent.Status.Progress.ProgressInfo = h.Progress.ProgressInfo
+			stageStartTime := metav1.NewTime(time.Time(h.Progress.StageStartedAt))
+			agent.Status.Progress.StageStartTime = &stageStartTime
+			stageUpdateTime := metav1.NewTime(time.Time(h.Progress.StageUpdatedAt))
+			agent.Status.Progress.StageUpdateTime = &stageUpdateTime
+		}
 		status := *h.Status
 		if clusterId != nil {
 			err := r.populateEventsURL(log, agent, *clusterId)
