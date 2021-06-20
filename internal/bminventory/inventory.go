@@ -133,7 +133,7 @@ type InstallerInternals interface {
 	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
 	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
-	DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error)
+	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
@@ -3413,38 +3413,38 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 }
 
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
+	respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
+}
+
+func (b *bareMetalInventory) DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, 0, err
 	}
 
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName))
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s from cluster: %s", params.FileName, params.ClusterID.String())
-		return common.GenerateErrorResponder(err)
+		return nil, 0, common.NewApiError(http.StatusConflict, err)
 	}
 
-	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
+	return respBody, contentLength, nil
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	respBody, contentLength, err := b.DownloadClusterKubeconfigInternal(ctx, params)
-	if err != nil {
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
-}
-
-func (b *bareMetalInventory) DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error) {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
-		return nil, 0, err
-	}
-
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
 	if err != nil {
-		return nil, 0, common.NewApiError(http.StatusConflict, err)
+		return common.NewApiError(http.StatusConflict, err)
 	}
-	return respBody, contentLength, nil
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
