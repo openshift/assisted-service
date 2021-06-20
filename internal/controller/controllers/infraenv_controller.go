@@ -345,7 +345,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		err = nil
 		Requeue = true
 		RequeueAfter = defaultRequeueAfterPerRecoverableError
-		log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.ClusterName)
+		log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.Spec.ClusterRef.Name)
 		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
 			Type:    aiv1beta1.ImageCreatedCondition,
 			Status:  corev1.ConditionTrue,
