@@ -1271,8 +1271,13 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 	if cfg.InstallRHCa {
 		rhCa = url.PathEscape(RedhatRootCA)
 	}
+	userSshKey, err := getUserSSHKey(cluster.ImageInfo.SSHPublicKey)
+	if err != nil {
+		ib.log.WithError(err).Errorln("Unable to build user SSH public key JSON")
+		return "", err
+	}
 	var ignitionParams = map[string]interface{}{
-		"userSshKey":           getUserSSHKey(cluster.ImageInfo.SSHPublicKey),
+		"userSshKey":           userSshKey,
 		"AgentDockerImg":       cfg.AgentDockerImg,
 		"ServiceBaseURL":       strings.TrimSpace(cfg.ServiceBaseURL),
 		"clusterId":            cluster.ID.String(),
@@ -1388,16 +1393,34 @@ func QuoteSshPublicKeys(sshPublicKeys string) string {
 	return strings.ReplaceAll(sshPublicKeys, "\n", `", "`)
 }
 
-func getUserSSHKey(sshKey string) string {
-	if sshKey == "" {
-		return ""
+func getUserSSHKey(sshKey string) (string, error) {
+	keys := buildUserSshKeysSlice(sshKey)
+	if len(keys) == 0 {
+		return "", nil
 	}
-	return fmt.Sprintf(`{
-        "name": "core",
-        "passwordHash": "!",
-        "sshAuthorizedKeys": [
-        "%s"],
-        "groups": [ "sudo" ]}`, QuoteSshPublicKeys(sshKey))
+	userAuthBlock := make(map[string]interface{})
+	userAuthBlock["name"] = "core"
+	userAuthBlock["passwordHash"] = "!"
+	userAuthBlock["sshAuthorizedKeys"] = keys
+	userAuthBlock["groups"] = [1]string{"sudo"}
+	blockByte, err := json.Marshal(userAuthBlock)
+	if err != nil {
+		return "", fmt.Errorf("failed to build user ssh key block: %w", err)
+	}
+	return string(blockByte), nil
+}
+
+func buildUserSshKeysSlice(sshKey string) []string {
+	keys := strings.Split(sshKey, "\n")
+	validKeys := []string{}
+	// filter only valid non empty keys
+	for i := range keys {
+		keys[i] = strings.TrimSpace(keys[i])
+		if keys[i] != "" {
+			validKeys = append(validKeys, keys[i])
+		}
+	}
+	return validKeys
 }
 
 func proxySettingsForIgnition(httpProxy, httpsProxy, noProxy string) (string, error) {
