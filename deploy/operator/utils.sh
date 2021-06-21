@@ -5,13 +5,8 @@ set -o errexit
 function wait_for_crd() {
     crd="$1"
     namespace="${2:-}"
-    echo "Waiting for CRD (${crd}) on namespace (${namespace}) to be defined..."
-    for i in {1..40}; do
-        oc get "crd/${crd}" -n "${namespace}" && break || sleep 10
-    done
 
-    echo "Waiting for CRD (${crd}) on namespace (${namespace}) to become ready..."
-    oc wait --for condition=established --timeout=60s "crd/${crd}" -n "${namespace}" || return 1
+    wait_for_condition "crd/${crd}" "Established" "60s" "${namespace}"
 }
 
 function wait_for_operator() {
@@ -40,13 +35,7 @@ function wait_for_pod() {
     namespace="${2:-}"
     selector="${3:-}"
 
-    echo "Waiting for pod (${pod}) on namespace (${namespace}) with labels (${selector}) to be created..."
-    for i in {1..40}; do
-        oc get pod --selector=${selector} --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
-    done
-
-    echo "Waiting for pod (${pod}) on namespace (${namespace}) with labels (${selector}) to become ready..."
-    oc wait -n "$namespace" --for=condition=Ready pod --selector "$selector" --timeout=20m
+    wait_for_condition "pod" "Ready" "20m" "${namespace}" "${selector}"
 }
 
 function hash() {
@@ -60,4 +49,33 @@ function disk_to_wwn() {
     # hardcoded 0 and afterwards 15 bytes of a digested hash from the original
     # disk name.
     echo "0x0$(hash ${1} 15)"
+}
+
+function wait_for_condition() {
+    object="$1"
+    condition="$2"
+    timeout="$3"
+    namespace="${4:-}"
+    selector="${5:-}"
+
+    echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to be created..."
+    for i in {1..40}; do
+        oc get ${object} --selector="${selector}" --namespace=${namespace} |& grep -ivE "(no resources found|not found)" && break || sleep 10
+    done
+
+    echo "Waiting for (${object}) on namespace (${namespace}) with labels (${selector}) to become (${condition})..."
+    oc wait -n "${namespace}" --for=condition=${condition} --selector "${selector}" ${object} --timeout=${timeout}
+}
+
+function wait_for_object_amount() {
+    object="$1"
+    amount="$2"
+    interval="$3"
+    namespace="${4:-}"
+
+    until [ $(oc get ${object} -n "${namespace}" --no-headers | wc -l) -eq ${amount} ]; do
+        echo $(oc get ${object} -n "${namespace}" --no-headers | wc -l)
+        sleep ${interval}
+    done
+    echo "done" $(oc get ${object} -n "${namespace}" --no-headers | wc -l)
 }

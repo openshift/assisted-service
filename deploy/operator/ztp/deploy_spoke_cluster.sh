@@ -1,3 +1,8 @@
+#!/usr/bin/env bash
+
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source ${__dir}/../utils.sh
+
 export ASSISTED_NAMESPACE="${ASSISTED_NAMESPACE:-assisted-installer}"
 export ASSISTED_CLUSTER_NAME="${ASSISTED_CLUSTER_NAME:-assisted-test-cluster}"
 export DS_OPENSHIFT_VERSION="${DS_OPENSHIFT_VERSION:-openshift-v4.8.0}"
@@ -19,7 +24,7 @@ set -o xtrace
 
 echo "Extract information about extra worker nodes..."
 config=$(jq --raw-output '.[] | .name + " " + .ports[0].address + " " + .driver_info.username + " " + .driver_info.password + " " + .driver_info.address' "${EXTRA_BAREMETALHOSTS_FILE}")
-IFS=" " read BMH_NAME MAC_ADDRESS username password ADDRESS <<< "${config}"
+IFS=" " read BMH_NAME MAC_ADDRESS username password ADDRESS <<<"${config}"
 ENCODED_USERNAME=$(echo -n "${username}" | base64)
 ENCODED_PASSWORD=$(echo -n "${password}" | base64)
 
@@ -37,18 +42,9 @@ oc create -f generated/agentClusterInstall.yaml
 oc create -f generated/baremetalHost.yaml
 
 echo "Waiting until at least ${CONTROL_PLANE_COUNT} agents are available..."
-agents=0
-while (( agents < CONTROL_PLANE_COUNT )); do
-  agents=$(oc get agents -n "${ASSISTED_NAMESPACE}" --output json | jq -j '.items | length')
-  sleep 10
-done
+export -f wait_for_object_amount
+timeout 10m bash -c "wait_for_object_amount agent ${CONTROL_PLANE_COUNT} 10 ${ASSISTED_NAMESPACE}"
 echo "All ${CONTROL_PLANE_COUNT} agents have joined!"
 
-echo "Waiting until cluster is installed..."
-installed=False
-while [ "${installed}" != "True" ]; do
-  installed=$(oc get agentclusterinstall -n "${ASSISTED_NAMESPACE}" -o json | \
-                jq -r '.items[].status.conditions[] | select(.type=="Completed") | .status')
-  sleep 10
-done
+wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${ASSISTED_NAMESPACE}"
 echo "Cluster has been installed successfully!"
