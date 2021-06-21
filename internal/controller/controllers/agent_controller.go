@@ -217,7 +217,7 @@ func (r *AgentReconciler) deregisterHostIfNeeded(ctx context.Context, log logrus
 		return reply, err
 	}
 
-	h, err := r.Installer.GetHostById(key.Name) // TODO: Change implementation to GetHostByKubeKey after MGMT-6006
+	h, err := r.Installer.GetHostByKubeKey(key)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// return if from any reason host is already deleted from db (or never existed)
