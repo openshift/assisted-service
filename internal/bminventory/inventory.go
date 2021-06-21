@@ -3043,7 +3043,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 	}
 
 	if exitCode == 0 {
-		b.metricApi.DiskSyncDuration(h.ClusterID, *h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+		b.metricApi.DiskSyncDuration(*h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 
 		thresholdMs, err := b.getInstallationDiskSpeedThresholdMs(ctx, h)
 		if err != nil {

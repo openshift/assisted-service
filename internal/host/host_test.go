@@ -1966,7 +1966,7 @@ var _ = Describe("UpdateImageStatus", func() {
 				}
 
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, &hostId, models.EventSeverityInfo, eventMsg, gomock.Any()).Times(1)
-				mockMetric.EXPECT().ImagePullStatus(clusterId, hostId, expectedImage.Name, string(expectedImage.Result), expectedImage.DownloadRate).Times(1)
+				mockMetric.EXPECT().ImagePullStatus(hostId, expectedImage.Name, string(expectedImage.Result), expectedImage.DownloadRate).Times(1)
 			} else {
 				expectedImage.DownloadRate = t.originalImageStatuses[common.TestDefaultConfig.ImageName].DownloadRate
 				expectedImage.SizeBytes = t.originalImageStatuses[common.TestDefaultConfig.ImageName].SizeBytes
@@ -2553,7 +2553,7 @@ var _ = Describe("ResetHostValidation", func() {
 		m = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil)
 		h = registerTestHost(strfmt.UUID(uuid.New().String()))
 		mockHwValidator.EXPECT().GetHostInstallationPath(gomock.Any()).Return("/dev/sda").AnyTimes()
-		mockMetric.EXPECT().ImagePullStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockMetric.EXPECT().ImagePullStatus(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 		mockEvents.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
 	})
 

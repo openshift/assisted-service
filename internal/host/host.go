@@ -710,7 +710,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 	} else {
 		common.SetImageStatus(hostImageStatuses, newImageStatus)
 		m.log.Infof("Adding new image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
-		m.metricApi.ImagePullStatus(h.ClusterID, *h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
+		m.metricApi.ImagePullStatus(*h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
 
 		eventInfo := fmt.Sprintf("Host %s: New image status %s. result: %s.",
 			hostutil.GetHostnameForMsg(h), newImageStatus.Name, newImageStatus.Result)
