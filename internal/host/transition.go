@@ -29,7 +29,7 @@ type transitionHandler struct {
 	eventsHandler events.Handler
 }
 
-var resetFields = [...]interface{}{"inventory", "", "bootstrap", false, "ntp_sources", ""}
+var resetFields = [...]interface{}{"inventory", "", "bootstrap", false}
 var resetLogsField = []interface{}{"logs_info", "", "logs_started_at", strfmt.DateTime(time.Time{}), "logs_collected_at", strfmt.DateTime(time.Time{})}
 
 ////////////////////////////////////////////////////////////////////////////
@@ -60,7 +60,7 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 	if _, err := common.GetHostFromDB(params.db, hostParam.ClusterID.String(), hostParam.ID.String()); err == nil {
 		// The reason for the double register is unknown (HW might have changed) -
 		// so we reset the hw info and progress, and start the discovery process again.
-		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion)
+		extra := append(resetFields[:], "discovery_agent_version", params.discoveryAgentVersion, "ntp_sources", "")
 		var dbHost *common.Host
 		if dbHost, err = hostutil.UpdateHostProgress(params.ctx, log, params.db, th.eventsHandler, hostParam.ClusterID, *hostParam.ID, sHost.srcState,
 			swag.StringValue(hostParam.Status), statusInfoDiscovering, hostParam.Progress.CurrentStage, "", "", extra...); err != nil {

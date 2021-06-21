@@ -1050,7 +1050,7 @@ var _ = Describe("Enable", func() {
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
 			Expect(h.Inventory).Should(BeEmpty())
 			Expect(h.Bootstrap).Should(BeFalse())
-			Expect(h.NtpSources).Should(BeEmpty())
+			Expect(h.NtpSources).ShouldNot(BeEmpty())
 		}
 
 		failure := func(reply error) {
