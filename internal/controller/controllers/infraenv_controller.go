@@ -342,24 +342,26 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 	if currentCondition := conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition); currentCondition != nil {
 		currentReason = currentCondition.Reason
 	}
-	if imageBeingCreated(err) && currentReason != aiv1beta1.ImageCreationErrorReason { // Not an actual error, just an image generation in progress.
-		err = nil
+	if imageBeingCreated(err) {
 		Requeue = true
 		RequeueAfter = defaultRequeueAfterPerRecoverableError
-		log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.Spec.ClusterRef.Name)
-		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ImageCreatedCondition,
-			Status:  corev1.ConditionTrue,
-			Reason:  aiv1beta1.ImageCreatedReason,
-			Message: aiv1beta1.ImageStateCreated,
-		})
+		err = nil                                                // clear up the error so it will requeue with RequeueAfter we set
+		if currentReason != aiv1beta1.ImageCreationErrorReason { // Not an actual error, just an image generation in progress.
+			log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.Spec.ClusterRef.Name)
+			conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  aiv1beta1.ImageCreatedReason,
+				Message: aiv1beta1.ImageStateCreated,
+			})
+		}
 	} else { // Actual errors
 		log.WithError(err).Error("infraEnv reconcile failed")
-		if isClientError(err) {
+		if isClientError(err) { // errors it can't recover from
 			Requeue = false
 			errMsg = ": " + err.Error()
 			err = nil // clear the error, to avoid requeue.
-		} else {
+		} else { // errors it may recover from
 			Requeue = true
 			RequeueAfter = defaultRequeueAfterPerRecoverableError
 			errMsg = ": internal error"
