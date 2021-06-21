@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"strings"
 	"time"
 
@@ -677,6 +678,10 @@ func (r *ClusterDeploymentsReconciler) updateInstallConfigOverrides(ctx context.
 			InstallConfigParams: cluster.InstallConfigOverrides,
 		})
 		if err != nil {
+			if IsUserError(err) {
+				apiErr := errors.Wrapf(err, "Failed to parse '%s' annotation", InstallConfigOverrides)
+				return common.NewApiError(http.StatusBadRequest, apiErr)
+			}
 			return err
 		}
 		log.Infof("Updated InstallConfig overrides on clusterInstall %s/%s", clusterInstall.Namespace, clusterInstall.Name)
