@@ -295,6 +295,13 @@ func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.Namespa
 	return agent
 }
 
+func getClusterImageSetCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *hivev1.ClusterImageSet {
+	clusterImageSet := &hivev1.ClusterImageSet{}
+	err := client.Get(ctx, key, clusterImageSet)
+	Expect(err).To(BeNil())
+	return clusterImageSet
+}
+
 func getBmhCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *bmhv1alpha1.BareMetalHost {
 	bmh := &bmhv1alpha1.BareMetalHost{}
 	err := client.Get(ctx, key, bmh)
@@ -658,6 +665,59 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Consistently(func() string {
 			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
 		}, "10s", "2s").Should(Equal(firstURL))
+	})
+
+	It("verify InfraEnv image regenerated - ACI recreated", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Deploy InfraEnv")
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "15s", "5s").Should(Not(BeEmpty()))
+
+		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
+		firstURL := infraEnv.Status.ISODownloadURL
+		firstCreatedAt := infraEnv.Status.CreatedTime
+
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+
+		imageSetKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      aciSpec.ImageSetRef.Name,
+		}
+
+		By("Delete AgentClusterInstall")
+		err := kubeClient.Delete(ctx, getAgentClusterInstallCRD(ctx, kubeClient, installkey))
+		Expect(err).To(BeNil())
+		err = kubeClient.Delete(ctx, getClusterImageSetCRD(ctx, kubeClient, imageSetKey))
+		Expect(err).To(BeNil())
+
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+
+		By("Create AgentClusterInstall")
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Verify InfraEnv Status ISODownloadURL has changed")
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "60s", "2s").ShouldNot(Equal(firstURL))
+
+		By("Verify InfraEnv Status CreatedTime has changed")
+		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).ShouldNot(Equal(firstCreatedAt))
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {

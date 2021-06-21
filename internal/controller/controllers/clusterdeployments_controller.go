@@ -768,6 +768,8 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	clusterDeployment *hivev1.ClusterDeployment,
 	clusterInstall *hiveext.AgentClusterInstall) (ctrl.Result, error) {
 
+	var infraEnv *aiv1beta1.InfraEnv
+
 	log.Infof("Creating a new cluster %s %s", clusterDeployment.Name, clusterDeployment.Namespace)
 	spec := clusterDeployment.Spec
 
@@ -818,6 +820,16 @@ func (r *ClusterDeploymentsReconciler) createNewCluster(
 	c, err := r.Installer.RegisterClusterInternal(ctx, &key, installer.RegisterClusterParams{
 		NewClusterParams: clusterParams,
 	})
+	if err == nil { // Cluster registration succeeded
+		infraEnv, err = getInfraEnvByClusterDeployment(ctx, log, r.Client, clusterDeployment.Name, clusterDeployment.Namespace)
+		if err != nil {
+			log.Errorf("failed to search for infraEnv to notify, for clusterDeployment %s", clusterDeployment.Name)
+		} else if infraEnv != nil { // infraEnv exists for that clusterDeployment
+			log.Infof("Notify that infraEnv %s should re-generate the image for clusterDeployment %s",
+				infraEnv.Name, clusterDeployment.Name)
+			r.CRDEventsHandler.NotifyInfraEnvUpdates(infraEnv.Name, infraEnv.Namespace)
+		}
+	}
 
 	return r.updateStatus(ctx, log, clusterInstall, c, err)
 }
