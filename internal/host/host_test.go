@@ -30,6 +30,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var (
@@ -2650,4 +2651,60 @@ var _ = Describe("Disabled Host Validation", func() {
 		Expect(err.Error()).To(Equal("envconfig.Process: assigning MYAPP_DISABLED_HOST_VALIDATIONS to DisabledHostvalidations: converting 'validation-1,,' to type host.DisabledHostValidations. details: empty host validation ID found in 'validation-1,,'"))
 	})
 
+})
+
+var _ = Describe("Get host by Kube key", func() {
+	var (
+		state            API
+		ctrl             *gomock.Controller
+		db               *gorm.DB
+		key              types.NamespacedName
+		kubeKeyNamespace = "test-kube-namespace"
+		dbName           string
+		mockEvents       *events.MockHandler
+		mockHwValidator  *hardware.MockValidator
+		validatorCfg     *hardware.ValidatorCfg
+		id               strfmt.UUID
+	)
+
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		ctrl = gomock.NewController(GinkgoT())
+		db, dbName = common.PrepareTestDB()
+		mockEvents = events.NewMockHandler(ctrl)
+		mockHwValidator = hardware.NewMockValidator(ctrl)
+		validatorCfg = createValidatorCfg()
+		mockMetric := metrics.NewMockAPI(ctrl)
+		db, dbName = common.PrepareTestDB()
+		state = NewManager(common.GetTestLog(), db, mockEvents, mockHwValidator, nil, validatorCfg, mockMetric, defaultConfig, nil, nil)
+		id = strfmt.UUID(uuid.New().String())
+		key = types.NamespacedName{
+			Namespace: kubeKeyNamespace,
+			Name:      id.String(),
+		}
+	})
+
+	It("host not exist", func() {
+		h, err := state.GetHostByKubeKey(key)
+		Expect(err).Should(HaveOccurred())
+		Expect(errors.Is(err, gorm.ErrRecordNotFound)).Should(Equal(true))
+		Expect(h).Should(BeNil())
+	})
+
+	It("get host by kube key success", func() {
+		h1 := common.Host{
+			KubeKeyNamespace: kubeKeyNamespace,
+			Host:             models.Host{ClusterID: id, ID: &id},
+		}
+		Expect(db.Create(&h1).Error).ShouldNot(HaveOccurred())
+
+		h2, err := state.GetHostByKubeKey(key)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(h2.ID.String()).Should(Equal(h1.ID.String()))
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
 })
