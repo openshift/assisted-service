@@ -34,10 +34,11 @@ func (v ValidationStatus) String() string {
 }
 
 type clusterPreprocessContext struct {
-	clusterId     strfmt.UUID
-	cluster       *common.Cluster
-	db            *gorm.DB
-	calculateCidr string
+	clusterId               strfmt.UUID
+	cluster                 *common.Cluster
+	db                      *gorm.DB
+	calculateCidr           string
+	hasHostsWithInventories bool
 }
 
 type validationConditon func(context *clusterPreprocessContext) ValidationStatus
@@ -49,11 +50,21 @@ type validation struct {
 	formatter validationStringFormatter
 }
 
+func hasHostsWithInventories(c *common.Cluster) bool {
+	for _, h := range c.Hosts {
+		if h.Inventory != "" {
+			return true
+		}
+	}
+	return false
+}
+
 func newClusterValidationContext(c *common.Cluster, db *gorm.DB) *clusterPreprocessContext {
 	return &clusterPreprocessContext{
-		clusterId: *c.ID,
-		cluster:   c,
-		db:        db,
+		clusterId:               *c.ID,
+		cluster:                 c,
+		db:                      db,
+		hasHostsWithInventories: hasHostsWithInventories(c),
 	}
 }
 
@@ -75,10 +86,13 @@ type clusterValidator struct {
 }
 
 func (v *clusterValidator) isMachineCidrDefined(c *clusterPreprocessContext) ValidationStatus {
-	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) {
+	if swag.BoolValue(c.cluster.UserManagedNetworking) && !common.IsSingleNodeCluster(c.cluster) || c.cluster.MachineNetworkCidr != "" {
 		return ValidationSuccess
 	}
-	return boolValue(c.cluster.MachineNetworkCidr != "")
+	if !c.hasHostsWithInventories {
+		return ValidationPending
+	}
+	return ValidationFailure
 }
 
 func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessContext, status ValidationStatus) string {
@@ -96,6 +110,8 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 			return "No Machine Network CIDR needed: User Managed Networking"
 		}
 		return "The Machine Network CIDR is defined."
+	case ValidationPending:
+		return "Hosts have not been discovered yet"
 	default:
 		return fmt.Sprintf("Unexpected status %s.", status)
 	}
@@ -135,7 +151,7 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
-	if c.cluster.APIVip == "" && c.cluster.IngressVip == "" {
+	if (c.cluster.APIVip == "" && c.cluster.IngressVip == "") || !c.hasHostsWithInventories {
 		return ValidationPending
 	}
 	cidr, err := network.CalculateMachineNetworkCIDR(c.cluster.APIVip, c.cluster.IngressVip, c.cluster.Hosts, true)
@@ -146,7 +162,10 @@ func (v *clusterValidator) isMachineCidrEqualsToCalculatedCidr(c *clusterPreproc
 func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
+		if context.cluster.APIVip == "" && context.cluster.IngressVip == "" {
+			return "The Machine Network CIDR, API virtual IP, or Ingress virtual IP is undefined."
+		}
+		return "Hosts have not been discovered yet"
 	case ValidationSuccess:
 		if swag.BoolValue(context.cluster.UserManagedNetworking) {
 			return "The Cluster Machine CIDR is not required: User Managed Networking"
@@ -197,7 +216,7 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) Validation
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
-	if c.cluster.APIVip == "" {
+	if c.cluster.APIVip == "" || !c.hasHostsWithInventories {
 		return ValidationPending
 	}
 	err := network.VerifyVip(c.cluster.Hosts, c.cluster.MachineNetworkCidr, c.cluster.APIVip, ApiVipName,
@@ -208,7 +227,10 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) Validation
 func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The API virtual IP is undefined."
+		if context.cluster.APIVip == "" {
+			return "The API virtual IP is undefined."
+		}
+		return "Hosts have not been discovered yet"
 	case ValidationSuccess:
 		if swag.BoolValue(context.cluster.UserManagedNetworking) {
 			return "The API virtual IP is not required: User Managed Networking"
@@ -258,7 +280,7 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) Valida
 	if swag.BoolValue(c.cluster.UserManagedNetworking) {
 		return ValidationSuccess
 	}
-	if c.cluster.IngressVip == "" {
+	if c.cluster.IngressVip == "" || !c.hasHostsWithInventories {
 		return ValidationPending
 	}
 	err := network.VerifyVip(c.cluster.Hosts, c.cluster.MachineNetworkCidr, c.cluster.IngressVip, IngressVipName,
@@ -269,7 +291,10 @@ func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) Valida
 func (v *clusterValidator) printIsIngressVipValid(context *clusterPreprocessContext, status ValidationStatus) string {
 	switch status {
 	case ValidationPending:
-		return "The Ingress virtual IP is undefined."
+		if context.cluster.IngressVip == "" {
+			return "The Ingress virtual IP is undefined."
+		}
+		return "Hosts have not been discovered yet"
 	case ValidationSuccess:
 		if swag.BoolValue(context.cluster.UserManagedNetworking) {
 			return "The Ingress virtual IP is not required: User Managed Networking"
