@@ -700,7 +700,8 @@ func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRole
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
 					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
 					if err != nil {
-						return nil, err
+						v.log.Warnf("network latency host validation: %s", err)
+						continue
 					}
 					if role == host.Role {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
@@ -765,7 +766,8 @@ func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
 					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
 					if err != nil {
-						return nil, err
+						v.log.Warnf("packet loss host validation: %s", err)
+						continue
 					}
 					if role == host.Role {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
