@@ -32,6 +32,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/constants"
 	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/gencrypto"
@@ -227,6 +228,14 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
 
+	// Create Kubeconfig no-ingress if needed
+	if *cluster.Status == models.ClusterStatusInstalling || *cluster.Status == models.ClusterStatusFinalizing {
+		if err := r.createNoIngressKubeConfig(ctx, log, clusterDeployment, cluster, clusterInstall); err != nil {
+			log.WithError(err).Error("failed to create kubeconfig no-ingress secret")
+			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
+		}
+	}
+
 	if swag.StringValue(cluster.Kind) == models.ClusterKindCluster {
 		// Day 1
 		return r.installDay1(ctx, log, clusterDeployment, clusterInstall, cluster)
@@ -385,13 +394,31 @@ func (r *ClusterDeploymentsReconciler) installDay2Hosts(ctx context.Context, log
 	return r.updateStatus(ctx, log, clusterInstall, cluster, nil)
 }
 
+func (r *ClusterDeploymentsReconciler) createNoIngressKubeConfig(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster, clusterInstall *hiveext.AgentClusterInstall) error {
+	if clusterInstall.Spec.ClusterMetadata != nil {
+		return nil
+	}
+	k, err := r.ensureKubeConfigNoIngressSecret(ctx, log, cluster, c)
+	if err != nil {
+		return err
+	}
+	clusterInstall.Spec.ClusterMetadata = &hivev1.ClusterMetadata{
+		ClusterID: c.OpenshiftClusterID.String(),
+		InfraID:   string(*c.ID),
+		AdminKubeconfigSecretRef: corev1.LocalObjectReference{
+			Name: k.Name,
+		},
+	}
+	return r.Update(ctx, clusterInstall)
+}
+
 func (r *ClusterDeploymentsReconciler) updateClusterMetadata(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster, clusterInstall *hiveext.AgentClusterInstall) error {
 
 	s, err := r.ensureAdminPasswordSecret(ctx, log, cluster, c)
 	if err != nil {
 		return err
 	}
-	k, err := r.ensureKubeConfigSecret(ctx, log, cluster, c)
+	k, err := r.updateKubeConfigSecret(ctx, log, cluster, c)
 	if err != nil {
 		return err
 	}
@@ -428,15 +455,45 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 	return r.createClusterCredentialSecret(ctx, log, cluster, c, name, data, "kubeadmincreds")
 }
 
-func (r *ClusterDeploymentsReconciler) ensureKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
+	s := &corev1.Secret{}
+	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
+	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
+	if getErr != nil && !k8serrors.IsNotFound(getErr) {
+		return nil, getErr
+	}
+
+	respBody, _, err := r.Installer.DownloadClusterFilesInternal(ctx, installer.DownloadClusterFilesParams{
+		ClusterID: *c.ID,
+		FileName:  constants.Kubeconfig,
+	})
+	if err != nil {
+		return nil, err
+	}
+	respBytes, err := ioutil.ReadAll(respBody)
+	if err != nil {
+		return nil, err
+	}
+	data := map[string][]byte{
+		"kubeconfig": respBytes,
+	}
+	if k8serrors.IsNotFound(getErr) {
+		return r.createClusterCredentialSecret(ctx, log, cluster, c, name, data, "kubeconfig")
+	}
+	s.Data = data
+	return s, r.Update(ctx, s)
+}
+
+func (r *ClusterDeploymentsReconciler) ensureKubeConfigNoIngressSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
 	s := &corev1.Secret{}
 	name := fmt.Sprintf(adminKubeConfigStringTemplate, cluster.Name)
 	getErr := r.Get(ctx, types.NamespacedName{Namespace: cluster.Namespace, Name: name}, s)
 	if getErr == nil || !k8serrors.IsNotFound(getErr) {
 		return s, getErr
 	}
-	respBody, _, err := r.Installer.DownloadClusterKubeconfigInternal(ctx, installer.DownloadClusterKubeconfigParams{
+	respBody, _, err := r.Installer.DownloadClusterFilesInternal(ctx, installer.DownloadClusterFilesParams{
 		ClusterID: *c.ID,
+		FileName:  constants.KubeconfigNoIngress,
 	})
 	if err != nil {
 		return nil, err
