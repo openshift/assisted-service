@@ -77,11 +77,11 @@ func (o *operator) ValidateCluster(_ context.Context, cluster *common.Cluster) (
 func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host *models.Host) (api.ValidationResult, error) {
 	numOfHosts := len(cluster.Hosts)
 	if host.Inventory == "" {
-		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in some of the hosts"}}, nil
+		return api.ValidationResult{Status: api.Pending, ValidationId: o.GetHostValidationID(), Reasons: []string{"Missing Inventory in the host."}}, nil
 	}
 	inventory, err := hostutil.UnmarshalInventory(host.Inventory)
 	if err != nil {
-		message := fmt.Sprintf("Failed to get inventory from host with id %s", host.ID)
+		message := "Failed to get inventory from host."
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{message}}, err
 	}
 
@@ -95,7 +95,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	if numOfHosts <= 3 {
 		if host.Role == models.HostRoleMaster || host.Role == models.HostRoleAutoAssign {
 			if diskCount == 0 {
-				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disk to deploy OCS. OCS requires at least one non-bootable on each host in compact mode."}}, nil
+				return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"Insufficient disks, OCS requires at least one non-bootable disk on each host in compact mode."}}, nil
 			}
 			return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
 		}
@@ -105,7 +105,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 	// Standard mode
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if host.Role == models.HostRoleAutoAssign {
-		status := "All host roles must be assigned to enable OCS in Standard Mode."
+		status := "For OCS Standard Mode, host role must be assigned to master or worker."
 		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
 	}
 	return api.ValidationResult{Status: api.Success, ValidationId: o.GetHostValidationID(), Reasons: []string{}}, nil
