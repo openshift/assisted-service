@@ -669,10 +669,11 @@ func (v *validator) printSufficientOrUnknownInstallationDiskSpeed(c *validationC
 
 func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationContext) ValidationStatus {
 
-	if len(c.cluster.Hosts) == 1 {
-		// Single Node use case
+	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.NetworkLatencyThresholdMs == nil || c.host.Role == models.HostRoleAutoAssign {
+		// Single Node use case || no requirements defined || role is auto assign
 		return ValidationSuccess
 	}
+
 	if len(c.host.Connectivity) == 0 {
 		return ValidationPending
 	}
@@ -684,9 +685,6 @@ func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationC
 }
 
 func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host) ([]string, error) {
-	if clusterRoleReqs.Total.NetworkLatencyThresholdMs == nil {
-		return nil, nil
-	}
 	var connectivityReport *models.ConnectivityReport
 	connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
 	if err != nil {
@@ -700,7 +698,8 @@ func (v *validator) validateNetworkLatencyForRole(host *models.Host, clusterRole
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
 					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
 					if err != nil {
-						return nil, err
+						v.log.Warnf("unable to determine host's role and hostname for IP: %s", err)
+						continue
 					}
 					if role == host.Role {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
@@ -733,8 +732,8 @@ func (v *validator) printSufficientNetworkLatencyRequirementForRole(c *validatio
 
 func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationContext) ValidationStatus {
 
-	if len(c.cluster.Hosts) == 1 {
-		// Single Node use case
+	if len(c.cluster.Hosts) == 1 || c.clusterHostRequirements.Total.PacketLossPercentage == nil || c.host.Role == models.HostRoleAutoAssign {
+		// Single Node use case || no requirements defined || role is auto assign
 		return ValidationSuccess
 	}
 
@@ -749,9 +748,7 @@ func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationConte
 }
 
 func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs *models.ClusterHostRequirements, hosts []*models.Host) ([]string, error) {
-	if clusterRoleReqs.Total.PacketLossPercentage == nil {
-		return nil, nil
-	}
+
 	var connectivityReport *models.ConnectivityReport
 	connectivityReport, err := hostutil.UnmarshalConnectivityReport(host.Connectivity)
 	if err != nil {
@@ -765,7 +762,8 @@ func (v *validator) validatePacketLossForRole(host *models.Host, clusterRoleReqs
 				if _, ok := failedHostIPs[l3.RemoteIPAddress]; !ok {
 					hostname, role, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
 					if err != nil {
-						return nil, err
+						v.log.Warnf("unable to determine host's role and hostname for IP: %s", err)
+						continue
 					}
 					if role == host.Role {
 						failedHostIPs[l3.RemoteIPAddress] = struct{}{}
