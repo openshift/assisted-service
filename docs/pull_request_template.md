@@ -4,7 +4,7 @@ Please include a summary of the change and which issue is fixed. Please also inc
 
 You can refer to [Kubernetes community documentation] on writing good commit messages, which provides good tips and ideas.
 
-Some PRs addess specific issues. Please, refer to the [CONTRIBUTING] documentation for more
+Some PRs address specific issues. Please, refer to the [CONTRIBUTING] documentation for more
 information on how to link a PR to an existing issue.
 
 # What environments does this code impact?
