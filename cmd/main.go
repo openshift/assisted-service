@@ -480,6 +480,12 @@ func main() {
 				Scheme: ctrlMgr.GetScheme(),
 			}).SetupWithManager(ctrlMgr), "unable to create controller BMH")
 
+			failOnError((&controllers.AgentClusterInstallReconciler{
+				Client:           ctrlMgr.GetClient(),
+				Log:              log,
+				CRDEventsHandler: crdEventsHandler,
+			}).SetupWithManager(ctrlMgr), "unable to create controller AgentClusterInstall")
+
 			log.Info("waiting for REST api readiness before starting controllers")
 			apiEnabler.WaitForEnabled()
 
