@@ -1688,6 +1688,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return agent.Status.Bootstrap && agent.Status.Role == models.HostRoleMaster
 		}, "30s", "10s").Should(BeTrue())
 
+		By("Check kubeconfig before install is finished")
+		configSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
+		configkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      configSecretRef.Name,
+		}
+		configSecret := getSecret(ctx, kubeClient, configkey)
+		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
+
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
@@ -1713,13 +1722,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		passwordSecret := getSecret(ctx, kubeClient, passwordkey)
 		Expect(passwordSecret.Data["password"]).NotTo(BeNil())
 		Expect(passwordSecret.Data["username"]).NotTo(BeNil())
-		configSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
+		configSecretRef = getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
 		Expect(passwordSecretRef).NotTo(BeNil())
-		configkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      configSecretRef.Name,
-		}
-		configSecret := getSecret(ctx, kubeClient, configkey)
+		configSecret = getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 
 		By("Check Event URL still exist")
