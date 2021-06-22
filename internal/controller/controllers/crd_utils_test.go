@@ -70,6 +70,35 @@ var _ = Describe("create agent CR", func() {
 			Expect(c.Get(ctx, namespacedName, &v1beta1.Agent{})).ShouldNot(HaveOccurred())
 		})
 
+		It("create agent with labels", func() {
+			infraEnvName := "infraEnvImage"
+			labels := map[string]string{"foo": "bar", "Alice": "Bob"}
+			clusterDeployment := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, clusterDeployment)).ShouldNot(HaveOccurred())
+			infraEnvImage := newInfraEnvImage(infraEnvName, infraEnvNamespace, v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      clusterDeployment.Name,
+					Namespace: clusterDeployment.Namespace,
+				},
+				AgentLabels: labels,
+			})
+			Expect(c.Create(ctx, infraEnvImage)).ShouldNot(HaveOccurred())
+
+			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			hostId := uuid.New().String()
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName)
+			Expect(err).NotTo(HaveOccurred())
+			namespacedName := types.NamespacedName{
+				Namespace: infraEnvNamespace,
+				Name:      hostId,
+			}
+			agent := &v1beta1.Agent{}
+			Expect(c.Get(ctx, namespacedName, agent)).ShouldNot(HaveOccurred())
+			labels[v1beta1.InfraEnvNameLabel] = infraEnvName
+			Expect(agent.ObjectMeta.Labels).Should(Equal(labels))
+		})
+
 		It("Empty name space", func() {
 			hostId := uuid.New().String()
 			err := crdUtils.CreateAgentCR(ctx, log, hostId, "", clusterName)

@@ -27,6 +27,7 @@ const (
 	ImageStateCreated        = "Image has been created"
 	ImageCreationErrorReason = "ImageCreationError"
 	ImageStateFailedToCreate = "Failed to create image"
+	InfraEnvNameLabel        = "infraenvs.agent-install.openshift.io"
 )
 
 // ClusterReference represents a Cluster Reference. It has enough information to retrieve cluster
@@ -62,12 +63,6 @@ type InfraEnvSpec struct {
 	// This field is currently not used. The Pull Secret from ClusterDeployment will be used for the ISO creation.
 	// PullSecretRef is the reference to the secret to use when pulling images.
 	PullSecretRef *corev1.LocalObjectReference `json:"pullSecretRef"`
-
-	// AgentLabelSelector specifies a label that should be applied to Agents that boot from the
-	// installation media of this InfraEnv. This is how a user would identify which agents are
-	// associated with a particular InfraEnv.
-	// +optional
-	AgentLabelSelector metav1.LabelSelector `json:"agentLabelSelector"`
 
 	// AgentLabels lists labels to apply to Agents that are associated with this InfraEnv upon
 	// the creation of the Agents.
@@ -111,6 +106,11 @@ type InfraEnvStatus struct {
 	// configuration from this InfraEnv.
 	ISODownloadURL string                   `json:"isoDownloadURL,omitempty"`
 	Conditions     []conditionsv1.Condition `json:"conditions,omitempty"`
+	// AgentLabelSelector specifies the label that will be applied to Agents that boot from the
+	// installation media of this InfraEnv. This is how a user would identify which agents are
+	// associated with a particular InfraEnv.
+	// +optional
+	AgentLabelSelector metav1.LabelSelector `json:"agentLabelSelector,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -38,6 +38,7 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -199,6 +200,7 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logru
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
 // It returns a result that includes ISODownloadURL.
 func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (ctrl.Result, error) {
+	infraEnv.Status.AgentLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnv.Name}}
 	var inventoryErr error
 	var Requeue bool
 	var updatedCluster *common.Cluster
