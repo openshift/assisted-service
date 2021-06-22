@@ -327,7 +327,7 @@ func main() {
 	generator := generator.New(log, objectHandler, Options.GeneratorConfig, Options.WorkDir, operatorsManager)
 	var crdUtils bminventory.CRDUtils
 	if ctrlMgr != nil {
-		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient())
+		crdUtils = controllers.NewCRDUtils(ctrlMgr.GetClient(), hostApi)
 	} else {
 		crdUtils = controllers.NewDummyCRDUtils()
 	}

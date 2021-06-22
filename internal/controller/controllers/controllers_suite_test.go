@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/assisted-service/internal/common"
 	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -32,6 +33,8 @@ const (
 
 func TestControllers(t *testing.T) {
 	RegisterFailHandler(Fail)
+	common.InitializeDBTest()
+	defer common.TerminateDBTest()
 	RunSpecs(t, "controllers tests")
 }
 

@@ -240,7 +240,7 @@ func checkStepsByState(state string, host *models.Host, db *gorm.DB, mockEvents 
 		}, nil).Times(1)
 	}
 
-	stepsReply, stepsErr := instMng.GetNextSteps(ctx, h)
+	stepsReply, stepsErr := instMng.GetNextSteps(ctx, &h.Host)
 	ExpectWithOffset(1, stepsReply.Instructions).To(HaveLen(len(expectedStepTypes)))
 	if stateValues, ok := instMng.installingClusterStateToSteps[state]; ok {
 		Expect(stepsReply.NextInstructionSeconds).Should(Equal(stateValues.NextStepInSec))
