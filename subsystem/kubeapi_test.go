@@ -353,6 +353,16 @@ func checkAgentClusterInstallCondition(ctx context.Context, key types.Namespaced
 	}, "2m", "2s").Should(Equal(reason))
 }
 
+func checkAgentClusterInstallConditionConsistency(ctx context.Context, key types.NamespacedName, conditionType string, reason string) {
+	Consistently(func() string {
+		condition := controllers.FindStatusCondition(getAgentClusterInstallCRD(ctx, kubeClient, key).Status.Conditions, conditionType)
+		if condition != nil {
+			return condition.Reason
+		}
+		return ""
+	}, "15s", "5s").Should(Equal(reason))
+}
+
 func checkInfraEnvCondition(ctx context.Context, key types.NamespacedName, conditionType conditionsv1.ConditionType, message string) {
 	Eventually(func() string {
 		condition := conditionsv1.FindStatusCondition(getInfraEnvCRD(ctx, kubeClient, key).Status.Conditions, conditionType)
@@ -2273,6 +2283,25 @@ spec:
 			_, err := common.GetClusterFromDBWhere(db, common.UseEagerLoading, common.IncludeDeletedRecords, "kube_key_name = ? and kube_key_namespace = ?", clusterKey.Name, clusterKey.Namespace)
 			return err
 		}, "1m", "10s").Should(HaveOccurred())
+	})
+
+	It("deploy AgentClusterInstall with missing ClusterDeployment", func() {
+		By("Create AgentClusterInstall")
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		By("Verify InputError")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterInputErrorReason)
+
+		By("Create ClusterDeployment")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+
+		By("Verify SyncOK")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
+		checkAgentClusterInstallConditionConsistency(ctx, installkey, hiveext.ClusterSpecSyncedCondition, hiveext.ClusterSyncedOkReason)
 	})
 })
 
