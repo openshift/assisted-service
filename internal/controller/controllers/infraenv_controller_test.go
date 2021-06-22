@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -113,6 +114,7 @@ var _ = Describe("infraEnv reconcile", func() {
 	It("create new infraEnv minimal-iso image - success", func() {
 		imageInfo := models.ImageInfo{
 			DownloadURL: "downloadurl",
+			CreatedAt:   strfmt.DateTime(time.Now()),
 		}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -138,6 +140,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 		Expect(infraEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
+		Expect(infraEnvImage.Status.CreatedTime).ToNot(BeNil())
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
@@ -147,6 +150,7 @@ var _ = Describe("infraEnv reconcile", func() {
 	It("create new infraEnv full-iso image - success", func() {
 		imageInfo := models.ImageInfo{
 			DownloadURL: "downloadurl",
+			CreatedAt:   strfmt.DateTime(time.Now()),
 		}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -172,6 +176,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 		Expect(infraEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
+		Expect(infraEnvImage.Status.CreatedTime).ToNot(BeNil())
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
@@ -196,7 +201,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
@@ -278,7 +283,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
@@ -416,7 +421,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			}).Return(errors.Errorf("error")).Times(1)
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 	})
 
 	It("failed to update cluster with proxy", func() {
@@ -435,7 +440,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
