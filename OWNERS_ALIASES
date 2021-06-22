@@ -35,6 +35,7 @@ aliases:
     - mkowalski
     - djzager
     - lranjbar
+    - sagidayan
   ci-approvers:
     - yuvigold
     - oshercc
