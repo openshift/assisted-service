@@ -12,23 +12,23 @@ def main():
     if deploy_options.storage == 'filesystem':
         return
 
-    log.info('Starting scality deployment')
+    log.info('Starting object store deployment')
 
     utils.verify_build_directory(deploy_options.namespace)
 
-    deploy_scality(deploy_options)
-    deploy_scality_storage(deploy_options)
+    deploy_object_store_deployment(deploy_options)
+    deploy_object_store_pvc(deploy_options)
 
-    log.info('Completed to scality deployment')
+    log.info('Completed to object store deployment')
 
 
-def deploy_scality(deploy_options):
-    docs = utils.load_yaml_file_docs('deploy/s3/scality-deployment.yaml')
+def deploy_object_store_deployment(deploy_options):
+    docs = utils.load_yaml_file_docs('deploy/s3/deployment.yaml')
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
     dst_file = utils.dump_yaml_file_docs(
-        basename=f'build/{deploy_options.namespace}/scality-deployment.yaml',
+        basename=f'build/{deploy_options.namespace}/object-store-deployment.yaml',
         docs=docs
     )
 
@@ -40,21 +40,21 @@ def deploy_scality(deploy_options):
     )
 
 
-def deploy_scality_storage(deploy_options):
-    docs = utils.load_yaml_file_docs('deploy/s3/scality-storage.yaml')
+def deploy_object_store_pvc(deploy_options):
+    docs = utils.load_yaml_file_docs('deploy/s3/pvc.yaml')
 
     utils.set_namespace_in_yaml_docs(docs, deploy_options.namespace)
 
-    log.info('Updating pvc size for scality-pv-claim')
+    log.info('Updating size for object storage pvc')
     pvc_size_utils.update_size_in_yaml_docs(
         target=deploy_options.target,
         ns=deploy_options.namespace,
-        name='scality-pv-claim',
+        name='object-store',
         docs=docs
     )
 
     dst_file = utils.dump_yaml_file_docs(
-        basename=f'build/{deploy_options.namespace}/scality-storage.yaml',
+        basename=f'build/{deploy_options.namespace}/object-storage-pvc.yaml',
         docs=docs
     )
 

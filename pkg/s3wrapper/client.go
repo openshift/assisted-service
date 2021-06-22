@@ -144,7 +144,7 @@ func newS3Session(accessKeyID, secretAccessKey, region, endpointURL string) (*se
 		MaxIdleConnsPerHost:   4096,
 		MaxIdleConns:          0,
 		IdleConnTimeout:       time.Minute,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true}, // true to enable use s3 with ip address (scality)
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true}, // true to enable use s3 with ip address (minio)
 	}
 	creds := credentials.NewStaticCredentials(accessKeyID, secretAccessKey, "")
 

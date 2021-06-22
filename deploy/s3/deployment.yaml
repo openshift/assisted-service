@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: object-store
+  name: object-store
+  namespace: REPLACE_NAMESPACE
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: object-store
+  template:
+    metadata:
+      labels:
+        app: object-store
+    spec:
+      containers:
+        - image: quay.io/cloudservices/minio:latest
+          name: s3server
+          args:
+            - server
+            - /data
+          env:
+            - name: MINIO_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_secret_access_key
+            - name: MINIO_ROOT_USER
+              valueFrom:
+                secretKeyRef:
+                  name: assisted-installer-s3
+                  key: aws_access_key_id
+          volumeMounts:
+            - mountPath: /data
+              name: data
+          resources:
+            limits:
+              cpu: 500m
+              memory: 2000Mi
+            requests:
+              cpu: 300m
+              memory: 2000Mi
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: object-store
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: object-store
+  name: object-store
+  namespace: REPLACE_NAMESPACE
+spec:
+  ports:
+    - port: 9000
+      protocol: TCP
+  selector:
+    app: object-store
