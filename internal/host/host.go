@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var BootstrapStages = [...]models.HostStage{
@@ -145,6 +146,7 @@ type API interface {
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
 	ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error
+	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 }
 
 type Manager struct {
@@ -1223,4 +1225,12 @@ func (d *DisabledHostValidations) Decode(value string) error {
 func (d DisabledHostValidations) IsDisabled(id validationID) bool {
 	_, ok := d[id.String()]
 	return ok
+}
+
+func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
+	host, err := common.GetHostFromDBWhere(m.db, "id = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get host from DB: %+v", key)
+	}
+	return host, nil
 }

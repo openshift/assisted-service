@@ -125,6 +125,7 @@ type InstallerInternals interface {
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
+	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
 	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
@@ -139,7 +140,6 @@ type InstallerInternals interface {
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
-	GetHostById(hostId string) (*common.Host, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -2701,19 +2701,6 @@ func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHost
 	return installer.NewGetHostOK().WithPayload(&host.Host)
 }
 
-func (b *bareMetalInventory) GetHostById(hostId string) (*common.Host, error) {
-	host, err := common.GetHostByIdFromDB(b.db, hostId)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = b.customizeHost(&host.Host); err != nil {
-		return nil, err
-	}
-
-	return host, nil
-}
-
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var hosts []*models.Host
@@ -4473,6 +4460,10 @@ func secretValidationToUserError(err error) error {
 
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
 	return b.clusterApi.GetClusterByKubeKey(key)
+}
+
+func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
+	return b.hostApi.GetHostByKubeKey(key)
 }
 
 func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {
