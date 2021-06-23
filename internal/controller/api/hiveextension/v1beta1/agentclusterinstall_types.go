@@ -6,6 +6,74 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ClusterSpecSyncedCondition string = "SpecSynced"
+
+	ClusterCompletedCondition string = hivev1.ClusterInstallCompleted
+
+	ClusterRequirementsMetCondition  string = hivev1.ClusterInstallRequirementsMet
+	ClusterReadyReason               string = "ClusterIsReady"
+	ClusterReadyMsg                  string = "The cluster is ready to begin the installation"
+	ClusterNotReadyReason            string = "ClusterNotReady"
+	ClusterNotReadyMsg               string = "The cluster is not ready to begin the installation"
+	ClusterAlreadyInstallingReason   string = "ClusterAlreadyInstalling"
+	ClusterAlreadyInstallingMsg      string = "The cluster requirements are met"
+	ClusterInstallationStoppedReason string = "ClusterInstallationStopped"
+	ClusterInstallationStoppedMsg    string = "The cluster installation stopped"
+	ClusterInsufficientAgentsReason  string = "InsufficientAgents"
+	ClusterInsufficientAgentsMsg     string = "The cluster currently requires %d agents but only %d have registered"
+	ClusterUnapprovedAgentsReason    string = "UnapprovedAgents"
+	ClusterUnapprovedAgentsMsg       string = "The installation is pending on the approval of %d agents"
+
+	ClusterValidatedCondition        string = "Validated"
+	ClusterValidationsOKMsg          string = "The cluster's validations are passing"
+	ClusterValidationsUnknownMsg     string = "The cluster's validations have not yet been calculated"
+	ClusterValidationsFailingMsg     string = "The cluster's validations are failing:"
+	ClusterValidationsUserPendingMsg string = "The cluster's validations are pending for user:"
+
+	ClusterFailedCondition string = hivev1.ClusterInstallFailed
+	ClusterFailedReason    string = "InstallationFailed"
+	ClusterFailedMsg       string = "The installation failed:"
+	ClusterNotFailedReason string = "InstallationNotFailed"
+	ClusterNotFailedMsg    string = "The installation has not failed"
+
+	ClusterStoppedCondition       string = hivev1.ClusterInstallStopped
+	ClusterStoppedFailedReason    string = "InstallationFailed"
+	ClusterStoppedFailedMsg       string = "The installation has stopped due to error"
+	ClusterStoppedCanceledReason  string = "InstallationCancelled"
+	ClusterStoppedCanceledMsg     string = "The installation has stopped because it was cancelled"
+	ClusterStoppedCompletedReason string = "InstallationCompleted"
+	ClusterStoppedCompletedMsg    string = "The installation has stopped because it completed successfully"
+	ClusterNotStoppedReason       string = "InstallationNotStopped"
+	ClusterNotStoppedMsg          string = "The installation is waiting to start or in progress"
+
+	ClusterInstalledReason              string = "InstallationCompleted"
+	ClusterInstalledMsg                 string = "The installation has completed:"
+	ClusterInstallationFailedReason     string = "InstallationFailed"
+	ClusterInstallationFailedMsg        string = "The installation has failed:"
+	ClusterInstallationNotStartedReason string = "InstallationNotStarted"
+	ClusterInstallationNotStartedMsg    string = "The installation has not yet started"
+	ClusterInstallationInProgressReason string = "InstallationInProgress"
+	ClusterInstallationInProgressMsg    string = "The installation is in progress:"
+	ClusterUnknownStatusReason          string = "UnknownStatus"
+	ClusterUnknownStatusMsg             string = "The installation status is currently not recognized:"
+
+	ClusterValidationsPassingReason     string = "ValidationsPassing"
+	ClusterValidationsUnknownReason     string = "ValidationsUnknown"
+	ClusterValidationsFailingReason     string = "ValidationsFailing"
+	ClusterValidationsUserPendingReason string = "ValidationsUserPending"
+
+	ClusterNotAvailableReason string = "NotAvailable"
+	ClusterNotAvailableMsg    string = "Information not available"
+
+	ClusterSyncedOkReason     string = "SyncOK"
+	ClusterSyncedOkMsg        string = "The Spec has been successfully applied"
+	ClusterBackendErrorReason string = "BackendError"
+	ClusterBackendErrorMsg    string = "The Spec could not be synced due to backend error:"
+	ClusterInputErrorReason   string = "InputError"
+	ClusterInputErrorMsg      string = "The Spec could not be synced due to an input error:"
+)
+
 // +genclient
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
