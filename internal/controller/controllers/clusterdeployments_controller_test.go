@@ -267,10 +267,10 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(result).To(Equal(ctrl.Result{}))
 
 				aci := getTestClusterInstall()
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 			}
 
 			It("create new cluster", func() {
@@ -340,10 +340,10 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(err).To(BeNil())
 				Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
 				aci = getTestClusterInstall()
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(NotAvailableReason))
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(NotAvailableMsg))
-				Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotAvailableMsg))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
 			})
 		})
 
@@ -365,10 +365,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, errString)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, errString)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 		})
 	})
 
@@ -527,10 +527,10 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(err).To(BeNil())
 		Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 		aci = getTestClusterInstall()
-		expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+		expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 	})
 
 	It("create cluster without pull secret reference", func() {
@@ -548,8 +548,8 @@ var _ = Describe("cluster reconcile", func() {
 
 		aci = getTestClusterInstall()
 
-		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(InputErrorReason))
-		Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 	})
 
 	Context("cluster deletion", func() {
@@ -749,9 +749,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("installed no day2 flag", func() {
@@ -908,10 +908,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstalledMsg + " Done"))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstalledMsg + " Done"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 
 			cluster = getTestCluster()
 			Expect(aci.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
@@ -938,10 +938,10 @@ var _ = Describe("cluster reconcile", func() {
 			expectedErrMsg := fmt.Sprintf("failed to deregister cluster: %s: %s", cluster.Name, expectedError)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(expectedError).Times(1)
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
-				Type:    ClusterCompletedCondition,
+				Type:    hiveext.ClusterCompletedCondition,
 				Status:  corev1.ConditionTrue,
-				Reason:  InstalledReason,
-				Message: InstalledMsg,
+				Reason:  hiveext.ClusterInstalledReason,
+				Message: hiveext.ClusterInstalledMsg,
 			})
 			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
@@ -950,12 +950,12 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErrMsg)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErrMsg)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Fail to create day2", func() {
@@ -970,10 +970,10 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.New(expectedErr))
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
-				Type:    ClusterCompletedCondition,
+				Type:    hiveext.ClusterCompletedCondition,
 				Status:  corev1.ConditionTrue,
-				Reason:  InstalledReason,
-				Message: InstalledMsg,
+				Reason:  hiveext.ClusterInstalledReason,
+				Message: hiveext.ClusterInstalledMsg,
 			})
 			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
@@ -982,12 +982,12 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(NotAvailableReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionUnknown))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionUnknown))
 		})
 
 		It("Create day2 if day1 is already deleted none SNO", func() {
@@ -1003,10 +1003,10 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(clusterReply, nil)
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
 			setClusterCondition(&aci.Status.Conditions, hivev1.ClusterInstallCondition{
-				Type:    ClusterCompletedCondition,
+				Type:    hiveext.ClusterCompletedCondition,
 				Status:  corev1.ConditionTrue,
-				Reason:  InstalledReason,
-				Message: InstalledMsg,
+				Reason:  hiveext.ClusterInstalledReason,
+				Message: hiveext.ClusterInstalledMsg,
 			})
 			Expect(c.Status().Update(ctx, aci)).Should(BeNil())
 			request := newClusterDeploymentRequest(cluster)
@@ -1015,7 +1015,7 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
 		})
 
 		It("installed - fail to get kube config", func() {
@@ -1039,13 +1039,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
 			Expect(cluster.Spec.ClusterMetadata).To(BeNil())
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("installed - fail to get admin password", func() {
@@ -1063,12 +1063,12 @@ var _ = Describe("cluster reconcile", func() {
 
 			aci = getTestClusterInstall()
 			Expect(cluster.Spec.ClusterMetadata).To(BeNil())
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstalledReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstalledReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("failed to start installation", func() {
@@ -1088,13 +1088,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("not ready for installation", func() {
@@ -1108,10 +1108,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("not ready for installation - hosts not approved", func() {
@@ -1128,10 +1128,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("ready for installation - but not all hosts are approved", func() {
@@ -1150,11 +1150,11 @@ var _ = Describe("cluster reconcile", func() {
 			aci = getTestClusterInstall()
 			expectedHosts := defaultAgentClusterInstallSpec.ProvisionRequirements.ControlPlaneAgents +
 				defaultAgentClusterInstallSpec.ProvisionRequirements.WorkerAgents
-			msg := fmt.Sprintf(ClusterUnapprovedAgentsMsg, expectedHosts)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterUnapprovedAgentsReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(msg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			msg := fmt.Sprintf(hiveext.ClusterUnapprovedAgentsMsg, expectedHosts)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterUnapprovedAgentsReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(msg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("ready for installation - but not all hosts are ready", func() {
@@ -1172,11 +1172,11 @@ var _ = Describe("cluster reconcile", func() {
 			aci = getTestClusterInstall()
 			expectedHosts := defaultAgentClusterInstallSpec.ProvisionRequirements.ControlPlaneAgents +
 				defaultAgentClusterInstallSpec.ProvisionRequirements.WorkerAgents
-			msg := fmt.Sprintf(ClusterInsufficientAgentsMsg, expectedHosts, 0)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterInsufficientAgentsReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(msg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			msg := fmt.Sprintf(hiveext.ClusterInsufficientAgentsMsg, expectedHosts, 0)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterInsufficientAgentsReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(msg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("install day2 host", func() {
@@ -1202,10 +1202,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterAlreadyInstallingReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterAlreadyInstallingMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("install failure day2 host", func() {
@@ -1232,13 +1232,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterAlreadyInstallingReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterAlreadyInstallingMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterAlreadyInstallingReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterAlreadyInstallingMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Install with manifests - no configmap", func() {
@@ -1258,12 +1258,12 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).NotTo(Equal(""))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).NotTo(Equal(""))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Update manifests - manifests exists , create failed", func() {
@@ -1297,13 +1297,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, "error")
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Update manifests - manifests exists , list failed", func() {
@@ -1323,13 +1323,13 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: longerRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, "error")
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterReadyReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, "error")
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionTrue))
 		})
 
 		It("Update manifests - succeed", func() {
@@ -1373,9 +1373,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("Update manifests - no manifests", func() {
@@ -1402,9 +1402,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("Update manifests - delete old + error should be ignored", func() {
@@ -1431,9 +1431,9 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Reason).To(Equal(InstallationInProgressReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Message).To(Equal(InstallationInProgressMsg + " Waiting for control plane"))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 
 		})
 	})
@@ -1510,10 +1510,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(SyncedOkReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Reason).To(Equal(ClusterNotReadyReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotReadyReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("only state changed", func() {
@@ -1544,11 +1544,11 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 
 			aci = getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Message).To(Equal(ClusterNotReadyMsg))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterValidatedCondition).Reason).To(Equal(ValidationsFailingReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterValidatedCondition).Message).To(Equal(ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK"))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterValidatedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotReadyMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterValidatedCondition).Reason).To(Equal(hiveext.ClusterValidationsFailingReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterValidatedCondition).Message).To(Equal(hiveext.ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterValidatedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
 		It("failed getting cluster", func() {
@@ -1561,10 +1561,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(err).To(BeNil())
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, expectedErr)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, expectedErr)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 		})
 
 		It("update internal error", func() {
@@ -1588,10 +1588,10 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
 
 			aci = getTestClusterInstall()
-			expectedState := fmt.Sprintf("%s %s", BackendErrorMsg, errString)
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(BackendErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
+			expectedState := fmt.Sprintf("%s %s", hiveext.ClusterBackendErrorMsg, errString)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 		})
 
 		It("add install config overrides annotation", func() {
@@ -1752,8 +1752,8 @@ var _ = Describe("cluster reconcile", func() {
 			_, err := cr.Reconcile(ctx, request)
 			Expect(err).ShouldNot(HaveOccurred())
 			aci := getTestClusterInstall()
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(InputErrorReason))
-			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(ContainSubstring(
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterInputErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(ContainSubstring(
 				"Failed to parse 'agent-install.openshift.io/install-config-overrides' annotation"))
 		})
 	})
@@ -1867,33 +1867,33 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"}]}",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterNotReadyMsg,
-					Reason:  ClusterNotReadyReason,
+					Type:    hiveext.ClusterRequirementsMetCondition,
+					Message: hiveext.ClusterNotReadyMsg,
+					Reason:  hiveext.ClusterNotReadyReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationNotStartedMsg,
-					Reason:  InstallationNotStartedReason,
+					Type:    hiveext.ClusterCompletedCondition,
+					Message: hiveext.ClusterInstallationNotStartedMsg,
+					Reason:  hiveext.ClusterInstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK",
-					Reason:  ValidationsFailingReason,
+					Type:    hiveext.ClusterValidatedCondition,
+					Message: hiveext.ClusterValidationsFailingMsg + " Check1 is not OK,Check3 is not OK",
+					Reason:  hiveext.ClusterValidationsFailingReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
+					Type:    hiveext.ClusterFailedCondition,
+					Message: hiveext.ClusterNotFailedMsg,
+					Reason:  hiveext.ClusterNotFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
+					Type:    hiveext.ClusterStoppedCondition,
+					Message: hiveext.ClusterNotStoppedMsg,
+					Reason:  hiveext.ClusterNotStoppedReason,
 					Status:  corev1.ConditionFalse,
 				},
 			},
@@ -1905,33 +1905,33 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Check3 is not OK\"},{\"id\":\"checking4\",\"status\":\"pending\",\"message\":\"Check4 is pending\"}]}",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterNotReadyMsg,
-					Reason:  ClusterNotReadyReason,
+					Type:    hiveext.ClusterRequirementsMetCondition,
+					Message: hiveext.ClusterNotReadyMsg,
+					Reason:  hiveext.ClusterNotReadyReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationNotStartedMsg,
-					Reason:  InstallationNotStartedReason,
+					Type:    hiveext.ClusterCompletedCondition,
+					Message: hiveext.ClusterInstallationNotStartedMsg,
+					Reason:  hiveext.ClusterInstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsUserPendingMsg + " Check1 is not OK,Check3 is not OK,Check4 is pending",
-					Reason:  ValidationsUserPendingReason,
+					Type:    hiveext.ClusterValidatedCondition,
+					Message: hiveext.ClusterValidationsUserPendingMsg + " Check1 is not OK,Check3 is not OK,Check4 is pending",
+					Reason:  hiveext.ClusterValidationsUserPendingReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
+					Type:    hiveext.ClusterFailedCondition,
+					Message: hiveext.ClusterNotFailedMsg,
+					Reason:  hiveext.ClusterNotFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
+					Type:    hiveext.ClusterStoppedCondition,
+					Message: hiveext.ClusterNotStoppedMsg,
+					Reason:  hiveext.ClusterNotStoppedReason,
 					Status:  corev1.ConditionFalse,
 				},
 			},
@@ -1943,33 +1943,33 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterAlreadyInstallingMsg,
-					Reason:  ClusterAlreadyInstallingReason,
+					Type:    hiveext.ClusterRequirementsMetCondition,
+					Message: hiveext.ClusterAlreadyInstallingMsg,
+					Reason:  hiveext.ClusterAlreadyInstallingReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterCompletedCondition,
-					Message: InstalledMsg + " Done",
-					Reason:  InstalledReason,
+					Type:    hiveext.ClusterCompletedCondition,
+					Message: hiveext.ClusterInstalledMsg + " Done",
+					Reason:  hiveext.ClusterInstalledReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
+					Type:    hiveext.ClusterValidatedCondition,
+					Message: hiveext.ClusterValidationsOKMsg,
+					Reason:  hiveext.ClusterValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
+					Type:    hiveext.ClusterFailedCondition,
+					Message: hiveext.ClusterNotFailedMsg,
+					Reason:  hiveext.ClusterNotFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
+					Type:    hiveext.ClusterStoppedCondition,
+					Message: hiveext.ClusterNotStoppedMsg,
+					Reason:  hiveext.ClusterNotStoppedReason,
 					Status:  corev1.ConditionFalse,
 				},
 			},
@@ -1981,33 +1981,33 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterInstallationStoppedMsg,
-					Reason:  ClusterInstallationStoppedReason,
+					Type:    hiveext.ClusterRequirementsMetCondition,
+					Message: hiveext.ClusterInstallationStoppedMsg,
+					Reason:  hiveext.ClusterInstallationStoppedReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterCompletedCondition,
-					Message: InstalledMsg + " Done",
-					Reason:  InstalledReason,
+					Type:    hiveext.ClusterCompletedCondition,
+					Message: hiveext.ClusterInstalledMsg + " Done",
+					Reason:  hiveext.ClusterInstalledReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
+					Type:    hiveext.ClusterValidatedCondition,
+					Message: hiveext.ClusterValidationsOKMsg,
+					Reason:  hiveext.ClusterValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
+					Type:    hiveext.ClusterFailedCondition,
+					Message: hiveext.ClusterNotFailedMsg,
+					Reason:  hiveext.ClusterNotFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterStoppedCompletedMsg,
-					Reason:  ClusterStoppedCompletedReason,
+					Type:    hiveext.ClusterStoppedCondition,
+					Message: hiveext.ClusterStoppedCompletedMsg,
+					Reason:  hiveext.ClusterStoppedCompletedReason,
 					Status:  corev1.ConditionTrue,
 				},
 			},
@@ -2019,33 +2019,33 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterAlreadyInstallingMsg,
-					Reason:  ClusterAlreadyInstallingReason,
+					Type:    hiveext.ClusterRequirementsMetCondition,
+					Message: hiveext.ClusterAlreadyInstallingMsg,
+					Reason:  hiveext.ClusterAlreadyInstallingReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationInProgressMsg + " Phase 1",
-					Reason:  InstallationInProgressReason,
+					Type:    hiveext.ClusterCompletedCondition,
+					Message: hiveext.ClusterInstallationInProgressMsg + " Phase 1",
+					Reason:  hiveext.ClusterInstallationInProgressReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
+					Type:    hiveext.ClusterValidatedCondition,
+					Message: hiveext.ClusterValidationsOKMsg,
+					Reason:  hiveext.ClusterValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
+					Type:    hiveext.ClusterFailedCondition,
+					Message: hiveext.ClusterNotFailedMsg,
+					Reason:  hiveext.ClusterNotFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
+					Type:    hiveext.ClusterStoppedCondition,
+					Message: hiveext.ClusterNotStoppedMsg,
+					Reason:  hiveext.ClusterNotStoppedReason,
 					Status:  corev1.ConditionFalse,
 				},
 			},
@@ -2057,33 +2057,33 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterReadyMsg,
-					Reason:  ClusterReadyReason,
+					Type:    hiveext.ClusterRequirementsMetCondition,
+					Message: hiveext.ClusterReadyMsg,
+					Reason:  hiveext.ClusterReadyReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationNotStartedMsg,
-					Reason:  InstallationNotStartedReason,
+					Type:    hiveext.ClusterCompletedCondition,
+					Message: hiveext.ClusterInstallationNotStartedMsg,
+					Reason:  hiveext.ClusterInstallationNotStartedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
+					Type:    hiveext.ClusterValidatedCondition,
+					Message: hiveext.ClusterValidationsOKMsg,
+					Reason:  hiveext.ClusterValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterNotFailedMsg,
-					Reason:  ClusterNotFailedReason,
+					Type:    hiveext.ClusterFailedCondition,
+					Message: hiveext.ClusterNotFailedMsg,
+					Reason:  hiveext.ClusterNotFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterNotStoppedMsg,
-					Reason:  ClusterNotStoppedReason,
+					Type:    hiveext.ClusterStoppedCondition,
+					Message: hiveext.ClusterNotStoppedMsg,
+					Reason:  hiveext.ClusterNotStoppedReason,
 					Status:  corev1.ConditionFalse,
 				},
 			},
@@ -2095,33 +2095,33 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Check2 is OK\"}]}",
 			conditions: []hivev1.ClusterInstallCondition{
 				{
-					Type:    ClusterRequirementsMetCondition,
-					Message: ClusterInstallationStoppedMsg,
-					Reason:  ClusterInstallationStoppedReason,
+					Type:    hiveext.ClusterRequirementsMetCondition,
+					Message: hiveext.ClusterInstallationStoppedMsg,
+					Reason:  hiveext.ClusterInstallationStoppedReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterCompletedCondition,
-					Message: InstallationFailedMsg + " failed due to some error",
-					Reason:  InstallationFailedReason,
+					Type:    hiveext.ClusterCompletedCondition,
+					Message: hiveext.ClusterInstallationFailedMsg + " failed due to some error",
+					Reason:  hiveext.ClusterInstallationFailedReason,
 					Status:  corev1.ConditionFalse,
 				},
 				{
-					Type:    ClusterValidatedCondition,
-					Message: ClusterValidationsOKMsg,
-					Reason:  ValidationsPassingReason,
+					Type:    hiveext.ClusterValidatedCondition,
+					Message: hiveext.ClusterValidationsOKMsg,
+					Reason:  hiveext.ClusterValidationsPassingReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterFailedCondition,
-					Message: ClusterFailedMsg + " failed due to some error",
-					Reason:  ClusterFailedReason,
+					Type:    hiveext.ClusterFailedCondition,
+					Message: hiveext.ClusterFailedMsg + " failed due to some error",
+					Reason:  hiveext.ClusterFailedReason,
 					Status:  corev1.ConditionTrue,
 				},
 				{
-					Type:    ClusterStoppedCondition,
-					Message: ClusterStoppedFailedMsg,
-					Reason:  ClusterStoppedFailedReason,
+					Type:    hiveext.ClusterStoppedCondition,
+					Message: hiveext.ClusterStoppedFailedMsg,
+					Reason:  hiveext.ClusterStoppedFailedReason,
 					Status:  corev1.ConditionTrue,
 				},
 			},
