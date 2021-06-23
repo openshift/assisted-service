@@ -109,15 +109,15 @@ func (mr *MockAPIMockRecorder) InstallationStarted(clusterVersion, clusterID, em
 }
 
 // ClusterHostInstallationCount mocks base method
-func (m *MockAPI) ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string) {
+func (m *MockAPI) ClusterHostInstallationCount(emailDomain string, hostCount int, clusterVersion string) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClusterHostInstallationCount", clusterID, emailDomain, hostCount, clusterVersion)
+	m.ctrl.Call(m, "ClusterHostInstallationCount", emailDomain, hostCount, clusterVersion)
 }
 
 // ClusterHostInstallationCount indicates an expected call of ClusterHostInstallationCount
-func (mr *MockAPIMockRecorder) ClusterHostInstallationCount(clusterID, emailDomain, hostCount, clusterVersion interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ClusterHostInstallationCount(emailDomain, hostCount, clusterVersion interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHostInstallationCount", reflect.TypeOf((*MockAPI)(nil).ClusterHostInstallationCount), clusterID, emailDomain, hostCount, clusterVersion)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterHostInstallationCount", reflect.TypeOf((*MockAPI)(nil).ClusterHostInstallationCount), emailDomain, hostCount, clusterVersion)
 }
 
 // Duration mocks base method
@@ -157,27 +157,27 @@ func (mr *MockAPIMockRecorder) ReportHostInstallationMetrics(ctx, clusterVersion
 }
 
 // DiskSyncDuration mocks base method
-func (m *MockAPI) DiskSyncDuration(clusterID, hostID strfmt.UUID, diskPath string, syncDuration int64) {
+func (m *MockAPI) DiskSyncDuration(hostID strfmt.UUID, diskPath string, syncDuration int64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "DiskSyncDuration", clusterID, hostID, diskPath, syncDuration)
+	m.ctrl.Call(m, "DiskSyncDuration", hostID, diskPath, syncDuration)
 }
 
 // DiskSyncDuration indicates an expected call of DiskSyncDuration
-func (mr *MockAPIMockRecorder) DiskSyncDuration(clusterID, hostID, diskPath, syncDuration interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) DiskSyncDuration(hostID, diskPath, syncDuration interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskSyncDuration", reflect.TypeOf((*MockAPI)(nil).DiskSyncDuration), clusterID, hostID, diskPath, syncDuration)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiskSyncDuration", reflect.TypeOf((*MockAPI)(nil).DiskSyncDuration), hostID, diskPath, syncDuration)
 }
 
 // ImagePullStatus mocks base method
-func (m *MockAPI) ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64) {
+func (m *MockAPI) ImagePullStatus(hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ImagePullStatus", clusterID, hostID, imageName, resultStatus, downloadRate)
+	m.ctrl.Call(m, "ImagePullStatus", hostID, imageName, resultStatus, downloadRate)
 }
 
 // ImagePullStatus indicates an expected call of ImagePullStatus
-func (mr *MockAPIMockRecorder) ImagePullStatus(clusterID, hostID, imageName, resultStatus, downloadRate interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ImagePullStatus(hostID, imageName, resultStatus, downloadRate interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePullStatus", reflect.TypeOf((*MockAPI)(nil).ImagePullStatus), clusterID, hostID, imageName, resultStatus, downloadRate)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagePullStatus", reflect.TypeOf((*MockAPI)(nil).ImagePullStatus), hostID, imageName, resultStatus, downloadRate)
 }
 
 // FileSystemUsage mocks base method
