@@ -362,15 +362,16 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("missing from OPENSHIFT_VERSIONS", func() {
-			h := NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, "")
+			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, "")
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 
-			_, err := h.AddOpenshiftVersion(releaseImage, pullSecret)
+			_, err := h.AddOpenshiftVersion("invalidRelease", pullSecret)
 			Expect(err).Should(HaveOccurred())
 
 			versionKey, _ := h.GetKey(ocpVersion)
-			Expect(err.Error()).Should(Equal(fmt.Sprintf("OCP version is not specified in OPENSHIFT_VERSIONS: %s", versionKey)))
+			Expect(err.Error()).Should(Equal(fmt.Sprintf("RHCOS image is not configured for version: %s, "+
+				"supported versions: [4.8]", versionKey)))
 		})
 
 		It("release image already exists", func() {
