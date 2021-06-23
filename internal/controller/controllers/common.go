@@ -26,8 +26,7 @@ import (
 const (
 	mirrorRegistryRefCertKey         = "ca-bundle.crt"
 	mirrorRegistryRefRegistryConfKey = "registries.conf"
-	mirrorRegistryConfVolume         = "mirror-registry-conf"
-	mirrorRegistryCertVolume         = "mirror-registry-ca"
+	mirrorRegistryConfigVolume       = "mirror-registry-config"
 )
 
 func getPullSecret(ctx context.Context, c client.Client, ref *corev1.LocalObjectReference, namespace string) (string, error) {

@@ -9,6 +9,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	routev1 "github.com/openshift/api/route/v1"
+	"github.com/openshift/assisted-service/internal/common"
 	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"
@@ -29,6 +30,7 @@ const (
 	testAgentServiceConfigAPIVersion = "testAPIVersion"
 	testHost                         = "my.test"
 	testConfigmapName                = "test-configmap"
+	testMirrorRegConfigmapName       = "test-mirror-configmap"
 )
 
 func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler {
@@ -54,31 +56,26 @@ var _ = Describe("agentserviceconfig_controller reconcile", func() {
 		asc       *aiv1beta1.AgentServiceConfig
 		ascr      *AgentServiceConfigReconciler
 		ctx       = context.Background()
-		route     *routev1.Route
-		routeHost = "testHost"
-	)
-
-	BeforeEach(func() {
-		asc = newASCWithCMAnnotation()
-		ascr = newTestReconciler(asc)
-
-		// The operator searches for the ingress cert config map.
-		// If the config map isn't available the test runner will show
-		// Message: "configmaps \"default-ingress-cert\" not found
-		ingressCM := &corev1.ConfigMap{
+		ingressCM = &corev1.ConfigMap{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      defaultIngressCertCMName,
 				Namespace: defaultIngressCertCMNamespace,
 			},
 		}
-		Expect(ascr.Client.Create(ctx, ingressCM)).To(Succeed())
+		route = &routev1.Route{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Spec: routev1.RouteSpec{
+				Host: testHost,
+			},
+		}
+	)
 
-		// AgentServiceConfig created route is missing Host.
-		// We create one here with a value set for Host so that
-		// reconcile does not fail.
-		route, _ = ascr.newAgentRoute(asc)
-		route.Spec.Host = routeHost
-		Expect(ascr.Client.Create(ctx, route)).To(Succeed())
+	BeforeEach(func() {
+		asc = newASCDefault()
+		ascr = newTestReconciler(asc, ingressCM, route)
 	})
 
 	It("reconcile should succeed", func() {
@@ -202,50 +199,6 @@ var _ = Describe("ensureAgentLocalAuthSecret", func() {
 			Expect(foundAfterNextEnsure.StringData["ec-public-key.pem"]).To(Equal(foundPublicKey))
 		})
 	})
-
-	Context("validate mirror registries config mao", func() {
-		It("valid config map", func() {
-			mirrorMap := &corev1.ConfigMap{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "v1",
-					Kind:       "ConfigMap",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "user-configmap",
-					Namespace: testNamespace,
-				},
-				Data: map[string]string{
-					"ca-bundle.crt":   "ca-bundle-value",
-					"registries.conf": "registries-conf-value",
-				},
-			}
-			Expect(ascr.Client.Create(ctx, mirrorMap)).To(Succeed())
-			asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: "user-configmap"}
-			err := ascr.validateMirrorRegistriesConfigMap(ctx, log, asc)
-			Expect(err).To(BeNil())
-		})
-		It("invalid config map, keys", func() {
-			mirrorMap := &corev1.ConfigMap{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: "v1",
-					Kind:       "ConfigMap",
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "user-configmap",
-					Namespace: testNamespace,
-				},
-				Data: map[string]string{
-					"some_key":        "ca-bundle-value",
-					"registries.conf": "registries-conf-value",
-				},
-			}
-			Expect(ascr.Client.Create(ctx, mirrorMap)).To(Succeed())
-			asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{Name: "user-configmap"}
-			err := ascr.validateMirrorRegistriesConfigMap(ctx, log, asc)
-			Expect(err).To(HaveOccurred())
-		})
-
-	})
 })
 
 var _ = Describe("ensureAssistedServiceDeployment", func() {
@@ -263,38 +216,27 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 				Host: testHost,
 			},
 		}
+		assistedCM = &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      serviceName,
+				Namespace: testNamespace,
+			},
+			Data: map[string]string{
+				"foo": "bar",
+			},
+		}
 	)
 
-	Context("without annotation on AgentServiceConfig", func() {
-		It("should not modify assisted-service deployment", func() {
-			asc = newASCDefault()
-			ascr = newTestReconciler(asc, route)
-			Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+	Describe("AgentServiceConfig Unsupported ConfigMap annotation", func() {
+		Context("without annotation on AgentServiceConfig", func() {
+			It("should not modify assisted-service deployment", func() {
+				asc = newASCDefault()
+				ascr = newTestReconciler(asc, route, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
 
-			found := &appsv1.Deployment{}
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-			Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal([]corev1.EnvFromSource{
-				{
-					ConfigMapRef: &corev1.ConfigMapEnvSource{
-						LocalObjectReference: corev1.LocalObjectReference{
-							Name: serviceName,
-						},
-					},
-				},
-			}))
-		})
-	})
-
-	Context("with annotation on AgentServiceConfig", func() {
-		It("should modify assisted-service deployment", func() {
-			asc = newASCWithCMAnnotation()
-			ascr = newTestReconciler(asc, route)
-			Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
-			found := &appsv1.Deployment{}
-			Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
-
-			targetConfigMap := append(
-				[]corev1.EnvFromSource{
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal([]corev1.EnvFromSource{
 					{
 						ConfigMapRef: &corev1.ConfigMapEnvSource{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -302,19 +244,132 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 							},
 						},
 					},
-				},
-				[]corev1.EnvFromSource{
-					{
-						ConfigMapRef: &corev1.ConfigMapEnvSource{
-							LocalObjectReference: corev1.LocalObjectReference{
-								Name: testConfigmapName,
+				}))
+			})
+		})
+
+		Context("with annotation on AgentServiceConfig", func() {
+			It("should modify assisted-service deployment", func() {
+				asc = newASCWithCMAnnotation()
+				ascr = newTestReconciler(asc, route, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+
+				targetConfigMap := append(
+					[]corev1.EnvFromSource{
+						{
+							ConfigMapRef: &corev1.ConfigMapEnvSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: serviceName,
+								},
 							},
 						},
 					},
-				}...,
-			)
+					[]corev1.EnvFromSource{
+						{
+							ConfigMapRef: &corev1.ConfigMapEnvSource{
+								LocalObjectReference: corev1.LocalObjectReference{
+									Name: testConfigmapName,
+								},
+							},
+						},
+					}...,
+				)
 
-			Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal(targetConfigMap))
+				Expect(found.Spec.Template.Spec.Containers[0].EnvFrom).To(Equal(targetConfigMap))
+			})
+		})
+	})
+
+	Describe("MirrorRegistry Configuration", func() {
+		Context("with registries.conf", func() {
+			It("should add volume and volumeMount", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				mirrorCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testMirrorRegConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						mirrorRegistryRefRegistryConfKey: "foo",
+					},
+				}
+
+				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(5))
+				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
+					corev1.VolumeMount{
+						Name:      mirrorRegistryConfigVolume,
+						MountPath: common.MirrorRegistriesConfigDir,
+					}),
+				)
+				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).ShouldNot(ContainElement(
+					corev1.VolumeMount{
+						Name:      mirrorRegistryConfigVolume,
+						MountPath: common.MirrorRegistriesCertificatePath,
+						SubPath:   common.MirrorRegistriesCertificateFile,
+					}),
+				)
+			})
+		})
+
+		Context("with registries.conf and ca-bundle", func() {
+			It("should add volume and volumeMount", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				mirrorCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testMirrorRegConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						mirrorRegistryRefRegistryConfKey: "foo",
+						mirrorRegistryRefCertKey:         "foo",
+					},
+				}
+
+				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Spec.Volumes).To(HaveLen(5))
+				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
+					corev1.VolumeMount{
+						Name:      mirrorRegistryConfigVolume,
+						MountPath: common.MirrorRegistriesConfigDir,
+					}),
+				)
+				Expect(found.Spec.Template.Spec.Containers[0].VolumeMounts).Should(ContainElement(
+					corev1.VolumeMount{
+						Name:      mirrorRegistryConfigVolume,
+						MountPath: common.MirrorRegistriesCertificatePath,
+						SubPath:   common.MirrorRegistriesCertificateFile,
+					}),
+				)
+			})
+		})
+
+		Context("without specifying registries.conf", func() {
+			It("should error", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				mirrorCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testMirrorRegConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						mirrorRegistryRefCertKey: "foo",
+					},
+				}
+
+				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).ToNot(Succeed())
+			})
 		})
 	})
 
@@ -437,6 +492,14 @@ func newASCDefault() *aiv1beta1.AgentServiceConfig {
 func newASCWithCMAnnotation() *aiv1beta1.AgentServiceConfig {
 	asc := newASCDefault()
 	asc.ObjectMeta.Annotations = map[string]string{configmapAnnotation: testConfigmapName}
+	return asc
+}
+
+func newASCWithMirrorRegistryConfig() *aiv1beta1.AgentServiceConfig {
+	asc := newASCDefault()
+	asc.Spec.MirrorRegistryRef = &corev1.LocalObjectReference{
+		Name: testMirrorRegConfigmapName,
+	}
 	return asc
 }
 
