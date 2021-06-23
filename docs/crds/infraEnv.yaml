@@ -6,9 +6,6 @@ spec:
   clusterRef:
     name: single-node
     namespace: assisted-installer
-  agentLabelSelector:
-    matchLabels:
-      bla: aaa
   pullSecretRef:
     name: pull-secret
   proxy:

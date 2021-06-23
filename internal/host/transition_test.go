@@ -45,8 +45,8 @@ var (
 		RAMMib:                           8192,
 		DiskSizeGb:                       120,
 		InstallationDiskSpeedThresholdMs: 10,
-		NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
-		PacketLossPercentage:             pointer.Float64Ptr(0),
+		NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
+		PacketLossPercentage:             pointer.Float64Ptr(10),
 	}
 	defaultSnoRequirements = models.ClusterHostRequirementsDetails{
 		CPUCores:                         8,
@@ -1050,7 +1050,7 @@ var _ = Describe("Enable", func() {
 			Expect(*h.StatusInfo).Should(Equal(statusInfoDiscovering))
 			Expect(h.Inventory).Should(BeEmpty())
 			Expect(h.Bootstrap).Should(BeFalse())
-			Expect(h.NtpSources).Should(BeEmpty())
+			Expect(h.NtpSources).ShouldNot(BeEmpty())
 		}
 
 		failure := func(reply error) {
@@ -3977,7 +3977,7 @@ var _ = Describe("Refresh Host", func() {
 			machineNetworkCIDR     string
 			ipType                 int
 		}{
-			{name: "Nominal: IPv4 and 3 masters",
+			{name: "known with IPv4 and 3 masters",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusKnown,
 				hostRole:               models.HostRoleMaster,
@@ -3991,7 +3991,7 @@ var _ = Describe("Refresh Host", func() {
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
 					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
 				}),
-			}, {name: "Nominal: IPv6 and 3 masters",
+			}, {name: "known wit hIPv6 and 3 masters",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusKnown,
 				hostRole:               models.HostRoleMaster,
@@ -4005,7 +4005,7 @@ var _ = Describe("Refresh Host", func() {
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
 					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
 				}),
-			}, {name: "Nominal: IPv4 and 2 workers",
+			}, {name: "known with IPv4 and 2 workers",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusKnown,
 				hostRole:               models.HostRoleWorker,
@@ -4019,7 +4019,7 @@ var _ = Describe("Refresh Host", func() {
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
 					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
 				}),
-			}, {name: "Nominal: IPv6 and 2 workers",
+			}, {name: "known with IPv6 and 2 workers",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusKnown,
 				hostRole:               models.HostRoleWorker,
@@ -4033,7 +4033,7 @@ var _ = Describe("Refresh Host", func() {
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
 					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
 				}),
-			}, {name: "Nominal: Single Node Openshift",
+			}, {name: "known with Single Node Openshift",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusKnown,
 				hostRole:               models.HostRoleMaster,
@@ -4047,7 +4047,35 @@ var _ = Describe("Refresh Host", func() {
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
 					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
 				}),
-			}, {name: "KO: IPv4 and 3 masters with high latency and packet loss",
+			}, {name: "known with IPv4 and 3 nodes in autoassign",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusKnown,
+				hostRole:               models.HostRoleAutoAssign,
+				latencyInMs:            500,
+				packetLossInPercentage: 5,
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(2, "1.2.3.1/24"),
+				machineNetworkCIDR:     "1.2.3.0/24",
+				ipType:                 ipv4,
+				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
+				}),
+			}, {name: "known with IPv4 and 3 masters with high latency and packet loss in autoassign",
+				srcState:               models.HostStatusDiscovering,
+				dstState:               models.HostStatusKnown,
+				hostRole:               models.HostRoleAutoAssign,
+				latencyInMs:            2000,
+				packetLossInPercentage: 90,
+				IPAddressPool:          hostutil.GenerateIPv4Addresses(3, "1.2.3.1/24"),
+				machineNetworkCIDR:     "1.2.3.0/24",
+				ipType:                 ipv4,
+				statusInfoChecker:      makeValueChecker(formatStatusInfoFailedValidation(statusInfoKnown)),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationSuccess, messagePattern: "Network latency requirement has been satisfied."},
+					HasSufficientPacketLossRequirementForRole:     {status: ValidationSuccess, messagePattern: "Packet loss requirement has been satisfied."},
+				}),
+			}, {name: "insufficient with IPv4 and 3 masters with high latency and packet loss",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusInsufficient,
 				hostRole:               models.HostRoleMaster,
@@ -4063,7 +4091,7 @@ var _ = Describe("Refresh Host", func() {
 					HasSufficientNetworkLatencyRequirementForRole: {status: ValidationFailure, messagePattern: "Network latency requirements of less or equals than 100.000 ms not met for connectivity between master-0 and master-1,master-2."},
 					HasSufficientPacketLossRequirementForRole:     {status: ValidationFailure, messagePattern: "Packet loss percentage requirement of less or equals than 0.00% not met for connectivity between master-0 and master-1,master-2."},
 				}),
-			}, {name: "KO: IPv6 and 3 masters with high latency and packet loss",
+			}, {name: "insufficient with IPv6 and 3 masters with high latency and packet loss",
 				srcState:               models.HostStatusDiscovering,
 				dstState:               models.HostStatusInsufficient,
 				hostRole:               models.HostRoleMaster,

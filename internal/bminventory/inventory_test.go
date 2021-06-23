@@ -1637,7 +1637,7 @@ var _ = Describe("PostStepReply", func() {
 
 		It("Disk speed success", func() {
 			mockHostApi.EXPECT().SetDiskSpeed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
-			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
+			mockMetric.EXPECT().DiskSyncDuration(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 			mockHwValidator.EXPECT().GetInstallationDiskSpeedThresholdMs(gomock.Any(), gomock.Any(), gomock.Any()).Return(int64(10), nil).Times(1)
 			params := makeStepReply(*clusterId, *hostId, "/dev/sda", 5, 0)
 			reply := bm.PostStepReply(ctx, params)
@@ -6286,7 +6286,7 @@ var _ = Describe("AMS subscriptions", func() {
 				subStrings: []string{"Updated status of cluster", clusterName},
 			}, gomock.Any())
 
-			dummyDNSDomain := "dummy.com"
+			dummyDNSDomain := "dummy.test"
 			reply = bm.UpdateCluster(ctx, installer.UpdateClusterParams{
 				ClusterID: *c.ID,
 				ClusterUpdateParams: &models.ClusterUpdateParams{

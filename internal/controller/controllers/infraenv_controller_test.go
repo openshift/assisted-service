@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -113,6 +114,7 @@ var _ = Describe("infraEnv reconcile", func() {
 	It("create new infraEnv minimal-iso image - success", func() {
 		imageInfo := models.ImageInfo{
 			DownloadURL: "downloadurl",
+			CreatedAt:   strfmt.DateTime(time.Now()),
 		}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -138,14 +140,17 @@ var _ = Describe("infraEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 		Expect(infraEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
+		Expect(infraEnvImage.Status.CreatedTime).ToNot(BeNil())
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+		Expect(infraEnvImage.Status.AgentLabelSelector).To(Equal(metav1.LabelSelector{MatchLabels: map[string]string{aiv1beta1.InfraEnvNameLabel: "infraEnvImage"}}))
 	})
 
 	It("create new infraEnv full-iso image - success", func() {
 		imageInfo := models.ImageInfo{
 			DownloadURL: "downloadurl",
+			CreatedAt:   strfmt.DateTime(time.Now()),
 		}
 		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
 		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
@@ -171,6 +176,7 @@ var _ = Describe("infraEnv reconcile", func() {
 		}
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
 		Expect(infraEnvImage.Status.ISODownloadURL).To(Equal(imageInfo.DownloadURL))
+		Expect(infraEnvImage.Status.CreatedTime).ToNot(BeNil())
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
@@ -195,7 +201,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
@@ -277,7 +283,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).To(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,
@@ -287,6 +293,47 @@ var _ = Describe("infraEnv reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(aiv1beta1.ImageStateCreated))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreatedReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionTrue))
+	})
+
+	It("create new image - client failure and retry immediately that results HTTP 409 StatusConflict", func() {
+		clusterDeployment := newClusterDeployment("clusterDeployment", testNamespace, getDefaultClusterDeploymentSpec("clusterDeployment-test", "test-cluster-aci", "pull-secret"))
+		Expect(c.Create(ctx, clusterDeployment)).To(BeNil())
+
+		expectedClientError := common.NewApiError(http.StatusBadRequest, errors.New("client error"))
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
+				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
+			}).Return(nil, expectedClientError).Times(1)
+		mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil).Times(2)
+		infraEnvImage := newInfraEnvImage("infraEnvImage", testNamespace, aiv1beta1.InfraEnvSpec{
+			ClusterRef: &aiv1beta1.ClusterReference{Name: "clusterDeployment", Namespace: testNamespace},
+		})
+		Expect(c.Create(ctx, infraEnvImage)).To(BeNil())
+
+		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: false}))
+
+		key := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      "infraEnvImage",
+		}
+
+		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
+		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
+
+		// retry immediately
+
+		expectedConflictError := common.NewApiError(http.StatusConflict, errors.New("Another request to generate an image has been recently submitted. Please wait a few seconds and try again."))
+		mockInstallerInternal.EXPECT().GenerateClusterISOInternal(gomock.Any(), gomock.Any()).
+			Do(func(ctx context.Context, params installer.GenerateClusterISOParams) {
+				Expect(params.ClusterID).To(Equal(*backEndCluster.ID))
+			}).Return(nil, expectedConflictError).Times(1)
+		res, err = ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
+
+		Expect(err).To(BeNil())
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 	})
 
 	It("create new image - client failure", func() {
@@ -415,7 +462,7 @@ var _ = Describe("infraEnv reconcile", func() {
 			}).Return(errors.Errorf("error")).Times(1)
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 	})
 
 	It("failed to update cluster with proxy", func() {
@@ -434,7 +481,7 @@ var _ = Describe("infraEnv reconcile", func() {
 
 		res, err := ir.Reconcile(ctx, newInfraEnvRequest(infraEnvImage))
 		Expect(err).ToNot(BeNil())
-		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerClientError}))
+		Expect(res).To(Equal(ctrl.Result{Requeue: true, RequeueAfter: defaultRequeueAfterPerRecoverableError}))
 
 		key := types.NamespacedName{
 			Namespace: testNamespace,

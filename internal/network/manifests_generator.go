@@ -315,7 +315,7 @@ data:
 	stageServiceBaseURL       = "https://api.stage.openshift.com"
 	integrationServiceBaseURL = "https://api.integration.openshift.com"
 	stageTelemeterURL         = "https://infogw.api.stage.openshift.com"
-	dummyURL                  = "https://dummy.com"
+	dummyURL                  = "https://dummy.invalid"
 )
 
 // Default Telemeter server is prod.

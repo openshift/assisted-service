@@ -43,6 +43,13 @@ export NUM_EXTRA_WORKERS=1
 # At the time of this writing, this requires the 1195 PR
 # mentioned below.
 export PROVISIONING_NETWORK_PROFILE=Disabled
+
+# Add extradisks to VMs
+export VM_EXTRADISKS=true
+export VM_EXTRADISKS_LIST="vda vdb"
+export VM_EXTRADISKS_SIZE="30G"
+
+export REDFISH_EMULATOR_IGNORE_BOOT_DEVICE=True
 ```
 
 The config above should provide you with an environment that is ready to be used for the operator,
@@ -50,28 +57,6 @@ assisted installer, and BMAC tests. Here are a few tips that would help simplify
 and the steps required:
 
 - Clone [baremetal-operator][bmo] somewhere and set the `BAREMETAL_OPERATOR_LOCAL_IMAGE` in your config.
-
-Once dev-script is up and running, modify the worker(s) and add 2 more disks (10GB should be enough)
-as they are required by the Local Storage Operator.
-
-You can use the following snippet to attach a disk to the libvirt VM
-
-```bash
-export CLUSTERNAME=ostest
-export VMNAME=master_0
-export DISK=sdb
-
-qemu-img create -f raw /home/dev-scripts/pool/${VMNAME}_manual_${DISK}.img 10G
-
-virsh attach-disk ${CLUSTERNAME}_${VMNAME} \
---source /home/dev-scripts/pool/${VMNAME}_manual_${DISK}.img \
---target ${DISK} \
---persistent
-```
-
-**NOTE**
-
-Target device name must match the one defined later (during installation of the Assisted Service) in the `LocalVolume` manifest - https://github.com/openshift-metal3/dev-scripts/blob/master/assisted_deployment.sh#L64-L65. In this case `/dev/sdb` and `/dev/sdc` are expected.
 
 **NOTE**
 
@@ -121,7 +106,7 @@ proceed to deploying the Assisted Installer Operator. There's a script in the de
 facilitates this step:
 
 ```
-[dev@edge-10 dev-scripts]$ make assisted_deployment
+[dev@edge-10 dev-scripts]$ ./assisted_deployment.sh install_assisted_service
 ```
 
 Take a look at the [script itself][assisted-deployment-sh]
@@ -159,14 +144,16 @@ Creating BareMetalHost resources
 
 The [baremetal operator][bmo] creates the `BareMetalHost` resources for the existing nodes
 automatically. For scenarios using extra worker nodes (like SNO), it will be necessary to create
-`BareMetalHost` resources manually. Luckily enough, `dev-scripts` is one step ahead and it has
-prepared the manifest for us already.
+`BareMetalHost` resources manually. Luckily enough, `assisted_deployment.sh` is one step ahead
+and it has prepared the manifest for us already.
 
 ```
-less ocp/ostest/extra_host_manifests.yaml
+less ocp/ostest/saved-assets/assisted-installer-manifests/06-extra-host-manifests.yaml
 ```
 
-Make sure the manifests creates `BareMetalHost` in the proper namespace. You can further modify this manifest to disable inspection, and cleaning. Here's an example on what it would look like:
+The created `BareMetalHost` manifest contains already a correct namespace as well as annotations to disable the inspection and cleaning. Below is an example on what it could look like.
+
+Please remember to change the value of the `infraenvs.agent-install.openshift.io` label in case you are using different than the default one (`myinfraenv`).
 
 ```
 apiVersion: metal3.io/v1alpha1
@@ -175,10 +162,9 @@ metadata:
   name: ostest-worker-0
   namespace: assisted-installer
   annotations:
-    # BMAC will add this annotation if not present
     inspect.metal3.io: disabled
   labels:
-    infraenvs.agent-install.openshift.io: "bmac-test"
+    infraenvs.agent-install.openshift.io: "myinfraenv"
 spec:
   online: true
   bootMACAddress: 00:ec:ee:f8:5a:ba
@@ -188,11 +174,12 @@ spec:
     credentialsName: bmc-secret
 ```
 
-Setting `automatedCleaningMode` field and the `inspect.metal3.io` is optional. If
-skipped, the `BareMetalHost` will boot IPA and spend some time in the inspecting phase when the
-manifest is applied. Setting the `infraenvs.agent-install.openshift.io` is required and it must be
-set to the name of the InfraEnv to use. Without it, BMAC won't be able to set the ISO Url in the
-BareMetalHost resource.
+Setting `automatedCleaningMode` field and the `inspect.metal3.io` is optional as BMAC will add
+them automatically. Without those the `BareMetalHost` will boot IPA and spend some time in the
+inspecting phase when the manifest is applied.
+
+Setting the `infraenvs.agent-install.openshift.io` is required and it must be set to the name of
+the InfraEnv to use. Without it, BMAC won't be able to set the ISO Url in the BareMetalHost resource.
 
 It is possible to specify `RootDeviceHints` for the `BareMetalHost` resource. Root device hints are
 used to tell the installer what disk to use as the installation disk. Refer to the
@@ -261,6 +248,10 @@ this during the reconcile but, you know, software, computer gnomes, and dark mag
 Check that the `inspect.metal3.io` and `automatedCleaningMode` are both set to `disabled`. This will
 prevent Ironic from doing inspection and any cleaning, which will speed up the deployment process
 and prevent it from running IPA before running the ISO.
+
+This should be set automatically by BMAC in the part linked [here](https://github.com/openshift/assisted-service/blob/v1.0.22.1/internal/controller/controllers/bmh_agent_controller.go#L531-L545)
+but if that is not the case, start from checking the assisted-service logs as there may be more
+errors related to the BMH.
 
 - Node boots, but nothing else seems to be happening
 

@@ -53,6 +53,13 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 	}
 
 	if k8serrors.IsNotFound(err) {
+		labels := map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnv.Name}
+		if infraEnv.Spec.AgentLabels != nil {
+			for k, v := range infraEnv.Spec.AgentLabels {
+				labels[k] = v
+			}
+		}
+
 		host := &aiv1beta1.Agent{
 			Spec: aiv1beta1.AgentSpec{
 				ClusterDeploymentName: &aiv1beta1.ClusterReference{
@@ -64,6 +71,7 @@ func (u *CRDUtils) CreateAgentCR(ctx context.Context, log logrus.FieldLogger, ho
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      hostId,
 				Namespace: infraEnv.Namespace,
+				Labels:    labels,
 			},
 		}
 

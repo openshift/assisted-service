@@ -35,6 +35,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/conversions"
+	"k8s.io/utils/pointer"
 )
 
 // #nosec
@@ -2932,12 +2933,16 @@ var _ = Describe("Preflight Cluster Requirements", func() {
 			DiskSizeGb:                       120,
 			RAMMib:                           16384,
 			InstallationDiskSpeedThresholdMs: 10,
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
+			PacketLossPercentage:             pointer.Float64Ptr(0),
 		}
 		workerOCPRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores:                         2,
 			DiskSizeGb:                       120,
 			RAMMib:                           8192,
 			InstallationDiskSpeedThresholdMs: 10,
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
+			PacketLossPercentage:             pointer.Float64Ptr(10),
 		}
 		workerCNVRequirements = models.ClusterHostRequirementsDetails{
 			CPUCores: 2,
@@ -3338,6 +3343,7 @@ func generateFullMeshConnectivity(ctx context.Context, startIPAddress string, ho
 	for _, h := range hosts {
 
 		l2Connectivity := make([]*models.L2Connectivity, 0)
+		l3Connectivity := make([]*models.L3Connectivity, 0)
 		for id, addr := range hostToAddr {
 
 			if id == *h.ID {
@@ -3348,11 +3354,16 @@ func generateFullMeshConnectivity(ctx context.Context, startIPAddress string, ho
 				RemoteIPAddress: addr,
 				Successful:      true,
 			})
+			l3Connectivity = append(l3Connectivity, &models.L3Connectivity{
+				RemoteIPAddress: addr,
+				Successful:      true,
+			})
 		}
 
 		connectivityReport.RemoteHosts = append(connectivityReport.RemoteHosts, &models.ConnectivityRemoteHost{
 			HostID:         *h.ID,
 			L2Connectivity: l2Connectivity,
+			L3Connectivity: l3Connectivity,
 		})
 	}
 

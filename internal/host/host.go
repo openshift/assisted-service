@@ -28,6 +28,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 var BootstrapStages = [...]models.HostStage{
@@ -97,7 +98,7 @@ type Config struct {
 	EnableAutoReset         bool                    `envconfig:"ENABLE_AUTO_RESET" default:"false"`
 	ResetTimeout            time.Duration           `envconfig:"RESET_CLUSTER_TIMEOUT" default:"3m"`
 	MonitorBatchSize        int                     `envconfig:"HOST_MONITOR_BATCH_SIZE" default:"100"`
-	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:"sufficient-network-latency-requirement-for-role,sufficient-packet-loss-requirement-for-role"` // Which host validations to disable (should not run in preprocess)
+	DisabledHostvalidations DisabledHostValidations `envconfig:"DISABLED_HOST_VALIDATIONS" default:""` // Which host validations to disable (should not run in preprocess)
 }
 
 //go:generate mockgen -package=host -aux_files=github.com/openshift/assisted-service/internal/host/hostcommands=instruction_manager.go -destination=mock_host_api.go . API
@@ -145,6 +146,7 @@ type API interface {
 	UpdateImageStatus(ctx context.Context, h *models.Host, imageStatus *models.ContainerImageAvailability, db *gorm.DB) error
 	SetDiskSpeed(ctx context.Context, h *models.Host, path string, speedMs int64, exitCode int64, db *gorm.DB) error
 	ResetHostValidation(ctx context.Context, hostID, clusterID strfmt.UUID, validationID string, db *gorm.DB) error
+	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 }
 
 type Manager struct {
@@ -710,7 +712,7 @@ func (m *Manager) UpdateImageStatus(ctx context.Context, h *models.Host, newImag
 	} else {
 		common.SetImageStatus(hostImageStatuses, newImageStatus)
 		m.log.Infof("Adding new image status for %s with status %s to host %s", newImageStatus.Name, newImageStatus.Result, h.ID.String())
-		m.metricApi.ImagePullStatus(h.ClusterID, *h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
+		m.metricApi.ImagePullStatus(*h.ID, newImageStatus.Name, string(newImageStatus.Result), newImageStatus.DownloadRate)
 
 		eventInfo := fmt.Sprintf("Host %s: New image status %s. result: %s.",
 			hostutil.GetHostnameForMsg(h), newImageStatus.Name, newImageStatus.Result)
@@ -1206,6 +1208,10 @@ type DisabledHostValidations map[string]struct{}
 
 func (d *DisabledHostValidations) Decode(value string) error {
 	disabledHostValidations := DisabledHostValidations{}
+	if len(strings.Trim(value, "")) == 0 {
+		*d = disabledHostValidations
+		return nil
+	}
 	for _, element := range strings.Split(value, ",") {
 		if len(element) == 0 {
 			return fmt.Errorf("empty host validation ID found in '%s'", value)
@@ -1219,4 +1225,12 @@ func (d *DisabledHostValidations) Decode(value string) error {
 func (d DisabledHostValidations) IsDisabled(id validationID) bool {
 	_, ok := d[id.String()]
 	return ok
+}
+
+func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
+	host, err := common.GetHostFromDBWhere(m.db, "id = ? and kube_key_namespace = ?", key.Name, key.Namespace)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get host from DB: %+v", key)
+	}
+	return host, nil
 }

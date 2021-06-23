@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -767,7 +768,7 @@ var _ = Describe("cluster reconcile", func() {
 				Username: username,
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -811,7 +812,7 @@ var _ = Describe("cluster reconcile", func() {
 				},
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			mockInstallerInternal.EXPECT().RegisterAddHostsClusterInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(clusterReply, nil)
 			mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(openshiftVersion, nil)
@@ -835,6 +836,49 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
+		It("update kubeconfig ingress", func() {
+			openshiftID := strfmt.UUID(uuid.New().String())
+			backEndCluster.Status = swag.String(models.ClusterStatusInstalling)
+			backEndCluster.OpenshiftClusterID = openshiftID
+			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+			password := "test"
+			username := "admin"
+			kubeconfigNoIngress := "kubeconfig content NOINGRESS"
+			cred := &models.Credentials{
+				Password: password,
+				Username: username,
+			}
+			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfigNoIngress)), int64(len(kubeconfigNoIngress)), nil).Times(1)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			cluster = getTestCluster()
+			secretKubeConfig := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
+			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfigNoIngress))
+			Expect(aci.Spec.ClusterMetadata.ClusterID).To(Equal(openshiftID.String()))
+
+			By("Call reconcile again to test update of Kubeconfig secret")
+			backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
+			kubeconfigIngress := "kubeconfig content WITHINGRESS"
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfigIngress)), int64(len(kubeconfigIngress)), nil).Times(1)
+			result, err = cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+			aci = getTestClusterInstall()
+			cluster = getTestCluster()
+			secretAdmin := getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminPasswordSecretRef.Name)
+			Expect(string(secretAdmin.Data["password"])).To(Equal(password))
+			Expect(string(secretAdmin.Data["username"])).To(Equal(username))
+			secretKubeConfig = getSecret(cluster.Namespace, aci.Spec.ClusterMetadata.AdminKubeconfigSecretRef.Name)
+			Expect(string(secretKubeConfig.Data["kubeconfig"])).To(Equal(kubeconfigIngress))
+		})
+
 		It("installed SNO no day2", func() {
 			cr.EnableDay2Cluster = true
 			openshiftID := strfmt.UUID(uuid.New().String())
@@ -851,7 +895,7 @@ var _ = Describe("cluster reconcile", func() {
 				Username: username,
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
-			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader(kubeconfig)), int64(len(kubeconfig)), nil).Times(1)
 			mockInstallerInternal.EXPECT().DeregisterClusterInternal(gomock.Any(), gomock.Any()).Return(nil).Times(1)
 			aci.Spec.ProvisionRequirements.WorkerAgents = 0
 			aci.Spec.ProvisionRequirements.ControlPlaneAgents = 1
@@ -988,7 +1032,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			mockInstallerInternal.EXPECT().GetCredentialsInternal(gomock.Any(), gomock.Any()).Return(cred, nil).Times(1)
 			expectedErr := "internal error"
-			mockInstallerInternal.EXPECT().DownloadClusterKubeconfigInternal(gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New(expectedErr)).Times(1)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(nil, int64(0), errors.New(expectedErr)).Times(1)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -1674,6 +1718,44 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
+		It("invalid install config overrides annotation", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			installConfigOverrides := `{{{"controlPlane": ""`
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+					Expect(param.ClusterID).To(Equal(sId))
+					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
+				}).Return(nil, common.NewApiError(http.StatusBadRequest,
+				errors.New("invalid character '{' looking for beginning of object key string")))
+
+			// Add annotation
+			aci.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			_, err := cr.Reconcile(ctx, request)
+			Expect(err).ShouldNot(HaveOccurred())
+			aci := getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(InputErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(ContainSubstring(
+				"Failed to parse 'agent-install.openshift.io/install-config-overrides' annotation"))
+		})
 	})
 
 	Context("cluster update not needed", func() {
@@ -1743,6 +1825,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig")), int64(len("kubeconfig")), nil).Times(1)
 
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())
@@ -1781,6 +1864,7 @@ var _ = Describe("cluster reconcile", func() {
 				PullSecret: testPullSecretVal,
 			}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().DownloadClusterFilesInternal(gomock.Any(), gomock.Any()).Return(ioutil.NopCloser(strings.NewReader("kubeconfig")), int64(len("kubeconfig")), nil).Times(1)
 
 			pullSecret := getDefaultTestPullSecret("pull-secret", testNamespace)
 			Expect(c.Create(ctx, pullSecret)).To(BeNil())

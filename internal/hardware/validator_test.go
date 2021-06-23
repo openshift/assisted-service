@@ -421,15 +421,16 @@ var _ = Describe("Cluster host requirements", func() {
 			RAMMib:                           1024,
 			CPUCores:                         4,
 			DiskSizeGb:                       10,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(150),
-			PacketLossPercentage:             pointer.Float64Ptr(5),
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(100),
+			PacketLossPercentage:             pointer.Float64Ptr(0),
 		}
 		details2 = models.ClusterHostRequirementsDetails{
 			InstallationDiskSpeedThresholdMs: 5,
 			RAMMib:                           256,
 			CPUCores:                         2,
 			DiskSizeGb:                       5,
-			NetworkLatencyThresholdMs:        pointer.Float64Ptr(500),
+			NetworkLatencyThresholdMs:        pointer.Float64Ptr(1000),
+			PacketLossPercentage:             pointer.Float64Ptr(10),
 		}
 
 		operatorRequirements = []*models.OperatorHostRequirements{

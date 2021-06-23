@@ -178,6 +178,27 @@ func generateHWPostStepReply(ctx context.Context, h *models.Host, hwInfo *models
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
+func generateConnectivityCheckPostStepReply(ctx context.Context, h *models.Host, success bool) {
+	response := models.ConnectivityReport{
+		RemoteHosts: []*models.ConnectivityRemoteHost{
+			{L3Connectivity: []*models.L3Connectivity{{Successful: success}}},
+		},
+	}
+	bytes, err := json.Marshal(&response)
+	Expect(err).NotTo(HaveOccurred())
+	_, err = agentBMClient.Installer.PostStepReply(ctx, &installer.PostStepReplyParams{
+		ClusterID: h.ClusterID,
+		HostID:    *h.ID,
+		Reply: &models.StepReply{
+			ExitCode: 0,
+			Output:   string(bytes),
+			StepID:   string(models.StepTypeConnectivityCheck),
+			StepType: models.StepTypeConnectivityCheck,
+		},
+	})
+	Expect(err).ShouldNot(HaveOccurred())
+}
+
 func generateNTPPostStepReply(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource) {
 	response := models.NtpSynchronizationResponse{
 		NtpSources: ntpSources,

@@ -1,9 +1,8 @@
 NAMESPACE := $(or ${NAMESPACE},assisted-installer)
-
 PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
-
+CONTAINER_COMMAND := $(or ${CONTAINER_COMMAND},docker)
 BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
@@ -73,6 +72,7 @@ MIRROR_REG_CA_FILE = mirror_ca.crt
 REGISTRIES_FILE_PATH = registries.conf
 MIRROR_REGISTRY_SUPPORT := $(or ${MIRROR_REGISTRY_SUPPORT},False)
 HW_REQUIREMENTS := $(or ${HW_REQUIREMENTS}, $(shell cat $(ROOT_DIR)/data/default_hw_requirements.json | tr -d "\n\t "))
+DISABLED_HOST_VALIDATIONS := $(or ${DISABLED_HOST_VALIDATIONS}, "")
 ifeq ($(ENABLE_KUBE_API),true)
 	ENABLE_KUBE_API_CMD = --enable-kube-api true
 	STORAGE = filesystem
@@ -159,19 +159,19 @@ build-minimal: $(BUILD_FOLDER)
 	$(MAKE) -j build-assisted-service build-assisted-service-operator
 
 update-minimal:
-	docker build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) -f Dockerfile.assisted-service . -t $(SERVICE)
 
 update-debug-minimal:
 	export DEBUG_SERVICE=True && $(MAKE) build-minimal
 	mkdir -p build/debug-image && cp Dockerfile.assisted-service-debug $(BUILD_FOLDER)/assisted-service $(BUILD_FOLDER)/assisted-service-operator build/debug-image
-	docker build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
+	$(CONTAINER_COMMAND) build $(CONTAINER_BUILD_PARAMS) --build-arg SERVICE=$(SERVICE) --build-arg DEBUG_SERVICE_PORT=$(DEBUG_SERVICE_PORT) -f build/debug-image/Dockerfile.assisted-service-debug build/debug-image -t $(SERVICE)
 	rm -r build/debug-image
 
 update-image: $(UPDATE_IMAGE)
 
 _update-private-registry-image: update-image
-	docker tag $(SERVICE) $(LOCAL_SERVICE)
-	docker push $(LOCAL_SERVICE)
+	$(CONTAINER_COMMAND) tag $(SERVICE) $(LOCAL_SERVICE)
+	$(CONTAINER_COMMAND) push --tls-verify=false $(LOCAL_SERVICE)
 
 _update-local-k8s-image:
 	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
@@ -265,7 +265,8 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
-		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' --kubeapi-day2 "$(ENABLE_KUBE_API_DAY2)"
+		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' --kubeapi-day2 "$(ENABLE_KUBE_API_DAY2)" 
+		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)"
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
 		--namespace "$(NAMESPACE)"  --apply-manifest $(APPLY_MANIFEST) --ca-file-path $(MIRROR_REG_CA_FILE) --registries-file-path $(REGISTRIES_FILE_PATH)

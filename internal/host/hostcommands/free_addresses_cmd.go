@@ -17,7 +17,10 @@ type freeAddressesCmd struct {
 	freeAddressesImage string
 }
 
-func NewFreeAddressesCmd(log logrus.FieldLogger, freeAddressesImage string) *freeAddressesCmd {
+func newFreeAddressesCmd(log logrus.FieldLogger, freeAddressesImage string, enabled bool) CommandGetter {
+	if !enabled {
+		return NewNoopCmd()
+	}
 	return &freeAddressesCmd{
 		baseCmd:            baseCmd{log: log},
 		freeAddressesImage: freeAddressesImage,

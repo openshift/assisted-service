@@ -125,6 +125,7 @@ type InstallerInternals interface {
 	GenerateClusterISOInternal(ctx context.Context, params installer.GenerateClusterISOParams) (*common.Cluster, error)
 	UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error
 	GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error)
+	GetHostByKubeKey(key types.NamespacedName) (*common.Host, error)
 	InstallClusterInternal(ctx context.Context, params installer.InstallClusterParams) (*common.Cluster, error)
 	DeregisterClusterInternal(ctx context.Context, params installer.DeregisterClusterParams) error
 	DeregisterHostInternal(ctx context.Context, params installer.DeregisterHostParams) error
@@ -133,13 +134,12 @@ type InstallerInternals interface {
 	UpdateHostInstallerArgsInternal(ctx context.Context, params installer.UpdateHostInstallerArgsParams) (*models.Host, error)
 	UpdateHostIgnitionInternal(ctx context.Context, params installer.UpdateHostIgnitionParams) (*models.Host, error)
 	GetCredentialsInternal(ctx context.Context, params installer.GetCredentialsParams) (*models.Credentials, error)
-	DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error)
+	DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error)
 	RegisterAddHostsClusterInternal(ctx context.Context, kubeKey *types.NamespacedName, params installer.RegisterAddHostsClusterParams) (*common.Cluster, error)
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
-	GetHostById(hostId string) (*common.Host, error)
 }
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
@@ -2701,19 +2701,6 @@ func (b *bareMetalInventory) GetHost(_ context.Context, params installer.GetHost
 	return installer.NewGetHostOK().WithPayload(&host.Host)
 }
 
-func (b *bareMetalInventory) GetHostById(hostId string) (*common.Host, error) {
-	host, err := common.GetHostByIdFromDB(b.db, hostId)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = b.customizeHost(&host.Host); err != nil {
-		return nil, err
-	}
-
-	return host, nil
-}
-
 func (b *bareMetalInventory) ListHosts(ctx context.Context, params installer.ListHostsParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 	var hosts []*models.Host
@@ -3043,7 +3030,7 @@ func (b *bareMetalInventory) processDiskSpeedCheckResponse(ctx context.Context, 
 	}
 
 	if exitCode == 0 {
-		b.metricApi.DiskSyncDuration(h.ClusterID, *h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
+		b.metricApi.DiskSyncDuration(*h.ID, diskPerfCheckResponse.Path, diskPerfCheckResponse.IoSyncDuration)
 
 		thresholdMs, err := b.getInstallationDiskSpeedThresholdMs(ctx, h)
 		if err != nil {
@@ -3413,38 +3400,38 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 }
 
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
+	respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
+	if err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
+}
+
+func (b *bareMetalInventory) DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
+
 	log := logutil.FromContext(ctx, b.log)
 	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), params.FileName); err != nil {
-		return common.GenerateErrorResponder(err)
+		return nil, 0, err
 	}
 
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, params.FileName))
 	if err != nil {
 		log.WithError(err).Errorf("failed to download file %s from cluster: %s", params.FileName, params.ClusterID.String())
-		return common.GenerateErrorResponder(err)
+		return nil, 0, common.NewApiError(http.StatusConflict, err)
 	}
 
-	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
+	return respBody, contentLength, nil
 }
 
 func (b *bareMetalInventory) DownloadClusterKubeconfig(ctx context.Context, params installer.DownloadClusterKubeconfigParams) middleware.Responder {
-	respBody, contentLength, err := b.DownloadClusterKubeconfigInternal(ctx, params)
-	if err != nil {
+	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
-}
-
-func (b *bareMetalInventory) DownloadClusterKubeconfigInternal(ctx context.Context, params installer.DownloadClusterKubeconfigParams) (io.ReadCloser, int64, error) {
-	if err := b.checkFileForDownload(ctx, params.ClusterID.String(), constants.Kubeconfig); err != nil {
-		return nil, 0, err
-	}
-
 	respBody, contentLength, err := b.objectHandler.Download(ctx, fmt.Sprintf("%s/%s", params.ClusterID, constants.Kubeconfig))
 	if err != nil {
-		return nil, 0, common.NewApiError(http.StatusConflict, err)
+		return common.NewApiError(http.StatusConflict, err)
 	}
-	return respBody, contentLength, nil
+	return filemiddleware.NewResponder(installer.NewDownloadClusterKubeconfigOK().WithPayload(respBody), constants.Kubeconfig, contentLength)
 }
 
 func (b *bareMetalInventory) getLogFileForDownload(ctx context.Context, clusterId *strfmt.UUID, hostId *strfmt.UUID, logsType string) (string, string, error) {
@@ -4473,6 +4460,10 @@ func secretValidationToUserError(err error) error {
 
 func (b *bareMetalInventory) GetClusterByKubeKey(key types.NamespacedName) (*common.Cluster, error) {
 	return b.clusterApi.GetClusterByKubeKey(key)
+}
+
+func (b *bareMetalInventory) GetHostByKubeKey(key types.NamespacedName) (*common.Host, error) {
+	return b.hostApi.GetHostByKubeKey(key)
 }
 
 func (b *bareMetalInventory) GetClusterHostRequirements(ctx context.Context, params installer.GetClusterHostRequirementsParams) middleware.Responder {

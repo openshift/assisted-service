@@ -12,6 +12,7 @@ import (
 	common "github.com/openshift/assisted-service/internal/common"
 	models "github.com/openshift/assisted-service/models"
 	logrus "github.com/sirupsen/logrus"
+	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"
 )
 
@@ -92,6 +93,21 @@ func (m *MockAPI) EnableHost(arg0 context.Context, arg1 *models.Host, arg2 *gorm
 func (mr *MockAPIMockRecorder) EnableHost(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EnableHost", reflect.TypeOf((*MockAPI)(nil).EnableHost), arg0, arg1, arg2)
+}
+
+// GetHostByKubeKey mocks base method
+func (m *MockAPI) GetHostByKubeKey(arg0 types.NamespacedName) (*common.Host, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetHostByKubeKey", arg0)
+	ret0, _ := ret[0].(*common.Host)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetHostByKubeKey indicates an expected call of GetHostByKubeKey
+func (mr *MockAPIMockRecorder) GetHostByKubeKey(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostByKubeKey", reflect.TypeOf((*MockAPI)(nil).GetHostByKubeKey), arg0)
 }
 
 // GetHostValidDisks mocks base method

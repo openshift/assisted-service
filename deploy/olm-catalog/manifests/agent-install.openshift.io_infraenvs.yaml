@@ -33,36 +33,6 @@ spec:
                 items:
                   type: string
                 type: array
-              agentLabelSelector:
-                description: AgentLabelSelector specifies a label that should be applied to Agents that boot from the installation media of this InfraEnv. This is how a user would identify which agents are associated with a particular InfraEnv.
-                properties:
-                  matchExpressions:
-                    description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
-                    items:
-                      description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
-                      properties:
-                        key:
-                          description: key is the label key that the selector applies to.
-                          type: string
-                        operator:
-                          description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
-                          type: string
-                        values:
-                          description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
-                          items:
-                            type: string
-                          type: array
-                      required:
-                      - key
-                      - operator
-                      type: object
-                    type: array
-                  matchLabels:
-                    additionalProperties:
-                      type: string
-                    description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
-                    type: object
-                type: object
               agentLabels:
                 additionalProperties:
                   type: string
@@ -140,6 +110,36 @@ spec:
             type: object
           status:
             properties:
+              agentLabelSelector:
+                description: AgentLabelSelector specifies the label that will be applied to Agents that boot from the installation media of this InfraEnv. This is how a user would identify which agents are associated with a particular InfraEnv.
+                properties:
+                  matchExpressions:
+                    description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                    items:
+                      description: A label selector requirement is a selector that contains values, a key, and an operator that relates the key and values.
+                      properties:
+                        key:
+                          description: key is the label key that the selector applies to.
+                          type: string
+                        operator:
+                          description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                          type: string
+                        values:
+                          description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - key
+                      - operator
+                      type: object
+                    type: array
+                  matchLabels:
+                    additionalProperties:
+                      type: string
+                    description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                    type: object
+                type: object
               conditions:
                 items:
                   description: Condition represents the state of the operator's reconciliation functionality.
@@ -164,6 +164,9 @@ spec:
                   - type
                   type: object
                 type: array
+              createdTime:
+                format: date-time
+                type: string
               isoDownloadURL:
                 description: ISODownloadURL specifies an HTTP/S URL that contains a discovery ISO containing the configuration from this InfraEnv.
                 type: string

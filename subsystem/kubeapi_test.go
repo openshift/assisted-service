@@ -294,6 +294,13 @@ func getAgentCRD(ctx context.Context, client k8sclient.Client, key types.Namespa
 	return agent
 }
 
+func getClusterImageSetCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *hivev1.ClusterImageSet {
+	clusterImageSet := &hivev1.ClusterImageSet{}
+	err := client.Get(ctx, key, clusterImageSet)
+	Expect(err).To(BeNil())
+	return clusterImageSet
+}
+
 func getBmhCRD(ctx context.Context, client k8sclient.Client, key types.NamespacedName) *bmhv1alpha1.BareMetalHost {
 	bmh := &bmhv1alpha1.BareMetalHost{}
 	err := client.Get(ctx, key, bmh)
@@ -624,10 +631,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "2m", "2s").Should(Equal(0))
 	})
 
-	It("verify InfraEnv ISODownloadURL is not changing", func() {
+	It("verify InfraEnv ISODownloadURL and image CreatedTime are not changing - update Annotations", func() {
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
-		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Deploy InfraEnv")
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 
 		infraEnvKubeName := types.NamespacedName{
 			Namespace: Options.Namespace,
@@ -640,15 +648,116 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
 		firstURL := infraEnv.Status.ISODownloadURL
+		firstCreatedAt := infraEnv.Status.CreatedTime
 
+		By("Update InfraEnv Annotations")
 		Eventually(func() error {
 			infraEnv.SetAnnotations(map[string]string{"foo": "bar"})
 			return kubeClient.Update(ctx, infraEnv)
 		}, "30s", "10s").Should(BeNil())
 
+		By("Verify InfraEnv Status ISODownloadURL has not changed")
 		Consistently(func() string {
 			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
-		}, "10s", "2s").Should(Equal(firstURL))
+		}, "30s", "2s").Should(Equal(firstURL))
+
+		By("Verify InfraEnv Status CreatedTime has not changed")
+		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).To(Equal(firstCreatedAt))
+	})
+
+	It("verify InfraEnv ISODownloadURL and image CreatedTime are changing  - update IgnitionConfigOverride", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Deploy InfraEnv")
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "15s", "5s").Should(Not(BeEmpty()))
+
+		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
+		firstURL := infraEnv.Status.ISODownloadURL
+		firstCreatedAt := infraEnv.Status.CreatedTime
+		By("Update InfraEnv IgnitionConfigOverride")
+		Eventually(func() error {
+			infraEnvSpec.IgnitionConfigOverride = fakeIgnitionConfigOverride
+			infraEnv.Spec = *infraEnvSpec
+			return kubeClient.Update(ctx, infraEnv)
+		}, "30s", "10s").Should(BeNil())
+
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		Eventually(func() string {
+			return getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout).IgnitionConfigOverrides
+		}, "30s", "2s").Should(Equal(fakeIgnitionConfigOverride))
+
+		By("Verify InfraEnv Status ISODownloadURL has changed")
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "30s", "2s").ShouldNot(Equal(firstURL))
+
+		By("Verify InfraEnv Status CreatedTime has changed")
+		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).ShouldNot(Equal(firstCreatedAt))
+	})
+
+	It("verify InfraEnv image regenerated - ACI recreated", func() {
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Deploy InfraEnv")
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+
+		infraEnvKubeName := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      infraNsName.Name,
+		}
+
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "15s", "5s").Should(Not(BeEmpty()))
+
+		infraEnv := getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName)
+		firstURL := infraEnv.Status.ISODownloadURL
+		firstCreatedAt := infraEnv.Status.CreatedTime
+
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+
+		imageSetKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      aciSpec.ImageSetRef.Name,
+		}
+
+		By("Delete AgentClusterInstall")
+		err := kubeClient.Delete(ctx, getAgentClusterInstallCRD(ctx, kubeClient, installkey))
+		Expect(err).To(BeNil())
+		err = kubeClient.Delete(ctx, getClusterImageSetCRD(ctx, kubeClient, imageSetKey))
+		Expect(err).To(BeNil())
+
+		By("Verify AgentClusterInstall was deleted")
+		Eventually(func() bool {
+			aci := &hiveext.AgentClusterInstall{}
+			err := kubeClient.Get(ctx, installkey, aci)
+			return apierrors.IsNotFound(err)
+		}, "30s", "10s").Should(Equal(true))
+
+		By("Create AgentClusterInstall")
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+		By("Verify InfraEnv Status ISODownloadURL has changed")
+		Eventually(func() string {
+			return getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.ISODownloadURL
+		}, "60s", "2s").ShouldNot(Equal(firstURL))
+
+		By("Verify InfraEnv Status CreatedTime has changed")
+		Expect(getInfraEnvCRD(ctx, kubeClient, infraEnvKubeName).Status.CreatedTime).ShouldNot(Equal(firstCreatedAt))
 	})
 
 	It("deploy CD with ACI and agents - wait for ready, delete ACI only and verify agents deletion", func() {
@@ -1481,7 +1590,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {
 		By("Create cluster")
+		labels := map[string]string{"foo": "bar", "Alice": "Bob"}
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		infraEnvSpec.AgentLabels = labels
 		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
 		// Add space suffix to SSHPublicKey to validate proper install
 		sshPublicKeySuffixSpace := fmt.Sprintf("%s ", aciSNOSpec.SSHPublicKey)
@@ -1527,6 +1638,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		}, "30s", "10s").Should(BeTrue())
 
+		By("Verify Agent labels")
+		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
+		Eventually(func() map[string]string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.ObjectMeta.Labels
+		}, "30s", "1s").Should(Equal(labels))
+
 		By("Approve Agent")
 		Eventually(func() error {
 			agent := getAgentCRD(ctx, kubeClient, key)
@@ -1570,6 +1688,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return agent.Status.Bootstrap && agent.Status.Role == models.HostRoleMaster
 		}, "30s", "10s").Should(BeTrue())
 
+		By("Check kubeconfig before install is finished")
+		configSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
+		configkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      configSecretRef.Name,
+		}
+		configSecret := getSecret(ctx, kubeClient, configkey)
+		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
+
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
@@ -1595,13 +1722,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		passwordSecret := getSecret(ctx, kubeClient, passwordkey)
 		Expect(passwordSecret.Data["password"]).NotTo(BeNil())
 		Expect(passwordSecret.Data["username"]).NotTo(BeNil())
-		configSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
+		configSecretRef = getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminKubeconfigSecretRef
 		Expect(passwordSecretRef).NotTo(BeNil())
-		configkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      configSecretRef.Name,
-		}
-		configSecret := getSecret(ctx, kubeClient, configkey)
+		configSecret = getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 
 		By("Check Event URL still exist")

@@ -56,7 +56,7 @@ func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string, r
 			StageUpdatedAt: now,
 		},
 		APIVipConnectivity: generateTestAPIVIpConnectivity(),
-		Connectivity:       generateTestConnectivityReport(),
+		Connectivity:       GenerateTestConnectivityReport(),
 	}
 }
 
@@ -81,7 +81,7 @@ func GenerateTestHostWithNetworkAddress(hostID, clusterID strfmt.UUID, role mode
 	return &h
 }
 
-func generateTestConnectivityReport() string {
+func GenerateTestConnectivityReport() string {
 	c := models.ConnectivityReport{RemoteHosts: []*models.ConnectivityRemoteHost{}}
 	b, err := json.Marshal(&c)
 	Expect(err).NotTo(HaveOccurred())

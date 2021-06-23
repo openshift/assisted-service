@@ -38,6 +38,7 @@ import (
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -46,7 +47,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const defaultRequeueAfterPerClientError = 2 * bminventory.WindowBetweenRequestsInSeconds
+const defaultRequeueAfterPerRecoverableError = 2 * bminventory.WindowBetweenRequestsInSeconds
 
 type InfraEnvConfig struct {
 	ImageType models.ImageType `envconfig:"ISO_IMAGE_TYPE" default:"minimal-iso"`
@@ -199,6 +200,7 @@ func (r *InfraEnvReconciler) processNMStateConfig(ctx context.Context, log logru
 // ensureISO generates ISO for the cluster if needed and will update the condition Reason and Message accordingly.
 // It returns a result that includes ISODownloadURL.
 func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogger, infraEnv *aiv1beta1.InfraEnv) (ctrl.Result, error) {
+	infraEnv.Status.AgentLabelSelector = metav1.LabelSelector{MatchLabels: map[string]string{aiv1beta1.InfraEnvNameLabel: infraEnv.Name}}
 	var inventoryErr error
 	var Requeue bool
 	var updatedCluster *common.Cluster
@@ -313,8 +315,10 @@ func (r *InfraEnvReconciler) updateEnsureISOSuccess(
 	})
 
 	if infraEnv.Status.ISODownloadURL != imageInfo.DownloadURL {
+		log.Infof("ISODownloadURL changed from %s to %s", infraEnv.Status.ISODownloadURL, imageInfo.DownloadURL)
 		infraEnv.Status.ISODownloadURL = imageInfo.DownloadURL
-		log.Infof("ISODownloadURL changed from %s to %s", imageInfo.DownloadURL, infraEnv.Status.ISODownloadURL)
+		imageCreatedAt := metav1.NewTime(time.Time(imageInfo.CreatedAt))
+		infraEnv.Status.CreatedTime = &imageCreatedAt
 	}
 
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
@@ -338,25 +342,28 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 	if currentCondition := conditionsv1.FindStatusCondition(infraEnv.Status.Conditions, aiv1beta1.ImageCreatedCondition); currentCondition != nil {
 		currentReason = currentCondition.Reason
 	}
-	if imageBeingCreated(err) && currentReason != aiv1beta1.ImageCreationErrorReason { // Not an actual error, just an image generation in progress.
-		err = nil
-		Requeue = false
-		log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.ClusterName)
-		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
-			Type:    aiv1beta1.ImageCreatedCondition,
-			Status:  corev1.ConditionTrue,
-			Reason:  aiv1beta1.ImageCreatedReason,
-			Message: aiv1beta1.ImageStateCreated,
-		})
+	if imageBeingCreated(err) {
+		Requeue = true
+		RequeueAfter = defaultRequeueAfterPerRecoverableError
+		err = nil                                                // clear up the error so it will requeue with RequeueAfter we set
+		if currentReason != aiv1beta1.ImageCreationErrorReason { // Not an actual error, just an image generation in progress.
+			log.Infof("Image %s being prepared for cluster %s", infraEnv.Name, infraEnv.Spec.ClusterRef.Name)
+			conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
+				Type:    aiv1beta1.ImageCreatedCondition,
+				Status:  corev1.ConditionTrue,
+				Reason:  aiv1beta1.ImageCreatedReason,
+				Message: aiv1beta1.ImageStateCreated,
+			})
+		}
 	} else { // Actual errors
 		log.WithError(err).Error("infraEnv reconcile failed")
-		if isClientError(err) {
+		if isClientError(err) { // errors it can't recover from
 			Requeue = false
 			errMsg = ": " + err.Error()
 			err = nil // clear the error, to avoid requeue.
-		} else {
+		} else { // errors it may recover from
 			Requeue = true
-			RequeueAfter = defaultRequeueAfterPerClientError
+			RequeueAfter = defaultRequeueAfterPerRecoverableError
 			errMsg = ": internal error"
 		}
 		conditionsv1.SetStatusConditionNoHeartbeat(&infraEnv.Status.Conditions, conditionsv1.Condition{
@@ -368,6 +375,7 @@ func (r *InfraEnvReconciler) handleEnsureISOErrors(
 		// In a case of an error, clear the download URL.
 		log.Debugf("cleanup up ISODownloadURL due to %s", errMsg)
 		infraEnv.Status.ISODownloadURL = ""
+		infraEnv.Status.CreatedTime = nil
 	}
 	if updateErr := r.Status().Update(ctx, infraEnv); updateErr != nil {
 		log.WithError(updateErr).Error("failed to update infraEnv status")

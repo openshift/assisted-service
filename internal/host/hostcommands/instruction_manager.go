@@ -55,6 +55,7 @@ type InstructionConfig struct {
 	SupportL2            bool          `envconfig:"SUPPORT_L2" default:"true"`
 	InstallationTimeout  uint          `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 	DiskCheckTimeout     time.Duration `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
+	SupportFreeAddresses bool          `envconfig:"SUPPORT_FREE_ADDRESSES" default:"true"`
 	ReleaseImageMirror   string
 	CheckClusterVersion  bool
 }
@@ -64,7 +65,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
 	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)
-	freeAddressesCmd := NewFreeAddressesCmd(log, instructionConfig.AgentImage)
+	freeAddressesCmd := newFreeAddressesCmd(log, instructionConfig.AgentImage, instructionConfig.SupportFreeAddresses)
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
 	logsCmd := NewLogsCmd(log, db, instructionConfig)

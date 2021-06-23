@@ -66,6 +66,22 @@ EOF
   cat "${manifests_dir}/catalogSource.yaml"
 
   oc apply -f "${manifests_dir}/catalogSource.yaml"
+
+
+  if [ "${OPENSHIFT_CI:-false}" = "false" ]; then
+    # Until allowing mirroring by tags https://issues.redhat.com/browse/OCPNODE-521
+    # https://github.com/openshift/api/pull/874 will be part of OCP 4.9
+    hostnames=$(virsh net-dhcp-leases ${BAREMETAL_NETWORK_NAME} | awk 'NR>2 {print $6}')
+
+    for hostname in ${hostnames}; do
+        ssh -o StrictHostKeyChecking=no core@${hostname} bash - << EOF
+  if grep "mirror-by-digest-only = true" /etc/containers/registries.conf -c; then
+      sudo sed -i 's/mirror-by-digest-only = true/mirror-by-digest-only = false/' /etc/containers/registries.conf
+      sudo systemctl restart crio kubelet
+  fi
+EOF
+    done
+  fi
 }
 
 function mirror_package_from_official_index() {
