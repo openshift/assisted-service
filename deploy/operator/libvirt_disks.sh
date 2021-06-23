@@ -11,12 +11,6 @@ if [ -z "${NODES:-}" ]; then
     export NODES=$(virsh list --name | grep worker || virsh list --name | grep master)
 fi
 
-if [ -z "${DISKS:-}" ]; then
-    echo "You must provide DISKS env-var."
-    print_help
-    exit 1
-fi
-
 function create() {
     export SIZE=${SIZE:-50G}
 

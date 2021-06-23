@@ -15,24 +15,6 @@ function print_help() {
   fi
 }
 
-if [ -z "${DISKS:-}" ]; then
-  echo "You must provide DISKS env-var."
-  print_help
-  exit 1
-fi
-
-if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE:-}" ]; then
-  echo "On disconnected mode, you must provide AUTHFILE env-var."
-  print_help
-  exit 1
-fi
-
-if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY:-}" ]; then
-  echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
-  print_help
-  exit 1
-fi
-
 function install_lso() {
   oc adm new-project openshift-local-storage || true
 

@@ -3,9 +3,6 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/utils.sh
 
-set -o nounset
-set -o pipefail
-set -o errexit
 set -o xtrace
 
 DISCONNECTED="${DISCONNECTED:-false}"
@@ -14,24 +11,12 @@ HIVE_NAMESPACE="${HIVE_NAMESPACE:-hive}"
 
 function print_help() {
     ALL_FUNCS="with_olm|from_upstream|enable_agent_install_strategy|print_help"
-    if [ "${DISCONNECTED}" == "true" ]; then
+    if [ "${DISCONNECTED}" = "true" ]; then
         echo "Usage: DISCONNECTED=true AUTHFILE=... LOCAL_REGISTRY=... bash ${0} (${ALL_FUNCS})"
     else
         echo "Usage: bash ${0} (${ALL_FUNCS})"
     fi
 }
-
-if [ "${DISCONNECTED}" = "true" ] && [ -z "${AUTHFILE:-}" ]; then
-    echo "On disconnected mode, you must provide AUTHFILE env-var."
-    print_help
-    exit 1
-fi
-
-if [ "${DISCONNECTED}" = "true" ] && [ -z "${LOCAL_REGISTRY:-}" ]; then
-    echo "On disconnected mode, you must provide LOCAL_REGISTRY env-var."
-    print_help
-    exit 1
-fi
 
 function with_olm() {
     if [ "${DISCONNECTED}" = "true" ]; then
