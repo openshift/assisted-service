@@ -258,7 +258,8 @@ var _ = Describe("infraEnv reconcile", func() {
 			Name:      "infraEnvImage",
 		}
 		Expect(c.Get(ctx, key, infraEnvImage)).To(BeNil())
-		expectedState := fmt.Sprintf("%s: record not found", aiv1beta1.ImageStateFailedToCreate)
+		expectedState := fmt.Sprintf("%s: cluster does not exist: %s, check AgentClusterInstall conditions: %+v",
+			aiv1beta1.ImageStateFailedToCreate, clusterDeployment.Name, clusterDeployment.Spec.ClusterInstallRef)
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Message).To(Equal(expectedState))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Reason).To(Equal(aiv1beta1.ImageCreationErrorReason))
 		Expect(conditionsv1.FindStatusCondition(infraEnvImage.Status.Conditions, aiv1beta1.ImageCreatedCondition).Status).To(Equal(corev1.ConditionUnknown))
