@@ -50,6 +50,7 @@ var _ = Describe("instruction_manager", func() {
 		hwValidator = hardware.NewMockValidator(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
+		instructionConfig.SupportFreeAddresses = true
 		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
