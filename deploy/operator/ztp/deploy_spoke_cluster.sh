@@ -15,6 +15,19 @@ export ASSISTED_PULLSECRET_JSON="${ASSISTED_PULLSECRET_JSON:-/home/test/dev-scri
 export ASSISTED_PRIVATEKEY_NAME="${ASSISTED_PRIVATEKEY_NAME:-assisted-ssh-private-key}"
 export EXTRA_BAREMETALHOSTS_FILE="${EXTRA_BAREMETALHOSTS_FILE:-/home/test/dev-scripts/ocp/ostest/extra_baremetalhosts.json}"
 export CONTROL_PLANE_COUNT="${CONTROL_PLANE_COUNT:-1}"
+
+if [[ "${IP_STACK}" == "v4" ]]; then
+    export CLUSTER_SUBNET="${CLUSTER_SUBNET_V4}"
+    export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V4}"
+    export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V4}"
+    export SERVICE_SUBNET="${SERVICE_SUBNET_V4}"
+elif [[ "${IP_STACK}" == "v6" ]]; then
+    export CLUSTER_SUBNET="${CLUSTER_SUBNET_V6}"
+    export CLUSTER_HOST_PREFIX="${CLUSTER_HOST_PREFIX_V6}"
+    export EXTERNAL_SUBNET="${EXTERNAL_SUBNET_V6}"
+    export SERVICE_SUBNET="${SERVICE_SUBNET_V6}"
+fi
+
 # TODO: make SSH public key configurable
 
 set -o nounset
@@ -30,16 +43,16 @@ ENCODED_PASSWORD=$(echo -n "${password}" | base64)
 
 echo "Running Ansible playbook to create kubernetes objects"
 export BMH_NAME MAC_ADDRESS ENCODED_USERNAME ENCODED_PASSWORD ADDRESS
-ansible-playbook assisted-installer-crds-playbook.yaml
+ansible-playbook "${__dir}/assisted-installer-crds-playbook.yaml"
 
-oc create secret generic ${ASSISTED_PULLSECRET_NAME} --from-file=.dockerconfigjson=${ASSISTED_PULLSECRET_JSON} --type=kubernetes.io/dockerconfigjson -n ${ASSISTED_NAMESPACE}
-oc create secret generic ${ASSISTED_PRIVATEKEY_NAME} --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n ${ASSISTED_NAMESPACE}
+oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${ASSISTED_NAMESPACE}" || \
+    oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${ASSISTED_NAMESPACE}"
+oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${ASSISTED_NAMESPACE}" || \
+    oc create secret generic "${ASSISTED_PRIVATEKEY_NAME}" --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n "${ASSISTED_NAMESPACE}"
 
-oc create -f generated/clusterImageSet.yaml
-oc create -f generated/clusterDeployment.yaml
-oc create -f generated/infraEnv.yaml
-oc create -f generated/agentClusterInstall.yaml
-oc create -f generated/baremetalHost.yaml
+for manifest in $(find ${__dir}/generated -type f); do
+    tee < "${manifest}" >(oc apply -f -)
+done
 
 echo "Waiting until at least ${CONTROL_PLANE_COUNT} agents are available..."
 export -f wait_for_object_amount

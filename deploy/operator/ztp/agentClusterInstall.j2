@@ -12,12 +12,12 @@ spec:
   ingressVIP: ""
   networking:
     clusterNetwork:
-    - cidr: 10.128.0.0/14
-      hostPrefix: 23
+    - cidr: {{ cluster_subnet }}
+      hostPrefix: {{ cluster_host_prefix }}
     machineNetwork:
-    - cidr: 192.168.111.0/24
+    - cidr: {{ external_subnet }}
     serviceNetwork:
-    - 172.30.0.0/16
+    - {{ service_subnet }}
   provisionRequirements:
     controlPlaneAgents: 1
   sshPublicKey: '{{ ssh_public_key }}'
