@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -1674,6 +1675,44 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(result).To(Equal(ctrl.Result{}))
 		})
 
+		It("invalid install config overrides annotation", func() {
+			backEndCluster := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                       &sId,
+					Name:                     clusterName,
+					OpenshiftVersion:         "4.8",
+					ClusterNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].CIDR,
+					ClusterNetworkHostPrefix: int64(defaultAgentClusterInstallSpec.Networking.ClusterNetwork[0].HostPrefix),
+					Status:                   swag.String(models.ClusterStatusInsufficient),
+					ServiceNetworkCidr:       defaultAgentClusterInstallSpec.Networking.ServiceNetwork[0],
+					IngressVip:               defaultAgentClusterInstallSpec.IngressVIP,
+					APIVip:                   defaultAgentClusterInstallSpec.APIVIP,
+					BaseDNSDomain:            defaultClusterSpec.BaseDomain,
+					SSHPublicKey:             defaultAgentClusterInstallSpec.SSHPublicKey,
+					Hyperthreading:           models.ClusterHyperthreadingAll,
+				},
+				PullSecret: testPullSecretVal,
+			}
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			installConfigOverrides := `{{{"controlPlane": ""`
+			mockInstallerInternal.EXPECT().UpdateClusterInstallConfigInternal(gomock.Any(), gomock.Any()).
+				Do(func(ctx context.Context, param installer.UpdateClusterInstallConfigParams) {
+					Expect(param.ClusterID).To(Equal(sId))
+					Expect(param.InstallConfigParams).To(Equal(installConfigOverrides))
+				}).Return(nil, common.NewApiError(http.StatusBadRequest,
+				errors.New("invalid character '{' looking for beginning of object key string")))
+
+			// Add annotation
+			aci.ObjectMeta.SetAnnotations(map[string]string{InstallConfigOverrides: installConfigOverrides})
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			request := newClusterDeploymentRequest(cluster)
+			_, err := cr.Reconcile(ctx, request)
+			Expect(err).ShouldNot(HaveOccurred())
+			aci := getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Reason).To(Equal(InputErrorReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, ClusterSpecSyncedCondition).Message).To(ContainSubstring(
+				"Failed to parse 'agent-install.openshift.io/install-config-overrides' annotation"))
+		})
 	})
 
 	Context("cluster update not needed", func() {
