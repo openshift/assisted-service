@@ -619,6 +619,7 @@ func (b *bareMetalInventory) RegisterAddHostsClusterInternal(ctx context.Context
 		Kind:             swag.String(models.ClusterKindAddHostsCluster),
 		Name:             clusterName,
 		OpenshiftVersion: *openshiftVersion.ReleaseVersion,
+		OcpReleaseImage:  *openshiftVersion.ReleaseImage,
 		UserName:         ocm.UserNameFromContext(ctx),
 		OrgID:            ocm.OrgIDFromContext(ctx),
 		EmailDomain:      ocm.EmailDomainFromContext(ctx),
