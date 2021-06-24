@@ -144,7 +144,7 @@ func newS3Session(accessKeyID, secretAccessKey, region, endpointURL string) (*se
 		MaxIdleConnsPerHost:   4096,
 		MaxIdleConns:          0,
 		IdleConnTimeout:       time.Minute,
-		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true}, // true to enable use s3 with ip address (scality)
+		TLSClientConfig:       &tls.Config{InsecureSkipVerify: true}, // true to enable use s3 with ip address (minio)
 	}
 	creds := credentials.NewStaticCredentials(accessKeyID, secretAccessKey, "")
 
@@ -173,6 +173,13 @@ func (c *S3Client) IsAwsS3() bool {
 }
 
 func (c *S3Client) createBucket(client s3iface.S3API, bucket string) error {
+	// assume an error from HeadBucket means the bucket does not exist
+	if _, err := client.HeadBucket(&s3.HeadBucketInput{
+		Bucket: swag.String(bucket),
+	}); err == nil {
+		return nil
+	}
+
 	if _, err := client.CreateBucket(&s3.CreateBucketInput{
 		Bucket: swag.String(bucket),
 	}); err != nil {

@@ -9,7 +9,6 @@ def deploy(src_file):
 
     src_file = os.path.join(os.getcwd(), src_file)
     dst_file = os.path.join(os.getcwd(), 'build', deploy_options.namespace, os.path.basename(src_file))
-    scality_url = "http://cloudserver-front:8000"
     with open(src_file, "r") as src:
         with open(dst_file, "w+") as dst:
             data = src.read()
@@ -27,8 +26,8 @@ def deploy(src_file):
     )
 
 def main():
-    deploy('deploy/s3/scality-secret.yaml')
-    deploy('deploy/s3/scality-public-secret.yaml')
+    deploy('deploy/s3/secret.yaml')
+    deploy('deploy/s3/public-secret.yaml')
 
 if __name__ == "__main__":
     main()

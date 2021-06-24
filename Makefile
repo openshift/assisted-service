@@ -237,7 +237,7 @@ deploy-namespace: $(BUILD_FOLDER)
 	python3 ./tools/deploy_namespace.py --deploy-namespace $(APPLY_NAMESPACE) --namespace "$(NAMESPACE)" --target "$(TARGET)"
 
 deploy-s3-secret:
-	python3 ./tools/deploy_scality_configmap.py --namespace "$(NAMESPACE)" --target "$(TARGET)" \
+	python3 ./tools/deploy_s3_secrets.py --namespace "$(NAMESPACE)" --target "$(TARGET)" \
 		--apply-manifest $(APPLY_MANIFEST)
 
 deploy-s3: deploy-namespace

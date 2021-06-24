@@ -1,10 +1,10 @@
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
-  name: scality-pv-claim
+  name: object-store
   namespace: REPLACE_NAMESPACE
   labels:
-    app: scality
+    app: object-store
 spec:
   accessModes:
     - ReadWriteOnce

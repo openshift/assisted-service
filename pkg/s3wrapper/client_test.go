@@ -369,6 +369,25 @@ var _ = Describe("s3client", func() {
 		})
 	})
 
+	Describe("createBucket", func() {
+		It("creates the bucket if it doesn't exist", func() {
+			mockAPI.EXPECT().HeadBucket(gomock.Any()).Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound")))
+			mockAPI.EXPECT().CreateBucket(gomock.Any()).Return(&s3.CreateBucketOutput{}, nil)
+			Expect(client.createBucket(mockAPI, "fooBucket")).To(Succeed())
+		})
+
+		It("fails if it fails to create the bucket", func() {
+			mockAPI.EXPECT().HeadBucket(gomock.Any()).Return(nil, awserr.New("NotFound", "NotFound", errors.New("NotFound")))
+			mockAPI.EXPECT().CreateBucket(gomock.Any()).Return(nil, awserr.New("Unauthorized", "Unauthorized", errors.New("Unauthorized")))
+			Expect(client.createBucket(mockAPI, "fooBucket")).NotTo(Succeed())
+		})
+
+		It("doesn't attempt to create the bucket if it already exists", func() {
+			mockAPI.EXPECT().HeadBucket(gomock.Any()).Return(&s3.HeadBucketOutput{}, nil)
+			Expect(client.createBucket(mockAPI, "fooBucket")).To(Succeed())
+		})
+	})
+
 	AfterEach(func() {
 		ctrl.Finish()
 	})

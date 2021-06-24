@@ -136,7 +136,7 @@ If you want to update the underlying operating system image used by the discover
 ### Deploy to minikube
 
 The deployment is a system deployment, it contains all the components the service need for all the operations to work (if implemented).
-S3 service (scality), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
+S3 service (minio), DB and will use the image generator to create the images in the deployed S3 and create relevant bucket in S3.
 
 ```shell
 skipper make deploy-all
