@@ -72,6 +72,7 @@ import (
 const DefaultUser = "kubeadmin"
 
 const WindowBetweenRequestsInSeconds = 10 * time.Second
+const mediaDisconnectionMessage = "Cannot read from the media (ISO) - media was likely disconnected"
 
 const (
 	MediaDisconnected int64 = 256
@@ -2844,7 +2845,7 @@ func (b *bareMetalInventory) PostStepReply(ctx context.Context, params installer
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
-	logReplyReceived(params, log)
+	logReplyReceived(params, log, host)
 
 	if params.Reply.ExitCode != 0 {
 		handlingError := b.handleReplyError(params, ctx, log, &host.Host, params.Reply.ExitCode)
@@ -2904,8 +2905,7 @@ func (b *bareMetalInventory) handleReplyError(params installer.PostStepReplyPara
 }
 
 func (b *bareMetalInventory) handleMediaDisconnection(params installer.PostStepReplyParams, ctx context.Context, log logrus.FieldLogger, h *models.Host) error {
-	statusInfo := fmt.Sprintf("%s - %s", string(models.HostStageFailed),
-		"Cannot read from the media (ISO) - media was likely disconnected")
+	statusInfo := fmt.Sprintf("%s - %s", string(models.HostStageFailed), mediaDisconnectionMessage)
 
 	// Install command reports its status with a different API, directly from the assisted-installer.
 	// Just adding our diagnose to the existing error message.
@@ -3101,7 +3101,11 @@ func handleReplyByType(params installer.PostStepReplyParams, b *bareMetalInvento
 	return err
 }
 
-func logReplyReceived(params installer.PostStepReplyParams, log logrus.FieldLogger) {
+func logReplyReceived(params installer.PostStepReplyParams, log logrus.FieldLogger, host *common.Host) {
+	if !shouldStepReplyBeLogged(params, host) {
+		return
+	}
+
 	message := fmt.Sprintf("Received step reply <%s> from cluster <%s> host <%s> exit-code <%d> stderr <%s>",
 		params.Reply.StepID, params.ClusterID, params.HostID, params.Reply.ExitCode, params.Reply.Error)
 	messageWithOutput := fmt.Sprintf("%s stdout <%s>", message, params.Reply.Output)
@@ -3116,6 +3120,17 @@ func logReplyReceived(params installer.PostStepReplyParams, log logrus.FieldLogg
 	} else {
 		log.Info(messageWithOutput)
 	}
+}
+
+func shouldStepReplyBeLogged(params installer.PostStepReplyParams, host *common.Host) bool {
+	// Host with a disconnected ISO device is unstable and all the steps should be failed
+	// Currently the assisted-service logs are full with the media disconnection errors.
+	// Here we are filtering these errors and log the message once per host.
+	// TODO: Create a new state "unstable" in the state machine with no commands.
+	// TODO: Maybe we should collect the logs even in this state.
+	notFirstMediaDisconnectionFailure := *host.Status == models.HostStatusError && host.StatusInfo != nil &&
+		strings.Contains(*host.StatusInfo, mediaDisconnectionMessage)
+	return !(params.Reply.ExitCode == MediaDisconnected && notFirstMediaDisconnectionFailure)
 }
 
 func filterReplyByType(params installer.PostStepReplyParams) (string, error) {
