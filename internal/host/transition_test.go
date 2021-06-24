@@ -1689,7 +1689,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient worker memory",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(4, 104857600, "worker"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.MibToBytes(150), conversions.MibToBytes(100), "worker"),
 				role:          models.HostRoleWorker,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,
@@ -1720,7 +1720,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient master memory",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(8, 104857600, "master"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(8, conversions.MibToBytes(150), conversions.MibToBytes(100), "master"),
 				role:          models.HostRoleMaster,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,
@@ -1751,7 +1751,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient worker cpu",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(16), "worker"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(16), conversions.GibToBytes(16), "worker"),
 				role:          models.HostRoleWorker,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,
@@ -1782,7 +1782,7 @@ var _ = Describe("Refresh Host", func() {
 			{
 				name:          "insufficient master cpu",
 				hostID:        strfmt.UUID("054e0100-f50e-4be7-874d-73861179e40d"),
-				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(17), "master"),
+				inventory:     hostutil.GenerateInventoryWithResourcesWithBytes(1, conversions.GibToBytes(17), conversions.GibToBytes(17), "master"),
 				role:          models.HostRoleMaster,
 				srcState:      models.HostStatusDiscovering,
 				dstState:      models.HostStatusInsufficient,
@@ -3899,7 +3899,7 @@ var _ = Describe("Refresh Host", func() {
 			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
-			host.Inventory = hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.GibToBytes(16), "master")
+			host.Inventory = hostutil.GenerateInventoryWithResourcesWithBytes(4, conversions.GibToBytes(16), conversions.GibToBytes(16), "master")
 			host.Role = models.HostRoleMaster
 			host.NtpSources = string(defaultNTPSourcesInBytes)
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
