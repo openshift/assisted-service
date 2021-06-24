@@ -11,11 +11,12 @@ source ${__dir}/mirror_utils.sh
 
 function setup_disconnected_parameters() {
     # Some of the variables over here can be sourced from dev-scripts
-    # source common.sh utils.sh
+    # source common.sh
+    # source utils.sh
     # set +x
     # export -f wrap_if_ipv6 ipversion
 
-    if [ "${OPENSHIFT_CI:-false}" = "false" ] then
+    if [ "${OPENSHIFT_CI:-false}" = "false" ]; then
         export ASSISTED_DEPLOYMENT_METHOD="from_community_operators"
     fi
 
