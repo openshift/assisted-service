@@ -19,6 +19,10 @@
     - encoded_username: "{{ lookup('env', 'ENCODED_USERNAME') }}"
     - encoded_password: "{{ lookup('env', 'ENCODED_PASSWORD') }}"
     - address: "{{ lookup('env', 'ADDRESS') }}"
+    - cluster_subnet: "{{ lookup('env', 'CLUSTER_SUBNET') }}"
+    - cluster_host_prefix: "{{ lookup('env', 'CLUSTER_HOST_PREFIX') }}"
+    - external_subnet: "{{ lookup('env', 'EXTERNAL_SUBNET') }}"
+    - service_subnet: "{{ lookup('env', 'SERVICE_SUBNET') }}"
 
   tasks:
   - name: create directory for generated CRDs

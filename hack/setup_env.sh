@@ -11,6 +11,10 @@ function print_help() {
 }
 
 function kustomize() {
+  if which kustomize; then
+    return
+  fi
+
   (cd /usr/bin &&
     curl --retry 5 -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" \
       | bash -s -- 3.8.8)
