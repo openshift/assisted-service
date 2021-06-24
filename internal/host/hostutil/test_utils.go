@@ -2,6 +2,7 @@ package hostutil
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"time"
 
@@ -95,11 +96,15 @@ func GenerateL3ConnectivityReport(hosts []*models.Host, latency float64, packetL
 		Expect(json.Unmarshal([]byte(h.Inventory), &inv)).NotTo(HaveOccurred())
 		var ipAddr string
 		if len(inv.Interfaces[0].IPV4Addresses) != 0 {
-			ipAddr = inv.Interfaces[0].IPV4Addresses[0]
+			ip, _, err := net.ParseCIDR(inv.Interfaces[0].IPV4Addresses[0])
+			Expect(err).NotTo(HaveOccurred())
+			ipAddr = ip.String()
 		} else if len(inv.Interfaces[0].IPV6Addresses) != 0 {
-			ipAddr = inv.Interfaces[0].IPV6Addresses[0]
+			ip, _, err := net.ParseCIDR(inv.Interfaces[0].IPV6Addresses[0])
+			Expect(err).NotTo(HaveOccurred())
+			ipAddr = ip.String()
 		}
-		Expect(len(ipAddr)).NotTo(Equal(0))
+		Expect(ipAddr).NotTo(BeEmpty())
 		l3 := models.L3Connectivity{Successful: true, AverageRTTMs: latency, PacketLossPercentage: packetLoss, RemoteIPAddress: ipAddr}
 		con.RemoteHosts = append(con.RemoteHosts, &models.ConnectivityRemoteHost{HostID: strfmt.UUID(uuid.New().String()), L3Connectivity: []*models.L3Connectivity{&l3}})
 	}
@@ -280,22 +285,24 @@ func GenerateInventoryWithResourcesWithBytes(cpu, physicalMemory int64, usableMe
 }
 
 func GenerateIPv4Addresses(count int, machineCIDR string) []string {
-	ipAddress, _, err := net.ParseCIDR(machineCIDR)
+	ipAddress, mask, err := net.ParseCIDR(machineCIDR)
 	Expect(err).NotTo(HaveOccurred())
-	return generateIPAddresses(count, ipAddress.To4())
+	sz, _ := mask.Mask.Size()
+	return generateIPAddresses(count, ipAddress.To4(), sz)
 }
 
 func GenerateIPv6Addresses(count int, machineCIDR string) []string {
-	ipAddress, _, err := net.ParseCIDR(machineCIDR)
+	ipAddress, mask, err := net.ParseCIDR(machineCIDR)
 	Expect(err).NotTo(HaveOccurred())
-	return generateIPAddresses(count, ipAddress.To16())
+	sz, _ := mask.Mask.Size()
+	return generateIPAddresses(count, ipAddress.To16(), sz)
 }
 
-func generateIPAddresses(count int, ipAddress net.IP) []string {
+func generateIPAddresses(count int, ipAddress net.IP, mask int) []string {
 	ret := make([]string, count)
 	for i := 0; i < count; i++ {
 		incrementIP(ipAddress)
-		ret[i] = ipAddress.String()
+		ret[i] = fmt.Sprintf("%s/%d", ipAddress, mask)
 	}
 	return ret
 }

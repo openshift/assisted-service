@@ -4215,7 +4215,6 @@ var _ = Describe("Refresh Host", func() {
 				var resultHost models.Host
 				Expect(db.Take(&resultHost, "id = ? and cluster_id = ?", hosts[0].ID, clusterId.String()).Error).ToNot(HaveOccurred())
 				Expect(resultHost.Status).To(Equal(&t.dstState))
-				fmt.Printf(*resultHost.StatusInfo)
 				t.statusInfoChecker.check(resultHost.StatusInfo)
 				if t.validationsChecker != nil {
 					t.validationsChecker.check(resultHost.ValidationsInfo)
