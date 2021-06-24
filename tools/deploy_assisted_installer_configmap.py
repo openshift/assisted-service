@@ -134,7 +134,6 @@ def main():
 def log_image_revision(image: str):
     image_inspect = get_remote_image_inspect_json(image)
     if not image_inspect:
-        log.warn(f"failed to pull image {image} inspect data")
         return
     created = image_inspect.get("created", None)
     image_labels = image_inspect['config'].get("Labels", None)
@@ -146,7 +145,8 @@ def log_image_revision(image: str):
     log.info(f"Using image: {image}, git_revision: {git_revision}, created: {created}")
 
 def get_remote_image_inspect_json(image: str):
-    image_inspect_str = docker_cmd(f"docker run --rm quay.io/skopeo/stable inspect docker://{image} --config")
+
+    image_inspect_str = docker_cmd(f"skopeo inspect docker://{image} --config")
     if not image_inspect_str:
         return None
     return convert_image_inspect_to_json(image_inspect_str)
