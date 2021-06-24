@@ -784,9 +784,9 @@ var _ = Describe("bmac reconcile", func() {
 			It("should set the detached annotation if agent is installed", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
-						Type:   InstalledCondition,
+						Type:   v1beta1.InstalledCondition,
 						Status: corev1.ConditionTrue,
-						Reason: InstalledReason,
+						Reason: v1beta1.InstalledReason,
 					},
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
@@ -805,9 +805,9 @@ var _ = Describe("bmac reconcile", func() {
 			It("should set the detached annotation if agent is installation is progressing", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
-						Type:   InstalledCondition,
+						Type:   v1beta1.InstalledCondition,
 						Status: corev1.ConditionFalse,
-						Reason: InstallationInProgressReason,
+						Reason: v1beta1.InstallationInProgressReason,
 					},
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
@@ -826,9 +826,9 @@ var _ = Describe("bmac reconcile", func() {
 			It("should set the detached annotation if agent is installation has failed", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
-						Type:   InstalledCondition,
+						Type:   v1beta1.InstalledCondition,
 						Status: corev1.ConditionFalse,
-						Reason: InstallationFailedReason,
+						Reason: v1beta1.InstallationFailedReason,
 					},
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
@@ -860,9 +860,9 @@ var _ = Describe("bmac reconcile", func() {
 			It("should not set the detached annotation if installation has not started", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
-						Type:   InstalledCondition,
+						Type:   v1beta1.InstalledCondition,
 						Status: corev1.ConditionFalse,
-						Reason: InstallationNotStartedReason,
+						Reason: v1beta1.InstallationNotStartedReason,
 					},
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
@@ -882,9 +882,9 @@ var _ = Describe("bmac reconcile", func() {
 			It("should not change the URL when it changes in the InfraEnv", func() {
 				agent.Status.Conditions = []conditionsv1.Condition{
 					{
-						Type:   InstalledCondition,
+						Type:   v1beta1.InstalledCondition,
 						Status: corev1.ConditionFalse,
-						Reason: InstallationFailedReason,
+						Reason: v1beta1.InstallationFailedReason,
 					},
 				}
 				Expect(c.Update(ctx, agent)).To(BeNil())
