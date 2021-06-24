@@ -47,7 +47,6 @@ func (v *clusterValidator) isUnPreparingHostsExist(c *clusterPreprocessContext) 
 	}
 	for _, h := range c.cluster.Hosts {
 		if !funk.ContainsString(validStates, swag.StringValue(h.Status)) {
-			v.log.Warnf("Found unpreparing host: id %s status %s", h.ID.String(), swag.StringValue(h.Status))
 			return true
 		}
 	}
