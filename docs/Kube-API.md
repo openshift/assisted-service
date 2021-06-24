@@ -277,3 +277,20 @@ spec:
 If manifests provided in configmap data section will be in bad format or configmap will not exists but will be referenced
 we will set error in Sync condition only if cluster will be ready for installation. Changing configmap should fix the issue.
 
+## Teardown procedure
+
+Deleting the ClusterDeployment will automatically trigger the deletion of its referenced AgentClusterInstall and the deletion of all the Agents connected to it.
+Note that the installed OCP cluster, if exists, will not be affected by the deletion of the ClusterDeployment.
+
+Deleting only the AgentClusterInstall will delete the Agents connected to it, but the ClusterDeployment will remain.
+
+BareMetalHost, InfraEnv, ClusterImageSet and NMStateConfig deletion will not trigger deletion of other resources.
+
+
+In case that the assisted-service is not available, the deletion of ClusterDeployment, AgentClusterInstall and Agents resources will be blocked due to finalizers that are set on them.
+
+Here an example on how to remove finalizers on a resource:
+
+```bash
+kubectl -n assisted-installer patch agentclusterinstalls.extensions.hive.openshift.io my-aci -p '{"metadata":{"finalizers":null}}' --type=merge
+```
