@@ -70,44 +70,39 @@ skipper make generate-from-swagger
 
 ## Test
 
-### Pre-configuration
+The tests of assisted-service are divided into 3 categories:
 
-- Run minikube on your system
-- Enable [registry addon](https://minikube.sigs.k8s.io/docs/handbook/registry/) on your minikube
-- Set LOCAL_ASSISTED_ORG to point to your local registry address
-```
+* Unit tests - Focused on a module/function level while other modules are mocked.
+Unit tests are located next to a module named `module_name_test.go`
+* Subsystem tests - Focused on assisted-service component while mocking other component like agent/installer results.
+Subsystem tests requires deploying the assisted-service on a k8s cluster together with DB and storage services.
+The subsystem tests are located on the [subsystem](https://github.com/openshift/assisted-service/tree/master/subsystem) directory.
+* System tests (a.k.a e2e) - Running full flows with all components.
+The e2e tests are divided into u/s (upstream) basic workflows on [assisted-test-infra](https://github.com/openshift/assisted-test-infra/tree/master/discovery-infra/tests) and d/s (downstream) extended regression tests maintained by both DEV and QE teams on [kni-assisted-installer-auto](https://gitlab.cee.redhat.com/ocp-edge-qe/kni-assisted-installer-auto/-/tree/master/api_tests).
+
+
+### Subsystem tests pre-configuration
+
+* Run minikube on your system
+* Enable [registry addon](https://minikube.sigs.k8s.io/docs/handbook/registry/) on your minikube
+* Set `LOCAL_ASSISTED_ORG` to point to your local registry address
+
+```bash
 export LOCAL_ASSISTED_ORG=localhost:5000
 ```
-- Deploy services `skipper make deploy-test`
 
-### Run system tests
+* Deploy services `skipper make deploy-test`
 
-```shell
-skipper make test
-```
+### Run tests
 
-### Run system tests with regex
-
-```shell
-skipper make test FOCUS=versions
-```
-
-### Run only unit tests
+* `make test` - Runs subsystem tests.
+* `make unit-test` - Runs unit tests.
+* `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
+* `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
+* `Test="./internal/host"` -  An optional flag used for testing a specific package.
 
 ```shell
-skipper make unit-test
-```
-
-### Run unit tests for specific package
-
-```shell
-skipper make unit-test TEST=./internal/host
-```
-
-### Run unit tests with regex
-
-```shell
-skipper make unit-test FOCUS=cluster
+skipper make [test|unit-test]
 ```
 
 ### Update service for the subsystem tests
