@@ -23,6 +23,7 @@ AgentClusterInstall supported condition types are: `SpecSynced`, `RequirementsMe
 |RequirementsMet|True|ClusterInstallationStopped|The cluster installation stopped|If the cluster has stopped installing ("installed", "error") |
 |RequirementsMet|False|InsufficientAgents|The cluster currently requires `X` agents but only `Y` are ready|If the cluster is ready but we don't have the expected number of ready agents |
 |RequirementsMet|False|UnapprovedAgents|The installation is pending on the approval of `X` agents|If the cluster is ready with the expected number of ready agents, but not all have been approved |
+|RequirementsMet|False|AdditionalAgents|The cluster currently requires exactly `X` agents but have `Y` registered|If the cluster is ready but more agents are registered than the number or required |
 ||||||
 |Completed|True|InstallationCompleted|The installation has completed: "status_info"|If the cluster status is "installed"|
 |Completed|False|InstallationFailed|The installation has failed: "status_info"|If the cluster status is "error"|
