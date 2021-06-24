@@ -139,6 +139,11 @@ When deploying `AgentClusterInstall` for SNO it is important to make sure that `
 
 At this moment it's good to check logs and verify that there are no conflicting parameters, the ISO has been created correctly and that the installation can be started once a suitable node is provided.
 
+To check if the ISO has been created correctly, do
+```
+oc get infraenv myinfraenv -o jsonpath='{.status.isoDownloadURL}' -n assisted-installer
+```
+
 Creating BareMetalHost resources
 ===
 
