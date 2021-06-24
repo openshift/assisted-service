@@ -57,6 +57,10 @@ func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.D
 		}
 	}
 
+	if newStatus != srcStatus {
+		extra = append(extra, "trigger_monitor_timestamp", time.Now())
+	}
+
 	if cluster, err = UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil ||
 		swag.StringValue(cluster.Status) != newStatus {
 		return nil, errors.Wrapf(err, "failed to update cluster %s state from %s to %s",

@@ -3,14 +3,13 @@ package common
 import (
 	"time"
 
-	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
 )
 
 /*
    Support querying for cluster or host monitoring. Implementation for both full query, and timed query according to
    updated_at field.
-   Querying is done at cluster level.  Checking the update_at field is done both for hosts and clusters
+   Querying is done at cluster level.  Checking the trigger_monitor_timestamp field is done both for hosts and clusters
 */
 const (
 	DefaultBatchSize = 100
@@ -49,7 +48,7 @@ func (f *fullQuery) Next() ([]*Cluster, error) {
 }
 
 /*
-  Timed query which queries according to the updated_at field
+  Timed query which queries according to the trigger_monitor_timestamp field
 */
 type timedQuery struct {
 	// Where to start the next query for ids
@@ -61,8 +60,8 @@ type timedQuery struct {
 	// db connection to query the clusters
 	dbWithCondition *gorm.DB
 
-	// The time to compare to the updated_at fieldd
-	timeToCompare strfmt.DateTime
+	// The time to compare to the trigger_monitor_timestamp field
+	timeToCompare time.Time
 
 	// The relevant cluster ids
 	ids []string
@@ -96,7 +95,7 @@ func (t *timedQuery) Next() ([]*Cluster, error) {
 		if t.offset == len(t.ids) {
 			t.ids = nil
 			// Retrieve cluster ids that the related cluster or hosts have been updated after the timeToCompare
-			err = t.db.Raw("select distinct(cid) as id from (select id as cid from clusters where updated_at > ?  and clusters.id > ? union select cluster_id as cid from hosts where updated_at > ? and hosts.cluster_id > ?) as t order by id limit ?",
+			err = t.db.Raw("select distinct(cid) as id from (select id as cid from clusters where trigger_monitor_timestamp > ?  and clusters.id > ? union select cluster_id as cid from hosts where trigger_monitor_timestamp > ? and hosts.cluster_id > ?) as t order by id limit ?",
 				t.timeToCompare, t.lastId, t.timeToCompare, t.lastId, IdsQuerySize).Pluck("id", &t.ids).Error
 			if err != nil {
 				return clusters, err
@@ -142,8 +141,8 @@ func NewMonitorQueryGenerator(db, dbWithCondition *gorm.DB, batchSize int) *Moni
 	}
 }
 
-func timeForDuration(d time.Duration) strfmt.DateTime {
-	return strfmt.DateTime(time.Now().Add(-d))
+func timeForDuration(d time.Duration) time.Time {
+	return time.Now().Add(-d)
 }
 
 func (m *MonitorQueryGenerator) NewQuery() MonitorQuery {
@@ -171,7 +170,7 @@ func (m *MonitorQueryGenerator) NewQuery() MonitorQuery {
 	return &timedQuery{
 		db:              m.db,
 		dbWithCondition: m.dbWithCondition,
-		timeToCompare:   timeForDuration(30 * time.Second),
+		timeToCompare:   timeForDuration(5 * time.Minute),
 		batchSize:       m.batchSize,
 	}
 }

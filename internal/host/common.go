@@ -89,6 +89,7 @@ func updateRole(log logrus.FieldLogger, h *models.Host, role models.HostRole, db
 	if hostutil.IsDay2Host(h) && (h.MachineConfigPoolName == "" || h.MachineConfigPoolName == *srcRole) {
 		extras = append(extras, "machine_config_pool_name", role)
 	}
+	extras = append(extras, "trigger_monitor_timestamp", time.Now())
 
 	_, err := hostutil.UpdateHost(log, db, h.ClusterID, *h.ID, *h.Status, extras...)
 	return err
