@@ -6,8 +6,8 @@
   vars:
     - assisted_namespace: "{{ lookup('env', 'ASSISTED_NAMESPACE') }}"
     - cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') }}"
-    - cluster_image_set_name: "{{ lookup('env', 'DS_OPENSHIFT_VERSION') }}"
-    - cluster_release_image: "{{ lookup('env', 'OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"
+    - cluster_image_set_name: "{{ lookup('env', 'ASSISTED_OPENSHIFT_VERSION') }}"
+    - cluster_release_image: "{{ lookup('env', 'ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"
     - cluster_deployment_name: "{{ lookup('env', 'ASSISTED_CLUSTER_DEPLOYMENT_NAME') }}"
     - infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') }}"
     - agent_cluster_install_name: "{{ lookup('env', 'ASSISTED_AGENT_CLUSTER_INSTALL_NAME') }}"
