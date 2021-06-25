@@ -117,17 +117,17 @@ Creating AgentClusterInstall, ClusterDeployment and InfraEnv resources
 
 A number of resources has to be created in order to have the deployment fully ready for deploying OCP clusters. A typical workflow is as follows
 
-* create the [PullSecret](crds/pullsecret.yaml)
+* create the [PullSecret](hive-integration/crds/pullsecret.yaml)
   * in order to create it directly from file you can use the following
   ```
   kubectl create secret -n assisted-installer generic pull-secret --from-file=.dockerconfigjson=pull_secret.json
   ```
-* create the [ClusterImageSet](crds/clusterImageSet.yaml)
+* create the [ClusterImageSet](hive-integration/crds/clusterImageSet.yaml)
 * optionally create a [custom `ConfigMap` overriding default Assisted Service configuration](operator.md#specifying-environmental-variables-via-configmap)
-* create the [AgentClusterInstall](crds/agentClusterInstall.yaml) or [AgentClusterInstall for SNO](crds/agentClusterInstall-SNO.yaml)
+* create the [AgentClusterInstall](hive-integration/crds/agentClusterInstall.yaml) or [AgentClusterInstall for SNO](hive-integration/crds/agentClusterInstall-SNO.yaml)
   * more manifests (e.g. IPv6 deployments) can be found [here](https://docs.google.com/document/d/1jDrwSyKFssIh-yxJ-wSdB-OCcPvsfm06P54oTk1C6BI/edit#heading=h.acv4csx2xph6)
-* create the [ClusterDeployment](crds/clusterDeployment.yaml)
-* create the [InfraEnv](crds/infraEnv.yaml)
+* create the [ClusterDeployment](hive-integration/crds/clusterDeployment.yaml)
+* create the [InfraEnv](hive-integration/crds/infraEnv.yaml)
 * patch BareMetalOperator to watch namespaces other than `openshift-machine-api`
   ```
   $ oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
