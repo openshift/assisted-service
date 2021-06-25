@@ -65,6 +65,13 @@ The default hardware requirements for the OCP cluster are higher than the values
 Local Baremetal Operator (optional)
 ==
 
+**NOTE**
+
+This section is completely optional. If you don't need to run your own clone of the
+[baremetal-operator][bmo], just ignore it and proceed to the next step.
+
+---
+
 The [baremetal-operator][bmo] will define the BareMetalHost custom resource required by the agent
 based install process. Setting the `BAREMETAL_OPERATOR_LOCAL_IMAGE` should build and run the BMO
 already. However, it's recommended to run the [local-bmo][local-bmo] script to facilitate the
@@ -76,7 +83,7 @@ script. This will make the script less noisy which will make debugging easier.
 ```bash
 ./metal3-dev/pause-control-plane.sh
 ```
-The pause-control-plane script only pauses the control plane. You can do the same for the worker
+The `pause-control-plane.sh` script only pauses the control plane. You can do the same for the worker
 nodes with the following command
 
 ```bash
@@ -95,7 +102,6 @@ that it can be kept running.
 # config file. You can set it to the same path, though.
 export BAREMETAL_OPERATOR_PATH=/path/to/your/local/clone
 ./metal3-dev/local-bmo.sh
-
 ```
 
 Assisted Installer Operator
@@ -133,6 +139,7 @@ A number of resources has to be created in order to have the deployment fully re
   $ oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
   ```
 
+---
 **NOTE**
 
 When deploying `AgentClusterInstall` for SNO it is important to make sure that `machineNetwork` subnet matches the subnet used by libvirt VMs (configured by passing `EXTERNAL_SUBNET_V4` to the [dev-scripts config](https://github.com/openshift-metal3/dev-scripts/blob/master/config_example.sh)). It defaults to `192.168.111.0/24` therefore the sample manifest linked above needs to be adapted.
@@ -215,6 +222,7 @@ Kubeconfig can be exported to the file with
 $ oc get secret single-node-admin-kubeconfig -o json -n assisted-installer | jq '.data' | cut -d '"' -f 4 | tr -d '{}' | base64 --decode > /tmp/kubeconfig-sno.yml
 ```
 
+---
 **NOTE**
 
 `ClusterDeployment` resource defines `baseDomain` for the installed OCP cluster. This one will be used in the generated kubeconfig file so it may happen (depending on the domain chosen) that there is no connectivity caused by name not being resolved. In such a scenario a manual intervention may be needed (e.g. manual entry in `/etc/hosts`).
@@ -232,22 +240,37 @@ $ oc describe infraenv $YOUR_INFRAENV | grep ISO
 $ oc describe bmh $YOUR_BMH | grep Image
 ```
 
+---
 - InfraEnv's ISO Url doesn't have an URL set
 
 This means something may have gone wrong during the ISO generation. Check the assisted-service logs
 (and docs) to know what happened.
 
+---
 - InfraEnv has an URL associated but the BMH Image URL field is not set:
 
 Check that the `infraenvs.agent-install.openshift.io` label is set in your `BareMetalHost` resource
 and that the value matches the name of the InfraEnv's. Remember that both resources **must** be in
 the same namespace.
 
+Check that resources in the `openshift-machine-api` are up and running. `cluster-baremetal-operator`
+is responsible for handling the state of the BMH so if that one is not running, your BMH will never
+move forward.
+
+Check that `cluster-baremetal-operator` is not configured to ignore any namespaces or CRDs. You can
+do it by checking the `overrides` section in
+
+```
+$ oc describe clusterversion version --namespace openshift-cluster-version
+```
+
+---
 - URL is set everywhere, node still doesn't start
 
 Double check that the `BareMetalHost` definition has `online` set to true. BMAC should take care of
 this during the reconcile but, you know, software, computer gnomes, and dark magic.
 
+---
 - Node boots but it loooks like it is booting something else
 
 Check that the `inspect.metal3.io` and `automatedCleaningMode` are both set to `disabled`. This will
@@ -258,11 +281,15 @@ This should be set automatically by BMAC in the part linked [here](https://githu
 but if that is not the case, start from checking the assisted-service logs as there may be more
 errors related to the BMH.
 
+---
 - Node boots, but nothing else seems to be happening
 
 Check that an agent has been registered for this cluster and BMH. You can verify this by chekcing
 the existing agents and find the one that has an interface with a MacAddress that matches the BMH
 `BootMACAddress`.
+
+Remember that in between the node booting from the Discovery ISO and the Agent CR being created you
+may need to wait a few minutes.
 
 If there is an agent, the next thing to check is that all validations have passed. This can be done
 by inspecting the `ClusterDeployment` and verify that the validation phase has succeeded.
