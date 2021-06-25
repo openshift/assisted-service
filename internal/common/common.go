@@ -26,6 +26,9 @@ const (
 	MirrorRegistriesConfigFile      = "registries.conf"
 	MirrorRegistriesConfigPath      = MirrorRegistriesConfigDir + "/" + MirrorRegistriesConfigFile
 	MaximumAllowedTimeDiffMinutes   = 4
+
+	FamilyIPv4 int32 = 4
+	FamilyIPv6 int32 = 6
 )
 
 // Configuration to be injected by discovery ignition.  It will cause IPv6 DHCP client identifier to be the same

@@ -1476,6 +1476,7 @@ func defaultInventoryWithTimestamp(timestamp int64) string {
 				DriveType: "SSD",
 			},
 		},
+		Routes: common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))

@@ -885,6 +885,7 @@ func insufficientHWInventory() string {
 		},
 		Memory:       &models.Memory{PhysicalBytes: 130, UsableBytes: 130},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -912,6 +913,7 @@ func inventoryWithUnauthorizedVendor() string {
 		Hostname:     "master-hostname",
 		SystemVendor: &models.SystemVendor{Manufacturer: "RDO", ProductName: "OpenStack Compute", SerialNumber: "3534"},
 		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -937,6 +939,7 @@ func workerInventory() string {
 		},
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(8), UsableBytes: conversions.GibToBytes(8)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))

@@ -91,6 +91,8 @@ var TestImageStatusesFailure = &models.ContainerImageAvailability{
 	Result: models.ContainerImageAvailabilityResultFailure,
 }
 
+var TestDefaultRouteConfiguration = []*models.Route{{Family: FamilyIPv4, Interface: "eth0", Gateway: "192.168.1.1", Destination: "0.0.0.0"}}
+
 func GenerateTestDefaultInventory() string {
 	inventory := &models.Inventory{
 		Interfaces: []*models.Interface{
@@ -107,6 +109,7 @@ func GenerateTestDefaultInventory() string {
 		Disks: []*models.Disk{
 			TestDefaultConfig.Disks,
 		},
+		Routes: TestDefaultRouteConfiguration,
 	}
 
 	b, err := json.Marshal(inventory)
@@ -133,6 +136,7 @@ func GenerateTestDefaultVmwareInventory() string {
 		SystemVendor: &models.SystemVendor{
 			Manufacturer: "vmware",
 		},
+		Routes: TestDefaultRouteConfiguration,
 	}
 
 	b, err := json.Marshal(inventory)
@@ -160,6 +164,7 @@ func GenerateTestInventoryWithNetwork(netAddress NetAddress) string {
 		Memory:       &models.Memory{PhysicalBytes: conversions.GibToBytes(16), UsableBytes: conversions.GibToBytes(16)},
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Hostname:     netAddress.Hostname,
+		Routes:       TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(inventory)
 	Expect(err).To(Not(HaveOccurred()))

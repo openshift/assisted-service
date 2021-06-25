@@ -154,6 +154,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlags(hostname string, cpuflags []
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -181,6 +182,7 @@ func GenerateMasterInventoryWithHostnameAndCpuFlagsV6(hostname string, cpuflags 
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -209,6 +211,7 @@ func GenerateInventoryWithResources(cpu, memory int64, hostname string, gpus ...
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -241,6 +244,7 @@ func GenerateInventoryWithResourcesAndMultipleDisk(cpu, memory int64, hostname s
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))
@@ -268,6 +272,7 @@ func GenerateInventoryWithResourcesWithBytes(cpu, memory int64, hostname string)
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	b, err := json.Marshal(&inventory)
 	Expect(err).To(Not(HaveOccurred()))

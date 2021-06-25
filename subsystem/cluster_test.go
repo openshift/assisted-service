@@ -106,6 +106,7 @@ var (
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
 		Timestamp:    1601853088,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	validHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
@@ -121,6 +122,7 @@ var (
 		},
 		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
 		Timestamp:    1601853088,
+		Routes:       common.TestDefaultRouteConfiguration,
 	}
 	validFreeAddresses = models.FreeNetworksAddresses{
 		{
@@ -2632,6 +2634,7 @@ spec:
 			},
 			SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
 			Timestamp:    1601853088,
+			Routes:       common.TestDefaultRouteConfiguration,
 		}
 		h1 := &registerHost(clusterID).Host
 		generateEssentialHostStepsWithInventory(ctx, h1, "h1", hwInfo)
