@@ -2326,7 +2326,7 @@ var _ = Describe("Validation metrics and events", func() {
 
 	const (
 		openshiftVersion = "dummyVersion"
-		emailDomain      = "dummy.com"
+		emailDomain      = "dummy.test"
 	)
 
 	var (
