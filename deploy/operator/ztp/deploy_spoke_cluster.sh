@@ -61,3 +61,13 @@ echo "All ${CONTROL_PLANE_COUNT} agents have joined!"
 
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${ASSISTED_NAMESPACE}"
 echo "Cluster has been installed successfully!"
+
+installed=$(oc get -n ${ASSISTED_NAMESPACE} clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME} \
+            -o custom-columns=installed:spec.installed --no-headers)
+
+if [ "${installed}" != "true" ]; then
+    echo "Failure: Hive did not acknowledge cluster installation!"
+    exit 1
+fi
+
+echo "Hive acknowledged cluster installation!"
