@@ -2,25 +2,25 @@ apiVersion: v1
 kind: Namespace
 metadata:
   labels:
-    control-plane: assisted-service-operator
+    control-plane: infrastructure-operator
   name: assisted-installer
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: assisted-service-operator
+  name: infrastructure-operator
   namespace: assisted-installer
   labels:
-    control-plane: assisted-service-operator
+    control-plane: infrastructure-operator
 spec:
   selector:
     matchLabels:
-      control-plane: assisted-service-operator
+      control-plane: infrastructure-operator
   replicas: 1
   template:
     metadata:
       labels:
-        control-plane: assisted-service-operator
+        control-plane: infrastructure-operator
     spec:
       containers:
       - command:

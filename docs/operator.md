@@ -65,7 +65,7 @@ operator-sdk run bundle \
   ${BUNDLE_IMAGE:-quay.io/ocpmetal/assisted-service-operator-bundle:latest}
 ```
 
-Now you should see the `assisted-service-operator` deployment running in the
+Now you should see the `infrastructure-operator` deployment running in the
 `assisted-installer` namespace.
 
 **NOTE**
@@ -266,7 +266,7 @@ EOF
 
 **NOTE**
 
-The ConfigMap should be installed in the same namespace as the assisted-service-operator (ie. `assisted-installer`).
+The ConfigMap should be installed in the same namespace as the infrastructure-operator (ie. `assisted-installer`).
 
 Registries defined in the *registries.conf* file should use "mirror-by-digest-only = false" mode.
 
