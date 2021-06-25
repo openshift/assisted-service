@@ -6,6 +6,7 @@ filters:
       - approvers
     reviewers:
       - approvers
+      - openshift-cherrypick-robot
   Jenkinsfile:
     approvers:
       - ci-approvers
