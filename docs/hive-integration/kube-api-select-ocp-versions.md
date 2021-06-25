@@ -1,11 +1,10 @@
 # Hive Integration - Selecting OpenShift Versions
 
-As part of [Hive Integration](https://github.com/openshift/assisted-service/blob/master/docs/Kube-API.md), a means to add and select an OpenShift release version is required. In order to facilitate this functionality, the [ClusterImageSet](https://github.com/openshift/hive/blob/master/docs/using-hive.md#openshift-version) CRD is utilized for specifying a release image.
+As part of [Hive Integration](README.md), a means to add and select an OpenShift release version is required. In order to facilitate this functionality, the [ClusterImageSet](https://github.com/openshift/hive/blob/master/docs/using-hive.md#openshift-version) CRD is utilized for specifying a release image.
 
 A useful use-case is an environment with mirrored releases, in which the release image is mirrored to a local registry.
 
-To set a different RHCOS image for an OpenShift version: URL and version should be specified in [AgentServiceConfig](https://github.com/openshift/assisted-service/blob/master/internal/controller/config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml) CRD.
-
+To set a different RHCOS image for an OpenShift version: URL and version should be specified in [AgentServiceConfig](../../config/crd/bases/agent-install.openshift.io_agentserviceconfigs.yaml) CRD.
 ### [ClusterImageSet](https://github.com/openshift/hive/blob/master/apis/hive/v1/clusterimageset_types.go)
 
 The ClusterImageSet is used for referencing to a OpenShift release image.
