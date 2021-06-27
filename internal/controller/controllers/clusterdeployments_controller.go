@@ -543,7 +543,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Contex
 		return false, nil
 	}
 
-	_, approvedHosts, err := r.getNumOfClusterAgents(ctx, clusterInstall, c)
+	registered, approvedHosts, err := r.getNumOfClusterAgents(ctx, clusterInstall, c)
 	if err != nil {
 		log.WithError(err).Error("failed to fetch agents")
 		return false, err
@@ -551,7 +551,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Contex
 
 	expectedHosts := clusterInstall.Spec.ProvisionRequirements.ControlPlaneAgents +
 		clusterInstall.Spec.ProvisionRequirements.WorkerAgents
-	return approvedHosts == expectedHosts, nil
+	return approvedHosts == expectedHosts && registered == approvedHosts, nil
 }
 
 func isSupportedPlatform(cluster *hivev1.ClusterDeployment) bool {
@@ -1270,6 +1270,10 @@ func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status 
 			condStatus = corev1.ConditionFalse
 			reason = hiveext.ClusterUnapprovedAgentsReason
 			msg = fmt.Sprintf(hiveext.ClusterUnapprovedAgentsMsg, expectedHosts-approvedHosts)
+		} else if registeredHosts > expectedHosts {
+			condStatus = corev1.ConditionFalse
+			reason = hiveext.ClusterAdditionalAgentsReason
+			msg = fmt.Sprintf(hiveext.ClusterAdditionalAgentsMsg, expectedHosts, registeredHosts)
 		} else {
 			condStatus = corev1.ConditionTrue
 			reason = hiveext.ClusterReadyReason
