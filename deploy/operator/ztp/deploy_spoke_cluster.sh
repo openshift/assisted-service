@@ -61,3 +61,6 @@ echo "All ${CONTROL_PLANE_COUNT} agents have joined!"
 
 wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${ASSISTED_NAMESPACE}"
 echo "Cluster has been installed successfully!"
+
+wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${ASSISTED_NAMESPACE}"
+echo "Hive acknowledged cluster installation!"
