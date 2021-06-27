@@ -9,6 +9,7 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
+	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -22,15 +23,16 @@ import (
 // Handler implements REST API interface and deals with HTTP objects and transport data model.
 type Handler struct {
 	// operatorsAPI is responsible for executing the actual logic related to the operators
-	operatorsAPI  operators.API
-	db            *gorm.DB
-	log           logrus.FieldLogger
-	eventsHandler events.Handler
+	operatorsAPI       operators.API
+	db                 *gorm.DB
+	log                logrus.FieldLogger
+	eventsHandler      events.Handler
+	clusterProgressAPI cluster.ProgressAPI
 }
 
 // NewHandler creates new handler
-func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler) *Handler {
-	return &Handler{operatorsAPI: operatorsAPI, log: log, db: db, eventsHandler: eventsHandler}
+func NewHandler(operatorsAPI operators.API, log logrus.FieldLogger, db *gorm.DB, eventsHandler events.Handler, clusterProgressAPI cluster.ProgressAPI) *Handler {
+	return &Handler{operatorsAPI: operatorsAPI, log: log, db: db, eventsHandler: eventsHandler, clusterProgressAPI: clusterProgressAPI}
 }
 
 // ListOperatorProperties Lists properties for an operator name.
@@ -63,10 +65,37 @@ func (h *Handler) ListOfClusterOperators(ctx context.Context, params restoperato
 
 // ReportMonitoredOperatorStatus Controller API to report of monitored operators.
 func (h *Handler) ReportMonitoredOperatorStatus(ctx context.Context, params restoperators.ReportMonitoredOperatorStatusParams) middleware.Responder {
-	err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Status, params.ReportParams.StatusInfo)
-	if err != nil {
+
+	log := logutil.FromContext(ctx, h.log)
+
+	txSuccess := false
+	tx := h.db.Begin()
+	defer func() {
+		if !txSuccess {
+			log.Error("update monitored operator failed")
+			tx.Rollback()
+		}
+		if r := recover(); r != nil {
+			log.Error("update monitored operator failed")
+			tx.Rollback()
+		}
+	}()
+
+	if err := h.UpdateMonitoredOperatorStatus(ctx, params.ClusterID, params.ReportParams.Name, params.ReportParams.Status, params.ReportParams.StatusInfo, tx); err != nil {
 		return common.GenerateErrorResponder(err)
 	}
+
+	if err := h.clusterProgressAPI.UpdateFinalizingProgress(ctx, tx, params.ClusterID); err != nil {
+		return common.GenerateErrorResponder(err)
+	}
+
+	if err := tx.Commit().Error; err != nil {
+		log.WithError(err).Error("DB error, failed to commit")
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	txSuccess = true
+
 	return restoperators.NewReportMonitoredOperatorStatusOK()
 }
 
@@ -109,23 +138,12 @@ func (h *Handler) FindMonitoredOperator(ctx context.Context, clusterID strfmt.UU
 }
 
 // UpdateMonitoredOperatorStatus updates status and status info of a monitored operator for a cluster
-func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID strfmt.UUID, monitoredOperatorName string, status models.OperatorStatus, statusInfo string) error {
+func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID strfmt.UUID, monitoredOperatorName string,
+	status models.OperatorStatus, statusInfo string, db *gorm.DB) error {
+
 	log := logutil.FromContext(ctx, h.log)
 
-	txSuccess := false
-	tx := h.db.Begin()
-	defer func() {
-		if !txSuccess {
-			log.Error("update monitored operator failed")
-			tx.Rollback()
-		}
-		if r := recover(); r != nil {
-			log.Error("update monitored operator failed")
-			tx.Rollback()
-		}
-	}()
-
-	operator, err := h.FindMonitoredOperator(ctx, clusterID, monitoredOperatorName, tx)
+	operator, err := h.FindMonitoredOperator(ctx, clusterID, monitoredOperatorName, db)
 	if err != nil {
 		return err
 	}
@@ -134,13 +152,8 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 	operator.StatusInfo = statusInfo
 	operator.StatusUpdatedAt = strfmt.DateTime(time.Now())
 
-	if err = tx.Save(operator).Error; err != nil {
+	if err = db.Save(operator).Error; err != nil {
 		err = errors.Wrapf(err, "failed to update operator %s of cluster %s", operator.Name, clusterID)
-		log.Error(err)
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-	if err = tx.Commit().Error; err != nil {
-		err = errors.Wrap(err, "DB error, failed to commit")
 		log.Error(err)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
@@ -148,6 +161,5 @@ func (h *Handler) UpdateMonitoredOperatorStatus(ctx context.Context, clusterID s
 	eventMsg := fmt.Sprintf("Operator %s status: %s message: %s", operator.Name, status, statusInfo)
 	h.eventsHandler.AddEvent(ctx, clusterID, nil, models.EventSeverityInfo, eventMsg, time.Now())
 
-	txSuccess = true
 	return nil
 }

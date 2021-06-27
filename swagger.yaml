@@ -4239,6 +4239,10 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: The last time that the cluster status was updated.
+      progress:
+        $ref: '#/definitions/cluster-progress-info'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:progress_"
+        description: Installation progress percentages of the cluster.
       hosts:
         x-go-custom-tag: gorm:"foreignkey:ClusterID;association_foreignkey:ID"
         type: array
@@ -4550,6 +4554,8 @@ definitions:
     required:
       - current_stage
     properties:
+      installation_percentage:
+        type: integer
       current_stage:
         type: string
         $ref: '#/definitions/host-stage'
@@ -4566,6 +4572,18 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone"
         description: Time at which the current progress stage was last updated.
+
+  cluster-progress-info:
+    type: object
+    properties:
+      total_percentage:
+        type: integer
+      preparing_for_installation_stage_percentage:
+        type: integer
+      installing_stage_percentage:
+        type: integer
+      finalizing_stage_percentage:
+        type: integer
 
   host-stage:
     type: string

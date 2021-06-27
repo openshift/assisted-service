@@ -21,6 +21,9 @@ type HostProgressInfo struct {
 	// Required: true
 	CurrentStage HostStage `json:"current_stage"`
 
+	// installation percentage
+	InstallationPercentage int64 `json:"installation_percentage,omitempty"`
+
 	// progress info
 	ProgressInfo string `json:"progress_info,omitempty" gorm:"type:varchar(2048)"`
 

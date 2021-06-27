@@ -11,6 +11,7 @@ import (
 	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/operators"
@@ -22,15 +23,16 @@ import (
 
 var _ = Describe("Operators manager", func() {
 	var (
-		db                *gorm.DB
-		dbName            string
-		cluster, cluster2 *common.Cluster
-		log               = logrus.New()
-		ctrl              *gomock.Controller
-		mockApi           *operators.MockAPI
-		mockEvents        *events.MockHandler
-		handler           *operatorsHandler.Handler
-		lastUpdatedTime   strfmt.DateTime
+		db                     *gorm.DB
+		dbName                 string
+		c, c2                  *common.Cluster
+		log                    = logrus.New()
+		ctrl                   *gomock.Controller
+		mockApi                *operators.MockAPI
+		mockEvents             *events.MockHandler
+		mockClusterProgressApi *cluster.MockProgressAPI
+		handler                *operatorsHandler.Handler
+		lastUpdatedTime        strfmt.DateTime
 	)
 
 	BeforeEach(func() {
@@ -38,11 +40,12 @@ var _ = Describe("Operators manager", func() {
 		ctrl = gomock.NewController(GinkgoT())
 		mockApi = operators.NewMockAPI(ctrl)
 		mockEvents = events.NewMockHandler(ctrl)
-		handler = operatorsHandler.NewHandler(mockApi, log, db, mockEvents)
+		mockClusterProgressApi = cluster.NewMockProgressAPI(ctrl)
+		handler = operatorsHandler.NewHandler(mockApi, log, db, mockEvents, mockClusterProgressApi)
 
 		// create simple cluster #1
 		clusterID := strfmt.UUID(uuid.New().String())
-		cluster = &common.Cluster{
+		c = &common.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID,
 				MonitoredOperators: []*models.MonitoredOperator{
@@ -52,12 +55,12 @@ var _ = Describe("Operators manager", func() {
 				},
 			},
 		}
-		cluster.ImageInfo = &models.ImageInfo{}
-		Expect(db.Save(&cluster).Error).ShouldNot(HaveOccurred())
+		c.ImageInfo = &models.ImageInfo{}
+		Expect(db.Save(&c).Error).ShouldNot(HaveOccurred())
 
 		// create simple cluster #2
 		clusterID2 := strfmt.UUID(uuid.New().String())
-		cluster2 = &common.Cluster{
+		c2 = &common.Cluster{
 			Cluster: models.Cluster{
 				ID: &clusterID2,
 				MonitoredOperators: []*models.MonitoredOperator{
@@ -65,9 +68,9 @@ var _ = Describe("Operators manager", func() {
 				},
 			},
 		}
-		cluster2.ImageInfo = &models.ImageInfo{}
-		Expect(db.Save(&cluster2).Error).ShouldNot(HaveOccurred())
-		lastUpdatedTime = cluster.StatusUpdatedAt
+		c2.ImageInfo = &models.ImageInfo{}
+		Expect(db.Save(&c2).Error).ShouldNot(HaveOccurred())
+		lastUpdatedTime = c.StatusUpdatedAt
 	})
 
 	AfterEach(func() {
@@ -78,23 +81,23 @@ var _ = Describe("Operators manager", func() {
 	Context("FindMonitoredOperator", func() {
 		It("should return an operator", func() {
 			operatorName := "lso"
-			operator, err := handler.FindMonitoredOperator(context.TODO(), *cluster.ID, operatorName, db)
+			operator, err := handler.FindMonitoredOperator(context.TODO(), *c.ID, operatorName, db)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(operator.Name).To(BeEquivalentTo(operatorName))
-			Expect(operator.ClusterID).To(BeEquivalentTo(*cluster.ID))
+			Expect(operator.ClusterID).To(BeEquivalentTo(*c.ID))
 		})
 
 		It("should fail for empty name", func() {
 			operatorName := ""
-			_, err := handler.FindMonitoredOperator(context.TODO(), *cluster.ID, operatorName, db)
+			_, err := handler.FindMonitoredOperator(context.TODO(), *c.ID, operatorName, db)
 
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should not find a non-existing operator", func() {
 			operatorName := "no-such-operator"
-			_, err := handler.FindMonitoredOperator(context.TODO(), *cluster.ID, operatorName, db)
+			_, err := handler.FindMonitoredOperator(context.TODO(), *c.ID, operatorName, db)
 
 			Expect(err).To(HaveOccurred())
 		})
@@ -102,34 +105,34 @@ var _ = Describe("Operators manager", func() {
 
 	Context("GetMonitoredOperators", func() {
 		It("should return all monitored operators", func() {
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, nil, db)
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, nil, db)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(operators).To(ConsistOf(cluster.MonitoredOperators))
+			Expect(operators).To(ConsistOf(c.MonitoredOperators))
 		})
 
 		It("should return monitored operators with a name", func() {
 			// Cluster #1
 			operatorName := "lso"
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, &operatorName, db)
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, &operatorName, db)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(operators).To(HaveLen(1))
-			Expect(operators[0].ClusterID).To(BeEquivalentTo(*cluster.ID))
+			Expect(operators[0].ClusterID).To(BeEquivalentTo(*c.ID))
 			Expect(operators[0].Name).To(BeEquivalentTo(operatorName))
 
 			// Cluster #2
 			operatorName2 := "lso"
-			operators2, err := handler.GetMonitoredOperators(context.TODO(), *cluster2.ID, &operatorName2, db)
+			operators2, err := handler.GetMonitoredOperators(context.TODO(), *c2.ID, &operatorName2, db)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(operators2).To(HaveLen(1))
-			Expect(operators2[0].ClusterID).To(BeEquivalentTo(*cluster2.ID))
+			Expect(operators2[0].ClusterID).To(BeEquivalentTo(*c2.ID))
 			Expect(operators2[0].Name).To(BeEquivalentTo(operatorName2))
 		})
 
 		It("should return no monitored operators when no match", func() {
 			notExistingOperatorName := "nothing-here"
-			_, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, &notExistingOperatorName, db)
+			_, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, &notExistingOperatorName, db)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -140,13 +143,13 @@ var _ = Describe("Operators manager", func() {
 			operatorName := common.TestDefaultConfig.MonitoredOperator.Name
 			newStatus := models.OperatorStatusFailed
 
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *c.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo)
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)
 
 			Expect(err).ToNot(HaveOccurred())
 
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, &operatorName, db)
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, &operatorName, db)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(operators).To(HaveLen(1))
 
@@ -160,12 +163,12 @@ var _ = Describe("Operators manager", func() {
 			newStatus := models.OperatorStatusProgressing
 			operatorName := "unknown"
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo)
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusNotFound))
 
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, swag.String(""), db)
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
 				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
@@ -177,12 +180,12 @@ var _ = Describe("Operators manager", func() {
 			newStatus := models.OperatorStatusProgressing
 			operatorName := ""
 
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo)
+			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *c.ID, operatorName, newStatus, statusInfo, db)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.(*common.ApiErrorResponse).StatusCode()).To(BeEquivalentTo(http.StatusBadRequest))
 
-			operators, err := handler.GetMonitoredOperators(context.TODO(), *cluster.ID, swag.String(""), db)
+			operators, err := handler.GetMonitoredOperators(context.TODO(), *c.ID, swag.String(""), db)
 			Expect(err).ToNot(HaveOccurred())
 			for _, operator := range operators {
 				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))

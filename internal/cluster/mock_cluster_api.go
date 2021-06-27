@@ -132,6 +132,57 @@ func (mr *MockInstallationAPIMockRecorder) GetMasterNodesIds(ctx, c, db interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMasterNodesIds", reflect.TypeOf((*MockInstallationAPI)(nil).GetMasterNodesIds), ctx, c, db)
 }
 
+// MockProgressAPI is a mock of ProgressAPI interface
+type MockProgressAPI struct {
+	ctrl     *gomock.Controller
+	recorder *MockProgressAPIMockRecorder
+}
+
+// MockProgressAPIMockRecorder is the mock recorder for MockProgressAPI
+type MockProgressAPIMockRecorder struct {
+	mock *MockProgressAPI
+}
+
+// NewMockProgressAPI creates a new mock instance
+func NewMockProgressAPI(ctrl *gomock.Controller) *MockProgressAPI {
+	mock := &MockProgressAPI{ctrl: ctrl}
+	mock.recorder = &MockProgressAPIMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use
+func (m *MockProgressAPI) EXPECT() *MockProgressAPIMockRecorder {
+	return m.recorder
+}
+
+// UpdateInstallProgress mocks base method
+func (m *MockProgressAPI) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInstallProgress", ctx, clusterID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInstallProgress indicates an expected call of UpdateInstallProgress
+func (mr *MockProgressAPIMockRecorder) UpdateInstallProgress(ctx, clusterID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockProgressAPI)(nil).UpdateInstallProgress), ctx, clusterID)
+}
+
+// UpdateFinalizingProgress mocks base method
+func (m *MockProgressAPI) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clusterID strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFinalizingProgress", ctx, db, clusterID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFinalizingProgress indicates an expected call of UpdateFinalizingProgress
+func (mr *MockProgressAPIMockRecorder) UpdateFinalizingProgress(ctx, db, clusterID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFinalizingProgress", reflect.TypeOf((*MockProgressAPI)(nil).UpdateFinalizingProgress), ctx, db, clusterID)
+}
+
 // MockAPI is a mock of API interface
 type MockAPI struct {
 	ctrl     *gomock.Controller
@@ -224,6 +275,34 @@ func (m *MockAPI) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *
 func (mr *MockAPIMockRecorder) GetMasterNodesIds(ctx, c, db interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMasterNodesIds", reflect.TypeOf((*MockAPI)(nil).GetMasterNodesIds), ctx, c, db)
+}
+
+// UpdateInstallProgress mocks base method
+func (m *MockAPI) UpdateInstallProgress(ctx context.Context, clusterID strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateInstallProgress", ctx, clusterID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateInstallProgress indicates an expected call of UpdateInstallProgress
+func (mr *MockAPIMockRecorder) UpdateInstallProgress(ctx, clusterID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateInstallProgress", reflect.TypeOf((*MockAPI)(nil).UpdateInstallProgress), ctx, clusterID)
+}
+
+// UpdateFinalizingProgress mocks base method
+func (m *MockAPI) UpdateFinalizingProgress(ctx context.Context, db *gorm.DB, clusterID strfmt.UUID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateFinalizingProgress", ctx, db, clusterID)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateFinalizingProgress indicates an expected call of UpdateFinalizingProgress
+func (mr *MockAPIMockRecorder) UpdateFinalizingProgress(ctx, db, clusterID interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateFinalizingProgress", reflect.TypeOf((*MockAPI)(nil).UpdateFinalizingProgress), ctx, db, clusterID)
 }
 
 // RefreshStatus mocks base method

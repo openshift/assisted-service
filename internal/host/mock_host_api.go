@@ -180,6 +180,20 @@ func (mr *MockAPIMockRecorder) HostMonitoring() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HostMonitoring", reflect.TypeOf((*MockAPI)(nil).HostMonitoring))
 }
 
+// IndexOfStage mocks base method
+func (m *MockAPI) IndexOfStage(arg0 models.HostStage, arg1 []models.HostStage) int {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IndexOfStage", arg0, arg1)
+	ret0, _ := ret[0].(int)
+	return ret0
+}
+
+// IndexOfStage indicates an expected call of IndexOfStage
+func (mr *MockAPIMockRecorder) IndexOfStage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IndexOfStage", reflect.TypeOf((*MockAPI)(nil).IndexOfStage), arg0, arg1)
+}
+
 // Install mocks base method
 func (m *MockAPI) Install(arg0 context.Context, arg1 *models.Host, arg2 *gorm.DB) error {
 	m.ctrl.T.Helper()
