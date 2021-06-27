@@ -23,6 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/restapi/operations/installer"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
@@ -751,6 +752,82 @@ var _ = Describe("cluster reconcile", func() {
 			aci = getTestClusterInstall()
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(hiveext.ClusterInstallationInProgressMsg + " Waiting for control plane"))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("CVO status", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
+
+			cvoStatusInfo := "Working towards 4.8.0-rc.0: 654 of 676 done (96% complete)"
+			oper := make([]*models.MonitoredOperator, 1)
+			oper[0] = &models.MonitoredOperator{
+				OperatorType: models.OperatorTypeBuiltin,
+				Name:         operators.OperatorCVO.Name,
+				Status:       models.OperatorStatusProgressing,
+				StatusInfo:   cvoStatusInfo,
+			}
+			installClusterReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 backEndCluster.ID,
+					Status:             swag.String(models.ClusterStatusFinalizing),
+					StatusInfo:         swag.String("Finalizing cluster installation"),
+					MonitoredOperators: oper,
+				},
+			}
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+				Return(installClusterReply, nil)
+
+			cvoMsg := fmt.Sprintf(". Cluster version status: %s, message: %s", models.OperatorStatusProgressing, cvoStatusInfo)
+			expectedMsg := fmt.Sprintf("%s %s%s", hiveext.ClusterInstallationInProgressMsg, *installClusterReply.StatusInfo, cvoMsg)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(expectedMsg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("CVO empty status", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
+			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
+
+			oper := make([]*models.MonitoredOperator, 1)
+			oper[0] = &models.MonitoredOperator{
+				OperatorType: models.OperatorTypeBuiltin,
+				Name:         operators.OperatorCVO.Name,
+			}
+			installClusterReply := &common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 backEndCluster.ID,
+					Status:             swag.String(models.ClusterStatusFinalizing),
+					StatusInfo:         swag.String("Finalizing cluster installation"),
+					MonitoredOperators: oper,
+				},
+			}
+			mockInstallerInternal.EXPECT().InstallClusterInternal(gomock.Any(), gomock.Any()).
+				Return(installClusterReply, nil)
+
+			expectedMsg := fmt.Sprintf("%s %s", hiveext.ClusterInstallationInProgressMsg, *installClusterReply.StatusInfo)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Reason).To(Equal(hiveext.ClusterInstallationInProgressReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Message).To(Equal(expectedMsg))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterCompletedCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
