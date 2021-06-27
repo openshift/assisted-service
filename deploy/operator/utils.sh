@@ -79,3 +79,22 @@ function wait_for_object_amount() {
     done
     echo "done" $(oc get ${object} -n "${namespace}" --no-headers | wc -l)
 }
+
+function wait_for_boolean_field() {
+    object="$1"
+    field="$2"
+    namespace="${3:-}"
+    interval="${4:-10}"
+
+    for i in {1..10}; do
+        value=$(oc get -n ${namespace} ${object} -o custom-columns=field:${field} --no-headers)
+        if [ "${value}" = "true" ]; then
+            return 0
+        fi
+
+        sleep ${interval}
+    done
+
+    echo "Value of field ${field} of object ${object} under namespace ${namespace} has never become true"
+    return 1
+}
