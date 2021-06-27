@@ -1072,3 +1072,74 @@ var _ = Describe("IgnitionBuilder", func() {
 		})
 	})
 })
+
+var _ = Describe("Ignition SSH key building", func() {
+	var (
+		ctrl                              *gomock.Controller
+		cluster                           common.Cluster
+		builder                           IgnitionBuilder
+		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		clusterID                         strfmt.UUID
+	)
+	buildIgnitionAndAssertSubString := func(SSHPublicKey string, shouldExist bool, subStr string) {
+		cluster.ImageInfo.SSHPublicKey = SSHPublicKey
+		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+		Expect(err).NotTo(HaveOccurred())
+		if shouldExist {
+			Expect(text).Should(ContainSubstring(subStr))
+		} else {
+			Expect(text).ShouldNot(ContainSubstring(subStr))
+		}
+	}
+	BeforeEach(func() {
+		clusterID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
+		ctrl = gomock.NewController(GinkgoT())
+		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				ID:            &clusterID,
+				PullSecretSet: false,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+		}
+		cluster.ImageInfo = &models.ImageInfo{}
+		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
+	})
+	Context("when empty or invalid input", func() {
+		It("white_space_string should return an empty string", func() {
+			buildIgnitionAndAssertSubString("  \n  \n \t \n  ", false, "sshAuthorizedKeys")
+		})
+		It("Empty string should return an empty string", func() {
+			buildIgnitionAndAssertSubString("", false, "sshAuthorizedKeys")
+		})
+	})
+	Context("when ssh key exists, escape when needed", func() {
+		It("Single key without needed escaping", func() {
+			buildIgnitionAndAssertSubString("ssh-rsa key coyote@acme.com", true, `"sshAuthorizedKeys":["ssh-rsa key coyote@acme.com"]`)
+		})
+		It("Multiple keys without needed escaping", func() {
+			buildIgnitionAndAssertSubString("ssh-rsa key coyote@acme.com\nssh-rsa key2 coyote@acme.com",
+				true,
+				`"sshAuthorizedKeys":["ssh-rsa key coyote@acme.com","ssh-rsa key2 coyote@acme.com"]`)
+		})
+		It("Single key with escaping", func() {
+			buildIgnitionAndAssertSubString(`ssh-rsa key coyote\123@acme.com`, true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com"]`)
+		})
+		It("Multiple keys with escaping", func() {
+			buildIgnitionAndAssertSubString(`ssh-rsa key coyote\123@acme.com
+			ssh-rsa key2 coyote@acme.com`,
+				true,
+				`"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com","ssh-rsa key2 coyote@acme.com"]`)
+		})
+		It("Multiple keys with escaping and white space", func() {
+			buildIgnitionAndAssertSubString(`
+			ssh-rsa key coyote\123@acme.com
+			
+			ssh-rsa key2 c\0899oyote@acme.com
+			`, true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com","ssh-rsa key2 c\\0899oyote@acme.com"]`)
+		})
+	})
+})
