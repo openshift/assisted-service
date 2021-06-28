@@ -5129,6 +5129,16 @@ func init() {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
         },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes",
+            "auto-assign"
+          ],
+          "x-nullable": true
+        },
         "no_proxy": {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
@@ -5298,6 +5308,16 @@ func init() {
           "type": "string",
           "maxLength": 54,
           "minLength": 1
+        },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "default": "auto-assign",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes",
+            "auto-assign"
+          ]
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -5565,6 +5585,16 @@ func init() {
           "minLength": 1,
           "x-nullable": true
         },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes",
+            "auto-assign"
+          ],
+          "x-nullable": true
+        },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
@@ -5625,7 +5655,8 @@ func init() {
         "ntp-server-configured",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "cnv-requirements-satisfied"
+        "cnv-requirements-satisfied",
+        "network-type-valid"
       ]
     },
     "cluster_default_config": {
@@ -13100,6 +13131,16 @@ func init() {
           "description": "Name of the OpenShift cluster.",
           "type": "string"
         },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes",
+            "auto-assign"
+          ],
+          "x-nullable": true
+        },
         "no_proxy": {
           "description": "A comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string"
@@ -13269,6 +13310,16 @@ func init() {
           "type": "string",
           "maxLength": 54,
           "minLength": 1
+        },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "default": "auto-assign",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes",
+            "auto-assign"
+          ]
         },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
@@ -13496,6 +13547,16 @@ func init() {
           "minLength": 1,
           "x-nullable": true
         },
+        "network_type": {
+          "description": "The desired network type used.",
+          "type": "string",
+          "enum": [
+            "OpenShiftSDN",
+            "OVNKubernetes",
+            "auto-assign"
+          ],
+          "x-nullable": true
+        },
         "no_proxy": {
           "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
           "type": "string",
@@ -13556,7 +13617,8 @@ func init() {
         "ntp-server-configured",
         "lso-requirements-satisfied",
         "ocs-requirements-satisfied",
-        "cnv-requirements-satisfied"
+        "cnv-requirements-satisfied",
+        "network-type-valid"
       ]
     },
     "cluster_default_config": {

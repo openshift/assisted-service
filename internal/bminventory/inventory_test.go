@@ -2994,6 +2994,28 @@ var _ = Describe("cluster", func() {
 			Expect(actual.Payload.UserManagedNetworking).To(Equal(swag.Bool(true)))
 		})
 
+		It("Update networkType testing_now", func() {
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			networkType := "OpenShiftSDNaasd"
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					NetworkType: &networkType,
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.NetworkType).To(Equal(&networkType))
+		})
+
 		It("Update UserManagedNetworking Unset non relevant parameters", func() {
 
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)

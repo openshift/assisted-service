@@ -57,6 +57,7 @@ var _ = Describe("IPv6 installation", func() {
 				ServiceNetworkCidr:       &serviceCIDR,
 				SSHPublicKey:             sshPublicKey,
 				VipDhcpAllocation:        swag.Bool(false),
+				NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())

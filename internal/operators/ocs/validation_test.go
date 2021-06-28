@@ -875,6 +875,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 					ClusterNetworkHostPrefix: 24,
 					MonitoredOperators:       operators,
 					OpenshiftVersion:         t.OpenShiftVersion,
+					NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 				},
 			}
 

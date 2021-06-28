@@ -3946,6 +3946,11 @@ definitions:
         description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
         enum: ['masters', 'workers', 'none', 'all']
         default: 'all'
+      network_type:
+        type: string
+        description: "The desired network type used."
+        enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign']
+        default: 'auto-assign'
 
   cluster-update-params:
     type: object
@@ -4090,6 +4095,11 @@ definitions:
         type: string
         description: Enable/disable hyperthreading on master nodes, worker nodes, or all nodes.
         enum: ['masters', 'workers', 'all', 'none']
+        x-nullable: true
+      network_type:
+        type: string
+        description: The desired network type used.
+        enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign']
         x-nullable: true
 
   add-hosts-cluster-create-params:
@@ -4358,6 +4368,11 @@ definitions:
         type: string
         description: JSON-formatted string containing the usage information by feature name
         x-go-custom-tag: gorm:"type:text"
+      network_type:
+        type: string
+        description: The desired network type used.
+        enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign' ]
+        x-nullable: true
 
 
   image_info:
@@ -5192,6 +5207,7 @@ definitions:
       - 'lso-requirements-satisfied'
       - 'ocs-requirements-satisfied'
       - 'cnv-requirements-satisfied'
+      - 'network-type-valid'
 
   logs_type:
     type: string
