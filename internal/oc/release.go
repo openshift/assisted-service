@@ -190,7 +190,8 @@ func (r *release) extractFromRelease(log logrus.FieldLogger, releaseImage, cache
 	if err != nil {
 		return "", err
 	}
-
+	log.Infof("extracting openshift-baremetal-install binary to %s", releaseImage)
+	releaseImage = "quay.io/openshift-release-dev/ocp-release:4.8.0-rc.0-x86_64"
 	cmd := fmt.Sprintf(templateExtract, workdir, insecure, releaseImage)
 	_, err = retry.Do(r.config.MaxTries, r.config.RetryDelay, r.execute, log, pullSecret, cmd)
 	if err != nil {

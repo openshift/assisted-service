@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"bytes"
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -54,6 +55,7 @@ func DownloadURLToTemporaryFile(url string) (string, error) {
 	}
 	defer tmpfile.Close()
 
+	http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 	resp, err := http.Get(url)
 	if err != nil {
 		return "", errors.Wrapf(err, "Failed fetching from URL %s", url)
