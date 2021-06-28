@@ -16,6 +16,10 @@ ifdef E2E_TESTS_MODE
 E2E_TESTS_CONFIG = --img-expr-time=5m --img-expr-interval=5m
 endif
 
+ifeq ($(CONTAINER_COMMAND), podman)
+	PUSH_FLAGS = --tls-verify=false
+endif
+
 ASSISTED_ORG := $(or ${ASSISTED_ORG},quay.io/ocpmetal)
 ASSISTED_TAG := $(or ${ASSISTED_TAG},latest)
 
@@ -171,7 +175,7 @@ update-image: $(UPDATE_IMAGE)
 
 _update-private-registry-image: update-image
 	$(CONTAINER_COMMAND) tag $(SERVICE) $(LOCAL_SERVICE)
-	$(CONTAINER_COMMAND) push --tls-verify=false $(LOCAL_SERVICE)
+	$(CONTAINER_COMMAND) push $(PUSH_FLAGS) $(LOCAL_SERVICE)
 
 _update-local-k8s-image:
 	# Temporary hack that updates the local k8s(e.g minikube) with the latest image.
