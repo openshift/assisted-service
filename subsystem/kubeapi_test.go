@@ -1645,7 +1645,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 				agent.Status.NtpSources[0].SourceName == common.TestNTPSourceSynced.SourceName &&
 				agent.Status.NtpSources[0].SourceState == models.SourceStateUnreachable
 
-		}, "30s", "10s").Should(BeTrue())
+		}, "60s", "1s").Should(BeTrue())
 
 		By("Verify Agent labels")
 		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
