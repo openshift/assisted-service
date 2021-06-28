@@ -51,6 +51,9 @@ type Cluster struct {
 	// and the generation failed, the value of ImageGenerated will be set to 'false'. In that case, providing the
 	// same request with the same custom parameters will re-attempt to generate the image.
 	ImageGenerated bool `json:"image_generated"`
+
+	// Timestamp to trigger monitor. Monitor will be triggered if timestamp is recent
+	TriggerMonitorTimestamp time.Time
 }
 
 type Event struct {
@@ -68,6 +71,9 @@ type Host struct {
 
 	// Namespace of the KubeAPI resource
 	KubeKeyNamespace string `json:"kube_key_namespace"`
+
+	// Timestamp to trigger monitor. Monitor will be triggered if timestamp is recent
+	TriggerMonitorTimestamp time.Time
 }
 
 type EagerLoadingState bool

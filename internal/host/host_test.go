@@ -1145,58 +1145,6 @@ var _ = Describe("UpdateInventory", func() {
 		})
 	})
 
-	Context("Inventory changes", func() {
-		BeforeEach(func() {
-			host = hostutil.GenerateTestHost(hostId, clusterId, models.HostStatusDiscovering)
-			host.Inventory = common.GenerateTestDefaultInventory()
-			host.InstallationDiskPath = ""
-			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
-			mockValidator.EXPECT().DiskIsEligible(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-		})
-		It("Invariant changes to inventory", func() {
-			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
-				[]*models.Disk{},
-			).AnyTimes()
-			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
-			h := hostutil.GetHostFromDB(hostId, clusterId, db)
-			updatedAt := h.UpdatedAt
-			var inventory models.Inventory
-			Expect(json.Unmarshal([]byte(h.Inventory), &inventory)).ToNot(HaveOccurred())
-			inventory.Timestamp = 555
-			inventory.Disks[0].Smart = "kuku"
-			b, err := json.Marshal(&inventory)
-			Expect(err).ToNot(HaveOccurred())
-			time.Sleep(time.Second)
-			Expect(hapi.UpdateInventory(ctx, &host, string(b))).ToNot(HaveOccurred())
-			h = hostutil.GetHostFromDB(hostId, clusterId, db)
-			Expect(updatedAt).To(Equal(h.UpdatedAt))
-			Expect(h.Inventory).To(Equal(string(b)))
-		})
-
-		It("Variant changes to inventory", func() {
-			mockValidator.EXPECT().ListEligibleDisks(gomock.Any()).Return(
-				[]*models.Disk{},
-			).AnyTimes()
-			Expect(hapi.UpdateInventory(ctx, &host, host.Inventory)).ToNot(HaveOccurred())
-			h := hostutil.GetHostFromDB(hostId, clusterId, db)
-			updatedAt := h.UpdatedAt
-			var inventory models.Inventory
-			Expect(json.Unmarshal([]byte(h.Inventory), &inventory)).ToNot(HaveOccurred())
-			inventory.Interfaces = append(inventory.Interfaces, &models.Interface{
-				HasCarrier: false,
-				Mtu:        1500,
-				Name:       "abcd",
-			})
-			b, err := json.Marshal(&inventory)
-			Expect(err).ToNot(HaveOccurred())
-			time.Sleep(time.Second)
-			Expect(hapi.UpdateInventory(ctx, &host, string(b))).ToNot(HaveOccurred())
-			h = hostutil.GetHostFromDB(hostId, clusterId, db)
-			Expect(updatedAt).ToNot(Equal(h.UpdatedAt))
-			Expect(h.Inventory).To(Equal(string(b)))
-		})
-	})
-
 	Context("enable host", func() {
 		var newInventoryBytes []byte
 

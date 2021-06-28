@@ -70,11 +70,14 @@ func (th *transitionHandler) PostRegisterHost(sw stateswitch.StateSwitch, args s
 			return nil
 		}
 	}
-
 	hostParam.StatusUpdatedAt = strfmt.DateTime(time.Now())
 	hostParam.StatusInfo = swag.String(statusInfoDiscovering)
-	log.Infof("Register new host %s cluster %s", hostParam.ID.String(), hostParam.ClusterID)
-	return params.db.Create(hostParam).Error
+	hostToCreate := &common.Host{
+		Host:                    *hostParam,
+		TriggerMonitorTimestamp: time.Now(),
+	}
+	log.Infof("Register new host %s cluster %s", hostToCreate.ID.String(), hostToCreate.ClusterID)
+	return params.db.Create(hostToCreate).Error
 }
 
 func (th *transitionHandler) PostRegisterDuringInstallation(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {

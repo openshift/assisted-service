@@ -147,15 +147,18 @@ var _ = Describe("TestClusterMonitoring", func() {
 	})
 	Context("single cluster monitoring", func() {
 		createCluster := func(id *strfmt.UUID, status, statusInfo string) common.Cluster {
-			cluster := common.Cluster{Cluster: models.Cluster{
-				ID:                 id,
-				Status:             swag.String(status),
-				StatusInfo:         swag.String(statusInfo),
-				MachineNetworkCidr: "1.1.0.0/16",
-				BaseDNSDomain:      "test.com",
-				PullSecretSet:      true,
-				MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
-			}}
+			cluster := common.Cluster{
+				Cluster: models.Cluster{
+					ID:                 id,
+					Status:             swag.String(status),
+					StatusInfo:         swag.String(statusInfo),
+					MachineNetworkCidr: "1.1.0.0/16",
+					BaseDNSDomain:      "test.com",
+					PullSecretSet:      true,
+					MonitoredOperators: []*models.MonitoredOperator{&common.TestDefaultConfig.MonitoredOperator},
+				},
+				TriggerMonitorTimestamp: time.Now(),
+			}
 			Expect(common.LoadTableFromDB(db, common.MonitoredOperatorsTable).Create(&cluster).Error).ShouldNot(HaveOccurred())
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -366,19 +369,22 @@ var _ = Describe("TestClusterMonitoring", func() {
 			Context("from insufficient state", func() {
 				BeforeEach(func() {
 
-					c = common.Cluster{Cluster: models.Cluster{
-						ID:                       &id,
-						Status:                   swag.String("insufficient"),
-						MachineNetworkCidr:       "1.2.3.0/24",
-						APIVip:                   "1.2.3.5",
-						IngressVip:               "1.2.3.6",
-						BaseDNSDomain:            "test.com",
-						PullSecretSet:            true,
-						StatusInfo:               swag.String(StatusInfoInsufficient),
-						ClusterNetworkCidr:       "1.3.0.0/16",
-						ServiceNetworkCidr:       "1.2.5.0/24",
-						ClusterNetworkHostPrefix: 24,
-					}}
+					c = common.Cluster{
+						Cluster: models.Cluster{
+							ID:                       &id,
+							Status:                   swag.String("insufficient"),
+							MachineNetworkCidr:       "1.2.3.0/24",
+							APIVip:                   "1.2.3.5",
+							IngressVip:               "1.2.3.6",
+							BaseDNSDomain:            "test.com",
+							PullSecretSet:            true,
+							StatusInfo:               swag.String(StatusInfoInsufficient),
+							ClusterNetworkCidr:       "1.3.0.0/16",
+							ServiceNetworkCidr:       "1.2.5.0/24",
+							ClusterNetworkHostPrefix: 24,
+						},
+						TriggerMonitorTimestamp: time.Now(),
+					}
 
 					Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 					Expect(err).ShouldNot(HaveOccurred())
@@ -440,19 +446,22 @@ var _ = Describe("TestClusterMonitoring", func() {
 			})
 			Context("from ready state", func() {
 				BeforeEach(func() {
-					c = common.Cluster{Cluster: models.Cluster{
-						ID:                       &id,
-						Status:                   swag.String(models.ClusterStatusReady),
-						StatusInfo:               swag.String(StatusInfoReady),
-						MachineNetworkCidr:       "1.2.3.0/24",
-						APIVip:                   "1.2.3.5",
-						IngressVip:               "1.2.3.6",
-						BaseDNSDomain:            "test.com",
-						PullSecretSet:            true,
-						ClusterNetworkCidr:       "1.3.0.0/16",
-						ServiceNetworkCidr:       "1.2.5.0/24",
-						ClusterNetworkHostPrefix: 24,
-					}}
+					c = common.Cluster{
+						Cluster: models.Cluster{
+							ID:                       &id,
+							Status:                   swag.String(models.ClusterStatusReady),
+							StatusInfo:               swag.String(StatusInfoReady),
+							MachineNetworkCidr:       "1.2.3.0/24",
+							APIVip:                   "1.2.3.5",
+							IngressVip:               "1.2.3.6",
+							BaseDNSDomain:            "test.com",
+							PullSecretSet:            true,
+							ClusterNetworkCidr:       "1.3.0.0/16",
+							ServiceNetworkCidr:       "1.2.5.0/24",
+							ClusterNetworkHostPrefix: 24,
+						},
+						TriggerMonitorTimestamp: time.Now(),
+					}
 
 					Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
 				})

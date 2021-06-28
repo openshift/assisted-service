@@ -463,8 +463,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 			Hyperthreading:           swag.StringValue(params.NewClusterParams.Hyperthreading),
 		},
-		KubeKeyName:      kubeKey.Name,
-		KubeKeyNamespace: kubeKey.Namespace,
+		KubeKeyName:             kubeKey.Name,
+		KubeKeyNamespace:        kubeKey.Namespace,
+		TriggerMonitorTimestamp: time.Now(),
 	}
 
 	proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
@@ -1964,10 +1965,12 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 			return common.NewApiError(http.StatusBadRequest, errors.Errorf(msg))
 		}
 	}
-
-	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
-	if dbReply.Error != nil {
-		return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
+	if len(updates) > 0 {
+		updates["trigger_monitor_timestamp"] = time.Now()
+		dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+		if dbReply.Error != nil {
+			return common.NewApiError(http.StatusInternalServerError, errors.Wrapf(err, "failed to update cluster: %s", params.ClusterID))
+		}
 	}
 
 	return nil
