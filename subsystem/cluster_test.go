@@ -843,6 +843,79 @@ var _ = Describe("cluster install - DHCP", func() {
 	})
 })
 
+var _ = Describe("Validate BaseDNSDomain when creating a cluster", func() {
+	var (
+		ctx         = context.Background()
+		clusterCIDR = "10.128.0.0/14"
+		serviceCIDR = "172.30.0.0/16"
+	)
+	AfterEach(func() {
+		clearDB()
+	})
+	type DNSTest struct {
+		It            string
+		BaseDNSDomain string
+		ShouldThrow   bool
+	}
+	createClusterWithBaseDNS := func(baseDNS string) (*installer.RegisterClusterCreated, error) {
+		return userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				BaseDNSDomain:            baseDNS,
+				ClusterNetworkCidr:       &clusterCIDR,
+				ClusterNetworkHostPrefix: 23,
+				Name:                     swag.String("test-cluster"),
+				OpenshiftVersion:         swag.String(openshiftVersion),
+				PullSecret:               swag.String(pullSecret),
+				ServiceNetworkCidr:       &serviceCIDR,
+				SSHPublicKey:             sshPublicKey,
+			},
+		})
+	}
+	tests := []DNSTest{
+		{
+			It:            "RegisterCluster should throw an error. BaseDNSDomain='example', not a valid DNS structure string",
+			BaseDNSDomain: "example",
+			ShouldThrow:   true,
+		},
+		{
+			It:            "RegisterCluster should throw an error. BaseDNSDomain='example.c', Invalid top-level domain name ",
+			BaseDNSDomain: "example.c",
+			ShouldThrow:   true,
+		},
+		{
+			It:            "RegisterCluster should throw an error. BaseDNSDomain='-example.com', Illegal character in domain name",
+			BaseDNSDomain: "-example.com",
+			ShouldThrow:   true,
+		},
+		{
+			It:            "RegisterCluster should not throw an error. BaseDNSDomain='example.com', valid DNS",
+			BaseDNSDomain: "example.com",
+			ShouldThrow:   false,
+		},
+		{
+			It:            "RegisterCluster should not throw an error. BaseDNSDomain='sub.example.com', valid DNS",
+			BaseDNSDomain: "sub.example.com",
+			ShouldThrow:   false,
+		},
+		{
+			It:            "RegisterCluster should not throw an error. BaseDNSDomain='deep.sub.example.com', valid DNS",
+			BaseDNSDomain: "deep.sub.example.com",
+			ShouldThrow:   false,
+		},
+	}
+	for _, test := range tests {
+		t := test
+		It(test.It, func() {
+			_, err := createClusterWithBaseDNS(t.BaseDNSDomain)
+			if t.ShouldThrow {
+				Expect(err).Should(HaveOccurred())
+			} else {
+				Expect(err).ShouldNot(HaveOccurred())
+			}
+		})
+	}
+})
+
 var _ = Describe("cluster update - BaseDNS", func() {
 	var (
 		ctx         = context.Background()
@@ -877,7 +950,7 @@ var _ = Describe("cluster update - BaseDNS", func() {
 		log.Infof("Register cluster %s", cluster.ID.String())
 	})
 	Context("Update BaseDNS", func() {
-		It("OK", func() {
+		It("Should not throw an error with valid 2 part DNS", func() {
 			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{
 					BaseDNSDomain: swag.String("abc.com"),
@@ -886,8 +959,17 @@ var _ = Describe("cluster update - BaseDNS", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 		})
+		It("Should not throw an error with valid 3 part DNS", func() {
+			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					BaseDNSDomain: swag.String("abc.def.com"),
+				},
+				ClusterID: clusterID,
+			})
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
-	It("Fail - 1", func() {
+	It("Should throw an error with invalid top-level domain", func() {
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				BaseDNSDomain: swag.String("abc.com.c"),
@@ -896,7 +978,7 @@ var _ = Describe("cluster update - BaseDNS", func() {
 		})
 		Expect(err).To(HaveOccurred())
 	})
-	It("Fail - 2", func() {
+	It("Should throw an error with invalid char prefix domain", func() {
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
 				BaseDNSDomain: swag.String("-abc.com"),

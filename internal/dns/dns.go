@@ -192,14 +192,14 @@ func (h *handler) GetDNSDomain(clusterName, baseDNSDomainName string) (*DNSDomai
 	}, nil
 }
 
-//ValidateDNSName checks if a combination of cluster name and base DNS domain
+// ValidateDNSName checks baseDNSDomainName and the combination of cluster name and base DNS domain
 // leaves enough room for automatically added domain names,
 // e.g. "alertmanager-main-openshift-monitoring.apps.test-infra-cluster-assisted-installer.example.com").
 // The max total length of a domain name is 255 bytes, including the dots. An individual label can be
 // up to 63 bytes. A single char may occupy more than one byte in Internationalized Domain Names (IDNs).
 func (h *handler) ValidateDNSName(clusterName, baseDNSDomainName string) error {
 	appsDomainNameSuffix := fmt.Sprintf(appsDomainNameFormat, clusterName, baseDNSDomainName)
-	if err := validations.ValidateDomainNameFormat(appsDomainNameSuffix); err != nil {
+	if err := validations.ValidateDomainNameFormat(baseDNSDomainName); err != nil {
 		return err
 	}
 	if len(appsDomainNameSuffix) > dnsDomainPrefixMaxLen {
