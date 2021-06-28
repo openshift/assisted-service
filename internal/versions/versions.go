@@ -3,6 +3,7 @@ package versions
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/hashicorp/go-version"
@@ -215,7 +216,8 @@ func (h *handler) AddOpenshiftVersion(ocpReleaseImage, pullSecret string) (*mode
 	}
 	versionFromCache, ok := h.openshiftVersions[ocpVersionKey]
 	if !ok {
-		return nil, errors.Errorf("OCP version is not specified in OPENSHIFT_VERSIONS: %s", ocpVersionKey)
+		return nil, errors.Errorf("RHCOS image is not configured for version: %s, supported versions: %s",
+			ocpVersionKey, reflect.ValueOf(h.openshiftVersions).MapKeys())
 	}
 
 	// Get SupportLevel or default to 'custom'
