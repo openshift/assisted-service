@@ -2,11 +2,11 @@ apiVersion: agent-install.openshift.io/v1beta1
 kind: InfraEnv
 metadata:
   name: myinfraenv
-  namespace: assisted-installer
+  namespace: spoke-cluster
 spec:
   clusterRef:
     name: single-node
-    namespace: assisted-installer
+    namespace: spoke-cluster
   pullSecretRef:
     name: pull-secret
   proxy:

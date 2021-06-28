@@ -25,8 +25,7 @@ How may a failed installation look?
 For that look at the `AgentClusterInstall` conditions:
 
 ```bash
-$ kubectl -n test-namespace get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install
--o=jsonpath="{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}"
+$ kubectl -n test-namespace get agentclusterinstalls.extensions.hive.openshift.io test-agent-cluster-install -o=jsonpath="{.metadata.name}{'\n'}{range .status.conditions[*]}{.type}{'\t'}{.message}{'\n'}"
 ```
 
 ```bash
@@ -45,7 +44,7 @@ Expect URLs to match.
 
 #### InfraEnv
 ```bash
-$ kubectl -n test-namespace get infraenvs.agent-install.openshift.io test-infraenv  -o=jsonpath="{.status.createdTime}{'\n'}{.status.isoDownloadURL}{'\n'}"
+$ kubectl -n test-namespace get infraenvs.agent-install.openshift.io test-infraenv -o=jsonpath="{.status.createdTime}{'\n'}{.status.isoDownloadURL}{'\n'}"
 ```
 ```bash
 2021-06-23T14:24:57Z

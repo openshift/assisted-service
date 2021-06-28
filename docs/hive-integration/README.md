@@ -8,6 +8,8 @@ For this integration, the Assisted Installer APIs are available via [CRDs](https
 
 ## CRD Types
 
+![kubeAPI4.9](kubeAPI4.9_controllers.jpg)
+
 ### [ClusterDeployment](https://github.com/openshift/hive/blob/master/apis/hive/v1/clusterdeployment_types.go)
 The ClusterDeployment CRD is an API provided by Hive.
 
@@ -33,7 +35,7 @@ Deletion of AgentClusterInstall will trigger the `agentclusterinstall
 Here an example how to print AgentClusterInstall conditions:
 
 ```sh
-$ kubectl get agentclusterinstalls.extensions.hive.openshift.io -n assisted-installer -o=jsonpath='{range .items[*]}{"\n"}{.metadata.name}{"\n"}{range .status.conditions[*]}{.type}{"\t"}{.message}{"\n"}{end}'
+$ kubectl get agentclusterinstalls.extensions.hive.openshift.io -n mynamespace -o=jsonpath='{range .items[*]}{"\n"}{.metadata.name}{"\n"}{range .status.conditions[*]}{.type}{"\t"}{.message}{"\n"}{end}'
 ```
 ```sh
 test-infra-agent-cluster-install
@@ -92,7 +94,7 @@ Note that if the Agent is not Approved, it will not be part of the installation.
 Here how to approve an Agent:
 
 ```sh
-$ kubectl -n assisted-installer patch agents.agent-install.openshift.io 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge
+$ kubectl -n mynamespace patch agents.agent-install.openshift.io 120af504-d88e-46bd-bec2-b8b261db3b01 -p '{"spec":{"approved":true}}' --type merge
 ```
 
 The Agent reflects the Host status through Conditions.
@@ -102,7 +104,7 @@ More details on conditions is available [here](kube-api-conditions.md)
 Here an example how to print Agent conditions:
 
 ```sh
-$ kubectl get agents.agent-install.openshift.io -n assisted-installer  -o=jsonpath='{range .items[*]}{"\n"}{.spec.clusterDeploymentName.name}{"\n"}{.status.inventory.hostname}{"\n"}{range .status.conditions[*]}{.type}{"\t"}{.message}{"\n"}{end}'
+$ kubectl get agents.agent-install.openshift.io -n mynamespace  -o=jsonpath='{range .items[*]}{"\n"}{.spec.clusterDeploymentName.name}{"\n"}{.status.inventory.hostname}{"\n"}{range .status.conditions[*]}{.type}{"\t"}{.message}{"\n"}{end}'
 ```
 
 ```sh
@@ -176,12 +178,12 @@ In case of failure to apply the overrides the agentclusterinstall conditions wil
 Add an annotation with the desired options, the clusterdeployment controller will update the install config yaml with the annotation value.
 Note that this configuration must be applied prior to starting the installation
 ```sh
-$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io test-cluster -n assisted-installer agent-install.openshift.io/install-config-overrides="{\"networking\":{\"networkType\": \"OVNKubernetes\"},\"fips\":true}"
+$ kubectl annotate agentclusterinstalls.extensions.hive.openshift.io test-cluster -n mynamespace agent-install.openshift.io/install-config-overrides="{\"networking\":{\"networkType\": \"OVNKubernetes\"},\"fips\":true}"
 agentclusterinstalls.extensions.hive.openshift.io/test-cluster annotated
 ```
 
 ```sh
-$ kubectl get agentclusterinstalls.extensions.hive.openshift.io test-cluster -n assisted-installer -o yaml
+$ kubectl get agentclusterinstalls.extensions.hive.openshift.io test-cluster -n mynamespace -o yaml
 ```
 ```yaml
 apiVersion: extensions.hive.openshift.io/v1beta1
@@ -192,7 +194,7 @@ metadata:
   creationTimestamp: "2021-04-01T07:04:49Z"
   generation: 1
   name: test-cluster
-  namespace: assisted-installer
+  namespace: mynamespace
   resourceVersion: "183201"
 ...
 ```
@@ -207,12 +209,12 @@ Add an annotation with the desired options, the bmac controller will update the 
 Then agent controller will forward it to host configuration.
 Note that this configuration must be applied prior to starting the installation
 ```sh
-$ kubectl annotate bmh openshift-worker-0 -n assisted-installer bmac.agent-install.openshift.io/installer-args="[\"--append-karg\", \"ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none\", \"--save-partindex\", \"1\", \"-n\"]"
+$ kubectl annotate bmh openshift-worker-0 -n mynamespace bmac.agent-install.openshift.io/installer-args="[\"--append-karg\", \"ip=192.0.2.2::192.0.2.254:255.255.255.0:core0.example.com:enp1s0:none\", \"--save-partindex\", \"1\", \"-n\"]"
 baremetalhost.metal3.io/openshift-worker-0 annotated
 ```
 
 ```sh
-$ oc get bmh openshift-worker-0 -n assisted-installer -o yaml
+$ oc get bmh openshift-worker-0 -n mynamespace -o yaml
 ```
 ```yaml
 apiVersion: metal3.io/v1alpha1
@@ -223,7 +225,7 @@ metadata:
   creationTimestamp: "2021-04-13T10:46:57Z"
   generation: 1
   name: openshift-worker-0
-  namespace: assisted-installer
+  namespace: mynamespace
 spec:
 ```
 
@@ -235,12 +237,12 @@ Add an annotation with the desired options, the bmac controller will update the 
 Then agent controller will forward it to host configuration.
 Note that this configuration must be applied prior to starting the installation
 ```sh
-$ kubectl annotate bmh openshift-worker-0 -n assisted-installer bmac.agent-install.openshift.io/ignition-config-overrides="{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
+$ kubectl annotate bmh openshift-worker-0 -n mynamespace bmac.agent-install.openshift.io/ignition-config-overrides="{\"ignition\": {\"version\": \"3.1.0\"}, \"storage\": {\"files\": [{\"path\": \"/tmp/example\", \"contents\": {\"source\": \"data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj\"}}]}}"
 baremetalhost.metal3.io/openshift-worker-0 annotated
 ```
 
 ```sh
-$ oc get bmh openshift-worker-0 -n assisted-installer -o yaml
+$ oc get bmh openshift-worker-0 -n mynamespace -o yaml
 ```
 ```yaml
 apiVersion: metal3.io/v1alpha1
@@ -251,7 +253,7 @@ metadata:
   creationTimestamp: "2021-04-14T10:46:57Z"
   generation: 1
   name: openshift-worker-0
-  namespace: assisted-installer
+  namespace: mynamespace
 spec:
 ```
 
@@ -307,5 +309,5 @@ In case that the assisted-service is not available, the deletion of ClusterDeplo
 Here an example on how to remove finalizers on a resource:
 
 ```bash
-kubectl -n assisted-installer patch agentclusterinstalls.extensions.hive.openshift.io my-aci -p '{"metadata":{"finalizers":null}}' --type=merge
+kubectl -n mynamespace patch agentclusterinstalls.extensions.hive.openshift.io my-aci -p '{"metadata":{"finalizers":null}}' --type=merge
 ```
