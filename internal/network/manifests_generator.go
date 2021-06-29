@@ -79,6 +79,7 @@ spec:
 const snoDnsmasqConf = `
 address=/apps.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
 address=/api-int.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
+address=/api.{{.CLUSTER_NAME}}.{{.DNS_DOMAIN}}/{{.HOST_IP}}
 `
 
 const unmanagedResolvConf = `
