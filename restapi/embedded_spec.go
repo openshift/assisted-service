@@ -6526,6 +6526,16 @@ func init() {
         "installation_disk_speed_threshold_ms": {
           "type": "integer"
         },
+        "network_latency_threshold_ms": {
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "packet_loss_percentage": {
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
         "ram_gib": {
           "type": "integer"
         }
@@ -14170,6 +14180,16 @@ func init() {
         },
         "installation_disk_speed_threshold_ms": {
           "type": "integer"
+        },
+        "network_latency_threshold_ms": {
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
+        },
+        "packet_loss_percentage": {
+          "type": "number",
+          "format": "double",
+          "x-nullable": true
         },
         "ram_gib": {
           "type": "integer"

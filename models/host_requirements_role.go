@@ -24,6 +24,12 @@ type HostRequirementsRole struct {
 	// installation disk speed threshold ms
 	InstallationDiskSpeedThresholdMs int64 `json:"installation_disk_speed_threshold_ms,omitempty"`
 
+	// network latency threshold ms
+	NetworkLatencyThresholdMs *float64 `json:"network_latency_threshold_ms,omitempty"`
+
+	// packet loss percentage
+	PacketLossPercentage *float64 `json:"packet_loss_percentage,omitempty"`
+
 	// ram gib
 	RAMGib int64 `json:"ram_gib,omitempty"`
 }
