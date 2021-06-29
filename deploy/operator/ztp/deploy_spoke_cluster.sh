@@ -3,7 +3,7 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source ${__dir}/../utils.sh
 
-export ASSISTED_NAMESPACE="${ASSISTED_NAMESPACE:-assisted-installer}"
+export SPOKE_NAMESPACE="${SPOKE_NAMESPACE:-assisted-spoke-cluster}"
 export ASSISTED_CLUSTER_NAME="${ASSISTED_CLUSTER_NAME:-assisted-test-cluster}"
 export ASSISTED_OPENSHIFT_VERSION="${ASSISTED_OPENSHIFT_VERSION:-openshift-v4.8.0}"
 export ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE:-quay.io/openshift-release-dev/ocp-release:4.8.0-fc.3-x86_64}"
@@ -45,10 +45,12 @@ echo "Running Ansible playbook to create kubernetes objects"
 export BMH_NAME MAC_ADDRESS ENCODED_USERNAME ENCODED_PASSWORD ADDRESS
 ansible-playbook "${__dir}/assisted-installer-crds-playbook.yaml"
 
-oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${ASSISTED_NAMESPACE}" || \
-    oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${ASSISTED_NAMESPACE}"
-oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${ASSISTED_NAMESPACE}" || \
-    oc create secret generic "${ASSISTED_PRIVATEKEY_NAME}" --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n "${ASSISTED_NAMESPACE}"
+oc create namespace "${SPOKE_NAMESPACE}"
+
+oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" || \
+    oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${SPOKE_NAMESPACE}"
+oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
+    oc create secret generic "${ASSISTED_PRIVATEKEY_NAME}" --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n "${SPOKE_NAMESPACE}"
 
 for manifest in $(find ${__dir}/generated -type f); do
     tee < "${manifest}" >(oc apply -f -)
@@ -56,11 +58,11 @@ done
 
 echo "Waiting until at least ${CONTROL_PLANE_COUNT} agents are available..."
 export -f wait_for_object_amount
-timeout 10m bash -c "wait_for_object_amount agent ${CONTROL_PLANE_COUNT} 10 ${ASSISTED_NAMESPACE}"
+timeout 10m bash -c "wait_for_object_amount agent ${CONTROL_PLANE_COUNT} 10 ${SPOKE_NAMESPACE}"
 echo "All ${CONTROL_PLANE_COUNT} agents have joined!"
 
-wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${ASSISTED_NAMESPACE}"
+wait_for_condition "agentclusterinstall/${ASSISTED_AGENT_CLUSTER_INSTALL_NAME}" "Completed" "60m" "${SPOKE_NAMESPACE}"
 echo "Cluster has been installed successfully!"
 
-wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${ASSISTED_NAMESPACE}"
+wait_for_boolean_field "clusterdeployment/${ASSISTED_CLUSTER_DEPLOYMENT_NAME}" spec.installed "${SPOKE_NAMESPACE}"
 echo "Hive acknowledged cluster installation!"

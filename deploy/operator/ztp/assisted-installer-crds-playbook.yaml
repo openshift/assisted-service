@@ -4,7 +4,7 @@
    - community.general
   gather_facts: no
   vars:
-    - assisted_namespace: "{{ lookup('env', 'ASSISTED_NAMESPACE') }}"
+    - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
     - cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') }}"
     - cluster_image_set_name: "{{ lookup('env', 'ASSISTED_OPENSHIFT_VERSION') }}"
     - cluster_release_image: "{{ lookup('env', 'ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"
