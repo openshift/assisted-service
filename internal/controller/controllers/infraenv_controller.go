@@ -248,9 +248,10 @@ func (r *InfraEnvReconciler) ensureISO(ctx context.Context, log logrus.FieldLogg
 			if clusterDeployment.Spec.ClusterInstallRef == nil {
 				msg += "AgentClusterInstall is not defined in ClusterDeployment"
 			} else {
-				msg += fmt.Sprintf("check AgentClusterInstall conditions: %+v",
-					clusterDeployment.Spec.ClusterInstallRef)
+				msg += fmt.Sprintf("check AgentClusterInstall conditions: name %s in namespace %s",
+					clusterDeployment.Spec.ClusterInstallRef.Name, clusterDeployment.Namespace)
 			}
+			log.Errorf(msg)
 			err = errors.Errorf(msg)
 
 			inventoryErr = common.NewApiError(http.StatusNotFound, err)
