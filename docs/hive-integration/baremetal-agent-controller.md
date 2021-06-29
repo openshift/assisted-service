@@ -60,7 +60,7 @@ and the steps required:
 
 **NOTE**
 
-The default hardware requirements for the OCP cluster are higher than the values provided below. A guide on how to customize validator requirements can be found [here](dev/hardware-requirements.md).
+The default hardware requirements for the OCP cluster are higher than the values provided below. A guide on how to customize validator requirements can be found [here](../dev/hardware-requirements.md).
 
 Local Baremetal Operator (optional)
 ==
