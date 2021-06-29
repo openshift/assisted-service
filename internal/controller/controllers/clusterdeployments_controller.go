@@ -39,6 +39,7 @@ import (
 	"github.com/openshift/assisted-service/internal/gencrypto"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/manifests"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	logutil "github.com/openshift/assisted-service/pkg/log"
@@ -1140,7 +1141,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			}
 			clusterRequirementsMet(clusterInstall, status, c, registeredHosts, approvedHosts)
 			clusterValidated(clusterInstall, status, c)
-			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo))
+			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
 			clusterStopped(clusterInstall, status)
 		}
@@ -1298,10 +1299,18 @@ func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status 
 	})
 }
 
-func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statusInfo string) {
+func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statusInfo string, opers []*models.MonitoredOperator) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
+	var cvoMsg string
+	for _, op := range opers {
+		if op.Name == operators.OperatorCVO.Name {
+			if op.Status != "" {
+				cvoMsg = fmt.Sprintf(". Cluster version status: %s, message: %s", op.Status, op.StatusInfo)
+			}
+		}
+	}
 	switch status {
 	case models.ClusterStatusInstalled, models.ClusterStatusAddingHosts:
 		condStatus = corev1.ConditionTrue
@@ -1319,7 +1328,7 @@ func clusterCompleted(clusterInstall *hiveext.AgentClusterInstall, status, statu
 		models.ClusterStatusInstallingPendingUserAction:
 		condStatus = corev1.ConditionFalse
 		reason = hiveext.ClusterInstallationInProgressReason
-		msg = fmt.Sprintf("%s %s", hiveext.ClusterInstallationInProgressMsg, statusInfo)
+		msg = fmt.Sprintf("%s %s%s", hiveext.ClusterInstallationInProgressMsg, statusInfo, cvoMsg)
 	default:
 		condStatus = corev1.ConditionUnknown
 		reason = hiveext.ClusterUnknownStatusReason
