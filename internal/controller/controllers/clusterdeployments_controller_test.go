@@ -1179,6 +1179,55 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
 		})
 
+		It("ready for installation - but too much approved hosts", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
+
+			aci.Spec.ProvisionRequirements.WorkerAgents = 0
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			expectedHosts := aci.Spec.ProvisionRequirements.ControlPlaneAgents + aci.Spec.ProvisionRequirements.WorkerAgents
+			msg := fmt.Sprintf(hiveext.ClusterAdditionalAgentsMsg, expectedHosts, 5)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterAdditionalAgentsReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(msg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
+		It("ready for installation - but too much registered hosts", func() {
+			backEndCluster.Status = swag.String(models.ClusterStatusReady)
+			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(3)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(2)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(3)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(2)
+
+			aci.Spec.ProvisionRequirements.WorkerAgents = 0
+			Expect(c.Update(ctx, aci)).Should(BeNil())
+			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			request := newClusterDeploymentRequest(cluster)
+			result, err := cr.Reconcile(ctx, request)
+			Expect(err).To(BeNil())
+			Expect(result).To(Equal(ctrl.Result{}))
+
+			aci = getTestClusterInstall()
+			expectedHosts := aci.Spec.ProvisionRequirements.ControlPlaneAgents + aci.Spec.ProvisionRequirements.WorkerAgents
+			msg := fmt.Sprintf(hiveext.ClusterAdditionalAgentsMsg, expectedHosts, 5)
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterSyncedOkReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterAdditionalAgentsReason))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(msg))
+			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionFalse))
+		})
+
 		It("install day2 host", func() {
 			cr.EnableDay2Cluster = true
 			openshiftID := strfmt.UUID(uuid.New().String())
