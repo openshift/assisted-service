@@ -3,6 +3,7 @@ package controllers
 import (
 	"context"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
@@ -10,6 +11,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/controller/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/models"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -61,7 +63,7 @@ var _ = Describe("create agent CR", func() {
 			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 			hostId := uuid.New().String()
-			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName)
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName, nil)
 			Expect(err).NotTo(HaveOccurred())
 			namespacedName := types.NamespacedName{
 				Namespace: infraEnvNamespace,
@@ -87,7 +89,7 @@ var _ = Describe("create agent CR", func() {
 			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 
 			hostId := uuid.New().String()
-			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName)
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName, nil)
 			Expect(err).NotTo(HaveOccurred())
 			namespacedName := types.NamespacedName{
 				Namespace: infraEnvNamespace,
@@ -101,7 +103,7 @@ var _ = Describe("create agent CR", func() {
 
 		It("Empty name space", func() {
 			hostId := uuid.New().String()
-			err := crdUtils.CreateAgentCR(ctx, log, hostId, "", clusterName)
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, "", clusterName, nil)
 			namespacedName := types.NamespacedName{
 				Namespace: "",
 				Name:      hostId,
@@ -124,7 +126,17 @@ var _ = Describe("create agent CR", func() {
 			hostId := uuid.New().String()
 			agent := newAgent(hostId, infraEnvNamespace, v1beta1.AgentSpec{})
 			Expect(c.Create(ctx, agent)).ShouldNot(HaveOccurred())
-			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName)
+			clusterId := strfmt.UUID(uuid.New().String())
+			id := strfmt.UUID(hostId)
+			h := common.Host{
+				Host: models.Host{
+					ID:        &id,
+					ClusterID: clusterId,
+				},
+			}
+			mockHostApi.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&h, nil).Times(1)
+
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName, &clusterId)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -133,9 +145,57 @@ var _ = Describe("create agent CR", func() {
 			Expect(c.Create(ctx, clusterDeployment)).ShouldNot(HaveOccurred())
 
 			hostId := uuid.New().String()
-			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName)
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName, nil)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).Should(ContainSubstring("No InfraEnv resource for ClusterDeployment"))
+		})
+
+		It("Already existing agent different infraenv", func() {
+			clusterDeployment := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, clusterDeployment)).ShouldNot(HaveOccurred())
+			infraEnvImage := newInfraEnvImage("infraEnvImage", infraEnvNamespace, v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      clusterDeployment.Name,
+					Namespace: clusterDeployment.Namespace,
+				},
+			})
+			Expect(c.Create(ctx, infraEnvImage)).ShouldNot(HaveOccurred())
+
+			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+
+			hostId := uuid.New().String()
+			clusterId := strfmt.UUID(uuid.New().String())
+			err := crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName, &clusterId)
+			Expect(err).NotTo(HaveOccurred())
+			namespacedName := types.NamespacedName{
+				Namespace: infraEnvNamespace,
+				Name:      hostId,
+			}
+			Expect(c.Get(ctx, namespacedName, &v1beta1.Agent{})).ShouldNot(HaveOccurred())
+
+			clusterDeployment2 := newClusterDeployment("test-cluster2", testNamespace, defaultClusterSpec)
+			Expect(c.Create(ctx, clusterDeployment2)).ShouldNot(HaveOccurred())
+			infraEnvImage2 := newInfraEnvImage("infraEnvImage2", infraEnvNamespace, v1beta1.InfraEnvSpec{
+				ClusterRef: &v1beta1.ClusterReference{
+					Name:      clusterDeployment2.Name,
+					Namespace: clusterDeployment2.Namespace,
+				},
+			})
+			Expect(c.Create(ctx, infraEnvImage2)).ShouldNot(HaveOccurred())
+
+			id := strfmt.UUID(hostId)
+			h := common.Host{
+				Host: models.Host{
+					ID:        &id,
+					ClusterID: clusterId,
+				},
+			}
+			mockHostApi.EXPECT().GetHostByKubeKey(gomock.Any()).Return(&h, nil).Times(1)
+			mockHostApi.EXPECT().UnRegisterHost(ctx, id.String(), clusterId.String()).Return(nil).Times(1)
+			mockHostApi.EXPECT().UpdateKubeKeyNS(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
+			clusterId2 := strfmt.UUID(uuid.New().String())
+			err = crdUtils.CreateAgentCR(ctx, log, hostId, clusterNamespace, clusterName, &clusterId2)
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 

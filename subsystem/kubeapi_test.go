@@ -1764,6 +1764,87 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}, "1m", "10s").Should(BeTrue())
 	})
 
+	It("Move Agent to another cluster", func() {
+		By("Create first cluster")
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployInfraEnvCRD(ctx, kubeClient, infraNsName.Name, infraEnvSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
+
+		clusterKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterName,
+		}
+		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster.ID.String())
+		host := registerNode(ctx, *cluster.ID, "hostname1")
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+
+		By("Check Agent Event URL exists")
+		Eventually(func() string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.DebugInfo.EventsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
+		firstAgentEventsURL := getAgentCRD(ctx, kubeClient, key).Status.DebugInfo.EventsURL
+
+		By("Create New ClusterDeployment")
+		secretRef := deployLocalObjectSecretIfNeeded(ctx, kubeClient)
+		clusterDeploymentSpec2 := getDefaultClusterDeploymentSpec(secretRef)
+		aciSNOSpec2 := getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec2.ClusterName)
+		infraEnvSpec2 := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec2)
+		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec2)
+		deployInfraEnvCRD(ctx, kubeClient, "infraenv2", infraEnvSpec2)
+		// Create AgentClusterInstall without creating the clusterImageSet
+		err := kubeClient.Create(ctx, &hiveext.AgentClusterInstall{
+			TypeMeta: metav1.TypeMeta{
+				Kind:       "AgentClusterInstall",
+				APIVersion: "hiveextension/v1beta1",
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: Options.Namespace,
+				Name:      clusterDeploymentSpec2.ClusterInstallRef.Name,
+			},
+			Spec: *aciSNOSpec2,
+		})
+		Expect(err).To(BeNil())
+
+		By("Register Agent to new Cluster")
+		clusterKey2 := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec2.ClusterName,
+		}
+		cluster2 := getClusterFromDB(ctx, kubeClient, db, clusterKey2, waitForReconcileTimeout)
+		configureLocalAgentClient(cluster2.ID.String())
+		h := &registerHostByUUID(*cluster2.ID, *host.ID).Host
+		generateEssentialHostSteps(ctx, h, "hostname2")
+		generateEssentialPrepareForInstallationSteps(ctx, h)
+
+		By("Check Agent is updated with new ClusterDeployment")
+		Eventually(func() string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Spec.ClusterDeploymentName.Name
+		}, "30s", "10s").Should(Equal(clusterDeploymentSpec2.ClusterName))
+
+		By("Check Agent event URL changed")
+		Eventually(func() string {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			return agent.Status.DebugInfo.EventsURL
+		}, "30s", "10s").Should(Not(Equal(firstAgentEventsURL)))
+
+		By("Check host is removed from first backend cluster")
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		Expect(len(cluster.Hosts)).Should(Equal(0))
+
+		By("Delete Original Clusterdeployment")
+		clusterDeploymentCRD := getClusterDeploymentCRD(ctx, kubeClient, clusterKey)
+		Expect(kubeClient.Delete(ctx, clusterDeploymentCRD)).ShouldNot(HaveOccurred())
+
+		By("Check Agent still exists")
+		getAgentCRD(ctx, kubeClient, key)
+	})
+
 	It("SNO deploy clusterDeployment delete while install", func() {
 		By("Create cluster")
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
