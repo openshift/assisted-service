@@ -3,7 +3,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: '{{ bmh_name }}-bmc-secret'
-  namespace: '{{ assisted_namespace }}'
+  namespace: '{{ spoke_namespace }}'
 type: Opaque
 data:
   username: '{{ encoded_username }}'
@@ -14,7 +14,7 @@ apiVersion: metal3.io/v1alpha1
 kind: BareMetalHost
 metadata:
   name: '{{ bmh_name }}'
-  namespace: '{{ assisted_namespace }}'
+  namespace: '{{ spoke_namespace }}'
   labels:
     infraenvs.agent-install.openshift.io: '{{ infraenv_name }}'
 spec:

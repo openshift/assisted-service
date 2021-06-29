@@ -2,7 +2,7 @@ apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
   name: '{{ cluster_deployment_name }}'
-  namespace: '{{ assisted_namespace }}'
+  namespace: '{{ spoke_namespace }}'
 spec:
   baseDomain: redhat.com
   clusterName: '{{ cluster_name }}'
@@ -18,4 +18,4 @@ spec:
       agentSelector: {}
   pullSecretRef:
     name: '{{ pull_secret_name }}'
-    namespace: '{{ assisted_namespace }}'
+    namespace: '{{ spoke_namespace }}'

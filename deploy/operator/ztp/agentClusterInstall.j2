@@ -2,7 +2,7 @@ apiVersion: extensions.hive.openshift.io/v1beta1
 kind: AgentClusterInstall
 metadata:
   name: '{{ agent_cluster_install_name }}'
-  namespace: '{{ assisted_namespace }}'
+  namespace: '{{ spoke_namespace }}'
 spec:
   clusterDeploymentRef:
     name: '{{ cluster_deployment_name }}'
