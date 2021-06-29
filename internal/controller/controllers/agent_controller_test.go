@@ -313,7 +313,7 @@ var _ = Describe("agent reconcile", func() {
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Reason).To(Equal(v1beta1.BackendErrorReason))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.SpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.InstalledCondition).Status).To(Equal(corev1.ConditionUnknown))
-		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ReadyForInstallationCondition).Status).To(Equal(corev1.ConditionUnknown))
+		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.RequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ValidatedCondition).Status).To(Equal(corev1.ConditionUnknown))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ConnectedCondition).Status).To(Equal(corev1.ConditionUnknown))
 		Expect(conditionsv1.FindStatusCondition(agent.Status.Conditions, v1beta1.ConnectedCondition).Message).To(Equal(v1beta1.NotAvailableMsg))
@@ -816,7 +816,7 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"},{\"id\":\"checking4\",\"status\":\"pending\",\"message\":\"Host check4 is pending\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentNotReadyMsg,
 					Reason:  v1beta1.AgentNotReadyReason,
 					Status:  corev1.ConditionFalse,
@@ -848,7 +848,7 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking1\",\"status\":\"failure\",\"message\":\"Host check1 is not OK\"},{\"id\":\"checking2\",\"status\":\"success\",\"message\":\"Host check2 is OK\"},{\"id\":\"checking3\",\"status\":\"failure\",\"message\":\"Host check3 is not OK\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentNotReadyMsg,
 					Reason:  v1beta1.AgentNotReadyReason,
 					Status:  corev1.ConditionFalse,
@@ -881,7 +881,7 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentReadyMsg,
 					Reason:  v1beta1.AgentReadyReason,
 					Status:  corev1.ConditionTrue,
@@ -914,7 +914,7 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentIsNotApprovedMsg,
 					Reason:  v1beta1.AgentIsNotApprovedReason,
 					Status:  corev1.ConditionFalse,
@@ -946,10 +946,10 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentInstallationStoppedMsg,
 					Reason:  v1beta1.AgentInstallationStoppedReason,
-					Status:  corev1.ConditionFalse,
+					Status:  corev1.ConditionTrue,
 				},
 				{
 					Type:    v1beta1.ConnectedCondition,
@@ -978,10 +978,10 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentAlreadyInstallingMsg,
 					Reason:  v1beta1.AgentAlreadyInstallingReason,
-					Status:  corev1.ConditionFalse,
+					Status:  corev1.ConditionTrue,
 				},
 				{
 					Type:    v1beta1.ConnectedCondition,
@@ -1010,10 +1010,10 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentInstallationStoppedMsg,
 					Reason:  v1beta1.AgentInstallationStoppedReason,
-					Status:  corev1.ConditionFalse,
+					Status:  corev1.ConditionTrue,
 				},
 				{
 					Type:    v1beta1.ConnectedCondition,
@@ -1042,7 +1042,7 @@ var _ = Describe("TestConditions", func() {
 			validationInfo: "{\"some-check\":[{\"id\":\"checking\",\"status\":\"success\",\"message\":\"Host is checked\"}]}",
 			conditions: []conditionsv1.Condition{
 				{
-					Type:    v1beta1.ReadyForInstallationCondition,
+					Type:    v1beta1.RequirementsMetCondition,
 					Message: v1beta1.AgentNotReadyMsg,
 					Reason:  v1beta1.AgentNotReadyReason,
 					Status:  corev1.ConditionFalse,

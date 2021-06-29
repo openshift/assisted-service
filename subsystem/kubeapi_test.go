@@ -2031,7 +2031,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// }, "30s", "10s").Should(BeNil())
 
 		// checkAgentCondition(ctx, host.ID.String(), controllers.InstalledCondition, controllers.InstallationInProgressReason)
-		// checkAgentCondition(ctx, host.ID.String(), controllers.ReadyForInstallationCondition, controllers.AgentAlreadyInstallingReason)
+		// checkAgentCondition(ctx, host.ID.String(), controllers.RequirementsMetCondition, controllers.AgentAlreadyInstallingReason)
 		// checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, controllers.SyncedOkReason)
 		// checkAgentCondition(ctx, host.ID.String(), controllers.ConnectedCondition, controllers.AgentConnectedReason)
 		// checkAgentCondition(ctx, host.ID.String(), controllers.ValidatedCondition, controllers.ValidationsPassingReason)

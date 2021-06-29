@@ -276,7 +276,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 			}
 		}
 		connected(agent, status)
-		readyForInstallation(agent, status)
+		requirementsMet(agent, status)
 		validated(agent, status, h)
 		installed(agent, status, swag.StringValue(h.StatusInfo))
 	} else {
@@ -333,7 +333,7 @@ func setConditionsUnknown(agent *aiv1beta1.Agent) {
 		Message: aiv1beta1.NotAvailableMsg,
 	})
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ReadyForInstallationCondition,
+		Type:    aiv1beta1.RequirementsMetCondition,
 		Status:  corev1.ConditionUnknown,
 		Reason:  aiv1beta1.NotAvailableReason,
 		Message: aiv1beta1.NotAvailableMsg,
@@ -517,7 +517,7 @@ func connected(agent *aiv1beta1.Agent, status string) {
 	})
 }
 
-func readyForInstallation(agent *aiv1beta1.Agent, status string) {
+func requirementsMet(agent *aiv1beta1.Agent, status string) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
@@ -539,11 +539,11 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 		msg = aiv1beta1.AgentNotReadyMsg
 	case models.HostStatusPreparingForInstallation, models.HostStatusPreparingSuccessful, models.HostStatusInstalling,
 		models.HostStatusInstallingInProgress, models.HostStatusInstallingPendingUserAction:
-		condStatus = corev1.ConditionFalse
+		condStatus = corev1.ConditionTrue
 		reason = aiv1beta1.AgentAlreadyInstallingReason
 		msg = aiv1beta1.AgentAlreadyInstallingMsg
 	case models.HostStatusInstalled, models.HostStatusError:
-		condStatus = corev1.ConditionFalse
+		condStatus = corev1.ConditionTrue
 		reason = aiv1beta1.AgentInstallationStoppedReason
 		msg = aiv1beta1.AgentInstallationStoppedMsg
 	default:
@@ -552,7 +552,7 @@ func readyForInstallation(agent *aiv1beta1.Agent, status string) {
 		msg = fmt.Sprintf("%s %s", aiv1beta1.UnknownStatusMsg, status)
 	}
 	conditionsv1.SetStatusConditionNoHeartbeat(&agent.Status.Conditions, conditionsv1.Condition{
-		Type:    aiv1beta1.ReadyForInstallationCondition,
+		Type:    aiv1beta1.RequirementsMetCondition,
 		Status:  condStatus,
 		Reason:  reason,
 		Message: msg,
