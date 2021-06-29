@@ -22,6 +22,62 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	SpecSyncedCondition conditionsv1.ConditionType = "SpecSynced"
+
+	ConnectedCondition      conditionsv1.ConditionType = "Connected"
+	AgentConnectedReason    string                     = "AgentIsConnected"
+	AgentDisconnectedReason string                     = "AgentIsDisconnected"
+	AgentConnectedMsg       string                     = "The agent's connection to the installation service is unimpaired"
+	AgentDisonnectedMsg     string                     = "The agent has not contacted the installation service in some time, user action should be taken"
+
+	InstalledCondition conditionsv1.ConditionType = "Installed"
+
+	ReadyForInstallationCondition  conditionsv1.ConditionType = "ReadyForInstallation"
+	AgentReadyReason               string                     = "AgentIsReady"
+	AgentReadyMsg                  string                     = "The agent is ready to begin the installation"
+	AgentNotReadyReason            string                     = "AgentNotReady"
+	AgentNotReadyMsg               string                     = "The agent is not ready to begin the installation"
+	AgentAlreadyInstallingReason   string                     = "AgentAlreadyInstalling"
+	AgentAlreadyInstallingMsg      string                     = "The agent cannot begin the installation because it has already started"
+	AgentIsNotApprovedReason       string                     = "AgentIsNotApproved"
+	AgentIsNotApprovedMsg          string                     = "The agent is not approved"
+	AgentInstallationStoppedReason string                     = "AgentInstallationStopped"
+	AgentInstallationStoppedMsg    string                     = "The agent installation stopped"
+
+	ValidatedCondition             conditionsv1.ConditionType = "Validated"
+	AgentValidationsPassingMsg     string                     = "The agent's validations are passing"
+	AgentValidationsUnknownMsg     string                     = "The agent's validations have not yet been calculated"
+	AgentValidationsFailingMsg     string                     = "The agent's validations are failing:"
+	AgentValidationsUserPendingMsg string                     = "The agent's validations are pending for user:"
+
+	InstalledReason              string = "InstallationCompleted"
+	InstalledMsg                 string = "The installation has completed:"
+	InstallationFailedReason     string = "InstallationFailed"
+	InstallationFailedMsg        string = "The installation has failed:"
+	InstallationNotStartedReason string = "InstallationNotStarted"
+	InstallationNotStartedMsg    string = "The installation has not yet started"
+	InstallationInProgressReason string = "InstallationInProgress"
+	InstallationInProgressMsg    string = "The installation is in progress:"
+	UnknownStatusReason          string = "UnknownStatus"
+	UnknownStatusMsg             string = "The installation status is currently not recognized:"
+
+	ValidationsPassingReason     string = "ValidationsPassing"
+	ValidationsUnknownReason     string = "ValidationsUnknown"
+	ValidationsFailingReason     string = "ValidationsFailing"
+	ValidationsUserPendingReason string = "ValidationsUserPending"
+
+	NotAvailableReason string = "NotAvailable"
+	NotAvailableMsg    string = "Information not available"
+
+	SyncedOkReason     string = "SyncOK"
+	SyncedOkMsg        string = "The Spec has been successfully applied"
+	BackendErrorReason string = "BackendError"
+	BackendErrorMsg    string = "The Spec could not be synced due to backend error:"
+	InputErrorReason   string = "InputError"
+	InputErrorMsg      string = "The Spec could not be synced due to an input error:"
+)
+
 type HostMemory struct {
 	PhysicalBytes int64 `json:"physicalBytes,omitempty"`
 	UsableBytes   int64 `json:"usableBytes,omitempty"`
