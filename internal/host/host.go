@@ -106,6 +106,7 @@ type API interface {
 	hostcommands.InstructionApi
 	// Register a new host
 	RegisterHost(ctx context.Context, h *models.Host, db *gorm.DB) error
+	UnRegisterHost(ctx context.Context, hostID, clusterID string) error
 	RegisterInstalledOCPHost(ctx context.Context, h *models.Host, db *gorm.DB) error
 	HandleInstallationFailure(ctx context.Context, h *models.Host) error
 	UpdateInstallProgress(ctx context.Context, h *models.Host, progress *models.HostProgress) error
@@ -1229,4 +1230,8 @@ func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, erro
 		return nil, errors.Wrapf(err, "failed to get host from DB: %+v", key)
 	}
 	return host, nil
+}
+
+func (m *Manager) UnRegisterHost(ctx context.Context, hostID, clusterID string) error {
+	return m.db.Where("id = ? and cluster_id = ?", hostID, clusterID).Delete(&common.Host{}).Error
 }

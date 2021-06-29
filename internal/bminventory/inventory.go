@@ -132,7 +132,7 @@ type InstallerInternals interface {
 
 //go:generate mockgen -package bminventory -destination mock_crd_utils.go . CRDUtils
 type CRDUtils interface {
-	CreateAgentCR(ctx context.Context, log logrus.FieldLogger, hostId, clusterNamespace, clusterName string) error
+	CreateAgentCR(ctx context.Context, log logrus.FieldLogger, hostId, clusterNamespace, clusterName string, clusterID *strfmt.UUID) error
 }
 type bareMetalInventory struct {
 	Config
@@ -2555,7 +2555,7 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 
-	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), cluster.KubeKeyNamespace, cluster.KubeKeyName); err != nil {
+	if err := b.crdUtils.CreateAgentCR(ctx, log, params.NewHostParams.HostID.String(), cluster.KubeKeyNamespace, cluster.KubeKeyName, cluster.ID); err != nil {
 		log.WithError(err).Errorf("Fail to create Agent CR. Namespace: %s, Cluster: %s, HostID: %s", cluster.KubeKeyNamespace, cluster.KubeKeyName, params.NewHostParams.HostID.String())
 		return installer.NewRegisterHostInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
@@ -2626,7 +2626,7 @@ func (b *bareMetalInventory) DeregisterHostInternal(ctx context.Context, params 
 	log := logutil.FromContext(ctx, b.log)
 	log.Infof("Deregister host: %s cluster %s", params.HostID, params.ClusterID)
 
-	if err := b.db.Where("id = ? and cluster_id = ?", params.HostID, params.ClusterID).Delete(&common.Host{}).Error; err != nil {
+	if err := b.hostApi.UnRegisterHost(ctx, params.HostID.String(), params.ClusterID.String()); err != nil {
 		// TODO: check error type
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
