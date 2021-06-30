@@ -373,6 +373,55 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		})
 	})
 
+	Describe("ConfigMap hashing as annotations on assisted-service deployment", func() {
+		Context("without unsupported|mirror configMap", func() {
+			It("should fail if assisted configMap not found", func() {
+				asc = newASCDefault()
+				ascr = newTestReconciler(asc, route)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+			})
+
+			It("should only add assisted config hash annotation", func() {
+				asc = newASCDefault()
+				ascr = newTestReconciler(asc, route, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Annotations).To(HaveLen(1))
+				Expect(found.Spec.Template.Annotations).To(HaveKey(assistedConfigHashAnnotation))
+			})
+		})
+
+		Context("with mirror configmap", func() {
+			It("should fail if mirror configMap specified but not found", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				ascr = newTestReconciler(asc, route, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+			})
+
+			It("should add assisted and mirror config hash annotations", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				mirrorCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testMirrorRegConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						mirrorRegistryRefRegistryConfKey: "foo",
+					},
+				}
+				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Annotations).To(HaveLen(2))
+				Expect(found.Spec.Template.Annotations).To(HaveKey(assistedConfigHashAnnotation))
+				Expect(found.Spec.Template.Annotations).To(HaveKey(mirrorConfigHashAnnotation))
+			})
+		})
+	})
 })
 
 var _ = Describe("getOpenshiftVersions", func() {
