@@ -2,7 +2,7 @@ apiVersion: extensions.hive.openshift.io/v1beta1
 kind: AgentClusterInstall
 metadata:
   name: test-agent-cluster-install
-  namespace: assisted-installer
+  namespace: spoke-cluster
 spec:
   clusterDeploymentRef:
     name: single-node

@@ -2,6 +2,7 @@ apiVersion: agent-install.openshift.io/v1beta1
 kind: NMStateConfig
 metadata:
   name: mynmstateconfig
+  namespace: spoke-cluster
   labels:
     some-user-defined-label-name: some-user-defined-label-value
 spec:

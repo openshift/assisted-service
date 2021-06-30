@@ -2,7 +2,7 @@ apiVersion: hive.openshift.io/v1
 kind: ClusterDeployment
 metadata:
   name: single-node
-  namespace: assisted-installer
+  namespace: spoke-cluster
 spec:
   baseDomain: hive.example.com
   clusterInstallRef:
