@@ -37,11 +37,11 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 	numAvailableHosts := int64(len(hosts))
 
 	if numAvailableHosts < o.config.OCSNumMinimumHosts {
-		status = "Insufficient hosts to deploy OCS. A minimum of 3 hosts is required to deploy OCS."
+		status = "A minimum of 3 hosts is required to deploy OCS."
 		return api.Failure, status
 	}
 	if numAvailableHosts > o.config.OCSNumMinimumHosts && numAvailableHosts < o.config.OCSMinimumHostsStandardMode {
-		status = "Insufficient hosts for OCS installation. A cluster with only 3 masters or with a minimum of 3 workers is required"
+		status = "A cluster with only 3 masters or with a minimum of 3 workers is required."
 		return api.Failure, status
 	}
 
@@ -77,7 +77,7 @@ func (o *operator) computeResourcesAllNodes(cluster *models.Cluster, ocsClusterR
 		*/
 		if !compactMode {
 			if host.Role == models.HostRoleAutoAssign {
-				status = "All host roles must be assigned to enable OCS."
+				status = "For OCS Standard Mode, all host roles must be assigned to master or worker."
 				err = errors.New("Role is set to auto-assign for host ")
 				return status, err
 			}
@@ -135,7 +135,7 @@ func (o *operator) canOCSBeDeployed(hosts []*models.Host, ocsClusterResources *o
 			return false, status
 		}
 		o.config.OCSDeploymentType = compactMode
-		status = "OCS Requirements for Compact Mode are satisfied"
+		status = "OCS Requirements for Compact Mode are satisfied."
 		return true, status
 	}
 
@@ -143,7 +143,7 @@ func (o *operator) canOCSBeDeployed(hosts []*models.Host, ocsClusterResources *o
 		status = o.setStatusInsufficientResources(ocsClusterResources, standardMode)
 		return false, status
 	}
-	status = "OCS Requirements for Standard Deployment are satisfied"
+	status = "OCS Requirements for Standard Deployment are satisfied."
 	o.config.OCSDeploymentType = standardMode
 	return true, status
 }
@@ -153,14 +153,11 @@ func validateRequirements(o *operator, ocsClusterResources *ocsClusterResourcesI
 }
 
 func (o *operator) setStatusInsufficientResources(ocsClusterResources *ocsClusterResourcesInfo, mode ocsDeploymentMode) string {
-	status := fmt.Sprint("Insufficient Resources to deploy OCS in ", string(mode), " Mode. A minimum of ")
-	if ocsClusterResources.numberOfDisks < o.config.OCSNumMinimumDisks {
-		status = status + fmt.Sprint(o.config.OCSNumMinimumDisks, " Disks of minimum ", o.config.OCSMinDiskSizeGB, "GB, ")
+	status := fmt.Sprint("Insufficient Resources to deploy OCS in ", string(mode), " Mode. ")
+
+	if ocsClusterResources.numberOfDisks < o.config.OCSNumMinimumDisks || ocsClusterResources.hostsWithDisks < o.config.OCSNumMinimumHosts {
+		status = status + fmt.Sprint("OCS requires a minimum of ", o.config.OCSNumMinimumHosts, " hosts with one non-bootable disk on each host of size at least ", o.config.OCSMinDiskSizeGB, " GB.")
 	}
-	if ocsClusterResources.hostsWithDisks < o.config.OCSNumMinimumHosts {
-		status = status + fmt.Sprint(o.config.OCSNumMinimumHosts, " Hosts with disks, ")
-	}
-	status = status + "is required."
 
 	return status
 }
@@ -173,7 +170,7 @@ func (o *operator) getValidDiskCount(disks []*models.Disk, installationDiskID st
 	for _, disk := range disks {
 		if (disk.DriveType == ssdDrive || disk.DriveType == hddDrive) && installationDiskID != disk.ID && disk.InstallationEligibility.Eligible {
 			if disk.SizeBytes < conversions.GbToBytes(o.config.OCSMinDiskSizeGB) {
-				err = fmt.Errorf("OCS Invalid Disk Size all the disks present should be more than %d GB", o.config.OCSMinDiskSizeGB)
+				err = fmt.Errorf("OCS requires all the non-bootable disks to be more than %d GB", o.config.OCSMinDiskSizeGB)
 			} else {
 				countDisks++
 			}
