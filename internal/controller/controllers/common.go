@@ -3,7 +3,11 @@ package controllers
 import (
 	"context"
 	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	"math/big"
+	"sort"
 	"strings"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
@@ -150,4 +154,38 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 	utilruntime.Must(machinev1beta1.AddToScheme(schemes))
 	return schemes
+}
+
+// checksumMap produces a checksum of a ConfigMap's Data attribute. The checksum
+// can be used to detect when the contents of a ConfigMap have changed.
+func checksumMap(m map[string]string) (string, error) {
+	keys := sort.StringSlice([]string{})
+	for k := range m {
+		keys = append(keys, k)
+	}
+	keys.Sort()
+
+	hash := sha256.New()
+	encoder := base64.NewEncoder(base64.StdEncoding, hash)
+
+	for _, k := range keys {
+		for _, data := range [][]byte{
+			[]byte(k),
+			[]byte(m[k]),
+		} {
+			// We base64 encode the data to limit the character set and then use
+			// ":" as a separator.
+			_, err := encoder.Write(data)
+			if err != nil {
+				return "", err
+			}
+			_, err = hash.Write([]byte(":"))
+			if err != nil {
+				return "", err
+			}
+		}
+	}
+	encoder.Close()
+
+	return fmt.Sprintf("%x", hash.Sum(nil)), nil
 }
