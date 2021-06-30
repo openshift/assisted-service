@@ -1,13 +1,12 @@
 #!/usr/bin/env bash
 
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source ${__dir}/common.sh
 source ${__dir}/utils.sh
 
 set -o xtrace
 
-DISCONNECTED="${DISCONNECTED:-false}"
 HIVE_IMAGE="${HIVE_IMAGE:-registry.ci.openshift.org/openshift/hive-v4.0:hive}"
-HIVE_NAMESPACE="${HIVE_NAMESPACE:-hive}"
 
 function print_help() {
     ALL_FUNCS="with_olm|from_upstream|enable_agent_install_strategy|print_help"

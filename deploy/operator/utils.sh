@@ -74,7 +74,6 @@ function wait_for_object_amount() {
     namespace="${4:-}"
 
     until [ $(oc get ${object} -n "${namespace}" --no-headers | wc -l) -eq ${amount} ]; do
-        echo $(oc get ${object} -n "${namespace}" --no-headers | wc -l)
         sleep ${interval}
     done
     echo "done" $(oc get ${object} -n "${namespace}" --no-headers | wc -l)

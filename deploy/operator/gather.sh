@@ -2,9 +2,8 @@
 
 set -xeo pipefail
 
-ASSISTED_NAMESPACE="${ASSISTED_NAMESPACE:-assisted-installer}"
-SPOKE_NAMESPACE="${SPOKE_NAMESPACE:-assisted-spoke-cluster}"
-HIVE_NAMESPACE="${HIVE_NAMESPACE:-hive}"
+__dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source ${__dir}/common.sh
 
 function gather_hive_data() {
   hive_dir="${LOGS_DEST}/hive"
