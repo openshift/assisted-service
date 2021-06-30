@@ -1013,6 +1013,24 @@ func (r *BMACReconciler) newSpokeMachine(bmh *bmh_v1alpha1.BareMetalHost, cluste
 		},
 	}
 	mutateFn := func() error {
+		if machine.ObjectMeta.Annotations == nil {
+			machine.ObjectMeta.Annotations = make(map[string]string)
+		}
+		machine.ObjectMeta.Annotations["metal3.io/BareMetalHost"] = fmt.Sprintf("%s/%s", "openshift-machine-api", bmh.Name)
+		machine.Spec = machinev1beta1.MachineSpec{
+			ProviderSpec: machinev1beta1.ProviderSpec{
+				Value: &runtime.RawExtension{
+					// TODO: replace image checksum and url. Though, the current nonsensical values appear to still work.
+					Raw: []byte(`{
+						"apiVersion": "baremetal.cluster.k8s.io/v1alpha1",
+						"kind": "BareMetalMachineProviderSpec",
+						"image": {
+						"checksum": "http://to.be.determined",
+						"url": "http://to.be.determined"
+						}}`),
+				},
+			},
+		}
 		// Setting the same labels as the rest of the machines in the spoke cluster
 		machine.Labels = AddLabel(machine.Labels, machinev1beta1.MachineClusterIDLabel, clusterDeployment.Name)
 		machine.Labels = AddLabel(machine.Labels, MACHINE_ROLE, string(models.HostRoleWorker))

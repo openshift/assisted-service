@@ -731,6 +731,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(machinev1beta1.MachineClusterIDLabel))
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_ROLE))
 				Expect(spokeMachine.ObjectMeta.Labels).To(HaveKey(MACHINE_TYPE))
+				Expect(spokeMachine.ObjectMeta.Annotations).To(HaveKey("metal3.io/BareMetalHost"))
 
 				spokeSecret := &corev1.Secret{}
 				err = spokeClient.Get(ctx, types.NamespacedName{Name: secret.Name, Namespace: testNamespace}, spokeSecret)
