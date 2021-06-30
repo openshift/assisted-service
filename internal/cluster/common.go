@@ -69,6 +69,12 @@ func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.D
 		log.Infof("cluster %s has been updated with the following updates %+v", clusterId, extra)
 	}
 
+	// Report final installation status
+	if funk.ContainsString([]string{models.ClusterStatusInstalled, models.ClusterStatusCancelled, models.ClusterStatusError}, swag.StringValue(cluster.Status)) {
+		duration := time.Since(time.Time(cluster.InstallStartedAt)).Seconds()
+		events.AddMetricsEvent(ctx, clusterId, nil, models.EventSeverityInfo, "cluster.installation.results", time.Now(), "duration", duration, "result", swag.StringValue(cluster.Status))
+	}
+
 	return cluster, nil
 }
 
