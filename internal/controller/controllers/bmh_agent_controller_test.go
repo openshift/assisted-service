@@ -723,6 +723,7 @@ var _ = Describe("bmac reconcile", func() {
 				Expect(spokeBMH.ObjectMeta.Annotations).To(HaveKey(BMH_HARDWARE_DETAILS_ANNOTATION))
 				Expect(spokeBMH.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]).To(Equal(updatedHost.ObjectMeta.Annotations[BMH_HARDWARE_DETAILS_ANNOTATION]))
 				Expect(spokeBMH.ObjectMeta.Annotations).ToNot(HaveKey(BMH_DETACHED_ANNOTATION))
+				Expect(spokeBMH.Spec.Image).To(Equal(updatedHost.Spec.Image))
 
 				spokeMachine := &machinev1beta1.Machine{}
 				machineName := fmt.Sprintf("%s-%s", cluster.Name, spokeBMH.Name)

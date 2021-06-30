@@ -964,8 +964,7 @@ func (r *BMACReconciler) newSpokeBMH(bmh *bmh_v1alpha1.BareMetalHost, machine *m
 		// The host is created by the baremetal operator on hub cluster. So BMH on the spoke cluster needs
 		// to be set to externally provisioned
 		bmhSpoke.Spec.ExternallyProvisioned = true
-		// If the Image field is filled in, ExternallyProvisioned is ignored. So remove the Image field from spec
-		bmhSpoke.Spec.Image = &bmh_v1alpha1.Image{}
+		bmhSpoke.Spec.Image = bmh.Spec.Image
 		bmhSpoke.Spec.ConsumerRef = &corev1.ObjectReference{
 			Name:      machine.Name,
 			Namespace: machine.Namespace,
