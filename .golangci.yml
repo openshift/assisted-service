@@ -48,6 +48,7 @@ issues:
   exclude:
     - G107
     - G402  # support scality DisableSSL
+    - G108
 
 linters:
   enable:
