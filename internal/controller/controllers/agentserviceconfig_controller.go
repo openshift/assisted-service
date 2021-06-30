@@ -73,6 +73,7 @@ const (
 
 	assistedConfigHashAnnotation = "agent-install.openshift.io/config-hash"
 	mirrorConfigHashAnnotation   = "agent-install.openshift.io/mirror-hash"
+	userConfigHashAnnotation     = "agent-install.openshift.io/user-config-hash"
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -712,6 +713,11 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 	userConfigName, ok := instance.ObjectMeta.GetAnnotations()[configmapAnnotation]
 	if ok {
 		log.Infof("ConfigMap %s from namespace %s being used to configure assisted-service deployment", userConfigName, r.Namespace)
+		userConfigHash, err = r.getCMHash(ctx, types.NamespacedName{Name: userConfigName, Namespace: r.Namespace})
+		if err != nil {
+			return nil, nil, err
+		}
+
 		envFrom = append(envFrom, []corev1.EnvFromSource{
 			{
 				ConfigMapRef: &corev1.ConfigMapEnvSource{
@@ -940,9 +946,8 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 			deployment.Spec.Template.Annotations = make(map[string]string)
 		}
 		deployment.Spec.Template.Annotations[assistedConfigHashAnnotation] = assistedConfigHash
-		if mirrorConfigHash != "" {
-			deployment.Spec.Template.Annotations[mirrorConfigHashAnnotation] = mirrorConfigHash
-		}
+		deployment.Spec.Template.Annotations[mirrorConfigHashAnnotation] = mirrorConfigHash
+		deployment.Spec.Template.Annotations[userConfigHashAnnotation] = userConfigHash
 
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
