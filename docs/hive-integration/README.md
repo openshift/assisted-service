@@ -112,7 +112,7 @@ test-infra-cluster-assisted-installer
 test-infra-cluster-assisted-installer-master-2
 SpecSynced	The Spec has been successfully applied
 Connected	The agent's connection to the installation service is unimpaired
-ReadyForInstallation	The agent cannot begin the installation because it has already started
+RequirementsMet	Installation already started and is in progress
 Validated	The agent's validations are passing
 Installed	The installation is in progress: Configuring
 
@@ -120,7 +120,7 @@ test-infra-cluster-assisted-installer
 test-infra-cluster-assisted-installer-master-0
 SpecSynced	The Spec has been successfully applied
 Connected	The agent's connection to the installation service is unimpaired
-ReadyForInstallation	The agent cannot begin the installation because it has already started
+RequirementsMet	Installation already started and is in progress
 Validated	The agent's validations are passing
 Installed	The installation is in progress: Configuring
 
@@ -128,7 +128,7 @@ test-infra-cluster-assisted-installer
 test-infra-cluster-assisted-installer-master-1
 SpecSynced	The Spec has been successfully applied
 Connected	The agent's connection to the installation service is unimpaired
-ReadyForInstallation	The agent cannot begin the installation because it has already started
+RequirementsMet	Installation already started and is in progress
 Validated	The agent's validations are passing
 Installed	The installation is in progress: Waiting for control plane
 ```

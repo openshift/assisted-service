@@ -83,7 +83,7 @@ Status:
 
 ## Agent Conditions
 
-The Agent condition types supported are: `SpecSynced`, `Connected`, `ReadyForInstallation`, `Validated` and `Installed`
+The Agent condition types supported are: `SpecSynced`, `Connected`, `RequirementsMet`, `Validated` and `Installed`
 
 |Type|Status|Reason|Message|Description|
 |----|----|-----|-------------------|-------------------|
@@ -96,12 +96,11 @@ The Agent condition types supported are: `SpecSynced`, `Connected`, `ReadyForIns
 |Validated|False|ValidationsUserPending|The agent's validations are pending for user: "summary of not-succeeded validations"|If the host status is "pending-for-input"|
 |Validated|Unknown|ValidationsUnknown|The agent's validations have not yet been calculated|If the validations have not yet been calculated|
 ||||||
-|ReadyForInstallation|True|AgentIsReady|The agent is ready to begin the installation|If the host is approved and in status "known"|
-|ReadyForInstallation|False|AgentNotReady|The agent is not ready to begin the installation|If the host is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input")|
-|ReadyForInstallation|False|AgentAlreadyInstalling|The agent cannot begin the installation because it has already started|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing") |
-|ReadyForInstallation|False|AgentIsNotApproved|The agent is not approved|If the host is not approved and in status "known"|
-|ReadyForInstallation|False|AgentAlreadyInstalling|The agent cannot begin the installation because it has already started|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing") |
-|ReadyForInstallation|False|AgentInstallationStopped|The agent installation stopped|If the agent has stopped installing ("installed", "error") |
+|RequirementsMet|True|AgentIsReady|The agent is ready to begin the installation|If the host is approved and in status "known"|
+|RequirementsMet|False|AgentNotReady|The agent is not ready to begin the installation|If the host is before installation ("discovering"/"insufficient"/"disconnected"/"pending-input")|
+|RequirementsMet|False|AgentIsNotApproved|The agent is not approved|If the host is not approved and in status "known"|
+|RequirementsMet|True|AgentAlreadyInstalling|Installation already started and is in progress|If the agent has begun installing ("preparing-successful","preparing-for-installation", "installing") |
+|RequirementsMet|True|AgentInstallationStopped|The agent installation stopped|If the agent has stopped installing ("installed", "error") |
 ||||||
 |Installed|True|InstallationCompleted|The installation has completed: "status_info"|If the host status is "installed"|
 |Installed|False|InstallationFailed|The installation has failed: "status_info"|If the host status is "error"|
@@ -128,10 +127,10 @@ Status:
     Status:                True
     Type:                  Connected
     Last Transition Time:  2021-04-22T15:50:33Z
-    Message:               The agent cannot begin the installation because it has already started
+    Message:               Installation already started and is in progress
     Reason:                AgentAlreadyInstalling
-    Status:                False
-    Type:                  ReadyForInstallation
+    Status:                True
+    Type:                  RequirementsMet
     Last Transition Time:  2021-04-22T15:50:26Z
     Message:               The agent's validations are passing
     Reason:                ValidationsPassing

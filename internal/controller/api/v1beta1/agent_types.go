@@ -33,13 +33,13 @@ const (
 
 	InstalledCondition conditionsv1.ConditionType = "Installed"
 
-	ReadyForInstallationCondition  conditionsv1.ConditionType = "ReadyForInstallation"
+	RequirementsMetCondition       conditionsv1.ConditionType = "RequirementsMet"
 	AgentReadyReason               string                     = "AgentIsReady"
 	AgentReadyMsg                  string                     = "The agent is ready to begin the installation"
 	AgentNotReadyReason            string                     = "AgentNotReady"
 	AgentNotReadyMsg               string                     = "The agent is not ready to begin the installation"
 	AgentAlreadyInstallingReason   string                     = "AgentAlreadyInstalling"
-	AgentAlreadyInstallingMsg      string                     = "The agent cannot begin the installation because it has already started"
+	AgentAlreadyInstallingMsg      string                     = "Installation already started and is in progress"
 	AgentIsNotApprovedReason       string                     = "AgentIsNotApproved"
 	AgentIsNotApprovedMsg          string                     = "The agent is not approved"
 	AgentInstallationStoppedReason string                     = "AgentInstallationStopped"
