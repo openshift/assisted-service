@@ -39,6 +39,33 @@ var _ = Describe("system-test image tests", func() {
 		clearDB()
 	})
 
+	It("create_and_download_live_iso", func() {
+		for ocpVersion := range ocpVersions {
+			By(fmt.Sprintf("For version %s", ocpVersion))
+			By("Create ISO")
+			ignitionParams := models.AssistedServiceIsoCreateParams{
+				SSHPublicKey:     sshPublicKey,
+				PullSecret:       pullSecret,
+				OpenshiftVersion: ocpVersion,
+			}
+			_, err := userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
+				AssistedServiceIsoCreateParams: &ignitionParams,
+			})
+			Expect(err).NotTo(HaveOccurred())
+
+			By("Download ISO")
+			file, err := ioutil.TempFile("", "tmp")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer os.Remove(file.Name())
+
+			_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
+			Expect(err).NotTo(HaveOccurred())
+			verifyFileNotEmpty(file)
+		}
+	})
+
 	assertImageGenerates := func(imageType models.ImageType) {
 		It(fmt.Sprintf("[minimal-set][%s]create_and_get_image", imageType), func() {
 			for ocpVersion := range ocpVersions {
@@ -88,33 +115,6 @@ var _ = Describe("system-test image tests", func() {
 				By("Verify events")
 				verifyEventExistence(clusterID, "Registered cluster")
 				verifyEventExistence(clusterID, fmt.Sprintf("Image type is \"%s\"", imageType))
-			}
-		})
-
-		It(fmt.Sprintf("[%s]create_and_download_live_iso", imageType), func() {
-			for ocpVersion := range ocpVersions {
-				By(fmt.Sprintf("For version %s", ocpVersion))
-				By("Create ISO")
-				ignitionParams := models.AssistedServiceIsoCreateParams{
-					SSHPublicKey:     sshPublicKey,
-					PullSecret:       pullSecret,
-					OpenshiftVersion: ocpVersion,
-				}
-				_, err := userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
-					AssistedServiceIsoCreateParams: &ignitionParams,
-				})
-				Expect(err).NotTo(HaveOccurred())
-
-				By("Download ISO")
-				file, err := ioutil.TempFile("", "tmp")
-				if err != nil {
-					log.Fatal(err)
-				}
-				defer os.Remove(file.Name())
-
-				_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
-				Expect(err).NotTo(HaveOccurred())
-				verifyFileNotEmpty(file)
 			}
 		})
 	}
