@@ -181,6 +181,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createWorkerHost(id, "installing", db)
+				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "error", db)
 				shouldHaveUpdated = false
 				expectedState = "installing"
@@ -232,6 +233,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installed", db)
 				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "installed", db)
+				createWorkerHost(id, "installed", db)
 
 				mockS3Client.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(false, nil).AnyTimes()
 				shouldHaveUpdated = true
@@ -266,6 +268,25 @@ var _ = Describe("TestClusterMonitoring", func() {
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
 				createHost(id, "installing", db)
+				createWorkerHost(id, "error", db)
+				createWorkerHost(id, "error", db)
+				shouldHaveUpdated = true
+				expectedState = "error"
+			})
+			It("with insufficien working workers count, installing -> error", func() {
+				createHost(id, "installing", db)
+				createHost(id, "installing", db)
+				createHost(id, "installing", db)
+				createWorkerHost(id, "installing", db)
+				createWorkerHost(id, "error", db)
+				shouldHaveUpdated = true
+				expectedState = "error"
+			})
+			It("with insufficien working workers count, installing -> error", func() {
+				createHost(id, "installing", db)
+				createHost(id, "installing", db)
+				createHost(id, "installing", db)
+				createWorkerHost(id, "installing", db)
 				createWorkerHost(id, "error", db)
 				createWorkerHost(id, "error", db)
 				shouldHaveUpdated = true

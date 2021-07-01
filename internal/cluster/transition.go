@@ -302,7 +302,7 @@ func (th *transitionHandler) IsFinalizing(sw stateswitch.StateSwitch, args state
 	sCluster, ok := sw.(*stateCluster)
 	installedStatus := []string{models.HostStatusInstalled}
 
-	// Move to finalizing state when 3 masters and at least 1 worker (if workers are given) moved to installed state
+	// Move to finalizing state when 3 masters and 0 or 2 worker (if workers are given) moved to installed state
 	if ok && th.enoughMastersAndWorkers(sCluster, installedStatus) {
 		th.log.Infof("Cluster %s has at least required number of installed hosts, "+
 			"cluster is finalizing.", sCluster.cluster.ID)
