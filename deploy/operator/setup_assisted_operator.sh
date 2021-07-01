@@ -1,15 +1,14 @@
 __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source ${__dir}/common.sh
 source ${__dir}/utils.sh
 source ${__dir}/mirror_utils.sh
 
 set -x
 
-ASSISTED_NAMESPACE="${ASSISTED_NAMESPACE:-assisted-installer}"
 INDEX_IMAGE="${INDEX_IMAGE:-quay.io/ocpmetal/assisted-service-index:latest}"
 STORAGE_CLASS_NAME="${STORAGE_CLASS_NAME:-assisted-service}"
 
 INDEX_TAG="${INDEX_TAG:-latest}"
-DISCONNECTED="${DISCONNECTED:-false}"
 
 function print_help() {
   ALL_FUNCS="from_community_operators|from_index_image|print_help"
@@ -126,7 +125,7 @@ data:
 $(configmap_config)
 EOCR
 
-tee << EOCR >(oc apply -f -)
+  tee << EOCR >(oc apply -f -)
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
 metadata:
@@ -151,6 +150,7 @@ spec:
 EOCR
 
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
+  wait_for_condition "agentserviceconfigs/agent" "ReconcileCompleted" "5m"
   wait_for_pod "assisted-service" "${ASSISTED_NAMESPACE}" "app=assisted-service"
 
   echo "Enabling configuration of BMH resources outside of openshift-machine-api namespace"
