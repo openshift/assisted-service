@@ -22,9 +22,11 @@ import (
 func NewListClustersParams() *ListClustersParams {
 	var (
 		getUnregisteredClustersDefault = bool(false)
+		withHostsDefault               = bool(false)
 	)
 	return &ListClustersParams{
 		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+		WithHosts:               withHostsDefault,
 
 		timeout: cr.DefaultTimeout,
 	}
@@ -35,9 +37,11 @@ func NewListClustersParams() *ListClustersParams {
 func NewListClustersParamsWithTimeout(timeout time.Duration) *ListClustersParams {
 	var (
 		getUnregisteredClustersDefault = bool(false)
+		withHostsDefault               = bool(false)
 	)
 	return &ListClustersParams{
 		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+		WithHosts:               withHostsDefault,
 
 		timeout: timeout,
 	}
@@ -48,9 +52,11 @@ func NewListClustersParamsWithTimeout(timeout time.Duration) *ListClustersParams
 func NewListClustersParamsWithContext(ctx context.Context) *ListClustersParams {
 	var (
 		getUnregisteredClustersDefault = bool(false)
+		withHostsDefault               = bool(false)
 	)
 	return &ListClustersParams{
 		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+		WithHosts:               withHostsDefault,
 
 		Context: ctx,
 	}
@@ -61,9 +67,11 @@ func NewListClustersParamsWithContext(ctx context.Context) *ListClustersParams {
 func NewListClustersParamsWithHTTPClient(client *http.Client) *ListClustersParams {
 	var (
 		getUnregisteredClustersDefault = bool(false)
+		withHostsDefault               = bool(false)
 	)
 	return &ListClustersParams{
 		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+		WithHosts:               withHostsDefault,
 		HTTPClient:              client,
 	}
 }
@@ -88,6 +96,11 @@ type ListClustersParams struct {
 
 	*/
 	OpenshiftClusterID *strfmt.UUID
+	/*WithHosts
+	  Include hosts in the returned list.
+
+	*/
+	WithHosts bool
 
 	timeout    time.Duration
 	Context    context.Context
@@ -160,6 +173,17 @@ func (o *ListClustersParams) SetOpenshiftClusterID(openshiftClusterID *strfmt.UU
 	o.OpenshiftClusterID = openshiftClusterID
 }
 
+// WithWithHosts adds the withHosts to the list clusters params
+func (o *ListClustersParams) WithWithHosts(withHosts bool) *ListClustersParams {
+	o.SetWithHosts(withHosts)
+	return o
+}
+
+// SetWithHosts adds the withHosts to the list clusters params
+func (o *ListClustersParams) SetWithHosts(withHosts bool) {
+	o.WithHosts = withHosts
+}
+
 // WriteToRequest writes these params to a swagger request
 func (o *ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.Registry) error {
 
@@ -199,6 +223,13 @@ func (o *ListClustersParams) WriteToRequest(r runtime.ClientRequest, reg strfmt.
 			}
 		}
 
+	}
+
+	// query param with_hosts
+	qrWithHosts := o.WithHosts
+	qWithHosts := swag.FormatBool(qrWithHosts)
+	if err := r.SetQueryParam("with_hosts", qWithHosts); err != nil {
+		return err
 	}
 
 	if len(res) > 0 {

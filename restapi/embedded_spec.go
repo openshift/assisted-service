@@ -285,6 +285,14 @@ func init() {
             "description": "If non-empty, returned Clusters are filtered to those with matching subscription IDs.",
             "name": "ams_subscription_ids",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Include hosts in the returned list.",
+            "name": "with_hosts",
+            "in": "query",
+            "allowEmptyValue": true
           }
         ],
         "responses": {
@@ -7872,6 +7880,14 @@ func init() {
             "description": "If non-empty, returned Clusters are filtered to those with matching subscription IDs.",
             "name": "ams_subscription_ids",
             "in": "query"
+          },
+          {
+            "type": "boolean",
+            "default": false,
+            "description": "Include hosts in the returned list.",
+            "name": "with_hosts",
+            "in": "query",
+            "allowEmptyValue": true
           }
         ],
         "responses": {

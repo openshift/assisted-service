@@ -2467,7 +2467,13 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 
 	// we need to fetch Hosts association to allow AfterFind hook to run
 	for _, c := range dbClusters {
-		c.Hosts = []*models.Host{}
+		if !params.WithHosts {
+			c.Hosts = []*models.Host{}
+		}
+		for _, h := range c.Hosts {
+			// Clear this field as it is not needed to be sent via API
+			h.FreeAddresses = ""
+		}
 		clusters = append(clusters, &c.Cluster)
 	}
 	return installer.NewListClustersOK().WithPayload(clusters)

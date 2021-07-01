@@ -248,6 +248,28 @@ var _ = Describe("Cluster", func() {
 		}
 		Expect(clusterFound.ID.String()).Should(Equal(clusterID.String()))
 		Expect(clusterFound.DeletedAt).ShouldNot(Equal(strfmt.DateTime{}))
+		Expect(clusterFound.Hosts).Should(BeEmpty())
+	})
+
+	It("list clusters - get unregistered cluster with hosts", func() {
+		_ = registerHost(clusterID)
+		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
+		Expect(err1).ShouldNot(HaveOccurred())
+		ret, err2 := readOnlyAdminUserBMClient.Installer.ListClusters(ctx,
+			&installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true),
+				WithHosts: true,
+			})
+		Expect(err2).ShouldNot(HaveOccurred())
+		clusters := ret.GetPayload()
+		Expect(clusters).ShouldNot(BeEmpty())
+		var clusterFound models.Cluster
+		for _, c := range clusters {
+			if c.ID.String() == clusterID.String() {
+				clusterFound = *c
+				break
+			}
+		}
+		Expect(clusterFound.Hosts).ShouldNot(BeEmpty())
 	})
 
 	It("cluster CRUD", func() {

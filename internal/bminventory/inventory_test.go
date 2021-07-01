@@ -4622,6 +4622,17 @@ var _ = Describe("List clusters", func() {
 		Expect(len(payload[0].Hosts)).Should(Equal(0))
 	})
 
+	It("List unregistered clusters with hosts success", func() {
+		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true), WithHosts: true})
+		clusterList := resp.(*installer.ListClustersOK).Payload
+		Expect(len(clusterList)).Should(Equal(1))
+		Expect(clusterList[0].ID.String()).Should(Equal(clusterID.String()))
+		Expect(len(clusterList[0].Hosts)).Should(Equal(1))
+		Expect(clusterList[0].Hosts[0].ID.String()).Should(Equal(hostID.String()))
+	})
+
 	It("List unregistered clusters failure - cluster was permanently deleted", func() {
 		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
 		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
