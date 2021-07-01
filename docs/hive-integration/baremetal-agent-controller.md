@@ -198,6 +198,11 @@ It is possible to specify `RootDeviceHints` for the `BareMetalHost` resource. Ro
 used to tell the installer what disk to use as the installation disk. Refer to the
 [baremetal-operator documentation](https://github.com/metal3-io/baremetal-operator/blob/master/docs/api.md#rootdevicehints) to know more.
 
+---
+**NOTE**
+
+We are always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
+
 Installation flow
 ===
 
