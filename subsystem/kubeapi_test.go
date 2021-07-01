@@ -1573,7 +1573,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment and infraEnv and with an invalid NMState config YAML", func() {
-		Skip("MGMT-5324 flaky test")
 		var (
 			NMStateLabelName  = "someName"
 			NMStateLabelValue = "someValue"
