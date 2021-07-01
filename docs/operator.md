@@ -220,9 +220,9 @@ oc rollout restart deployment/assisted-service
 
 ### Mirror Registry Configuration
 
-A ConfigMap can be used to configure assisted service to create installations using a mirror registry. The ConfigMap contains two keys:
+A ConfigMap can be used to configure assisted service to create installations using mirrored content. The ConfigMap contains two keys:
 
-- *ca-bundle.crt* - This key contains the contents of the certificate for accessing the mirror registry. It may be a certificate bundle and is defined as a single string.
+- *ca-bundle.crt* - This key contains the contents of the certificate for accessing the mirror registry, if necessary. It may be a certificate bundle and is defined as a single string.
 - *registries.conf* - This key contains the contents of the registries.conf file that configures mappings to the mirror registry.
 
 The mirror registry configuration changes the discovery image's ignition config, with *ca-bundle.crt* written out to */etc/pki/ca-trust/source/anchors/domain.crt* and with *registries.conf* written out to */etc/containers/registries.conf*. The configuration also changes the *install-config.yaml* file used to install a new cluster, with the contents of *ca-bundle.crt* added to *additionalTrustBundle* and with the registries defined *registries.conf* added to *imageContentSources* as mirrors.
