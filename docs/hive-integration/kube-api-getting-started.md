@@ -22,9 +22,9 @@ This document is a step-by-step guide that demonstrates how to deploy a single-n
 ## Assumptions
 * You have deployed both the operator and assisted-service by, for example, [using these instructions](../operator.md).  Alternatively, you may choose to deploy via OLM or as a part of ACM, which is also applicable.
 * Using the discovery image:
-  
+
     * **Boot it yourself**: You are able to use the generated discovery image to boot your host.
-    
+
     * **Zero Touch Provisioning (ZTP)**:  Detailed in the [advanced section](#advanced-zero-touch-provisioning). Configure `BMH` / `BareMetalHost` to automate the host discovery procedure. This document uses [dev-scripts](https://github.com/openshift-metal3/dev-scripts/) for that. [read about it here](baremetal-agent-controller.md).
 
 
@@ -444,10 +444,18 @@ spec:
 EOF
 ```
 
+---
+**NOTE**
+
+We are always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
+
+---
+
+
 ##### Result
 * Host turned on.
 * Image download started. This might take a while.
-* Host discovery happened. An `Agent` CR got created automatically. 
+* Host discovery happened. An `Agent` CR got created automatically.
 
 Having issues? try this [troubleshooting section](baremetal-agent-controller.md#Troubleshooting)
 
