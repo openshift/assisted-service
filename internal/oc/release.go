@@ -218,16 +218,16 @@ func (r *release) execute(log logrus.FieldLogger, pullSecret string, command str
 	}
 	// flush the buffer to ensure the file can be read
 	ps.Close()
-	args := strings.Split(command, " ")
-	args = append(args, "--registry-config="+ps.Name())
+	executeCommand := command[:] + " --registry-config=" + ps.Name()
+	args := strings.Split(executeCommand, " ")
 
 	stdout, stderr, exitCode := r.executer.Execute(args[0], args[1:]...)
 
 	if exitCode == 0 {
 		return strings.TrimSpace(stdout), nil
 	} else {
-		err = fmt.Errorf("command %s exited with non-zero exit code %d: %s\n%s", command, exitCode, stdout, stderr)
-		log.WithError(err).Errorf("error running \"%s\"", command)
+		err = fmt.Errorf("command '%s' exited with non-zero exit code %d: %s\n%s", executeCommand, exitCode, stdout, stderr)
+		log.Error(err)
 		return "", err
 	}
 }
