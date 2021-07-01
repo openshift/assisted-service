@@ -222,6 +222,10 @@ type DebugInfo struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:printcolumn:name="Cluster",type="string",JSONPath=".spec.clusterDeploymentName.name",description="The name of the cluster the Agent registered to."
 // +kubebuilder:printcolumn:name="Approved",type="boolean",JSONPath=".spec.approved",description="The `Approve` state of the Agent."
+// +kubebuilder:printcolumn:name="Role",type="string",JSONPath=".status.role",description="The role (master/worker) of the Agent."
+// +kubebuilder:printcolumn:name="Stage",type="string",JSONPath=".status.progress.currentStage",description="The HostStage of the Agent."
+// +kubebuilder:printcolumn:name="Hostname",type="string",JSONPath=".status.inventory.hostname",description="The hostname of the Agent.",priority=1
+// +kubebuilder:printcolumn:name="Requested Hostname",type="string",JSONPath=".spec.hostname",description="The requested hostname for the Agent.",priority=1
 
 // Agent is the Schema for the hosts API
 type Agent struct {

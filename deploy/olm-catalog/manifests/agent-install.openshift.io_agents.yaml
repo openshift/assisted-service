@@ -23,6 +23,24 @@ spec:
       jsonPath: .spec.approved
       name: Approved
       type: boolean
+    - description: The role (master/worker) of the Agent.
+      jsonPath: .status.role
+      name: Role
+      type: string
+    - description: The HostStage of the Agent.
+      jsonPath: .status.progress.currentStage
+      name: Stage
+      type: string
+    - description: The hostname of the Agent.
+      jsonPath: .status.inventory.hostname
+      name: Hostname
+      priority: 1
+      type: string
+    - description: The requested hostname for the Agent.
+      jsonPath: .spec.hostname
+      name: Requested Hostname
+      priority: 1
+      type: string
     name: v1beta1
     schema:
       openAPIV3Schema:
