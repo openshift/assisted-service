@@ -17,6 +17,8 @@ metadata:
   namespace: '{{ spoke_namespace }}'
   labels:
     infraenvs.agent-install.openshift.io: '{{ infraenv_name }}'
+  annotations:
+    bmac.agent-install.openshift.io/hostname: '{{ bmh_name }}'
 spec:
   online: true
   bootMACAddress: '{{ mac_address }}'

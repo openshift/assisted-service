@@ -28,7 +28,7 @@ elif [[ "${IP_STACK}" == "v6" ]]; then
 fi
 
 if [ "${DISCONNECTED}" = "true" ]; then
-    ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/${RELEASE_IMAGE_REPOSITORY_TAG}"
+    ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
 fi
 
 # TODO: make SSH public key configurable

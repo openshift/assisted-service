@@ -78,6 +78,15 @@ EOF
     fi
 }
 
+function mirror_config() {
+  if [ "${DISCONNECTED}" = "true" ]; then
+cat <<EOF
+ mirrorRegistryRef:
+  name: 'assisted-mirror-config'
+EOF
+  fi
+}
+
 function install_from_catalog_source() {
   catalog_source_name="${1}"
   tee << EOCR >(oc apply -f -)
@@ -125,6 +134,10 @@ data:
 $(configmap_config)
 EOCR
 
+  if [ "${DISCONNECTED}" = "true" ]; then
+    deploy_mirror_config_map
+  fi
+
   tee << EOCR >(oc apply -f -)
 apiVersion: agent-install.openshift.io/v1beta1
 kind: AgentServiceConfig
@@ -147,6 +160,7 @@ spec:
   resources:
    requests:
     storage: 8Gi
+$(mirror_config)
 EOCR
 
   wait_for_operator "assisted-service-operator" "${ASSISTED_NAMESPACE}"
@@ -157,6 +171,51 @@ EOCR
   oc patch provisioning provisioning-configuration --type merge -p '{"spec":{"watchAllNamespaces": true}}'
 
   echo "Installation of Assisted Installer operator passed successfully!"
+}
+
+function registry_config() {
+  src_image=${1}
+  mirrored_image=${2}
+  printf '
+    [[registry]]
+      location = "%s"
+      insecure = false
+      mirror-by-digest-only = false
+
+      [[registry.mirror]]
+        location = "%s"
+  ' ${src_image} ${mirrored_image}
+}
+
+function deploy_mirror_config_map() {
+  # The mirror should point all the release images and not just the OpenShift release image itself.
+  # An arbitrary image (cli) is chosen to retreive its pull spec, in order to mirror its repository.
+  cli_image=$(podman run --quiet --rm --net=none "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" image cli)
+
+  cat << EOCR > ./assisted-mirror-config
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: assisted-mirror-config
+  namespace: ${ASSISTED_NAMESPACE}
+  labels:
+    app: assisted-service
+data:
+  registries.conf: |
+    unqualified-search-registries = ["registry.access.redhat.com", "docker.io"]
+
+    $(registry_config "$(get_image_namespace ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" "${LOCAL_REGISTRY}/$(get_image_namespace_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
+    $(registry_config "$(get_image_namespace ${cli_image})" "${LOCAL_REGISTRY}/$(get_image_namespace_without_registry ${cli_image})")
+    $(for row in $(kubectl get imagecontentsourcepolicy -o json | jq -rc '.items[] | select(.metadata.name | test("community-operator-")).spec.repositoryDigestMirrors[] | [.mirrors[0], .source]'); do
+      row=$(echo ${row} | tr -d '[]"');
+      source=$(echo ${row} | cut -d',' -f2);
+      mirror=$(echo ${row} | cut -d',' -f1);
+      registry_config ${source} ${mirror};
+    done)
+EOCR
+
+  python ./set_ca_bundle.py '${WORKING_DIR}/registry/certs/registry.2.crt' './assisted-mirror-config'
+  tee < ./assisted-mirror-config >(oc apply -f -)
 }
 
 function from_index_image() {
