@@ -4539,6 +4539,8 @@ func hostRequirementsRoleFrom(requirements *models.ClusterHostRequirementsDetail
 		DiskSizeGb:                       requirements.DiskSizeGb,
 		InstallationDiskSpeedThresholdMs: requirements.InstallationDiskSpeedThresholdMs,
 		RAMGib:                           conversions.MibToGiB(requirements.RAMMib),
+		NetworkLatencyThresholdMs:        requirements.NetworkLatencyThresholdMs,
+		PacketLossPercentage:             requirements.PacketLossPercentage,
 	}
 }
 
