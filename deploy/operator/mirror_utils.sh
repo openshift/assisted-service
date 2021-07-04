@@ -71,7 +71,9 @@ EOF
   if [ "${OPENSHIFT_CI:-false}" = "false" ]; then
     # Until allowing mirroring by tags https://issues.redhat.com/browse/OCPNODE-521
     # https://github.com/openshift/api/pull/874 will be part of OCP 4.9
-    hostnames=$(virsh net-dhcp-leases ${BAREMETAL_NETWORK_NAME} | awk 'NR>2 {print $6}')
+    # The sixth element on net-dhcp-leases is the hostname.
+    # We would like to get all the available hostnames, SSH to them, and fix their registries.conf to allow mirror-by-digest.
+    hostnames=$(virsh net-dhcp-leases ${BAREMETAL_NETWORK_NAME} | awk 'NR > 2 && $6 != "-" {print $6}')
 
     for hostname in ${hostnames}; do
         ssh -o StrictHostKeyChecking=no core@${hostname} bash - << EOF
@@ -135,4 +137,16 @@ function merge_authfiles() {
 
 function install_opm() {
   curl --retry 5 -s https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/stable-4.7/opm-linux.tar.gz | tar xvz -C /usr/local/bin/
+}
+
+function ocp_mirror_release() {
+  pull_secret_file="${1}"
+  source_image="${2}"
+  dest_mirror_repo="${3}"
+  dest_mirror_image="${4}"
+
+  oc adm -a ${pull_secret_file} release mirror \
+         --from=${source_image} \
+         --to=${dest_mirror_repo} \
+         --to-release-image=${dest_mirror_image}
 }

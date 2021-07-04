@@ -97,3 +97,33 @@ function wait_for_boolean_field() {
     echo "Value of field ${field} of object ${object} under namespace ${namespace} has never become true"
     return 1
 }
+
+function get_image_without_tag() {
+    # given "<registry>/<repository>/<project>:<tag>"
+    # return "<registry>/<repository>/<project>"
+    echo "${1}" | cut -d':' -f1 | cut -d'@' -f1
+}
+
+function get_image_namespace() {
+    # given "<registry>/<repository>/<project>:<tag>"
+    # return "<registry>/<repository>"
+    dirname "${1}"
+}
+
+function get_image_without_registry() {
+    # given "<registry>/<repository>/<project>:<tag>"
+    # return "<repository>/<project>:<tag>"
+    echo "${1#*/}"
+}
+
+function get_image_namespace_without_registry() {
+    # given "<registry>/<repository>/<project>:<tag>"
+    # return "<repository>"
+    get_image_namespace $(get_image_without_registry "${1}")
+}
+
+function get_image_repository_only() {
+    # given "<registry>/<repository>/<project>:<tag>"
+    # return "<repository>/<project>"
+    get_image_without_registry $(get_image_without_tag "${1}")
+}
