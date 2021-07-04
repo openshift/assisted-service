@@ -27,7 +27,7 @@ digraph ClusterStateMachine {
 
     "preparing-for-installation" -> installing [color=darkolivegreen4];
 
-    installing -> finalizing [label = "3 masters\ninstalled", color=chartreuse4, fontcolor=chartreuse4];
+    installing -> finalizing [label = "3 masters\n[+ >=2 workers]\ninstalled", color=chartreuse4, fontcolor=chartreuse4];
 
     installing -> "installing-pending-user-action" [label = "hosts in wrong boot order", color=cornsilk4, fontcolor=cornsilk4];
 

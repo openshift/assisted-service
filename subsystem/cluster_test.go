@@ -1264,7 +1264,7 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("register host while cluster in error state", func() {
-			FailCluster(ctx, clusterID)
+			FailCluster(ctx, clusterID, masterFailure)
 			//Wait for cluster to get to error state
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
 				IgnoreStateInfo)
@@ -1275,6 +1275,13 @@ var _ = Describe("cluster install", func() {
 				},
 			})
 			Expect(err).To(BeAssignableToTypeOf(installer.NewRegisterHostConflict()))
+		})
+
+		It("fail installation if there is only a single worker that manages to install", func() {
+			FailCluster(ctx, clusterID, workerFailure)
+			//Wait for cluster to get to error state
+			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
+				IgnoreStateInfo)
 		})
 
 		It("register existing host while cluster in installing state", func() {
@@ -1636,7 +1643,7 @@ var _ = Describe("cluster install", func() {
 			Expect(err).NotTo(HaveOccurred())
 			defer os.Remove(file.Name())
 
-			FailCluster(ctx, clusterID)
+			FailCluster(ctx, clusterID, masterFailure)
 			//Wait for cluster to get to error state
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
 				IgnoreStateInfo)
@@ -1875,7 +1882,7 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("on cluster error - verify all hosts are aborted", func() {
-			FailCluster(ctx, clusterID)
+			FailCluster(ctx, clusterID, masterFailure)
 			waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout, clusterErrorInfo)
 			rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
 			Expect(err).NotTo(HaveOccurred())
@@ -1915,7 +1922,7 @@ var _ = Describe("cluster install", func() {
 			})
 			It("cancel failed cluster", func() {
 				By("verify cluster is in error")
-				FailCluster(ctx, clusterID)
+				FailCluster(ctx, clusterID, masterFailure)
 				waitForClusterState(ctx, clusterID, models.ClusterStatusError, defaultWaitForClusterStateTimeout,
 					clusterErrorInfo)
 				rep, err := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -3028,18 +3035,31 @@ func checkUpdateAtWhileStatic(ctx context.Context, clusterID strfmt.UUID) {
 	Expect(preSecondRefreshUpdatedTime).Should(Equal(postRefreshUpdateTime))
 }
 
-func FailCluster(ctx context.Context, clusterID strfmt.UUID) strfmt.UUID {
+const (
+	masterFailure = iota
+	workerFailure = iota
+)
+
+func FailCluster(ctx context.Context, clusterID strfmt.UUID, reason int) strfmt.UUID {
 	c := installCluster(clusterID)
-	var masterHostID strfmt.UUID = *getClusterMasters(c)[0].ID
+	var hostID strfmt.UUID
+
+	if reason == masterFailure {
+		hostID = *getClusterMasters(c)[0].ID
+	} else { // workerFailure when we only have 2 workers
+		workers := getClusterWorkers(c)
+		Expect(len(workers) == 2)
+		hostID = *workers[0].ID
+	}
 
 	installStep := models.HostStageFailed
 	installInfo := "because some error"
 
-	updateProgressWithInfo(masterHostID, clusterID, installStep, installInfo)
-	masterHost := getHost(clusterID, masterHostID)
-	Expect(*masterHost.Status).Should(Equal("error"))
-	Expect(*masterHost.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installStep, installInfo)))
-	return masterHostID
+	updateProgressWithInfo(hostID, clusterID, installStep, installInfo)
+	host := getHost(clusterID, hostID)
+	Expect(*host.Status).Should(Equal("error"))
+	Expect(*host.StatusInfo).Should(Equal(fmt.Sprintf("%s - %s", installStep, installInfo)))
+	return hostID
 }
 
 var _ = Describe("cluster install, with default network params", func() {
@@ -3310,6 +3330,16 @@ func getClusterMasters(c *models.Cluster) (masters []*models.Host) {
 	for _, host := range c.Hosts {
 		if host.Role == models.HostRoleMaster {
 			masters = append(masters, host)
+		}
+	}
+
+	return
+}
+
+func getClusterWorkers(c *models.Cluster) (workers []*models.Host) {
+	for _, host := range c.Hosts {
+		if host.Role == models.HostRoleWorker {
+			workers = append(workers, host)
 		}
 	}
 
