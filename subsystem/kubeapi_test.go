@@ -1969,15 +1969,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstalledReason)
 
-		// By("Verify Day 2 Cluster")
-		// checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, controllers.InstalledReason)
-		// cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		// Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
+		By("Verify Day 2 Cluster")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstalledReason)
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
-		// By("Verify ClusterDeployment Agents were deleted")
-		// Eventually(func() int {
-		// 	return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
-		// }, "2m", "2s").Should(Equal(0))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
 
 		By("Verify Cluster Metadata")
 		passwordSecretRef := getAgentClusterInstallCRD(ctx, kubeClient, installkey).Spec.ClusterMetadata.AdminPasswordSecretRef
@@ -2061,10 +2061,10 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 
-		By("Verify Day 1 Cluster still exists")
+		By("Verify Day 2 Cluster was created")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstalledReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		Expect(*cluster.Kind).Should(Equal(models.ClusterKindCluster))
+		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
 		By("Check ACI Event URL exists")
 		Eventually(func() string {
@@ -2078,35 +2078,35 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").ShouldNot(Equal(""))
 
-		// By("Verify Day 2 Cluster")
-		// checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, controllers.InstalledReason)
-		// cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
-		// Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
+		By("Verify Day 2 Cluster")
+		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstalledReason)
+		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
+		Expect(*cluster.Kind).Should(Equal(models.ClusterKindAddHostsCluster))
 
-		// By("Verify ClusterDeployment Agents were deleted")
-		// Eventually(func() int {
-		// 	return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
-		// }, "2m", "2s").Should(Equal(0))
+		By("Verify ClusterDeployment Agents were deleted")
+		Eventually(func() int {
+			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
+		}, "2m", "2s").Should(Equal(0))
 
-		// By("Add Day 2 host and approve agent")
-		// configureLocalAgentClient(cluster.ID.String())
-		// host := registerNode(ctx, *cluster.ID, "hostnameday2")
-		// key := types.NamespacedName{
-		// 	Namespace: Options.Namespace,
-		// 	Name:      host.ID.String(),
-		// }
-		// generateApiVipPostStepReply(ctx, host, true)
-		// Eventually(func() error {
-		// 	agent := getAgentCRD(ctx, kubeClient, key)
-		// 	agent.Spec.Approved = true
-		// 	return kubeClient.Update(ctx, agent)
-		// }, "30s", "10s").Should(BeNil())
+		By("Add Day 2 host and approve agent")
+		configureLocalAgentClient(cluster.ID.String())
+		host := registerNode(ctx, *cluster.ID, "hostnameday2")
+		key := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      host.ID.String(),
+		}
+		generateApiVipPostStepReply(ctx, host, true)
+		Eventually(func() error {
+			agent := getAgentCRD(ctx, kubeClient, key)
+			agent.Spec.Approved = true
+			return kubeClient.Update(ctx, agent)
+		}, "30s", "10s").Should(BeNil())
 
-		// checkAgentCondition(ctx, host.ID.String(), controllers.InstalledCondition, controllers.InstallationInProgressReason)
-		// checkAgentCondition(ctx, host.ID.String(), controllers.RequirementsMetCondition, controllers.AgentAlreadyInstallingReason)
-		// checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, controllers.SyncedOkReason)
-		// checkAgentCondition(ctx, host.ID.String(), controllers.ConnectedCondition, controllers.AgentConnectedReason)
-		// checkAgentCondition(ctx, host.ID.String(), controllers.ValidatedCondition, controllers.ValidationsPassingReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.InstalledCondition, v1beta1.InstallationInProgressReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.RequirementsMetCondition, v1beta1.AgentAlreadyInstallingReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.SpecSyncedCondition, v1beta1.SyncedOkReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.ConnectedCondition, v1beta1.AgentConnectedReason)
+		checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
 	})
 
 	It("deploy clusterDeployment with invalid machine cidr", func() {

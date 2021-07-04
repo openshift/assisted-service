@@ -135,6 +135,14 @@ Installed	The installation is in progress: Waiting for control plane
 
 Once the cluster is installed, the ClusterDeployment is set to Installed and secrets for kubeconfig and credentials are created and referenced in the AgentClusterInstall.
 
+## Day 2 worker
+
+In case of none SNO deployment, after that the cluster is installed, the original cluster is deleted and a Day 2 cluster is created instead in the Assisted Service database.
+
+Additional nodes can be added by booting from the new generated ISO. Each additional host will start installation once the Agent is Approved and the Host is in known state.
+
+Note that the user needs to approved the additional nodes in the installed cluster.
+
 ## Bare Metal Operator Integration
 
 In case that the Bare Metal Operator is installed, the Baremetal Agent Controller will sync between the Agent CR and the matching BareMetalHost CR:

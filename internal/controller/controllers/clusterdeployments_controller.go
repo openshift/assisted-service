@@ -215,17 +215,15 @@ func (r *ClusterDeploymentsReconciler) Reconcile(origCtx context.Context, req ct
 				log.WithError(err).Error("failed to update cluster metadata")
 			}
 			return r.updateStatus(ctx, log, clusterInstall, cluster, err)
-		} else if r.EnableDay2Cluster {
+		} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
 			// Delete Day1 Cluster
 			_, err = r.deregisterClusterIfNeeded(ctx, log, req.NamespacedName)
 			if err != nil {
 				log.WithError(err).Error("failed to deregister cluster")
 				return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 			}
-			if !r.isSNO(clusterInstall) {
-				//Create Day2 cluster
-				return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
-			}
+			//Create Day2 cluster
+			return r.createNewDay2Cluster(ctx, log, req.NamespacedName, clusterDeployment, clusterInstall)
 		}
 		return r.updateStatus(ctx, log, clusterInstall, cluster, err)
 	}
@@ -1177,7 +1175,7 @@ func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger,
 			}
 			clusterInstall.Status.DebugInfo.EventsURL = eventUrl
 		}
-	} else if r.EnableDay2Cluster {
+	} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
 		clusterInstall.Status.DebugInfo.EventsURL = ""
 	}
 	return nil
@@ -1189,7 +1187,7 @@ func (r *ClusterDeploymentsReconciler) populateLogsURL(log logrus.FieldLogger, c
 			log.WithError(err).Error("failed to generate controller logs URL")
 			return err
 		}
-	} else if r.EnableDay2Cluster {
+	} else if r.EnableDay2Cluster && !r.isSNO(clusterInstall) {
 		clusterInstall.Status.DebugInfo.LogsURL = ""
 	}
 	return nil

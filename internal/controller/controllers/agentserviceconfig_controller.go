@@ -389,6 +389,7 @@ func (r *AgentServiceConfigReconciler) newAssistedCM(log logrus.FieldLogger, ins
 			"CHECK_CLUSTER_VERSION":       "True",
 			"CREATE_S3_BUCKET":            "False",
 			"ENABLE_KUBE_API":             "True",
+			"ENABLE_KUBE_API_DAY2":        "True",
 			"ENABLE_SINGLE_NODE_DNSMASQ":  "True",
 			"IPV6_SUPPORT":                "True",
 			"JWKS_URL":                    "https://api.openshift.com/.well-known/jwks.json",
