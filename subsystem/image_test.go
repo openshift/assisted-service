@@ -39,30 +39,36 @@ var _ = Describe("system-test image tests", func() {
 		clearDB()
 	})
 
-	It("create_and_download_live_iso", func() {
-		for ocpVersion := range ocpVersions {
-			By(fmt.Sprintf("For version %s", ocpVersion))
-			By("Create ISO")
-			ignitionParams := models.AssistedServiceIsoCreateParams{
-				SSHPublicKey:     sshPublicKey,
-				PullSecret:       pullSecret,
-				OpenshiftVersion: ocpVersion,
-			}
-			_, err := userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
-				AssistedServiceIsoCreateParams: &ignitionParams,
+	Context("create_and_download_live_iso", func() {
+		// This part is required because before each is not called when calculating list of tests
+		resp, err := userBMClient.Versions.ListSupportedOpenshiftVersions(ctx, &versions.ListSupportedOpenshiftVersionsParams{})
+		Expect(err).To(BeNil())
+		Expect(resp.Payload).ShouldNot(BeEmpty())
+		ocpVersions = resp.Payload
+
+		for k := range ocpVersions {
+			ocpVersion := k
+			It(fmt.Sprintf("For version %s create_and_download_live_iso", ocpVersion), func() {
+				By("Create ISO")
+				ignitionParams := models.AssistedServiceIsoCreateParams{
+					SSHPublicKey:     sshPublicKey,
+					PullSecret:       pullSecret,
+					OpenshiftVersion: ocpVersion,
+				}
+				_, err := userBMClient.AssistedServiceIso.CreateISOAndUploadToS3(ctx, &assisted_service_iso.CreateISOAndUploadToS3Params{
+					AssistedServiceIsoCreateParams: &ignitionParams,
+				})
+				Expect(err).To(BeNil())
+
+				By("Download ISO")
+				file, err := ioutil.TempFile("", "tmp")
+				Expect(err).To(BeNil())
+				defer os.Remove(file.Name())
+
+				_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
+				Expect(err).NotTo(HaveOccurred())
+				verifyFileNotEmpty(file)
 			})
-			Expect(err).NotTo(HaveOccurred())
-
-			By("Download ISO")
-			file, err := ioutil.TempFile("", "tmp")
-			if err != nil {
-				log.Fatal(err)
-			}
-			defer os.Remove(file.Name())
-
-			_, err = userBMClient.AssistedServiceIso.DownloadISO(ctx, &assisted_service_iso.DownloadISOParams{}, file)
-			Expect(err).NotTo(HaveOccurred())
-			verifyFileNotEmpty(file)
 		}
 	})
 
@@ -304,9 +310,7 @@ func verifyEventExistence(ClusterID strfmt.UUID, message string) {
 
 func downloadClusterIso(ctx context.Context, clusterID strfmt.UUID) {
 	file, err := ioutil.TempFile("", "tmp")
-	if err != nil {
-		log.Fatal(err)
-	}
+	Expect(err).To(BeNil())
 	defer os.Remove(file.Name())
 
 	_, err = userBMClient.Installer.DownloadClusterISO(ctx, &installer.DownloadClusterISOParams{
@@ -318,9 +322,7 @@ func downloadClusterIso(ctx context.Context, clusterID strfmt.UUID) {
 
 func downloadClusterIsoHeaders(ctx context.Context, clusterID strfmt.UUID) {
 	file, err := ioutil.TempFile("", "tmp")
-	if err != nil {
-		log.Fatal(err)
-	}
+	Expect(err).To(BeNil())
 	defer os.Remove(file.Name())
 
 	_, err = userBMClient.Installer.DownloadClusterISOHeaders(ctx, &installer.DownloadClusterISOHeadersParams{
