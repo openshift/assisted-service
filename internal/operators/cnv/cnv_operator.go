@@ -91,9 +91,7 @@ func (o *operator) ValidateHost(ctx context.Context, cluster *common.Cluster, ho
 
 	// If the Role is set to Auto-assign for a host, it is not possible to determine whether the node will end up as a master or worker node.
 	if host.Role == models.HostRoleAutoAssign {
-		status := "All host roles must be assigned to enable CNV."
-		o.log.Info("Validate Requirements status ", status)
-		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{status}}, nil
+		return api.ValidationResult{Status: api.Failure, ValidationId: o.GetHostValidationID(), Reasons: []string{"All host roles must be assigned to enable CNV"}}, nil
 	}
 	requirements, err := o.GetHostRequirements(ctx, cluster, host)
 	if err != nil {
