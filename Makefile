@@ -3,7 +3,6 @@ PWD = $(shell pwd)
 BUILD_FOLDER = $(PWD)/build/$(NAMESPACE)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 CONTAINER_COMMAND := $(or ${CONTAINER_COMMAND},docker)
-BUILD_TYPE := $(or ${BUILD_TYPE},standalone)
 TARGET := $(or ${TARGET},local)
 KUBECTL=kubectl -n $(NAMESPACE)
 
@@ -95,16 +94,21 @@ ifdef INSTALLATION_TIMEOUT
 	INSTALLATION_TIMEOUT_FLAG = --installation-timeout $(INSTALLATION_TIMEOUT)
 endif
 
+CI ?= false
+VERBOSE ?= false
 REPORTS ?= $(ROOT_DIR)/reports
+GO_TEST_FORMAT = pkgname
 
-ifneq ($(BUILD_TYPE), standalone)
-	TEST_FORMAT = standard-verbose
-else
-	TEST_FORMAT = pkgname
+ifeq ($(CI), true)
+	VERBOSE = true
 endif
 
-GOTEST_FLAGS = --format=$(TEST_FORMAT) $(GOTEST_PUBLISH_FLAGS) -- -count=1 -cover -coverprofile=$(REPORTS)/$(TEST_SCENARIO)_coverage.out
-GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.skip="$(SKIP)" -ginkgo.reportFile=./junit_$(TEST_SCENARIO)_test.xml
+ifeq ($(VERBOSE), true)
+	GO_TEST_FORMAT=standard-verbose
+endif
+
+GOTEST_FLAGS = --format=$(GO_TEST_FORMAT) $(GOTEST_PUBLISH_FLAGS) -- -count=1 -cover -coverprofile=$(REPORTS)/$(TEST_SCENARIO)_coverage.out
+GINKGO_FLAGS = -ginkgo.focus="$(FOCUS)" -ginkgo.skip="$(SKIP)" -ginkgo.v -ginkgo.reportFile=./junit_$(TEST_SCENARIO)_test.xml
 
 .EXPORT_ALL_VARIABLES:
 
@@ -269,7 +273,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
-		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' --kubeapi-day2 "$(ENABLE_KUBE_API_DAY2)" 
+		--hw-requirements '$(subst ",\",$(HW_REQUIREMENTS))' --kubeapi-day2 "$(ENABLE_KUBE_API_DAY2)"
 		--disabled-host-validations "$(DISABLED_HOST_VALIDATIONS)"
 ifeq ($(MIRROR_REGISTRY_SUPPORT), True)
 	python3 ./tools/deploy_assisted_installer_configmap_registry_ca.py  --target "$(TARGET)" \
@@ -410,7 +414,7 @@ _post_test: $(REPORTS)
 	$(MAKE) _coverage
 
 _coverage: $(REPORTS)
-ifneq ($(BUILD_TYPE), standalone)
+ifeq ($(CI), true)
 	gocov convert $(REPORTS)/$(TEST_SCENARIO)_coverage.out | gocov-xml > $(REPORTS)/$(TEST_SCENARIO)_coverage.xml
 endif
 
