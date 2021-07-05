@@ -293,7 +293,7 @@ func (r *AgentReconciler) updateStatus(ctx context.Context, log logrus.FieldLogg
 }
 
 func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1beta1.Agent, clusterId string) error {
-	if agent.Status.DebugInfo.EventsURL == "" {
+	if agent.Status.DebugInfo.EventsURL == "" || !strings.Contains(agent.Status.DebugInfo.EventsURL, clusterId) {
 		eventUrl, err := r.eventsURL(log, clusterId, agent.Name)
 		if err != nil {
 			log.WithError(err).Error("failed to generate Events URL")

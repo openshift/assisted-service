@@ -405,6 +405,20 @@ func (mr *MockAPIMockRecorder) SetUploadLogsAt(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUploadLogsAt", reflect.TypeOf((*MockAPI)(nil).SetUploadLogsAt), arg0, arg1, arg2)
 }
 
+// UnRegisterHost mocks base method
+func (m *MockAPI) UnRegisterHost(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UnRegisterHost", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UnRegisterHost indicates an expected call of UnRegisterHost
+func (mr *MockAPIMockRecorder) UnRegisterHost(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnRegisterHost", reflect.TypeOf((*MockAPI)(nil).UnRegisterHost), arg0, arg1, arg2)
+}
+
 // UpdateApiVipConnectivityReport mocks base method
 func (m *MockAPI) UpdateApiVipConnectivityReport(arg0 context.Context, arg1 *models.Host, arg2 string) error {
 	m.ctrl.T.Helper()
