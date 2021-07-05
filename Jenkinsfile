@@ -5,7 +5,7 @@ pipeline {
     triggers { cron(cron_string) }
     environment {
         PATH = "${PATH}:/usr/local/go/bin"
-        BUILD_TYPE = "CI"
+        CI = "true"
 
         // Images
         ASSISTED_ORG = "quay.io/ocpmetal"

@@ -100,6 +100,7 @@ export LOCAL_ASSISTED_ORG=localhost:5000
 * `FOCUS="install_cluster"` - An optional flag used for [focused specs](https://onsi.github.io/ginkgo/#focused-specs) with regular expression.
 * `SKIP="install_cluster"` - An optional flag to skip scopes with regular expressions.
 * `Test="./internal/host"` -  An optional flag used for testing a specific package.
+* `VERBOSE=true` - An optional flag to print verbosed data.
 
 ```shell
 skipper make [test|unit-test]
