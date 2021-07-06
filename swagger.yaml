@@ -4200,7 +4200,6 @@ definitions:
         format: int64
         description: All hosts associated to this cluster.
         x-go-custom-tag: gorm:"-"
-
       updated_at:
         type: string
         format: date-time
@@ -4216,6 +4215,11 @@ definitions:
         format: date-time
         x-go-custom-tag: gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"
         description: The time that this cluster started installation.
+      install_failed_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"
+        description: The time that this cluster failed installation.
       install_completed_at:
         type: string
         format: date-time

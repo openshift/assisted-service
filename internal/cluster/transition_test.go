@@ -3325,6 +3325,9 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(clusterAfterRefresh.Status).To(Equal(&t.dstState))
 				t.statusInfoChecker.check(clusterAfterRefresh.StatusInfo)
+				if t.dstState == models.ClusterStatusError && t.srcState != models.ClusterStatusError {
+					Expect(clusterAfterRefresh.InstallFailedAt).Should(Equal(clusterAfterRefresh.StatusUpdatedAt))
+				}
 			})
 		}
 	})

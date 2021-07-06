@@ -127,6 +127,10 @@ type Cluster struct {
 	// JSON-formatted string containing the user overrides for the install-config.yaml file.
 	InstallConfigOverrides string `json:"install_config_overrides,omitempty" gorm:"type:text"`
 
+	// The time that this cluster failed installation.
+	// Format: date-time
+	InstallFailedAt strfmt.DateTime `json:"install_failed_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
+
 	// The time that this cluster started installation.
 	// Format: date-time
 	InstallStartedAt strfmt.DateTime `json:"install_started_at,omitempty" gorm:"type:timestamp with time zone;default:'2000-01-01 00:00:00z'"`
@@ -282,6 +286,10 @@ func (m *Cluster) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateInstallCompletedAt(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInstallFailedAt(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -645,6 +653,19 @@ func (m *Cluster) validateInstallCompletedAt(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("install_completed_at", "body", "date-time", m.InstallCompletedAt.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Cluster) validateInstallFailedAt(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.InstallFailedAt) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("install_failed_at", "body", "date-time", m.InstallFailedAt.String(), formats); err != nil {
 		return err
 	}
 

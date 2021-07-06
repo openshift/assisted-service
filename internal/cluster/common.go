@@ -55,6 +55,9 @@ func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.D
 		if funk.ContainsString(installationCompletedStatuses, swag.StringValue(&newStatus)) {
 			extra = append(extra, "install_completed_at", now)
 		}
+		if swag.StringValue(&newStatus) == models.ClusterStatusError {
+			extra = append(extra, "install_failed_at", now)
+		}
 	}
 
 	if cluster, err = UpdateCluster(log, db, clusterId, srcStatus, extra...); err != nil ||

@@ -5008,6 +5008,12 @@ func init() {
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
         },
+        "install_failed_at": {
+          "description": "The time that this cluster failed installation.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
+        },
         "install_started_at": {
           "description": "The time that this cluster started installation.",
           "type": "string",
@@ -12738,6 +12744,12 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\"",
           "example": "{\"networking\":{\"networkType\": \"OVN-Kubernetes\"},\"fips\":true}"
+        },
+        "install_failed_at": {
+          "description": "The time that this cluster failed installation.",
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone;default:'2000-01-01 00:00:00z'\""
         },
         "install_started_at": {
           "description": "The time that this cluster started installation.",
