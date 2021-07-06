@@ -20,6 +20,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -36,9 +37,12 @@ const (
 func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler {
 	c := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(initObjs...).Build()
 	return &AgentServiceConfigReconciler{
-		Client:    c,
-		Scheme:    scheme.Scheme,
-		Log:       logrus.New(),
+		Client: c,
+		Scheme: scheme.Scheme,
+		Log:    logrus.New(),
+		// TODO(djzager): If we need to verify emitted events
+		// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474
+		Recorder:  record.NewFakeRecorder(10),
 		Namespace: testNamespace,
 	}
 }
@@ -251,7 +255,16 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		Context("with annotation on AgentServiceConfig", func() {
 			It("should modify assisted-service deployment", func() {
 				asc = newASCWithCMAnnotation()
-				ascr = newTestReconciler(asc, route, assistedCM)
+				userCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						"foo": "bar",
+					},
+				}
+				ascr = newTestReconciler(asc, route, userCM, assistedCM)
 				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
 				found := &appsv1.Deployment{}
 				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
@@ -373,6 +386,88 @@ var _ = Describe("ensureAssistedServiceDeployment", func() {
 		})
 	})
 
+	Describe("ConfigMap hashing as annotations on assisted-service deployment", func() {
+		Context("with assisted-service configmap", func() {
+			It("should fail if assisted configMap not found", func() {
+				asc = newASCDefault()
+				ascr = newTestReconciler(asc, route)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+			})
+
+			It("should only add assisted config hash annotation", func() {
+				asc = newASCDefault()
+				ascr = newTestReconciler(asc, route, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Annotations).To(HaveLen(3))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(assistedConfigHashAnnotation, Not(Equal(""))))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(mirrorConfigHashAnnotation, Equal("")))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(userConfigHashAnnotation, Equal("")))
+			})
+		})
+
+		Context("with mirror configmap", func() {
+			It("should fail if mirror configMap specified but not found", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				ascr = newTestReconciler(asc, route, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+			})
+
+			It("should add assisted and mirror config hash annotations", func() {
+				asc = newASCWithMirrorRegistryConfig()
+				mirrorCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testMirrorRegConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						mirrorRegistryRefRegistryConfKey: "foo",
+					},
+				}
+				ascr = newTestReconciler(asc, route, mirrorCM, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Annotations).To(HaveLen(3))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(assistedConfigHashAnnotation, Not(Equal(""))))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(mirrorConfigHashAnnotation, Not(Equal(""))))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(userConfigHashAnnotation, Equal("")))
+			})
+		})
+
+		Context("with unsupported configMap", func() {
+			It("should fail if not found", func() {
+				asc = newASCWithCMAnnotation()
+				ascr = newTestReconciler(asc, route, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Not(Succeed()))
+			})
+
+			It("should add user config hash annotation by default", func() {
+				asc = newASCWithCMAnnotation()
+				userCM := &corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testConfigmapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						"foo": "bar",
+					},
+				}
+				ascr = newTestReconciler(asc, route, userCM, assistedCM)
+				Expect(ascr.ensureAssistedServiceDeployment(ctx, log, asc)).To(Succeed())
+
+				found := &appsv1.Deployment{}
+				Expect(ascr.Client.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testNamespace}, found)).To(Succeed())
+				Expect(found.Spec.Template.Annotations).To(HaveLen(3))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(assistedConfigHashAnnotation, Not(Equal(""))))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(mirrorConfigHashAnnotation, Equal("")))
+				Expect(found.Spec.Template.Annotations).To(HaveKeyWithValue(userConfigHashAnnotation, Not(Equal(""))))
+			})
+		})
+	})
 })
 
 var _ = Describe("getOpenshiftVersions", func() {

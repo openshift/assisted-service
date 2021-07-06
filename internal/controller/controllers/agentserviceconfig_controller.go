@@ -70,6 +70,10 @@ const (
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
 
 	configmapAnnotation = "unsupported.agent-install.openshift.io/assisted-service-configmap"
+
+	assistedConfigHashAnnotation = "agent-install.openshift.io/config-hash"
+	mirrorConfigHashAnnotation   = "agent-install.openshift.io/mirror-hash"
+	userConfigHashAnnotation     = "agent-install.openshift.io/user-config-hash"
 )
 
 // AgentServiceConfigReconciler reconciles a AgentServiceConfig object
@@ -672,6 +676,14 @@ func (r *AgentServiceConfigReconciler) newIngressCertCM(instance *aiv1beta1.Agen
 }
 
 func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) (*appsv1.Deployment, controllerutil.MutateFn, error) {
+	var assistedConfigHash, mirrorConfigHash, userConfigHash string
+
+	// Get hash of generated assisted config
+	assistedConfigHash, err := r.getCMHash(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace})
+	if err != nil {
+		return nil, nil, err
+	}
+
 	envSecrets := []corev1.EnvVar{
 		// database
 		newSecretEnvVar("DB_HOST", "db.host", databaseName),
@@ -695,16 +707,22 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		},
 	}
 
-	// User is responsible for knowing to restart assisted-service
-	annotations := instance.ObjectMeta.GetAnnotations()
-	configmapName, ok := annotations[configmapAnnotation]
+	// User is responsible for:
+	// - knowing to restart assisted-service when specifying the configmap via annotation
+	// - removing the annotation when the configmap is deleted
+	userConfigName, ok := instance.ObjectMeta.GetAnnotations()[configmapAnnotation]
 	if ok {
-		log.Infof("ConfigMap %s from namespace %s being used to configure assisted-service deployment", configmapName, r.Namespace)
+		log.Infof("ConfigMap %s from namespace %s being used to configure assisted-service deployment", userConfigName, r.Namespace)
+		userConfigHash, err = r.getCMHash(ctx, types.NamespacedName{Name: userConfigName, Namespace: r.Namespace})
+		if err != nil {
+			return nil, nil, err
+		}
+
 		envFrom = append(envFrom, []corev1.EnvFromSource{
 			{
 				ConfigMapRef: &corev1.ConfigMapEnvSource{
 					LocalObjectReference: corev1.LocalObjectReference{
-						Name: configmapName,
+						Name: userConfigName,
 					},
 				},
 			},
@@ -829,6 +847,11 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 			return nil, nil, err
 		}
 
+		mirrorConfigHash, err = checksumMap(cm.Data)
+		if err != nil {
+			return nil, nil, err
+		}
+
 		// require that the registries config key be specified before continuing
 		if _, ok := cm.Data[mirrorRegistryRefRegistryConfKey]; !ok {
 			err = fmt.Errorf("Mirror registry configmap %s missing key %s", instance.Spec.MirrorRegistryRef.Name, mirrorRegistryRefRegistryConfKey)
@@ -917,6 +940,15 @@ func (r *AgentServiceConfigReconciler) newAssistedServiceDeployment(ctx context.
 		var replicas int32 = 1
 		deployment.Spec.Replicas = &replicas
 		deployment.Spec.Strategy = deploymentStrategy
+
+		// Handle our hashed configMap(s)
+		if deployment.Spec.Template.Annotations == nil {
+			deployment.Spec.Template.Annotations = make(map[string]string)
+		}
+		deployment.Spec.Template.Annotations[assistedConfigHashAnnotation] = assistedConfigHash
+		deployment.Spec.Template.Annotations[mirrorConfigHashAnnotation] = mirrorConfigHash
+		deployment.Spec.Template.Annotations[userConfigHashAnnotation] = userConfigHash
+
 		deployment.Spec.Template.Spec.Containers = []corev1.Container{serviceContainer, postgresContainer}
 		deployment.Spec.Template.Spec.Volumes = volumes
 		deployment.Spec.Template.Spec.ServiceAccountName = serviceAccountName
@@ -964,6 +996,15 @@ func (r *AgentServiceConfigReconciler) getOpenshiftVersions(log logrus.FieldLogg
 	}
 
 	return string(encodedVersions)
+}
+
+func (r *AgentServiceConfigReconciler) getCMHash(ctx context.Context, namespacedName types.NamespacedName) (string, error) {
+	cm := &corev1.ConfigMap{}
+	if err := r.Get(ctx, namespacedName, cm); err != nil {
+		r.Log.Error(err, "Failed to get configmap", "NamespacedName", namespacedName)
+		return "", err
+	}
+	return checksumMap(cm.Data)
 }
 
 func newSecretEnvVar(name, key, secretName string) corev1.EnvVar {
