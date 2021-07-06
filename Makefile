@@ -385,7 +385,7 @@ _run_subsystem_test:
 	$(MAKE) _test TEST_SCENARIO=subsystem TIMEOUT=120m TEST="$(or $(TEST),./subsystem/...)"
 
 enable-kube-api-for-subsystem: $(BUILD_FOLDER)
-	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ENABLE_KUBE_API_DAY2=false
+	$(MAKE) deploy-service-requirements AUTH_TYPE=local ENABLE_KUBE_API=true ENABLE_KUBE_API_DAY2=true
 	$(call restart_service_pods)
 	$(MAKE) wait-for-service
 
