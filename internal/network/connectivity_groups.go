@@ -2,13 +2,35 @@ package network
 
 import (
 	"encoding/json"
+	"fmt"
 	"net"
 	"sort"
 
 	"github.com/go-openapi/strfmt"
 	"github.com/golang-collections/go-datastructures/bitarray"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
+	"github.com/thoas/go-funk"
 )
+
+type AddressFamily int
+
+const (
+	IPv4 AddressFamily = 4
+	IPv6 AddressFamily = 6
+)
+
+func (a AddressFamily) String() string {
+	switch a {
+	case IPv4:
+		return "IPv4"
+	case IPv6:
+		return "IPv6"
+	default:
+		return fmt.Sprintf("Unexpected family value %d", a)
+	}
+}
 
 type connectivityKey struct {
 	first, second int
@@ -234,53 +256,169 @@ func createHostGroupCandidate(hostIndex, numHosts int, cMap connectivityMap) gro
 	}
 }
 
-/*
- * Create connectivity map from host list.  It is the information if a host has connectivity to other host on specific
- * CIDR (network)
- */
-func createMachineCidrConnectivityMap(cidr string, hosts []*models.Host, idToIndex map[strfmt.UUID]int) (connectivityMap, error) {
-	ret := make(connectivityMap)
+type hostQueryFactory interface {
+	create(h *models.Host) (hostQuery, error)
+}
+
+type hostQuery interface {
+	next() strfmt.UUID
+}
+
+type l2Query struct {
+	parsedCidr         *net.IPNet
+	current            int
+	connectivityReport models.ConnectivityReport
+}
+
+func (l *l2Query) next() strfmt.UUID {
+	for l.current != len(l.connectivityReport.RemoteHosts) {
+		rh := l.connectivityReport.RemoteHosts[l.current]
+		l.current++
+		for _, l2 := range rh.L2Connectivity {
+			ip := net.ParseIP(l2.RemoteIPAddress)
+			if ip != nil && l.parsedCidr.Contains(ip) && l2.Successful {
+				return rh.HostID
+			}
+		}
+	}
+	return ""
+}
+
+type l2QueryFactory struct {
+	parsedCidr *net.IPNet
+}
+
+func (l *l2QueryFactory) create(h *models.Host) (hostQuery, error) {
+	ret := l2Query{
+		parsedCidr: l.parsedCidr,
+	}
+	err := json.Unmarshal([]byte(h.Connectivity), &ret.connectivityReport)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
+}
+
+func newL2QueryFactory(cidr string) (hostQueryFactory, error) {
 	_, parsedCidr, err := net.ParseCIDR(cidr)
 	if err != nil {
 		return nil, err
 	}
+	return &l2QueryFactory{
+		parsedCidr: parsedCidr,
+	}, nil
+}
+
+type l3Query struct {
+	current            int
+	connectivityReport models.ConnectivityReport
+	nodesAddresses     map[strfmt.UUID]map[string]bool
+}
+
+func (l *l3Query) next() strfmt.UUID {
+	for l.current != len(l.connectivityReport.RemoteHosts) {
+		rh := l.connectivityReport.RemoteHosts[l.current]
+		l.current++
+		addresses, ok := l.nodesAddresses[rh.HostID]
+		if !ok {
+			continue
+		}
+		foundAddresses := make(map[string]bool)
+		for _, l3 := range rh.L3Connectivity {
+			_, foundAddress := addresses[l3.RemoteIPAddress]
+			if foundAddress && l3.Successful {
+				foundAddresses[l3.RemoteIPAddress] = true
+			}
+		}
+		if len(addresses) == len(foundAddresses) {
+			return rh.HostID
+		}
+	}
+	return ""
+}
+
+type l3QueryFactory struct {
+	nodesAddresses map[strfmt.UUID]map[string]bool
+}
+
+func (l *l3QueryFactory) create(h *models.Host) (hostQuery, error) {
+	ret := l3Query{
+		nodesAddresses: l.nodesAddresses,
+	}
+	err := json.Unmarshal([]byte(h.Connectivity), &ret.connectivityReport)
+	if err != nil {
+		return nil, err
+	}
+	return &ret, nil
+}
+
+func newL3QueryFactory(hosts []*models.Host, family AddressFamily) (hostQueryFactory, error) {
+	nodesAddresses := make(map[strfmt.UUID]map[string]bool)
+	for _, h := range hosts {
+		if h.Inventory == "" {
+			continue
+		}
+		value := make(map[string]bool)
+		inventory, err := hostutil.UnmarshalInventory(h.Inventory)
+		if err != nil {
+			return nil, err
+		}
+		for _, intf := range inventory.Interfaces {
+			var array []string
+			switch family {
+			case IPv4:
+				array = intf.IPV4Addresses
+			case IPv6:
+				array = intf.IPV6Addresses
+			}
+			for _, addr := range array {
+				ip, _, err := net.ParseCIDR(addr)
+				if err != nil {
+					return nil, err
+				}
+				value[ip.String()] = true
+			}
+		}
+		nodesAddresses[*h.ID] = value
+	}
+	return &l3QueryFactory{
+		nodesAddresses: nodesAddresses,
+	}, nil
+}
+
+type majorityGroupCalculator struct {
+	hostQueryFactory hostQueryFactory
+}
+
+/*
+ * Create connectivity map from host list.  It is the information if a host has connectivity to other host
+ */
+func (m *majorityGroupCalculator) createConnectivityMap(hosts []*models.Host, idToIndex map[strfmt.UUID]int) (connectivityMap, error) {
+	ret := make(connectivityMap)
 	for fromIndex, h := range hosts {
 		if h.Connectivity == "" {
 			continue
 		}
-		var connectivityReport models.ConnectivityReport
-		err = json.Unmarshal([]byte(h.Connectivity), &connectivityReport)
+		query, err := m.hostQueryFactory.create(h)
 		if err != nil {
 			return nil, err
 		}
-		for _, r := range connectivityReport.RemoteHosts {
-			for _, l2 := range r.L2Connectivity {
-				ip := net.ParseIP(l2.RemoteIPAddress)
-				if ip != nil && parsedCidr.Contains(ip) && l2.Successful {
-					toIndex, ok := idToIndex[r.HostID]
-					if ok {
-						ret.add(fromIndex, toIndex, true)
-					}
-					break
-				}
+		for hid := query.next(); hid != ""; hid = query.next() {
+			toIndex, ok := idToIndex[hid]
+			if ok {
+				ret.add(fromIndex, toIndex, true)
 			}
 		}
 	}
 	return ret, nil
 }
 
-/*
- * Crate majority for a cidr.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
- * to the other group members.
- * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
- * largest one
- */
-func CreateMajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, error) {
+func (m *majorityGroupCalculator) createMajorityGroup(hosts []*models.Host) ([]strfmt.UUID, error) {
 	idToIndex := make(map[strfmt.UUID]int)
 	for i, h := range hosts {
 		idToIndex[*h.ID] = i
 	}
-	cMap, err := createMachineCidrConnectivityMap(cidr, hosts, idToIndex)
+	cMap, err := m.createConnectivityMap(hosts, idToIndex)
 	if err != nil {
 		return nil, err
 	}
@@ -296,4 +434,42 @@ func CreateMajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, erro
 		return groups[0].toList(hosts), nil
 	}
 	return make([]strfmt.UUID, 0), nil
+}
+
+func calculateMajoryGroup(hosts []*models.Host, factory hostQueryFactory) ([]strfmt.UUID, error) {
+	calc := &majorityGroupCalculator{
+		hostQueryFactory: factory,
+	}
+	return calc.createMajorityGroup(hosts)
+}
+
+/*
+ * Crate majority for a cidr.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
+ * to the other group members.
+ * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
+ * largest one
+ */
+func CreateL2MajorityGroup(cidr string, hosts []*models.Host) ([]strfmt.UUID, error) {
+	factory, err := newL2QueryFactory(cidr)
+	if err != nil {
+		return nil, err
+	}
+	return calculateMajoryGroup(hosts, factory)
+}
+
+/*
+ * Crate majority for address family.  A majority group is a the largest group of hosts in a cluster that all of them have full mesh
+ * to the other group members.
+ * It is done by taking a sorted connectivity group list according to the group size, and from this group take the
+ * largest one
+ */
+func CreateL3MajorityGroup(hosts []*models.Host, family AddressFamily) ([]strfmt.UUID, error) {
+	if !funk.Contains([]AddressFamily{IPv4, IPv6}, family) {
+		return nil, errors.Errorf("Unexpected address family %+v", family)
+	}
+	factory, err := newL3QueryFactory(hosts, family)
+	if err != nil {
+		return nil, err
+	}
+	return calculateMajoryGroup(hosts, factory)
 }
