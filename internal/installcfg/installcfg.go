@@ -6,7 +6,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/go-openapi/swag"
@@ -143,18 +142,6 @@ func (i *installConfigBuilder) countHostsByRole(cluster *common.Cluster, role mo
 	return count
 }
 
-func (i *installConfigBuilder) getBMHName(host *models.Host, masterIdx, workerIdx *int) string {
-	prefix := "openshift-master-"
-	index := masterIdx
-	if host.Role == models.HostRoleWorker {
-		prefix = "openshift-worker-"
-		index = workerIdx
-	}
-	name := prefix + strconv.Itoa(*index)
-	*index = *index + 1
-	return name
-}
-
 func (i *installConfigBuilder) getNetworkType(cluster *common.Cluster) string {
 	networkType := "OpenShiftSDN"
 	if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) || network.IsIPv6CIDR(cluster.MachineNetworkCidr) || network.IsIPv6CIDR(cluster.ServiceNetworkCidr) {
@@ -277,8 +264,6 @@ func (i *installConfigBuilder) setBMPlatformInstallconfig(cluster *common.Cluste
 	hosts := make([]host, numWorkers+numMasters)
 
 	yamlHostIdx := 0
-	masterIdx := 0
-	workerIdx := 0
 	sortedHosts := make([]*models.Host, len(cluster.Hosts))
 	copy(sortedHosts, cluster.Hosts)
 	sort.Slice(sortedHosts, func(i, j int) bool {
@@ -292,8 +277,9 @@ func (i *installConfigBuilder) setBMPlatformInstallconfig(cluster *common.Cluste
 		if swag.StringValue(host.Status) == models.HostStatusDisabled {
 			continue
 		}
-		i.log.Infof("host name is %s", hostutil.GetHostnameForMsg(host))
-		hosts[yamlHostIdx].Name = i.getBMHName(host, &masterIdx, &workerIdx)
+		hostName := hostutil.GetHostnameForMsg(host)
+		i.log.Infof("host name is %s", hostName)
+		hosts[yamlHostIdx].Name = hostName
 		hosts[yamlHostIdx].Role = string(host.Role)
 
 		var inventory models.Inventory
