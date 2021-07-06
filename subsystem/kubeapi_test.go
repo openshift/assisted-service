@@ -44,6 +44,7 @@ const (
 	clusterAgentClusterInstallNamePrefix = "test-agent-cluster-install"
 	doneStateInfo                        = "Done"
 	clusterInstallStateInfo              = "Cluster is installed"
+	clusterImageSetName                  = "openshift-v4.8.0"
 )
 
 var (
@@ -123,7 +124,6 @@ func updateAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 
 func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, spec *hiveext.AgentClusterInstallSpec,
 	clusterAgentClusterInstallName string) {
-	deployClusterImageSetCRD(ctx, client, spec.ImageSetRef)
 	err := client.Create(ctx, &hiveext.AgentClusterInstall{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "AgentClusterInstall",
@@ -401,7 +401,7 @@ func getDefaultAgentClusterInstallSpec(clusterDeploymentName string) *hiveext.Ag
 			ServiceNetwork: []string{"172.30.0.0/16"},
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
+		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 3,
 			WorkerAgents:       0,
@@ -423,7 +423,7 @@ func getDefaultSNOAgentClusterInstallSpec(clusterDeploymentName string) *hiveext
 			ServiceNetwork: []string{"172.30.0.0/16"},
 		},
 		SSHPublicKey: sshPublicKey,
-		ImageSetRef:  hivev1.ClusterImageSetReference{Name: "openshift-v4.8.0"},
+		ImageSetRef:  hivev1.ClusterImageSetReference{Name: clusterImageSetName},
 		ProvisionRequirements: hiveext.ProvisionRequirements{
 			ControlPlaneAgents: 1,
 			WorkerAgents:       0,
@@ -574,6 +574,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		clusterDeploymentSpec = getDefaultClusterDeploymentSpec(secretRef)
 		aciSpec = getDefaultAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
 		aciSNOSpec = getDefaultSNOAgentClusterInstallSpec(clusterDeploymentSpec.ClusterName)
+		deployClusterImageSetCRD(ctx, kubeClient, aciSpec.ImageSetRef)
 
 		infraNsName = types.NamespacedName{
 			Name:      "infraenv",
@@ -741,15 +742,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
 		}
 
-		imageSetKey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      aciSpec.ImageSetRef.Name,
-		}
-
 		By("Delete AgentClusterInstall")
 		err := kubeClient.Delete(ctx, getAgentClusterInstallCRD(ctx, kubeClient, installkey))
-		Expect(err).To(BeNil())
-		err = kubeClient.Delete(ctx, getClusterImageSetCRD(ctx, kubeClient, imageSetKey))
 		Expect(err).To(BeNil())
 
 		By("Verify AgentClusterInstall was deleted")
@@ -1795,19 +1789,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		infraEnvSpec2 := getDefaultInfraEnvSpec(secretRef, clusterDeploymentSpec2)
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec2)
 		deployInfraEnvCRD(ctx, kubeClient, "infraenv2", infraEnvSpec2)
-		// Create AgentClusterInstall without creating the clusterImageSet
-		err := kubeClient.Create(ctx, &hiveext.AgentClusterInstall{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "AgentClusterInstall",
-				APIVersion: "hiveextension/v1beta1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: Options.Namespace,
-				Name:      clusterDeploymentSpec2.ClusterInstallRef.Name,
-			},
-			Spec: *aciSNOSpec2,
-		})
-		Expect(err).To(BeNil())
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSNOSpec2, clusterDeploymentSpec2.ClusterInstallRef.Name)
 
 		By("Register Agent to new Cluster")
 		clusterKey2 := types.NamespacedName{
@@ -2143,21 +2125,15 @@ var _ = Describe("[kube-api]cluster installation", func() {
 	})
 
 	It("deploy clusterDeployment with missing clusterImageSet", func() {
+		// Remove ClusterImageSet that was created in the test setup
+		imageSetKey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      aciSpec.ImageSetRef.Name,
+		}
+		Expect(kubeClient.Delete(ctx, getClusterImageSetCRD(ctx, kubeClient, imageSetKey))).ShouldNot(HaveOccurred())
 		deployClusterDeploymentCRD(ctx, kubeClient, clusterDeploymentSpec)
+		deployAgentClusterInstallCRD(ctx, kubeClient, aciSpec, clusterDeploymentSpec.ClusterInstallRef.Name)
 
-		// Create AgentClusterInstall without creating the clusterImageSet
-		err := kubeClient.Create(ctx, &hiveext.AgentClusterInstall{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "AgentClusterInstall",
-				APIVersion: "hiveextension/v1beta1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: Options.Namespace,
-				Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
-			},
-			Spec: *aciSpec,
-		})
-		Expect(err).To(BeNil())
 		installkey := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
