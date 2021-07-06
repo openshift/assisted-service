@@ -140,6 +140,8 @@ var _ = Describe("Operators manager", func() {
 			operatorName := common.TestDefaultConfig.MonitoredOperator.Name
 			newStatus := models.OperatorStatusFailed
 
+			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
+
 			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operatorName, newStatus, statusInfo)
 
 			Expect(err).ToNot(HaveOccurred())
@@ -185,16 +187,6 @@ var _ = Describe("Operators manager", func() {
 			for _, operator := range operators {
 				Expect(operator.StatusUpdatedAt.String()).Should(Equal(lastUpdatedTime.String()))
 			}
-		})
-
-		It("Should create an event when CVO is reported", func() {
-			newStatus := models.OperatorStatusAvailable
-			statusInfo := common.TestDefaultConfig.StatusInfo
-
-			mockEvents.EXPECT().AddEvent(gomock.Any(), *cluster.ID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
-
-			err := handler.UpdateMonitoredOperatorStatus(context.TODO(), *cluster.ID, operators.OperatorCVO.Name, newStatus, statusInfo)
-			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
