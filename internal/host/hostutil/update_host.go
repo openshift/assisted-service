@@ -60,6 +60,7 @@ func UpdateHostStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.DB, 
 
 	if newStatus != srcStatus {
 		extra = append(extra, "status_updated_at", strfmt.DateTime(time.Now()))
+		extra = append(extra, "trigger_monitor_timestamp", time.Now())
 	}
 
 	if host, err = UpdateHost(log, db, clusterId, hostId, srcStatus, extra...); err != nil ||
@@ -93,7 +94,7 @@ func UpdateHost(_ logrus.FieldLogger, db *gorm.DB, clusterId strfmt.UUID, hostId
 
 	// Query by <cluster-id, host-id, status>
 	// Status is required as well to avoid races between different components.
-	dbReply := db.Model(&models.Host{}).Where("id = ? and cluster_id = ? and status = ?",
+	dbReply := db.Model(&common.Host{}).Where("id = ? and cluster_id = ? and status = ?",
 		hostId, clusterId, srcStatus).
 		Updates(updates)
 

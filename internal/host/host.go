@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	reflect "reflect"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -300,53 +299,6 @@ func (m *Manager) UpdateInventory(ctx context.Context, h *models.Host, inventory
 	return m.updateInventory(ctx, cluster, h, inventoryStr, m.db)
 }
 
-// Check if the value of the
-func (m *Manager) ntpSyncedChanged(c *common.Cluster, host *models.Host, inventoryStr string) bool {
-	prev, err := common.IsNtpSynced(c)
-	if err != nil {
-		m.log.WithError(err).Error("Checking ntp synced")
-
-		// Sine the was an error we would like to indicate that the synced has changed for safe side
-		return true
-	}
-	for _, h := range c.Hosts {
-		if h.ID.String() == host.ID.String() {
-			h.Inventory = inventoryStr
-			break
-		}
-	}
-	current, err := common.IsNtpSynced(c)
-	if err != nil {
-		m.log.WithError(err).Error("Checking ntp synced")
-
-		// Sine the was an error we would like to indicate that the synced has changed for safe side
-		return true
-	}
-	return prev != current
-}
-
-// Create a JSON encoded inventory that can be compared to other such string for invariance.  Mainly it removes timestamps
-// that are constantly changing
-func canonizeInventory(inventoryStr string) string {
-	var inventory models.Inventory
-	err := json.Unmarshal([]byte(inventoryStr), &inventory)
-	if err != nil {
-		return inventoryStr
-	}
-	inventory.Timestamp = 0
-	if inventory.Memory != nil {
-		inventory.Memory.UsableBytes = 0
-	}
-	for _, d := range inventory.Disks {
-		d.Smart = ""
-	}
-	b, err := json.Marshal(&inventory)
-	if err != nil {
-		return inventoryStr
-	}
-	return string(b)
-}
-
 func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, h *models.Host, inventoryStr string, db *gorm.DB) error {
 	log := logutil.FromContext(ctx, m.log)
 
@@ -394,22 +346,11 @@ func (m *Manager) updateInventory(ctx context.Context, cluster *common.Cluster, 
 	// If there is substantial change in the inventory that might cause the state machine to move to a new status
 	// or one of the validations to change, then the updated_at field has to be modified.  Otherwise, we just
 	// perform update with touching the updated_at field
-	if canonizeInventory(marshalledInventory) != canonizeInventory(h.Inventory) ||
-		installationDiskPath != h.InstallationDiskPath ||
-		installationDiskID != h.InstallationDiskID ||
-		m.ntpSyncedChanged(cluster, h, marshalledInventory) {
-		return db.Model(h).Update(map[string]interface{}{
-			"inventory":              marshalledInventory,
-			"installation_disk_path": installationDiskPath,
-			"installation_disk_id":   installationDiskID,
-		}).Error
-	} else {
-		return db.Model(h).UpdateColumns(map[string]interface{}{
-			"inventory":              marshalledInventory,
-			"installation_disk_path": installationDiskPath,
-			"installation_disk_id":   installationDiskID,
-		}).Error
-	}
+	return db.Model(h).Update(map[string]interface{}{
+		"inventory":              marshalledInventory,
+		"installation_disk_path": installationDiskPath,
+		"installation_disk_id":   installationDiskID,
+	}).Error
 }
 
 func (m *Manager) refreshStatusInternal(ctx context.Context, h *models.Host, c *common.Cluster, db *gorm.DB) error {
@@ -592,54 +533,10 @@ func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.
 	return nil
 }
 
-// Create JSON encoded connectivity report that can be checked against similar string if the
-// connectivity between the current host and other hosts has changed
-func canonizeConnectivity(connectivityReportStr string) string {
-	var connectivityReport models.ConnectivityReport
-	err := json.Unmarshal([]byte(connectivityReportStr), &connectivityReport)
-	if err != nil {
-		return connectivityReportStr
-	}
-	for _, h := range connectivityReport.RemoteHosts {
-		for _, l3 := range h.L3Connectivity {
-			l3.AverageRTTMs = 0
-			l3.PacketLossPercentage = 0
-		}
-		l3 := h.L3Connectivity
-		sort.Slice(l3, func(i, j int) bool {
-			if l3[i].RemoteIPAddress != l3[j].RemoteIPAddress {
-				return l3[i].RemoteIPAddress < l3[j].RemoteIPAddress
-			}
-			return l3[i].OutgoingNic < l3[j].OutgoingNic
-		})
-		l2 := h.L2Connectivity
-		sort.Slice(l2, func(i, j int) bool {
-			if l2[i].RemoteIPAddress != l2[j].RemoteIPAddress {
-				return l2[i].RemoteIPAddress < l2[j].RemoteIPAddress
-			}
-			return l2[i].OutgoingNic < l2[j].OutgoingNic
-		})
-	}
-	sort.Slice(connectivityReport.RemoteHosts, func(i, j int) bool {
-		return connectivityReport.RemoteHosts[i].HostID.String() < connectivityReport.RemoteHosts[j].HostID.String()
-	})
-	b, err := json.Marshal(&connectivityReport)
-	if err != nil {
-		return connectivityReportStr
-	}
-	return string(b)
-}
-
 func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
 	if h.Connectivity != connectivityReport {
-		var err error
 		// Only if the connectivity between the hosts changed change the updated_at field
-		if canonizeConnectivity(h.Connectivity) != canonizeConnectivity(connectivityReport) {
-			err = m.db.Model(h).Update("connectivity", connectivityReport).Error
-		} else {
-			err = m.db.Model(h).UpdateColumn("connectivity", connectivityReport).Error
-		}
-		if err != nil {
+		if err := m.db.Model(h).Update("connectivity", connectivityReport).Error; err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
 		}
 	}
@@ -687,7 +584,7 @@ func (m *Manager) UpdateMachineConfigPoolName(ctx context.Context, db *gorm.DB, 
 		cdb = db
 	}
 
-	return cdb.Model(h).Update("machine_config_pool_name", machineConfigPoolName).Error
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"machine_config_pool_name": machineConfigPoolName, "trigger_monitor_timestamp": time.Now()}).Error
 }
 
 func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*models.NtpSource, db *gorm.DB) error {
@@ -746,7 +643,7 @@ func (m *Manager) UpdateHostname(ctx context.Context, h *models.Host, hostname s
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(h).Update("requested_hostname", hostname).Error
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{"requested_hostname": hostname, "trigger_monitor_timestamp": time.Now()}).Error
 }
 
 func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *models.Host, installationDiskPath string) error {
@@ -775,9 +672,10 @@ func (m *Manager) UpdateInstallationDisk(ctx context.Context, db *gorm.DB, h *mo
 	if db != nil {
 		cdb = db
 	}
-	return cdb.Model(h).Update(map[string]interface{}{
-		"installation_disk_path": h.InstallationDiskPath,
-		"installation_disk_id":   h.InstallationDiskID,
+	return cdb.Model(common.Host{Host: *h}).Updates(map[string]interface{}{
+		"installation_disk_path":    h.InstallationDiskPath,
+		"installation_disk_id":      h.InstallationDiskID,
+		"trigger_monitor_timestamp": time.Now(),
 	}).Error
 }
 
