@@ -64,7 +64,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInstalling)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusInstalling, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
@@ -76,7 +76,7 @@ var _ = Describe("Transition tests", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(models.ClusterStatusInsufficient)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusInsufficient, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 			replay := capi.CancelInstallation(ctx, &c, "", db)
 			Expect(replay).Should(HaveOccurred())
 			Expect(int(replay.StatusCode())).Should(Equal(http.StatusConflict))
@@ -93,7 +93,7 @@ var _ = Describe("Transition tests", func() {
 					Status:     swag.String(models.ClusterStatusError)},
 			}
 			Expect(db.Create(&c).Error).ShouldNot(HaveOccurred())
-			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+			mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusCancelled, models.ClusterStatusError, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 			Expect(capi.CancelInstallation(ctx, &c, "", db)).ShouldNot(HaveOccurred())
 
 			Expect(db.First(&c, "id = ?", c.ID).Error).ShouldNot(HaveOccurred())
@@ -291,11 +291,8 @@ var _ = Describe("Transition tests", func() {
 
 				mockS3Api.EXPECT().DoesObjectExist(gomock.Any(), gomock.Any()).Return(t.uploadKubeConfig, nil).AnyTimes() // Might be affected by the amount of states
 
-				if t.destState != *c.Status {
-					if !t.errorExpected {
-						mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), t.destState, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt).Times(1)
-					}
-				}
+				//duration measurements are always called (even in degraded or failed states)
+				mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), models.ClusterStatusInstalled, models.ClusterStatusFinalizing, gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any())
 
 				capi = NewManager(getDefaultConfig(), common.GetTestLog(), db, eventsHandler, nil, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil)
 
@@ -353,9 +350,12 @@ var _ = Describe("Cancel cluster installation", func() {
 		mockEventsHandler.EXPECT().AddEvent(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
 	}
 
-	acceptClusterInstallationFinished := func(times int) {
-		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(times)
+	acceptClusterInstallationFinished := func() {
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 	}
+
+	installationStates := []string{
+		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing}
 
 	tests := []struct {
 		state      string
@@ -381,10 +381,11 @@ var _ = Describe("Cancel cluster installation", func() {
 				Cluster: models.Cluster{ID: &clusterId, Status: swag.String(t.state)},
 			}
 			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
-			if t.success {
-				acceptClusterInstallationFinished(1)
-			}
+
 			acceptNewEvents(t.eventsNum)
+			if funk.Contains(installationStates, t.state) {
+				acceptClusterInstallationFinished()
+			}
 			err := capi.CancelInstallation(ctx, &cluster, "reason", db)
 			if t.success {
 				Expect(err).ShouldNot(HaveOccurred())
@@ -2855,7 +2856,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 		mockHostAPI.EXPECT().IsRequireUserActionReset(gomock.Any()).Return(false).AnyTimes()
 	}
 	mockMetricsAPIInstallationFinished := func() {
-		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockMetric.EXPECT().ClusterInstallationFinished(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 	}
 
 	BeforeEach(func() {
@@ -3162,8 +3163,8 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				if t.srcState == models.ClusterStatusFinalizing && !t.requiresAMSUpdate {
 					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
 				}
-				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError}
-				if funk.Contains(reportInstallationCompleteStatuses, t.dstState) {
+				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusInstallingPendingUserAction}
+				if funk.Contains(reportInstallationCompleteStatuses, t.dstState) && t.srcState != t.dstState {
 					mockMetricsAPIInstallationFinished()
 				} else if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()

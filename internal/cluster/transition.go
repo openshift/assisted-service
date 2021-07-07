@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 )
 
 var resetLogsField = []interface{}{"logs_info", "", "controller_logs_started_at", strfmt.DateTime(time.Time{}), "controller_logs_collected_at", strfmt.DateTime(time.Time{})}
@@ -472,6 +473,7 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			err            error
 			updatedCluster *common.Cluster
 		)
+		//update cluster record if the state or the reason has changed
 		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) || reason != swag.StringValue(sCluster.cluster.StatusInfo) {
 			var extra []interface{}
 			extra, err = addExtraParams(logutil.FromContext(params.ctx, th.log), sCluster.cluster, swag.StringValue(sCluster.cluster.Status))
@@ -480,6 +482,16 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 			}
 			updatedCluster, err = updateClusterStatus(params.ctx, logutil.FromContext(params.ctx, th.log), params.db, *sCluster.cluster.ID, sCluster.srcState, *sCluster.cluster.Status,
 				reason, params.eventHandler, extra...)
+		}
+
+		//report cluster install duration metrics in case of error. Cancel and Installed cases are
+		//treated separately in CancelInstallation and CompleteInstallation respectively
+		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) &&
+			funk.ContainsString([]string{statusInfoError, statusInfoInstallingPendingUserAction}, reason) {
+
+			params.metricApi.ClusterInstallationFinished(params.ctx, *updatedCluster.Cluster.Status, sCluster.srcState,
+				sCluster.cluster.OpenshiftVersion, *sCluster.cluster.ID, sCluster.cluster.EmailDomain,
+				sCluster.cluster.InstallStartedAt)
 		}
 
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed
