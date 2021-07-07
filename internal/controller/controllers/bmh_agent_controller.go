@@ -1096,17 +1096,20 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		infraEnv := &aiv1beta1.InfraEnv{}
 
 		if err := r.Get(ctx, types.NamespacedName{Name: a.GetName(), Namespace: a.GetNamespace()}, infraEnv); err != nil {
+			r.Log.Debugf("[chocobomb] Failed on r.Get(infraEnv)")
 			return []reconcile.Request{}
 		}
 
 		// Don't queue any reconcile if the InfraEnv
 		// doesn't have the ISODownloadURL set yet.
 		if infraEnv.Status.ISODownloadURL == "" {
+			r.Log.Debugf("[chocobomb] InfraEnv without ISO URL")
 			return []reconcile.Request{}
 		}
 
 		bmhs, err := r.findBMHByInfraEnv(ctx, infraEnv)
 		if len(bmhs) == 0 || err != nil {
+			r.Log.Debugf("[chocobomb] No BMHs for this InfraEnv")
 			return []reconcile.Request{}
 		}
 
@@ -1117,8 +1120,9 @@ func (r *BMACReconciler) SetupWithManager(mgr ctrl.Manager) error {
 			// Don't queue if shouldReconcileBMH explicitly tells us not to do so. If the function
 			// returns a cooldown period, do not stop reconcile immediately here but let the
 			// requeue happen during the reconciliation.
-			queue, _, requeuePeriod, _ := shouldReconcileBMH(bmh, infraEnv)
+			queue, _, requeuePeriod, reason := shouldReconcileBMH(bmh, infraEnv)
 			if !queue && requeuePeriod == 0 {
+				r.Log.Debugf("[chocobomb] Ignoring BMH queueing. Reason: %s", reason)
 				continue
 			}
 
