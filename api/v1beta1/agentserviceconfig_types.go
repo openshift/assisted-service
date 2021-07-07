@@ -121,6 +121,20 @@ const (
 	ReasonImageHandlerDeploymentFailure string = "ImageHandlerDeploymentFailure"
 	// ReasonDeploymentFailure when there was a failure configuring/deploying the assisted-service deployment.
 	ReasonDeploymentFailure string = "DeploymentFailure"
+	// ReasonStorageFailure when there was a failure configuring/deploying the validating webhook.
+	ReasonValidatingWebHookFailure string = "ValidatingWebHookFailure"
+	// ReasonWebHookServiceFailure when there was a failure related to the webhook's service.
+	ReasonWebHookServiceFailure string = "ReasonWebHookServiceFailure"
+	// ReasonWebHookDeploymentFailure when there was a failure configuring/deploying the webhook deployment.
+	ReasonWebHookDeploymentFailure string = "ReasonWebHookDeploymentFailure"
+	// ReasonWebReasonWebHookClusterRoleBindingFailureHookDeploymentFailure when there was a failure configuring/deploying the webhook cluster role binding.
+	ReasonWebHookClusterRoleBindingFailure string = "ReasonWebHookClusterRoleBindingFailure"
+	// ReasonWebHookClusterRoleFailure when there was a failure configuring/deploying the webhook cluster role.
+	ReasonWebHookClusterRoleFailure string = "ReasonWebHookClusterRoleFailure"
+	// ReasonWebHookServiceAccountFailure when there was a failure related to the webhook's service account.
+	ReasonWebHookServiceAccountFailure string = "ReasonWebHookServiceAccountFailure"
+	// ReasonWebHookAPIServiceFailure when there was a failure related to the webhook's API service.
+	ReasonWebHookAPIServiceFailure string = "ReasonWebHookAPIServiceFailure"
 )
 
 // AgentServiceConfigStatus defines the observed state of AgentServiceConfig
