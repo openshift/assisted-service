@@ -51,7 +51,7 @@ function assisted_service() {
   chmod +x operator-sdk_${OS}_${ARCH}
   install operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
-  go get -u github.com/onsi/ginkgo/ginkgo@v1.16.1 \
+  go get github.com/onsi/ginkgo/ginkgo@v1.16.1 \
     golang.org/x/tools/cmd/goimports@v0.1.0 \
     github.com/golang/mock/mockgen@v1.4.3 \
     github.com/vektra/mockery/.../@v1.1.2 \
