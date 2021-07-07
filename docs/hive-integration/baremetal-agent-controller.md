@@ -200,7 +200,7 @@ used to tell the installer what disk to use as the installation disk. Refer to t
 ---
 **NOTE**
 
-We are always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
+BMAC is always setting `automatedCleaningMode: disabled` even if the `BareMetalHost` manifest specifies another value (e.g. `automatedCleaningMode: metadata`). This may be changed in the future releases, but currently we do not support using Ironic to clean the node.
 
 Installation flow
 ===
