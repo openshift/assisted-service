@@ -604,9 +604,9 @@ func newASCWithOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
 	asc.Spec.OSImages = []aiv1beta1.OSImage{
 		{
 			OpenshiftVersion: "4.8",
-			Version:          "47.83.202103251640-0",
-			Url:              "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
-			RootFSUrl:        "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+			Version:          "48",
+			Url:              "4.8.iso",
+			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -614,9 +614,9 @@ func newASCWithOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, string) {
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.8": {
 			DisplayName:  s("4.8"),
-			RhcosVersion: s("47.83.202103251640-0"),
-			RhcosImage:   s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"),
-			RhcosRootfs:  s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"),
+			RhcosVersion: s("48"),
+			RhcosImage:   s("4.8.iso"),
+			RhcosRootfs:  s("4.8.img"),
 		},
 	})
 
@@ -628,15 +628,15 @@ func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, strin
 	asc.Spec.OSImages = []aiv1beta1.OSImage{
 		{
 			OpenshiftVersion: "4.7",
-			Version:          "47.83.202103251640-0",
-			Url:              "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
-			RootFSUrl:        "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+			Version:          "47",
+			Url:              "4.7.iso",
+			RootFSUrl:        "4.7.img",
 		},
 		{
 			OpenshiftVersion: "4.8",
-			Version:          "47.83.202103251640-0",
-			Url:              "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
-			RootFSUrl:        "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+			Version:          "48",
+			Url:              "4.8.iso",
+			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -644,15 +644,15 @@ func newASCWithMultipleOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, strin
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.7": {
 			DisplayName:  s("4.7"),
-			RhcosVersion: s("47.83.202103251640-0"),
-			RhcosImage:   s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"),
-			RhcosRootfs:  s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"),
+			RhcosVersion: s("47"),
+			RhcosImage:   s("4.7.iso"),
+			RhcosRootfs:  s("4.7.img"),
 		},
 		"4.8": {
 			DisplayName:  s("4.8"),
-			RhcosVersion: s("47.83.202103251640-0"),
-			RhcosImage:   s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"),
-			RhcosRootfs:  s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"),
+			RhcosVersion: s("48"),
+			RhcosImage:   s("4.8.iso"),
+			RhcosRootfs:  s("4.8.img"),
 		},
 	})
 
@@ -664,9 +664,9 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 	asc.Spec.OSImages = []aiv1beta1.OSImage{
 		{
 			OpenshiftVersion: "4.7",
-			Version:          "47.83.202103251640-0",
-			Url:              "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
-			RootFSUrl:        "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+			Version:          "47",
+			Url:              "4.7.iso",
+			RootFSUrl:        "4.7.img",
 		},
 		{
 			OpenshiftVersion: "4.8",
@@ -676,9 +676,9 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 		},
 		{
 			OpenshiftVersion: "4.8",
-			Version:          "47.83.202103251640-0",
-			Url:              "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
-			RootFSUrl:        "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+			Version:          "48",
+			Url:              "4.8.iso",
+			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -686,15 +686,15 @@ func newASCWithDuplicateOpenshiftVersions() (*aiv1beta1.AgentServiceConfig, stri
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.7": {
 			DisplayName:  s("4.7"),
-			RhcosVersion: s("47.83.202103251640-0"),
-			RhcosImage:   s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"),
-			RhcosRootfs:  s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"),
+			RhcosVersion: s("47"),
+			RhcosImage:   s("4.7.iso"),
+			RhcosRootfs:  s("4.7.img"),
 		},
 		"4.8": {
 			DisplayName:  s("4.8"),
-			RhcosVersion: s("47.83.202103251640-0"),
-			RhcosImage:   s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"),
-			RhcosRootfs:  s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"),
+			RhcosVersion: s("48"),
+			RhcosImage:   s("4.8.iso"),
+			RhcosRootfs:  s("4.8.img"),
 		},
 	})
 
@@ -707,9 +707,9 @@ func newASCWithInvalidOpenshiftVersion() *aiv1beta1.AgentServiceConfig {
 	asc.Spec.OSImages = []aiv1beta1.OSImage{
 		{
 			OpenshiftVersion: "invalidVersion",
-			Version:          "47.83.202103251640-0",
-			Url:              "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
-			RootFSUrl:        "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+			Version:          "48",
+			Url:              "4.8.iso",
+			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -722,9 +722,9 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 	asc.Spec.OSImages = []aiv1beta1.OSImage{
 		{
 			OpenshiftVersion: "4.8.0",
-			Version:          "47.83.202103251640-0",
-			Url:              "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso",
-			RootFSUrl:        "https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img",
+			Version:          "48",
+			Url:              "4.8.iso",
+			RootFSUrl:        "4.8.img",
 		},
 	}
 
@@ -732,9 +732,9 @@ func newASCWithLongOpenshiftVersion() (*aiv1beta1.AgentServiceConfig, string) {
 	encodedVersions, _ := json.Marshal(map[string]models.OpenshiftVersion{
 		"4.8": {
 			DisplayName:  s("4.8"),
-			RhcosVersion: s("47.83.202103251640-0"),
-			RhcosImage:   s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-4.7.7-x86_64-live.x86_64.iso"),
-			RhcosRootfs:  s("https://mirror.openshift.com/pub/openshift-v4/dependencies/rhcos/4.7/4.7.7/rhcos-live-rootfs.x86_64.img"),
+			RhcosVersion: s("48"),
+			RhcosImage:   s("4.8.iso"),
+			RhcosRootfs:  s("4.8.img"),
 		},
 	})
 
