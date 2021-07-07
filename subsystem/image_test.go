@@ -22,7 +22,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
-var _ = Describe("system-test image tests", func() {
+var _ = PDescribe("system-test image tests", func() {
 	var (
 		ctx         = context.Background()
 		ocpVersions models.OpenshiftVersions
