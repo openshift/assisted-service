@@ -133,15 +133,15 @@ func (mr *MockAPIMockRecorder) Duration(operation, duration interface{}) *gomock
 }
 
 // ClusterInstallationFinished mocks base method
-func (m *MockAPI) ClusterInstallationFinished(ctx context.Context, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
+func (m *MockAPI) ClusterInstallationFinished(ctx context.Context, result, prevState, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "ClusterInstallationFinished", ctx, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
+	m.ctrl.Call(m, "ClusterInstallationFinished", ctx, result, prevState, clusterVersion, clusterID, emailDomain, installationStartedTime)
 }
 
 // ClusterInstallationFinished indicates an expected call of ClusterInstallationFinished
-func (mr *MockAPIMockRecorder) ClusterInstallationFinished(ctx, result, clusterVersion, clusterID, emailDomain, installationStartedTime interface{}) *gomock.Call {
+func (mr *MockAPIMockRecorder) ClusterInstallationFinished(ctx, result, prevState, clusterVersion, clusterID, emailDomain, installationStartedTime interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), ctx, result, clusterVersion, clusterID, emailDomain, installationStartedTime)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ClusterInstallationFinished", reflect.TypeOf((*MockAPI)(nil).ClusterInstallationFinished), ctx, result, prevState, clusterVersion, clusterID, emailDomain, installationStartedTime)
 }
 
 // ReportHostInstallationMetrics mocks base method
