@@ -35,8 +35,22 @@ type baremetal struct {
 }
 
 type platform struct {
-	Baremetal *baremetal    `yaml:"baremetal,omitempty"`
-	None      *platformNone `yaml:"none,omitempty"`
+	Baremetal *baremetal       `yaml:"baremetal,omitempty"`
+	None      *platformNone    `yaml:"none,omitempty"`
+	Vsphere   *platformVsphere `yaml:"vsphere,omitempty"`
+}
+
+type platformVsphere struct {
+	VCenter          string `yaml:"vCenter"`
+	Username         string `yaml:"username"`
+	Password         string `yaml:"password"`
+	Datacenter       string `yaml:"datacenter"`
+	DefaultDatastore string `yaml:"defaultDatastore"`
+	Folder           string `yaml:"folder,omitempty"`
+	Network          string `yaml:"network"`
+	Cluster          string `yaml:"cluster"`
+	APIVIP           string `yaml:"apiVIP"`
+	IngressVIP       string `yaml:"ingressVIP"`
 }
 
 type platformNone struct {
