@@ -9,7 +9,7 @@ resources:
   domain: openshift.io
   group: agent-install
   kind: AgentServiceConfig
-  path: github.com/openshift/assisted-service/internal/controller/api/v1beta1
+  path: github.com/openshift/assisted-service/api/v1beta1
   version: v1beta1
 version: "3"
 plugins:

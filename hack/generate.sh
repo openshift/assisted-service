@@ -124,7 +124,7 @@ function generate_manifests() {
 
 function generate_bundle() {
     ENABLE_KUBE_API=true generate_manifests
-    operator-sdk generate kustomize manifests --apis-dir internal/controller/api -q
+    operator-sdk generate kustomize manifests --apis-dir api -q
     kustomize build config/manifests | operator-sdk generate bundle -q --overwrite=true --output-dir ${BUNDLE_OUTPUT_DIR} ${BUNDLE_METADATA_OPTS}
     # TODO(djzager) structure config/rbac in such a way to avoid need for this
     rm ${BUNDLE_OUTPUT_DIR}/manifests/assisted-service_v1_serviceaccount.yaml
