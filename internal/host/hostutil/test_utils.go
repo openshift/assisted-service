@@ -251,7 +251,7 @@ func GenerateInventoryWithResourcesAndMultipleDisk(cpu, memory int64, hostname s
 	return string(b)
 }
 
-func GenerateInventoryWithResourcesWithBytes(cpu, memory int64, hostname string) string {
+func GenerateInventoryWithResourcesWithBytes(cpu, physicalMemory int64, usableMemory int64, hostname string) string {
 	inventory := models.Inventory{
 		CPU: &models.CPU{Count: cpu, Flags: []string{"vmx"}},
 		Disks: []*models.Disk{
@@ -268,7 +268,7 @@ func GenerateInventoryWithResourcesWithBytes(cpu, memory int64, hostname string)
 				},
 			},
 		},
-		Memory:       &models.Memory{PhysicalBytes: memory, UsableBytes: memory},
+		Memory:       &models.Memory{PhysicalBytes: physicalMemory, UsableBytes: usableMemory},
 		Hostname:     hostname,
 		SystemVendor: &models.SystemVendor{Manufacturer: "Red Hat", ProductName: "RHEL", SerialNumber: "3534"},
 		Timestamp:    1601835002,

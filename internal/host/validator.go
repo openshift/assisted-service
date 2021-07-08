@@ -357,7 +357,7 @@ func (v *validator) printHasMemoryForRole(c *validationContext, status Validatio
 		return fmt.Sprintf("Sufficient RAM for role %s", c.host.Role)
 	case ValidationFailure:
 		return fmt.Sprintf("Require at least %s RAM for role %s, found only %s",
-			conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), c.host.Role, conversions.BytesToString(c.inventory.Memory.PhysicalBytes))
+			conversions.BytesToString(conversions.MibToBytes(c.clusterHostRequirements.Total.RAMMib)), c.host.Role, conversions.BytesToString(c.inventory.Memory.UsableBytes))
 	case ValidationPending:
 		return "Missing inventory or role"
 	default:
