@@ -206,7 +206,7 @@ data:
 
     $(registry_config "$(get_image_namespace ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" "${LOCAL_REGISTRY}/$(get_image_namespace_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_namespace ${cli_image})" "${LOCAL_REGISTRY}/$(get_image_namespace_without_registry ${cli_image})")
-    $(for row in $(kubectl get imagecontentsourcepolicy -o json | jq -rc '.items[] | select(.metadata.name | test("community-operator-")).spec.repositoryDigestMirrors[] | [.mirrors[0], .source]'); do
+    $(for row in $(kubectl get imagecontentsourcepolicy -o json | jq -rc '.items[] | .spec.repositoryDigestMirrors[] | [.mirrors[0], .source]'); do
       row=$(echo ${row} | tr -d '[]"');
       source=$(echo ${row} | cut -d',' -f2);
       mirror=$(echo ${row} | cut -d',' -f1);
