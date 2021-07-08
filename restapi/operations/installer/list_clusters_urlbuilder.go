@@ -18,6 +18,7 @@ import (
 type ListClustersURL struct {
 	AmsSubscriptionIds []string
 	OpenshiftClusterID *strfmt.UUID
+	WithHosts          bool
 
 	_basePath string
 	// avoid unkeyed usage
@@ -76,6 +77,11 @@ func (o *ListClustersURL) Build() (*url.URL, error) {
 	}
 	if openshiftClusterIDQ != "" {
 		qs.Set("openshift_cluster_id", openshiftClusterIDQ)
+	}
+
+	withHostsQ := swag.FormatBool(o.WithHosts)
+	if withHostsQ != "" {
+		qs.Set("with_hosts", withHostsQ)
 	}
 
 	_result.RawQuery = qs.Encode()

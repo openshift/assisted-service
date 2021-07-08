@@ -118,6 +118,12 @@ paths:
           type: array
           items:
             type: string
+        - in: query
+          name: with_hosts
+          description: Include hosts in the returned list.
+          type: boolean
+          allowEmptyValue: true
+          default: false
       responses:
         "200":
           description: Success.

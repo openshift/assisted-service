@@ -24,10 +24,14 @@ func NewListClustersParams() ListClustersParams {
 		// initialize parameters with default values
 
 		getUnregisteredClustersDefault = bool(false)
+
+		withHostsDefault = bool(false)
 	)
 
 	return ListClustersParams{
 		GetUnregisteredClusters: &getUnregisteredClustersDefault,
+
+		WithHosts: withHostsDefault,
 	}
 }
 
@@ -53,6 +57,11 @@ type ListClustersParams struct {
 	  In: query
 	*/
 	OpenshiftClusterID *strfmt.UUID
+	/*Include hosts in the returned list.
+	  In: query
+	  Default: false
+	*/
+	WithHosts bool
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
@@ -77,6 +86,11 @@ func (o *ListClustersParams) BindRequest(r *http.Request, route *middleware.Matc
 
 	qOpenshiftClusterID, qhkOpenshiftClusterID, _ := qs.GetOK("openshift_cluster_id")
 	if err := o.bindOpenshiftClusterID(qOpenshiftClusterID, qhkOpenshiftClusterID, route.Formats); err != nil {
+		res = append(res, err)
+	}
+
+	qWithHosts, qhkWithHosts, _ := qs.GetOK("with_hosts")
+	if err := o.bindWithHosts(qWithHosts, qhkWithHosts, route.Formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -170,5 +184,28 @@ func (o *ListClustersParams) validateOpenshiftClusterID(formats strfmt.Registry)
 	if err := validate.FormatOf("openshift_cluster_id", "query", "uuid", o.OpenshiftClusterID.String(), formats); err != nil {
 		return err
 	}
+	return nil
+}
+
+// bindWithHosts binds and validates parameter WithHosts from query.
+func (o *ListClustersParams) bindWithHosts(rawData []string, hasKey bool, formats strfmt.Registry) error {
+	var raw string
+	if len(rawData) > 0 {
+		raw = rawData[len(rawData)-1]
+	}
+
+	// Required: false
+	// AllowEmptyValue: true
+	if raw == "" { // empty values pass all other validations
+		// Default values have been previously initialized by NewListClustersParams()
+		return nil
+	}
+
+	value, err := swag.ConvertBool(raw)
+	if err != nil {
+		return errors.InvalidType("with_hosts", "query", "bool", raw)
+	}
+	o.WithHosts = value
+
 	return nil
 }
