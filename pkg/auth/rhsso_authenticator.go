@@ -312,7 +312,6 @@ func (a *RHSSOAuthenticator) CreateAuthenticator() func(name, in string, authent
 				return true, nil, common.NewApiError(http.StatusInternalServerError, err)
 			}
 			if !ownedBy {
-				log.Errorf("Unauthorized access to cluster %s by a user other than the owner\n", clusterID)
 				return true, nil, common.NewApiError(http.StatusNotFound, errors.New("Cluster Not Found"))
 			}
 
