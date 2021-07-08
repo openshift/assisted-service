@@ -491,12 +491,37 @@ func getNumEnabledHosts(hosts []*models.Host) int {
 	}
 	return ret
 }
+func (v *validator) belongsToL2MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
+	if c.cluster.MachineNetworkCidr == "" {
+		return ValidationPending
+	}
+	return boolValue(funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID))
+}
+
+func (v *validator) belongsToL3MajorityGroup(c *validationContext, majorityGroups map[string][]strfmt.UUID) ValidationStatus {
+	ipv4, ipv6, err := network.GetConfiguredAddressFamilies(c.cluster)
+	if err != nil {
+		v.log.WithError(err).Warn("Get configured address families")
+		return ValidationError
+	}
+	if !(ipv4 || ipv6) {
+		return ValidationFailure
+	}
+	ret := true
+	if ipv4 {
+		ret = ret && funk.Contains(majorityGroups[network.IPv4.String()], *c.host.ID)
+	}
+	if ipv6 {
+		ret = ret && funk.Contains(majorityGroups[network.IPv6.String()], *c.host.ID)
+	}
+	return boolValue(ret)
+}
 
 func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatus {
-	if hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
+	if hostutil.IsDay2Host(c.host) || common.IsSingleNodeCluster(c.cluster) {
 		return ValidationSuccess
 	}
-	if c.cluster.MachineNetworkCidr == "" || c.cluster.ConnectivityMajorityGroups == "" {
+	if c.cluster.ConnectivityMajorityGroups == "" {
 		return ValidationPending
 	}
 	var majorityGroups map[string][]strfmt.UUID
@@ -505,13 +530,16 @@ func (v *validator) belongsToMajorityGroup(c *validationContext) ValidationStatu
 		v.log.WithError(err).Warn("Parse majority group")
 		return ValidationError
 	}
-	if funk.Contains(majorityGroups[c.cluster.MachineNetworkCidr], *c.host.ID) {
-		return ValidationSuccess
-	} else if getNumEnabledHosts(c.cluster.Hosts) < 3 {
-		// The minimum non disabled hosts for connectivity check is 3
+	var ret ValidationStatus
+	if swag.BoolValue(c.cluster.UserManagedNetworking) {
+		ret = v.belongsToL3MajorityGroup(c, majorityGroups)
+	} else {
+		ret = v.belongsToL2MajorityGroup(c, majorityGroups)
+	}
+	if ret == ValidationFailure && getNumEnabledHosts(c.cluster.Hosts) < 3 {
 		return ValidationPending
 	}
-	return ValidationFailure
+	return ret
 }
 
 func (v *validator) printBelongsToMajorityGroup(c *validationContext, status ValidationStatus) string {
@@ -519,9 +547,6 @@ func (v *validator) printBelongsToMajorityGroup(c *validationContext, status Val
 	case ValidationSuccess:
 		if hostutil.IsDay2Host(c.host) {
 			return "Day2 host is not required to be connected to other hosts in the cluster"
-		}
-		if swag.BoolValue(c.cluster.UserManagedNetworking) {
-			return "L2 connectivy validation skipped: User Managed Networking"
 		}
 		return "Host has connectivity to the majority of hosts in the cluster"
 	case ValidationFailure:
