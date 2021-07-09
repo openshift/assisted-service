@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"net/http"
 
+	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	"github.com/openshift/assisted-service/internal/common"
-	hiveext "github.com/openshift/assisted-service/internal/controller/api/hiveextension/v1beta1"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	"github.com/pkg/errors"

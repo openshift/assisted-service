@@ -20,7 +20,7 @@ The ClusterDeployment can have a reference to an AgentClusterInstall (`Spec.Clus
 Deletion of ClusterDeployment will trigger the `clusterdeployments.agent-install.openshift.io/ai-deprovision` finalizer pre-deletion logic, which will delete the referenced AgentClusterInstall.
 
 
-### [AgentClusterInstall](../../internal/controller/api/hiveextension/v1beta1/agentclusterinstall_types.go)
+### [AgentClusterInstall](../../api/hiveextension/v1beta1/agentclusterinstall_types.go)
 In the AgentClusterInstall, the user can specify requirements like Networking, number of Control Plane and Worker nodes and more.
 
 The installation will start automatically if the required number of hosts is available, the hosts are ready to be installed and the Agents are approved.
@@ -56,7 +56,7 @@ The `DebugInfo` field under `Status` provides additional information for debuggi
 
 
 
-### [InfraEnv](../../internal/controller/api/v1beta1/infraenv_types.go)
+### [InfraEnv](../../api/v1beta1/infraenv_types.go)
 The InfraEnv CRD represents the configuration needed to create the discovery ISO.
 The user can specify proxy settings, ignition overrides and specify NMState labels.
 
@@ -67,7 +67,7 @@ The InfraEnv reflects the image creation status through Conditions.
 More details on conditions is available [here](kube-api-conditions.md)
 
 
-### [NMStateConfig](../../internal/controller/api/v1beta1/nmstate_config_types.go)
+### [NMStateConfig](../../api/v1beta1/nmstate_config_types.go)
 The NMStateConfig contains network configuration that will applied on the hosts. See NMState repository [here](https://github.com/nmstate/nmstate).
 
 To link between an InfraEnv to NMState (either one or more):
@@ -83,7 +83,7 @@ The InfraEnv controller will watch for NMState config creation/changes and searc
 The reason is that InfraEnv doesn't have a way to know how many NMStateConfigs to expect; therefore, it re-creates its ISO when new NMStateConfigs are found.
 The new ISO automatically propagates to any agents that haven't yet started installing.**
 
-### [Agent](../../internal/controller/api/v1beta1/agent_types.go)
+### [Agent](../../api/v1beta1/agent_types.go)
 The Agent CRD represents a Host that boot from an ISO and registered to a cluster.
 It will be created by Assisted Service when a host registers.
 In the Agent, the user can specify the hostname, role, installation disk and more.

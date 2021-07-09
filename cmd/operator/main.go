@@ -23,7 +23,7 @@ import (
 	"os"
 
 	routev1 "github.com/openshift/api/route/v1"
-	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/models"
 	"github.com/sirupsen/logrus"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-openapi/strfmt"
 	"github.com/jinzhu/gorm"
-	aiv1beta1 "github.com/openshift/assisted-service/internal/controller/api/v1beta1"
+	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
