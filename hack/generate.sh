@@ -52,8 +52,7 @@ function generate_keys() {
 }
 
 function generate_from_swagger() {
-    #TODO: Add this back when https://github.com/stoplightio/spectral/issues/1745 is resolved
-    #lint_swagger
+    lint_swagger
     generate_go_client
     generate_go_server
 }
