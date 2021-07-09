@@ -46,7 +46,8 @@ function assisted_service() {
   curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
     | sh -s -- -b $(go env GOPATH)/bin v1.36.0
 
-  curl --retry 5 -L https://raw.githack.com/stoplightio/spectral/master/scripts/install.sh | sh
+  #TODO: Add this back when https://github.com/stoplightio/spectral/issues/1745 is resolved
+  #curl --retry 5 -L https://raw.githack.com/stoplightio/spectral/master/scripts/install.sh | sh
 
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
   OS=$(uname | awk '{print tolower($0)}')
