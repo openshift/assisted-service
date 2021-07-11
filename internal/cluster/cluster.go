@@ -868,7 +868,7 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 	})
 	majorityGroups := make(map[string][]strfmt.UUID)
 	for _, cidr := range network.GetClusterNetworks(hosts, m.log) {
-		majorityGroup, err := network.CreateMajorityGroup(cidr, hosts)
+		majorityGroup, err := network.CreateL2MajorityGroup(cidr, hosts)
 		if err != nil {
 			m.log.WithError(err).Warnf("Create majority group for %s", cidr)
 			continue
