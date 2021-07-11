@@ -159,7 +159,9 @@ type AgentClusterInstallStatus struct {
 	WorkerAgentsReady int `json:"workerAgentsReady,omitempty"`
 
 	ConnectivityMajorityGroups string `json:"connectivityMajorityGroups,omitempty"`
-
+	// MachineNetwork is the list of IP address pools for machines.
+	// +optional
+	MachineNetwork []MachineNetworkEntry `json:"machineNetwork,omitempty"`
 	// DebugInfo includes information for debugging the installation process.
 	// +optional
 	DebugInfo DebugInfo `json:"debugInfo"`
