@@ -645,11 +645,19 @@ func (m *Manager) VerifyClusterUpdatability(c *common.Cluster) (err error) {
 func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, reason string, db *gorm.DB) *common.ApiErrorResponse {
 	eventSeverity := models.EventSeverityInfo
 	eventInfo := "Cancelled cluster installation"
+	lastState := newStateCluster(c)
+	installationStates := []string{
+		models.ClusterStatusPreparingForInstallation, models.ClusterStatusInstalling, models.ClusterStatusFinalizing}
 	defer func() {
 		m.eventsHandler.AddEvent(ctx, *c.ID, nil, eventSeverity, eventInfo, time.Now())
+		//metrics for cancel as final state are calculated only when the transition to cancel was made
+		//from one of the installing states
+		if funk.Contains(installationStates, lastState.srcState) {
+			m.metricAPI.ClusterInstallationFinished(ctx, models.ClusterStatusCancelled, lastState.srcState, c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
+		}
 	}()
 
-	err := m.sm.Run(TransitionTypeCancelInstallation, newStateCluster(c), &TransitionArgsCancelInstallation{
+	err := m.sm.Run(TransitionTypeCancelInstallation, lastState, &TransitionArgsCancelInstallation{
 		ctx:    ctx,
 		reason: reason,
 		db:     db,
@@ -659,7 +667,6 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 		eventInfo = fmt.Sprintf("Failed to cancel installation: %s", err.Error())
 		return common.NewApiError(http.StatusConflict, err)
 	}
-	m.metricAPI.ClusterInstallationFinished(ctx, "canceled", c.OpenshiftVersion, *c.ID, c.EmailDomain, c.InstallStartedAt)
 	return nil
 }
 
@@ -1064,6 +1071,11 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 	severity := models.EventSeverityInfo
 	eventMsg := fmt.Sprintf("Successfully finished installing cluster %s", cluster.Name)
 
+	defer func() {
+		m.metricAPI.ClusterInstallationFinished(ctx, result, models.ClusterStatusFinalizing, cluster.OpenshiftVersion,
+			*cluster.ID, cluster.EmailDomain, cluster.InstallStartedAt)
+	}()
+
 	if successfullyFinished {
 		destStatus = models.ClusterStatusInstalled
 
@@ -1092,7 +1104,5 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 		eventMsg = fmt.Sprintf("Failed installing cluster %s. Reason: %s", cluster.Name, reason)
 	}
 	m.eventsHandler.AddEvent(ctx, *cluster.ID, nil, severity, eventMsg, time.Now())
-	m.metricAPI.ClusterInstallationFinished(ctx, result, cluster.OpenshiftVersion,
-		*cluster.ID, cluster.EmailDomain, cluster.InstallStartedAt)
 	return clusterAfterUpdate, nil
 }
