@@ -1450,6 +1450,8 @@ func clusterValidated(clusterInstall *hiveext.AgentClusterInstall, status string
 func setClusterConditionsUnknown(clusterInstall *hiveext.AgentClusterInstall) {
 	clusterInstall.Status.DebugInfo.State = ""
 	clusterInstall.Status.DebugInfo.StateInfo = ""
+	clusterInstall.Status.DebugInfo.LogsURL = ""
+	clusterInstall.Status.DebugInfo.EventsURL = ""
 	setClusterCondition(&clusterInstall.Status.Conditions, hivev1.ClusterInstallCondition{
 		Type:    hiveext.ClusterValidatedCondition,
 		Status:  corev1.ConditionUnknown,
