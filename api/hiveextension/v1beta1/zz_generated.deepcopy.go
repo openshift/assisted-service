@@ -134,6 +134,11 @@ func (in *AgentClusterInstallStatus) DeepCopyInto(out *AgentClusterInstallStatus
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
+	if in.MachineNetwork != nil {
+		in, out := &in.MachineNetwork, &out.MachineNetwork
+		*out = make([]MachineNetworkEntry, len(*in))
+		copy(*out, *in)
+	}
 	out.DebugInfo = in.DebugInfo
 }
 

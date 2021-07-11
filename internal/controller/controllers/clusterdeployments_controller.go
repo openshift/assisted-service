@@ -1123,6 +1123,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 	clusterSpecSynced(clusterInstall, syncErr)
 	if c != nil {
 		clusterInstall.Status.ConnectivityMajorityGroups = c.ConnectivityMajorityGroups
+		clusterInstall.Status.MachineNetwork = []hiveext.MachineNetworkEntry{{CIDR: c.MachineNetworkCidr}}
 
 		if c.Status != nil {
 			clusterInstall.Status.DebugInfo.State = swag.StringValue(c.Status)

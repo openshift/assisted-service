@@ -242,6 +242,18 @@ spec:
                     description: Additional information pertaining to the status of the AgentClusterInstall
                     type: string
                 type: object
+              machineNetwork:
+                description: MachineNetwork is the list of IP address pools for machines.
+                items:
+                  description: MachineNetworkEntry is a single IP address block for node IP blocks.
+                  properties:
+                    cidr:
+                      description: CIDR is the IP block address pool for machines within the cluster.
+                      type: string
+                  required:
+                  - cidr
+                  type: object
+                type: array
               workerAgentsDiscovered:
                 description: WorkerAgentsDiscovered is the number of worker Agents currently linked to this ClusterDeployment.
                 type: integer
