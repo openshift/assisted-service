@@ -101,7 +101,7 @@ type API interface {
 	InstallationStarted(clusterVersion string, clusterID strfmt.UUID, emailDomain string, userManagedNetworking string)
 	ClusterHostInstallationCount(clusterID strfmt.UUID, emailDomain string, hostCount int, clusterVersion string)
 	Duration(operation string, duration time.Duration)
-	ClusterInstallationFinished(ctx context.Context, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
+	ClusterInstallationFinished(ctx context.Context, result, prevState, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime)
 	ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage)
 	DiskSyncDuration(clusterID strfmt.UUID, hostID strfmt.UUID, diskPath string, syncDuration int64)
 	ImagePullStatus(clusterID, hostID strfmt.UUID, imageName, resultStatus string, downloadRate float64)
@@ -367,10 +367,10 @@ func (m *MetricsManager) ClusterHostInstallationCount(clusterID strfmt.UUID, ema
 	m.serviceLogicClusterHostInstallationCount.WithLabelValues(clusterVersion, clusterID.String(), emailDomain).Observe(float64(hostCount))
 }
 
-func (m *MetricsManager) ClusterInstallationFinished(ctx context.Context, result, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
+func (m *MetricsManager) ClusterInstallationFinished(ctx context.Context, result string, prevState string, clusterVersion string, clusterID strfmt.UUID, emailDomain string, installationStartedTime strfmt.DateTime) {
 	duration := time.Since(time.Time(installationStartedTime)).Seconds()
 	m.handler.AddMetricsEvent(ctx, clusterID, nil, models.EventSeverityInfo, "cluster.installation.results", time.Now(),
-		"duration", duration, "result", result)
+		"duration", duration, "result", result, "lastState", prevState)
 
 	//MGMT-4526 TODO: remove this scrap after ELK dashboards are verified
 	log := logutil.FromContext(ctx, logrus.New())
