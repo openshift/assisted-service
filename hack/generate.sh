@@ -8,7 +8,11 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)"
 
 function lint_swagger() {
-    spectral lint swagger.yaml
+    if ! command -v spectral &> /dev/null; then
+        docker run --rm -it docker.io/stoplight/spectral:latest lint swagger.yaml
+    else
+        spectral lint swagger.yaml
+    fi
 }
 
 function generate_go_server() {
