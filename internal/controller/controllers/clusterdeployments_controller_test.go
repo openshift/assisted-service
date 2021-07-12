@@ -325,6 +325,30 @@ var _ = Describe("cluster reconcile", func() {
 				validateCreation(cluster)
 			})
 
+			It("no pull secret name when trying to create a cluster", func() {
+				cluster := newClusterDeployment(clusterName, testNamespace,
+					getDefaultClusterDeploymentSpec(clusterName, agentClusterInstallName, ""))
+				Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+
+				aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, getDefaultSNOAgentClusterInstallSpec(clusterName), cluster)
+				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+
+				request := newClusterDeploymentRequest(cluster)
+				result, err := cr.Reconcile(ctx, request)
+				Expect(err).To(BeNil())
+				Expect(result).To(Equal(ctrl.Result{RequeueAfter: defaultRequeueAfterOnError}))
+
+				aci = getTestClusterInstall()
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotAvailableMsg))
+				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
+				Expect(aci.Status.DebugInfo.State).To(Equal(""))
+				Expect(aci.Status.DebugInfo.StateInfo).To(Equal(""))
+				Expect(aci.Status.DebugInfo.LogsURL).To(Equal(""))
+				Expect(aci.Status.DebugInfo.EventsURL).To(Equal(""))
+			})
+
 			It("fail to get openshift version when trying to create a cluster", func() {
 				mockInstallerInternal.EXPECT().AddOpenshiftVersion(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("some-error"))
 
@@ -345,6 +369,10 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
 				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotAvailableMsg))
 				Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
+				Expect(aci.Status.DebugInfo.State).To(Equal(""))
+				Expect(aci.Status.DebugInfo.StateInfo).To(Equal(""))
+				Expect(aci.Status.DebugInfo.LogsURL).To(Equal(""))
+				Expect(aci.Status.DebugInfo.EventsURL).To(Equal(""))
 			})
 		})
 
@@ -371,6 +399,30 @@ var _ = Describe("cluster reconcile", func() {
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Status).To(Equal(corev1.ConditionFalse))
 			Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Message).To(Equal(expectedState))
 		})
+	})
+
+	It("backend internal error when trying to retrieve cluster details", func() {
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(nil, errors.New("internal error"))
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+
+		_, err := cr.Reconcile(ctx, request)
+		Expect(err).To(BeNil())
+
+		aci = getTestClusterInstall()
+
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterSpecSyncedCondition).Reason).To(Equal(hiveext.ClusterBackendErrorReason))
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Reason).To(Equal(hiveext.ClusterNotAvailableReason))
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Message).To(Equal(hiveext.ClusterNotAvailableMsg))
+		Expect(FindStatusCondition(aci.Status.Conditions, hiveext.ClusterRequirementsMetCondition).Status).To(Equal(corev1.ConditionUnknown))
+		Expect(aci.Status.DebugInfo.State).To(Equal(""))
+		Expect(aci.Status.DebugInfo.StateInfo).To(Equal(""))
+		Expect(aci.Status.DebugInfo.LogsURL).To(Equal(""))
+		Expect(aci.Status.DebugInfo.EventsURL).To(Equal(""))
 	})
 
 	It("not supported platform", func() {
