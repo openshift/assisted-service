@@ -1,11 +1,9 @@
-FROM        registry.ci.openshift.org/openshift/release:golang-1.15
+FROM        registry.ci.openshift.org/openshift/release:golang-1.16
 
 ENV         GO111MODULE=on
 ENV         GOFLAGS=""
 
 WORKDIR     /assisted-service
-
-COPY        . ./
 
 RUN         curl -sSfL \
 https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | \
@@ -16,6 +14,8 @@ github.com/onsi/ginkgo/ginkgo@v1.12.2 \
 golang.org/x/tools/cmd/goimports@v0.0.0-20200616195046-dc31b401abb5 \
 github.com/golang/mock/mockgen@v1.4.3 \
 github.com/vektra/mockery/.../@v1.1.2
+
+COPY        . ./
 
 ENTRYPOINT  ["make"]
 CMD         ["build-minimal"]
