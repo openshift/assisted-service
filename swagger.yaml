@@ -7,7 +7,7 @@ info:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
 host: api.openshift.com
-basePath: /api/assisted-install/v1
+basePath: /api/assisted-install
 tags:
   - name: Assisted installation
     description: Agent-driven installation
@@ -52,7 +52,7 @@ security:
   - userAuth: [admin, user]
 
 paths:
-  /clusters:
+  /v1/clusters:
     post:
       tags:
         - installer
@@ -150,7 +150,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}:
+  /v1/clusters/{cluster_id}:
     get:
       tags:
         - installer
@@ -299,7 +299,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/downloads/image:
+  /v1/clusters/{cluster_id}/downloads/image:
     post:
       tags:
         - installer
@@ -452,7 +452,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/downloads/files:
+  /v1/clusters/{cluster_id}/downloads/files:
     get:
       tags:
         - installer
@@ -516,7 +516,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/downloads/files-presigned:
+  /v1/clusters/{cluster_id}/downloads/files-presigned:
     get:
       tags:
         - installer
@@ -588,7 +588,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/credentials:
+  /v1/clusters/{cluster_id}/credentials:
     get:
       tags:
         - installer
@@ -633,7 +633,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/downloads/kubeconfig:
+  /v1/clusters/{cluster_id}/downloads/kubeconfig:
     get:
       tags:
         - installer
@@ -681,7 +681,7 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
-  /clusters/default-config:
+  /v1/clusters/default-config:
     get:
       tags:
         - installer
@@ -707,7 +707,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/install-config:
+  /v1/clusters/{cluster_id}/install-config:
     get:
       tags:
         - installer
@@ -793,7 +793,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/discovery-ignition:
+  /v1/clusters/{cluster_id}/discovery-ignition:
     get:
       tags:
         - installer
@@ -882,7 +882,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/manifests:
+  /v1/clusters/{cluster_id}/manifests:
     get:
       tags:
         - manifests
@@ -1033,7 +1033,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/manifests/files:
+  /v1/clusters/{cluster_id}/manifests/files:
     get:
       tags:
         - manifests
@@ -1092,7 +1092,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/uploads/ingress-cert:
+  /v1/clusters/{cluster_id}/uploads/ingress-cert:
     post:
       tags:
         - installer
@@ -1150,7 +1150,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/actions/install:
+  /v1/clusters/{cluster_id}/actions/install:
     post:
       tags:
         - installer
@@ -1197,7 +1197,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/actions/cancel:
+  /v1/clusters/{cluster_id}/actions/cancel:
     post:
       tags:
         - installer
@@ -1240,7 +1240,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/actions/install_hosts:
+  /v1/clusters/{cluster_id}/actions/install_hosts:
     post:
       tags:
         - installer
@@ -1287,7 +1287,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/actions/reset:
+  /v1/clusters/{cluster_id}/actions/reset:
     post:
       tags:
         - installer
@@ -1330,7 +1330,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/actions/complete_installation:
+  /v1/clusters/{cluster_id}/actions/complete_installation:
     post:
       tags:
         - installer
@@ -1390,7 +1390,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts:
+  /v1/clusters/{cluster_id}/hosts:
     post:
       tags:
         - installer
@@ -1500,7 +1500,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}:
+  /v1/clusters/{cluster_id}/hosts/{host_id}:
     get:
       tags:
         - installer
@@ -1593,7 +1593,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/installer-args:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args:
     patch:
       tags:
         - installer
@@ -1652,7 +1652,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/progress:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/progress:
     put:
       tags:
         - installer
@@ -1712,7 +1712,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/actions/enable:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable:
     post:
       tags:
         - installer
@@ -1809,7 +1809,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/actions/install:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install:
     post:
       tags:
         - installer
@@ -1854,7 +1854,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/actions/reset:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset:
     post:
       tags:
         - installer
@@ -1899,7 +1899,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}:
     patch:
       tags:
         - installer
@@ -1954,7 +1954,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/instructions:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/instructions:
     get:
       tags:
         - installer
@@ -2072,7 +2072,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/logs_progress:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress:
     put:
       tags:
         - installer
@@ -2131,7 +2131,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/logs:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/logs:
     post:
       tags:
         - installer
@@ -2247,7 +2247,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/ignition:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/ignition:
     get:
       tags:
         - installer
@@ -2347,7 +2347,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition:
+  /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition:
     get:
       tags:
         - installer
@@ -2405,7 +2405,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/logs_progress:
+  /v1/clusters/{cluster_id}/logs_progress:
     put:
       tags:
         - installer
@@ -2458,7 +2458,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/logs:
+  /v1/clusters/{cluster_id}/logs:
     post:
       tags:
         - installer
@@ -2578,7 +2578,7 @@ paths:
             $ref: '#/definitions/error'
 
   # The following API call should be admin only
-  /clusters/{cluster_id}/free_addresses:
+  /v1/clusters/{cluster_id}/free_addresses:
     get:
       tags:
         - installer
@@ -2638,7 +2638,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/events:
+  /v1/clusters/{cluster_id}/events:
     get:
       tags:
         - events
@@ -2693,7 +2693,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/monitored_operators:
+  /v1/clusters/{cluster_id}/monitored_operators:
     get:
       tags:
         - operators
@@ -2796,7 +2796,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/host-requirements:
+  /v1/clusters/{cluster_id}/host-requirements:
     get:
       tags:
         - installer
@@ -2837,7 +2837,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /clusters/{cluster_id}/preflight-requirements:
+  /v1/clusters/{cluster_id}/preflight-requirements:
     get:
       tags:
         - installer
@@ -2878,7 +2878,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /domains:
+  /v1/domains:
     get:
       tags:
         - managed_domains
@@ -2896,7 +2896,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /component_versions:
+  /v1/component_versions:
     get:
       tags:
         - versions
@@ -2910,7 +2910,7 @@ paths:
           schema:
             $ref: '#/definitions/list-versions'
 
-  /openshift_versions:
+  /v1/openshift_versions:
     get:
       tags:
         - versions
@@ -2928,7 +2928,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /supported-operators:
+  /v1/supported-operators:
     get:
       tags:
         - operators
@@ -2954,7 +2954,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /supported-operators/{operator_name}:
+  /v1/supported-operators/{operator_name}:
     get:
       tags:
         - operators
@@ -2989,7 +2989,7 @@ paths:
           description: Error.
           schema:
             $ref: '#/definitions/error'
-  /host_requirements:
+  /v1/host_requirements:
     get:
       tags:
         - installer
@@ -3026,7 +3026,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /add_hosts_clusters:
+  /v1/add_hosts_clusters:
     post:
       tags:
         - installer
@@ -3061,7 +3061,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /assisted-service-iso:
+  /v1/assisted-service-iso:
     post:
       tags:
         - assisted-service-iso
@@ -3094,7 +3094,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /assisted-service-iso/data:
+  /v1/assisted-service-iso/data:
     get:
       tags:
         - assisted-service-iso
@@ -3128,7 +3128,7 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
-  /assisted-service-iso/presigned:
+  /v1/assisted-service-iso/presigned:
     get:
       tags:
         - assisted-service-iso
@@ -3155,6 +3155,57 @@ paths:
             $ref: '#/definitions/error'
         "500":
           description: Error.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-envs:
+    post:
+      tags:
+        - installer
+      description: Creates a new OpenShift Discovery ISO.
+      operationId: v2RegisterInfraEnv
+      parameters:
+        - in: body
+          name: infraenv-create-params
+          description: The parameters for the generated ISO.
+          required: true
+          schema:
+            $ref: '#/definitions/infraenv_create_params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/infra_env'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
           schema:
             $ref: '#/definitions/error'
 
@@ -3550,6 +3601,11 @@ definitions:
         format: uuid
         x-go-custom-tag: gorm:"primary_key;foreignkey:Cluster"
         description: The cluster that this host is associated with.
+      infra_env_id:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"primary_key;foreignkey:InfraEnvID"
+        description: The InfraEnv that this host is associated with.
       status:
         type: string
         enum:
@@ -5280,3 +5336,120 @@ definitions:
         description: additional properties of the feature
         additionalProperties:
           type: object
+
+  infra_env:
+    type: object
+    properties:
+      kind:
+        type: string
+        enum: ['InfraEnv']
+        description: Indicates the type of this object.
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier of the object.
+        x-go-custom-tag: gorm:"primary_key"
+      href:
+        type: string
+        description: Self link.
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
+      name:
+        type: string
+        description: Name of the InfraEnv.
+      proxy:
+        $ref: "#/definitions/proxy"
+      additional_ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+      ssh_authorized_key:
+        type: string
+        description: SSH public key for debugging the installation.
+      pull_secret_set:
+        type: boolean
+        description: True if the pull secret has been added to the cluster.
+      static_network_config:
+        type: string
+        description: static network configuration string in the format expected by discovery ignition generation.
+      type:
+        $ref: '#/definitions/image_type'
+      ignition_config_override:
+        type: string
+        description: Json formatted string containing the user overrides for the initial ignition config.
+      cluster_id:
+        type: string
+        format: uuid
+        description: If set, all hosts that register will be associated with the specified cluster.
+      size_bytes:
+        type: integer
+        minimum: 0
+      download_url:
+        type: string
+      generator_version:
+        type: string
+        description: Image generator version.
+      created_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+      expires_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+
+  proxy:
+    type: object
+    properties:
+      http_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTP connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      https_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTPS connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      no_proxy:
+        type: string
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        x-nullable: true
+
+  infra_env_list:
+    type: array
+    items:
+      $ref: '#/definitions/infra_env'
+
+  infraenv_create_params:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the InfraEnv.
+      proxy:
+        $ref: "#/definitions/proxy"
+      additional_ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+      ssh_authorized_key:
+        type: string
+        description: SSH public key for debugging the installation.
+      pull_secret:
+        type: string
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+      static_network_config:
+        type: array
+        items:
+          $ref: '#/definitions/host_static_network_config'
+      image_type:
+        $ref: '#/definitions/image_type'
+      ignition_config_override:
+        type: string
+        description: JSON formatted string containing the user overrides for the initial ignition config.
+      cluster_id:
+        type: string
+        format: uuid
+        description: If set, all hosts that register will be associated with the specified cluster.
