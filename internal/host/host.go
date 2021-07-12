@@ -1209,6 +1209,10 @@ type DisabledHostValidations map[string]struct{}
 
 func (d *DisabledHostValidations) Decode(value string) error {
 	disabledHostValidations := DisabledHostValidations{}
+	if len(strings.Trim(value, "")) == 0 {
+		*d = disabledHostValidations
+		return nil
+	}
 	for _, element := range strings.Split(value, ",") {
 		if len(element) == 0 {
 			return fmt.Errorf("empty host validation ID found in '%s'", value)
