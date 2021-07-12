@@ -192,6 +192,8 @@ function deploy_mirror_config_map() {
   # An arbitrary image (cli) is chosen to retreive its pull spec, in order to mirror its repository.
   cli_image=$(podman run --quiet --rm --net=none "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" image cli)
 
+  assisted_index_image=$(get_image_without_registry $(get_image_repository_only ${INDEX_IMAGE}))
+
   cat << EOCR > ./assisted-mirror-config
 apiVersion: v1
 kind: ConfigMap
@@ -206,7 +208,8 @@ data:
 
     $(registry_config "$(get_image_namespace ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})" "${LOCAL_REGISTRY}/$(get_image_namespace_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})")
     $(registry_config "$(get_image_namespace ${cli_image})" "${LOCAL_REGISTRY}/$(get_image_namespace_without_registry ${cli_image})")
-    $(for row in $(kubectl get imagecontentsourcepolicy -o json | jq -rc '.items[] | .spec.repositoryDigestMirrors[] | [.mirrors[0], .source]'); do
+    $(for row in $(kubectl get imagecontentsourcepolicy -o json |
+        jq -rc ".items[] | select(.metadata.name | test(\"${assisted_index_image}\")).spec.repositoryDigestMirrors[] | [.mirrors[0], .source]"); do
       row=$(echo ${row} | tr -d '[]"');
       source=$(echo ${row} | cut -d',' -f2);
       mirror=$(echo ${row} | cut -d',' -f1);
@@ -245,9 +248,10 @@ EOCR
 
 function from_community_operators() {
   if [ "${DISCONNECTED}" = "true" ]; then
+    INDEX_IMAGE="registry.redhat.io/redhat/community-operator-index:${INDEX_TAG}"
     catalog_source_name="mirror-catalog-for-assisted-service-operator"
-    mirror_package_from_official_index "assisted-service-operator" "community-operator-index" \
-        "${INDEX_TAG}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+    mirror_package "assisted-service-operator" \
+      "${INDEX_IMAGE}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
     mirror_rhcos
   else
     catalog_source_name="community-operators"

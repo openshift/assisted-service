@@ -86,31 +86,6 @@ EOF
   fi
 }
 
-function mirror_package_from_official_index() {
-  # e.g. "local-storage-operator"
-  package="${1}"
-
-  # e.g. "redhat-operator-index", "certified-operator-index",
-  # "community-operator-index", "redhat-marketplace-index"
-  index="${2}"
-
-  # e.g. "v4.8", "latest"
-  index_tag="${3}"
-
-  # e.g. "virthost.ostest.test.metalkube.org:5000"
-  local_registry="${4}"
-
-  # e.g. "/run/user/0/containers/auth.json", "~/.docker/config.json"
-  # should have authentication information for both official registry
-  # (pull-secret) and for the local registry
-  authfile="${5}"
-
-  catalog_source_name="${6}"
-
-  remote_index="registry.redhat.io/redhat/${index}:${index_tag}"
-  mirror_package "${package}" "${remote_index}" "${local_registry}" "${authfile}" "${catalog_source_name}"
-}
-
 function mirror_file() {
   remote_url="${1}"
   httpd_path="${2}"
