@@ -28,9 +28,10 @@ function install_lso() {
 
     disable_default_indexes
 
+    index_image="registry.redhat.io/redhat/redhat-operator-index:${INDEX_TAG}"
     catalog_source_name="mirror-catalog-for-local-storage-operator"
-    mirror_package_from_official_index "local-storage-operator" "redhat-operator-index" \
-        "${INDEX_TAG}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
+    mirror_package "local-storage-operator" \
+      "${index_image}" "${LOCAL_REGISTRY}" "${AUTHFILE}" "${catalog_source_name}"
   fi
 
   tee << EOCR >(oc apply -f -)
