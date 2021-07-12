@@ -33,9 +33,6 @@ parameters:
   required: false
 - name: S3_USE_SSL
   value: "true"
-- name: IMAGE_BUILDER
-  value: ''
-  required: true
 - name: HW_VALIDATOR_REQUIREMENTS
   value: ''
   required: true
@@ -242,8 +239,6 @@ objects:
                 value: ${OCM_BASE_URL}
               - name: OCM_LOG_LEVEL
                 value: ${OCM_LOG_LEVEL}
-              - name: IMAGE_BUILDER
-                value: ${IMAGE_BUILDER}:${IMAGE_TAG}
               - name: HW_VALIDATOR_REQUIREMENTS
                 value: ${HW_VALIDATOR_REQUIREMENTS}
               - name: INSTALLER_IMAGE
