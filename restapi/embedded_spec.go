@@ -4635,6 +4635,82 @@ func init() {
         }
       }
     },
+    "/infra-envs": {
+      "post": {
+        "description": "Creates a new OpenShift Discovery ISO.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2RegisterInfraEnv",
+        "parameters": [
+          {
+            "description": "The parameters for the generated ISO.",
+            "name": "infraenv-create-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/infraenv_create_params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra_env"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/openshift_versions": {
       "get": {
         "security": [
@@ -6312,6 +6388,12 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "infra_env_id": {
+          "description": "The InfraEnv that this host is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"foreignkey:InfraEnvID\""
+        },
         "installation_disk_id": {
           "description": "Contains the inventory disk id to install on.",
           "type": "string"
@@ -6760,6 +6842,94 @@ func init() {
         "minimal-iso"
       ]
     },
+    "infra_env": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "download_url": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "generator_version": {
+          "description": "Image generator version.",
+          "type": "string"
+        },
+        "href": {
+          "description": "Self link.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "ignition_config_override": {
+          "description": "Json formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Indicates the type of this object.",
+          "type": "string",
+          "enum": [
+            "InfraEnv"
+          ]
+        },
+        "name": {
+          "description": "Name of the InfraEnv.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "type": "string"
+        },
+        "proxy": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\"",
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret_set": {
+          "description": "True if the pull secret has been added to the cluster.",
+          "type": "boolean"
+        },
+        "size_bytes": {
+          "type": "integer"
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        },
+        "static_network_config": {
+          "description": "static network configuration string in the format expected by discovery ignition generation.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/image_type"
+        }
+      }
+    },
+    "infra_env_list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/infra_env"
+      }
+    },
     "infra_error": {
       "type": "object",
       "required": [
@@ -6777,6 +6947,48 @@ func init() {
         "message": {
           "description": "Human-readable description of the error.",
           "type": "string"
+        }
+      }
+    },
+    "infraenv_create_params": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "ignition_config_override": {
+          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "image_type": {
+          "$ref": "#/definitions/image_type"
+        },
+        "name": {
+          "description": "Name of the InfraEnv.",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string"
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        },
+        "static_network_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_static_network_config"
+          }
         }
       }
     },
@@ -7365,6 +7577,26 @@ func init() {
       "properties": {
         "url": {
           "type": "string"
+        }
+      }
+    },
+    "proxy": {
+      "type": "object",
+      "properties": {
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "no_proxy": {
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
         }
       }
     },
@@ -12230,6 +12462,82 @@ func init() {
         }
       }
     },
+    "/infra-envs": {
+      "post": {
+        "description": "Creates a new OpenShift Discovery ISO.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2RegisterInfraEnv",
+        "parameters": [
+          {
+            "description": "The parameters for the generated ISO.",
+            "name": "infraenv-create-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/infraenv_create_params"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/infra_env"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
     "/openshift_versions": {
       "get": {
         "security": [
@@ -13975,6 +14283,12 @@ func init() {
           "type": "string",
           "x-go-custom-tag": "gorm:\"type:text\""
         },
+        "infra_env_id": {
+          "description": "The InfraEnv that this host is associated with.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"foreignkey:InfraEnvID\""
+        },
         "installation_disk_id": {
           "description": "Contains the inventory disk id to install on.",
           "type": "string"
@@ -14424,6 +14738,95 @@ func init() {
         "minimal-iso"
       ]
     },
+    "infra_env": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "download_url": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
+        },
+        "generator_version": {
+          "description": "Image generator version.",
+          "type": "string"
+        },
+        "href": {
+          "description": "Self link.",
+          "type": "string"
+        },
+        "id": {
+          "description": "Unique identifier of the object.",
+          "type": "string",
+          "format": "uuid",
+          "x-go-custom-tag": "gorm:\"primary_key\""
+        },
+        "ignition_config_override": {
+          "description": "Json formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "kind": {
+          "description": "Indicates the type of this object.",
+          "type": "string",
+          "enum": [
+            "InfraEnv"
+          ]
+        },
+        "name": {
+          "description": "Name of the InfraEnv.",
+          "type": "string"
+        },
+        "openshift_version": {
+          "description": "Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).",
+          "type": "string"
+        },
+        "proxy": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:proxy_\"",
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret_set": {
+          "description": "True if the pull secret has been added to the cluster.",
+          "type": "boolean"
+        },
+        "size_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        },
+        "static_network_config": {
+          "description": "static network configuration string in the format expected by discovery ignition generation.",
+          "type": "string"
+        },
+        "type": {
+          "$ref": "#/definitions/image_type"
+        }
+      }
+    },
+    "infra_env_list": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/infra_env"
+      }
+    },
     "infra_error": {
       "type": "object",
       "required": [
@@ -14441,6 +14844,48 @@ func init() {
         "message": {
           "description": "Human-readable description of the error.",
           "type": "string"
+        }
+      }
+    },
+    "infraenv_create_params": {
+      "type": "object",
+      "properties": {
+        "additional_ntp_sources": {
+          "description": "A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.",
+          "type": "string"
+        },
+        "cluster_id": {
+          "description": "If set, all hosts that register will be associated with the specified cluster.",
+          "type": "string",
+          "format": "uuid"
+        },
+        "ignition_config_override": {
+          "description": "JSON formatted string containing the user overrides for the initial ignition config.",
+          "type": "string"
+        },
+        "image_type": {
+          "$ref": "#/definitions/image_type"
+        },
+        "name": {
+          "description": "Name of the InfraEnv.",
+          "type": "string"
+        },
+        "proxy": {
+          "$ref": "#/definitions/proxy"
+        },
+        "pull_secret": {
+          "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
+          "type": "string"
+        },
+        "ssh_authorized_key": {
+          "description": "SSH public key for debugging the installation.",
+          "type": "string"
+        },
+        "static_network_config": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/host_static_network_config"
+          }
         }
       }
     },
@@ -15018,6 +15463,26 @@ func init() {
       "properties": {
         "url": {
           "type": "string"
+        }
+      }
+    },
+    "proxy": {
+      "type": "object",
+      "properties": {
+        "http_proxy": {
+          "description": "A proxy URL to use for creating HTTP connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "https_proxy": {
+          "description": "A proxy URL to use for creating HTTPS connections outside the cluster.\nhttp://\\\u003cusername\\\u003e:\\\u003cpswd\\\u003e@\\\u003cip\\\u003e:\\\u003cport\\\u003e\n",
+          "type": "string",
+          "x-nullable": true
+        },
+        "no_proxy": {
+          "description": "An \"*\" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.",
+          "type": "string",
+          "x-nullable": true
         }
       }
     },

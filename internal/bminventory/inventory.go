@@ -4575,3 +4575,7 @@ func (b *bareMetalInventory) AddOpenshiftVersion(ctx context.Context, ocpRelease
 
 	return openshiftVersion, nil
 }
+
+func (b *bareMetalInventory) V2RegisterInfraEnv(ctx context.Context, params installer.V2RegisterInfraEnvParams) middleware.Responder {
+	return installer.NewV2RegisterInfraEnvNotImplemented()
+}

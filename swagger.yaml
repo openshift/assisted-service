@@ -3158,6 +3158,57 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+  /infra-envs:
+    post:
+      tags:
+        - installer
+      description: Creates a new OpenShift Discovery ISO.
+      operationId: v2RegisterInfraEnv
+      parameters:
+        - in: body
+          name: infraenv-create-params
+          description: The parameters for the generated ISO.
+          required: true
+          schema:
+            $ref: '#/definitions/infraenv_create_params'
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/infra_env'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+
 definitions:
   monitored-operator:
     type: object
@@ -3415,7 +3466,7 @@ definitions:
       network_latency_threshold_ms:
         type: number
         format: double
-        x-nullable: true        
+        x-nullable: true
       packet_loss_percentage:
         type: number
         format: double
@@ -3464,7 +3515,7 @@ definitions:
         type: string
         description: Additional properties for the event in JSON format.
         x-go-custom-tag: gorm:"type:text"
-        
+
   image-create-params:
     type: object
     properties:
@@ -3505,21 +3556,21 @@ definitions:
 
   host_registration_response:
     allOf:
-        - $ref: '#/definitions/host'
-        - properties:
-            next_step_runner_command:
-              type: object
-              description: Command for starting the next step runner
-              properties:
-                command:
+      - $ref: '#/definitions/host'
+      - properties:
+          next_step_runner_command:
+            type: object
+            description: Command for starting the next step runner
+            properties:
+              command:
+                type: string
+              args:
+                type: array
+                items:
                   type: string
-                args:
-                  type: array
-                  items:
-                    type: string
-                retry_seconds:
-                  type: integer
-                  description: How long in seconds to wait before retrying registration if the command fails
+              retry_seconds:
+                type: integer
+                description: How long in seconds to wait before retrying registration if the command fails
 
 
   host:
@@ -3550,6 +3601,11 @@ definitions:
         format: uuid
         x-go-custom-tag: gorm:"primary_key;foreignkey:Cluster"
         description: The cluster that this host is associated with.
+      infra_env_id:
+        type: string
+        format: uuid
+        x-go-custom-tag: gorm:"foreignkey:InfraEnvID"
+        description: The InfraEnv that this host is associated with.
       status:
         type: string
         enum:
@@ -3706,8 +3762,8 @@ definitions:
         description: What to do after finishing to run step instructions
         default: continue
         enum:
-        - exit
-        - continue
+          - exit
+          - continue
       instructions:
         type: array
         items:
@@ -4776,9 +4832,9 @@ definitions:
         items:
           $ref: '#/definitions/gpu'
       routes:
-          type: array
-          items:
-            $ref: '#/definitions/route'
+        type: array
+        items:
+          $ref: '#/definitions/route'
 
 
   free_network_addresses:
@@ -5280,3 +5336,121 @@ definitions:
         description: additional properties of the feature
         additionalProperties:
           type: object
+
+  infra_env:
+    type: object
+    properties:
+      kind:
+        type: string
+        enum: ['InfraEnv']
+        description: Indicates the type of this object.
+      id:
+        type: string
+        format: uuid
+        description: Unique identifier of the object.
+        x-go-custom-tag: gorm:"primary_key"
+      href:
+        type: string
+        description: Self link.
+      openshift_version:
+        type: string
+        description: Version of the OpenShift cluster (used to infer the RHCOS version - temporary until generic logic implemented).
+      name:
+        type: string
+        description: Name of the InfraEnv.
+      proxy:
+        $ref: "#/definitions/proxy"
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:proxy_"
+      additional_ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+      ssh_authorized_key:
+        type: string
+        description: SSH public key for debugging the installation.
+      pull_secret_set:
+        type: boolean
+        description: True if the pull secret has been added to the cluster.
+      static_network_config:
+        type: string
+        description: static network configuration string in the format expected by discovery ignition generation.
+      type:
+        $ref: '#/definitions/image_type'
+      ignition_config_override:
+        type: string
+        description: Json formatted string containing the user overrides for the initial ignition config.
+      cluster_id:
+        type: string
+        format: uuid
+        description: If set, all hosts that register will be associated with the specified cluster.
+      size_bytes:
+        type: integer
+        minimum: 0
+      download_url:
+        type: string
+      generator_version:
+        type: string
+        description: Image generator version.
+      created_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+      expires_at:
+        type: string
+        format: date-time
+        x-go-custom-tag: gorm:"type:timestamp with time zone"
+
+  proxy:
+    type: object
+    properties:
+      http_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTP connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      https_proxy:
+        type: string
+        description: |
+          A proxy URL to use for creating HTTPS connections outside the cluster.
+          http://\<username\>:\<pswd\>@\<ip\>:\<port\>
+        x-nullable: true
+      no_proxy:
+        type: string
+        description: An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
+        x-nullable: true
+
+  infra_env_list:
+    type: array
+    items:
+      $ref: '#/definitions/infra_env'
+
+  infraenv_create_params:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name of the InfraEnv.
+      proxy:
+        $ref: "#/definitions/proxy"
+      additional_ntp_sources:
+        type: string
+        description: A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
+      ssh_authorized_key:
+        type: string
+        description: SSH public key for debugging the installation.
+      pull_secret:
+        type: string
+        description: The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
+      static_network_config:
+        type: array
+        items:
+          $ref: '#/definitions/host_static_network_config'
+      image_type:
+        $ref: '#/definitions/image_type'
+      ignition_config_override:
+        type: string
+        description: JSON formatted string containing the user overrides for the initial ignition config.
+      cluster_id:
+        type: string
+        format: uuid
+        description: If set, all hosts that register will be associated with the specified cluster.

@@ -734,3 +734,17 @@ func (mr *MockInstallerAPIMockRecorder) UploadLogs(arg0, arg1 interface{}) *gomo
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UploadLogs", reflect.TypeOf((*MockInstallerAPI)(nil).UploadLogs), arg0, arg1)
 }
+
+// V2RegisterInfraEnv mocks base method
+func (m *MockInstallerAPI) V2RegisterInfraEnv(arg0 context.Context, arg1 installer.V2RegisterInfraEnvParams) middleware.Responder {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "V2RegisterInfraEnv", arg0, arg1)
+	ret0, _ := ret[0].(middleware.Responder)
+	return ret0
+}
+
+// V2RegisterInfraEnv indicates an expected call of V2RegisterInfraEnv
+func (mr *MockInstallerAPIMockRecorder) V2RegisterInfraEnv(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "V2RegisterInfraEnv", reflect.TypeOf((*MockInstallerAPI)(nil).V2RegisterInfraEnv), arg0, arg1)
+}
