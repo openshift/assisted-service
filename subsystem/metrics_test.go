@@ -366,7 +366,6 @@ var _ = Describe("Metrics tests", func() {
 
 				//read metrics events
 				evs := getMetricEvents(context.TODO(), clusterID)
-				Expect(len(evs)).To(Equal(4))
 
 				host_mem_cpu_evs := filterMetricEvents(evs, *bootstrap.ID, "host.mem.cpu")
 				Expect(len(host_mem_cpu_evs)).To(Equal(1))
