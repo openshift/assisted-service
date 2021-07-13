@@ -42,8 +42,6 @@ function assisted_service() {
   curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
     | sh -s -- -b $(go env GOPATH)/bin v1.36.0
 
-  curl --retry 5 -L https://raw.githack.com/stoplightio/spectral/master/scripts/install.sh | sh
-
   ARCH=$(case $(arch) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(arch) ;; esac)
   OS=$(uname | awk '{print tolower($0)}')
   OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.7.2
@@ -51,7 +49,7 @@ function assisted_service() {
   chmod +x operator-sdk_${OS}_${ARCH}
   install operator-sdk_${OS}_${ARCH} /usr/local/bin/operator-sdk
 
-  go get -u github.com/onsi/ginkgo/ginkgo@v1.16.1 \
+  go get github.com/onsi/ginkgo/ginkgo@v1.16.1 \
     golang.org/x/tools/cmd/goimports@v0.1.0 \
     github.com/golang/mock/mockgen@v1.4.3 \
     github.com/vektra/mockery/.../@v1.1.2 \
