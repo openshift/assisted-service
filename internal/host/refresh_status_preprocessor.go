@@ -68,8 +68,12 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 			conditions[v.id.String()] = true
 		} else {
 			st = v.condition(c)
+			conditions[v.id.String()] = funk.ContainsString([]string{ValidationSuccess.String(), ValidationSuccessSuppressOutput.String()}, st.String())
+			// Don't output this validation status to validations in case that the output needs to be suppressed
+			if st == ValidationSuccessSuppressOutput {
+				continue
+			}
 			message = v.formatter(c, st)
-			conditions[v.id.String()] = st == ValidationSuccess
 		}
 
 		// skip the validations per states
