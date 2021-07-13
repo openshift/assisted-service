@@ -86,6 +86,9 @@ parameters:
 - name: DISABLED_HOST_VALIDATIONS
   value: ""
   required: false
+- name: DISABLED_STEPS
+  value: ""
+  required: false
 apiVersion: v1
 kind: Template
 metadata:
@@ -279,6 +282,8 @@ objects:
                 value: ${DB_MAX_OPEN_CONNECTIONS}
               - name: DISABLED_HOST_VALIDATIONS
                 value: ${DISABLED_HOST_VALIDATIONS}
+              - name: DISABLED_STEPS
+                value: ${DISABLED_STEPS}
             volumeMounts:
               - name: route53-creds
                 mountPath: "/etc/.aws"
