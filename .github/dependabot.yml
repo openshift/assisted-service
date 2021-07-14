@@ -15,6 +15,8 @@ updates:
       - "ok-to-test"
       - "dependencies"
       - "go"
+    commit-message:
+      prefix: "NO-ISSUE"
 
   - package-ecosystem: "pip"
     directory: "/"
@@ -26,8 +28,12 @@ updates:
       - "ok-to-test"
       - "dependencies"
       - "python"
+    commit-message:
+      prefix: "NO-ISSUE"
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    commit-message:
+      prefix: "NO-ISSUE"
