@@ -3164,7 +3164,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 					mockS3Api.EXPECT().DoesObjectExist(ctx, fmt.Sprintf("%s/%s", cluster.ID, constants.Kubeconfig)).Return(false, nil)
 				}
 				reportInstallationCompleteStatuses := []string{models.ClusterStatusInstalled, models.ClusterStatusError, models.ClusterStatusInstallingPendingUserAction}
-				if funk.Contains(reportInstallationCompleteStatuses, t.dstState) && t.srcState != t.dstState {
+				if funk.Contains(reportInstallationCompleteStatuses, t.dstState) && t.srcState != t.dstState && t.srcState != models.ClusterStatusInstallingPendingUserAction {
 					mockMetricsAPIInstallationFinished()
 				} else if t.dstState == models.ClusterStatusInsufficient {
 					mockHostAPIIsRequireUserActionResetFalse()
