@@ -484,16 +484,6 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 				reason, params.eventHandler, extra...)
 		}
 
-		//report cluster install duration metrics in case of error. Cancel and Installed cases are
-		//treated separately in CancelInstallation and CompleteInstallation respectively
-		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) &&
-			funk.ContainsString([]string{statusInfoError, statusInfoInstallingPendingUserAction}, reason) {
-
-			params.metricApi.ClusterInstallationFinished(params.ctx, *updatedCluster.Cluster.Status, sCluster.srcState,
-				sCluster.cluster.OpenshiftVersion, *sCluster.cluster.ID, sCluster.cluster.EmailDomain,
-				sCluster.cluster.InstallStartedAt)
-		}
-
 		//update hosts status to models.HostStatusResettingPendingUserAction if needed
 		cluster := sCluster.cluster
 		if updatedCluster != nil {
@@ -504,6 +494,17 @@ func (th *transitionHandler) PostRefreshCluster(reason string) stateswitch.PostT
 
 		if err != nil {
 			return err
+		}
+
+		//report cluster install duration metrics in case of an installation halt. Cancel and Installed cases are
+		//treated separately in CancelInstallation and CompleteInstallation respectively
+		if sCluster.srcState != swag.StringValue(sCluster.cluster.Status) &&
+			sCluster.srcState != models.ClusterStatusInstallingPendingUserAction &&
+			funk.ContainsString([]string{models.ClusterStatusError, models.ClusterStatusInstallingPendingUserAction}, swag.StringValue(sCluster.cluster.Status)) {
+
+			params.metricApi.ClusterInstallationFinished(params.ctx, *sCluster.cluster.Status, sCluster.srcState,
+				sCluster.cluster.OpenshiftVersion, *sCluster.cluster.ID, sCluster.cluster.EmailDomain,
+				sCluster.cluster.InstallStartedAt)
 		}
 		return nil
 	}
