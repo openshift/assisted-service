@@ -1,4 +1,4 @@
-boto3==1.13.14
+boto3==1.17.111
 mkdocs==1.1.2
 requests==2.22.0
 setuptools==53.0.0
