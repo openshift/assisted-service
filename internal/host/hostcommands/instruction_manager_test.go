@@ -205,6 +205,60 @@ var _ = Describe("instruction_manager", func() {
 		})
 	})
 
+	Context("Disable Steps verification", func() {
+		createInstMngWithDisabledSteps := func(steps []models.StepType) *InstructionManager {
+			instructionConfig.DisabledSteps = steps
+			return NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
+		}
+		Context("disabledStepsMap in InstructionManager", func() {
+			It("Should except empty DISABLED_STEPS", func() {
+				Expect(instMng.disabledStepsMap).Should(BeEmpty())
+			})
+			It("Should filter out all DISABLED_STEPS when all are invalid", func() {
+				instMng = createInstMngWithDisabledSteps([]models.StepType{"invalid step", "Invalid step 2"})
+				Expect(instMng.disabledStepsMap).Should(BeEmpty())
+			})
+			It("Should filter out any invalid StepType from disabled steps in InstructionManager", func() {
+				disabledSteps := []models.StepType{
+					"invalid-step",
+					models.StepTypeConnectivityCheck,
+					models.StepTypeAPIVipConnectivityCheck,
+					models.StepTypeDhcpLeaseAllocate,
+				}
+				instMng = createInstMngWithDisabledSteps(disabledSteps)
+				Expect(len(instMng.disabledStepsMap)).Should(Equal(len(disabledSteps) - 1))
+			})
+		})
+		Context("InstructionManager.GetNextSteps should be filtered according to disabled steps", func() {
+			BeforeEach(func() {
+				cluster := common.Cluster{Cluster: models.Cluster{ID: &clusterId, VipDhcpAllocation: swag.Bool(true), MachineNetworkCidr: "1.2.3.0/24"}}
+				Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			})
+			It("Should not filter out any step when: HostState=installing DisabledSteps=execute.", func() {
+				instMng = createInstMngWithDisabledSteps([]models.StepType{models.StepTypeExecute})
+				checkStep(models.HostStatusInstalling, []models.StepType{
+					models.StepTypeInstall, models.StepTypeDhcpLeaseAllocate,
+				})
+			})
+			It("Should filter out StepTypeDhcpLeaseAllocate when: HostState=installing DisabledSteps=execute,dhcp-lease-allocate.", func() {
+				instMng = createInstMngWithDisabledSteps([]models.StepType{
+					models.StepTypeExecute,
+					models.StepTypeDhcpLeaseAllocate,
+				})
+				checkStep(models.HostStatusInstalling, []models.StepType{
+					models.StepTypeInstall,
+				})
+			})
+			It("Should filter out StepTypeExecute (No steps) when: HostState=error DisabledSteps=execute.", func() {
+				instMng = createInstMngWithDisabledSteps([]models.StepType{
+					models.StepTypeExecute,
+					models.StepTypeDhcpLeaseAllocate,
+				})
+				checkStep(models.HostStatusError, []models.StepType{})
+			})
+		})
+	})
+
 	AfterEach(func() {
 		// cleanup
 		common.DeleteTestDB(db, dbName)

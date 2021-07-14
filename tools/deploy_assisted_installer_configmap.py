@@ -28,6 +28,7 @@ def handle_arguments():
     parser.add_argument("--hw-requirements")
     parser.add_argument("--kubeapi-day2", default="False")
     parser.add_argument("--disabled-host-validations", default="")
+    parser.add_argument("--disabled-steps", default="")
 
     return deployment_options.load_deployment_options(parser)
 
@@ -74,6 +75,7 @@ def main():
             data = data.replace('REPLACE_IPV6_SUPPORT', '"{}"'.format(deploy_options.ipv6_support))
             data = data.replace('REPLACE_HW_VALIDATOR_REQUIREMENTS', '"{}"'.format(deploy_options.hw_requirements))
             data = data.replace('REPLACE_DISABLED_HOST_VALIDATIONS', '"{}"'.format(deploy_options.disabled_host_validations))
+            data = data.replace('REPLACE_DISABLED_STEPS', '"{}"'.format(deploy_options.disabled_steps))
 
             versions = {"INSTALLER_IMAGE": "assisted-installer",
                         "CONTROLLER_IMAGE": "assisted-installer-controller",

@@ -42,20 +42,22 @@ type InstructionManager struct {
 	db                            *gorm.DB
 	installingClusterStateToSteps stateToStepsMap
 	addHostsClusterToSteps        stateToStepsMap
+	disabledStepsMap              map[models.StepType]bool
 }
 
 type InstructionConfig struct {
-	ServiceBaseURL       string        `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath    string        `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs           string        `envconfig:"SERVICE_IPS" default:""`
-	InstallerImage       string        `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage      string        `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	AgentImage           string        `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	SkipCertVerification bool          `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	SupportL2            bool          `envconfig:"SUPPORT_L2" default:"true"`
-	InstallationTimeout  uint          `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
-	DiskCheckTimeout     time.Duration `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
-	SupportFreeAddresses bool          `envconfig:"SUPPORT_FREE_ADDRESSES" default:"true"`
+	ServiceBaseURL       string            `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath    string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	ServiceIPs           string            `envconfig:"SERVICE_IPS" default:""`
+	InstallerImage       string            `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage      string            `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	AgentImage           string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	SupportL2            bool              `envconfig:"SUPPORT_L2" default:"true"`
+	InstallationTimeout  uint              `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	DiskCheckTimeout     time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
+	SupportFreeAddresses bool              `envconfig:"SUPPORT_FREE_ADDRESSES" default:"true"`
+	DisabledSteps        []models.StepType `envconfig:"DISABLED_STEPS" default:""`
 	ReleaseImageMirror   string
 	CheckClusterVersion  bool
 }
@@ -76,8 +78,9 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig)
 
 	return &InstructionManager{
-		log: log,
-		db:  db,
+		log:              log,
+		db:               db,
+		disabledStepsMap: generateDisabledStepsMap(log, instructionConfig.DisabledSteps),
 		installingClusterStateToSteps: stateToStepsMap{
 			models.HostStatusKnown:                    {[]CommandGetter{connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, inventoryCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
 			models.HostStatusInsufficient:             {[]CommandGetter{inventoryCmd, connectivityCmd, freeAddressesCmd, dhcpAllocateCmd, ntpSynchronizerCmd}, defaultNextInstructionInSec},
@@ -108,6 +111,11 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	}
 }
 
+func (i *InstructionManager) isStepDisabled(stepType models.StepType) bool {
+	_, ok := i.disabledStepsMap[stepType]
+	return ok
+}
+
 func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host) (models.Steps, error) {
 
 	log := logutil.FromContext(ctx, i.log)
@@ -136,19 +144,38 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 			if steps == nil {
 				continue
 			}
+			// Creating StepID when needed and filtering out disabled steps
+			enabledSteps := []*models.Step{}
 			for _, step := range steps {
+				if i.isStepDisabled(step.StepType) {
+					log.WithField("disabledStepsMap", i.disabledStepsMap).Infof("Step '%v' is disabled. Will not include it in instructions", step.StepType)
+					continue
+				}
 				if step.StepID == "" {
 					step.StepID = createStepID(step.StepType)
 				}
+				enabledSteps = append(enabledSteps, step)
 			}
-
-			returnSteps.Instructions = append(returnSteps.Instructions, steps...)
+			returnSteps.Instructions = append(returnSteps.Instructions, enabledSteps...)
 		}
 	} else {
 		returnSteps.NextInstructionSeconds = defaultNextInstructionInSec
 	}
 	logSteps(returnSteps, ClusterID, hostID, log)
 	return returnSteps, nil
+}
+
+func generateDisabledStepsMap(log logrus.FieldLogger, disabledSteps []models.StepType) map[models.StepType]bool {
+	result := map[models.StepType]bool{}
+	for _, step := range disabledSteps {
+		if err := step.Validate(nil); err != nil {
+			// invalid step type
+			log.WithField("DISABLED_STEPS", disabledSteps).Warnf("InstructionManager Found an invalid StepType '%v' in DISABLED_STEPS. Ignoring...", step)
+			continue
+		}
+		result[step] = true
+	}
+	return result
 }
 
 func createStepID(stepType models.StepType) string {
