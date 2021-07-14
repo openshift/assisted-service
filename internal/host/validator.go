@@ -838,6 +838,9 @@ func (v *validator) hasDefaultRoute(c *validationContext) ValidationStatus {
 
 func (v *validator) validateDefaultRoute(routes []*models.Route) bool {
 	for _, r := range routes {
+		if len(r.Destination) == 0 || len(r.Gateway) == 0 {
+			continue
+		}
 		dst := net.ParseIP(r.Destination)
 		if dst == nil {
 			v.log.Errorf("unable to parse destination IP: %s", r.Destination)
