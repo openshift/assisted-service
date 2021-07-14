@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/internal/hardware"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/metrics"
+	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
@@ -2830,13 +2831,76 @@ var _ = Describe("Refresh Host", func() {
 					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "No machine network CIDR validation needed: User Managed Networking"},
 					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
 					IsAPIVipConnected:      {status: ValidationSuccess, messagePattern: "No API VIP needed: User Managed Networking"},
-					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "L2 connectivy validation skipped: User Managed Networking"},
+					BelongsToMajorityGroup: {status: ValidationSuccess, messagePattern: "Host has connectivity to the majority of hosts in the cluster"},
 					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
 					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
 				}),
 				inventory:             hostutil.GenerateMasterInventory(),
 				errorExpected:         false,
 				userManagedNetworking: true,
+			},
+			{
+				name:               "discovering to insufficient user managed networking",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusDiscovering,
+				dstState:           models.HostStatusInsufficient,
+				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleMaster,
+				statusInfoChecker:  makeRegexChecker("Host cannot be installed due to following failing validation"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "No Machine Network CIDR needed: User Managed Networking"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "No machine network CIDR validation needed: User Managed Networking"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsAPIVipConnected:      {status: ValidationSuccess, messagePattern: "No API VIP needed: User Managed Networking"},
+					BelongsToMajorityGroup: {status: ValidationPending, messagePattern: "Not enough enabled hosts in cluster to calculate connectivity groups"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+				}),
+				inventory:             hostutil.GenerateMasterInventory(),
+				errorExpected:         false,
+				userManagedNetworking: true,
+				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+			},
+			{
+				name:               "discovering to insufficient user managed networking - 3 hosts",
+				validCheckInTime:   true,
+				srcState:           models.HostStatusDiscovering,
+				dstState:           models.HostStatusInsufficient,
+				imageStatuses:      map[string]*models.ContainerImageAvailability{common.TestDefaultConfig.ImageName: common.TestImageStatusesSuccess},
+				machineNetworkCidr: "1.2.3.0/24",
+				role:               models.HostRoleMaster,
+				statusInfoChecker:  makeRegexChecker("Host cannot be installed due to following failing validation"),
+				validationsChecker: makeJsonChecker(map[validationID]validationCheckResult{
+					IsConnected:            {status: ValidationSuccess, messagePattern: "Host is connected"},
+					HasInventory:           {status: ValidationSuccess, messagePattern: "Valid inventory exists for the host"},
+					HasMinCPUCores:         {status: ValidationSuccess, messagePattern: "Sufficient CPU cores"},
+					HasMinMemory:           {status: ValidationSuccess, messagePattern: "Sufficient minimum RAM"},
+					HasMinValidDisks:       {status: ValidationSuccess, messagePattern: "Sufficient disk capacity"},
+					IsMachineCidrDefined:   {status: ValidationSuccess, messagePattern: "No Machine Network CIDR needed: User Managed Networking"},
+					HasCPUCoresForRole:     {status: ValidationSuccess, messagePattern: "Sufficient CPU cores for role master"},
+					HasMemoryForRole:       {status: ValidationSuccess, messagePattern: "Sufficient RAM for role master"},
+					IsHostnameUnique:       {status: ValidationSuccess, messagePattern: " is unique in cluster"},
+					BelongsToMachineCidr:   {status: ValidationSuccess, messagePattern: "No machine network CIDR validation needed: User Managed Networking"},
+					IsHostnameValid:        {status: ValidationSuccess, messagePattern: "Hostname .* is allowed"},
+					IsAPIVipConnected:      {status: ValidationSuccess, messagePattern: "No API VIP needed: User Managed Networking"},
+					BelongsToMajorityGroup: {status: ValidationFailure, messagePattern: "No connectivity to the majority of hosts in the cluster"},
+					SucessfullOrUnknownContainerImagesAvailability: {status: ValidationSuccess, messagePattern: "All required container images were either pulled successfully or no attempt was made to pull them"},
+					SufficientOrUnknownInstallationDiskSpeed:       {status: ValidationSuccess, messagePattern: "Speed of installation disk has not yet been measured"},
+				}),
+				inventory:             hostutil.GenerateMasterInventory(),
+				errorExpected:         false,
+				userManagedNetworking: true,
+				connectivity:          fmt.Sprintf("{\"%s\":[]}", network.IPv4.String()),
+				numAdditionalHosts:    2,
 			},
 			{
 				name:               "insufficient to known",
@@ -3299,7 +3363,11 @@ var _ = Describe("Refresh Host", func() {
 				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCidr)
 				cluster.UserManagedNetworking = &t.userManagedNetworking
 				if t.connectivity == "" {
-					cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
+					if t.userManagedNetworking {
+						cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
+					} else {
+						cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", t.machineNetworkCidr, hostId.String())
+					}
 				} else {
 					cluster.ConnectivityMajorityGroups = t.connectivity
 				}
@@ -4114,9 +4182,6 @@ var _ = Describe("Refresh Host", func() {
 		for i := range tests {
 			t := tests[i]
 			It(t.name, func() {
-				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCIDR)
-				cluster.UserManagedNetworking = swag.Bool(true)
-				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				hosts := []*models.Host{}
 				for n := 0; n < len(t.IPAddressPool); n++ {
 					netAddr := common.NetAddress{Hostname: fmt.Sprintf("%s-%d", t.hostRole, n)}
@@ -4129,6 +4194,21 @@ var _ = Describe("Refresh Host", func() {
 					h.NtpSources = string(defaultNTPSourcesInBytes)
 					hosts = append(hosts, h)
 				}
+				cluster = hostutil.GenerateTestCluster(clusterId, t.machineNetworkCIDR)
+				cluster.UserManagedNetworking = swag.Bool(true)
+				connectivityGroups := make(map[string][]strfmt.UUID)
+				for _, h := range hosts {
+
+					if network.IsIPV4CIDR(t.machineNetworkCIDR) {
+						connectivityGroups[network.IPv4.String()] = append(connectivityGroups[network.IPv4.String()], *h.ID)
+					} else {
+						connectivityGroups[network.IPv6.String()] = append(connectivityGroups[network.IPv6.String()], *h.ID)
+					}
+				}
+				b, err := json.Marshal(&connectivityGroups)
+				Expect(err).ToNot(HaveOccurred())
+				cluster.ConnectivityMajorityGroups = string(b)
+				Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 				for n, h := range hosts {
 					tmpHosts := []*models.Host{}
 					tmpHosts = append(tmpHosts, hosts[:n]...)
@@ -4187,6 +4267,7 @@ var _ = Describe("Refresh Host", func() {
 			mockDefaultClusterHostRequirements(mockHwValidator)
 			cluster = hostutil.GenerateTestCluster(clusterId, "1.2.3.0/24")
 			cluster.UserManagedNetworking = swag.Bool(true)
+			cluster.ConnectivityMajorityGroups = fmt.Sprintf("{\"%s\":[\"%s\"]}", network.IPv4.String(), hostId.String())
 			Expect(db.Create(&cluster).Error).ToNot(HaveOccurred())
 
 			mockEvents.EXPECT().AddEvent(gomock.Any(), host.ClusterID,

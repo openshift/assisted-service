@@ -882,6 +882,15 @@ func (m *Manager) setConnectivityMajorityGroupsForClusterInternal(cluster *commo
 		}
 		majorityGroups[cidr] = majorityGroup
 	}
+
+	for _, family := range []network.AddressFamily{network.IPv4, network.IPv6} {
+		majorityGroup, err := network.CreateL3MajorityGroup(hosts, family)
+		if err != nil {
+			m.log.WithError(err).Warnf("Create L3 majority group for cluster %s failed", cluster.ID.String())
+		} else {
+			majorityGroups[family.String()] = majorityGroup
+		}
+	}
 	b, err := json.Marshal(&majorityGroups)
 	if err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)

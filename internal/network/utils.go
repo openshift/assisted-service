@@ -1,8 +1,12 @@
 package network
 
 import (
+	"net"
+
+	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
+	"github.com/pkg/errors"
 )
 
 // GetHostAddressFamilies tests if a host has addresses in IPv4, in IPv6 family, or both
@@ -40,4 +44,24 @@ func GetClusterAddressStack(hosts []*models.Host) (bool, bool, error) {
 		v6 = v6 && hostV6
 	}
 	return v4, v6, nil
+}
+
+// Get configured address families from cluster configuration based on the CIDRs (machine-network-cidr, cluster-network-cidr,
+// service-network-cidr)
+func GetConfiguredAddressFamilies(cluster *common.Cluster) (ipv4 bool, ipv6 bool, err error) {
+	for _, cidr := range []string{cluster.MachineNetworkCidr, cluster.ClusterNetworkCidr, cluster.ServiceNetworkCidr} {
+		if cidr == "" {
+			continue
+		}
+		_, _, err = net.ParseCIDR(cidr)
+		if err != nil {
+			return false, false, errors.Wrapf(err, "%s is not a valid cidr", cidr)
+		}
+		if IsIPV4CIDR(cidr) {
+			ipv4 = true
+		} else {
+			ipv6 = true
+		}
+	}
+	return
 }
