@@ -215,7 +215,7 @@ oc annotate --overwrite AgentServiceConfig agent unsupported.agent-install.opens
 After modifying content of the ConfigMap a new rollout of the Deployment has to be forced. This can be done with
 
 ```bash
-oc rollout restart deployment/assisted-service
+oc rollout restart deployment/assisted-service -n assisted-installer
 ```
 
 ### Mirror Registry Configuration
