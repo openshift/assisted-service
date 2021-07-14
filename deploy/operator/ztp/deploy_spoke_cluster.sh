@@ -31,33 +31,12 @@ if [ "${DISCONNECTED}" = "true" ]; then
     ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE="${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
 fi
 
-# TODO: make SSH public key configurable
-
 set -o nounset
 set -o pipefail
 set -o errexit
 set -o xtrace
 
-echo "Extract information about extra worker nodes..."
-config=$(jq --raw-output '.[] | .name + " " + .ports[0].address + " " + .driver_info.username + " " + .driver_info.password + " " + .driver_info.address' "${EXTRA_BAREMETALHOSTS_FILE}")
-IFS=" " read BMH_NAME MAC_ADDRESS username password ADDRESS <<<"${config}"
-ENCODED_USERNAME=$(echo -n "${username}" | base64)
-ENCODED_PASSWORD=$(echo -n "${password}" | base64)
-
-echo "Running Ansible playbook to create kubernetes objects"
-export BMH_NAME MAC_ADDRESS ENCODED_USERNAME ENCODED_PASSWORD ADDRESS
 ansible-playbook "${__dir}/assisted-installer-crds-playbook.yaml"
-
-oc get namespace "${SPOKE_NAMESPACE}" || oc create namespace "${SPOKE_NAMESPACE}"
-
-oc get secret "${ASSISTED_PULLSECRET_NAME}" -n "${SPOKE_NAMESPACE}" || \
-    oc create secret generic "${ASSISTED_PULLSECRET_NAME}" --from-file=.dockerconfigjson="${ASSISTED_PULLSECRET_JSON}" --type=kubernetes.io/dockerconfigjson -n "${SPOKE_NAMESPACE}"
-oc get secret "${ASSISTED_PRIVATEKEY_NAME}" -n "${SPOKE_NAMESPACE}" || \
-    oc create secret generic "${ASSISTED_PRIVATEKEY_NAME}" --from-file=ssh-privatekey=/root/.ssh/id_rsa --type=kubernetes.io/ssh-auth -n "${SPOKE_NAMESPACE}"
-
-for manifest in $(find ${__dir}/generated -type f); do
-    tee < "${manifest}" >(oc apply -f -)
-done
 
 wait_for_condition "infraenv/${ASSISTED_INFRAENV_NAME}" "ImageCreated" "5m" "${SPOKE_NAMESPACE}"
 

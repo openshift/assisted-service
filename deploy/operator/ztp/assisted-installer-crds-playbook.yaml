@@ -1,55 +1,182 @@
-- name: Create CRDs for Assisted Installer
+- name: Deploy spoke cluster
   hosts: localhost
   collections:
    - community.general
   gather_facts: no
   vars:
-    - spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') }}"
-    - cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') }}"
-    - cluster_image_set_name: "{{ lookup('env', 'ASSISTED_OPENSHIFT_VERSION') }}"
-    - cluster_release_image: "{{ lookup('env', 'ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"
-    - cluster_deployment_name: "{{ lookup('env', 'ASSISTED_CLUSTER_DEPLOYMENT_NAME') }}"
-    - infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') }}"
-    - agent_cluster_install_name: "{{ lookup('env', 'ASSISTED_AGENT_CLUSTER_INSTALL_NAME') }}"
-    - pull_secret_name: "{{ lookup('env', 'ASSISTED_PULLSECRET_NAME') }}"
-    - ssh_private_key_name: "{{ lookup('env', 'ASSISTED_PRIVATEKEY_NAME') }}"
-    - ssh_public_key: "{{ lookup('file', '/root/.ssh/id_rsa.pub') }}"
-    - bmh_name: "{{ lookup('env', 'BMH_NAME') }}"
-    - mac_address: "{{ lookup('env', 'MAC_ADDRESS') }}"
-    - encoded_username: "{{ lookup('env', 'ENCODED_USERNAME') }}"
-    - encoded_password: "{{ lookup('env', 'ENCODED_PASSWORD') }}"
-    - address: "{{ lookup('env', 'ADDRESS') }}"
-    - cluster_subnet: "{{ lookup('env', 'CLUSTER_SUBNET') }}"
-    - cluster_host_prefix: "{{ lookup('env', 'CLUSTER_HOST_PREFIX') }}"
-    - external_subnet: "{{ lookup('env', 'EXTERNAL_SUBNET') }}"
-    - service_subnet: "{{ lookup('env', 'SERVICE_SUBNET') }}"
+    extra_baremetalhosts: "{{ lookup('env', 'EXTRA_BAREMETALHOSTS_FILE') | default('/home/test/dev-scripts/ocp/ostest/extra_baremetalhosts.json') }}"
+    spoke_namespace: "{{ lookup('env', 'SPOKE_NAMESPACE') | default('assisted-spoke-cluster') }}"
+    cluster_name: "{{ lookup('env', 'ASSISTED_CLUSTER_NAME') | default('assisted-agent-cluster-install') }}"
+    cluster_image_set_name: "{{ lookup('env', 'ASSISTED_OPENSHIFT_VERSION') }}"
+    cluster_release_image: "{{ lookup('env', 'ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE') }}"
+    cluster_deployment_name: "{{ lookup('env', 'ASSISTED_CLUSTER_DEPLOYMENT_NAME') | default('assisted-test-cluster') }}"
+    infraenv_name: "{{ lookup('env', 'ASSISTED_INFRAENV_NAME') | default('assisted-infra-env') }}"
+    agent_cluster_install_name: "{{ lookup('env', 'ASSISTED_AGENT_CLUSTER_INSTALL_NAME') | default('assisted-agent-cluster-install') }}"
+    pull_secret_name: "{{ lookup('env', 'ASSISTED_PULLSECRET_NAME') | default('assisted-pull-secret') }}"
 
+    ssh_private_key_name: "{{ lookup('env', 'ASSISTED_PRIVATEKEY_NAME') }}"
+    ssh_private_key_file: "{{ lookup('env', 'ASSISTED_PRIVATEKEY_FILE') | default('/root/.ssh/id_rsa') }}"
+    ssh_public_key_file: "{{ lookup('env', 'ASSISTED_PRIVATEKEY_FILE') | default('/root/.ssh/id_rsa.pub') }}"
+    ssh_public_key: "{{ lookup('file', ssh_public_key_file) }}"
+
+    cluster_subnet: "{{ lookup('env', 'CLUSTER_SUBNET') }}"
+    cluster_host_prefix: "{{ lookup('env', 'CLUSTER_HOST_PREFIX') }}"
+    external_subnet: "{{ lookup('env', 'EXTERNAL_SUBNET') }}"
+    service_subnet: "{{ lookup('env', 'SERVICE_SUBNET') }}"
   tasks:
-  - name: create directory for generated CRDs
-    file:
-      name: generated
-      state: directory
-  - name: write the cluster image set crd
-    template:
-      src: "clusterImageSet.j2"
-      dest: "generated/clusterImageSet.yaml"
+  - name: Create spoke namespace
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Namespace
+        metadata:
+          name: "{{ spoke_namespace }}"
 
-  - name: write the infraEnv crd
-    template:
-      src: "infraEnv.j2"
-      dest: "generated/infraEnv.yaml"
+  - name: Create pullsecret secret
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: "{{ pull_secret_name }}"
+          namespace: "{{ spoke_namespace }}"
+        type: kubernetes.io/dockerconfigjson
+        data:
+          .dockerconfigjson: "{{ lookup('first_found', findme) | base64encode }}"
+      vars:
+        findme:
+          - "{{ lookup('env', 'ASSISTED_PULLSECRET_JSON') }}"
+          - "{{ lookup('env', 'PULL_SECRET_FILE') }}"
 
-  - name: write the clusterDeployment crd
-    template:
-      src: "clusterDeployment.j2"
-      dest: "generated/clusterDeployment.yaml"
+  - name: Create privatekey secret
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: "{{ ssh_private_key_name }}"
+          namespace: "{{ spoke_namespace }}"
+        type: kubernetes.io/ssh-auth
+        data:
+          ssh-privatekey: "{{ lookup('file', ssh_private_key_file) | base64encode }}"
 
-  - name: write the agentClusterInstall crd
-    template:
-      src: "agentClusterInstall.j2"
-      dest: "generated/agentClusterInstall.yaml"
+  - name: Create cluster image set
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: hive.openshift.io/v1
+        kind: ClusterImageSet
+        metadata:
+          name: "{{ cluster_image_set_name }}"
+        spec:
+          releaseImage: "{{ cluster_release_image }}"
 
-  - name: write the baremetalHost crd
-    template:
-      src: "baremetalHost.j2"
-      dest: "generated/baremetalHost.yaml"
+  - name: Create infraenv
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: agent-install.openshift.io/v1beta1
+        kind: InfraEnv
+        metadata:
+          name: "{{ infraenv_name }}"
+          namespace: "{{ spoke_namespace }}"
+        spec:
+          clusterRef:
+            name: "{{ cluster_deployment_name }}"
+            namespace: "{{ spoke_namespace }}"
+          pullSecretRef:
+            name: "{{ pull_secret_name }}"
+          sshAuthorizedKey: "{{ ssh_public_key }}"
+
+  - name: Create clusterdeployment
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: hive.openshift.io/v1
+        kind: ClusterDeployment
+        metadata:
+          name: "{{ cluster_deployment_name }}"
+          namespace: "{{ spoke_namespace }}"
+        spec:
+          baseDomain: redhat.com
+          clusterName: "{{ cluster_name }}"
+          clusterInstallRef:
+            group: extensions.hive.openshift.io
+            kind: AgentClusterInstall
+            name: "{{ agent_cluster_install_name }}"
+            version: v1beta1
+          platform:
+            agentBareMetal:
+              apiVIP: ""
+              ingressVIP: ""
+              agentSelector: {}
+          pullSecretRef:
+            name: "{{ pull_secret_name }}"
+            namespace: "{{ spoke_namespace }}"
+
+  - name: Create agent cluster install
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: extensions.hive.openshift.io/v1beta1
+        kind: AgentClusterInstall
+        metadata:
+          name: "{{ agent_cluster_install_name }}"
+          namespace: "{{ spoke_namespace }}"
+        spec:
+          clusterDeploymentRef:
+            name: "{{ cluster_deployment_name }}"
+          imageSetRef:
+            name: "{{ cluster_image_set_name }}"
+          apiVIP: ""
+          ingressVIP: ""
+          networking:
+            clusterNetwork:
+            - cidr: {{ cluster_subnet }}
+              hostPrefix: {{ cluster_host_prefix }}
+            machineNetwork:
+            - cidr: {{ external_subnet }}
+            serviceNetwork:
+            - {{ service_subnet }}
+          provisionRequirements:
+            controlPlaneAgents: 1
+          sshPublicKey: "{{ ssh_public_key }}"
+
+  - name: Create baremetalhost secret
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Secret
+        metadata:
+          name: "{{ item.name }}-bmc-secret"
+          namespace: "{{ spoke_namespace }}"
+        type: Opaque
+        data:
+          username: "{{ item.driver_info.username | base64_encode }}"
+          password: "{{ item.driver_info.password | base64_encode }}"
+    loop: "{{ lookup('file', extra_baremetalhosts) | from_json }}"
+
+  - name: Create baremetalhost
+    community.kubernetes.k8s:
+      state: present
+      definition:
+        apiVersion: metal3.io/v1alpha1
+        kind: BareMetalHost
+        metadata:
+          name: "{{ item.name }}"
+          namespace: "{{ spoke_namespace }}"
+          labels:
+            infraenvs.agent-install.openshift.io: "{{ infraenv_name }}"
+          annotations:
+            bmac.agent-install.openshift.io/hostname: "{{ item.name }}"
+        spec:
+          online: true
+          bootMACAddress: "{{ item.ports[0].address }}"
+          bmc:
+            address: "{{ item.driver_info.address}}"
+            credentialsName: "{{ item.name }}-bmc-secret'
+    loop: "{{ lookup('file', extra_baremetalhosts) | from_json }}"
