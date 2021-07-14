@@ -7,19 +7,33 @@ import (
 	gormigrate "gopkg.in/gormigrate.v1"
 )
 
-func Migrate(db *gorm.DB) error {
-	return gormigrate.New(db, gormigrate.DefaultOptions, all()).Migrate()
+func MigratePre(db *gorm.DB) error {
+	return gormigrate.New(db, gormigrate.DefaultOptions, pre()).Migrate()
 }
 
-func all() []*gormigrate.Migration {
-	allMigrations := []*gormigrate.Migration{
+func pre() []*gormigrate.Migration {
+	preMigrations := []*gormigrate.Migration{
+		populateInfraEnv(),
+	}
+
+	sort.SliceStable(preMigrations, func(i, j int) bool { return preMigrations[i].ID < preMigrations[j].ID })
+
+	return preMigrations
+}
+
+func MigratePost(db *gorm.DB) error {
+	return gormigrate.New(db, gormigrate.DefaultOptions, post()).Migrate()
+}
+
+func post() []*gormigrate.Migration {
+	postMigrations := []*gormigrate.Migration{
 		changeOverridesToText(),
 		changeImageSSHKeyToText(),
 		changeClusterValidationsInfoToText(),
 		changeHostValidationsInfoToText(),
 	}
 
-	sort.SliceStable(allMigrations, func(i, j int) bool { return allMigrations[i].ID < allMigrations[j].ID })
+	sort.SliceStable(postMigrations, func(i, j int) bool { return postMigrations[i].ID < postMigrations[j].ID })
 
-	return allMigrations
+	return postMigrations
 }

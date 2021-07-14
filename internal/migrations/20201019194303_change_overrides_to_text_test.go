@@ -32,7 +32,7 @@ var _ = Describe("changeOverridesToText", func() {
 		err := db.Create(&cluster).Error
 		Expect(err).NotTo(HaveOccurred())
 
-		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
+		gm = gormigrate.New(db, gormigrate.DefaultOptions, post())
 		err = gm.MigrateTo("20201019194303")
 		Expect(err).ToNot(HaveOccurred())
 	})

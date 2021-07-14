@@ -81,6 +81,21 @@ type InfraEnv struct {
 
 	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
 	PullSecret string `json:"pull_secret" gorm:"type:TEXT"`
+
+	// Namespace of the KubeAPI resource
+	KubeKeyNamespace string `json:"kube_key_namespace"`
+
+	ProxyHash string `json:"proxy_hash"`
+
+	// Generated indicates if the discovery image was generated successfully. It will be used internally
+	// when an image needs to be generated. In case the user request to generate an image with custom parameters,
+	// and the generation failed, the value of ImageGenerated will be set to 'false'. In that case, providing the
+	// same request with the same custom parameters will re-attempt to generate the image.
+	Generated bool `json:"generated"`
+
+	GeneratedAt strfmt.DateTime `json:"generated_at" gorm:"type:timestamp with time zone"`
+
+	ImageExpiresAt strfmt.DateTime `json:"image_expires_at" gorm:"type:timestamp with time zone"`
 }
 
 type EagerLoadingState bool

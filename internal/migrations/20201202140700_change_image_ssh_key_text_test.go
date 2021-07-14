@@ -23,7 +23,7 @@ var _ = Describe("changeOverridesToText", func() {
 
 	BeforeEach(func() {
 		db, dbName = common.PrepareTestDB()
-		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
+		gm = gormigrate.New(db, gormigrate.DefaultOptions, post())
 
 		// create cluster in order to get rows from DB
 		clusterID = strfmt.UUID(uuid.New().String())
