@@ -69,8 +69,6 @@ type RegistrationAPI interface {
 }
 
 type InstallationAPI interface {
-	// Install cluster
-	Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error
 	// Get the cluster master nodes ID's
 	GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error)
 }
@@ -390,10 +388,6 @@ func (m *Manager) SetUploadControllerLogsAt(ctx context.Context, c *common.Clust
 		return errors.Wrapf(err, "failed to set controller_logs_collected_at to cluster %s", c.ID.String())
 	}
 	return nil
-}
-
-func (m *Manager) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
-	return m.installationAPI.Install(ctx, c, db)
 }
 
 func (m *Manager) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
