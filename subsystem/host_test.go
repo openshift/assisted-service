@@ -40,6 +40,8 @@ var _ = Describe("Host tests", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		clusterID = *cluster.GetPayload().ID
+		// in order to simulate infra env generation
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 	})
 
 	It("host CRUD", func() {
@@ -656,6 +658,8 @@ var _ = Describe("Host tests", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
+		// in order to simulate infra env generation
+		generateClusterISO(*cluster2.GetPayload().ID, models.ImageTypeMinimalIso)
 
 		// register to cluster2
 		_, err = agentBMClient.Installer.RegisterHost(ctx, &installer.RegisterHostParams{

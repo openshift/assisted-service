@@ -47,8 +47,11 @@ var _ = Describe("populateInfraEnv", func() {
 		hostID = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
 		host := models.Host{
-			ID:        &hostID,
-			ClusterID: clusterID,
+			ID: &hostID,
+			// [TODO] - currently we check migration by adding dummy value and seeing it replaced
+			// in case we add host v1 model to the swagger, then we can replace the models.Host with it
+			InfraEnvID: strfmt.UUID(uuid.New().String()),
+			ClusterID:  clusterID,
 		}
 		err := db.Create(&host).Error
 		Expect(err).NotTo(HaveOccurred())
@@ -121,5 +124,10 @@ var _ = Describe("populateInfraEnv", func() {
 		Expect(err).ToNot(HaveOccurred())
 		Expect(*host.ID).To(Equal(hostID))
 		Expect(host.InfraEnvID).To(Equal(clusterID))
+
+		var cluster common.Cluster
+		err = db.Take(&cluster).Error
+		Expect(err).ToNot(HaveOccurred())
+		Expect(cluster.StaticNetworkConfigured).To(Equal(true))
 	})
 })

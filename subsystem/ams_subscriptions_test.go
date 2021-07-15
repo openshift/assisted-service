@@ -304,6 +304,8 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {
+				// in order to simulate infra env generation
+				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 				registerHostsAndSetRoles(clusterID, minHosts)
 				setClusterAsInstalling(ctx, clusterID)
 			})
@@ -342,6 +344,8 @@ var _ = Describe("test AMS subscriptions", func() {
 			})
 
 			By("update subscription with openshfit (external) cluster ID", func() {
+				// in order to simulate infra env generation
+				generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 				registerHostsAndSetRoles(clusterID, minHosts)
 				reply, err = userBMClient.Installer.InstallCluster(context.Background(), &installer.InstallClusterParams{ClusterID: clusterID})
 				Expect(err).NotTo(HaveOccurred())

@@ -95,11 +95,12 @@ var _ = Describe("host count with 1 cluster", func() {
 	createHost := func(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		hostId := strfmt.UUID(uuid.New().String())
 		host := models.Host{
-			ID:        &hostId,
-			ClusterID: clusterId,
-			Role:      models.HostRoleMaster,
-			Status:    swag.String(state),
-			Inventory: common.GenerateTestDefaultInventory(),
+			ID:         &hostId,
+			InfraEnvID: clusterId,
+			ClusterID:  clusterId,
+			Role:       models.HostRoleMaster,
+			Status:     swag.String(state),
+			Inventory:  common.GenerateTestDefaultInventory(),
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	}
@@ -196,11 +197,12 @@ var _ = Describe("host count with 2 cluster", func() {
 	createHost := func(clusterId strfmt.UUID, state string, db *gorm.DB) {
 		hostId := strfmt.UUID(uuid.New().String())
 		host := models.Host{
-			ID:        &hostId,
-			ClusterID: clusterId,
-			Role:      models.HostRoleMaster,
-			Status:    swag.String(state),
-			Inventory: common.GenerateTestDefaultInventory(),
+			ID:         &hostId,
+			ClusterID:  clusterId,
+			InfraEnvID: clusterId,
+			Role:       models.HostRoleMaster,
+			Status:     swag.String(state),
+			Inventory:  common.GenerateTestDefaultInventory(),
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 	}

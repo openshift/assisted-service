@@ -95,7 +95,7 @@ var _ = Describe("RegisterHost", func() {
 	})
 
 	It("register_new", func() {
-		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
+		Expect(hapi.RegisterHost(ctx, &models.Host{ID: &hostId, ClusterID: clusterId, InfraEnvID: clusterId, DiscoveryAgentVersion: "v1.0.1"}, db)).ShouldNot(HaveOccurred())
 		h := hostutil.GetHostFromDB(hostId, clusterId, db)
 		Expect(swag.StringValue(h.Status)).Should(Equal(models.HostStatusDiscovering))
 		Expect(h.DiscoveryAgentVersion).To(Equal("v1.0.1"))
@@ -141,11 +141,12 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:        &hostId,
-					ClusterID: clusterId,
-					Role:      models.HostRoleMaster,
-					Inventory: defaultHwInfo,
-					Status:    swag.String(t.srcState),
+					ID:         &hostId,
+					InfraEnvID: clusterId,
+					ClusterID:  clusterId,
+					Role:       models.HostRoleMaster,
+					Inventory:  defaultHwInfo,
+					Status:     swag.String(t.srcState),
 					Progress: &models.HostProgressInfo{
 						CurrentStage: t.progressStage,
 					},
@@ -156,9 +157,10 @@ var _ = Describe("RegisterHost", func() {
 				}
 
 				err := hapi.RegisterHost(ctx, &models.Host{
-					ID:        &hostId,
-					ClusterID: clusterId,
-					Status:    swag.String(t.srcState),
+					ID:         &hostId,
+					ClusterID:  clusterId,
+					InfraEnvID: clusterId,
+					Status:     swag.String(t.srcState),
 				},
 					db)
 
@@ -185,11 +187,12 @@ var _ = Describe("RegisterHost", func() {
 
 	It("register disabled host", func() {
 		Expect(db.Create(&models.Host{
-			ID:        &hostId,
-			ClusterID: clusterId,
-			Role:      models.HostRoleMaster,
-			Inventory: defaultHwInfo,
-			Status:    swag.String(models.HostStatusDisabled),
+			ID:         &hostId,
+			InfraEnvID: clusterId,
+			ClusterID:  clusterId,
+			Role:       models.HostRoleMaster,
+			Inventory:  defaultHwInfo,
+			Status:     swag.String(models.HostStatusDisabled),
 		}).Error).ShouldNot(HaveOccurred())
 
 		Expect(hapi.RegisterHost(ctx, &models.Host{
@@ -203,11 +206,12 @@ var _ = Describe("RegisterHost", func() {
 
 	It("register host in error state", func() {
 		Expect(db.Create(&models.Host{
-			ID:        &hostId,
-			ClusterID: clusterId,
-			Role:      models.HostRoleMaster,
-			Inventory: defaultHwInfo,
-			Status:    swag.String(models.HostStatusError),
+			ID:         &hostId,
+			InfraEnvID: clusterId,
+			ClusterID:  clusterId,
+			Role:       models.HostRoleMaster,
+			Inventory:  defaultHwInfo,
+			Status:     swag.String(models.HostStatusError),
 		}).Error).ShouldNot(HaveOccurred())
 
 		Expect(hapi.RegisterHost(ctx, &models.Host{
@@ -262,12 +266,13 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:        &hostId,
-					ClusterID: clusterId,
-					Role:      models.HostRoleMaster,
-					Inventory: defaultHwInfo,
-					Status:    swag.String(t.srcState),
-					Bootstrap: true,
+					ID:         &hostId,
+					InfraEnvID: clusterId,
+					ClusterID:  clusterId,
+					Role:       models.HostRoleMaster,
+					Inventory:  defaultHwInfo,
+					Status:     swag.String(t.srcState),
+					Bootstrap:  true,
 					Progress: &models.HostProgressInfo{
 						CurrentStage: common.TestDefaultConfig.HostProgressStage,
 						ProgressInfo: "some info",
@@ -309,11 +314,12 @@ var _ = Describe("RegisterHost", func() {
 
 			It(t.name, func() {
 				Expect(db.Create(&models.Host{
-					ID:        &hostId,
-					ClusterID: clusterId,
-					Role:      models.HostRoleMaster,
-					Inventory: defaultHwInfo,
-					Status:    swag.String(t.srcState),
+					ID:         &hostId,
+					InfraEnvID: clusterId,
+					ClusterID:  clusterId,
+					Role:       models.HostRoleMaster,
+					Inventory:  defaultHwInfo,
+					Status:     swag.String(t.srcState),
 				}).Error).ShouldNot(HaveOccurred())
 
 				Expect(hapi.RegisterHost(ctx, &models.Host{
@@ -412,6 +418,7 @@ var _ = Describe("RegisterHost", func() {
 				Expect(db.Create(&models.Host{
 					ID:                   &hostId,
 					ClusterID:            clusterId,
+					InfraEnvID:           clusterId,
 					Role:                 t.origRole,
 					Inventory:            common.GenerateTestDefaultInventory(),
 					Status:               swag.String(t.srcState),

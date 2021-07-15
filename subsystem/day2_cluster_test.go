@@ -50,6 +50,8 @@ var _ = Describe("Day2 cluster tests", func() {
 			ClusterID: *cluster.GetPayload().ID,
 		})
 		Expect(err).NotTo(HaveOccurred())
+		// in order to simulate infra env generation
+		generateClusterISO(*cluster.GetPayload().ID, models.ImageTypeMinimalIso)
 	})
 
 	JustBeforeEach(func() {

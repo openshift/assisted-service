@@ -228,6 +228,8 @@ var _ = Describe("Operators endpoint tests", func() {
 			cID, err := registerCluster(context.TODO(), userBMClient, "test-cluster", pullSecret)
 			Expect(err).ToNot(HaveOccurred())
 			clusterID = cID
+			// in order to simulate infra env generation
+			generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 			registerHostsAndSetRoles(clusterID, minHosts)
 		})
 

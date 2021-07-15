@@ -1,7 +1,6 @@
 package mirrorregistries
 
 import (
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -55,7 +54,6 @@ var _ = Describe("MirrorRegistriesConfig", func() {
 	It("test get CA contents", func() {
 		file, err := ioutil.TempFile("", "ca.crt")
 		Expect(err).NotTo(HaveOccurred())
-		fmt.Printf("YEV - file is %s\n", file.Name())
 		_, err = file.WriteString("some ca data")
 		Expect(err).NotTo(HaveOccurred())
 		contents, err := readFile(file.Name())

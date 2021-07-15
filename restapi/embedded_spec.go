@@ -6332,7 +6332,7 @@ func init() {
           "description": "The cluster that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\""
         },
         "connectivity": {
           "type": "string",
@@ -6387,7 +6387,7 @@ func init() {
           "description": "The InfraEnv that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"foreignkey:InfraEnvID\""
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:InfraEnvID\""
         },
         "installation_disk_id": {
           "description": "Contains the inventory disk id to install on.",
@@ -14256,7 +14256,7 @@ func init() {
           "description": "The cluster that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:Cluster\""
+          "x-go-custom-tag": "gorm:\"foreignkey:Cluster\""
         },
         "connectivity": {
           "type": "string",
@@ -14311,7 +14311,7 @@ func init() {
           "description": "The InfraEnv that this host is associated with.",
           "type": "string",
           "format": "uuid",
-          "x-go-custom-tag": "gorm:\"foreignkey:InfraEnvID\""
+          "x-go-custom-tag": "gorm:\"primary_key;foreignkey:InfraEnvID\""
         },
         "installation_disk_id": {
           "description": "Contains the inventory disk id to install on.",

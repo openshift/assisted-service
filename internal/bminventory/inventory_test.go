@@ -225,8 +225,8 @@ var _ = Describe("GenerateClusterISO", func() {
 	rollbackClusterImageCreationDate := func(clusterID *strfmt.UUID) {
 		updatedTime := time.Now().Add(-11 * time.Second)
 		updates := map[string]interface{}{}
-		updates["image_created_at"] = updatedTime
-		db.Model(&common.Cluster{}).Where("id = ?", clusterID).Updates(updates)
+		updates["generated_at"] = updatedTime
+		db.Model(&common.InfraEnv{}).Where("id = ?", clusterID).Updates(updates)
 	}
 
 	It("success", func() {
@@ -327,18 +327,26 @@ var _ = Describe("GenerateClusterISO", func() {
 				ID:            &clusterId,
 				PullSecretSet: true,
 			},
-			PullSecret:     "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
-			ImageGenerated: true,
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
-		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
-		cluster.ImageInfo = &models.ImageInfo{Type: models.ImageTypeFullIso}
+		infraEnv := common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            clusterId,
+				PullSecretSet: true,
+				Type:          models.ImageTypeFullIso,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			Generated:  true,
+		}
+		infraEnv.ProxyHash, _ = computeProxyHash(nil)
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 
 		mockStaticNetworkConfig.EXPECT().FormatStaticNetworkConfigForDB(gomock.Any()).Return("").Times(1)
 		mockS3Client.EXPECT().UpdateObjectTimestamp(gomock.Any(), gomock.Any()).Return(true, nil).Times(1)
 		mockS3Client.EXPECT().GetObjectSizeBytes(gomock.Any(), gomock.Any()).Return(int64(100), nil).Times(1)
 		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterId, nil, models.EventSeverityInfo,
-			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`, cluster.ImageInfo.Type),
+			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`, infraEnv.Type),
 			gomock.Any())
 		mockIgnitionBuilder.EXPECT().FormatDiscoveryIgnitionFile(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 		generateReply := bm.GenerateClusterISO(ctx, installer.GenerateClusterISOParams{
@@ -359,12 +367,21 @@ var _ = Describe("GenerateClusterISO", func() {
 				PullSecretSet:    true,
 				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
 			},
-			PullSecret:     "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
-			ImageGenerated: true,
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
-		cluster.ProxyHash, _ = computeClusterProxyHash(nil, nil, nil)
-		cluster.ImageInfo = &models.ImageInfo{Type: models.ImageTypeFullIso}
+		infraEnv := common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:               clusterId,
+				PullSecretSet:    true,
+				OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+				Type:             models.ImageTypeFullIso,
+			},
+			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
+			Generated:  true,
+		}
+		infraEnv.ProxyHash, _ = computeProxyHash(nil)
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+		Expect(db.Create(&infraEnv).Error).ShouldNot(HaveOccurred())
 
 		mockS3Client.EXPECT().IsAwsS3().Return(true)
 		mockS3Client.EXPECT().Upload(gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
@@ -583,10 +600,7 @@ var _ = Describe("GenerateClusterISO", func() {
 			})
 			Expect(generateReply).Should(BeAssignableToTypeOf(installer.NewGenerateClusterISOCreated()))
 
-			updatedTime := time.Now().Add(-11 * time.Second)
-			updates := map[string]interface{}{}
-			updates["image_created_at"] = updatedTime
-			db.Model(&common.Cluster{}).Where("id = ?", clusterId).Updates(updates)
+			rollbackClusterImageCreationDate(clusterId)
 
 			newStaticNetworkConfig := []*models.HostStaticNetworkConfig{
 				common.FormatStaticConfigHostYAML("0200003ef74c", "02000048ba48", "192.168.126.41", "192.168.141.41", "192.168.126.1", map1),
@@ -818,6 +832,16 @@ func createCluster(db *gorm.DB, status string) *common.Cluster {
 	return createClusterWithAvailability(db, status, models.ClusterCreateParamsHighAvailabilityModeFull)
 }
 
+func createInfraEnv(db *gorm.DB, id strfmt.UUID) *common.InfraEnv {
+	infraEnv := &common.InfraEnv{
+		InfraEnv: models.InfraEnv{
+			ID: id,
+		},
+	}
+	Expect(db.Create(infraEnv).Error).ToNot(HaveOccurred())
+	return infraEnv
+}
+
 var _ = Describe("GetHost", func() {
 	var (
 		bm        *bareMetalInventory
@@ -834,9 +858,10 @@ var _ = Describe("GetHost", func() {
 		bm = createInventory(db, cfg)
 
 		hostObj := models.Host{
-			ID:        &hostID,
-			ClusterID: clusterId,
-			Status:    swag.String("discovering"),
+			ID:         &hostID,
+			InfraEnvID: clusterId,
+			ClusterID:  clusterId,
+			Status:     swag.String("discovering"),
 		}
 		Expect(db.Create(&hostObj).Error).ShouldNot(HaveOccurred())
 	})
@@ -924,6 +949,7 @@ var _ = Describe("RegisterHost", func() {
 	It("register host to a cluster while installation is in progress", func() {
 		By("creating the cluster")
 		cluster := createCluster(db, models.ClusterStatusInstalling)
+		_ = createInfraEnv(db, *cluster.ID)
 
 		allowedStates := []string{
 			models.ClusterStatusInsufficient, models.ClusterStatusReady,
@@ -967,12 +993,14 @@ var _ = Describe("RegisterHost", func() {
 			It(fmt.Sprintf("cluster availability mode %s expected default host role %s",
 				test.availability, test.expectedRole), func() {
 				cluster := createClusterWithAvailability(db, models.ClusterStatusInsufficient, test.availability)
+				infraEnv := createInfraEnv(db, *cluster.ID)
 
 				mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
 				mockHostApi.EXPECT().RegisterHost(gomock.Any(), gomock.Any(), gomock.Any()).
 					DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 						// validate that host is registered with auto-assign role
 						Expect(h.Role).Should(Equal(test.expectedRole))
+						Expect(h.InfraEnvID).Should(Equal(infraEnv.ID))
 						return nil
 					}).Times(1)
 				mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
@@ -1009,6 +1037,7 @@ var _ = Describe("RegisterHost", func() {
 
 	It("add_crd_failure", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
+		infraEnv := createInfraEnv(db, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -1017,6 +1046,7 @@ var _ = Describe("RegisterHost", func() {
 			DoAndReturn(func(ctx context.Context, h *models.Host, db *gorm.DB) error {
 				// validate that host is registered with auto-assign role
 				Expect(h.Role).Should(Equal(models.HostRoleAutoAssign))
+				Expect(h.InfraEnvID).Should(Equal(infraEnv.ID))
 				return nil
 			}).Times(1)
 		mockCRDUtils.EXPECT().CreateAgentCR(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErrMsg)).Times(1)
@@ -1039,6 +1069,7 @@ var _ = Describe("RegisterHost", func() {
 
 	It("host_api_failure", func() {
 		cluster := createCluster(db, models.ClusterStatusInsufficient)
+		_ = createInfraEnv(db, *cluster.ID)
 		expectedErrMsg := "some-internal-error"
 
 		mockClusterApi.EXPECT().AcceptRegistration(gomock.Any()).Return(nil).Times(1)
@@ -1099,6 +1130,7 @@ var _ = Describe("GetNextSteps", func() {
 		checkedInAt := strfmt.DateTime(time.Now().Add(-time.Second))
 		host := models.Host{
 			ID:          hostId,
+			InfraEnvID:  *clusterId,
 			ClusterID:   *clusterId,
 			Status:      swag.String("discovering"),
 			CheckedInAt: checkedInAt,
@@ -1178,9 +1210,10 @@ var _ = Describe("PostStepReply", func() {
 			clusterId = strToUUID(uuid.New().String())
 			hostId = strToUUID(uuid.New().String())
 			host = &models.Host{
-				ID:        hostId,
-				ClusterID: *clusterId,
-				Status:    swag.String("insufficient"),
+				ID:         hostId,
+				InfraEnvID: *clusterId,
+				ClusterID:  *clusterId,
+				Status:     swag.String("insufficient"),
 			}
 			Expect(db.Create(host).Error).ShouldNot(HaveOccurred())
 		})
@@ -1266,9 +1299,10 @@ var _ = Describe("PostStepReply", func() {
 			clusterId := strToUUID(uuid.New().String())
 			hostId := strToUUID(uuid.New().String())
 			host := models.Host{
-				ID:        hostId,
-				ClusterID: *clusterId,
-				Status:    swag.String("discovering"),
+				ID:         hostId,
+				InfraEnvID: *clusterId,
+				ClusterID:  *clusterId,
+				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			toMarshal := makeFreeNetworksAddresses(makeFreeAddresses("10.0.0.0/24", "10.0.0.0", "10.0.0.1"))
@@ -1286,9 +1320,10 @@ var _ = Describe("PostStepReply", func() {
 			clusterId := strToUUID(uuid.New().String())
 			hostId := strToUUID(uuid.New().String())
 			host := models.Host{
-				ID:        hostId,
-				ClusterID: *clusterId,
-				Status:    swag.String("discovering"),
+				ID:         hostId,
+				InfraEnvID: *clusterId,
+				ClusterID:  *clusterId,
+				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 			toMarshal := makeFreeNetworksAddresses()
@@ -1341,9 +1376,10 @@ var _ = Describe("PostStepReply", func() {
 			clusterId = strToUUID(uuid.New().String())
 			hostId = strToUUID(uuid.New().String())
 			host := models.Host{
-				ID:        hostId,
-				ClusterID: *clusterId,
-				Status:    swag.String("insufficient"),
+				ID:         hostId,
+				InfraEnvID: *clusterId,
+				ClusterID:  *clusterId,
+				Status:     swag.String("insufficient"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
@@ -1498,9 +1534,10 @@ var _ = Describe("PostStepReply", func() {
 			hostId = strToUUID(uuid.New().String())
 
 			host := models.Host{
-				ID:        hostId,
-				ClusterID: *clusterId,
-				Status:    swag.String("discovering"),
+				ID:         hostId,
+				InfraEnvID: *clusterId,
+				ClusterID:  *clusterId,
+				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
@@ -1557,9 +1594,10 @@ var _ = Describe("PostStepReply", func() {
 			hostId = strToUUID(uuid.New().String())
 
 			host := models.Host{
-				ID:        hostId,
-				ClusterID: *clusterId,
-				Status:    swag.String("discovering"),
+				ID:         hostId,
+				InfraEnvID: *clusterId,
+				ClusterID:  *clusterId,
+				Status:     swag.String("discovering"),
 			}
 			Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		})
@@ -1620,9 +1658,10 @@ var _ = Describe("PostStepReply", func() {
 			hostId = strToUUID(uuid.New().String())
 
 			host := models.Host{
-				ID:        hostId,
-				ClusterID: *clusterId,
-				Status:    swag.String("discovering"),
+				ID:         hostId,
+				InfraEnvID: *clusterId,
+				ClusterID:  *clusterId,
+				Status:     swag.String("discovering"),
 			}
 
 			cluster := common.Cluster{Cluster: models.Cluster{
@@ -1678,6 +1717,7 @@ var _ = Describe("GetFreeAddresses", func() {
 		hostId := strToUUID(uuid.New().String())
 		ret := models.Host{
 			ID:            hostId,
+			InfraEnvID:    *clusterId,
 			ClusterID:     *clusterId,
 			FreeAddresses: freeAddresses,
 			Status:        &status,
@@ -1829,8 +1869,9 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			}
 
 			err := db.Create(&models.Host{
-				ID:        &hostID,
-				ClusterID: clusterID,
+				ID:         &hostID,
+				InfraEnvID: clusterID,
+				ClusterID:  clusterID,
 			}).Error
 			Expect(err).ShouldNot(HaveOccurred())
 
@@ -1940,12 +1981,13 @@ var _ = Describe("cluster", func() {
 
 	addHost := func(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 		host := models.Host{
-			ID:        &hostId,
-			ClusterID: clusterId,
-			Status:    swag.String(state),
-			Kind:      swag.String(kind),
-			Role:      role,
-			Inventory: inventory,
+			ID:         &hostId,
+			InfraEnvID: clusterId,
+			ClusterID:  clusterId,
+			Status:     swag.String(state),
+			Kind:       swag.String(kind),
+			Role:       role,
+			Inventory:  inventory,
 		}
 		Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())
 		return host
@@ -3243,14 +3285,13 @@ var _ = Describe("cluster", func() {
 		})
 
 		Context("Update Proxy", func() {
-			const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
+			//const emptyProxyHash = "d41d8cd98f00b204e9800998ecf8427e"
 			BeforeEach(func() {
 				clusterID = strfmt.UUID(uuid.New().String())
 				err := db.Create(&common.Cluster{
 					Cluster: models.Cluster{
 						ID: &clusterID,
-					},
-					ProxyHash: emptyProxyHash}).Error
+					}}).Error
 				Expect(err).ShouldNot(HaveOccurred())
 				mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
 				mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
@@ -3273,17 +3314,9 @@ var _ = Describe("cluster", func() {
 				return &cluster
 			}
 
-			It("set an empty proxy", func() {
-				cluster := updateCluster("", "", "")
-				Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
-			})
-
 			It("set a valid proxy", func() {
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, "Proxy settings changed", gomock.Any())
-				cluster := updateCluster("http://proxy.proxy", "", "proxy.proxy")
-
-				// ProxyHash shouldn't be changed when proxy is updated, only when generating new ISO
-				Expect(cluster.ProxyHash).To(Equal(emptyProxyHash))
+				_ = updateCluster("http://proxy.proxy", "", "proxy.proxy")
 			})
 		})
 
@@ -5346,6 +5379,7 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
+		infraEnv  common.InfraEnv
 		dbName    string
 	)
 
@@ -5358,6 +5392,12 @@ var _ = Describe("GetDiscoveryIgnition", func() {
 			PullSecretSet: true,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
+			ID:            clusterID,
+			PullSecretSet: true,
+		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
+		err = db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
 	})
 
@@ -5420,6 +5460,7 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		ctx       = context.Background()
 		clusterID strfmt.UUID
 		c         common.Cluster
+		infraEnv  common.InfraEnv
 		dbName    string
 	)
 
@@ -5429,6 +5470,9 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		bm = createInventory(db, cfg)
 		c = common.Cluster{Cluster: models.Cluster{ID: &clusterID}}
 		err := db.Create(&c).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{ID: clusterID}}
+		err = db.Create(&infraEnv).Error
 		Expect(err).ShouldNot(HaveOccurred())
 		mockUsageReports()
 	})
@@ -5450,10 +5494,10 @@ var _ = Describe("UpdateDiscoveryIgnition", func() {
 		response := bm.UpdateDiscoveryIgnition(ctx, params)
 		Expect(response).To(BeAssignableToTypeOf(&installer.UpdateDiscoveryIgnitionCreated{}))
 
-		var updated common.Cluster
-		err := db.First(&updated, "id = ?", clusterID).Error
+		var updatedCluster common.Cluster
+		err := db.First(&updatedCluster, "id = ?", clusterID).Error
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(updated.IgnitionConfigOverrides).To(Equal(override))
+		Expect(updatedCluster.IgnitionConfigOverrides).To(Equal(override))
 	})
 
 	It("returns not found with a non-existant cluster", func() {
@@ -5541,12 +5585,13 @@ func verifyApiErrorString(responder middleware.Responder, expectedHttpStatus int
 
 func addHost(hostId strfmt.UUID, role models.HostRole, state, kind string, clusterId strfmt.UUID, inventory string, db *gorm.DB) models.Host {
 	host := models.Host{
-		ID:        &hostId,
-		ClusterID: clusterId,
-		Kind:      swag.String(kind),
-		Status:    swag.String(state),
-		Role:      role,
-		Inventory: inventory,
+		ID:         &hostId,
+		InfraEnvID: clusterId,
+		ClusterID:  clusterId,
+		Kind:       swag.String(kind),
+		Status:     swag.String(state),
+		Role:       role,
+		Inventory:  inventory,
 	}
 
 	Expect(db.Create(&host).Error).ShouldNot(HaveOccurred())

@@ -573,6 +573,7 @@ func (r *AgentReconciler) updateNtpSources(log logrus.FieldLogger, host *models.
 		ntps := make([]aiv1beta1.HostNTPSources, len(ntpSources))
 		agent.Status.NtpSources = ntps
 		for i, ntp := range ntpSources {
+			log.Infof("Updating ntp source to %s/%s", ntp.SourceName, ntp.SourceState)
 			ntps[i].SourceName = ntp.SourceName
 			ntps[i].SourceState = ntp.SourceState
 		}

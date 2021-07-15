@@ -101,18 +101,18 @@ func (m *MockIgnitionBuilder) EXPECT() *MockIgnitionBuilderMockRecorder {
 }
 
 // FormatDiscoveryIgnitionFile mocks base method
-func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
+func (m *MockIgnitionBuilder) FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FormatDiscoveryIgnitionFile", cluster, cfg, safeForLogs, authType)
+	ret := m.ctrl.Call(m, "FormatDiscoveryIgnitionFile", infraEnv, cfg, safeForLogs, authType)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FormatDiscoveryIgnitionFile indicates an expected call of FormatDiscoveryIgnitionFile
-func (mr *MockIgnitionBuilderMockRecorder) FormatDiscoveryIgnitionFile(cluster, cfg, safeForLogs, authType interface{}) *gomock.Call {
+func (mr *MockIgnitionBuilderMockRecorder) FormatDiscoveryIgnitionFile(infraEnv, cfg, safeForLogs, authType interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatDiscoveryIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatDiscoveryIgnitionFile), cluster, cfg, safeForLogs, authType)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FormatDiscoveryIgnitionFile", reflect.TypeOf((*MockIgnitionBuilder)(nil).FormatDiscoveryIgnitionFile), infraEnv, cfg, safeForLogs, authType)
 }
 
 // FormatSecondDayWorkerIgnitionFile mocks base method

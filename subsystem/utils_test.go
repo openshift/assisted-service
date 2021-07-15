@@ -58,6 +58,16 @@ func getHost(clusterID, hostID strfmt.UUID) *models.Host {
 	return host.GetPayload()
 }
 
+func generateClusterISO(clusterID strfmt.UUID, imageType models.ImageType) {
+	_, err := userBMClient.Installer.GenerateClusterISO(context.Background(), &installer.GenerateClusterISOParams{
+		ClusterID: clusterID,
+		ImageCreateParams: &models.ImageCreateParams{
+			ImageType: imageType,
+		},
+	})
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func registerCluster(ctx context.Context, client *client.AssistedInstall, clusterName string, pullSecret string) (strfmt.UUID, error) {
 	var cluster, err = client.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
 		NewClusterParams: &models.ClusterCreateParams{

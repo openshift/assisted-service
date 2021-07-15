@@ -29,6 +29,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 			ID:              &hostID,
 			ValidationsInfo: hostValidationsInfo,
 			ClusterID:       clusterID,
+			InfraEnvID:      clusterID,
 		}
 		err := db.Create(&host).Error
 		Expect(err).NotTo(HaveOccurred())

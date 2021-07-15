@@ -99,10 +99,11 @@ var _ = Describe("Controller events wrapper", func() {
 			hostID1 := strfmt.UUID(uuid.New().String())
 			host1 := common.Host{
 				Host: models.Host{
-					ID:        &hostID1,
-					ClusterID: *cluster1.ID,
-					Status:    swag.String(models.HostStatusKnown),
-					Kind:      swag.String(models.HostKindHost),
+					ID:         &hostID1,
+					InfraEnvID: *cluster1.ID,
+					ClusterID:  *cluster1.ID,
+					Status:     swag.String(models.HostStatusKnown),
+					Kind:       swag.String(models.HostKindHost),
 				},
 				KubeKeyNamespace: "hostNm",
 			}

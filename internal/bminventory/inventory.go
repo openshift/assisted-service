@@ -245,12 +245,12 @@ func (b *bareMetalInventory) updatePullSecret(pullSecret string, log logrus.Fiel
 func (b *bareMetalInventory) GetDiscoveryIgnition(ctx context.Context, params installer.GetDiscoveryIgnitionParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
 
-	c, err := b.getCluster(ctx, params.ClusterID.String())
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
 	if err != nil {
 		return common.GenerateErrorResponder(err)
 	}
 
-	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(c, b.IgnitionConfig, false, b.authHandler.AuthType())
+	cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
 		log.WithError(err).Error("Failed to format ignition config")
 		return common.GenerateErrorResponder(err)
@@ -271,8 +271,10 @@ func (b *bareMetalInventory) UpdateDiscoveryIgnition(ctx context.Context, params
 func (b *bareMetalInventory) UpdateDiscoveryIgnitionInternal(ctx context.Context, params installer.UpdateDiscoveryIgnitionParams) error {
 	log := logutil.FromContext(ctx, b.log)
 
+	//[TODO] - change the code to use InfraEnv once we move the code and test to use InfraEnv CRUD
 	c, err := b.getCluster(ctx, params.ClusterID.String())
 	if err != nil {
+		log.WithError(err).Errorf("Failed to get cluster %s", params.ClusterID)
 		return err
 	}
 
@@ -475,16 +477,6 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
 		TriggerMonitorTimestamp: time.Now(),
-	}
-
-	proxyHash, err := computeClusterProxyHash(params.NewClusterParams.HTTPProxy,
-		params.NewClusterParams.HTTPSProxy,
-		params.NewClusterParams.NoProxy)
-	if err != nil {
-		err = errors.Wrapf(err, "failed to compute cluster proxy hash")
-		return nil, common.NewApiError(http.StatusInternalServerError, errors.Errorf("Failed to compute cluster proxy hash"))
-	} else {
-		cluster.ProxyHash = proxyHash
 	}
 
 	pullSecret := swag.StringValue(params.NewClusterParams.PullSecret)
@@ -740,17 +732,17 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 
 func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params installer.DownloadClusterISOParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
 
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
-		return common.NewApiError(http.StatusNotFound, err)
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra env %s", params.ClusterID)
+		return common.GenerateErrorResponder(err)
 	}
 
-	imgName := getImageName(*cluster.ID)
+	imgName := getImageName(infraEnv.ID)
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
+		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
 			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
@@ -765,14 +757,14 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 	}
 	reader, contentLength, err := b.objectHandler.Download(ctx, imgName)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
+		log.WithError(err).Errorf("Failed to get ISO for cluster %s", infraEnv.ID.String())
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
 			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOInternalServerError().
 			WithPayload(common.GenerateError(http.StatusInternalServerError, err))
 	}
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
-		fmt.Sprintf(`Started image download (image type is "%s")`, cluster.ImageInfo.Type), time.Now())
+		fmt.Sprintf(`Started image download (image type is "%s")`, infraEnv.Type), time.Now())
 
 	return filemiddleware.NewResponder(installer.NewDownloadClusterISOOK().WithPayload(reader),
 		fmt.Sprintf("cluster-%s-discovery.iso", params.ClusterID.String()),
@@ -781,17 +773,17 @@ func (b *bareMetalInventory) DownloadClusterISO(ctx context.Context, params inst
 
 func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, params installer.DownloadClusterISOHeadersParams) middleware.Responder {
 	log := logutil.FromContext(ctx, b.log)
-	var cluster common.Cluster
 
-	if err := b.db.First(&cluster, "id = ?", params.ClusterID).Error; err != nil {
-		log.WithError(err).Errorf("failed to get cluster %s", params.ClusterID)
-		return common.NewApiError(http.StatusNotFound, err)
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra env %s", params.ClusterID)
+		return common.GenerateErrorResponder(err)
 	}
 
-	imgName := getImageName(*cluster.ID)
+	imgName := getImageName(infraEnv.ID)
 	exists, err := b.objectHandler.DoesObjectExist(ctx, imgName)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO for cluster %s", cluster.ID.String())
+		log.WithError(err).Errorf("Failed to get ISO for infra env %s", infraEnv.ID.String())
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError,
 			"Failed to download image: error fetching from storage backend", time.Now())
 		return installer.NewDownloadClusterISOHeadersInternalServerError().
@@ -803,21 +795,21 @@ func (b *bareMetalInventory) DownloadClusterISOHeaders(ctx context.Context, para
 	}
 	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get ISO size for cluster %s", cluster.ID.String())
+		log.WithError(err).Errorf("Failed to get ISO size for cluster %s", infraEnv.ID.String())
 		return common.NewApiError(http.StatusBadRequest, err)
 	}
 	return installer.NewDownloadClusterISOHeadersOK().WithContentLength(imgSize)
 }
 
-func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, cluster *common.Cluster, clusterProxyHash string, imageType models.ImageType, generated bool) error {
+func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infraEnv *common.InfraEnv, infraEnvProxyHash string, imageType models.ImageType, generated bool) error {
 	updates := map[string]interface{}{}
-	imgName := getImageName(*cluster.ID)
+	imgName := getImageName(infraEnv.ID)
 	imgSize, err := b.objectHandler.GetObjectSizeBytes(ctx, imgName)
 	if err != nil {
 		return errors.New("Failed to generate image: error fetching size")
 	}
-	updates["image_size_bytes"] = imgSize
-	cluster.ImageInfo.SizeBytes = &imgSize
+	updates["size_bytes"] = imgSize
+	infraEnv.SizeBytes = &imgSize
 
 	// Presigned URL only works with AWS S3 because Scality is not exposed
 	if generated {
@@ -828,34 +820,34 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, clus
 				return errors.New("Failed to generate image: error generating URL")
 			}
 		} else {
-			var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: *cluster.ID}
+			var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: infraEnv.ID}
 			clusterISOURL, err := downloadClusterISOURL.Build()
 			if err != nil {
 				return errors.New("Failed to generate image: error generating cluster ISO URL")
 			}
 			downloadURL = fmt.Sprintf("%s%s", b.Config.ServiceBaseURL, clusterISOURL.RequestURI())
 			if b.authHandler.AuthType() == auth.TypeLocal {
-				downloadURL, err = gencrypto.SignURL(downloadURL, cluster.ID.String())
+				downloadURL, err = gencrypto.SignURL(downloadURL, infraEnv.ID.String())
 				if err != nil {
 					return errors.Wrap(err, "Failed to sign cluster ISO URL")
 				}
 			}
 		}
-		updates["image_download_url"] = downloadURL
-		cluster.ImageInfo.DownloadURL = downloadURL
-		updates["image_generated"] = true
-		cluster.ImageGenerated = true
+		updates["download_url"] = downloadURL
+		infraEnv.DownloadURL = downloadURL
+		updates["generated"] = true
+		infraEnv.Generated = true
 	}
 
-	if cluster.ProxyHash != clusterProxyHash {
-		updates["proxy_hash"] = clusterProxyHash
-		cluster.ProxyHash = clusterProxyHash
+	if infraEnv.ProxyHash != infraEnvProxyHash {
+		updates["proxy_hash"] = infraEnvProxyHash
+		infraEnv.ProxyHash = infraEnvProxyHash
 	}
 
-	updates["image_type"] = imageType
-	cluster.ImageInfo.Type = imageType
+	updates["type"] = imageType
+	infraEnv.Type = imageType
 
-	dbReply := b.db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	dbReply := b.db.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates)
 	if dbReply.Error != nil {
 		return errors.New("Failed to generate image: error updating image record")
 	}
@@ -920,12 +912,49 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, err
 	}
 
+	if !cluster.PullSecretSet {
+		errMsg := "Can't generate cluster ISO without pull secret"
+		log.Error(errMsg)
+		return nil, common.NewApiError(http.StatusBadRequest, errors.New(errMsg))
+	}
+
+	infraEnv, err := common.GetInfraEnvFromDB(tx, params.ClusterID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			infraEnv = &common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:               params.ClusterID,
+				ClusterID:        params.ClusterID,
+				OpenshiftVersion: cluster.OpenshiftVersion,
+				PullSecretSet:    true,
+			},
+				PullSecret: cluster.PullSecret,
+			}
+			err = tx.Create(infraEnv).Error
+			if err != nil {
+				log.WithError(err).Errorf("Failed to create infra env for cluster %s", params.ClusterID)
+				return nil, err
+			}
+		} else {
+			log.WithError(err).Errorf("failed to get infra env for cluster: %s", params.ClusterID)
+			return nil, err
+		}
+	}
+
+	// [TODO] - set the proxy here in order to get the proxy changes done set during cluster update.
+	// we don't update the infra env in the ClusterUpdate, since it might not existance at that time
+	// once we move to v2 ( updating InfraEnv directly), this code should be removed
+	infraEnv.Proxy = &models.Proxy{
+		HTTPProxy:  swag.String(cluster.HTTPProxy),
+		HTTPSProxy: swag.String(cluster.HTTPSProxy),
+		NoProxy:    swag.String(cluster.NoProxy),
+	}
+
 	/* We need to ensure that the metadata in the DB matches the image that will be uploaded to S3,
 	so we check that at least 10 seconds have past since the previous request to reduce the chance
 	of a race between two consecutive requests.
 	*/
 	now := time.Now()
-	previousCreatedAt := time.Time(cluster.ImageInfo.CreatedAt)
+	previousCreatedAt := time.Time(infraEnv.GeneratedAt)
 	if previousCreatedAt.Add(WindowBetweenRequestsInSeconds).After(now) {
 		log.Error("request came too soon after previous request")
 		return nil, common.NewApiError(
@@ -933,18 +962,12 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 			errors.New("Another request to generate an image has been recently submitted. Please wait a few seconds and try again."))
 	}
 
-	if !cluster.PullSecretSet {
-		errMsg := "Can't generate cluster ISO without pull secret"
-		log.Error(errMsg)
-		return nil, common.NewApiError(http.StatusBadRequest, errors.New(errMsg))
-	}
-
 	/* If the request has the same parameters as the previous request and the image is still in S3,
 	just refresh the timestamp.
 	*/
-	clusterProxyHash, err := computeClusterProxyHash(&cluster.HTTPProxy, &cluster.HTTPSProxy, &cluster.NoProxy)
+	infraEnvProxyHash, err := computeProxyHash(infraEnv.Proxy)
 	if err != nil {
-		msg := "Failed to compute cluster proxy hash"
+		msg := "Failed to compute infraEnv proxy hash"
 		log.Error(msg, err)
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
@@ -952,11 +975,11 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	staticNetworkConfig := b.staticNetworkConfig.FormatStaticNetworkConfigForDB(params.ImageCreateParams.StaticNetworkConfig)
 
 	var imageExists bool
-	if cluster.ImageInfo.SSHPublicKey == params.ImageCreateParams.SSHPublicKey &&
-		cluster.ProxyHash == clusterProxyHash &&
-		cluster.ImageInfo.StaticNetworkConfig == staticNetworkConfig &&
-		cluster.ImageGenerated &&
-		cluster.ImageInfo.Type == params.ImageCreateParams.ImageType {
+	if infraEnv.SSHAuthorizedKey == params.ImageCreateParams.SSHPublicKey &&
+		infraEnv.ProxyHash == infraEnvProxyHash &&
+		infraEnv.StaticNetworkConfig == staticNetworkConfig &&
+		infraEnv.Generated &&
+		infraEnv.Type == params.ImageCreateParams.ImageType {
 		imgName := getImageName(params.ClusterID)
 		imageExists, err = b.objectHandler.UpdateObjectTimestamp(ctx, imgName)
 		if err != nil {
@@ -968,17 +991,33 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 	}
 
 	updates := map[string]interface{}{}
-	updates["image_ssh_public_key"] = params.ImageCreateParams.SSHPublicKey
-	updates["image_created_at"] = strfmt.DateTime(now)
+	updates["ssh_authorized_key"] = params.ImageCreateParams.SSHPublicKey
+	updates["generated_at"] = strfmt.DateTime(now)
 	updates["image_expires_at"] = strfmt.DateTime(now.Add(b.Config.ImageExpirationTime))
-	updates["image_static_network_config"] = staticNetworkConfig
+	updates["static_network_config"] = staticNetworkConfig
+	updates["proxy_http_proxy"] = cluster.HTTPProxy
+	updates["proxy_http_s_proxy"] = cluster.HTTPSProxy
+	updates["proxy_no_proxy"] = cluster.NoProxy
+	//[TODO] - remove this code once we update ignition config override in InfraEnv via UpdateDiscoveryIgnitionInternal
+	updates["ignition_config_override"] = cluster.IgnitionConfigOverrides
 	if !imageExists {
 		// set image-generated indicator to false before the attempt to genearate the image in order to have an explicit
 		// state of the image creation based on the cluster parameters which will be committed to the DB
-		updates["image_generated"] = false
-		updates["image_download_url"] = ""
+		updates["generated"] = false
+		updates["download_url"] = ""
 	}
-	dbReply := tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(updates)
+	dbReply := tx.Model(&common.InfraEnv{}).Where("id = ?", infraEnv.ID.String()).Updates(updates)
+	if dbReply.Error != nil {
+		log.WithError(dbReply.Error).Errorf("failed to update infra env: %s", params.ClusterID)
+		msg := "Failed to generate image: error updating metadata"
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
+		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
+	}
+
+	cluster_updates := map[string]interface{}{}
+	cluster_updates["static_network_configured"] = (staticNetworkConfig != "")
+
+	dbReply = tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(cluster_updates)
 	if dbReply.Error != nil {
 		log.WithError(dbReply.Error).Errorf("failed to update cluster: %s", params.ClusterID)
 		msg := "Failed to generate image: error updating metadata"
@@ -993,91 +1032,92 @@ func (b *bareMetalInventory) GenerateClusterISOInternal(ctx context.Context, par
 		return nil, common.NewApiError(http.StatusInternalServerError, errors.New(msg))
 	}
 	txSuccess = true
-	if cluster, err = common.GetClusterFromDB(b.db, params.ClusterID, common.UseEagerLoading); err != nil {
-		log.WithError(err).Errorf("failed to get cluster %s after update", params.ClusterID)
-		msg := "Failed to generate image: error fetching updated cluster metadata"
+	if infraEnv, err = common.GetInfraEnvFromDB(b.db, params.ClusterID); err != nil {
+		log.WithError(err).Errorf("failed to get infra env %s after update", params.ClusterID)
+		msg := "Failed to generate image: error fetching updated infra env metadata"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
 		return nil, err
 	}
 
 	if imageExists {
-		if err = b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType, false); err != nil {
+		if err = b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, params.ImageCreateParams.ImageType, false); err != nil {
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
 		}
 
 		log.Infof("Re-used existing cluster <%s> image", params.ClusterID)
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
 			fmt.Sprintf(`Re-used existing image rather than generating a new one (image type is "%s")`,
-				cluster.ImageInfo.Type),
+				params.ImageCreateParams.ImageType),
 			time.Now())
-		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+		return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
 	}
 
-	err = b.createAndUploadNewImage(ctx, log, clusterProxyHash, cluster, params)
+	err = b.createAndUploadNewImage(ctx, log, infraEnvProxyHash, infraEnv, params)
 	if err != nil {
 		return nil, err
 	}
 
-	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: *cluster.ID})
+	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: params.ClusterID})
 }
 
-func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, clusterProxyHash string,
-	cluster *common.Cluster, params installer.GenerateClusterISOParams) error {
+func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log logrus.FieldLogger, infraEnvProxyHash string,
+	infraEnv *common.InfraEnv, params installer.GenerateClusterISOParams) error {
 	// Setting ImageInfo.Type at this point in order to pass it to FormatDiscoveryIgnitionFile without saving it to the DB.
 	// Saving it to the DB will be done after a successful image generation by updateImageInfoPostUpload
-	cluster.ImageInfo.Type = params.ImageCreateParams.ImageType
-	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster, b.IgnitionConfig, false, b.authHandler.AuthType())
+	infraEnv.Type = params.ImageCreateParams.ImageType
+	ignitionConfig, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
 	if err != nil {
-		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", cluster.ID)
+		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", infraEnv.ID)
 		msg := "Failed to generate image: error formatting ignition file"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if err = b.objectHandler.Upload(ctx, []byte(ignitionConfig), fmt.Sprintf("%s/discovery.ign", cluster.ID)); err != nil {
-		log.WithError(err).Errorf("Upload discovery ignition failed for cluster %s", cluster.ID)
+	if err = b.objectHandler.Upload(ctx, []byte(ignitionConfig), fmt.Sprintf("%s/discovery.ign", infraEnv.ID)); err != nil {
+		log.WithError(err).Errorf("Upload discovery ignition failed for cluster %s", infraEnv.ID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	objectPrefix := fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, cluster.ID.String())
+	objectPrefix := fmt.Sprintf(s3wrapper.DiscoveryImageTemplate, infraEnv.ID.String())
 
 	if params.ImageCreateParams.ImageType == models.ImageTypeMinimalIso {
-		if err := b.generateClusterMinimalISO(ctx, log, cluster, ignitionConfig, objectPrefix); err != nil {
-			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", cluster.ID)
+		if err := b.generateClusterMinimalISO(ctx, log, infraEnv, ignitionConfig, objectPrefix); err != nil {
+			log.WithError(err).Errorf("Failed to generate minimal ISO for cluster %s", infraEnv.ID)
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to generate minimal ISO", time.Now())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	} else {
-		baseISOName, err := b.objectHandler.GetBaseIsoObject(cluster.OpenshiftVersion)
+		baseISOName, err := b.objectHandler.GetBaseIsoObject(infraEnv.OpenshiftVersion)
 		if err != nil {
-			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
+			log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 
 		if err := b.objectHandler.UploadISO(ctx, ignitionConfig, baseISOName, objectPrefix); err != nil {
-			log.WithError(err).Errorf("Upload ISO failed for cluster %s", cluster.ID)
+			log.WithError(err).Errorf("Upload ISO failed for cluster %s", infraEnv.ID)
 			b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, "Failed to upload image", time.Now())
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
 	}
 
-	if err := b.updateImageInfoPostUpload(ctx, cluster, clusterProxyHash, params.ImageCreateParams.ImageType, true); err != nil {
+	if err := b.updateImageInfoPostUpload(ctx, infraEnv, infraEnvProxyHash, params.ImageCreateParams.ImageType, true); err != nil {
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
-	msg := b.getIgnitionConfigForLogging(cluster, params, log)
+	msg := b.getIgnitionConfigForLogging(infraEnv, params, log)
 	b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo, msg, time.Now())
 
 	return nil
 }
 
-func (b *bareMetalInventory) getIgnitionConfigForLogging(cluster *common.Cluster, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {
-	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(cluster, b.IgnitionConfig, true, b.authHandler.AuthType())
-	log.Infof("Generated cluster <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
+func (b *bareMetalInventory) getIgnitionConfigForLogging(infraEnv *common.InfraEnv, params installer.GenerateClusterISOParams, log logrus.FieldLogger) string {
+	ignitionConfigForLogging, _ := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, true, b.authHandler.AuthType())
+	log.Infof("Generated infra env <%s> image with ignition config %s", params.ClusterID, ignitionConfigForLogging)
 	msg := "Generated image"
 	var msgExtras []string
 
-	if cluster.HTTPProxy != "" {
-		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, cluster.HTTPProxy))
+	httpProxy, _, _ := common.GetProxyConfigs(infraEnv.Proxy)
+	if httpProxy != "" {
+		msgExtras = append(msgExtras, fmt.Sprintf(`proxy URL is "%s"`, httpProxy))
 	}
 
 	msgExtras = append(msgExtras, fmt.Sprintf(`Image type is "%s"`, string(params.ImageCreateParams.ImageType)))
@@ -1094,11 +1134,11 @@ func (b *bareMetalInventory) getIgnitionConfigForLogging(cluster *common.Cluster
 }
 
 func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log logrus.FieldLogger,
-	cluster *common.Cluster, ignitionConfig, objectPrefix string) error {
+	infraEnv *common.InfraEnv, ignitionConfig, objectPrefix string) error {
 
-	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(cluster.OpenshiftVersion)
+	baseISOName, err := b.objectHandler.GetMinimalIsoObjectName(infraEnv.OpenshiftVersion)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to get source object name for cluster %s with ocp version %s", cluster.ID, cluster.OpenshiftVersion)
+		log.WithError(err).Errorf("Failed to get source object name for infraEnv %s with ocp version %s", infraEnv.ID, infraEnv.OpenshiftVersion)
 		return err
 	}
 
@@ -1110,26 +1150,27 @@ func (b *bareMetalInventory) generateClusterMinimalISO(ctx context.Context, log 
 
 	var clusterISOPath string
 	err = b.isoEditorFactory.WithEditor(ctx, isoPath, log, func(editor isoeditor.Editor) error {
-		log.Infof("Creating minimal ISO for cluster %s", cluster.ID)
+		log.Infof("Creating minimal ISO for cluster %s", infraEnv.ID)
 		var createError error
-		clusterProxyInfo := isoeditor.ClusterProxyInfo{
-			HTTPProxy:  cluster.HTTPProxy,
-			HTTPSProxy: cluster.HTTPSProxy,
-			NoProxy:    cluster.NoProxy,
+		httpProxy, httpsProxy, noProxy := common.GetProxyConfigs(infraEnv.Proxy)
+		infraEnvProxyInfo := isoeditor.ClusterProxyInfo{
+			HTTPProxy:  httpProxy,
+			HTTPSProxy: httpsProxy,
+			NoProxy:    noProxy,
 		}
-		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, cluster.ImageInfo.StaticNetworkConfig, &clusterProxyInfo)
+		clusterISOPath, createError = editor.CreateClusterMinimalISO(ignitionConfig, infraEnv.StaticNetworkConfig, &infraEnvProxyInfo)
 		return createError
 	})
 
 	if err != nil {
-		log.WithError(err).Errorf("Failed to create minimal discovery ISO cluster %s with iso file %s", cluster.ID, isoPath)
+		log.WithError(err).Errorf("Failed to create minimal discovery ISO infra env %s with iso file %s", infraEnv.ID, isoPath)
 		return err
 	}
 
-	log.Infof("Uploading minimal ISO for cluster %s", cluster.ID)
+	log.Infof("Uploading minimal ISO for cluster %s", infraEnv.ID)
 	if err := b.objectHandler.UploadFile(ctx, clusterISOPath, fmt.Sprintf("%s.iso", objectPrefix)); err != nil {
 		os.Remove(clusterISOPath)
-		log.WithError(err).Errorf("Failed to upload minimal discovery ISO for cluster %s", cluster.ID)
+		log.WithError(err).Errorf("Failed to upload minimal discovery ISO for infra env %s", infraEnv.ID)
 		return err
 	}
 	return os.Remove(clusterISOPath)
@@ -2559,12 +2600,32 @@ func (b *bareMetalInventory) GetClusterInternal(ctx context.Context, params inst
 
 	cluster.HostNetworks = b.calculateHostNetworks(log, cluster)
 	for _, host := range cluster.Hosts {
-		if err := b.customizeHost(host); err != nil {
+		if err = b.customizeHost(host); err != nil {
 			return nil, err
 		}
 		// Clear this field as it is not needed to be sent via API
 		host.FreeAddresses = ""
 	}
+
+	infraEnv, err := common.GetInfraEnvFromDB(b.db, *cluster.ID)
+	if err == nil {
+		imageInfo := &models.ImageInfo{
+			DownloadURL:         infraEnv.DownloadURL,
+			SizeBytes:           infraEnv.SizeBytes,
+			CreatedAt:           infraEnv.GeneratedAt,
+			ExpiresAt:           infraEnv.ImageExpiresAt,
+			SSHPublicKey:        infraEnv.SSHAuthorizedKey,
+			Type:                infraEnv.Type,
+			StaticNetworkConfig: infraEnv.StaticNetworkConfig,
+			GeneratorVersion:    infraEnv.GeneratorVersion,
+		}
+		cluster.ImageInfo = imageInfo
+	} else {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+	}
+
 	return cluster, nil
 }
 
@@ -2592,7 +2653,13 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		return common.GenerateErrorResponder(err)
 	}
 
-	_, err := common.GetHostFromDB(tx, params.ClusterID.String(), params.NewHostParams.HostID.String())
+	infraEnv, err := common.GetInfraEnvFromDB(tx, params.ClusterID)
+	if err != nil {
+		log.WithError(err).Errorf("failed to get infra env: %s", params.ClusterID.String())
+		return common.GenerateErrorResponder(err)
+	}
+
+	_, err = common.GetHostFromDB(tx, params.ClusterID.String(), params.NewHostParams.HostID.String())
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		log.WithError(err).Errorf("failed to get host %s in cluster: %s",
 			*params.NewHostParams.HostID, params.ClusterID.String())
@@ -2631,11 +2698,12 @@ func (b *bareMetalInventory) RegisterHost(ctx context.Context, params installer.
 		ID:                    params.NewHostParams.HostID,
 		Href:                  swag.String(url.String()),
 		Kind:                  kind,
-		ClusterID:             params.ClusterID,
+		ClusterID:             infraEnv.ClusterID,
 		CheckedInAt:           strfmt.DateTime(time.Now()),
 		DiscoveryAgentVersion: params.NewHostParams.DiscoveryAgentVersion,
 		UserName:              ocm.UserNameFromContext(ctx),
 		Role:                  defaultRole,
+		InfraEnvID:            infraEnv.ID,
 	}
 
 	if err = b.hostApi.RegisterHost(ctx, host, tx); err != nil {
@@ -4485,17 +4553,12 @@ func proxySettingsChanged(params *models.ClusterUpdateParams, cluster *common.Cl
 
 // computes the cluster proxy hash in order to identify if proxy settings were changed which will indicated if
 // new ISO file should be generated to contain new proxy settings
-func computeClusterProxyHash(httpProxy, httpsProxy, noProxy *string) (string, error) {
+func computeProxyHash(proxy *models.Proxy) (string, error) {
 	var proxyHash string
-	if httpProxy != nil {
-		proxyHash += *httpProxy
-	}
-	if httpsProxy != nil {
-		proxyHash += *httpsProxy
-	}
-	if noProxy != nil {
-		proxyHash += *noProxy
-	}
+	httpProxy, httpsProxy, noProxy := common.GetProxyConfigs(proxy)
+	proxyHash += httpProxy
+	proxyHash += httpsProxy
+	proxyHash += noProxy
 	// #nosec
 	h := md5.New()
 	_, err := h.Write([]byte(proxyHash))
