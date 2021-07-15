@@ -247,6 +247,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUploadLogsHandler: installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadLogs has not yet been implemented")
 		}),
+		InstallerV2RegisterInfraEnvHandler: installer.V2RegisterInfraEnvHandlerFunc(func(params installer.V2RegisterInfraEnvParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2RegisterInfraEnv has not yet been implemented")
+		}),
 
 		// Applies when the "X-Secret-Key" header is set
 		AgentAuthAuth: func(token string) (interface{}, error) {
@@ -447,6 +450,8 @@ type AssistedInstallAPI struct {
 	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
 	// InstallerUploadLogsHandler sets the operation handler for the upload logs operation
 	InstallerUploadLogsHandler installer.UploadLogsHandler
+	// InstallerV2RegisterInfraEnvHandler sets the operation handler for the v2 register infra env operation
+	InstallerV2RegisterInfraEnvHandler installer.V2RegisterInfraEnvHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -733,6 +738,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUploadLogsHandler == nil {
 		unregistered = append(unregistered, "installer.UploadLogsHandler")
+	}
+	if o.InstallerV2RegisterInfraEnvHandler == nil {
+		unregistered = append(unregistered, "installer.V2RegisterInfraEnvHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -1103,6 +1111,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/infra-envs"] = installer.NewV2RegisterInfraEnv(o.context, o.InstallerV2RegisterInfraEnvHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

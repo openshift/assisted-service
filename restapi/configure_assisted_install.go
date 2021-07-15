@@ -206,6 +206,9 @@ type InstallerAPI interface {
 
 	/* UploadLogs Agent API to upload logs. */
 	UploadLogs(ctx context.Context, params installer.UploadLogsParams) middleware.Responder
+
+	/* V2RegisterInfraEnv Creates a new OpenShift Discovery ISO. */
+	V2RegisterInfraEnv(ctx context.Context, params installer.V2RegisterInfraEnvParams) middleware.Responder
 }
 
 //go:generate mockery -name ManagedDomainsAPI -inpkg
@@ -675,6 +678,11 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.UploadLogs(ctx, params)
+	})
+	api.InstallerV2RegisterInfraEnvHandler = installer.V2RegisterInfraEnvHandlerFunc(func(params installer.V2RegisterInfraEnvParams, principal interface{}) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.InstallerAPI.V2RegisterInfraEnv(ctx, params)
 	})
 	api.ServerShutdown = func() {}
 	return api.Serve(c.InnerMiddleware), api, nil

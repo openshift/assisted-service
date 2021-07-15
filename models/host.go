@@ -69,6 +69,10 @@ type Host struct {
 	// Array of image statuses.
 	ImagesStatus string `json:"images_status,omitempty" gorm:"type:text"`
 
+	// The InfraEnv that this host is associated with.
+	// Format: uuid
+	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty" gorm:"foreignkey:InfraEnvID"`
+
 	// Contains the inventory disk id to install on.
 	InstallationDiskID string `json:"installation_disk_id,omitempty"`
 
@@ -177,6 +181,10 @@ func (m *Host) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateID(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateInfraEnvID(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -306,6 +314,19 @@ func (m *Host) validateID(formats strfmt.Registry) error {
 	}
 
 	if err := validate.FormatOf("id", "body", "uuid", m.ID.String(), formats); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *Host) validateInfraEnvID(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.InfraEnvID) { // not required
+		return nil
+	}
+
+	if err := validate.FormatOf("infra_env_id", "body", "uuid", m.InfraEnvID.String(), formats); err != nil {
 		return err
 	}
 

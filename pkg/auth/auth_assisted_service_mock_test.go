@@ -280,6 +280,10 @@ func (f fakeInventory) ResetHostValidation(ctx context.Context, params installer
 	return installer.NewResetHostValidationOK()
 }
 
+func (f fakeInventory) V2RegisterInfraEnv(ctx context.Context, params installer.V2RegisterInfraEnvParams) middleware.Responder {
+	return installer.NewV2RegisterInfraEnvNotImplemented()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

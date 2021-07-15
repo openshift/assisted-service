@@ -62,7 +62,7 @@ type Event struct {
 }
 
 func AutoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(&models.MonitoredOperator{}, &Host{}, &Cluster{}, &Event{}).Error
+	return db.AutoMigrate(&models.MonitoredOperator{}, &Host{}, &Cluster{}, &Event{}, &InfraEnv{}).Error
 }
 
 type Host struct {
@@ -74,6 +74,13 @@ type Host struct {
 
 	// Timestamp to trigger monitor. Monitor will be triggered if timestamp is recent
 	TriggerMonitorTimestamp time.Time
+}
+
+type InfraEnv struct {
+	models.InfraEnv
+
+	// The pull secret that obtained from the Pull Secret page on the Red Hat OpenShift Cluster Manager site.
+	PullSecret string `json:"pull_secret" gorm:"type:TEXT"`
 }
 
 type EagerLoadingState bool

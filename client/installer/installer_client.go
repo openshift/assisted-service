@@ -173,6 +173,9 @@ type API interface {
 	/*
 	   UploadLogs Agent API to upload logs.*/
 	UploadLogs(ctx context.Context, params *UploadLogsParams) (*UploadLogsNoContent, error)
+	/*
+	   V2RegisterInfraEnv Creates a new OpenShift Discovery ISO.*/
+	V2RegisterInfraEnv(ctx context.Context, params *V2RegisterInfraEnvParams) (*V2RegisterInfraEnvCreated, error)
 }
 
 // New creates a new installer API client.
@@ -1445,5 +1448,30 @@ func (a *Client) UploadLogs(ctx context.Context, params *UploadLogsParams) (*Upl
 		return nil, err
 	}
 	return result.(*UploadLogsNoContent), nil
+
+}
+
+/*
+V2RegisterInfraEnv Creates a new OpenShift Discovery ISO.
+*/
+func (a *Client) V2RegisterInfraEnv(ctx context.Context, params *V2RegisterInfraEnvParams) (*V2RegisterInfraEnvCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "v2RegisterInfraEnv",
+		Method:             "POST",
+		PathPattern:        "/infra-envs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &V2RegisterInfraEnvReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*V2RegisterInfraEnvCreated), nil
 
 }
