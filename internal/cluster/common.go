@@ -76,8 +76,7 @@ func updateClusterStatus(ctx context.Context, log logrus.FieldLogger, db *gorm.D
 	return cluster, nil
 }
 
-func updateLogsProgress(log logrus.FieldLogger, db *gorm.DB, c *common.Cluster, srcStatus string,
-	progress string) error {
+func updateLogsProgress(log logrus.FieldLogger, db *gorm.DB, c *common.Cluster, progress string) error {
 	var updates map[string]interface{}
 
 	switch progress {

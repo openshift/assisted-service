@@ -671,7 +671,7 @@ func (m *Manager) CancelInstallation(ctx context.Context, c *common.Cluster, rea
 }
 
 func (m *Manager) UpdateLogsProgress(ctx context.Context, c *common.Cluster, progress string) error {
-	err := updateLogsProgress(logutil.FromContext(ctx, m.log), m.db, c, swag.StringValue(c.Status), progress)
+	err := updateLogsProgress(logutil.FromContext(ctx, m.log), m.db, c, progress)
 	return err
 }
 

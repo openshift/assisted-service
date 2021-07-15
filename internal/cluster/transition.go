@@ -534,7 +534,7 @@ func (th *transitionHandler) InstallCluster(sw stateswitch.StateSwitch, args sta
 func (th *transitionHandler) PostRefreshLogsProgress(progress string) stateswitch.PostTransition {
 	return func(sw stateswitch.StateSwitch, args stateswitch.TransitionArgs) error {
 		sCluster, _ := sw.(*stateCluster)
-		return updateLogsProgress(th.log, th.db, sCluster.cluster, swag.StringValue(sCluster.cluster.Status), progress)
+		return updateLogsProgress(th.log, th.db, sCluster.cluster, progress)
 	}
 }
 
