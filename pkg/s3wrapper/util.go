@@ -21,7 +21,7 @@ import (
 
 const (
 	minimalTemplatesVersionFileName = "minimal_templates_version.json"
-	minimalTemplatesVersionLatest   = 3 // increase if templates update is needed
+	minimalTemplatesVersionLatest   = 4 // increase if templates update is needed
 )
 
 type templatesVersion struct {
