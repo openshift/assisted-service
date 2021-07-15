@@ -28,11 +28,12 @@ import (
 type ValidationStatus string
 
 const (
-	ValidationSuccess  ValidationStatus = "success"
-	ValidationFailure  ValidationStatus = "failure"
-	ValidationPending  ValidationStatus = "pending"
-	ValidationError    ValidationStatus = "error"
-	ValidationDisabled ValidationStatus = "disabled"
+	ValidationSuccess               ValidationStatus = "success"
+	ValidationSuccessSuppressOutput ValidationStatus = "success-suppress-output"
+	ValidationFailure               ValidationStatus = "failure"
+	ValidationPending               ValidationStatus = "pending"
+	ValidationError                 ValidationStatus = "error"
+	ValidationDisabled              ValidationStatus = "disabled"
 )
 
 var (
@@ -457,7 +458,7 @@ func (v *validator) isAPIVipConnected(c *validationContext) ValidationStatus {
 		return ValidationPending
 	}
 	if !hostutil.IsDay2Host(c.host) || swag.BoolValue(c.cluster.UserManagedNetworking) {
-		return ValidationSuccess
+		return ValidationSuccessSuppressOutput
 	}
 	var response models.APIVipConnectivityResponse
 	if err := json.Unmarshal([]byte(c.host.APIVipConnectivity), &response); err != nil {
