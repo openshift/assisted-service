@@ -2,8 +2,8 @@ package host
 
 import (
 	"fmt"
+	"net"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -102,20 +102,16 @@ func GetHostnameAndRoleByIP(ip string, hosts []*models.Host) (string, models.Hos
 		}
 		inv, err := hostutil.UnmarshalInventory(h.Inventory)
 		if err != nil {
-			return "", "", fmt.Errorf("unable to unmarshall cluster inventory for host %s", h.RequestedHostname)
-		}
-		if strings.Count(ip, ":") == 0 {
-			for _, i := range inv.Interfaces {
-				for _, ipv4 := range i.IPV4Addresses {
-					if ip == ipv4 {
-						return getRealHostname(h, inv), h.Role, nil
-					}
-				}
-			}
+			return "", "", fmt.Errorf("unable to unmarshall cluster inventory for host %s: %s", h.RequestedHostname, err)
 		}
 		for _, i := range inv.Interfaces {
-			for _, ipv6 := range i.IPV6Addresses {
-				if ip == ipv6 {
+			ips := append(i.IPV4Addresses, i.IPV6Addresses...)
+			for _, cidr := range ips {
+				parsedIP, _, err := net.ParseCIDR(cidr)
+				if err != nil {
+					return "", "", err
+				}
+				if ip == parsedIP.String() {
 					return getRealHostname(h, inv), h.Role, nil
 				}
 			}
