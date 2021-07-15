@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/filanov/stateswitch/examples/host/host"
@@ -228,15 +229,19 @@ var _ = Describe("Host tests", func() {
 	})
 
 	It("next step - DHCP", func() {
+		By("Creating cluster")
 		Expect(db.Table("clusters").Where("id = ?", clusterID.String()).UpdateColumn("machine_network_cidr", "1.2.3.0/24").Error).ToNot(HaveOccurred())
+		By("Creating hosts")
 		host := &registerHost(clusterID).Host
 		host2 := &registerHost(clusterID).Host
 		Expect(db.Model(host2).UpdateColumns(&models.Host{Inventory: defaultInventory(),
 			Status: swag.String(models.HostStatusInsufficient)}).Error).NotTo(HaveOccurred())
+		By("Get steps in discovering ...")
 		steps := getNextSteps(clusterID, *host.ID)
 		_, ok := getStepInList(steps, models.StepTypeInventory)
 		Expect(ok).Should(Equal(true))
 		host = getHost(clusterID, *host.ID)
+		By("Get steps in insufficient ...")
 		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
 		Expect(db.Model(host).UpdateColumn("inventory", defaultInventory()).Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
@@ -246,6 +251,7 @@ var _ = Describe("Host tests", func() {
 		Expect(ok).Should(Equal(true))
 		_, ok = getStepInList(steps, models.StepTypeDhcpLeaseAllocate)
 		Expect(ok).Should(Equal(true))
+		By("Get steps in known ...")
 		Expect(db.Model(host).Update("status", "known").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
@@ -254,30 +260,40 @@ var _ = Describe("Host tests", func() {
 		Expect(ok).Should(Equal(true))
 		_, ok = getStepInList(steps, models.StepTypeDhcpLeaseAllocate)
 		Expect(ok).Should(Equal(true))
+		By("Get steps in disabled ...")
 		Expect(db.Model(host).Update("status", "disabled").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		Expect(steps.NextInstructionSeconds).Should(Equal(int64(120)))
 		Expect(len(steps.Instructions)).Should(Equal(0))
+		By("Get steps in insufficient ...")
 		Expect(db.Model(host).Update("status", "insufficient").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeConnectivityCheck)
 		Expect(ok).Should(Equal(true))
 		_, ok = getStepInList(steps, models.StepTypeDhcpLeaseAllocate)
 		Expect(ok).Should(Equal(true))
+		By("Get steps in error ...")
 		Expect(db.Model(host).Update("status", "error").Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeExecute)
 		Expect(ok).Should(Equal(true))
+		By("Get steps in resetting ...")
 		Expect(db.Model(host).Update("status", models.HostStatusResetting).Error).NotTo(HaveOccurred())
 		steps = getNextSteps(clusterID, *host.ID)
 		_, ok = getStepInList(steps, models.StepTypeResetInstallation)
 		Expect(ok).Should(Equal(true))
-		for _, st := range []string{models.HostStatusInstallingInProgress, models.HostStatusInstalling, models.HostStatusPreparingForInstallation} {
+		for _, st := range []string{models.HostStatusInstalling, models.HostStatusPreparingForInstallation} {
+			By(fmt.Sprintf("Get steps in %s ...", st))
 			Expect(db.Model(host).Update("status", st).Error).NotTo(HaveOccurred())
 			steps = getNextSteps(clusterID, *host.ID)
 			_, ok = getStepInList(steps, models.StepTypeDhcpLeaseAllocate)
 			Expect(ok).Should(Equal(true))
 		}
+		By(fmt.Sprintf("Get steps in %s ...", models.HostStatusInstallingInProgress))
+		Expect(db.Model(host).Updates(map[string]interface{}{"status": models.HostStatusInstallingInProgress, "progress_stage_updated_at": strfmt.DateTime(time.Now())}).Error).NotTo(HaveOccurred())
+		steps = getNextSteps(clusterID, *host.ID)
+		_, ok = getStepInList(steps, models.StepTypeDhcpLeaseAllocate)
+		Expect(ok).Should(Equal(true))
 	})
 
 	It("host_disconnection", func() {
