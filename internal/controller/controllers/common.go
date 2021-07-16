@@ -17,6 +17,7 @@ import (
 	hivev1 "github.com/openshift/hive/apis/hive/v1"
 	machinev1beta1 "github.com/openshift/machine-api-operator/pkg/apis/machine/v1beta1"
 	"github.com/pkg/errors"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -153,6 +154,7 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(hiveext.AddToScheme(schemes))
 	utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 	utilruntime.Must(machinev1beta1.AddToScheme(schemes))
+	utilruntime.Must(monitoringv1.AddToScheme(schemes))
 	return schemes
 }
 
