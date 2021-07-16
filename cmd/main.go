@@ -247,6 +247,8 @@ func main() {
 	authzHandler := auth.NewAuthzHandler(&Options.Auth, ocmClient, log.WithField("pkg", "authz"))
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
+	extracterHandler := oc.NewExtracter(&executer.CommonExecuter{},
+		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
 		Options.Versions, openshiftVersionsMap, mustGatherVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
@@ -261,7 +263,7 @@ func main() {
 	createS3Bucket(objectHandler, log)
 
 	manifestsApi := manifests.NewManifestsAPI(db, log.WithField("pkg", "manifests"), objectHandler)
-	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler)
+	operatorsManager := operators.NewManager(log, manifestsApi, Options.OperatorsConfig, objectHandler, extracterHandler)
 	hwValidator := hardware.NewValidator(log.WithField("pkg", "validators"), Options.HWValidatorConfig, operatorsManager)
 	connectivityValidator := connectivity.NewValidator(log.WithField("pkg", "validators"))
 	Options.InstructionConfig.DisabledSteps = disableFreeAddressesIfNeeded(Options.EnableKubeAPI, Options.InstructionConfig.DisabledSteps)

@@ -9,7 +9,7 @@ import (
 )
 
 var _ = Describe("OCS manifest generation", func() {
-	operator := NewOcsOperator(common.GetTestLog())
+	operator := NewOcsOperator(common.GetTestLog(), nil)
 	operator.config.OCSDeploymentType = "Compact"
 	cluster := common.Cluster{Cluster: models.Cluster{
 		OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,

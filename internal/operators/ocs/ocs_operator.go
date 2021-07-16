@@ -6,6 +6,7 @@ import (
 
 	"github.com/kelseyhightower/envconfig"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/oc"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/models"
@@ -15,8 +16,9 @@ import (
 
 // operator is an OCS OLM operator plugin; it implements api.Operator
 type operator struct {
-	log    logrus.FieldLogger
-	config *Config
+	log       logrus.FieldLogger
+	config    *Config
+	extracter oc.Extracter
 }
 
 var Operator = models.MonitoredOperator{
@@ -28,20 +30,21 @@ var Operator = models.MonitoredOperator{
 }
 
 // NewOcsOperator creates new OCSOperator
-func NewOcsOperator(log logrus.FieldLogger) *operator {
+func NewOcsOperator(log logrus.FieldLogger, extracter oc.Extracter) *operator {
 	cfg := Config{}
 	err := envconfig.Process(common.EnvConfigPrefix, &cfg)
 	if err != nil {
 		log.Fatal(err.Error())
 	}
-	return newOcsOperatorWithConfig(log, &cfg)
+	return newOcsOperatorWithConfig(log, &cfg, extracter)
 }
 
 // newOcsOperatorWithConfig creates new OCSOperator with given configuration
-func newOcsOperatorWithConfig(log logrus.FieldLogger, config *Config) *operator {
+func newOcsOperatorWithConfig(log logrus.FieldLogger, config *Config, extracter oc.Extracter) *operator {
 	return &operator{
-		log:    log,
-		config: config,
+		log:       log,
+		config:    config,
+		extracter: extracter,
 	}
 }
 

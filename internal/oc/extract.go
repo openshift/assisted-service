@@ -3,6 +3,7 @@ package oc
 import (
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/openshift/assisted-service/pkg/executer"
 	"github.com/sirupsen/logrus"
@@ -10,8 +11,8 @@ import (
 
 //go:generate mockgen -source=extract.go -package=oc -destination=mock_extract.go
 type Extracter interface {
-	Extract(log logrus.FieldLogger, imageIndexPath string, openshiftVersion string, filePath string, pullSecret string) (string, error)
-	ExtractDatabaseIndex(log logrus.FieldLogger, openshiftVersion string, pullSecret string) (string, error)
+	Extract(log logrus.FieldLogger, imageIndexPath string, openshiftVersion string, filePath string, pullSecret string, insecure bool) (string, error)
+	ExtractDatabaseIndex(log logrus.FieldLogger, releaseImageMirror string, openshiftVersion string, pullSecret string) (string, error)
 }
 
 type extract struct {
@@ -26,22 +27,26 @@ func NewExtracter(executer executer.Executer, config Config) Extracter {
 const (
 	imageIndex           = "registry.redhat.io/redhat/redhat-operator-index"
 	dbFile               = "/database/index.db"
-	templateImageExtract = "oc image extract %s:v%s --path=%s:%s"
+	templateImageExtract = "oc image extract %s:v%s --path=%s:%s --insecure=%t"
 )
 
 // ExtractDatabaseIndex extracts the databse idnex from the redhat-operator-index
-func (r *extract) ExtractDatabaseIndex(log logrus.FieldLogger, openshiftVersion string, pullSecret string) (string, error) {
-	return r.Extract(log, imageIndex, openshiftVersion, dbFile, pullSecret)
+func (r *extract) ExtractDatabaseIndex(log logrus.FieldLogger, releaseImageMirror string, openshiftVersion string, pullSecret string) (string, error) {
+	if releaseImageMirror != "" {
+		return r.Extract(log, imageIndex, openshiftVersion, dbFile, pullSecret, true)
+	} else {
+		return r.Extract(log, imageIndex, openshiftVersion, dbFile, pullSecret, false)
+	}
 }
 
 // Extract extracts the file from image index to the temporary file
-func (r *extract) Extract(log logrus.FieldLogger, imageIndexPath string, openshiftVersion string, filePath string, pullSecret string) (string, error) {
-	file, err := ioutil.TempFile("", "index.db")
+func (r *extract) Extract(log logrus.FieldLogger, imageIndexPath string, openshiftVersion string, filePath string, pullSecret string, insecure bool) (string, error) {
+	file, err := ioutil.TempFile("", filepath.Base(filePath))
 	if err != nil {
 		return "", err
 	}
 
-	cmd := fmt.Sprintf(templateImageExtract, imageIndexPath, openshiftVersion, filePath, file.Name())
+	cmd := fmt.Sprintf(templateImageExtract, imageIndexPath, openshiftVersion, filePath, file.Name(), insecure)
 	_, err = execute(log, r.executer, pullSecret, cmd)
 	if err != nil {
 		return "", err

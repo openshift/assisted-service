@@ -36,6 +36,7 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/kennygrant/sanitize v1.2.4
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/metal3-io/baremetal-operator v0.0.0-20210317131627-82fd2d7f8daa
 	github.com/moby/moby v1.13.1
 	github.com/onsi/ginkgo v1.16.4

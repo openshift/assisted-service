@@ -41,7 +41,7 @@ var _ = Describe("oc extract", func() {
 		It("extract db from 4.7 openshift version", func() {
 			mockExecuter.EXPECT().Execute(gomock.Any(), gomock.Any()).Return("", "", 0).Times(1)
 
-			tempFile, err := oc.ExtractDatabaseIndex(log, "4.7", pullSecret)
+			tempFile, err := oc.ExtractDatabaseIndex(log, "", "4.7", pullSecret)
 			Expect(tempFile).ShouldNot(BeEmpty())
 			Expect(err).ShouldNot(HaveOccurred())
 		})

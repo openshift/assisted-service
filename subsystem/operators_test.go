@@ -62,7 +62,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			cluster := reply.GetPayload()
 			c := &common.Cluster{Cluster: *cluster}
 
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operators.IsEnabled(c.MonitoredOperators, builtinOperator.Name)).Should(BeTrue())
 			}
 		})
@@ -186,7 +186,7 @@ var _ = Describe("Operators endpoint tests", func() {
 			}
 
 			// Builtin
-			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
+			for _, builtinOperator := range operators.NewManager(log, nil, operators.Options{}, nil, nil).GetSupportedOperatorsByType(models.OperatorTypeBuiltin) {
 				Expect(operatorNames).To(ContainElements(builtinOperator.Name))
 			}
 
