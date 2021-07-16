@@ -12,7 +12,6 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/models"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -42,51 +41,6 @@ var _ = Describe("installer", func() {
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 	})
 
-	Context("install cluster", func() {
-		It("cluster is insufficient", func() {
-			cluster = updateClusterState(cluster, models.ClusterStatusInsufficient, db)
-			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is expected to have exactly 3 known master to be installed, got 0", cluster.ID).Error()))
-		})
-		It("cluster is installing", func() {
-			cluster = updateClusterState(cluster, models.ClusterStatusInstalling, db)
-			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already installing", cluster.ID).Error()))
-		})
-		It("cluster is finalizing", func() {
-			cluster = updateClusterState(cluster, models.ClusterStatusFinalizing, db)
-			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already %s", cluster.ID, models.ClusterStatusFinalizing).Error()))
-		})
-		It("cluster is in error", func() {
-			cluster = updateClusterState(cluster, models.ClusterStatusError, db)
-			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s has a error", cluster.ID).Error()))
-		})
-		It("cluster is installed", func() {
-			cluster = updateClusterState(cluster, models.ClusterStatusInstalled, db)
-			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s is already installed", cluster.ID).Error()))
-		})
-		It("cluster is in unknown state", func() {
-			cluster = updateClusterState(cluster, "its fun to be unknown", db)
-			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err.Error()).Should(MatchRegexp(errors.Errorf("cluster %s state is unclear - cluster state: its fun to be unknown", cluster.ID).Error()))
-		})
-		It("cluster is ready", func() {
-			cluster = updateClusterState(cluster, models.ClusterStatusReady, db)
-			Expect(installerManager.Install(ctx, &cluster, db)).Should(HaveOccurred())
-		})
-		It("cluster is ready", func() {
-			cluster = updateClusterState(cluster, models.ClusterStatusPreparingForInstallation, db)
-			err := installerManager.Install(ctx, &cluster, db)
-			Expect(err).Should(BeNil())
-
-			cluster = getClusterFromDB(*cluster.ID, db)
-			Expect(swag.StringValue(cluster.Status)).Should(Equal(models.ClusterStatusInstalling))
-		})
-	})
-
 	Context("get master nodes ids", func() {
 		It("test getting master ids", func() {
 
@@ -109,12 +63,6 @@ var _ = Describe("installer", func() {
 		common.DeleteTestDB(db, dbName)
 	})
 })
-
-func updateClusterState(cluster common.Cluster, state string, db *gorm.DB) common.Cluster {
-	cluster.Status = swag.String(state)
-	Expect(db.Model(&cluster).Update("status", state).Error).NotTo(HaveOccurred())
-	return cluster
-}
 
 func addHost(role models.HostRole, state string, clusterId strfmt.UUID, db *gorm.DB) strfmt.UUID {
 

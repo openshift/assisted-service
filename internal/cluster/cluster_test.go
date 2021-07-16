@@ -83,10 +83,6 @@ var _ = Describe("stateMachine", func() {
 			refreshedCluster, stateErr = state.RefreshStatus(ctx, cluster, db)
 		})
 
-		It("install_cluster", func() {
-			stateErr = state.Install(ctx, cluster, db)
-		})
-
 		AfterEach(func() {
 			common.DeleteTestDB(db, dbName)
 			Expect(refreshedCluster).To(BeNil())

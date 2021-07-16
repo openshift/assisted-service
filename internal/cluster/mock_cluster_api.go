@@ -117,20 +117,6 @@ func (m *MockInstallationAPI) EXPECT() *MockInstallationAPIMockRecorder {
 	return m.recorder
 }
 
-// Install mocks base method
-func (m *MockInstallationAPI) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install", ctx, c, db)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Install indicates an expected call of Install
-func (mr *MockInstallationAPIMockRecorder) Install(ctx, c, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockInstallationAPI)(nil).Install), ctx, c, db)
-}
-
 // GetMasterNodesIds mocks base method
 func (m *MockInstallationAPI) GetMasterNodesIds(ctx context.Context, c *common.Cluster, db *gorm.DB) ([]*strfmt.UUID, error) {
 	m.ctrl.T.Helper()
@@ -223,20 +209,6 @@ func (m *MockAPI) DeregisterCluster(ctx context.Context, c *common.Cluster) erro
 func (mr *MockAPIMockRecorder) DeregisterCluster(ctx, c interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterCluster", reflect.TypeOf((*MockAPI)(nil).DeregisterCluster), ctx, c)
-}
-
-// Install mocks base method
-func (m *MockAPI) Install(ctx context.Context, c *common.Cluster, db *gorm.DB) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Install", ctx, c, db)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Install indicates an expected call of Install
-func (mr *MockAPIMockRecorder) Install(ctx, c, db interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Install", reflect.TypeOf((*MockAPI)(nil).Install), ctx, c, db)
 }
 
 // GetMasterNodesIds mocks base method
