@@ -31,7 +31,7 @@ var _ = Describe("ChangeValidationsInfoToText", func() {
 		err := db.Create(&cluster).Error
 		Expect(err).NotTo(HaveOccurred())
 
-		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
+		gm = gormigrate.New(db, gormigrate.DefaultOptions, post())
 		err = gm.MigrateTo("20210218160100")
 		Expect(err).ToNot(HaveOccurred())
 	})

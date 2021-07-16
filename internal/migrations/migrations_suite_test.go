@@ -24,7 +24,7 @@ func TestMigrations(t *testing.T) {
 // It runs all the migrations before the given one to simplify setting up a valid test scenario
 // nolint,unused
 func migrateToBefore(db *gorm.DB, migrationID string) error {
-	allMigrations := all()
+	allMigrations := post()
 
 	id := sort.Search(len(allMigrations), func(i int) bool { return allMigrations[i].ID >= migrationID })
 	if id == len(allMigrations) || allMigrations[id].ID != migrationID {
@@ -42,7 +42,7 @@ func migrateToBefore(db *gorm.DB, migrationID string) error {
 // migrateTo runs all migrations up to and including migrationID
 // nolint,unused
 func migrateTo(db *gorm.DB, migratoinID string) error {
-	gm := gormigrate.New(db, gormigrate.DefaultOptions, all())
+	gm := gormigrate.New(db, gormigrate.DefaultOptions, post())
 	return gm.MigrateTo(migratoinID)
 }
 

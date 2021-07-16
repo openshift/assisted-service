@@ -33,7 +33,7 @@ var _ = Describe("ChangeHostValidationsInfoToText", func() {
 		err := db.Create(&host).Error
 		Expect(err).NotTo(HaveOccurred())
 
-		gm = gormigrate.New(db, gormigrate.DefaultOptions, all())
+		gm = gormigrate.New(db, gormigrate.DefaultOptions, post())
 		err = gm.MigrateTo("20210223090000")
 		Expect(err).ToNot(HaveOccurred())
 	})

@@ -668,21 +668,29 @@ func (a *ApiEnabler) WaitForEnabled() {
 
 func autoMigrationWithLeader(migrationLeader leader.ElectorInterface, db *gorm.DB, log logrus.FieldLogger) error {
 	return migrationLeader.RunWithLeader(context.Background(), func() error {
+		log.Infof("Starting manual pre migrations")
+		err := migrations.MigratePre(db)
+		if err != nil {
+			log.WithError(err).Fatal("Manual pre migration process failed")
+			return err
+		}
+		log.Info("Finished manual pre migrations")
+
 		log.Infof("Start automigration")
-		err := common.AutoMigrate(db)
+		err = common.AutoMigrate(db)
 		if err != nil {
 			log.WithError(err).Fatal("Failed auto migration process")
 			return err
 		}
 		log.Info("Finished automigration")
 
-		log.Infof("Starting manual migrations")
-		err = migrations.Migrate(db)
+		log.Infof("Starting manual post migrations")
+		err = migrations.MigratePost(db)
 		if err != nil {
-			log.WithError(err).Fatal("Manual migration process failed")
+			log.WithError(err).Fatal("Manual post migration process failed")
 			return err
 		}
-		log.Info("Finished manual migrations")
+		log.Info("Finished manual post migrations")
 
 		return nil
 	})

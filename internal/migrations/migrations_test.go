@@ -10,7 +10,7 @@ var _ = Describe("Migrate", func() {
 	It("Succeeds", func() {
 		db, dbName := common.PrepareTestDB()
 		defer common.DeleteTestDB(db, dbName)
-		err := Migrate(db)
+		err := MigratePost(db)
 		Expect(err).ToNot(HaveOccurred())
 	})
 })
