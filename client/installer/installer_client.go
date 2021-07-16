@@ -91,9 +91,6 @@ type API interface {
 	   GetHostIgnition Get the customized ignition file for this host*/
 	GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error)
 	/*
-	   GetHostRequirements Get minimum host requirements.*/
-	GetHostRequirements(ctx context.Context, params *GetHostRequirementsParams) (*GetHostRequirementsOK, error)
-	/*
 	   GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
@@ -771,31 +768,6 @@ func (a *Client) GetHostIgnition(ctx context.Context, params *GetHostIgnitionPar
 		return nil, err
 	}
 	return result.(*GetHostIgnitionOK), nil
-
-}
-
-/*
-GetHostRequirements Get minimum host requirements.
-*/
-func (a *Client) GetHostRequirements(ctx context.Context, params *GetHostRequirementsParams) (*GetHostRequirementsOK, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetHostRequirements",
-		Method:             "GET",
-		PathPattern:        "/host_requirements",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &GetHostRequirementsReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetHostRequirementsOK), nil
 
 }
 

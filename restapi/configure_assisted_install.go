@@ -126,9 +126,6 @@ type InstallerAPI interface {
 	/* GetHostIgnition Get the customized ignition file for this host */
 	GetHostIgnition(ctx context.Context, params installer.GetHostIgnitionParams) middleware.Responder
 
-	/* GetHostRequirements Get minimum host requirements. */
-	GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder
-
 	/* GetNextSteps Retrieves the next operations that the host agent needs to perform. */
 	GetNextSteps(ctx context.Context, params installer.GetNextStepsParams) middleware.Responder
 
@@ -493,11 +490,6 @@ func HandlerAPI(c Config) (http.Handler, *operations.AssistedInstallAPI, error) 
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
 		return c.InstallerAPI.GetHostIgnition(ctx, params)
-	})
-	api.InstallerGetHostRequirementsHandler = installer.GetHostRequirementsHandlerFunc(func(params installer.GetHostRequirementsParams, principal interface{}) middleware.Responder {
-		ctx := params.HTTPRequest.Context()
-		ctx = storeAuth(ctx, principal)
-		return c.InstallerAPI.GetHostRequirements(ctx, params)
 	})
 	api.InstallerGetNextStepsHandler = installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

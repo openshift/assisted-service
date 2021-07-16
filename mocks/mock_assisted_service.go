@@ -357,20 +357,6 @@ func (mr *MockInstallerAPIMockRecorder) GetHostIgnition(arg0, arg1 interface{}) 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostIgnition", reflect.TypeOf((*MockInstallerAPI)(nil).GetHostIgnition), arg0, arg1)
 }
 
-// GetHostRequirements mocks base method
-func (m *MockInstallerAPI) GetHostRequirements(arg0 context.Context, arg1 installer.GetHostRequirementsParams) middleware.Responder {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetHostRequirements", arg0, arg1)
-	ret0, _ := ret[0].(middleware.Responder)
-	return ret0
-}
-
-// GetHostRequirements indicates an expected call of GetHostRequirements
-func (mr *MockInstallerAPIMockRecorder) GetHostRequirements(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetHostRequirements", reflect.TypeOf((*MockInstallerAPI)(nil).GetHostRequirements), arg0, arg1)
-}
-
 // GetNextSteps mocks base method
 func (m *MockInstallerAPI) GetNextSteps(arg0 context.Context, arg1 installer.GetNextStepsParams) middleware.Responder {
 	m.ctrl.T.Helper()
