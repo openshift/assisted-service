@@ -2037,6 +2037,9 @@ func (b *bareMetalInventory) updateNetworkParams(params installer.UpdateClusterP
 		setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	}
 	if params.ClusterUpdateParams.NetworkType != nil && params.ClusterUpdateParams.NetworkType != cluster.NetworkType {
+		b.setUsage(true, usage.NetworkTypeSelectionUsage, &map[string]interface{}{
+			"network_type": params.ClusterUpdateParams.NetworkType}, usages)
+
 		updates["network_type"] = swag.StringValue(params.ClusterUpdateParams.NetworkType)
 	}
 
@@ -2159,6 +2162,8 @@ func (b *bareMetalInventory) setDefaultUsage(cluster *models.Cluster) {
 	b.setOperatorsUsage(olmOperators, []*models.MonitoredOperator{}, usages)
 	featusage, _ := json.Marshal(usages)
 	cluster.FeatureUsage = string(featusage)
+	b.setUsage(false, usage.NetworkTypeSelectionUsage, &map[string]interface{}{
+		"network_type": cluster.NetworkType}, usages)
 }
 
 func (b *bareMetalInventory) setProxyUsage(httpProxy *string, httpsProxy *string, noProxy *string, usages map[string]models.Usage) {

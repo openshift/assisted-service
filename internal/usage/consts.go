@@ -15,4 +15,6 @@ const (
 	VipDhcpAllocationUsage string = "VIP auto alloc."
 	//usage of disk selection
 	DiskSelectionUsage string = "Disk Selection"
+	//user networkType selection
+	NetworkTypeSelectionUsage string = "NetworkType"
 )
