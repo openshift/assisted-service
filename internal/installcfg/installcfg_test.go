@@ -17,8 +17,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-const OvnKubernetes = "OVNKubernetes"
-
 var _ = Describe("installcfg", func() {
 	var (
 		host1                             models.Host
@@ -40,7 +38,7 @@ var _ = Describe("installcfg", func() {
 			MachineNetworkCidr:     "1.2.3.0/24",
 			APIVip:                 "102.345.34.34",
 			IngressVip:             "376.5.56.6",
-			InstallConfigOverrides: `{"networking":{"networkType": "OVNKubernetes"},"fips":true}`,
+			InstallConfigOverrides: `{"fips":true}`,
 			ImageInfo:              &models.ImageInfo{},
 		}}
 		id := strfmt.UUID(uuid.New().String())
@@ -82,6 +80,7 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(result.Platform.Baremetal.Hosts)).Should(Equal(3))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("create_configuration_with_hostnames", func() {
@@ -95,6 +94,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal.Hosts[0].Name).Should(Equal("hostname0"))
 		Expect(result.Platform.Baremetal.Hosts[1].Name).Should(Equal("hostname1"))
 		Expect(result.Platform.Baremetal.Hosts[2].Name).Should(Equal("hostname2"))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("create_configuration_with_one_host_disabled", func() {
@@ -107,6 +107,7 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(len(result.Platform.Baremetal.Hosts)).Should(Equal(2))
 		Expect(result.Proxy).Should(BeNil())
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("create_configuration_with_mirror_registries", func() {
@@ -119,6 +120,7 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("create_configuration_with_proxy", func() {
@@ -140,6 +142,7 @@ var _ = Describe("installcfg", func() {
 		Expect(splitNoProxy).To(ContainElement(cluster.ClusterNetworkCidr))
 		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
 		Expect(splitNoProxy).To(ContainElement(domainName))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("create_configuration_with_proxy_with_no_proxy", func() {
@@ -163,6 +166,7 @@ var _ = Describe("installcfg", func() {
 		Expect(splitNoProxy).To(ContainElement(cluster.ClusterNetworkCidr))
 		domainName := "." + cluster.Name + "." + cluster.BaseDNSDomain
 		Expect(splitNoProxy).To(ContainElement(domainName))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("correctly applies cluster overrides", func() {
@@ -173,11 +177,11 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		// test that overrides worked
-		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
 		Expect(result.FIPS).Should(Equal(true))
 		// test that existing values are kept
 		Expect(result.APIVersion).Should(Equal("v1"))
 		Expect(result.BaseDomain).Should(Equal("redhat.com"))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("doesn't fail with empty overrides", func() {
@@ -188,7 +192,7 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Networking.NetworkType).Should(Equal("OpenShiftSDN"))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("doesn't fail with empty overrides, IPv6 machine CIDR", func() {
@@ -200,7 +204,7 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("doesn't fail with empty overrides, IPv6 cluster CIDR", func() {
@@ -212,7 +216,7 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("doesn't fail with empty overrides, IPv6 service CIDR", func() {
@@ -224,7 +228,7 @@ var _ = Describe("installcfg", func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("CA AdditionalTrustBundle", func() {
@@ -241,6 +245,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.AdditionalTrustBundle).Should(Equal(" | -----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"2lyDI6UR3Fbz4pVVAxGXnVhBExjBE=\n-----END CERTIFICATE-----"))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("CA AdditionalTrustBundle is set to mirror CA", func() {
@@ -262,6 +267,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.AdditionalTrustBundle).Should(Equal(" | \n-----BEGIN CERTIFICATE-----\nMIIDozCCAougAwIBAgIULCOqWTF" +
 			"aEA8gNEmV+rb7h1v0r3EwDQYJKoZIhvcNAQELBQAwYTELMAkGA1UEBhMCaXMxCzAJBgNVBAgMAmRk" +
 			"2lyDI6UR3Fbz4pFDaxRgtF123FVTA=\n-----END CERTIFICATE-----"))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("CA AdditionalTrustBundle not added", func() {
@@ -273,6 +279,7 @@ var _ = Describe("installcfg", func() {
 		err = yaml.Unmarshal(data, &result)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(result.AdditionalTrustBundle).Should(Equal(""))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("UserManagedNetworking None Platform", func() {
@@ -287,6 +294,7 @@ var _ = Describe("installcfg", func() {
 		Expect(result.Platform.Baremetal).Should(BeNil())
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("UserManagedNetworking None Platform Machine network", func() {
@@ -322,7 +330,7 @@ var _ = Describe("installcfg", func() {
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal("fe80::/64"))
-		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("UserManagedNetworking BareMetal", func() {
@@ -357,6 +365,7 @@ var _ = Describe("installcfg", func() {
 		Expect(*result.Platform.None).Should(Equal(platformNone{}))
 		Expect(result.BootstrapInPlace.InstallationDisk).Should(Equal("/dev/test"))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(cluster.MachineNetworkCidr))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOpenShiftSDN))
 	})
 
 	It("Single node IPV6 only", func() {
@@ -375,7 +384,7 @@ var _ = Describe("installcfg", func() {
 		var none = platformNone{}
 		Expect(*result.Platform.None).Should(Equal(none))
 		Expect(result.Networking.MachineNetwork[0].Cidr).Should(Equal(cluster.MachineNetworkCidr))
-		Expect(result.Networking.NetworkType).Should(Equal(OvnKubernetes))
+		Expect(result.Networking.NetworkType).To(Equal(models.ClusterNetworkTypeOVNKubernetes))
 	})
 
 	It("Hyperthreading config", func() {
@@ -522,6 +531,58 @@ var _ = Describe("Generate NoProxy", func() {
 		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal("*"))
 	})
+})
+
+var _ = Describe("getNetworkType", func() {
+	tests := []struct {
+		inNetworkType      string
+		serviceNetworkCidr string
+		outNetworkType     string
+	}{
+		{
+			inNetworkType:      models.ClusterCreateParamsNetworkTypeAutoAssign,
+			serviceNetworkCidr: "1.2.8.0/23",
+			outNetworkType:     models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			inNetworkType:      models.ClusterCreateParamsNetworkTypeAutoAssign,
+			serviceNetworkCidr: "1002:db8::/119",
+			outNetworkType:     models.ClusterNetworkTypeOVNKubernetes,
+		},
+		{
+			inNetworkType:      models.ClusterNetworkTypeOpenShiftSDN,
+			serviceNetworkCidr: "1.2.8.0/23",
+			outNetworkType:     models.ClusterNetworkTypeOpenShiftSDN,
+		},
+		{
+			inNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
+			serviceNetworkCidr: "1002:db8::/119",
+			outNetworkType:     models.ClusterNetworkTypeOVNKubernetes,
+		},
+		{
+			inNetworkType:      models.ClusterNetworkTypeOVNKubernetes,
+			serviceNetworkCidr: "1.2.8.0/23",
+			outNetworkType:     models.ClusterNetworkTypeOVNKubernetes,
+		},
+	}
+	for i := range tests {
+		t := tests[i]
+		It("getNetworkType", func() {
+			ctrl := gomock.NewController(GinkgoT())
+			clusterId := strfmt.UUID(uuid.New().String())
+			cluster := &common.Cluster{Cluster: models.Cluster{
+				NetworkType:        &t.inNetworkType,
+				ID:                 &clusterId,
+				ServiceNetworkCidr: t.serviceNetworkCidr,
+				ClusterNetworkCidr: "10.56.20.0/24",
+				MachineNetworkCidr: "1.2.3.0/24",
+			}}
+			mockMirrorRegistriesConfigBuilder := mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+			installConfig := &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
+			networkType := installConfig.getNetworkType(cluster)
+			Expect(networkType).To(Equal(t.outNetworkType))
+		})
+	}
 })
 
 func TestSubsystem(t *testing.T) {

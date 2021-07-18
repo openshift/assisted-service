@@ -157,11 +157,15 @@ func (i *installConfigBuilder) countHostsByRole(cluster *common.Cluster, role mo
 }
 
 func (i *installConfigBuilder) getNetworkType(cluster *common.Cluster) string {
-	networkType := "OpenShiftSDN"
-	if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) || network.IsIPv6CIDR(cluster.MachineNetworkCidr) || network.IsIPv6CIDR(cluster.ServiceNetworkCidr) {
-		networkType = "OVNKubernetes"
+	if cluster.NetworkType == nil || swag.StringValue(cluster.NetworkType) == models.ClusterCreateParamsNetworkTypeAutoAssign {
+		networkType := "OpenShiftSDN"
+		if network.IsIPv6CIDR(cluster.ClusterNetworkCidr) || network.IsIPv6CIDR(cluster.MachineNetworkCidr) || network.IsIPv6CIDR(cluster.ServiceNetworkCidr) {
+			networkType = "OVNKubernetes"
+		}
+		i.log.Infof("Setting %s as default networkType for cluster %s", networkType, cluster.ID.String())
+		return networkType
 	}
-	return networkType
+	return swag.StringValue(cluster.NetworkType)
 }
 
 func (i *installConfigBuilder) generateNoProxy(cluster *common.Cluster) string {

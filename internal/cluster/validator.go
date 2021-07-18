@@ -113,7 +113,7 @@ func (v *clusterValidator) printIsMachineCidrDefined(context *clusterPreprocessC
 	case ValidationPending:
 		return "Hosts have not been discovered yet"
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -128,7 +128,7 @@ func (v *clusterValidator) printIsClusterCidrDefined(context *clusterPreprocessC
 	case ValidationSuccess:
 		return "The Cluster Network CIDR is defined."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -143,7 +143,7 @@ func (v *clusterValidator) printIsServiceCidrDefined(context *clusterPreprocessC
 	case ValidationSuccess:
 		return "The Service Network CIDR is defined."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -174,7 +174,7 @@ func (v *clusterValidator) printIsMachineCidrEqualsToCalculatedCidr(context *clu
 	case ValidationFailure:
 		return fmt.Sprintf("The Cluster Machine CIDR %s is different than the calculated CIDR %s.", context.cluster.MachineNetworkCidr, context.calculateCidr)
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -208,7 +208,7 @@ func (v *clusterValidator) printIsApiVipDefined(context *clusterPreprocessContex
 		}
 		return "The API virtual IP is defined."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -222,6 +222,40 @@ func (v *clusterValidator) isApiVipValid(c *clusterPreprocessContext) Validation
 	err := network.VerifyVip(c.cluster.Hosts, c.cluster.MachineNetworkCidr, c.cluster.APIVip, ApiVipName,
 		true, v.log)
 	return boolValue(err == nil)
+}
+
+func (v *clusterValidator) isNetworkTypeValid(c *clusterPreprocessContext) ValidationStatus {
+	validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN, models.ClusterCreateParamsNetworkTypeAutoAssign}
+	if !funk.ContainsString(validNetworkTypes, swag.StringValue(c.cluster.NetworkType)) && c.cluster.NetworkType != nil {
+		return ValidationFailure
+	}
+	if (network.IsIPv6CIDR(c.cluster.ClusterNetworkCidr) || network.IsIPv6CIDR(c.cluster.MachineNetworkCidr) || network.IsIPv6CIDR(c.cluster.ServiceNetworkCidr)) &&
+		swag.StringValue(c.cluster.NetworkType) != models.ClusterNetworkTypeOVNKubernetes && c.cluster.NetworkType != nil {
+		return ValidationFailure
+	}
+	return ValidationSuccess
+}
+
+func (v *clusterValidator) printIsNetworkTypeValid(context *clusterPreprocessContext, status ValidationStatus) string {
+	switch status {
+	case ValidationSuccess:
+		if context.cluster.NetworkType == nil {
+			return "The cluster will use a default network type"
+		}
+		return "The cluster has a valid network type"
+	case ValidationFailure:
+		validNetworkTypes := []string{models.ClusterNetworkTypeOVNKubernetes, models.ClusterNetworkTypeOpenShiftSDN, models.ClusterCreateParamsNetworkTypeAutoAssign}
+		if !funk.ContainsString(validNetworkTypes, swag.StringValue(context.cluster.NetworkType)) && context.cluster.NetworkType != nil {
+			return "The network type is not valid; the valid network types are OpenShiftSDN or OVNKubernetes"
+		}
+		if network.IsIPv6CIDR(context.cluster.ClusterNetworkCidr) && swag.StringValue(context.cluster.NetworkType) != models.ClusterNetworkTypeOVNKubernetes {
+			return "The cluster is configured with IPv6 which is not supported by OpenShiftSDN; use OVNKubernetes instead"
+		} else {
+			return "Network type is invalid for an unknown reason"
+		}
+	default:
+		return fmt.Sprintf("Unexpected status %s", status)
+	}
 }
 
 func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext, status ValidationStatus) string {
@@ -239,7 +273,7 @@ func (v *clusterValidator) printIsApiVipValid(context *clusterPreprocessContext,
 	case ValidationFailure:
 		return fmt.Sprintf("%s %s does not belong to the Machine CIDR or is already in use.", ApiVipName, context.cluster.APIVip)
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -273,7 +307,7 @@ func (v *clusterValidator) printIsIngressVipDefined(context *clusterPreprocessCo
 		}
 		return "The Ingress virtual IP is defined."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 func (v *clusterValidator) isIngressVipValid(c *clusterPreprocessContext) ValidationStatus {
@@ -386,7 +420,7 @@ func (v *clusterValidator) printSufficientMastersCount(context *clusterPreproces
 		return fmt.Sprintf("Clusters must have exactly %d dedicated masters. Please either add hosts, or disable the worker host",
 			common.MinMasterHostsNeededForInstallation)
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -415,7 +449,7 @@ func (v *clusterValidator) printAllHostsAreReadyToInstall(context *clusterPrepro
 	case ValidationFailure:
 		return "The cluster has hosts that are not ready to install."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -430,7 +464,7 @@ func (v *clusterValidator) printIsDNSDomainDefined(context *clusterPreprocessCon
 	case ValidationSuccess:
 		return "The base domain is defined."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -462,7 +496,7 @@ func (v *clusterValidator) printNoCidrsOverlapping(c *clusterPreprocessContext, 
 		}
 		return "At least one of the CIDRs (Machine Network, Cluster Network, Service Network) is undefined."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -477,7 +511,7 @@ func (v *clusterValidator) printIsPullSecretSet(context *clusterPreprocessContex
 	case ValidationSuccess:
 		return "The pull secret is set."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 
@@ -504,7 +538,7 @@ func (v *clusterValidator) printNetworkPrefixValid(c *clusterPreprocessContext, 
 	case ValidationPending:
 		return "The Cluster Network CIDR is undefined."
 	default:
-		return fmt.Sprintf("Unexpected status %s.", status)
+		return fmt.Sprintf("Unexpected status %s", status)
 	}
 }
 

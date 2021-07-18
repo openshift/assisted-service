@@ -133,6 +133,11 @@ func newValidations(v *clusterValidator) []validation {
 			formatter: v.printIsApiVipValid,
 		},
 		{
+			id:        isNetworkTypeValid,
+			condition: v.isNetworkTypeValid,
+			formatter: v.printIsNetworkTypeValid,
+		},
+		{
 			id:        IsIngressVipDefined,
 			condition: v.isIngressVipDefined,
 			formatter: v.printIsIngressVipDefined,

@@ -399,6 +399,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 							ClusterNetworkCidr:       "1.3.0.0/16",
 							ServiceNetworkCidr:       "1.2.5.0/24",
 							ClusterNetworkHostPrefix: 24,
+							NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -476,6 +477,7 @@ var _ = Describe("TestClusterMonitoring", func() {
 							ClusterNetworkCidr:       "1.3.0.0/16",
 							ServiceNetworkCidr:       "1.2.5.0/24",
 							ClusterNetworkHostPrefix: 24,
+							NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 						},
 						TriggerMonitorTimestamp: time.Now(),
 					}
@@ -1917,6 +1919,7 @@ var _ = Describe("Majority groups", func() {
 			ServiceNetworkCidr:       "1.2.4.0/24",
 			ClusterNetworkCidr:       "1.3.0.0/16",
 			ClusterNetworkHostPrefix: 24,
+			NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 
@@ -2020,6 +2023,7 @@ var _ = Describe("ready_state", func() {
 			ServiceNetworkCidr:       "1.2.4.0/24",
 			ClusterNetworkCidr:       "1.3.0.0/16",
 			ClusterNetworkHostPrefix: 24,
+			NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
 		}}
 		Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
 		addInstallationRequirements(id, db)

@@ -81,6 +81,10 @@ type ClusterUpdateParams struct {
 	// Min Length: 1
 	Name *string `json:"name,omitempty"`
 
+	// The desired network type used.
+	// Enum: [OpenShiftSDN OVNKubernetes auto-assign]
+	NetworkType *string `json:"network_type,omitempty"`
+
 	// An "*" or a comma-separated list of destination domain names, domains, IP addresses, or other network CIDRs to exclude from proxying.
 	NoProxy *string `json:"no_proxy,omitempty"`
 
@@ -149,6 +153,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateName(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validateNetworkType(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -395,6 +403,52 @@ func (m *ClusterUpdateParams) validateName(formats strfmt.Registry) error {
 	}
 
 	if err := validate.MaxLength("name", "body", string(*m.Name), 54); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+var clusterUpdateParamsTypeNetworkTypePropEnum []interface{}
+
+func init() {
+	var res []string
+	if err := json.Unmarshal([]byte(`["OpenShiftSDN","OVNKubernetes","auto-assign"]`), &res); err != nil {
+		panic(err)
+	}
+	for _, v := range res {
+		clusterUpdateParamsTypeNetworkTypePropEnum = append(clusterUpdateParamsTypeNetworkTypePropEnum, v)
+	}
+}
+
+const (
+
+	// ClusterUpdateParamsNetworkTypeOpenShiftSDN captures enum value "OpenShiftSDN"
+	ClusterUpdateParamsNetworkTypeOpenShiftSDN string = "OpenShiftSDN"
+
+	// ClusterUpdateParamsNetworkTypeOVNKubernetes captures enum value "OVNKubernetes"
+	ClusterUpdateParamsNetworkTypeOVNKubernetes string = "OVNKubernetes"
+
+	// ClusterUpdateParamsNetworkTypeAutoAssign captures enum value "auto-assign"
+	ClusterUpdateParamsNetworkTypeAutoAssign string = "auto-assign"
+)
+
+// prop value enum
+func (m *ClusterUpdateParams) validateNetworkTypeEnum(path, location string, value string) error {
+	if err := validate.EnumCase(path, location, value, clusterUpdateParamsTypeNetworkTypePropEnum, true); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ClusterUpdateParams) validateNetworkType(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.NetworkType) { // not required
+		return nil
+	}
+
+	// value enum
+	if err := m.validateNetworkTypeEnum("network_type", "body", *m.NetworkType); err != nil {
 		return err
 	}
 
