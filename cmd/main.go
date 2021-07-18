@@ -104,6 +104,7 @@ var Options struct {
 	HostStateMonitorInterval    time.Duration `envconfig:"HOST_MONITOR_INTERVAL" default:"8s"`
 	Versions                    versions.Versions
 	OpenshiftVersions           string        `envconfig:"OPENSHIFT_VERSIONS"`
+	MustGatherImages            string        `envconfig:"MUST_GATHER_IMAGES" default:""`
 	ReleaseImageMirror          string        `envconfig:"OPENSHIFT_INSTALL_RELEASE_IMAGE_MIRROR" default:""`
 	CreateS3Bucket              bool          `envconfig:"CREATE_S3_BUCKET" default:"false"`
 	ImageExpirationInterval     time.Duration `envconfig:"IMAGE_EXPIRATION_INTERVAL" default:"30m"`
@@ -197,15 +198,19 @@ func main() {
 	log.Println("Starting bm service")
 
 	var openshiftVersionsMap models.OpenshiftVersions
-
 	if Options.OpenshiftVersions == "" {
 		log.Fatal("OpenShift versions is empty")
 	}
-
 	failOnError(json.Unmarshal([]byte(Options.OpenshiftVersions), &openshiftVersionsMap),
 		"Failed to parse supported openshift versions JSON %s", Options.OpenshiftVersions)
 
 	log.Println(fmt.Sprintf("Started service with OCP versions %v", Options.OpenshiftVersions))
+
+	var mustGatherVersionsMap = make(versions.MustGatherVersions)
+	if Options.MustGatherImages != "" {
+		failOnError(json.Unmarshal([]byte(Options.MustGatherImages), &mustGatherVersionsMap),
+			"Failed to parse feature must-gather images JSON %s", Options.MustGatherImages)
+	}
 
 	failOnError(os.MkdirAll(Options.BMConfig.ISOCacheDir, 0700), "Failed to create ISO cache directory %s", Options.BMConfig.ISOCacheDir)
 
@@ -243,7 +248,7 @@ func main() {
 	releaseHandler := oc.NewRelease(&executer.CommonExecuter{},
 		oc.Config{MaxTries: oc.DefaultTries, RetryDelay: oc.DefaltRetryDelay})
 	versionHandler := versions.NewHandler(log.WithField("pkg", "versions"), releaseHandler,
-		Options.Versions, openshiftVersionsMap, Options.ReleaseImageMirror)
+		Options.Versions, openshiftVersionsMap, mustGatherVersionsMap, Options.ReleaseImageMirror)
 	domainHandler := domains.NewHandler(Options.BMConfig.BaseDNSDomains)
 	staticNetworkConfig := staticnetworkconfig.New(log.WithField("pkg", "static_network_config"))
 	mirrorRegistriesBuilder := mirrorregistries.New()

@@ -49,6 +49,14 @@ var supportedCustomOpenShiftVersions = models.OpenshiftVersions{
 	},
 }
 
+var mustgatherImages = MustGatherVersions{
+	"4.8": MustGatherVersion{
+		"cnv": "registry.redhat.io/container-native-virtualization/cnv-must-gather-rhel8:v2.6.5",
+		"ocs": "registry.redhat.io/ocs4/ocs-must-gather-rhel8",
+		"lso": "registry.redhat.io/openshift4/ose-local-storage-mustgather-rhel8",
+	},
+}
+
 var _ = Describe("list versions", func() {
 	var (
 		h                 *handler
@@ -69,7 +77,7 @@ var _ = Describe("list versions", func() {
 	Context("ListComponentVersions", func() {
 		It("default values", func() {
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -86,7 +94,7 @@ var _ = Describe("list versions", func() {
 			os.Setenv("INSTALLER_IMAGE", "installer-image")
 			os.Setenv("CONTROLLER_IMAGE", "controller-image")
 			Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 			reply := h.ListComponentVersions(context.Background(), operations.ListComponentVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListComponentVersionsOK()))
 			val, _ := reply.(*operations.ListComponentVersionsOK)
@@ -100,7 +108,7 @@ var _ = Describe("list versions", func() {
 
 	Context("ListSupportedOpenshiftVersions", func() {
 		It("empty", func() {
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
@@ -120,7 +128,7 @@ var _ = Describe("list versions", func() {
 			readDefaultOpenshiftVersions()
 			CURRENT_DEFAULT_VERSION := "4.8" //keep align with default_ocp_versions.json
 
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 			reply := h.ListSupportedOpenshiftVersions(context.Background(), operations.ListSupportedOpenshiftVersionsParams{})
 			Expect(reply).Should(BeAssignableToTypeOf(operations.NewListSupportedOpenshiftVersionsOK()))
 			val, _ := reply.(*operations.ListSupportedOpenshiftVersionsOK)
@@ -142,7 +150,7 @@ var _ = Describe("list versions", func() {
 
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 		})
 
 		It("default", func() {
@@ -168,7 +176,7 @@ var _ = Describe("list versions", func() {
 
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 		})
 
 		It("default", func() {
@@ -194,7 +202,7 @@ var _ = Describe("list versions", func() {
 
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 		})
 
 		It("default", func() {
@@ -220,7 +228,7 @@ var _ = Describe("list versions", func() {
 
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 		})
 
 		It("default", func() {
@@ -246,7 +254,7 @@ var _ = Describe("list versions", func() {
 
 		BeforeEach(func() {
 			openshiftVersions = &supportedCustomOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 		})
 
 		It("default", func() {
@@ -266,7 +274,7 @@ var _ = Describe("list versions", func() {
 	Context("IsOpenshiftVersionSupported", func() {
 		BeforeEach(func() {
 			openshiftVersions = &defaultOpenShiftVersions
-			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, "")
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, nil, "")
 		})
 
 		It("positive", func() {
@@ -277,6 +285,53 @@ var _ = Describe("list versions", func() {
 
 		It("negative", func() {
 			Expect(h.IsOpenshiftVersionSupported("unknown")).Should(BeFalse())
+		})
+	})
+
+	Context("GetMustGatherImages", func() {
+		var (
+			pullSecret = "test_pull_secret"
+			ocpVersion = "4.8.0-fc.1"
+			keyVersion = "4.8"
+			mirror     = "release-mirror"
+		)
+
+		BeforeEach(func() {
+			openshiftVersions = &supportedCustomOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, mustgatherImages, mirror)
+		})
+
+		verifyOcpVersion := func(images MustGatherVersion, size int) {
+			Expect(len(images)).To(Equal(size))
+			Expect(images["ocp"]).To(Equal("blah"))
+		}
+
+		It("happy flow", func() {
+			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.8", mirror, pullSecret).Return("blah", nil).Times(1)
+			images, err := h.GetMustGatherImages(ocpVersion, pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			verifyOcpVersion(images, 4)
+			Expect(images["lso"]).To(Equal(mustgatherImages[keyVersion]["lso"]))
+		})
+
+		It("unsupported_key", func() {
+			images, err := h.GetMustGatherImages("unsupported", pullSecret)
+			Expect(err).Should(HaveOccurred())
+			Expect(images).Should(BeEmpty())
+		})
+
+		It("caching", func() {
+			openshiftVersions = &defaultOpenShiftVersions
+			h = NewHandler(logger, mockRelease, versions, *openshiftVersions, mustgatherImages, mirror)
+			mockRelease.EXPECT().GetMustGatherImage(gomock.Any(), "release_4.5", mirror, pullSecret).Return("blah", nil).Times(1)
+			images, err := h.GetMustGatherImages("4.5.1", pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			verifyOcpVersion(images, 1)
+
+			images, err = h.GetMustGatherImages("4.5.1", pullSecret)
+			Expect(err).ShouldNot(HaveOccurred())
+			verifyOcpVersion(images, 1)
 		})
 	})
 
@@ -302,7 +357,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("added version successfully", func() {
-			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, nil, "")
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 
@@ -322,7 +377,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("override version successfully", func() {
-			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, nil, "")
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 
@@ -338,7 +393,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("keep support level from cache", func() {
-			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, nil, "")
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(customOcpVersion, nil).AnyTimes()
 
@@ -353,7 +408,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("failed getting version from release", func() {
-			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, customOpenShiftVersions, nil, "")
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return("", errors.New("invalid")).AnyTimes()
 
@@ -362,7 +417,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("missing from OPENSHIFT_VERSIONS", func() {
-			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, nil, "")
 			mockRelease.EXPECT().GetOpenshiftVersion(
 				gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(ocpVersion, nil).AnyTimes()
 
@@ -375,7 +430,7 @@ var _ = Describe("list versions", func() {
 		})
 
 		It("release image already exists", func() {
-			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, "")
+			h := NewHandler(logger, mockRelease, versions, supportedCustomOpenShiftVersions, nil, "")
 
 			versionFromCache, err := h.GetVersion(customKeyVersion)
 			Expect(err).ShouldNot(HaveOccurred())
@@ -399,7 +454,7 @@ var _ = Describe("list versions", func() {
 		Expect(envconfig.Process("test", &versions)).ShouldNot(HaveOccurred())
 
 		logger := logrus.New()
-		h = NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, "")
+		h = NewHandler(logger, mockRelease, versions, models.OpenshiftVersions{}, nil, "")
 	})
 
 	It("positive", func() {

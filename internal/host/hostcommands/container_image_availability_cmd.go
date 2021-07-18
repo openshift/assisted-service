@@ -23,12 +23,6 @@ type imageAvailabilityCmd struct {
 	timeoutSeconds    float64
 }
 
-type Images struct {
-	ReleaseImage    string
-	MCOImage        string
-	MustGatherImage string
-}
-
 func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.Release, versionsHandler versions.Handler,
 	instructionConfig InstructionConfig, timeoutSeconds float64) *imageAvailabilityCmd {
 	return &imageAvailabilityCmd{
@@ -41,26 +35,32 @@ func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.R
 	}
 }
 
-func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) (Images, error) {
+func (cmd *imageAvailabilityCmd) getImages(cluster *common.Cluster) ([]string, error) {
 
-	images := Images{}
+	images := make([]string, 0)
 	releaseImage, err := cmd.versionsHandler.GetReleaseImage(cluster.OpenshiftVersion)
 	if err != nil {
 		return images, err
 	}
-	images.ReleaseImage = releaseImage
+	images = append(images, releaseImage)
 
 	mcoImage, err := cmd.ocRelease.GetMCOImage(cmd.log, releaseImage, cmd.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
 	if err != nil {
 		return images, err
 	}
-	images.MCOImage = mcoImage
+	images = append(images, mcoImage)
 
-	mustGatherImage, err := cmd.ocRelease.GetMustGatherImage(cmd.log, releaseImage, cmd.instructionConfig.ReleaseImageMirror, cluster.PullSecret)
+	mustGatherImages, err := cmd.versionsHandler.GetMustGatherImages(cluster.OpenshiftVersion, cluster.PullSecret)
 	if err != nil {
 		return images, err
 	}
-	images.MustGatherImage = mustGatherImage
+	for key, img := range mustGatherImages {
+		//At the moment, verify only the ocp image
+		if "ocp" == key {
+			images = append(images, img)
+		}
+	}
+
 	return images, nil
 }
 
@@ -75,8 +75,9 @@ func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error)
 	if err != nil {
 		return "", err
 	}
+	images = append(images, cmd.instructionConfig.InstallerImage)
 
-	imagesToCheck, err := cmd.filterImagesWithStatus(host, cmd.instructionConfig.InstallerImage, images.MCOImage, images.MustGatherImage)
+	imagesToCheck, err := cmd.filterImagesWithStatus(host, images...)
 	if err != nil {
 		return "", err
 	}
