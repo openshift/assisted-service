@@ -46,20 +46,21 @@ type InstructionManager struct {
 }
 
 type InstructionConfig struct {
-	ServiceBaseURL       string            `envconfig:"SERVICE_BASE_URL"`
-	ServiceCACertPath    string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
-	ServiceIPs           string            `envconfig:"SERVICE_IPS" default:""`
-	InstallerImage       string            `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
-	ControllerImage      string            `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
-	AgentImage           string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
-	SkipCertVerification bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
-	SupportL2            bool              `envconfig:"SUPPORT_L2" default:"true"`
-	InstallationTimeout  uint              `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
-	DiskCheckTimeout     time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
-	SupportFreeAddresses bool              `envconfig:"SUPPORT_FREE_ADDRESSES" default:"true"`
-	DisabledSteps        []models.StepType `envconfig:"DISABLED_STEPS" default:""`
-	ReleaseImageMirror   string
-	CheckClusterVersion  bool
+	ServiceBaseURL           string            `envconfig:"SERVICE_BASE_URL"`
+	ServiceCACertPath        string            `envconfig:"SERVICE_CA_CERT_PATH" default:""`
+	ServiceIPs               string            `envconfig:"SERVICE_IPS" default:""`
+	InstallerImage           string            `envconfig:"INSTALLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer:latest"`
+	ControllerImage          string            `envconfig:"CONTROLLER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-controller:latest"`
+	AgentImage               string            `envconfig:"AGENT_DOCKER_IMAGE" default:"quay.io/ocpmetal/assisted-installer-agent:latest"`
+	SkipCertVerification     bool              `envconfig:"SKIP_CERT_VERIFICATION" default:"false"`
+	SupportL2                bool              `envconfig:"SUPPORT_L2" default:"true"`
+	InstallationTimeout      uint              `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
+	DiskCheckTimeout         time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
+	ImageAvailabilityTimeout time.Duration     `envconfig:"IMAGE_AVAILABILITY_TIMEOUT" default:"16m"`
+	SupportFreeAddresses     bool              `envconfig:"SUPPORT_FREE_ADDRESSES" default:"true"`
+	DisabledSteps            []models.StepType `envconfig:"DISABLED_STEPS" default:""`
+	ReleaseImageMirror       string
+	CheckClusterVersion      bool
 }
 
 func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hardware.Validator, ocRelease oc.Release,
@@ -75,7 +76,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	apivipConnectivityCmd := NewAPIVIPConnectivityCheckCmd(log, db, instructionConfig.AgentImage, instructionConfig.SupportL2)
 	ntpSynchronizerCmd := NewNtpSyncCmd(log, instructionConfig.AgentImage, db)
 	diskPerfCheckCmd := NewDiskPerfCheckCmd(log, instructionConfig.AgentImage, hwValidator, instructionConfig.DiskCheckTimeout.Seconds())
-	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig)
+	imageAvailabilityCmd := NewImageAvailabilityCmd(log, db, ocRelease, versionHandler, instructionConfig, instructionConfig.ImageAvailabilityTimeout.Seconds())
 
 	return &InstructionManager{
 		log:              log,

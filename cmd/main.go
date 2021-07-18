@@ -163,6 +163,16 @@ func InitLogs() *logrus.Entry {
 	return logger
 }
 
+func maxDuration(dur time.Duration, durations ...time.Duration) time.Duration {
+	ret := dur
+	for _, d := range durations {
+		if d > ret {
+			ret = d
+		}
+	}
+	return ret
+}
+
 func main() {
 	err := envconfig.Process(common.EnvConfigPrefix, &Options)
 	log := InitLogs()
@@ -217,6 +227,9 @@ func main() {
 	Options.OperatorsConfig.CheckClusterVersion = Options.CheckClusterVersion
 	Options.GeneratorConfig.ReleaseImageMirror = Options.ReleaseImageMirror
 
+	// Make sure that prepare for installation timeout is more than the timeouts of all underlying tools + 2m extra
+	Options.ClusterConfig.PrepareConfig.InstallationTimeout = maxDuration(Options.ClusterConfig.PrepareConfig.InstallationTimeout,
+		maxDuration(Options.InstructionConfig.DiskCheckTimeout, Options.InstructionConfig.ImageAvailabilityTimeout)+2*time.Minute)
 	var lead leader.ElectorInterface
 	var k8sClient *kubernetes.Clientset
 	var autoMigrationLeader leader.ElectorInterface

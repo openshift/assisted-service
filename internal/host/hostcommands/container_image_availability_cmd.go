@@ -20,6 +20,7 @@ type imageAvailabilityCmd struct {
 	ocRelease         oc.Release
 	versionsHandler   versions.Handler
 	instructionConfig InstructionConfig
+	timeoutSeconds    float64
 }
 
 type Images struct {
@@ -28,18 +29,15 @@ type Images struct {
 	MustGatherImage string
 }
 
-const (
-	defaultImageAvailabilityTimeoutSeconds = 60 * 30
-)
-
 func NewImageAvailabilityCmd(log logrus.FieldLogger, db *gorm.DB, ocRelease oc.Release, versionsHandler versions.Handler,
-	instructionConfig InstructionConfig) *imageAvailabilityCmd {
+	instructionConfig InstructionConfig, timeoutSeconds float64) *imageAvailabilityCmd {
 	return &imageAvailabilityCmd{
 		baseCmd:           baseCmd{log: log},
 		db:                db,
 		instructionConfig: instructionConfig,
 		ocRelease:         ocRelease,
 		versionsHandler:   versionsHandler,
+		timeoutSeconds:    timeoutSeconds,
 	}
 }
 
@@ -89,7 +87,7 @@ func (cmd *imageAvailabilityCmd) prepareParam(host *models.Host) (string, error)
 
 	request := models.ContainerImageAvailabilityRequest{
 		Images:  imagesToCheck,
-		Timeout: defaultImageAvailabilityTimeoutSeconds,
+		Timeout: int64(cmd.timeoutSeconds),
 	}
 
 	b, err := json.Marshal(&request)

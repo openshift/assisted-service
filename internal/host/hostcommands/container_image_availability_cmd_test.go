@@ -19,6 +19,10 @@ import (
 	"github.com/openshift/assisted-service/models"
 )
 
+const (
+	defaultImageAvailabilityTimeoutSeconds = 60 * 30
+)
+
 var _ = Describe("container_image_availability_cmd", func() {
 	var (
 		ctx           = context.Background()
@@ -39,7 +43,7 @@ var _ = Describe("container_image_availability_cmd", func() {
 		mockRelease = oc.NewMockRelease(ctrl)
 
 		db, dbName = common.PrepareTestDB()
-		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig)
+		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig, defaultImageAvailabilityTimeoutSeconds)
 
 		id = strfmt.UUID(uuid.New().String())
 		clusterID = strfmt.UUID(uuid.New().String())
@@ -117,7 +121,7 @@ var _ = Describe("get images", func() {
 		mockRelease = oc.NewMockRelease(ctrl)
 		db = &gorm.DB{}
 		cluster = &common.Cluster{}
-		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig)
+		cmd = NewImageAvailabilityCmd(common.GetTestLog(), db, mockRelease, mockVersions, DefaultInstructionConfig, defaultImageAvailabilityTimeoutSeconds)
 	})
 
 	It("get_step_get_must_gather_failure", func() {
