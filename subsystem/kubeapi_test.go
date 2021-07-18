@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strings"
 	"time"
@@ -1646,11 +1647,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.EventsURL
 		}, "30s", "10s").ShouldNot(Equal(""))
 
-		By("Check ACI Logs URL exists")
+		By("Check ACI Logs URL is empty")
+		// Should not show the URL since no logs were collected
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.LogsURL
-		}, "30s", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").Should(Equal(""))
 
 		By("Check NTP Source")
 		generateNTPPostStepReply(ctx, host, []*models.NtpSource{
@@ -1700,6 +1702,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		installProgress := models.HostStageDone
 		installInfo := "Great Success"
 		updateProgressWithInfo(*host.ID, *cluster.ID, installProgress, installInfo)
+		kubeconfigFile, err := os.Open("test_kubeconfig")
+		Expect(err).NotTo(HaveOccurred())
+		_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
+			HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
+		Expect(err).NotTo(HaveOccurred())
+		kubeconfigFile.Close()
 
 		By("Verify Agent Progress Info")
 		Eventually(func() bool {
@@ -1707,6 +1715,12 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return agent.Status.Progress.ProgressInfo == installInfo &&
 				agent.Status.Progress.CurrentStage == installProgress
 		}, "30s", "10s").Should(BeTrue())
+
+		By("Check ACI Logs URL exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Check Agent Role and Bootstrap")
 		Eventually(func() bool {
@@ -1723,10 +1737,18 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		configSecret := getSecret(ctx, kubeClient, configkey)
 		Expect(configSecret.Data["kubeconfig"]).NotTo(BeNil())
 
+		By("Upload cluster logs")
+		kubeconfigFile, err1 := os.Open("test_kubeconfig")
+		Expect(err1).NotTo(HaveOccurred())
+		_, err1 = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
+			Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+		Expect(err1).NotTo(HaveOccurred())
+		kubeconfigFile.Close()
+
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
 		isSuccess := true
-		_, err := agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
+		_, err = agentBMClient.Installer.CompleteInstallation(ctx, &installer.CompleteInstallationParams{
 			ClusterID: *cluster.ID,
 			CompletionParams: &models.CompletionParams{
 				IsSuccess: &isSuccess,
@@ -1759,11 +1781,11 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.EventsURL
 		}, "1m", "10s").ShouldNot(Equal(""))
 
-		By("Check Logs URL still exist")
+		By("Check ACI Logs URL still exists")
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.LogsURL
-		}, "1m", "10s").ShouldNot(Equal(""))
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Check ACI DebugInfo state and stateinfo")
 		Eventually(func() bool {
@@ -2022,6 +2044,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			hosts = append(hosts, host)
 		}
 		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		By("Check ACI Logs URL is empty")
+		// Should not show the URL since no logs yet to be collected
+		installkey := types.NamespacedName{
+			Namespace: Options.Namespace,
+			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
+		}
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").Should(Equal(""))
 		By("Approve Agents")
 		for _, host := range hosts {
 			hostkey := types.NamespacedName{
@@ -2036,10 +2068,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 
 		By("Wait for installing")
-		installkey := types.NamespacedName{
-			Namespace: Options.Namespace,
-			Name:      clusterDeploymentSpec.ClusterInstallRef.Name,
-		}
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstallationInProgressReason)
 		Eventually(func() bool {
 			c := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
@@ -2051,9 +2079,37 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return true
 		}, "1m", "2s").Should(BeTrue())
 
+		By("Upload hosts logs during installation")
 		for _, host := range hosts {
 			updateProgress(*host.ID, *cluster.ID, models.HostStageDone)
+
+			kubeconfigFile, err := os.Open("test_kubeconfig")
+			Expect(err).NotTo(HaveOccurred())
+			_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
+				HostID: host.ID, LogsType: string(models.LogsTypeHost), Upfile: kubeconfigFile})
+			Expect(err).NotTo(HaveOccurred())
+			kubeconfigFile.Close()
 		}
+
+		By("Check ACI Logs URL exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
+
+		By("Upload cluster logs")
+		kubeconfigFile, err1 := os.Open("test_kubeconfig")
+		Expect(err1).NotTo(HaveOccurred())
+		_, err1 = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: *cluster.ID,
+			Upfile: kubeconfigFile, LogsType: string(models.LogsTypeController)})
+		Expect(err1).NotTo(HaveOccurred())
+		kubeconfigFile.Close()
+
+		By("Check ACI Logs URL still exists")
+		Eventually(func() string {
+			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
+			return aci.Status.DebugInfo.LogsURL
+		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Complete Installation")
 		completeInstallation(agentBMClient, *cluster.ID)
@@ -2065,7 +2121,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			},
 		})
 		Expect(err).NotTo(HaveOccurred())
-
 		By("Verify Day 2 Cluster was created")
 		checkAgentClusterInstallCondition(ctx, installkey, hiveext.ClusterCompletedCondition, hiveext.ClusterInstalledReason)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
@@ -2075,12 +2130,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		Eventually(func() string {
 			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
 			return aci.Status.DebugInfo.EventsURL
-		}, "30s", "10s").ShouldNot(Equal(""))
-
-		By("Check ACI Logs URL exists")
-		Eventually(func() string {
-			aci := getAgentClusterInstallCRD(ctx, kubeClient, installkey)
-			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").ShouldNot(Equal(""))
 
 		By("Verify Day 2 Cluster")

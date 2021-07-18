@@ -4966,6 +4966,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			HTTPRequest: request,
 		}
 		fileName := bm.getLogsFullName(clusterID.String(), host.ID.String())
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, host.ID, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockHostApi.EXPECT().SetUploadLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockHostApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)
@@ -5011,6 +5012,7 @@ var _ = Describe("Upload and Download logs test", func() {
 			LogsType:    string(models.LogsTypeController),
 		}
 		fileName := bm.getLogsFullName(clusterID.String(), string(models.LogsTypeController))
+		mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, nil, models.EventSeverityInfo, gomock.Any(), gomock.Any()).Times(1)
 		mockS3Client.EXPECT().UploadStream(gomock.Any(), gomock.Any(), fileName).Return(nil).Times(1)
 		mockClusterApi.EXPECT().SetUploadControllerLogsAt(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil).Times(1)
 		mockClusterApi.EXPECT().UpdateLogsProgress(gomock.Any(), gomock.Any(), string(models.LogsStateCollecting)).Return(nil).Times(1)

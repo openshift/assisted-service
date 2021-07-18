@@ -1138,7 +1138,7 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
-			err = r.populateLogsURL(log, clusterInstall, c)
+			err = r.populateLogsURL(ctx, log, clusterInstall, c)
 			if err != nil {
 				return ctrl.Result{Requeue: true}, nil
 			}
@@ -1186,9 +1186,9 @@ func (r *ClusterDeploymentsReconciler) populateEventsURL(log logrus.FieldLogger,
 	return nil
 }
 
-func (r *ClusterDeploymentsReconciler) populateLogsURL(log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
+func (r *ClusterDeploymentsReconciler) populateLogsURL(ctx context.Context, log logrus.FieldLogger, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) error {
 	if swag.StringValue(c.Status) != models.ClusterStatusInstalled {
-		if err := r.setControllerLogsDownloadURL(clusterInstall, c); err != nil {
+		if err := r.setControllerLogsDownloadURL(ctx, log, clusterInstall, c); err != nil {
 			log.WithError(err).Error("failed to generate controller logs URL")
 			return err
 		}
@@ -1541,13 +1541,38 @@ func (r *ClusterDeploymentsReconciler) ensureOwnerRef(ctx context.Context, log l
 	return r.Update(ctx, ci)
 }
 
+func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster) (bool, error) {
+	if !swag.IsZero(cluster.ControllerLogsCollectedAt) { // timestamp update, meaning logs were collected from a controller
+		return true, nil
+	}
+	for _, h := range cluster.Hosts {
+		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
+		if err != nil {
+			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", commonh.ID.String(), cluster.ID.String())
+			return false, err
+		}
+		if !swag.IsZero(commonh.LogsCollectedAt) { // timestamp update, meaning logs were collected from a host
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 func (r *ClusterDeploymentsReconciler) setControllerLogsDownloadURL(
+	ctx context.Context,
+	log logrus.FieldLogger,
 	clusterInstall *hiveext.AgentClusterInstall,
 	cluster *common.Cluster) error {
 	if clusterInstall.Status.DebugInfo.LogsURL != "" {
 		return nil
 	}
-
+	logsCollected, err := r.areLogsCollected(ctx, log, cluster)
+	if err != nil {
+		return err
+	}
+	if !logsCollected {
+		return nil
+	}
 	logsUrl, err := r.generateControllerLogsDownloadURL(cluster)
 	if err != nil {
 		return err
