@@ -5428,6 +5428,11 @@ definitions:
         items:
           type: string
           description: A fully qualified image name (FQIN).
+      image_identities:
+        type: array
+        description: List of image identities to be checked.
+        items:
+          $ref: '#/definitions/container_image_identity'
 
   container_image_availability_response:
     type: object
@@ -5446,6 +5451,8 @@ definitions:
       name:
         type: string
         description: A fully qualified image name (FQIN).
+      identity:
+        $ref: '#/definitions/container_image_identity'
       size_bytes:
         type: number
         description: Size of the image in bytes.
@@ -5457,6 +5464,19 @@ definitions:
         description: The rate of size/time in seconds MBps.
       result:
         $ref: '#/definitions/container_image_availability_result'
+      info:
+        type: string
+        description: Detailed information about the result.
+
+  container_image_identity:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Image name.
+      pull_spec:
+        type: string
+        description: A fully qualified image name (FQIN) that will be used to pull.
 
   container_image_availability_result:
     type: string

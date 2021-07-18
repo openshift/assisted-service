@@ -6155,6 +6155,13 @@ func init() {
           "description": "The rate of size/time in seconds MBps.",
           "type": "number"
         },
+        "identity": {
+          "$ref": "#/definitions/container_image_identity"
+        },
+        "info": {
+          "description": "Detailed information about the result.",
+          "type": "string"
+        },
         "name": {
           "description": "A fully qualified image name (FQIN).",
           "type": "string"
@@ -6178,6 +6185,13 @@ func init() {
         "images"
       ],
       "properties": {
+        "image_identities": {
+          "description": "List of image identities to be checked.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container_image_identity"
+          }
+        },
         "images": {
           "description": "List of image names to be checked.",
           "type": "array",
@@ -6214,6 +6228,19 @@ func init() {
         "success",
         "failure"
       ]
+    },
+    "container_image_identity": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Image name.",
+          "type": "string"
+        },
+        "pull_spec": {
+          "description": "A fully qualified image name (FQIN) that will be used to pull.",
+          "type": "string"
+        }
+      }
     },
     "cpu": {
       "type": "object",
@@ -14589,6 +14616,13 @@ func init() {
           "description": "The rate of size/time in seconds MBps.",
           "type": "number"
         },
+        "identity": {
+          "$ref": "#/definitions/container_image_identity"
+        },
+        "info": {
+          "description": "Detailed information about the result.",
+          "type": "string"
+        },
         "name": {
           "description": "A fully qualified image name (FQIN).",
           "type": "string"
@@ -14612,6 +14646,13 @@ func init() {
         "images"
       ],
       "properties": {
+        "image_identities": {
+          "description": "List of image identities to be checked.",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container_image_identity"
+          }
+        },
         "images": {
           "description": "List of image names to be checked.",
           "type": "array",
@@ -14648,6 +14689,19 @@ func init() {
         "success",
         "failure"
       ]
+    },
+    "container_image_identity": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "Image name.",
+          "type": "string"
+        },
+        "pull_spec": {
+          "description": "A fully qualified image name (FQIN) that will be used to pull.",
+          "type": "string"
+        }
+      }
     },
     "cpu": {
       "type": "object",

@@ -19,6 +19,12 @@ type ContainerImageAvailability struct {
 	// The rate of size/time in seconds MBps.
 	DownloadRate float64 `json:"download_rate,omitempty"`
 
+	// identity
+	Identity *ContainerImageIdentity `json:"identity,omitempty"`
+
+	// Detailed information about the result.
+	Info string `json:"info,omitempty"`
+
 	// A fully qualified image name (FQIN).
 	Name string `json:"name,omitempty"`
 
@@ -36,6 +42,10 @@ type ContainerImageAvailability struct {
 func (m *ContainerImageAvailability) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateIdentity(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateResult(formats); err != nil {
 		res = append(res, err)
 	}
@@ -43,6 +53,24 @@ func (m *ContainerImageAvailability) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ContainerImageAvailability) validateIdentity(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Identity) { // not required
+		return nil
+	}
+
+	if m.Identity != nil {
+		if err := m.Identity.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("identity")
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 

@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	"github.com/go-openapi/errors"
 	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
@@ -16,6 +18,9 @@ import (
 //
 // swagger:model container_image_availability_request
 type ContainerImageAvailabilityRequest struct {
+
+	// List of image identities to be checked.
+	ImageIdentities []*ContainerImageIdentity `json:"image_identities"`
 
 	// List of image names to be checked.
 	// Required: true
@@ -29,6 +34,10 @@ type ContainerImageAvailabilityRequest struct {
 func (m *ContainerImageAvailabilityRequest) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateImageIdentities(formats); err != nil {
+		res = append(res, err)
+	}
+
 	if err := m.validateImages(formats); err != nil {
 		res = append(res, err)
 	}
@@ -36,6 +45,31 @@ func (m *ContainerImageAvailabilityRequest) Validate(formats strfmt.Registry) er
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *ContainerImageAvailabilityRequest) validateImageIdentities(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.ImageIdentities) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.ImageIdentities); i++ {
+		if swag.IsZero(m.ImageIdentities[i]) { // not required
+			continue
+		}
+
+		if m.ImageIdentities[i] != nil {
+			if err := m.ImageIdentities[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("image_identities" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
+	}
+
 	return nil
 }
 
