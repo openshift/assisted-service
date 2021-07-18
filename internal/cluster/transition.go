@@ -140,7 +140,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 
 	log := logutil.FromContext(params.ctx, th.log)
 	if cluster, err := params.clusterAPI.CompleteInstallation(params.ctx, params.db, sCluster.cluster,
-		true, createClusterCompletionStatusInfo(log, sCluster.cluster)); err != nil {
+		true, createClusterCompletionStatusInfo(params.ctx, log, sCluster.cluster, th.eventsHandler)); err != nil {
 		return err
 	} else {
 		sCluster.cluster = cluster
@@ -149,7 +149,7 @@ func (th *transitionHandler) PostCompleteInstallation(sw stateswitch.StateSwitch
 	}
 }
 
-func createClusterCompletionStatusInfo(log logrus.FieldLogger, cluster *common.Cluster) string {
+func createClusterCompletionStatusInfo(ctx context.Context, log logrus.FieldLogger, cluster *common.Cluster, eventHandler events.Handler) string {
 	_, statuses := getClusterMonitoringOperatorsStatus(cluster)
 	log.Infof("Cluster %s Monitoring status: %s", *cluster.ID, statuses)
 
@@ -158,6 +158,10 @@ func createClusterCompletionStatusInfo(log logrus.FieldLogger, cluster *common.C
 		len(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed]) == 0 {
 		return statusInfoInstalled
 	}
+
+	msg := fmt.Sprintf("Cluster %s is installed but degraded due to failed OLM operators", cluster.Name)
+	msg += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
+	eventHandler.AddEvent(ctx, *cluster.ID, nil, models.EventSeverityWarning, msg, time.Now())
 
 	statusInfo := StatusInfoDegraded
 	statusInfo += ". Failed OLM operators: " + strings.Join(statuses[models.OperatorTypeOlm][models.OperatorStatusFailed], ", ")
