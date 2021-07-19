@@ -91,6 +91,9 @@ type ClusterUpdateParams struct {
 	// List of OLM operators to be installed.
 	OlmOperators []*OperatorCreateParams `json:"olm_operators"`
 
+	// platform
+	Platform *Platform `json:"platform,omitempty"`
+
 	// The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.
 	PullSecret *string `json:"pull_secret,omitempty"`
 
@@ -164,6 +167,10 @@ func (m *ClusterUpdateParams) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateOlmOperators(formats); err != nil {
+		res = append(res, err)
+	}
+
+	if err := m.validatePlatform(formats); err != nil {
 		res = append(res, err)
 	}
 
@@ -478,6 +485,24 @@ func (m *ClusterUpdateParams) validateOlmOperators(formats strfmt.Registry) erro
 			}
 		}
 
+	}
+
+	return nil
+}
+
+func (m *ClusterUpdateParams) validatePlatform(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Platform) { // not required
+		return nil
+	}
+
+	if m.Platform != nil {
+		if err := m.Platform.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("platform")
+			}
+			return err
+		}
 	}
 
 	return nil

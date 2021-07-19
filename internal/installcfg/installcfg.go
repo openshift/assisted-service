@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
@@ -37,20 +38,20 @@ type baremetal struct {
 type platform struct {
 	Baremetal *baremetal       `yaml:"baremetal,omitempty"`
 	None      *platformNone    `yaml:"none,omitempty"`
-	Vsphere   *platformVsphere `yaml:"vsphere,omitempty"`
+	Vsphere   *platformVsphere `yaml:"vsphere"`
 }
 
 type platformVsphere struct {
-	VCenter          string `yaml:"vCenter"`
-	Username         string `yaml:"username"`
-	Password         string `yaml:"password"`
-	Datacenter       string `yaml:"datacenter"`
-	DefaultDatastore string `yaml:"defaultDatastore"`
-	Folder           string `yaml:"folder,omitempty"`
-	Network          string `yaml:"network"`
-	Cluster          string `yaml:"cluster"`
-	APIVIP           string `yaml:"apiVIP"`
-	IngressVIP       string `yaml:"ingressVIP"`
+	VCenter          string          `yaml:"vCenter"`
+	Username         string          `yaml:"username"`
+	Password         strfmt.Password `yaml:"password"`
+	Datacenter       string          `yaml:"datacenter"`
+	DefaultDatastore string          `yaml:"defaultDatastore"`
+	Folder           string          `yaml:"folder,omitempty"`
+	Network          string          `yaml:"network"`
+	Cluster          string          `yaml:"cluster"`
+	APIVIP           string          `yaml:"apiVIP"`
+	IngressVIP       string          `yaml:"ingressVIP"`
 }
 
 type platformNone struct {
@@ -275,6 +276,42 @@ func (i *installConfigBuilder) setImageContentSources(cfg *InstallerConfigBareme
 	return nil
 }
 
+func setVspherePlatformValues(platform *platformVsphere, clusterPlatform *models.VspherePlatform) {
+	if clusterPlatform != nil && clusterPlatform.VCenter != nil {
+		platform.VCenter = *clusterPlatform.VCenter
+		platform.Username = *clusterPlatform.Username
+		platform.Password = *clusterPlatform.Password
+		platform.Datacenter = *clusterPlatform.Datacenter
+		platform.DefaultDatastore = *clusterPlatform.DefaultDatastore
+		platform.Network = *clusterPlatform.Network
+		platform.Cluster = *clusterPlatform.Cluster
+		if clusterPlatform.Folder != nil {
+			platform.Folder = *clusterPlatform.Folder
+		}
+	} else {
+		platform.Cluster = "clusterplaceholder"
+		platform.VCenter = "vcenterplaceholder"
+		platform.Network = "networkplaceholder"
+		platform.DefaultDatastore = "defaultdatastoreplaceholder"
+		platform.Username = "usernameplaceholder"
+		platform.Password = "passwordplaceholder"
+		platform.Datacenter = "datacenterplaceholder"
+	}
+}
+
+func (i *installConfigBuilder) setVSpherePlatformInstallConfig(cluster *common.Cluster, cfg *InstallerConfigBaremetal) {
+	vsPlatform := new(platformVsphere)
+	vsPlatform.APIVIP = cluster.APIVip
+	vsPlatform.IngressVIP = cluster.IngressVip
+
+	setVspherePlatformValues(vsPlatform, cluster.Platform.Vsphere)
+	cfg.Platform = platform{
+		Vsphere:   vsPlatform,
+		None:      nil,
+		Baremetal: nil,
+	}
+}
+
 func (i *installConfigBuilder) setBMPlatformInstallconfig(cluster *common.Cluster, cfg *InstallerConfigBaremetal) error {
 	// set hosts
 	numMasters := i.countHostsByRole(cluster, models.HostRoleMaster)
@@ -331,7 +368,8 @@ func (i *installConfigBuilder) setBMPlatformInstallconfig(cluster *common.Cluste
 			IngressVIP:          cluster.IngressVip,
 			Hosts:               hosts,
 		},
-		None: nil,
+		None:    nil,
+		Vsphere: nil,
 	}
 	return nil
 }
@@ -356,6 +394,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 	if swag.BoolValue(cluster.UserManagedNetworking) {
 		cfg.Platform = platform{
 			Baremetal: nil,
+			Vsphere:   nil,
 			None:      &platformNone{},
 		}
 
@@ -381,6 +420,8 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 			}
 		}
 
+	} else if cluster.Platform.Type == models.PlatformTypeVsphere {
+		i.setVSpherePlatformInstallConfig(cluster, cfg)
 	} else {
 		err = i.setBMPlatformInstallconfig(cluster, cfg)
 		if err != nil {

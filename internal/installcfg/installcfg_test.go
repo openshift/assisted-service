@@ -40,6 +40,7 @@ var _ = Describe("installcfg", func() {
 			IngressVip:             "376.5.56.6",
 			InstallConfigOverrides: `{"fips":true}`,
 			ImageInfo:              &models.ImageInfo{},
+			Platform:               &models.Platform{Type: models.PlatformTypeBaremetal},
 		}}
 		id := strfmt.UUID(uuid.New().String())
 		host1 = models.Host{
@@ -437,6 +438,7 @@ var _ = Describe("ValidateInstallConfigPatch", func() {
 			APIVip:           "102.345.34.34",
 			IngressVip:       "376.5.56.6",
 			ImageInfo:        &models.ImageInfo{},
+			Platform:         &models.Platform{Type: models.PlatformTypeBaremetal},
 		}}
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		installConfigBuilder = NewInstallConfigBuilder(common.GetTestLog(), mockMirrorRegistriesConfigBuilder)
@@ -508,6 +510,7 @@ var _ = Describe("Generate NoProxy", func() {
 			BaseDNSDomain:      "myproxy.com",
 			ClusterNetworkCidr: "192.168.1.0/24",
 			ServiceNetworkCidr: "fe80::1/64",
+			Platform:           &models.Platform{Type: models.PlatformTypeBaremetal},
 		}}
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
 		installConfig = &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
@@ -530,6 +533,110 @@ var _ = Describe("Generate NoProxy", func() {
 		cluster.NoProxy = " * "
 		noProxy := installConfig.generateNoProxy(cluster)
 		Expect(noProxy).Should(Equal("*"))
+	})
+})
+
+var _ = Describe("Platform", func() {
+	var (
+		cluster                           common.Cluster
+		ctrl                              *gomock.Controller
+		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
+		installConfig                     *installConfigBuilder
+	)
+	BeforeEach(func() {
+		ctrl = gomock.NewController(GinkgoT())
+		clusterId := strfmt.UUID(uuid.New().String())
+		cluster = common.Cluster{Cluster: models.Cluster{
+			ID:                     &clusterId,
+			OpenshiftVersion:       common.TestDefaultConfig.OpenShiftVersion,
+			Name:                   "test-cluster",
+			BaseDNSDomain:          "redhat.com",
+			MachineNetworkCidr:     "1.2.3.0/24",
+			APIVip:                 "102.345.34.34",
+			IngressVip:             "376.5.56.6",
+			InstallConfigOverrides: `{"networking":{"networkType": "OVNKubernetes"},"fips":true}`,
+			ImageInfo:              &models.ImageInfo{},
+		}}
+		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
+		installConfig = &installConfigBuilder{log: common.GetTestLog(), mirrorRegistriesBuilder: mockMirrorRegistriesConfigBuilder}
+
+	})
+
+	It("vsphere_platform", func() {
+		var result InstallerConfigBaremetal
+		cluster.Platform = &models.Platform{Type: models.PlatformTypeVsphere}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform).ShouldNot(BeNil())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		Expect(result.Platform.Vsphere).ShouldNot(BeNil())
+		Expect(result.Platform.Vsphere.APIVIP).Should(Equal(cluster.APIVip))
+		Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(cluster.IngressVip))
+	})
+
+	It("baremetal_platform", func() {
+		var result InstallerConfigBaremetal
+		cluster.Platform = &models.Platform{Type: models.PlatformTypeBaremetal}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform).ShouldNot(BeNil())
+		Expect(result.Platform.Vsphere).Should(BeNil())
+		Expect(result.Platform.Baremetal).ShouldNot(BeNil())
+		Expect(result.Platform.Baremetal.APIVIP).Should(Equal(cluster.APIVip))
+		Expect(result.Platform.Baremetal.IngressVIP).Should(Equal(cluster.IngressVip))
+	})
+
+	It("vsphere_platform_with_params", func() {
+		var result InstallerConfigBaremetal
+		pcluster := "cluster"
+		datacenter := "datacenter"
+		defaultDatastore := "defaultDatastore"
+		folder := "folder"
+		network := "network"
+		password := strfmt.Password("password")
+		username := "username"
+		vCenter := "vCenter"
+		cluster.Platform = &models.Platform{Type: models.PlatformTypeVsphere,
+			Vsphere: &models.VspherePlatform{
+				Cluster:          &pcluster,
+				Datacenter:       &datacenter,
+				DefaultDatastore: &defaultDatastore,
+				Folder:           &folder,
+				Network:          &network,
+				Password:         &password,
+				Username:         &username,
+				VCenter:          &vCenter,
+			}}
+		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+		data, err := installConfig.GetInstallConfig(&cluster, false, "")
+		Expect(err).ShouldNot(HaveOccurred())
+		err = yaml.Unmarshal(data, &result)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(result.Platform).ShouldNot(BeNil())
+		Expect(result.Platform.Baremetal).Should(BeNil())
+		Expect(result.Platform.Vsphere).ShouldNot(BeNil())
+		Expect(result.Platform.Vsphere.APIVIP).Should(Equal(cluster.APIVip))
+		Expect(result.Platform.Vsphere.IngressVIP).Should(Equal(cluster.IngressVip))
+		Expect(result.Platform.Vsphere.Username).Should(Equal(*cluster.Platform.Vsphere.Username))
+		Expect(result.Platform.Vsphere.Password).Should(Equal(*cluster.Platform.Vsphere.Password))
+		Expect(result.Platform.Vsphere.VCenter).Should(Equal(*cluster.Platform.Vsphere.VCenter))
+		Expect(result.Platform.Vsphere.DefaultDatastore).Should(Equal(*cluster.Platform.Vsphere.DefaultDatastore))
+		Expect(result.Platform.Vsphere.Folder).Should(Equal(*cluster.Platform.Vsphere.Folder))
+		Expect(result.Platform.Vsphere.Datacenter).Should(Equal(*cluster.Platform.Vsphere.Datacenter))
+		Expect(result.Platform.Vsphere.Network).Should(Equal(*cluster.Platform.Vsphere.Network))
+		Expect(result.Platform.Vsphere.Cluster).Should(Equal(*cluster.Platform.Vsphere.Cluster))
+
+	})
+
+	AfterEach(func() {
+		// cleanup
+		ctrl.Finish()
 	})
 })
 
