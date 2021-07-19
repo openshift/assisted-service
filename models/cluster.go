@@ -177,6 +177,9 @@ type Cluster struct {
 	// hosts associated to this cluster that are in 'known' state.
 	ReadyHostCount int64 `json:"ready_host_count,omitempty" gorm:"-"`
 
+	// Schedule workloads on masters
+	SchedulableMasters *bool `json:"schedulable_masters,omitempty"`
+
 	// The IP address pool to use for service IP addresses. You can enter only one IP address pool. If you need to access the services from an external network, configure load balancers and routers to manage the traffic.
 	// Pattern: ^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$
 	ServiceNetworkCidr string `json:"service_network_cidr,omitempty"`

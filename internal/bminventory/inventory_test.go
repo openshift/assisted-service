@@ -2973,6 +2973,27 @@ var _ = Describe("cluster", func() {
 			Expect(reply).To(BeAssignableToTypeOf(common.NewApiError(http.StatusNotFound, errors.Errorf(""))))
 		})
 
+		It("Update SchedulableMasters", func() {
+
+			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
+			clusterID = strfmt.UUID(uuid.New().String())
+			err := db.Create(&common.Cluster{Cluster: models.Cluster{
+				ID: &clusterID,
+			}}).Error
+			Expect(err).ShouldNot(HaveOccurred())
+			mockClusterApi.EXPECT().VerifyClusterUpdatability(gomock.Any()).Return(nil).Times(1)
+			mockClusterApi.EXPECT().RefreshStatus(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil).Times(1)
+			reply := bm.UpdateCluster(ctx, installer.UpdateClusterParams{
+				ClusterID: clusterID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					SchedulableMasters: swag.Bool(true),
+				},
+			})
+			Expect(reply).To(BeAssignableToTypeOf(installer.NewUpdateClusterCreated()))
+			actual := reply.(*installer.UpdateClusterCreated)
+			Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
+		})
+
 		It("Update UserManagedNetworking", func() {
 
 			mockSetConnectivityMajorityGroupsForCluster(mockClusterApi)
@@ -5929,6 +5950,37 @@ var _ = Describe("TestRegisterCluster", func() {
 			},
 		})
 		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+	})
+
+	It("SchedulableMasters default value", func() {
+		mockClusterRegisterSuccess(bm, true)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+			},
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(false)))
+	})
+
+	It("SchedulableMasters non default value", func() {
+		mockClusterRegisterSuccess(bm, true)
+
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:               swag.String("some-cluster-name"),
+				OpenshiftVersion:   swag.String(common.TestDefaultConfig.OpenShiftVersion),
+				PullSecret:         swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				SchedulableMasters: swag.Bool(true),
+			},
+		})
+		Expect(reply).Should(BeAssignableToTypeOf(installer.NewRegisterClusterCreated()))
+		actual := reply.(*installer.RegisterClusterCreated)
+		Expect(actual.Payload.SchedulableMasters).To(Equal(swag.Bool(true)))
 	})
 
 	It("UserManagedNetworking default value", func() {

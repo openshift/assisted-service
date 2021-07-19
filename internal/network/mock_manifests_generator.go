@@ -76,3 +76,17 @@ func (mr *MockManifestsGeneratorAPIMockRecorder) AddTelemeterManifest(ctx, log, 
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddTelemeterManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddTelemeterManifest), ctx, log, c)
 }
+
+// AddSchedulableMastersManifest mocks base method
+func (m *MockManifestsGeneratorAPI) AddSchedulableMastersManifest(ctx context.Context, log logrus.FieldLogger, c *common.Cluster) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddSchedulableMastersManifest", ctx, log, c)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddSchedulableMastersManifest indicates an expected call of AddSchedulableMastersManifest
+func (mr *MockManifestsGeneratorAPIMockRecorder) AddSchedulableMastersManifest(ctx, log, c interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddSchedulableMastersManifest", reflect.TypeOf((*MockManifestsGeneratorAPI)(nil).AddSchedulableMastersManifest), ctx, log, c)
+}

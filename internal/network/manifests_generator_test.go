@@ -383,3 +383,50 @@ var _ = Describe("telemeter manifest", func() {
 		})
 	}
 })
+
+var _ = Describe("schedulable masters manifest", func() {
+	var (
+		ctx                   = context.Background()
+		log                   *logrus.Logger
+		ctrl                  *gomock.Controller
+		manifestsApi          *mocks.MockManifestsAPI
+		manifestsGeneratorApi ManifestsGeneratorAPI
+		db                    *gorm.DB
+		dbName                string
+		clusterId             strfmt.UUID
+		cluster               common.Cluster
+	)
+
+	BeforeEach(func() {
+		log = logrus.New()
+		ctrl = gomock.NewController(GinkgoT())
+		manifestsApi = mocks.NewMockManifestsAPI(ctrl)
+		manifestsGeneratorApi = NewManifestsGenerator(manifestsApi, Config{})
+		db, dbName = common.PrepareTestDB()
+		clusterId = strfmt.UUID(uuid.New().String())
+
+		cluster = common.Cluster{
+			Cluster: models.Cluster{
+				ID: &clusterId,
+			},
+		}
+		Expect(db.Create(&cluster).Error).NotTo(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		ctrl.Finish()
+		common.DeleteTestDB(db, dbName)
+	})
+
+	Context("CreateClusterManifest success", func() {
+		It("CreateClusterManifest success", func() {
+			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(operations.NewCreateClusterManifestCreated()).Times(1)
+			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).ShouldNot(HaveOccurred())
+		})
+
+		It("CreateClusterManifest failure", func() {
+			manifestsApi.EXPECT().CreateClusterManifest(gomock.Any(), gomock.Any()).Return(common.GenerateErrorResponder(errors.Errorf("failed to upload to s3"))).Times(1)
+			Expect(manifestsGeneratorApi.AddSchedulableMastersManifest(ctx, log, &cluster)).Should(HaveOccurred())
+		})
+	})
+})
