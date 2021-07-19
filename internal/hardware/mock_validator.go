@@ -137,18 +137,3 @@ func (mr *MockValidatorMockRecorder) GetPreflightHardwareRequirements(ctx, clust
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPreflightHardwareRequirements", reflect.TypeOf((*MockValidator)(nil).GetPreflightHardwareRequirements), ctx, cluster)
 }
-
-// GetDefaultVersionRequirements mocks base method
-func (m *MockValidator) GetDefaultVersionRequirements() (*models.VersionedHostRequirements, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDefaultVersionRequirements")
-	ret0, _ := ret[0].(*models.VersionedHostRequirements)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetDefaultVersionRequirements indicates an expected call of GetDefaultVersionRequirements
-func (mr *MockValidatorMockRecorder) GetDefaultVersionRequirements() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDefaultVersionRequirements", reflect.TypeOf((*MockValidator)(nil).GetDefaultVersionRequirements))
-}

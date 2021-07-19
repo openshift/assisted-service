@@ -224,10 +224,6 @@ func (f fakeInventory) DownloadHostLogs(ctx context.Context, params installer.Do
 		0)
 }
 
-func (f fakeInventory) GetHostRequirements(ctx context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
-	return installer.NewGetHostRequirementsOK()
-}
-
 func (f fakeInventory) DownloadClusterLogs(ctx context.Context, params installer.DownloadClusterLogsParams) middleware.Responder {
 	file, err := ioutil.TempFile("/tmp", "test.file")
 	if err != nil {

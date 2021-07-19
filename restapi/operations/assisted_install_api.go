@@ -136,9 +136,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetHostIgnitionHandler: installer.GetHostIgnitionHandlerFunc(func(params installer.GetHostIgnitionParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHostIgnition has not yet been implemented")
 		}),
-		InstallerGetHostRequirementsHandler: installer.GetHostRequirementsHandlerFunc(func(params installer.GetHostRequirementsParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.GetHostRequirements has not yet been implemented")
-		}),
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
 		}),
@@ -376,8 +373,6 @@ type AssistedInstallAPI struct {
 	InstallerGetHostHandler installer.GetHostHandler
 	// InstallerGetHostIgnitionHandler sets the operation handler for the get host ignition operation
 	InstallerGetHostIgnitionHandler installer.GetHostIgnitionHandler
-	// InstallerGetHostRequirementsHandler sets the operation handler for the get host requirements operation
-	InstallerGetHostRequirementsHandler installer.GetHostRequirementsHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
 	// InstallerGetPreflightRequirementsHandler sets the operation handler for the get preflight requirements operation
@@ -627,9 +622,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerGetHostIgnitionHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostIgnitionHandler")
-	}
-	if o.InstallerGetHostRequirementsHandler == nil {
-		unregistered = append(unregistered, "installer.GetHostRequirementsHandler")
 	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
@@ -963,10 +955,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewGetHostIgnition(o.context, o.InstallerGetHostIgnitionHandler)
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/host_requirements"] = installer.NewGetHostRequirements(o.context, o.InstallerGetHostRequirementsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

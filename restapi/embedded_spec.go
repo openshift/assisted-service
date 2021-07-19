@@ -4576,65 +4576,6 @@ func init() {
         }
       }
     },
-    "/host_requirements": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Get minimum host requirements.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "GetHostRequirements",
-        "parameters": [
-          {
-            "type": "boolean",
-            "default": false,
-            "description": "Get hw requirements for single node.",
-            "name": "single_node",
-            "in": "header"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/host-requirements"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/infra-envs": {
       "post": {
         "description": "Creates a new OpenShift Discovery ISO.",
@@ -6636,44 +6577,6 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
-        }
-      }
-    },
-    "host-requirements": {
-      "type": "object",
-      "properties": {
-        "master": {
-          "$ref": "#/definitions/host-requirements-role"
-        },
-        "worker": {
-          "$ref": "#/definitions/host-requirements-role"
-        }
-      }
-    },
-    "host-requirements-role": {
-      "type": "object",
-      "properties": {
-        "cpu_cores": {
-          "type": "integer"
-        },
-        "disk_size_gb": {
-          "type": "integer"
-        },
-        "installation_disk_speed_threshold_ms": {
-          "type": "integer"
-        },
-        "network_latency_threshold_ms": {
-          "type": "number",
-          "format": "double",
-          "x-nullable": true
-        },
-        "packet_loss_percentage": {
-          "type": "number",
-          "format": "double",
-          "x-nullable": true
-        },
-        "ram_gib": {
-          "type": "integer"
         }
       }
     },
@@ -12449,65 +12352,6 @@ func init() {
         }
       }
     },
-    "/host_requirements": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Get minimum host requirements.",
-        "tags": [
-          "installer"
-        ],
-        "operationId": "GetHostRequirements",
-        "parameters": [
-          {
-            "type": "boolean",
-            "default": false,
-            "description": "Get hw requirements for single node.",
-            "name": "single_node",
-            "in": "header"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/host-requirements"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "405": {
-            "description": "Method Not Allowed.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
     "/infra-envs": {
       "post": {
         "description": "Creates a new OpenShift Discovery ISO.",
@@ -14577,44 +14421,6 @@ func init() {
           "type": "string",
           "format": "date-time",
           "x-go-custom-tag": "gorm:\"type:timestamp with time zone\""
-        }
-      }
-    },
-    "host-requirements": {
-      "type": "object",
-      "properties": {
-        "master": {
-          "$ref": "#/definitions/host-requirements-role"
-        },
-        "worker": {
-          "$ref": "#/definitions/host-requirements-role"
-        }
-      }
-    },
-    "host-requirements-role": {
-      "type": "object",
-      "properties": {
-        "cpu_cores": {
-          "type": "integer"
-        },
-        "disk_size_gb": {
-          "type": "integer"
-        },
-        "installation_disk_speed_threshold_ms": {
-          "type": "integer"
-        },
-        "network_latency_threshold_ms": {
-          "type": "number",
-          "format": "double",
-          "x-nullable": true
-        },
-        "packet_loss_percentage": {
-          "type": "number",
-          "format": "double",
-          "x-nullable": true
-        },
-        "ram_gib": {
-          "type": "integer"
         }
       }
     },

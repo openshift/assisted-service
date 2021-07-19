@@ -50,7 +50,6 @@ import (
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	ctxparams "github.com/openshift/assisted-service/pkg/context"
-	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/generator"
 	"github.com/openshift/assisted-service/pkg/k8sclient"
@@ -4536,38 +4535,6 @@ func (b *bareMetalInventory) GetPreflightRequirements(ctx context.Context, param
 		return common.GenerateErrorResponder(err)
 	}
 	return installer.NewGetPreflightRequirementsOK().WithPayload(requirements)
-}
-
-func (b *bareMetalInventory) GetHostRequirements(_ context.Context, params installer.GetHostRequirementsParams) middleware.Responder {
-	requirements, err := b.hwValidator.GetDefaultVersionRequirements()
-	if err != nil {
-		return common.GenerateErrorResponder(err)
-	}
-
-	if swag.BoolValue(params.SingleNode) {
-		return installer.NewGetHostRequirementsOK().WithPayload(
-			&models.HostRequirements{
-				Master: hostRequirementsRoleFrom(requirements.SNORequirements),
-				Worker: hostRequirementsRoleFrom(requirements.WorkerRequirements),
-			})
-	}
-
-	return installer.NewGetHostRequirementsOK().WithPayload(
-		&models.HostRequirements{
-			Master: hostRequirementsRoleFrom(requirements.MasterRequirements),
-			Worker: hostRequirementsRoleFrom(requirements.WorkerRequirements),
-		})
-}
-
-func hostRequirementsRoleFrom(requirements *models.ClusterHostRequirementsDetails) *models.HostRequirementsRole {
-	return &models.HostRequirementsRole{
-		CPUCores:                         requirements.CPUCores,
-		DiskSizeGb:                       requirements.DiskSizeGb,
-		InstallationDiskSpeedThresholdMs: requirements.InstallationDiskSpeedThresholdMs,
-		RAMGib:                           conversions.MibToGiB(requirements.RAMMib),
-		NetworkLatencyThresholdMs:        requirements.NetworkLatencyThresholdMs,
-		PacketLossPercentage:             requirements.PacketLossPercentage,
-	}
 }
 
 func (b *bareMetalInventory) ResetHostValidation(ctx context.Context, params installer.ResetHostValidationParams) middleware.Responder {
