@@ -701,8 +701,9 @@ func (v *validator) hasSufficientNetworkLatencyRequirementForRole(c *validationC
 	}
 
 	if len(c.host.Connectivity) == 0 {
-		return ValidationFailure
+		return ValidationPending
 	}
+
 	status, _, _ := v.validateNetworkLatencyForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
 	return status
 }
@@ -748,6 +749,8 @@ func (v *validator) printSufficientNetworkLatencyRequirementForRole(c *validatio
 		}
 		sort.Strings(hostNames)
 		return fmt.Sprintf("Network latency requirements of less or equals than %.3f ms not met for connectivity between %s and %s.", *c.clusterHostRequirements.Total.NetworkLatencyThresholdMs, c.host.ID, strings.Join(hostNames, ","))
+	case ValidationPending:
+		return "Missing network latency information."
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
@@ -761,8 +764,9 @@ func (v *validator) hasSufficientPacketLossRequirementForRole(c *validationConte
 	}
 
 	if len(c.host.Connectivity) == 0 {
-		return ValidationFailure
+		return ValidationPending
 	}
+
 	status, _, _ := v.validatePacketLossForRole(c.host, c.clusterHostRequirements, c.cluster.Hosts)
 	return status
 }
@@ -809,6 +813,8 @@ func (v *validator) printSufficientPacketLossRequirementForRole(c *validationCon
 		}
 		sort.Strings(hostNames)
 		return fmt.Sprintf("Packet loss percentage requirement of less or equals than %.2f%% not met for connectivity between %s and %s.", *c.clusterHostRequirements.Total.PacketLossPercentage, c.host.ID, strings.Join(hostNames, ","))
+	case ValidationPending:
+		return "Missing packet loss information."
 	default:
 		return fmt.Sprintf("Unexpected status %s", status)
 	}
