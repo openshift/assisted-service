@@ -12,7 +12,7 @@ func populateInfraEnv() *gormigrate.Migration {
 
 		if tx.HasTable(&common.Host{}) {
 			// Generate the infra_env_id column
-			if err := tx.Exec("ALTER TABLE hosts ADD infra_env_id text NULL;").Error; err != nil {
+			if err := tx.Exec("ALTER TABLE hosts ADD COLUMN IF NOT EXISTS infra_env_id text NULL;").Error; err != nil {
 				return err
 			}
 			// Populate the infra_env_id column

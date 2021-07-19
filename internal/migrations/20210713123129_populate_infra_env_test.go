@@ -52,8 +52,6 @@ var _ = Describe("populateInfraEnv", func() {
 		}
 		err := db.Create(&host).Error
 		Expect(err).NotTo(HaveOccurred())
-		err = db.Exec("ALTER TABLE hosts DROP infra_env_id;").Error
-		Expect(err).NotTo(HaveOccurred())
 
 		cluster := common.Cluster{
 			PullSecret:     PullSecret,
