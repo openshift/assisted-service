@@ -8,8 +8,15 @@ __dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 __root="$(cd "$(dirname "${__dir}")" && pwd)"
 
 function lint_swagger() {
+    SPECTRAL_IMAGE_REPO="docker.io/stoplight/spectral"
+    # Check to see if we are running in Prow CI and use local CI registry
+    if command oc get is stoplight-spectral -n ci &> /dev/null; then
+        SPECTRAL_IMAGE_REPO=$(oc get is stoplight-spectral -n ci -o json | jq .status.dockerImageRepository)
+    fi
+
+    # Check to see if spectral is installed otherwise download docker image
     if ! command -v spectral &> /dev/null; then
-        docker run --rm -it docker.io/stoplight/spectral:latest lint swagger.yaml
+        docker run --rm -it ${SPECTRAL_IMAGE_REPO}:latest lint swagger.yaml
     else
         spectral lint swagger.yaml
     fi
