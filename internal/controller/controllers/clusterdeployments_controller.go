@@ -1068,7 +1068,11 @@ func (r *ClusterDeploymentsReconciler) DeleteClusterDeploymentAgents(ctx context
 func (r *ClusterDeploymentsReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	mapSecretToClusterDeployment := func(a client.Object) []reconcile.Request {
 		clusterDeployments := &hivev1.ClusterDeploymentList{}
-		if err := r.List(context.Background(), clusterDeployments); err != nil {
+
+		// PullSecretRef is a LocalObjectReference, which means it must exist in the
+		// same namespace. Let's get only the ClusterDeployments from the Secret's
+		// namespace.
+		if err := r.List(context.Background(), clusterDeployments, &client.ListOptions{Namespace: a.GetNamespace()}); err != nil {
 			// TODO: silently ignoring error here
 			return []reconcile.Request{}
 		}
