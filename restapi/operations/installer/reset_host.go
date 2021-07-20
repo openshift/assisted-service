@@ -29,7 +29,7 @@ func NewResetHost(ctx *middleware.Context, handler ResetHostHandler) *ResetHost 
 	return &ResetHost{Context: ctx, Handler: handler}
 }
 
-/*ResetHost swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/actions/reset installer resetHost
+/*ResetHost swagger:route POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset installer resetHost
 
 reset a failed host for day2 cluster.
 

@@ -49,7 +49,7 @@ type ListComponentVersionsOK struct {
 }
 
 func (o *ListComponentVersionsOK) Error() string {
-	return fmt.Sprintf("[GET /component_versions][%d] listComponentVersionsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/component_versions][%d] listComponentVersionsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListComponentVersionsOK) GetPayload() *models.ListVersions {

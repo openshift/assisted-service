@@ -29,7 +29,7 @@ func NewListClusters(ctx *middleware.Context, handler ListClustersHandler) *List
 	return &ListClusters{Context: ctx, Handler: handler}
 }
 
-/*ListClusters swagger:route GET /clusters installer listClusters
+/*ListClusters swagger:route GET /v1/clusters installer listClusters
 
 Retrieves the list of OpenShift clusters.
 

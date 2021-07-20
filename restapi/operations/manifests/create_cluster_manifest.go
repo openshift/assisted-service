@@ -29,7 +29,7 @@ func NewCreateClusterManifest(ctx *middleware.Context, handler CreateClusterMani
 	return &CreateClusterManifest{Context: ctx, Handler: handler}
 }
 
-/*CreateClusterManifest swagger:route POST /clusters/{cluster_id}/manifests manifests createClusterManifest
+/*CreateClusterManifest swagger:route POST /v1/clusters/{cluster_id}/manifests manifests createClusterManifest
 
 Creates a manifest for customizing cluster installation.
 

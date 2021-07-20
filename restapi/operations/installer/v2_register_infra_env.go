@@ -29,7 +29,7 @@ func NewV2RegisterInfraEnv(ctx *middleware.Context, handler V2RegisterInfraEnvHa
 	return &V2RegisterInfraEnv{Context: ctx, Handler: handler}
 }
 
-/*V2RegisterInfraEnv swagger:route POST /infra-envs installer v2RegisterInfraEnv
+/*V2RegisterInfraEnv swagger:route POST /v2/infra-envs installer v2RegisterInfraEnv
 
 Creates a new OpenShift Discovery ISO.
 

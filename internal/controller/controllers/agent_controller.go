@@ -305,7 +305,7 @@ func (r *AgentReconciler) populateEventsURL(log logrus.FieldLogger, agent *aiv1b
 }
 
 func (r *AgentReconciler) eventsURL(log logrus.FieldLogger, clusterId, agentId string) (string, error) {
-	eventsURL := fmt.Sprintf("%s%s/clusters/%s/events?host_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId, agentId)
+	eventsURL := fmt.Sprintf("%s%s/v1/clusters/%s/events?host_id=%s", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId, agentId)
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}

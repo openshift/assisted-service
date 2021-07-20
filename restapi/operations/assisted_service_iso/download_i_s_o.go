@@ -29,7 +29,7 @@ func NewDownloadISO(ctx *middleware.Context, handler DownloadISOHandler) *Downlo
 	return &DownloadISO{Context: ctx, Handler: handler}
 }
 
-/*DownloadISO swagger:route GET /assisted-service-iso/data assisted-service-iso downloadISO
+/*DownloadISO swagger:route GET /v1/assisted-service-iso/data assisted-service-iso downloadISO
 
 Downloads the Assisted Service ISO.
 

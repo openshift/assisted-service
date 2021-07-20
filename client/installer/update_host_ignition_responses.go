@@ -84,7 +84,7 @@ type UpdateHostIgnitionCreated struct {
 }
 
 func (o *UpdateHostIgnitionCreated) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionCreated ", 201)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionCreated ", 201)
 }
 
 func (o *UpdateHostIgnitionCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -106,7 +106,7 @@ type UpdateHostIgnitionBadRequest struct {
 }
 
 func (o *UpdateHostIgnitionBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *UpdateHostIgnitionBadRequest) GetPayload() *models.Error {
@@ -139,7 +139,7 @@ type UpdateHostIgnitionUnauthorized struct {
 }
 
 func (o *UpdateHostIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateHostIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type UpdateHostIgnitionForbidden struct {
 }
 
 func (o *UpdateHostIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateHostIgnitionForbidden) GetPayload() *models.InfraError {
@@ -205,7 +205,7 @@ type UpdateHostIgnitionNotFound struct {
 }
 
 func (o *UpdateHostIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateHostIgnitionNotFound) GetPayload() *models.Error {
@@ -238,7 +238,7 @@ type UpdateHostIgnitionMethodNotAllowed struct {
 }
 
 func (o *UpdateHostIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -271,7 +271,7 @@ type UpdateHostIgnitionInternalServerError struct {
 }
 
 func (o *UpdateHostIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] updateHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateHostIgnitionInternalServerError) GetPayload() *models.Error {

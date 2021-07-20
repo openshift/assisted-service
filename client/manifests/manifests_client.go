@@ -58,7 +58,7 @@ func (a *Client) CreateClusterManifest(ctx context.Context, params *CreateCluste
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "CreateClusterManifest",
 		Method:             "POST",
-		PathPattern:        "/clusters/{cluster_id}/manifests",
+		PathPattern:        "/v1/clusters/{cluster_id}/manifests",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -83,7 +83,7 @@ func (a *Client) DeleteClusterManifest(ctx context.Context, params *DeleteCluste
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DeleteClusterManifest",
 		Method:             "DELETE",
-		PathPattern:        "/clusters/{cluster_id}/manifests",
+		PathPattern:        "/v1/clusters/{cluster_id}/manifests",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -108,7 +108,7 @@ func (a *Client) DownloadClusterManifest(ctx context.Context, params *DownloadCl
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DownloadClusterManifest",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/manifests/files",
+		PathPattern:        "/v1/clusters/{cluster_id}/manifests/files",
 		ProducesMediaTypes: []string{"application/octet-stream"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -133,7 +133,7 @@ func (a *Client) ListClusterManifests(ctx context.Context, params *ListClusterMa
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListClusterManifests",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/manifests",
+		PathPattern:        "/v1/clusters/{cluster_id}/manifests",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

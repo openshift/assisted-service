@@ -90,7 +90,7 @@ type UploadClusterIngressCertCreated struct {
 }
 
 func (o *UploadClusterIngressCertCreated) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertCreated ", 201)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertCreated ", 201)
 }
 
 func (o *UploadClusterIngressCertCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -112,7 +112,7 @@ type UploadClusterIngressCertBadRequest struct {
 }
 
 func (o *UploadClusterIngressCertBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *UploadClusterIngressCertBadRequest) GetPayload() *models.Error {
@@ -145,7 +145,7 @@ type UploadClusterIngressCertUnauthorized struct {
 }
 
 func (o *UploadClusterIngressCertUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UploadClusterIngressCertUnauthorized) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type UploadClusterIngressCertForbidden struct {
 }
 
 func (o *UploadClusterIngressCertForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UploadClusterIngressCertForbidden) GetPayload() *models.InfraError {
@@ -211,7 +211,7 @@ type UploadClusterIngressCertNotFound struct {
 }
 
 func (o *UploadClusterIngressCertNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UploadClusterIngressCertNotFound) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type UploadClusterIngressCertMethodNotAllowed struct {
 }
 
 func (o *UploadClusterIngressCertMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UploadClusterIngressCertMethodNotAllowed) GetPayload() *models.Error {
@@ -277,7 +277,7 @@ type UploadClusterIngressCertInternalServerError struct {
 }
 
 func (o *UploadClusterIngressCertInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UploadClusterIngressCertInternalServerError) GetPayload() *models.Error {
@@ -310,7 +310,7 @@ type UploadClusterIngressCertServiceUnavailable struct {
 }
 
 func (o *UploadClusterIngressCertServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/uploads/ingress-cert][%d] uploadClusterIngressCertServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *UploadClusterIngressCertServiceUnavailable) GetPayload() *models.Error {

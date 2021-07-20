@@ -95,7 +95,7 @@ type DownloadClusterISOHeadersOK struct {
 }
 
 func (o *DownloadClusterISOHeadersOK) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersOK ", 200)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersOK ", 200)
 }
 
 func (o *DownloadClusterISOHeadersOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -124,7 +124,7 @@ type DownloadClusterISOHeadersBadRequest struct {
 }
 
 func (o *DownloadClusterISOHeadersBadRequest) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *DownloadClusterISOHeadersBadRequest) GetPayload() *models.Error {
@@ -157,7 +157,7 @@ type DownloadClusterISOHeadersUnauthorized struct {
 }
 
 func (o *DownloadClusterISOHeadersUnauthorized) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadClusterISOHeadersUnauthorized) GetPayload() *models.InfraError {
@@ -190,7 +190,7 @@ type DownloadClusterISOHeadersForbidden struct {
 }
 
 func (o *DownloadClusterISOHeadersForbidden) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadClusterISOHeadersForbidden) GetPayload() *models.InfraError {
@@ -223,7 +223,7 @@ type DownloadClusterISOHeadersNotFound struct {
 }
 
 func (o *DownloadClusterISOHeadersNotFound) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadClusterISOHeadersNotFound) GetPayload() *models.Error {
@@ -255,7 +255,7 @@ type DownloadClusterISOHeadersMethodNotAllowed struct {
 }
 
 func (o *DownloadClusterISOHeadersMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersMethodNotAllowed ", 405)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersMethodNotAllowed ", 405)
 }
 
 func (o *DownloadClusterISOHeadersMethodNotAllowed) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -277,7 +277,7 @@ type DownloadClusterISOHeadersConflict struct {
 }
 
 func (o *DownloadClusterISOHeadersConflict) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadClusterISOHeadersConflict) GetPayload() *models.Error {
@@ -310,7 +310,7 @@ type DownloadClusterISOHeadersInternalServerError struct {
 }
 
 func (o *DownloadClusterISOHeadersInternalServerError) Error() string {
-	return fmt.Sprintf("[HEAD /clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[HEAD /v1/clusters/{cluster_id}/downloads/image][%d] downloadClusterISOHeadersInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadClusterISOHeadersInternalServerError) GetPayload() *models.Error {

@@ -29,7 +29,7 @@ func NewCompleteInstallation(ctx *middleware.Context, handler CompleteInstallati
 	return &CompleteInstallation{Context: ctx, Handler: handler}
 }
 
-/*CompleteInstallation swagger:route POST /clusters/{cluster_id}/actions/complete_installation installer completeInstallation
+/*CompleteInstallation swagger:route POST /v1/clusters/{cluster_id}/actions/complete_installation installer completeInstallation
 
 Agent API to mark a finalizing installation as complete.
 

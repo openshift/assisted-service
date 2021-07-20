@@ -84,7 +84,7 @@ type DeleteClusterManifestOK struct {
 }
 
 func (o *DeleteClusterManifestOK) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/manifests][%d] deleteClusterManifestOK ", 200)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/manifests][%d] deleteClusterManifestOK ", 200)
 }
 
 func (o *DeleteClusterManifestOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -106,7 +106,7 @@ type DeleteClusterManifestUnauthorized struct {
 }
 
 func (o *DeleteClusterManifestUnauthorized) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/manifests][%d] deleteClusterManifestUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/manifests][%d] deleteClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DeleteClusterManifestUnauthorized) GetPayload() *models.InfraError {
@@ -139,7 +139,7 @@ type DeleteClusterManifestForbidden struct {
 }
 
 func (o *DeleteClusterManifestForbidden) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/manifests][%d] deleteClusterManifestForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/manifests][%d] deleteClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DeleteClusterManifestForbidden) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type DeleteClusterManifestNotFound struct {
 }
 
 func (o *DeleteClusterManifestNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/manifests][%d] deleteClusterManifestNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/manifests][%d] deleteClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DeleteClusterManifestNotFound) GetPayload() *models.Error {
@@ -205,7 +205,7 @@ type DeleteClusterManifestMethodNotAllowed struct {
 }
 
 func (o *DeleteClusterManifestMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/manifests][%d] deleteClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/manifests][%d] deleteClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DeleteClusterManifestMethodNotAllowed) GetPayload() *models.Error {
@@ -238,7 +238,7 @@ type DeleteClusterManifestConflict struct {
 }
 
 func (o *DeleteClusterManifestConflict) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/manifests][%d] deleteClusterManifestConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/manifests][%d] deleteClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *DeleteClusterManifestConflict) GetPayload() *models.Error {
@@ -271,7 +271,7 @@ type DeleteClusterManifestInternalServerError struct {
 }
 
 func (o *DeleteClusterManifestInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/manifests][%d] deleteClusterManifestInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/manifests][%d] deleteClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DeleteClusterManifestInternalServerError) GetPayload() *models.Error {

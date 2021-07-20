@@ -79,7 +79,7 @@ type ListHostsOK struct {
 }
 
 func (o *ListHostsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListHostsOK) GetPayload() models.HostList {
@@ -110,7 +110,7 @@ type ListHostsUnauthorized struct {
 }
 
 func (o *ListHostsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListHostsUnauthorized) GetPayload() *models.InfraError {
@@ -143,7 +143,7 @@ type ListHostsForbidden struct {
 }
 
 func (o *ListHostsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListHostsForbidden) GetPayload() *models.InfraError {
@@ -176,7 +176,7 @@ type ListHostsMethodNotAllowed struct {
 }
 
 func (o *ListHostsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListHostsMethodNotAllowed) GetPayload() *models.Error {
@@ -209,7 +209,7 @@ type ListHostsInternalServerError struct {
 }
 
 func (o *ListHostsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListHostsInternalServerError) GetPayload() *models.Error {
@@ -242,7 +242,7 @@ type ListHostsServiceUnavailable struct {
 }
 
 func (o *ListHostsServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts][%d] listHostsServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts][%d] listHostsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *ListHostsServiceUnavailable) GetPayload() *models.Error {

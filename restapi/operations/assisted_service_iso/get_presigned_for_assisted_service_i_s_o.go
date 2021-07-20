@@ -29,7 +29,7 @@ func NewGetPresignedForAssistedServiceISO(ctx *middleware.Context, handler GetPr
 	return &GetPresignedForAssistedServiceISO{Context: ctx, Handler: handler}
 }
 
-/*GetPresignedForAssistedServiceISO swagger:route GET /assisted-service-iso/presigned assisted-service-iso getPresignedForAssistedServiceISO
+/*GetPresignedForAssistedServiceISO swagger:route GET /v1/assisted-service-iso/presigned assisted-service-iso getPresignedForAssistedServiceISO
 
 Retrieves a pre-signed S3 URL for downloading assisted-service ISO.
 

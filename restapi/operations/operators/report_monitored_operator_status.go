@@ -29,7 +29,7 @@ func NewReportMonitoredOperatorStatus(ctx *middleware.Context, handler ReportMon
 	return &ReportMonitoredOperatorStatus{Context: ctx, Handler: handler}
 }
 
-/*ReportMonitoredOperatorStatus swagger:route PUT /clusters/{cluster_id}/monitored_operators operators installer reportMonitoredOperatorStatus
+/*ReportMonitoredOperatorStatus swagger:route PUT /v1/clusters/{cluster_id}/monitored_operators operators installer reportMonitoredOperatorStatus
 
 Controller API to report of monitored operators.
 

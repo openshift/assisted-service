@@ -79,7 +79,7 @@ type ListOfClusterOperatorsOK struct {
 }
 
 func (o *ListOfClusterOperatorsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListOfClusterOperatorsOK) GetPayload() models.MonitoredOperatorsList {
@@ -110,7 +110,7 @@ type ListOfClusterOperatorsUnauthorized struct {
 }
 
 func (o *ListOfClusterOperatorsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListOfClusterOperatorsUnauthorized) GetPayload() *models.InfraError {
@@ -143,7 +143,7 @@ type ListOfClusterOperatorsForbidden struct {
 }
 
 func (o *ListOfClusterOperatorsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListOfClusterOperatorsForbidden) GetPayload() *models.InfraError {
@@ -176,7 +176,7 @@ type ListOfClusterOperatorsNotFound struct {
 }
 
 func (o *ListOfClusterOperatorsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ListOfClusterOperatorsNotFound) GetPayload() *models.Error {
@@ -209,7 +209,7 @@ type ListOfClusterOperatorsMethodNotAllowed struct {
 }
 
 func (o *ListOfClusterOperatorsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListOfClusterOperatorsMethodNotAllowed) GetPayload() *models.Error {
@@ -242,7 +242,7 @@ type ListOfClusterOperatorsInternalServerError struct {
 }
 
 func (o *ListOfClusterOperatorsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/monitored_operators][%d] listOfClusterOperatorsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListOfClusterOperatorsInternalServerError) GetPayload() *models.Error {

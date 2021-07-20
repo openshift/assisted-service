@@ -29,7 +29,7 @@ func NewUploadHostLogs(ctx *middleware.Context, handler UploadHostLogsHandler) *
 	return &UploadHostLogs{Context: ctx, Handler: handler}
 }
 
-/*UploadHostLogs swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/logs installer uploadHostLogs
+/*UploadHostLogs swagger:route POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs installer uploadHostLogs
 
 Agent API to upload logs.
 

@@ -97,7 +97,7 @@ type V2RegisterInfraEnvCreated struct {
 }
 
 func (o *V2RegisterInfraEnvCreated) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvCreated  %+v", 201, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvCreated) GetPayload() *models.InfraEnv {
@@ -130,7 +130,7 @@ type V2RegisterInfraEnvBadRequest struct {
 }
 
 func (o *V2RegisterInfraEnvBadRequest) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvBadRequest) GetPayload() *models.Error {
@@ -163,7 +163,7 @@ type V2RegisterInfraEnvUnauthorized struct {
 }
 
 func (o *V2RegisterInfraEnvUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvUnauthorized) GetPayload() *models.InfraError {
@@ -196,7 +196,7 @@ type V2RegisterInfraEnvForbidden struct {
 }
 
 func (o *V2RegisterInfraEnvForbidden) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvForbidden  %+v", 403, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvForbidden) GetPayload() *models.InfraError {
@@ -229,7 +229,7 @@ type V2RegisterInfraEnvNotFound struct {
 }
 
 func (o *V2RegisterInfraEnvNotFound) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvNotFound  %+v", 404, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvNotFound) GetPayload() *models.Error {
@@ -262,7 +262,7 @@ type V2RegisterInfraEnvMethodNotAllowed struct {
 }
 
 func (o *V2RegisterInfraEnvMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvMethodNotAllowed) GetPayload() *models.Error {
@@ -295,7 +295,7 @@ type V2RegisterInfraEnvConflict struct {
 }
 
 func (o *V2RegisterInfraEnvConflict) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvConflict  %+v", 409, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvConflict) GetPayload() *models.Error {
@@ -328,7 +328,7 @@ type V2RegisterInfraEnvInternalServerError struct {
 }
 
 func (o *V2RegisterInfraEnvInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvInternalServerError) GetPayload() *models.Error {
@@ -361,7 +361,7 @@ type V2RegisterInfraEnvNotImplemented struct {
 }
 
 func (o *V2RegisterInfraEnvNotImplemented) Error() string {
-	return fmt.Sprintf("[POST /infra-envs][%d] v2RegisterInfraEnvNotImplemented  %+v", 501, o.Payload)
+	return fmt.Sprintf("[POST /v2/infra-envs][%d] v2RegisterInfraEnvNotImplemented  %+v", 501, o.Payload)
 }
 
 func (o *V2RegisterInfraEnvNotImplemented) GetPayload() *models.Error {

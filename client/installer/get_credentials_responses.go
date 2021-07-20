@@ -85,7 +85,7 @@ type GetCredentialsOK struct {
 }
 
 func (o *GetCredentialsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetCredentialsOK) GetPayload() *models.Credentials {
@@ -118,7 +118,7 @@ type GetCredentialsUnauthorized struct {
 }
 
 func (o *GetCredentialsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetCredentialsUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type GetCredentialsForbidden struct {
 }
 
 func (o *GetCredentialsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetCredentialsForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type GetCredentialsNotFound struct {
 }
 
 func (o *GetCredentialsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetCredentialsNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type GetCredentialsMethodNotAllowed struct {
 }
 
 func (o *GetCredentialsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetCredentialsMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type GetCredentialsConflict struct {
 }
 
 func (o *GetCredentialsConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsConflict  %+v", 409, o.Payload)
 }
 
 func (o *GetCredentialsConflict) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type GetCredentialsInternalServerError struct {
 }
 
 func (o *GetCredentialsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/credentials][%d] getCredentialsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/credentials][%d] getCredentialsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetCredentialsInternalServerError) GetPayload() *models.Error {

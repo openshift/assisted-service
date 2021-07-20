@@ -29,7 +29,7 @@ func NewGetCluster(ctx *middleware.Context, handler GetClusterHandler) *GetClust
 	return &GetCluster{Context: ctx, Handler: handler}
 }
 
-/*GetCluster swagger:route GET /clusters/{cluster_id} installer getCluster
+/*GetCluster swagger:route GET /v1/clusters/{cluster_id} installer getCluster
 
 Retrieves the details of the OpenShift cluster.
 

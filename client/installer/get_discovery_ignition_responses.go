@@ -79,7 +79,7 @@ type GetDiscoveryIgnitionOK struct {
 }
 
 func (o *GetDiscoveryIgnitionOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionOK  %+v", 200, o.Payload)
 }
 
 func (o *GetDiscoveryIgnitionOK) GetPayload() *models.DiscoveryIgnitionParams {
@@ -112,7 +112,7 @@ type GetDiscoveryIgnitionUnauthorized struct {
 }
 
 func (o *GetDiscoveryIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetDiscoveryIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -145,7 +145,7 @@ type GetDiscoveryIgnitionForbidden struct {
 }
 
 func (o *GetDiscoveryIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetDiscoveryIgnitionForbidden) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type GetDiscoveryIgnitionNotFound struct {
 }
 
 func (o *GetDiscoveryIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetDiscoveryIgnitionNotFound) GetPayload() *models.Error {
@@ -211,7 +211,7 @@ type GetDiscoveryIgnitionMethodNotAllowed struct {
 }
 
 func (o *GetDiscoveryIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetDiscoveryIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type GetDiscoveryIgnitionInternalServerError struct {
 }
 
 func (o *GetDiscoveryIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/discovery-ignition][%d] getDiscoveryIgnitionInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetDiscoveryIgnitionInternalServerError) GetPayload() *models.Error {

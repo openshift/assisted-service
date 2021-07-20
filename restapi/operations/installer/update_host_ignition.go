@@ -29,7 +29,7 @@ func NewUpdateHostIgnition(ctx *middleware.Context, handler UpdateHostIgnitionHa
 	return &UpdateHostIgnition{Context: ctx, Handler: handler}
 }
 
-/*UpdateHostIgnition swagger:route PATCH /clusters/{cluster_id}/hosts/{host_id}/ignition installer updateHostIgnition
+/*UpdateHostIgnition swagger:route PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/ignition installer updateHostIgnition
 
 Patch the ignition file for this host
 

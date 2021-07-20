@@ -29,7 +29,7 @@ func NewDownloadHostIgnition(ctx *middleware.Context, handler DownloadHostIgniti
 	return &DownloadHostIgnition{Context: ctx, Handler: handler}
 }
 
-/*DownloadHostIgnition swagger:route GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition installer downloadHostIgnition
+/*DownloadHostIgnition swagger:route GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition installer downloadHostIgnition
 
 Downloads the customized ignition file for this host
 

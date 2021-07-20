@@ -29,7 +29,7 @@ func NewGetClusterHostRequirements(ctx *middleware.Context, handler GetClusterHo
 	return &GetClusterHostRequirements{Context: ctx, Handler: handler}
 }
 
-/*GetClusterHostRequirements swagger:route GET /clusters/{cluster_id}/host-requirements installer getClusterHostRequirements
+/*GetClusterHostRequirements swagger:route GET /v1/clusters/{cluster_id}/host-requirements installer getClusterHostRequirements
 
 Get host requirements of a cluster.
 

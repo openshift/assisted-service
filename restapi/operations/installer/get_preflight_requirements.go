@@ -29,7 +29,7 @@ func NewGetPreflightRequirements(ctx *middleware.Context, handler GetPreflightRe
 	return &GetPreflightRequirements{Context: ctx, Handler: handler}
 }
 
-/*GetPreflightRequirements swagger:route GET /clusters/{cluster_id}/preflight-requirements installer getPreflightRequirements
+/*GetPreflightRequirements swagger:route GET /v1/clusters/{cluster_id}/preflight-requirements installer getPreflightRequirements
 
 Get preflight requirements for a cluster.
 

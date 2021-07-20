@@ -51,7 +51,7 @@ func (a *Client) ListComponentVersions(ctx context.Context, params *ListComponen
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListComponentVersions",
 		Method:             "GET",
-		PathPattern:        "/component_versions",
+		PathPattern:        "/v1/component_versions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -76,7 +76,7 @@ func (a *Client) ListSupportedOpenshiftVersions(ctx context.Context, params *Lis
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListSupportedOpenshiftVersions",
 		Method:             "GET",
-		PathPattern:        "/openshift_versions",
+		PathPattern:        "/v1/openshift_versions",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

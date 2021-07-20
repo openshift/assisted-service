@@ -88,7 +88,7 @@ type DownloadClusterKubeconfigOK struct {
 }
 
 func (o *DownloadClusterKubeconfigOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadClusterKubeconfigOK) GetPayload() io.Writer {
@@ -119,7 +119,7 @@ type DownloadClusterKubeconfigUnauthorized struct {
 }
 
 func (o *DownloadClusterKubeconfigUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadClusterKubeconfigUnauthorized) GetPayload() *models.InfraError {
@@ -152,7 +152,7 @@ type DownloadClusterKubeconfigForbidden struct {
 }
 
 func (o *DownloadClusterKubeconfigForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadClusterKubeconfigForbidden) GetPayload() *models.InfraError {
@@ -185,7 +185,7 @@ type DownloadClusterKubeconfigNotFound struct {
 }
 
 func (o *DownloadClusterKubeconfigNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadClusterKubeconfigNotFound) GetPayload() *models.Error {
@@ -218,7 +218,7 @@ type DownloadClusterKubeconfigMethodNotAllowed struct {
 }
 
 func (o *DownloadClusterKubeconfigMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DownloadClusterKubeconfigMethodNotAllowed) GetPayload() *models.Error {
@@ -251,7 +251,7 @@ type DownloadClusterKubeconfigConflict struct {
 }
 
 func (o *DownloadClusterKubeconfigConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadClusterKubeconfigConflict) GetPayload() *models.Error {
@@ -284,7 +284,7 @@ type DownloadClusterKubeconfigInternalServerError struct {
 }
 
 func (o *DownloadClusterKubeconfigInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/kubeconfig][%d] downloadClusterKubeconfigInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadClusterKubeconfigInternalServerError) GetPayload() *models.Error {

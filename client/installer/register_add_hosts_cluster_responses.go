@@ -73,7 +73,7 @@ type RegisterAddHostsClusterCreated struct {
 }
 
 func (o *RegisterAddHostsClusterCreated) Error() string {
-	return fmt.Sprintf("[POST /add_hosts_clusters][%d] registerAddHostsClusterCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterCreated  %+v", 201, o.Payload)
 }
 
 func (o *RegisterAddHostsClusterCreated) GetPayload() *models.Cluster {
@@ -106,7 +106,7 @@ type RegisterAddHostsClusterBadRequest struct {
 }
 
 func (o *RegisterAddHostsClusterBadRequest) Error() string {
-	return fmt.Sprintf("[POST /add_hosts_clusters][%d] registerAddHostsClusterBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *RegisterAddHostsClusterBadRequest) GetPayload() *models.Error {
@@ -139,7 +139,7 @@ type RegisterAddHostsClusterUnauthorized struct {
 }
 
 func (o *RegisterAddHostsClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /add_hosts_clusters][%d] registerAddHostsClusterUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *RegisterAddHostsClusterUnauthorized) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type RegisterAddHostsClusterForbidden struct {
 }
 
 func (o *RegisterAddHostsClusterForbidden) Error() string {
-	return fmt.Sprintf("[POST /add_hosts_clusters][%d] registerAddHostsClusterForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *RegisterAddHostsClusterForbidden) GetPayload() *models.InfraError {
@@ -205,7 +205,7 @@ type RegisterAddHostsClusterInternalServerError struct {
 }
 
 func (o *RegisterAddHostsClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /add_hosts_clusters][%d] registerAddHostsClusterInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/add_hosts_clusters][%d] registerAddHostsClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *RegisterAddHostsClusterInternalServerError) GetPayload() *models.Error {

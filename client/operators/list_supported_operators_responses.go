@@ -67,7 +67,7 @@ type ListSupportedOperatorsOK struct {
 }
 
 func (o *ListSupportedOperatorsOK) Error() string {
-	return fmt.Sprintf("[GET /supported-operators][%d] listSupportedOperatorsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators][%d] listSupportedOperatorsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListSupportedOperatorsOK) GetPayload() []string {
@@ -98,7 +98,7 @@ type ListSupportedOperatorsUnauthorized struct {
 }
 
 func (o *ListSupportedOperatorsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /supported-operators][%d] listSupportedOperatorsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators][%d] listSupportedOperatorsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListSupportedOperatorsUnauthorized) GetPayload() *models.InfraError {
@@ -131,7 +131,7 @@ type ListSupportedOperatorsForbidden struct {
 }
 
 func (o *ListSupportedOperatorsForbidden) Error() string {
-	return fmt.Sprintf("[GET /supported-operators][%d] listSupportedOperatorsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators][%d] listSupportedOperatorsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListSupportedOperatorsForbidden) GetPayload() *models.InfraError {
@@ -164,7 +164,7 @@ type ListSupportedOperatorsInternalServerError struct {
 }
 
 func (o *ListSupportedOperatorsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /supported-operators][%d] listSupportedOperatorsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators][%d] listSupportedOperatorsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListSupportedOperatorsInternalServerError) GetPayload() *models.Error {

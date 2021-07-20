@@ -29,7 +29,7 @@ func NewInstallCluster(ctx *middleware.Context, handler InstallClusterHandler) *
 	return &InstallCluster{Context: ctx, Handler: handler}
 }
 
-/*InstallCluster swagger:route POST /clusters/{cluster_id}/actions/install installer installCluster
+/*InstallCluster swagger:route POST /v1/clusters/{cluster_id}/actions/install installer installCluster
 
 Installs the OpenShift cluster.
 

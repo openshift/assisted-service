@@ -29,7 +29,7 @@ func NewCancelInstallation(ctx *middleware.Context, handler CancelInstallationHa
 	return &CancelInstallation{Context: ctx, Handler: handler}
 }
 
-/*CancelInstallation swagger:route POST /clusters/{cluster_id}/actions/cancel installer cancelInstallation
+/*CancelInstallation swagger:route POST /v1/clusters/{cluster_id}/actions/cancel installer cancelInstallation
 
 Cancels an ongoing installation.
 

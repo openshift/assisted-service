@@ -29,7 +29,7 @@ func NewGetFreeAddresses(ctx *middleware.Context, handler GetFreeAddressesHandle
 	return &GetFreeAddresses{Context: ctx, Handler: handler}
 }
 
-/*GetFreeAddresses swagger:route GET /clusters/{cluster_id}/free_addresses installer getFreeAddresses
+/*GetFreeAddresses swagger:route GET /v1/clusters/{cluster_id}/free_addresses installer getFreeAddresses
 
 Retrieves the free address list for a network.
 

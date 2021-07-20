@@ -90,7 +90,7 @@ type UpdateHostLogsProgressNoContent struct {
 }
 
 func (o *UpdateHostLogsProgressNoContent) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressNoContent ", 204)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressNoContent ", 204)
 }
 
 func (o *UpdateHostLogsProgressNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -112,7 +112,7 @@ type UpdateHostLogsProgressUnauthorized struct {
 }
 
 func (o *UpdateHostLogsProgressUnauthorized) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateHostLogsProgressUnauthorized) GetPayload() *models.InfraError {
@@ -145,7 +145,7 @@ type UpdateHostLogsProgressForbidden struct {
 }
 
 func (o *UpdateHostLogsProgressForbidden) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateHostLogsProgressForbidden) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type UpdateHostLogsProgressNotFound struct {
 }
 
 func (o *UpdateHostLogsProgressNotFound) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateHostLogsProgressNotFound) GetPayload() *models.Error {
@@ -211,7 +211,7 @@ type UpdateHostLogsProgressMethodNotAllowed struct {
 }
 
 func (o *UpdateHostLogsProgressMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateHostLogsProgressMethodNotAllowed) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type UpdateHostLogsProgressConflict struct {
 }
 
 func (o *UpdateHostLogsProgressConflict) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressConflict  %+v", 409, o.Payload)
 }
 
 func (o *UpdateHostLogsProgressConflict) GetPayload() *models.Error {
@@ -277,7 +277,7 @@ type UpdateHostLogsProgressInternalServerError struct {
 }
 
 func (o *UpdateHostLogsProgressInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateHostLogsProgressInternalServerError) GetPayload() *models.Error {
@@ -310,7 +310,7 @@ type UpdateHostLogsProgressServiceUnavailable struct {
 }
 
 func (o *UpdateHostLogsProgressServiceUnavailable) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress][%d] updateHostLogsProgressServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *UpdateHostLogsProgressServiceUnavailable) GetPayload() *models.Error {

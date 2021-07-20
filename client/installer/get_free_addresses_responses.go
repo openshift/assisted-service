@@ -79,7 +79,7 @@ type GetFreeAddressesOK struct {
 }
 
 func (o *GetFreeAddressesOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesOK  %+v", 200, o.Payload)
 }
 
 func (o *GetFreeAddressesOK) GetPayload() models.FreeAddressesList {
@@ -110,7 +110,7 @@ type GetFreeAddressesUnauthorized struct {
 }
 
 func (o *GetFreeAddressesUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetFreeAddressesUnauthorized) GetPayload() *models.InfraError {
@@ -143,7 +143,7 @@ type GetFreeAddressesForbidden struct {
 }
 
 func (o *GetFreeAddressesForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetFreeAddressesForbidden) GetPayload() *models.InfraError {
@@ -176,7 +176,7 @@ type GetFreeAddressesNotFound struct {
 }
 
 func (o *GetFreeAddressesNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetFreeAddressesNotFound) GetPayload() *models.Error {
@@ -209,7 +209,7 @@ type GetFreeAddressesMethodNotAllowed struct {
 }
 
 func (o *GetFreeAddressesMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetFreeAddressesMethodNotAllowed) GetPayload() *models.Error {
@@ -242,7 +242,7 @@ type GetFreeAddressesInternalServerError struct {
 }
 
 func (o *GetFreeAddressesInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/free_addresses][%d] getFreeAddressesInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/free_addresses][%d] getFreeAddressesInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetFreeAddressesInternalServerError) GetPayload() *models.Error {

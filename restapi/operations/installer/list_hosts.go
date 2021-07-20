@@ -29,7 +29,7 @@ func NewListHosts(ctx *middleware.Context, handler ListHostsHandler) *ListHosts 
 	return &ListHosts{Context: ctx, Handler: handler}
 }
 
-/*ListHosts swagger:route GET /clusters/{cluster_id}/hosts installer listHosts
+/*ListHosts swagger:route GET /v1/clusters/{cluster_id}/hosts installer listHosts
 
 Retrieves the list of OpenShift hosts.
 

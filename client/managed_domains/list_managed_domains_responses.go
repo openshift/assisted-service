@@ -55,7 +55,7 @@ type ListManagedDomainsOK struct {
 }
 
 func (o *ListManagedDomainsOK) Error() string {
-	return fmt.Sprintf("[GET /domains][%d] listManagedDomainsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/domains][%d] listManagedDomainsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListManagedDomainsOK) GetPayload() models.ListManagedDomains {
@@ -86,7 +86,7 @@ type ListManagedDomainsInternalServerError struct {
 }
 
 func (o *ListManagedDomainsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /domains][%d] listManagedDomainsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/domains][%d] listManagedDomainsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListManagedDomainsInternalServerError) GetPayload() *models.Error {

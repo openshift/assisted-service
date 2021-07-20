@@ -91,7 +91,7 @@ type CompleteInstallationAccepted struct {
 }
 
 func (o *CompleteInstallationAccepted) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationAccepted  %+v", 202, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationAccepted  %+v", 202, o.Payload)
 }
 
 func (o *CompleteInstallationAccepted) GetPayload() *models.Cluster {
@@ -124,7 +124,7 @@ type CompleteInstallationUnauthorized struct {
 }
 
 func (o *CompleteInstallationUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *CompleteInstallationUnauthorized) GetPayload() *models.InfraError {
@@ -157,7 +157,7 @@ type CompleteInstallationForbidden struct {
 }
 
 func (o *CompleteInstallationForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationForbidden  %+v", 403, o.Payload)
 }
 
 func (o *CompleteInstallationForbidden) GetPayload() *models.InfraError {
@@ -190,7 +190,7 @@ type CompleteInstallationNotFound struct {
 }
 
 func (o *CompleteInstallationNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationNotFound  %+v", 404, o.Payload)
 }
 
 func (o *CompleteInstallationNotFound) GetPayload() *models.Error {
@@ -223,7 +223,7 @@ type CompleteInstallationMethodNotAllowed struct {
 }
 
 func (o *CompleteInstallationMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *CompleteInstallationMethodNotAllowed) GetPayload() *models.Error {
@@ -256,7 +256,7 @@ type CompleteInstallationConflict struct {
 }
 
 func (o *CompleteInstallationConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationConflict  %+v", 409, o.Payload)
 }
 
 func (o *CompleteInstallationConflict) GetPayload() *models.Error {
@@ -289,7 +289,7 @@ type CompleteInstallationInternalServerError struct {
 }
 
 func (o *CompleteInstallationInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *CompleteInstallationInternalServerError) GetPayload() *models.Error {
@@ -322,7 +322,7 @@ type CompleteInstallationServiceUnavailable struct {
 }
 
 func (o *CompleteInstallationServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/complete_installation][%d] completeInstallationServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *CompleteInstallationServiceUnavailable) GetPayload() *models.Error {

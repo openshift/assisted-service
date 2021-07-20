@@ -85,7 +85,7 @@ type ResetClusterAccepted struct {
 }
 
 func (o *ResetClusterAccepted) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterAccepted  %+v", 202, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterAccepted  %+v", 202, o.Payload)
 }
 
 func (o *ResetClusterAccepted) GetPayload() *models.Cluster {
@@ -118,7 +118,7 @@ type ResetClusterUnauthorized struct {
 }
 
 func (o *ResetClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ResetClusterUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type ResetClusterForbidden struct {
 }
 
 func (o *ResetClusterForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ResetClusterForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type ResetClusterNotFound struct {
 }
 
 func (o *ResetClusterNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ResetClusterNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type ResetClusterMethodNotAllowed struct {
 }
 
 func (o *ResetClusterMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ResetClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type ResetClusterConflict struct {
 }
 
 func (o *ResetClusterConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *ResetClusterConflict) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type ResetClusterInternalServerError struct {
 }
 
 func (o *ResetClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/reset][%d] resetClusterInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/reset][%d] resetClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ResetClusterInternalServerError) GetPayload() *models.Error {

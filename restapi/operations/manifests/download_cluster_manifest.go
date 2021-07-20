@@ -29,7 +29,7 @@ func NewDownloadClusterManifest(ctx *middleware.Context, handler DownloadCluster
 	return &DownloadClusterManifest{Context: ctx, Handler: handler}
 }
 
-/*DownloadClusterManifest swagger:route GET /clusters/{cluster_id}/manifests/files manifests downloadClusterManifest
+/*DownloadClusterManifest swagger:route GET /v1/clusters/{cluster_id}/manifests/files manifests downloadClusterManifest
 
 Downloads cluster manifest.
 

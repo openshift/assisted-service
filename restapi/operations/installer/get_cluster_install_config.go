@@ -29,7 +29,7 @@ func NewGetClusterInstallConfig(ctx *middleware.Context, handler GetClusterInsta
 	return &GetClusterInstallConfig{Context: ctx, Handler: handler}
 }
 
-/*GetClusterInstallConfig swagger:route GET /clusters/{cluster_id}/install-config installer getClusterInstallConfig
+/*GetClusterInstallConfig swagger:route GET /v1/clusters/{cluster_id}/install-config installer getClusterInstallConfig
 
 Get the cluster's install config YAML.
 

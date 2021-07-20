@@ -79,7 +79,7 @@ type GetClusterHostRequirementsOK struct {
 }
 
 func (o *GetClusterHostRequirementsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetClusterHostRequirementsOK) GetPayload() models.ClusterHostRequirementsList {
@@ -110,7 +110,7 @@ type GetClusterHostRequirementsUnauthorized struct {
 }
 
 func (o *GetClusterHostRequirementsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetClusterHostRequirementsUnauthorized) GetPayload() *models.InfraError {
@@ -143,7 +143,7 @@ type GetClusterHostRequirementsForbidden struct {
 }
 
 func (o *GetClusterHostRequirementsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetClusterHostRequirementsForbidden) GetPayload() *models.InfraError {
@@ -176,7 +176,7 @@ type GetClusterHostRequirementsNotFound struct {
 }
 
 func (o *GetClusterHostRequirementsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetClusterHostRequirementsNotFound) GetPayload() *models.Error {
@@ -209,7 +209,7 @@ type GetClusterHostRequirementsMethodNotAllowed struct {
 }
 
 func (o *GetClusterHostRequirementsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetClusterHostRequirementsMethodNotAllowed) GetPayload() *models.Error {
@@ -242,7 +242,7 @@ type GetClusterHostRequirementsInternalServerError struct {
 }
 
 func (o *GetClusterHostRequirementsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/host-requirements][%d] getClusterHostRequirementsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetClusterHostRequirementsInternalServerError) GetPayload() *models.Error {

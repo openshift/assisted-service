@@ -35,11 +35,11 @@ func (o *V2RegisterInfraEnvURL) SetBasePath(bp string) {
 func (o *V2RegisterInfraEnvURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/infra-envs"
+	var _path = "/v2/infra-envs"
 
 	_basePath := o._basePath
 	if _basePath == "" {
-		_basePath = "/api/assisted-install/v1"
+		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 

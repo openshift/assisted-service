@@ -79,7 +79,7 @@ type GetPreflightRequirementsOK struct {
 }
 
 func (o *GetPreflightRequirementsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetPreflightRequirementsOK) GetPayload() *models.PreflightHardwareRequirements {
@@ -112,7 +112,7 @@ type GetPreflightRequirementsUnauthorized struct {
 }
 
 func (o *GetPreflightRequirementsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetPreflightRequirementsUnauthorized) GetPayload() *models.InfraError {
@@ -145,7 +145,7 @@ type GetPreflightRequirementsForbidden struct {
 }
 
 func (o *GetPreflightRequirementsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetPreflightRequirementsForbidden) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type GetPreflightRequirementsNotFound struct {
 }
 
 func (o *GetPreflightRequirementsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetPreflightRequirementsNotFound) GetPayload() *models.Error {
@@ -211,7 +211,7 @@ type GetPreflightRequirementsMethodNotAllowed struct {
 }
 
 func (o *GetPreflightRequirementsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetPreflightRequirementsMethodNotAllowed) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type GetPreflightRequirementsInternalServerError struct {
 }
 
 func (o *GetPreflightRequirementsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/preflight-requirements][%d] getPreflightRequirementsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetPreflightRequirementsInternalServerError) GetPayload() *models.Error {

@@ -85,7 +85,7 @@ type EnableHostOK struct {
 }
 
 func (o *EnableHostOK) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostOK  %+v", 200, o.Payload)
 }
 
 func (o *EnableHostOK) GetPayload() *models.Cluster {
@@ -118,7 +118,7 @@ type EnableHostUnauthorized struct {
 }
 
 func (o *EnableHostUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *EnableHostUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type EnableHostForbidden struct {
 }
 
 func (o *EnableHostForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *EnableHostForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type EnableHostNotFound struct {
 }
 
 func (o *EnableHostNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *EnableHostNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type EnableHostMethodNotAllowed struct {
 }
 
 func (o *EnableHostMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *EnableHostMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type EnableHostConflict struct {
 }
 
 func (o *EnableHostConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *EnableHostConflict) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type EnableHostInternalServerError struct {
 }
 
 func (o *EnableHostInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] enableHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *EnableHostInternalServerError) GetPayload() *models.Error {

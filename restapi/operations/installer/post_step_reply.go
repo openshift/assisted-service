@@ -29,7 +29,7 @@ func NewPostStepReply(ctx *middleware.Context, handler PostStepReplyHandler) *Po
 	return &PostStepReply{Context: ctx, Handler: handler}
 }
 
-/*PostStepReply swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/instructions installer postStepReply
+/*PostStepReply swagger:route POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions installer postStepReply
 
 Posts the result of the operations from the host agent.
 

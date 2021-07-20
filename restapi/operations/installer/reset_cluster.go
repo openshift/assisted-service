@@ -29,7 +29,7 @@ func NewResetCluster(ctx *middleware.Context, handler ResetClusterHandler) *Rese
 	return &ResetCluster{Context: ctx, Handler: handler}
 }
 
-/*ResetCluster swagger:route POST /clusters/{cluster_id}/actions/reset installer resetCluster
+/*ResetCluster swagger:route POST /v1/clusters/{cluster_id}/actions/reset installer resetCluster
 
 Resets a failed installation.
 

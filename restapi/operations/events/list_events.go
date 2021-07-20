@@ -29,7 +29,7 @@ func NewListEvents(ctx *middleware.Context, handler ListEventsHandler) *ListEven
 	return &ListEvents{Context: ctx, Handler: handler}
 }
 
-/*ListEvents swagger:route GET /clusters/{cluster_id}/events events listEvents
+/*ListEvents swagger:route GET /v1/clusters/{cluster_id}/events events listEvents
 
 Lists events for a cluster.
 

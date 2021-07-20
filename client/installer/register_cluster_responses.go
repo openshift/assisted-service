@@ -79,7 +79,7 @@ type RegisterClusterCreated struct {
 }
 
 func (o *RegisterClusterCreated) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] registerClusterCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterCreated  %+v", 201, o.Payload)
 }
 
 func (o *RegisterClusterCreated) GetPayload() *models.Cluster {
@@ -112,7 +112,7 @@ type RegisterClusterBadRequest struct {
 }
 
 func (o *RegisterClusterBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] registerClusterBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *RegisterClusterBadRequest) GetPayload() *models.Error {
@@ -145,7 +145,7 @@ type RegisterClusterUnauthorized struct {
 }
 
 func (o *RegisterClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] registerClusterUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *RegisterClusterUnauthorized) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type RegisterClusterForbidden struct {
 }
 
 func (o *RegisterClusterForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] registerClusterForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *RegisterClusterForbidden) GetPayload() *models.InfraError {
@@ -211,7 +211,7 @@ type RegisterClusterMethodNotAllowed struct {
 }
 
 func (o *RegisterClusterMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] registerClusterMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *RegisterClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type RegisterClusterInternalServerError struct {
 }
 
 func (o *RegisterClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters][%d] registerClusterInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters][%d] registerClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *RegisterClusterInternalServerError) GetPayload() *models.Error {

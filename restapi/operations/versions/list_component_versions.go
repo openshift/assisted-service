@@ -29,7 +29,7 @@ func NewListComponentVersions(ctx *middleware.Context, handler ListComponentVers
 	return &ListComponentVersions{Context: ctx, Handler: handler}
 }
 
-/*ListComponentVersions swagger:route GET /component_versions versions listComponentVersions
+/*ListComponentVersions swagger:route GET /v1/component_versions versions listComponentVersions
 
 List of component versions.
 

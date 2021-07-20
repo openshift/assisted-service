@@ -76,7 +76,7 @@ type DownloadISOOK struct {
 }
 
 func (o *DownloadISOOK) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/data][%d] downloadISOOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/data][%d] downloadISOOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadISOOK) GetPayload() io.Writer {
@@ -107,7 +107,7 @@ type DownloadISOUnauthorized struct {
 }
 
 func (o *DownloadISOUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/data][%d] downloadISOUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/data][%d] downloadISOUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadISOUnauthorized) GetPayload() *models.InfraError {
@@ -140,7 +140,7 @@ type DownloadISOForbidden struct {
 }
 
 func (o *DownloadISOForbidden) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/data][%d] downloadISOForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/data][%d] downloadISOForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadISOForbidden) GetPayload() *models.InfraError {
@@ -173,7 +173,7 @@ type DownloadISONotFound struct {
 }
 
 func (o *DownloadISONotFound) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/data][%d] downloadISONotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/data][%d] downloadISONotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadISONotFound) GetPayload() *models.Error {
@@ -206,7 +206,7 @@ type DownloadISOInternalServerError struct {
 }
 
 func (o *DownloadISOInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/data][%d] downloadISOInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/data][%d] downloadISOInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadISOInternalServerError) GetPayload() *models.Error {

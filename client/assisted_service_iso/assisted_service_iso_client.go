@@ -55,7 +55,7 @@ func (a *Client) CreateISOAndUploadToS3(ctx context.Context, params *CreateISOAn
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "CreateISOAndUploadToS3",
 		Method:             "POST",
-		PathPattern:        "/assisted-service-iso",
+		PathPattern:        "/v1/assisted-service-iso",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -80,7 +80,7 @@ func (a *Client) DownloadISO(ctx context.Context, params *DownloadISOParams, wri
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "DownloadISO",
 		Method:             "GET",
-		PathPattern:        "/assisted-service-iso/data",
+		PathPattern:        "/v1/assisted-service-iso/data",
 		ProducesMediaTypes: []string{"application/octet-stream"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -105,7 +105,7 @@ func (a *Client) GetPresignedForAssistedServiceISO(ctx context.Context, params *
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "GetPresignedForAssistedServiceISO",
 		Method:             "GET",
-		PathPattern:        "/assisted-service-iso/presigned",
+		PathPattern:        "/v1/assisted-service-iso/presigned",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

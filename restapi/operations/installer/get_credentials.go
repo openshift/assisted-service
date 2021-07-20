@@ -29,7 +29,7 @@ func NewGetCredentials(ctx *middleware.Context, handler GetCredentialsHandler) *
 	return &GetCredentials{Context: ctx, Handler: handler}
 }
 
-/*GetCredentials swagger:route GET /clusters/{cluster_id}/credentials installer getCredentials
+/*GetCredentials swagger:route GET /v1/clusters/{cluster_id}/credentials installer getCredentials
 
 Get the cluster admin credentials.
 

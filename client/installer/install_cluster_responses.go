@@ -91,7 +91,7 @@ type InstallClusterAccepted struct {
 }
 
 func (o *InstallClusterAccepted) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterAccepted  %+v", 202, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterAccepted  %+v", 202, o.Payload)
 }
 
 func (o *InstallClusterAccepted) GetPayload() *models.Cluster {
@@ -124,7 +124,7 @@ type InstallClusterBadRequest struct {
 }
 
 func (o *InstallClusterBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *InstallClusterBadRequest) GetPayload() *models.Error {
@@ -157,7 +157,7 @@ type InstallClusterUnauthorized struct {
 }
 
 func (o *InstallClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *InstallClusterUnauthorized) GetPayload() *models.InfraError {
@@ -190,7 +190,7 @@ type InstallClusterForbidden struct {
 }
 
 func (o *InstallClusterForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *InstallClusterForbidden) GetPayload() *models.InfraError {
@@ -223,7 +223,7 @@ type InstallClusterNotFound struct {
 }
 
 func (o *InstallClusterNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *InstallClusterNotFound) GetPayload() *models.Error {
@@ -256,7 +256,7 @@ type InstallClusterMethodNotAllowed struct {
 }
 
 func (o *InstallClusterMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *InstallClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -289,7 +289,7 @@ type InstallClusterConflict struct {
 }
 
 func (o *InstallClusterConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *InstallClusterConflict) GetPayload() *models.Error {
@@ -322,7 +322,7 @@ type InstallClusterInternalServerError struct {
 }
 
 func (o *InstallClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/install][%d] installClusterInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/install][%d] installClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *InstallClusterInternalServerError) GetPayload() *models.Error {

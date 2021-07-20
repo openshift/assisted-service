@@ -29,7 +29,7 @@ func NewDownloadClusterFiles(ctx *middleware.Context, handler DownloadClusterFil
 	return &DownloadClusterFiles{Context: ctx, Handler: handler}
 }
 
-/*DownloadClusterFiles swagger:route GET /clusters/{cluster_id}/downloads/files installer downloadClusterFiles
+/*DownloadClusterFiles swagger:route GET /v1/clusters/{cluster_id}/downloads/files installer downloadClusterFiles
 
 Downloads files relating to the installed/installing cluster.
 

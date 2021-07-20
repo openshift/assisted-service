@@ -29,7 +29,7 @@ func NewUpdateClusterInstallConfig(ctx *middleware.Context, handler UpdateCluste
 	return &UpdateClusterInstallConfig{Context: ctx, Handler: handler}
 }
 
-/*UpdateClusterInstallConfig swagger:route PATCH /clusters/{cluster_id}/install-config installer updateClusterInstallConfig
+/*UpdateClusterInstallConfig swagger:route PATCH /v1/clusters/{cluster_id}/install-config installer updateClusterInstallConfig
 
 Override values in the install config.
 

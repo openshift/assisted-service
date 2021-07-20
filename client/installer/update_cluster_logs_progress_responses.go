@@ -90,7 +90,7 @@ type UpdateClusterLogsProgressNoContent struct {
 }
 
 func (o *UpdateClusterLogsProgressNoContent) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressNoContent ", 204)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressNoContent ", 204)
 }
 
 func (o *UpdateClusterLogsProgressNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -112,7 +112,7 @@ type UpdateClusterLogsProgressUnauthorized struct {
 }
 
 func (o *UpdateClusterLogsProgressUnauthorized) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateClusterLogsProgressUnauthorized) GetPayload() *models.InfraError {
@@ -145,7 +145,7 @@ type UpdateClusterLogsProgressForbidden struct {
 }
 
 func (o *UpdateClusterLogsProgressForbidden) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateClusterLogsProgressForbidden) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type UpdateClusterLogsProgressNotFound struct {
 }
 
 func (o *UpdateClusterLogsProgressNotFound) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateClusterLogsProgressNotFound) GetPayload() *models.Error {
@@ -211,7 +211,7 @@ type UpdateClusterLogsProgressMethodNotAllowed struct {
 }
 
 func (o *UpdateClusterLogsProgressMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateClusterLogsProgressMethodNotAllowed) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type UpdateClusterLogsProgressConflict struct {
 }
 
 func (o *UpdateClusterLogsProgressConflict) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressConflict  %+v", 409, o.Payload)
 }
 
 func (o *UpdateClusterLogsProgressConflict) GetPayload() *models.Error {
@@ -277,7 +277,7 @@ type UpdateClusterLogsProgressInternalServerError struct {
 }
 
 func (o *UpdateClusterLogsProgressInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateClusterLogsProgressInternalServerError) GetPayload() *models.Error {
@@ -310,7 +310,7 @@ type UpdateClusterLogsProgressServiceUnavailable struct {
 }
 
 func (o *UpdateClusterLogsProgressServiceUnavailable) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/logs_progress][%d] updateClusterLogsProgressServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *UpdateClusterLogsProgressServiceUnavailable) GetPayload() *models.Error {

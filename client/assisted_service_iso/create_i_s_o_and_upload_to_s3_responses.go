@@ -72,7 +72,7 @@ type CreateISOAndUploadToS3Created struct {
 }
 
 func (o *CreateISOAndUploadToS3Created) Error() string {
-	return fmt.Sprintf("[POST /assisted-service-iso][%d] createISOAndUploadToS3Created ", 201)
+	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3Created ", 201)
 }
 
 func (o *CreateISOAndUploadToS3Created) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -94,7 +94,7 @@ type CreateISOAndUploadToS3BadRequest struct {
 }
 
 func (o *CreateISOAndUploadToS3BadRequest) Error() string {
-	return fmt.Sprintf("[POST /assisted-service-iso][%d] createISOAndUploadToS3BadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3BadRequest  %+v", 400, o.Payload)
 }
 
 func (o *CreateISOAndUploadToS3BadRequest) GetPayload() *models.Error {
@@ -127,7 +127,7 @@ type CreateISOAndUploadToS3Unauthorized struct {
 }
 
 func (o *CreateISOAndUploadToS3Unauthorized) Error() string {
-	return fmt.Sprintf("[POST /assisted-service-iso][%d] createISOAndUploadToS3Unauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3Unauthorized  %+v", 401, o.Payload)
 }
 
 func (o *CreateISOAndUploadToS3Unauthorized) GetPayload() *models.InfraError {
@@ -160,7 +160,7 @@ type CreateISOAndUploadToS3Forbidden struct {
 }
 
 func (o *CreateISOAndUploadToS3Forbidden) Error() string {
-	return fmt.Sprintf("[POST /assisted-service-iso][%d] createISOAndUploadToS3Forbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3Forbidden  %+v", 403, o.Payload)
 }
 
 func (o *CreateISOAndUploadToS3Forbidden) GetPayload() *models.InfraError {
@@ -193,7 +193,7 @@ type CreateISOAndUploadToS3InternalServerError struct {
 }
 
 func (o *CreateISOAndUploadToS3InternalServerError) Error() string {
-	return fmt.Sprintf("[POST /assisted-service-iso][%d] createISOAndUploadToS3InternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/assisted-service-iso][%d] createISOAndUploadToS3InternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *CreateISOAndUploadToS3InternalServerError) GetPayload() *models.Error {

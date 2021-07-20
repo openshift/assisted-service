@@ -88,7 +88,7 @@ type DownloadHostLogsOK struct {
 }
 
 func (o *DownloadHostLogsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadHostLogsOK) GetPayload() io.Writer {
@@ -119,7 +119,7 @@ type DownloadHostLogsUnauthorized struct {
 }
 
 func (o *DownloadHostLogsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadHostLogsUnauthorized) GetPayload() *models.InfraError {
@@ -152,7 +152,7 @@ type DownloadHostLogsForbidden struct {
 }
 
 func (o *DownloadHostLogsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadHostLogsForbidden) GetPayload() *models.InfraError {
@@ -185,7 +185,7 @@ type DownloadHostLogsNotFound struct {
 }
 
 func (o *DownloadHostLogsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadHostLogsNotFound) GetPayload() *models.Error {
@@ -218,7 +218,7 @@ type DownloadHostLogsMethodNotAllowed struct {
 }
 
 func (o *DownloadHostLogsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DownloadHostLogsMethodNotAllowed) GetPayload() *models.Error {
@@ -251,7 +251,7 @@ type DownloadHostLogsConflict struct {
 }
 
 func (o *DownloadHostLogsConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadHostLogsConflict) GetPayload() *models.Error {
@@ -284,7 +284,7 @@ type DownloadHostLogsInternalServerError struct {
 }
 
 func (o *DownloadHostLogsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] downloadHostLogsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadHostLogsInternalServerError) GetPayload() *models.Error {

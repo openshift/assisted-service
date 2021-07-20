@@ -29,7 +29,7 @@ func NewRegisterHost(ctx *middleware.Context, handler RegisterHostHandler) *Regi
 	return &RegisterHost{Context: ctx, Handler: handler}
 }
 
-/*RegisterHost swagger:route POST /clusters/{cluster_id}/hosts installer registerHost
+/*RegisterHost swagger:route POST /v1/clusters/{cluster_id}/hosts installer registerHost
 
 Registers a new OpenShift host.
 

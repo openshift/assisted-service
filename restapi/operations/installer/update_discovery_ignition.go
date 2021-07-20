@@ -29,7 +29,7 @@ func NewUpdateDiscoveryIgnition(ctx *middleware.Context, handler UpdateDiscovery
 	return &UpdateDiscoveryIgnition{Context: ctx, Handler: handler}
 }
 
-/*UpdateDiscoveryIgnition swagger:route PATCH /clusters/{cluster_id}/discovery-ignition installer updateDiscoveryIgnition
+/*UpdateDiscoveryIgnition swagger:route PATCH /v1/clusters/{cluster_id}/discovery-ignition installer updateDiscoveryIgnition
 
 Override values in the discovery ignition config.
 

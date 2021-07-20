@@ -35,11 +35,11 @@ func (o *ListComponentVersionsURL) SetBasePath(bp string) {
 func (o *ListComponentVersionsURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/component_versions"
+	var _path = "/v1/component_versions"
 
 	_basePath := o._basePath
 	if _basePath == "" {
-		_basePath = "/api/assisted-install/v1"
+		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 

@@ -29,7 +29,7 @@ func NewListOperatorProperties(ctx *middleware.Context, handler ListOperatorProp
 	return &ListOperatorProperties{Context: ctx, Handler: handler}
 }
 
-/*ListOperatorProperties swagger:route GET /supported-operators/{operator_name} operators listOperatorProperties
+/*ListOperatorProperties swagger:route GET /v1/supported-operators/{operator_name} operators listOperatorProperties
 
 Lists properties for an operator.
 

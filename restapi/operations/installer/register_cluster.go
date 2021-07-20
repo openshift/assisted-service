@@ -29,7 +29,7 @@ func NewRegisterCluster(ctx *middleware.Context, handler RegisterClusterHandler)
 	return &RegisterCluster{Context: ctx, Handler: handler}
 }
 
-/*RegisterCluster swagger:route POST /clusters installer registerCluster
+/*RegisterCluster swagger:route POST /v1/clusters installer registerCluster
 
 Creates a new OpenShift cluster definition.
 
