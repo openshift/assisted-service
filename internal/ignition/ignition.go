@@ -77,8 +77,12 @@ const agentMessageOfTheDay = `
 **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
 This is a host being installed by the OpenShift Assisted Installer.
 It will be installed from scratch during the installation.
-The primary service is agent.service.  To watch its status run e.g
+
+The primary service is agent.service. To watch its status, run:
 sudo journalctl -u agent.service
+
+To view the agent log, run:
+sudo journalctl TAG=agent
 **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  **  ** **  **  **  **  **  **  **
 `
 
