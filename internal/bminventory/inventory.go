@@ -342,6 +342,9 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 
 	id := strfmt.UUID(uuid.New().String())
 	url := installer.GetClusterURL{ClusterID: id}
+	platform := models.Platform{
+		Type: models.PlatformTypeBaremetal,
+	}
 
 	log := logutil.FromContext(ctx, b.log).WithField(ctxparams.ClusterId, id)
 	log.Infof("Register cluster: %s with id %s", swag.StringValue(params.NewClusterParams.Name), id)
@@ -467,6 +470,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			HighAvailabilityMode:     params.NewClusterParams.HighAvailabilityMode,
 			Hyperthreading:           swag.StringValue(params.NewClusterParams.Hyperthreading),
 			SchedulableMasters:       params.NewClusterParams.SchedulableMasters,
+			Platform:                 &platform,
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,
@@ -1929,6 +1933,38 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	}
 	return nil
 }
+func (b *bareMetalInventory) updatePlatformParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}) {
+	platform := params.ClusterUpdateParams.Platform
+	if platform == nil || platform.Type == "" {
+		return
+	}
+
+	updates["platform_type"] = platform.Type
+	if platform.Type == models.PlatformTypeVsphere {
+		if platform.Vsphere != nil {
+			updates["platform_vsphere_username"] = platform.Vsphere.Username
+			updates["platform_vsphere_password"] = platform.Vsphere.Password
+			updates["platform_vsphere_datacenter"] = platform.Vsphere.Datacenter
+			updates["platform_vsphere_defaultDatastore"] = platform.Vsphere.DefaultDatastore
+			updates["platform_vsphere_cluster"] = platform.Vsphere.Cluster
+			updates["platform_vsphere_network"] = platform.Vsphere.Network
+			updates["platform_vsphere_vCenter"] = platform.Vsphere.VCenter
+			updates["platform_vsphere_folder"] = platform.Vsphere.Folder
+		}
+	}
+
+	if platform.Vsphere == nil {
+		updates["platform_vsphere"] = nil
+		updates["platform_vsphere_username"] = nil
+		updates["platform_vsphere_password"] = nil
+		updates["platform_vsphere_datacenter"] = nil
+		updates["platform_vsphere_defaultDatastore"] = nil
+		updates["platform_vsphere_cluster"] = nil
+		updates["platform_vsphere_network"] = nil
+		updates["platform_vsphere_vCenter"] = nil
+		updates["platform_vsphere_folder"] = nil
+	}
+}
 
 func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *common.Cluster, params installer.UpdateClusterParams, usages map[string]models.Usage, db *gorm.DB, log logrus.FieldLogger, interactivity Interactivity) error {
 	var err error
@@ -1942,6 +1978,8 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 	optionalParam(params.ClusterUpdateParams.Hyperthreading, "hyperthreading", updates)
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
+
+	b.updatePlatformParams(params, cluster, updates)
 
 	if err = b.updateNetworkParams(params, cluster, updates, usages, log, interactivity); err != nil {
 		return err

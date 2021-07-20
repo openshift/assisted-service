@@ -5100,6 +5100,10 @@ func init() {
         "org_id": {
           "type": "string"
         },
+        "platform": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\"",
+          "$ref": "#/definitions/platform"
+        },
         "pull_secret_set": {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
@@ -5557,6 +5561,10 @@ func init() {
           "items": {
             "$ref": "#/definitions/operator-create-params"
           }
+        },
+        "platform": {
+          "type": "object",
+          "$ref": "#/definitions/platform"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -7502,6 +7510,31 @@ func init() {
         "olm"
       ]
     },
+    "platform": {
+      "description": "The configuration for the specific platform upon which to perform the installation.",
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/platform_type"
+        },
+        "vsphere": {
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/vsphere_platform"
+        }
+      }
+    },
+    "platform_type": {
+      "type": "string",
+      "enum": [
+        "baremetal",
+        "vsphere"
+      ]
+    },
     "preflight-hardware-requirements": {
       "type": "object",
       "properties": {
@@ -7730,6 +7763,53 @@ func init() {
       "type": "object",
       "additionalProperties": {
         "type": "string"
+      }
+    },
+    "vsphere_platform": {
+      "description": "Vsphere platform specific configuration upon which to perform the installation",
+      "type": "object",
+      "properties": {
+        "cluster": {
+          "description": "The vCenter cluster to install the OpenShift Container Platform cluster in.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "datacenter": {
+          "description": "The name of the datacenter to use in the vCenter instance.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "defaultDatastore": {
+          "description": "The name of the default datastore to use for provisioning volumes.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "folder": {
+          "description": "Optional. The absolute path of an existing folder where the installation program creates the virtual machines. If you do not provide this value, the installation program creates a folder that is named with the infrastructure ID in the datacenter virtual machine folder.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "network": {
+          "description": "The network in the vCenter instance that contains the virtual IP addresses and DNS records that you configured.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "password": {
+          "description": "The password for the vCenter user name.",
+          "type": "string",
+          "format": "password",
+          "x-nullable": true
+        },
+        "username": {
+          "description": "The user name to use to connect to the vCenter instance with. This user must have at least the roles and privileges that are required for static or dynamic persistent volume provisioning in vSphere.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "vCenter": {
+          "description": "The fully-qualified hostname or IP address of the vCenter server.",
+          "type": "string",
+          "x-nullable": true
+        }
       }
     }
   },
@@ -13020,6 +13100,10 @@ func init() {
         "org_id": {
           "type": "string"
         },
+        "platform": {
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:platform_\"",
+          "$ref": "#/definitions/platform"
+        },
         "pull_secret_set": {
           "description": "True if the pull secret has been added to the cluster.",
           "type": "boolean"
@@ -13437,6 +13521,10 @@ func init() {
           "items": {
             "$ref": "#/definitions/operator-create-params"
           }
+        },
+        "platform": {
+          "type": "object",
+          "$ref": "#/definitions/platform"
         },
         "pull_secret": {
           "description": "The pull secret obtained from Red Hat OpenShift Cluster Manager at cloud.redhat.com/openshift/install/pull-secret.",
@@ -15337,6 +15425,31 @@ func init() {
         "olm"
       ]
     },
+    "platform": {
+      "description": "The configuration for the specific platform upon which to perform the installation.",
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "$ref": "#/definitions/platform_type"
+        },
+        "vsphere": {
+          "type": "object",
+          "x-go-custom-tag": "gorm:\"embedded;embedded_prefix:vsphere_\"",
+          "x-nullable": true,
+          "$ref": "#/definitions/vsphere_platform"
+        }
+      }
+    },
+    "platform_type": {
+      "type": "string",
+      "enum": [
+        "baremetal",
+        "vsphere"
+      ]
+    },
     "preflight-hardware-requirements": {
       "type": "object",
       "properties": {
@@ -15565,6 +15678,53 @@ func init() {
       "type": "object",
       "additionalProperties": {
         "type": "string"
+      }
+    },
+    "vsphere_platform": {
+      "description": "Vsphere platform specific configuration upon which to perform the installation",
+      "type": "object",
+      "properties": {
+        "cluster": {
+          "description": "The vCenter cluster to install the OpenShift Container Platform cluster in.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "datacenter": {
+          "description": "The name of the datacenter to use in the vCenter instance.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "defaultDatastore": {
+          "description": "The name of the default datastore to use for provisioning volumes.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "folder": {
+          "description": "Optional. The absolute path of an existing folder where the installation program creates the virtual machines. If you do not provide this value, the installation program creates a folder that is named with the infrastructure ID in the datacenter virtual machine folder.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "network": {
+          "description": "The network in the vCenter instance that contains the virtual IP addresses and DNS records that you configured.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "password": {
+          "description": "The password for the vCenter user name.",
+          "type": "string",
+          "format": "password",
+          "x-nullable": true
+        },
+        "username": {
+          "description": "The user name to use to connect to the vCenter instance with. This user must have at least the roles and privileges that are required for static or dynamic persistent volume provisioning in vSphere.",
+          "type": "string",
+          "x-nullable": true
+        },
+        "vCenter": {
+          "description": "The fully-qualified hostname or IP address of the vCenter server.",
+          "type": "string",
+          "x-nullable": true
+        }
       }
     }
   },

@@ -3174,6 +3174,44 @@ paths:
             $ref: '#/definitions/error'
 
 definitions:
+  vsphere_platform:
+    type: object
+    description: Vsphere platform specific configuration upon which to perform the installation
+    properties:
+      username:
+        type: string
+        description: The user name to use to connect to the vCenter instance with. This user must have at least the roles and privileges that are required for static or dynamic persistent volume provisioning in vSphere.
+        x-nullable: true
+      password:
+        type: string
+        description: The password for the vCenter user name.
+        format: password
+        x-nullable: true
+      datacenter:
+        type: string
+        description: The name of the datacenter to use in the vCenter instance.
+        x-nullable: true
+      vCenter:
+        type: string
+        description: The fully-qualified hostname or IP address of the vCenter server.
+        x-nullable: true
+      cluster:
+        type: string
+        description: The vCenter cluster to install the OpenShift Container Platform cluster in.
+        x-nullable: true
+      defaultDatastore:
+        type: string
+        description: The name of the default datastore to use for provisioning volumes.
+        x-nullable: true
+      network:
+        type: string
+        description: The network in the vCenter instance that contains the virtual IP addresses and DNS records that you configured.
+        x-nullable: true
+      folder:
+        type: string
+        description: Optional. The absolute path of an existing folder where the installation program creates the virtual machines. If you do not provide this value, the installation program creates a folder that is named with the infrastructure ID in the datacenter virtual machine folder.
+        x-nullable: true
+
   monitored-operator:
     type: object
     properties:
@@ -3911,6 +3949,9 @@ definitions:
         description: IP address block from which Pod IPs are allocated. This block must not overlap with existing physical networks. These IP addresses are used for the Pod network, and if you need to access the Pods from an external network, configure load balancers and routers to manage the traffic.
         pattern: '^(?:(?:(?:[0-9]{1,3}\.){3}[0-9]{1,3}\/(?:(?:[0-9])|(?:[1-2][0-9])|(?:3[0-2])))|(?:(?:[0-9a-fA-F]*:[0-9a-fA-F]*){2,})/(?:(?:[0-9])|(?:[1-9][0-9])|(?:1[0-1][0-9])|(?:12[0-8])))$'
         x-nullable: true
+      platform:
+        type: object
+        $ref: '#/definitions/platform'
       cluster_network_host_prefix:
         type: integer
         description: The subnet prefix length to assign to each individual node. For example, if clusterNetworkHostPrefix is set to 23, then each node is assigned a /23 subnet out of the given cidr (clusterNetworkCIDR), which allows for 510 (2^(32 - 23) - 2) pod IPs addresses. If you are required to provide access to nodes from an external network, configure load balancers and routers to manage the traffic.
@@ -4122,6 +4163,9 @@ definitions:
       image_info:
         $ref: '#/definitions/image_info'
         x-go-custom-tag: gorm:"embedded;embedded_prefix:image_"
+      platform:
+        $ref: '#/definitions/platform'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:platform_"
       base_dns_domain:
         type: string
         description: Base domain of the cluster. All DNS records must be sub-domains of this base and include the cluster name.
@@ -4323,6 +4367,19 @@ definitions:
         enum: ['OpenShiftSDN', 'OVNKubernetes', 'auto-assign' ]
         x-nullable: true
 
+  platform:
+    type: object
+    description: The configuration for the specific platform upon which to perform the installation.
+    required:
+      - type
+    properties:
+      type:
+        $ref: '#/definitions/platform_type'
+      vsphere:
+        type: object
+        $ref: '#/definitions/vsphere_platform'
+        x-go-custom-tag: gorm:"embedded;embedded_prefix:vsphere_"
+        x-nullable: true
 
   image_info:
     type: object
@@ -4927,6 +4984,12 @@ definitions:
         type: string
       disk_speed:
         $ref: '#/definitions/disk_speed'
+
+  platform_type:
+    type: string
+    enum:
+      - baremetal
+      - vsphere
 
   credentials:
     type: object
