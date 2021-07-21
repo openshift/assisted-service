@@ -84,7 +84,7 @@ type UpdateDiscoveryIgnitionCreated struct {
 }
 
 func (o *UpdateDiscoveryIgnitionCreated) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionCreated ", 201)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionCreated ", 201)
 }
 
 func (o *UpdateDiscoveryIgnitionCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -106,7 +106,7 @@ type UpdateDiscoveryIgnitionBadRequest struct {
 }
 
 func (o *UpdateDiscoveryIgnitionBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *UpdateDiscoveryIgnitionBadRequest) GetPayload() *models.Error {
@@ -139,7 +139,7 @@ type UpdateDiscoveryIgnitionUnauthorized struct {
 }
 
 func (o *UpdateDiscoveryIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateDiscoveryIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type UpdateDiscoveryIgnitionForbidden struct {
 }
 
 func (o *UpdateDiscoveryIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateDiscoveryIgnitionForbidden) GetPayload() *models.InfraError {
@@ -205,7 +205,7 @@ type UpdateDiscoveryIgnitionNotFound struct {
 }
 
 func (o *UpdateDiscoveryIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateDiscoveryIgnitionNotFound) GetPayload() *models.Error {
@@ -238,7 +238,7 @@ type UpdateDiscoveryIgnitionMethodNotAllowed struct {
 }
 
 func (o *UpdateDiscoveryIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateDiscoveryIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -271,7 +271,7 @@ type UpdateDiscoveryIgnitionInternalServerError struct {
 }
 
 func (o *UpdateDiscoveryIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/discovery-ignition][%d] updateDiscoveryIgnitionInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateDiscoveryIgnitionInternalServerError) GetPayload() *models.Error {

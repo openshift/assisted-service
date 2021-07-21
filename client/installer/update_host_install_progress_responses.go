@@ -84,7 +84,7 @@ type UpdateHostInstallProgressOK struct {
 }
 
 func (o *UpdateHostInstallProgressOK) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressOK ", 200)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressOK ", 200)
 }
 
 func (o *UpdateHostInstallProgressOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -106,7 +106,7 @@ type UpdateHostInstallProgressUnauthorized struct {
 }
 
 func (o *UpdateHostInstallProgressUnauthorized) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateHostInstallProgressUnauthorized) GetPayload() *models.InfraError {
@@ -139,7 +139,7 @@ type UpdateHostInstallProgressForbidden struct {
 }
 
 func (o *UpdateHostInstallProgressForbidden) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateHostInstallProgressForbidden) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type UpdateHostInstallProgressNotFound struct {
 }
 
 func (o *UpdateHostInstallProgressNotFound) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateHostInstallProgressNotFound) GetPayload() *models.Error {
@@ -205,7 +205,7 @@ type UpdateHostInstallProgressMethodNotAllowed struct {
 }
 
 func (o *UpdateHostInstallProgressMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateHostInstallProgressMethodNotAllowed) GetPayload() *models.Error {
@@ -238,7 +238,7 @@ type UpdateHostInstallProgressInternalServerError struct {
 }
 
 func (o *UpdateHostInstallProgressInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateHostInstallProgressInternalServerError) GetPayload() *models.Error {
@@ -271,7 +271,7 @@ type UpdateHostInstallProgressServiceUnavailable struct {
 }
 
 func (o *UpdateHostInstallProgressServiceUnavailable) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/hosts/{host_id}/progress][%d] updateHostInstallProgressServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *UpdateHostInstallProgressServiceUnavailable) GetPayload() *models.Error {

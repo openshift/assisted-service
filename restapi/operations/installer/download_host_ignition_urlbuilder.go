@@ -43,7 +43,7 @@ func (o *DownloadHostIgnitionURL) SetBasePath(bp string) {
 func (o *DownloadHostIgnitionURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition"
+	var _path = "/v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
@@ -61,7 +61,7 @@ func (o *DownloadHostIgnitionURL) Build() (*url.URL, error) {
 
 	_basePath := o._basePath
 	if _basePath == "" {
-		_basePath = "/api/assisted-install/v1"
+		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 

@@ -79,7 +79,7 @@ type ListClustersOK struct {
 }
 
 func (o *ListClustersOK) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] listClustersOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters][%d] listClustersOK  %+v", 200, o.Payload)
 }
 
 func (o *ListClustersOK) GetPayload() models.ClusterList {
@@ -110,7 +110,7 @@ type ListClustersUnauthorized struct {
 }
 
 func (o *ListClustersUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] listClustersUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters][%d] listClustersUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListClustersUnauthorized) GetPayload() *models.InfraError {
@@ -143,7 +143,7 @@ type ListClustersForbidden struct {
 }
 
 func (o *ListClustersForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] listClustersForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters][%d] listClustersForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListClustersForbidden) GetPayload() *models.InfraError {
@@ -176,7 +176,7 @@ type ListClustersMethodNotAllowed struct {
 }
 
 func (o *ListClustersMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] listClustersMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters][%d] listClustersMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListClustersMethodNotAllowed) GetPayload() *models.Error {
@@ -209,7 +209,7 @@ type ListClustersInternalServerError struct {
 }
 
 func (o *ListClustersInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] listClustersInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters][%d] listClustersInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListClustersInternalServerError) GetPayload() *models.Error {
@@ -242,7 +242,7 @@ type ListClustersServiceUnavailable struct {
 }
 
 func (o *ListClustersServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /clusters][%d] listClustersServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters][%d] listClustersServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *ListClustersServiceUnavailable) GetPayload() *models.Error {

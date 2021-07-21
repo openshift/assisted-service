@@ -29,7 +29,7 @@ func NewInstallHost(ctx *middleware.Context, handler InstallHostHandler) *Instal
 	return &InstallHost{Context: ctx, Handler: handler}
 }
 
-/*InstallHost swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/actions/install installer installHost
+/*InstallHost swagger:route POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/install installer installHost
 
 install specific host for day2 cluster.
 

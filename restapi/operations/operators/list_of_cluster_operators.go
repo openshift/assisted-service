@@ -29,7 +29,7 @@ func NewListOfClusterOperators(ctx *middleware.Context, handler ListOfClusterOpe
 	return &ListOfClusterOperators{Context: ctx, Handler: handler}
 }
 
-/*ListOfClusterOperators swagger:route GET /clusters/{cluster_id}/monitored_operators operators installer listOfClusterOperators
+/*ListOfClusterOperators swagger:route GET /v1/clusters/{cluster_id}/monitored_operators operators installer listOfClusterOperators
 
 Lists operators to be monitored for a cluster.
 

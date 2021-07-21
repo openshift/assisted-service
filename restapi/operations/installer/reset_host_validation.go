@@ -29,7 +29,7 @@ func NewResetHostValidation(ctx *middleware.Context, handler ResetHostValidation
 	return &ResetHostValidation{Context: ctx, Handler: handler}
 }
 
-/*ResetHostValidation swagger:route PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id} installer resetHostValidation
+/*ResetHostValidation swagger:route PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id} installer resetHostValidation
 
 Reset failed host validation.
 

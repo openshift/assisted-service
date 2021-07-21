@@ -29,7 +29,7 @@ func NewGetHostIgnition(ctx *middleware.Context, handler GetHostIgnitionHandler)
 	return &GetHostIgnition{Context: ctx, Handler: handler}
 }
 
-/*GetHostIgnition swagger:route GET /clusters/{cluster_id}/hosts/{host_id}/ignition installer getHostIgnition
+/*GetHostIgnition swagger:route GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition installer getHostIgnition
 
 Get the customized ignition file for this host
 

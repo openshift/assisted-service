@@ -84,7 +84,7 @@ type DeregisterHostNoContent struct {
 }
 
 func (o *DeregisterHostNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostNoContent ", 204)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostNoContent ", 204)
 }
 
 func (o *DeregisterHostNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -106,7 +106,7 @@ type DeregisterHostBadRequest struct {
 }
 
 func (o *DeregisterHostBadRequest) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *DeregisterHostBadRequest) GetPayload() *models.Error {
@@ -139,7 +139,7 @@ type DeregisterHostUnauthorized struct {
 }
 
 func (o *DeregisterHostUnauthorized) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DeregisterHostUnauthorized) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type DeregisterHostForbidden struct {
 }
 
 func (o *DeregisterHostForbidden) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DeregisterHostForbidden) GetPayload() *models.InfraError {
@@ -205,7 +205,7 @@ type DeregisterHostNotFound struct {
 }
 
 func (o *DeregisterHostNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DeregisterHostNotFound) GetPayload() *models.Error {
@@ -238,7 +238,7 @@ type DeregisterHostMethodNotAllowed struct {
 }
 
 func (o *DeregisterHostMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DeregisterHostMethodNotAllowed) GetPayload() *models.Error {
@@ -271,7 +271,7 @@ type DeregisterHostInternalServerError struct {
 }
 
 func (o *DeregisterHostInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}][%d] deregisterHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DeregisterHostInternalServerError) GetPayload() *models.Error {

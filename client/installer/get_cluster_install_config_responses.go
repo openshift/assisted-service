@@ -79,7 +79,7 @@ type GetClusterInstallConfigOK struct {
 }
 
 func (o *GetClusterInstallConfigOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/install-config][%d] getClusterInstallConfigOK  %+v", 200, o.Payload)
 }
 
 func (o *GetClusterInstallConfigOK) GetPayload() string {
@@ -110,7 +110,7 @@ type GetClusterInstallConfigUnauthorized struct {
 }
 
 func (o *GetClusterInstallConfigUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/install-config][%d] getClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetClusterInstallConfigUnauthorized) GetPayload() *models.InfraError {
@@ -143,7 +143,7 @@ type GetClusterInstallConfigForbidden struct {
 }
 
 func (o *GetClusterInstallConfigForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/install-config][%d] getClusterInstallConfigForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetClusterInstallConfigForbidden) GetPayload() *models.InfraError {
@@ -176,7 +176,7 @@ type GetClusterInstallConfigNotFound struct {
 }
 
 func (o *GetClusterInstallConfigNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/install-config][%d] getClusterInstallConfigNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetClusterInstallConfigNotFound) GetPayload() *models.Error {
@@ -209,7 +209,7 @@ type GetClusterInstallConfigMethodNotAllowed struct {
 }
 
 func (o *GetClusterInstallConfigMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/install-config][%d] getClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetClusterInstallConfigMethodNotAllowed) GetPayload() *models.Error {
@@ -242,7 +242,7 @@ type GetClusterInstallConfigInternalServerError struct {
 }
 
 func (o *GetClusterInstallConfigInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/install-config][%d] getClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/install-config][%d] getClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetClusterInstallConfigInternalServerError) GetPayload() *models.Error {

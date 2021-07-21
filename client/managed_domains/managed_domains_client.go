@@ -48,7 +48,7 @@ func (a *Client) ListManagedDomains(ctx context.Context, params *ListManagedDoma
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListManagedDomains",
 		Method:             "GET",
-		PathPattern:        "/domains",
+		PathPattern:        "/v1/domains",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

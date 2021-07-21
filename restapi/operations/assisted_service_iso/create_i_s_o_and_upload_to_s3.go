@@ -29,7 +29,7 @@ func NewCreateISOAndUploadToS3(ctx *middleware.Context, handler CreateISOAndUplo
 	return &CreateISOAndUploadToS3{Context: ctx, Handler: handler}
 }
 
-/*CreateISOAndUploadToS3 swagger:route POST /assisted-service-iso assisted-service-iso createISOAndUploadToS3
+/*CreateISOAndUploadToS3 swagger:route POST /v1/assisted-service-iso assisted-service-iso createISOAndUploadToS3
 
 Creates ISO for the user and uploads to S3.
 

@@ -94,7 +94,7 @@ type DownloadHostIgnitionOK struct {
 }
 
 func (o *DownloadHostIgnitionOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadHostIgnitionOK) GetPayload() io.Writer {
@@ -125,7 +125,7 @@ type DownloadHostIgnitionUnauthorized struct {
 }
 
 func (o *DownloadHostIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadHostIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -158,7 +158,7 @@ type DownloadHostIgnitionForbidden struct {
 }
 
 func (o *DownloadHostIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadHostIgnitionForbidden) GetPayload() *models.InfraError {
@@ -191,7 +191,7 @@ type DownloadHostIgnitionNotFound struct {
 }
 
 func (o *DownloadHostIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadHostIgnitionNotFound) GetPayload() *models.Error {
@@ -224,7 +224,7 @@ type DownloadHostIgnitionMethodNotAllowed struct {
 }
 
 func (o *DownloadHostIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DownloadHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -257,7 +257,7 @@ type DownloadHostIgnitionConflict struct {
 }
 
 func (o *DownloadHostIgnitionConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadHostIgnitionConflict) GetPayload() *models.Error {
@@ -290,7 +290,7 @@ type DownloadHostIgnitionInternalServerError struct {
 }
 
 func (o *DownloadHostIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadHostIgnitionInternalServerError) GetPayload() *models.Error {
@@ -323,7 +323,7 @@ type DownloadHostIgnitionServiceUnavailable struct {
 }
 
 func (o *DownloadHostIgnitionServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition][%d] downloadHostIgnitionServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *DownloadHostIgnitionServiceUnavailable) GetPayload() *models.Error {

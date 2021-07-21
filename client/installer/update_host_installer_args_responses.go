@@ -91,7 +91,7 @@ type UpdateHostInstallerArgsCreated struct {
 }
 
 func (o *UpdateHostInstallerArgsCreated) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsCreated  %+v", 201, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsCreated) GetPayload() *models.Host {
@@ -124,7 +124,7 @@ type UpdateHostInstallerArgsBadRequest struct {
 }
 
 func (o *UpdateHostInstallerArgsBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsBadRequest) GetPayload() *models.Error {
@@ -157,7 +157,7 @@ type UpdateHostInstallerArgsUnauthorized struct {
 }
 
 func (o *UpdateHostInstallerArgsUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsUnauthorized) GetPayload() *models.InfraError {
@@ -190,7 +190,7 @@ type UpdateHostInstallerArgsForbidden struct {
 }
 
 func (o *UpdateHostInstallerArgsForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsForbidden) GetPayload() *models.InfraError {
@@ -223,7 +223,7 @@ type UpdateHostInstallerArgsNotFound struct {
 }
 
 func (o *UpdateHostInstallerArgsNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsNotFound) GetPayload() *models.Error {
@@ -256,7 +256,7 @@ type UpdateHostInstallerArgsMethodNotAllowed struct {
 }
 
 func (o *UpdateHostInstallerArgsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsMethodNotAllowed) GetPayload() *models.Error {
@@ -289,7 +289,7 @@ type UpdateHostInstallerArgsConflict struct {
 }
 
 func (o *UpdateHostInstallerArgsConflict) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsConflict  %+v", 409, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsConflict) GetPayload() *models.Error {
@@ -322,7 +322,7 @@ type UpdateHostInstallerArgsInternalServerError struct {
 }
 
 func (o *UpdateHostInstallerArgsInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args][%d] updateHostInstallerArgsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateHostInstallerArgsInternalServerError) GetPayload() *models.Error {

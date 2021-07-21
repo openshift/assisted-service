@@ -90,7 +90,7 @@ type PostStepReplyNoContent struct {
 }
 
 func (o *PostStepReplyNoContent) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyNoContent ", 204)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyNoContent ", 204)
 }
 
 func (o *PostStepReplyNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -112,7 +112,7 @@ type PostStepReplyBadRequest struct {
 }
 
 func (o *PostStepReplyBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *PostStepReplyBadRequest) GetPayload() *models.Error {
@@ -145,7 +145,7 @@ type PostStepReplyUnauthorized struct {
 }
 
 func (o *PostStepReplyUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *PostStepReplyUnauthorized) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type PostStepReplyForbidden struct {
 }
 
 func (o *PostStepReplyForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyForbidden  %+v", 403, o.Payload)
 }
 
 func (o *PostStepReplyForbidden) GetPayload() *models.InfraError {
@@ -211,7 +211,7 @@ type PostStepReplyNotFound struct {
 }
 
 func (o *PostStepReplyNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyNotFound  %+v", 404, o.Payload)
 }
 
 func (o *PostStepReplyNotFound) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type PostStepReplyMethodNotAllowed struct {
 }
 
 func (o *PostStepReplyMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *PostStepReplyMethodNotAllowed) GetPayload() *models.Error {
@@ -277,7 +277,7 @@ type PostStepReplyInternalServerError struct {
 }
 
 func (o *PostStepReplyInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *PostStepReplyInternalServerError) GetPayload() *models.Error {
@@ -310,7 +310,7 @@ type PostStepReplyServiceUnavailable struct {
 }
 
 func (o *PostStepReplyServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] postStepReplyServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *PostStepReplyServiceUnavailable) GetPayload() *models.Error {

@@ -67,7 +67,7 @@ type GetClusterDefaultConfigOK struct {
 }
 
 func (o *GetClusterDefaultConfigOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/default-config][%d] getClusterDefaultConfigOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigOK  %+v", 200, o.Payload)
 }
 
 func (o *GetClusterDefaultConfigOK) GetPayload() *models.ClusterDefaultConfig {
@@ -100,7 +100,7 @@ type GetClusterDefaultConfigUnauthorized struct {
 }
 
 func (o *GetClusterDefaultConfigUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/default-config][%d] getClusterDefaultConfigUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetClusterDefaultConfigUnauthorized) GetPayload() *models.InfraError {
@@ -133,7 +133,7 @@ type GetClusterDefaultConfigForbidden struct {
 }
 
 func (o *GetClusterDefaultConfigForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/default-config][%d] getClusterDefaultConfigForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetClusterDefaultConfigForbidden) GetPayload() *models.InfraError {
@@ -166,7 +166,7 @@ type GetClusterDefaultConfigInternalServerError struct {
 }
 
 func (o *GetClusterDefaultConfigInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/default-config][%d] getClusterDefaultConfigInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/default-config][%d] getClusterDefaultConfigInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetClusterDefaultConfigInternalServerError) GetPayload() *models.Error {

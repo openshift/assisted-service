@@ -29,7 +29,7 @@ func NewDeleteClusterManifest(ctx *middleware.Context, handler DeleteClusterMani
 	return &DeleteClusterManifest{Context: ctx, Handler: handler}
 }
 
-/*DeleteClusterManifest swagger:route DELETE /clusters/{cluster_id}/manifests manifests deleteClusterManifest
+/*DeleteClusterManifest swagger:route DELETE /v1/clusters/{cluster_id}/manifests manifests deleteClusterManifest
 
 Deletes a manifest from the cluster.
 

@@ -79,7 +79,7 @@ type ResetHostOK struct {
 }
 
 func (o *ResetHostOK) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostOK  %+v", 200, o.Payload)
 }
 
 func (o *ResetHostOK) GetPayload() *models.Host {
@@ -112,7 +112,7 @@ type ResetHostUnauthorized struct {
 }
 
 func (o *ResetHostUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ResetHostUnauthorized) GetPayload() *models.InfraError {
@@ -145,7 +145,7 @@ type ResetHostForbidden struct {
 }
 
 func (o *ResetHostForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ResetHostForbidden) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type ResetHostNotFound struct {
 }
 
 func (o *ResetHostNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ResetHostNotFound) GetPayload() *models.Error {
@@ -211,7 +211,7 @@ type ResetHostConflict struct {
 }
 
 func (o *ResetHostConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *ResetHostConflict) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type ResetHostInternalServerError struct {
 }
 
 func (o *ResetHostInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset][%d] resetHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ResetHostInternalServerError) GetPayload() *models.Error {

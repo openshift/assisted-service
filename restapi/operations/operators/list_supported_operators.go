@@ -29,7 +29,7 @@ func NewListSupportedOperators(ctx *middleware.Context, handler ListSupportedOpe
 	return &ListSupportedOperators{Context: ctx, Handler: handler}
 }
 
-/*ListSupportedOperators swagger:route GET /supported-operators operators listSupportedOperators
+/*ListSupportedOperators swagger:route GET /v1/supported-operators operators listSupportedOperators
 
 Retrieves the list of supported operators.
 

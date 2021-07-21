@@ -39,9 +39,9 @@ func init() {
     "version": "1.0.0"
   },
   "host": "api.openshift.com",
-  "basePath": "/api/assisted-install/v1",
+  "basePath": "/api/assisted-install",
   "paths": {
-    "/add_hosts_clusters": {
+    "/v1/add_hosts_clusters": {
       "post": {
         "description": "Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.",
         "tags": [
@@ -93,7 +93,7 @@ func init() {
         }
       }
     },
-    "/assisted-service-iso": {
+    "/v1/assisted-service-iso": {
       "post": {
         "description": "Creates ISO for the user and uploads to S3.",
         "tags": [
@@ -142,7 +142,7 @@ func init() {
         }
       }
     },
-    "/assisted-service-iso/data": {
+    "/v1/assisted-service-iso/data": {
       "get": {
         "security": [
           {
@@ -196,7 +196,7 @@ func init() {
         }
       }
     },
-    "/assisted-service-iso/presigned": {
+    "/v1/assisted-service-iso/presigned": {
       "get": {
         "security": [
           {
@@ -246,7 +246,7 @@ func init() {
         }
       }
     },
-    "/clusters": {
+    "/v1/clusters": {
       "get": {
         "security": [
           {
@@ -391,7 +391,7 @@ func init() {
         }
       }
     },
-    "/clusters/default-config": {
+    "/v1/clusters/default-config": {
       "get": {
         "security": [
           {
@@ -435,7 +435,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}": {
+    "/v1/clusters/{cluster_id}": {
       "get": {
         "security": [
           {
@@ -657,7 +657,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/cancel": {
+    "/v1/clusters/{cluster_id}/actions/cancel": {
       "post": {
         "description": "Cancels an ongoing installation.",
         "tags": [
@@ -720,7 +720,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/complete_installation": {
+    "/v1/clusters/{cluster_id}/actions/complete_installation": {
       "post": {
         "security": [
           {
@@ -809,7 +809,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/install": {
+    "/v1/clusters/{cluster_id}/actions/install": {
       "post": {
         "description": "Installs the OpenShift cluster.",
         "tags": [
@@ -878,7 +878,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/install_hosts": {
+    "/v1/clusters/{cluster_id}/actions/install_hosts": {
       "post": {
         "description": "Installs the OpenShift cluster.",
         "tags": [
@@ -947,7 +947,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/reset": {
+    "/v1/clusters/{cluster_id}/actions/reset": {
       "post": {
         "description": "Resets a failed installation.",
         "tags": [
@@ -1010,7 +1010,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/credentials": {
+    "/v1/clusters/{cluster_id}/credentials": {
       "get": {
         "security": [
           {
@@ -1082,7 +1082,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/discovery-ignition": {
+    "/v1/clusters/{cluster_id}/discovery-ignition": {
       "get": {
         "security": [
           {
@@ -1215,7 +1215,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/files": {
+    "/v1/clusters/{cluster_id}/downloads/files": {
       "get": {
         "security": [
           {
@@ -1327,7 +1327,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/files-presigned": {
+    "/v1/clusters/{cluster_id}/downloads/files-presigned": {
       "get": {
         "security": [
           {
@@ -1448,7 +1448,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/image": {
+    "/v1/clusters/{cluster_id}/downloads/image": {
       "get": {
         "security": [
           {
@@ -1685,7 +1685,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/kubeconfig": {
+    "/v1/clusters/{cluster_id}/downloads/kubeconfig": {
       "get": {
         "security": [
           {
@@ -1764,7 +1764,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/events": {
+    "/v1/clusters/{cluster_id}/events": {
       "get": {
         "security": [
           {
@@ -1849,7 +1849,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/free_addresses": {
+    "/v1/clusters/{cluster_id}/free_addresses": {
       "get": {
         "security": [
           {
@@ -1938,7 +1938,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/host-requirements": {
+    "/v1/clusters/{cluster_id}/host-requirements": {
       "get": {
         "security": [
           {
@@ -2004,7 +2004,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts": {
+    "/v1/clusters/{cluster_id}/hosts": {
       "get": {
         "security": [
           {
@@ -2172,7 +2172,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}": {
       "get": {
         "security": [
           {
@@ -2312,7 +2312,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
         "description": "Enables a host for inclusion in the cluster.",
         "tags": [
@@ -2452,7 +2452,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
       "post": {
         "description": "install specific host for day2 cluster.",
         "tags": [
@@ -2517,7 +2517,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
       "post": {
         "description": "reset a failed host for day2 cluster.",
         "tags": [
@@ -2582,7 +2582,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}": {
       "patch": {
         "description": "Reset failed host validation.  It may be performed on any host validation with persistent validation result.",
         "tags": [
@@ -2661,7 +2661,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
           {
@@ -2753,7 +2753,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/ignition": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/ignition": {
       "get": {
         "description": "Get the customized ignition file for this host",
         "tags": [
@@ -2899,7 +2899,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
       "patch": {
         "description": "Updates a host's installer arguments.",
         "tags": [
@@ -2985,7 +2985,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
           {
@@ -3158,7 +3158,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/logs": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/logs": {
       "get": {
         "security": [
           {
@@ -3327,7 +3327,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/logs_progress": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress": {
       "put": {
         "security": [
           {
@@ -3415,7 +3415,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/progress": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
           {
@@ -3503,7 +3503,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/install-config": {
+    "/v1/clusters/{cluster_id}/install-config": {
       "get": {
         "security": [
           {
@@ -3636,7 +3636,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/logs": {
+    "/v1/clusters/{cluster_id}/logs": {
       "get": {
         "security": [
           {
@@ -3818,7 +3818,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/logs_progress": {
+    "/v1/clusters/{cluster_id}/logs_progress": {
       "put": {
         "security": [
           {
@@ -3898,7 +3898,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/manifests": {
+    "/v1/clusters/{cluster_id}/manifests": {
       "get": {
         "security": [
           {
@@ -4123,7 +4123,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/manifests/files": {
+    "/v1/clusters/{cluster_id}/manifests/files": {
       "get": {
         "security": [
           {
@@ -4212,7 +4212,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/monitored_operators": {
+    "/v1/clusters/{cluster_id}/monitored_operators": {
       "get": {
         "security": [
           {
@@ -4366,7 +4366,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/preflight-requirements": {
+    "/v1/clusters/{cluster_id}/preflight-requirements": {
       "get": {
         "security": [
           {
@@ -4432,7 +4432,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/uploads/ingress-cert": {
+    "/v1/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
           {
@@ -4518,7 +4518,7 @@ func init() {
         }
       }
     },
-    "/component_versions": {
+    "/v1/component_versions": {
       "get": {
         "security": [
           {
@@ -4544,7 +4544,7 @@ func init() {
         }
       }
     },
-    "/domains": {
+    "/v1/domains": {
       "get": {
         "security": [
           {
@@ -4576,7 +4576,136 @@ func init() {
         }
       }
     },
-    "/infra-envs": {
+    "/v1/openshift_versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of OpenShift supported versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v1/supported-operators": {
+      "get": {
+        "description": "Retrieves the list of supported operators.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListSupportedOperators",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v1/supported-operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-properties"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs": {
       "post": {
         "description": "Creates a new OpenShift Discovery ISO.",
         "tags": [
@@ -4645,135 +4774,6 @@ func init() {
           },
           "501": {
             "description": "Not implemented.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/openshift_versions": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Retrieves the list of OpenShift supported versions.",
-        "tags": [
-          "versions"
-        ],
-        "operationId": "ListSupportedOpenshiftVersions",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/openshift-versions"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/supported-operators": {
-      "get": {
-        "description": "Retrieves the list of supported operators.",
-        "tags": [
-          "operators"
-        ],
-        "operationId": "ListSupportedOperators",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/supported-operators/{operator_name}": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Lists properties for an operator.",
-        "tags": [
-          "operators"
-        ],
-        "operationId": "ListOperatorProperties",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The operator name.",
-            "name": "operator_name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/operator-properties"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }
@@ -7895,9 +7895,9 @@ func init() {
     "version": "1.0.0"
   },
   "host": "api.openshift.com",
-  "basePath": "/api/assisted-install/v1",
+  "basePath": "/api/assisted-install",
   "paths": {
-    "/add_hosts_clusters": {
+    "/v1/add_hosts_clusters": {
       "post": {
         "description": "Creates a new OpenShift cluster definition for adding nodes to and existing OCP cluster.",
         "tags": [
@@ -7949,7 +7949,7 @@ func init() {
         }
       }
     },
-    "/assisted-service-iso": {
+    "/v1/assisted-service-iso": {
       "post": {
         "description": "Creates ISO for the user and uploads to S3.",
         "tags": [
@@ -7998,7 +7998,7 @@ func init() {
         }
       }
     },
-    "/assisted-service-iso/data": {
+    "/v1/assisted-service-iso/data": {
       "get": {
         "security": [
           {
@@ -8052,7 +8052,7 @@ func init() {
         }
       }
     },
-    "/assisted-service-iso/presigned": {
+    "/v1/assisted-service-iso/presigned": {
       "get": {
         "security": [
           {
@@ -8102,7 +8102,7 @@ func init() {
         }
       }
     },
-    "/clusters": {
+    "/v1/clusters": {
       "get": {
         "security": [
           {
@@ -8247,7 +8247,7 @@ func init() {
         }
       }
     },
-    "/clusters/default-config": {
+    "/v1/clusters/default-config": {
       "get": {
         "security": [
           {
@@ -8291,7 +8291,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}": {
+    "/v1/clusters/{cluster_id}": {
       "get": {
         "security": [
           {
@@ -8513,7 +8513,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/cancel": {
+    "/v1/clusters/{cluster_id}/actions/cancel": {
       "post": {
         "description": "Cancels an ongoing installation.",
         "tags": [
@@ -8576,7 +8576,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/complete_installation": {
+    "/v1/clusters/{cluster_id}/actions/complete_installation": {
       "post": {
         "security": [
           {
@@ -8665,7 +8665,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/install": {
+    "/v1/clusters/{cluster_id}/actions/install": {
       "post": {
         "description": "Installs the OpenShift cluster.",
         "tags": [
@@ -8734,7 +8734,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/install_hosts": {
+    "/v1/clusters/{cluster_id}/actions/install_hosts": {
       "post": {
         "description": "Installs the OpenShift cluster.",
         "tags": [
@@ -8803,7 +8803,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/actions/reset": {
+    "/v1/clusters/{cluster_id}/actions/reset": {
       "post": {
         "description": "Resets a failed installation.",
         "tags": [
@@ -8866,7 +8866,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/credentials": {
+    "/v1/clusters/{cluster_id}/credentials": {
       "get": {
         "security": [
           {
@@ -8938,7 +8938,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/discovery-ignition": {
+    "/v1/clusters/{cluster_id}/discovery-ignition": {
       "get": {
         "security": [
           {
@@ -9071,7 +9071,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/files": {
+    "/v1/clusters/{cluster_id}/downloads/files": {
       "get": {
         "security": [
           {
@@ -9183,7 +9183,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/files-presigned": {
+    "/v1/clusters/{cluster_id}/downloads/files-presigned": {
       "get": {
         "security": [
           {
@@ -9304,7 +9304,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/image": {
+    "/v1/clusters/{cluster_id}/downloads/image": {
       "get": {
         "security": [
           {
@@ -9541,7 +9541,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/downloads/kubeconfig": {
+    "/v1/clusters/{cluster_id}/downloads/kubeconfig": {
       "get": {
         "security": [
           {
@@ -9620,7 +9620,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/events": {
+    "/v1/clusters/{cluster_id}/events": {
       "get": {
         "security": [
           {
@@ -9705,7 +9705,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/free_addresses": {
+    "/v1/clusters/{cluster_id}/free_addresses": {
       "get": {
         "security": [
           {
@@ -9794,7 +9794,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/host-requirements": {
+    "/v1/clusters/{cluster_id}/host-requirements": {
       "get": {
         "security": [
           {
@@ -9860,7 +9860,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts": {
+    "/v1/clusters/{cluster_id}/hosts": {
       "get": {
         "security": [
           {
@@ -10028,7 +10028,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}": {
       "get": {
         "security": [
           {
@@ -10168,7 +10168,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable": {
       "post": {
         "description": "Enables a host for inclusion in the cluster.",
         "tags": [
@@ -10308,7 +10308,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/install": {
       "post": {
         "description": "install specific host for day2 cluster.",
         "tags": [
@@ -10373,7 +10373,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset": {
       "post": {
         "description": "reset a failed host for day2 cluster.",
         "tags": [
@@ -10438,7 +10438,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}": {
       "patch": {
         "description": "Reset failed host validation.  It may be performed on any host validation with persistent validation result.",
         "tags": [
@@ -10517,7 +10517,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition": {
       "get": {
         "security": [
           {
@@ -10609,7 +10609,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/ignition": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/ignition": {
       "get": {
         "description": "Get the customized ignition file for this host",
         "tags": [
@@ -10755,7 +10755,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/installer-args": {
       "patch": {
         "description": "Updates a host's installer arguments.",
         "tags": [
@@ -10841,7 +10841,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/instructions": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/instructions": {
       "get": {
         "security": [
           {
@@ -11014,7 +11014,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/logs": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/logs": {
       "get": {
         "security": [
           {
@@ -11183,7 +11183,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/logs_progress": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress": {
       "put": {
         "security": [
           {
@@ -11271,7 +11271,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/hosts/{host_id}/progress": {
+    "/v1/clusters/{cluster_id}/hosts/{host_id}/progress": {
       "put": {
         "security": [
           {
@@ -11359,7 +11359,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/install-config": {
+    "/v1/clusters/{cluster_id}/install-config": {
       "get": {
         "security": [
           {
@@ -11492,7 +11492,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/logs": {
+    "/v1/clusters/{cluster_id}/logs": {
       "get": {
         "security": [
           {
@@ -11674,7 +11674,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/logs_progress": {
+    "/v1/clusters/{cluster_id}/logs_progress": {
       "put": {
         "security": [
           {
@@ -11754,7 +11754,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/manifests": {
+    "/v1/clusters/{cluster_id}/manifests": {
       "get": {
         "security": [
           {
@@ -11979,7 +11979,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/manifests/files": {
+    "/v1/clusters/{cluster_id}/manifests/files": {
       "get": {
         "security": [
           {
@@ -12068,7 +12068,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/monitored_operators": {
+    "/v1/clusters/{cluster_id}/monitored_operators": {
       "get": {
         "security": [
           {
@@ -12222,7 +12222,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/preflight-requirements": {
+    "/v1/clusters/{cluster_id}/preflight-requirements": {
       "get": {
         "security": [
           {
@@ -12288,7 +12288,7 @@ func init() {
         }
       }
     },
-    "/clusters/{cluster_id}/uploads/ingress-cert": {
+    "/v1/clusters/{cluster_id}/uploads/ingress-cert": {
       "post": {
         "security": [
           {
@@ -12374,7 +12374,7 @@ func init() {
         }
       }
     },
-    "/component_versions": {
+    "/v1/component_versions": {
       "get": {
         "security": [
           {
@@ -12400,7 +12400,7 @@ func init() {
         }
       }
     },
-    "/domains": {
+    "/v1/domains": {
       "get": {
         "security": [
           {
@@ -12432,7 +12432,136 @@ func init() {
         }
       }
     },
-    "/infra-envs": {
+    "/v1/openshift_versions": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the list of OpenShift supported versions.",
+        "tags": [
+          "versions"
+        ],
+        "operationId": "ListSupportedOpenshiftVersions",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/openshift-versions"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v1/supported-operators": {
+      "get": {
+        "description": "Retrieves the list of supported operators.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListSupportedOperators",
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v1/supported-operators/{operator_name}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Lists properties for an operator.",
+        "tags": [
+          "operators"
+        ],
+        "operationId": "ListOperatorProperties",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The operator name.",
+            "name": "operator_name",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/operator-properties"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs": {
       "post": {
         "description": "Creates a new OpenShift Discovery ISO.",
         "tags": [
@@ -12501,135 +12630,6 @@ func init() {
           },
           "501": {
             "description": "Not implemented.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/openshift_versions": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Retrieves the list of OpenShift supported versions.",
-        "tags": [
-          "versions"
-        ],
-        "operationId": "ListSupportedOpenshiftVersions",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/openshift-versions"
-            }
-          },
-          "503": {
-            "description": "Unavailable.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/supported-operators": {
-      "get": {
-        "description": "Retrieves the list of supported operators.",
-        "tags": [
-          "operators"
-        ],
-        "operationId": "ListSupportedOperators",
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "500": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          }
-        }
-      }
-    },
-    "/supported-operators/{operator_name}": {
-      "get": {
-        "security": [
-          {
-            "userAuth": [
-              "admin",
-              "read-only-admin",
-              "user"
-            ]
-          }
-        ],
-        "description": "Lists properties for an operator.",
-        "tags": [
-          "operators"
-        ],
-        "operationId": "ListOperatorProperties",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "The operator name.",
-            "name": "operator_name",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Success.",
-            "schema": {
-              "$ref": "#/definitions/operator-properties"
-            }
-          },
-          "401": {
-            "description": "Unauthorized.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "403": {
-            "description": "Forbidden.",
-            "schema": {
-              "$ref": "#/definitions/infra_error"
-            }
-          },
-          "404": {
-            "description": "Error.",
-            "schema": {
-              "$ref": "#/definitions/error"
-            }
-          },
-          "500": {
-            "description": "Error.",
             "schema": {
               "$ref": "#/definitions/error"
             }

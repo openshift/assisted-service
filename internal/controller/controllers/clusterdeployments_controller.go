@@ -1199,7 +1199,7 @@ func (r *ClusterDeploymentsReconciler) populateLogsURL(log logrus.FieldLogger, c
 }
 
 func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, clusterId string) (string, error) {
-	eventsURL := fmt.Sprintf("%s%s/clusters/%s/events", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
+	eventsURL := fmt.Sprintf("%s%s/v1/clusters/%s/events", r.ServiceBaseURL, restclient.DefaultBasePath, clusterId)
 	if r.AuthType != auth.TypeLocal {
 		return eventsURL, nil
 	}
@@ -1558,7 +1558,7 @@ func (r *ClusterDeploymentsReconciler) setControllerLogsDownloadURL(
 }
 
 func (r *ClusterDeploymentsReconciler) generateControllerLogsDownloadURL(cluster *common.Cluster) (string, error) {
-	downloadURL := fmt.Sprintf("%s%s/clusters/%s/logs",
+	downloadURL := fmt.Sprintf("%s%s/v1/clusters/%s/logs",
 		r.ServiceBaseURL, restclient.DefaultBasePath, cluster.ID.String())
 
 	if r.AuthType != auth.TypeLocal {

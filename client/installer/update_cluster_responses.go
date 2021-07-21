@@ -91,7 +91,7 @@ type UpdateClusterCreated struct {
 }
 
 func (o *UpdateClusterCreated) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterCreated  %+v", 201, o.Payload)
 }
 
 func (o *UpdateClusterCreated) GetPayload() *models.Cluster {
@@ -124,7 +124,7 @@ type UpdateClusterBadRequest struct {
 }
 
 func (o *UpdateClusterBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *UpdateClusterBadRequest) GetPayload() *models.Error {
@@ -157,7 +157,7 @@ type UpdateClusterUnauthorized struct {
 }
 
 func (o *UpdateClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateClusterUnauthorized) GetPayload() *models.InfraError {
@@ -190,7 +190,7 @@ type UpdateClusterForbidden struct {
 }
 
 func (o *UpdateClusterForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateClusterForbidden) GetPayload() *models.InfraError {
@@ -223,7 +223,7 @@ type UpdateClusterNotFound struct {
 }
 
 func (o *UpdateClusterNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateClusterNotFound) GetPayload() *models.Error {
@@ -256,7 +256,7 @@ type UpdateClusterMethodNotAllowed struct {
 }
 
 func (o *UpdateClusterMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -289,7 +289,7 @@ type UpdateClusterConflict struct {
 }
 
 func (o *UpdateClusterConflict) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *UpdateClusterConflict) GetPayload() *models.Error {
@@ -322,7 +322,7 @@ type UpdateClusterInternalServerError struct {
 }
 
 func (o *UpdateClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}][%d] updateClusterInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}][%d] updateClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateClusterInternalServerError) GetPayload() *models.Error {

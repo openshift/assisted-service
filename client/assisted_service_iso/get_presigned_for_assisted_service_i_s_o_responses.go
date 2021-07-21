@@ -73,7 +73,7 @@ type GetPresignedForAssistedServiceISOOK struct {
 }
 
 func (o *GetPresignedForAssistedServiceISOOK) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOOK  %+v", 200, o.Payload)
 }
 
 func (o *GetPresignedForAssistedServiceISOOK) GetPayload() *models.Presigned {
@@ -106,7 +106,7 @@ type GetPresignedForAssistedServiceISOUnauthorized struct {
 }
 
 func (o *GetPresignedForAssistedServiceISOUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetPresignedForAssistedServiceISOUnauthorized) GetPayload() *models.InfraError {
@@ -139,7 +139,7 @@ type GetPresignedForAssistedServiceISOForbidden struct {
 }
 
 func (o *GetPresignedForAssistedServiceISOForbidden) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetPresignedForAssistedServiceISOForbidden) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type GetPresignedForAssistedServiceISONotFound struct {
 }
 
 func (o *GetPresignedForAssistedServiceISONotFound) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISONotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISONotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetPresignedForAssistedServiceISONotFound) GetPayload() *models.Error {
@@ -205,7 +205,7 @@ type GetPresignedForAssistedServiceISOInternalServerError struct {
 }
 
 func (o *GetPresignedForAssistedServiceISOInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/assisted-service-iso/presigned][%d] getPresignedForAssistedServiceISOInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetPresignedForAssistedServiceISOInternalServerError) GetPayload() *models.Error {

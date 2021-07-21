@@ -57,7 +57,7 @@ func (a *Client) ListOfClusterOperators(ctx context.Context, params *ListOfClust
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListOfClusterOperators",
 		Method:             "GET",
-		PathPattern:        "/clusters/{cluster_id}/monitored_operators",
+		PathPattern:        "/v1/clusters/{cluster_id}/monitored_operators",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -82,7 +82,7 @@ func (a *Client) ListOperatorProperties(ctx context.Context, params *ListOperato
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListOperatorProperties",
 		Method:             "GET",
-		PathPattern:        "/supported-operators/{operator_name}",
+		PathPattern:        "/v1/supported-operators/{operator_name}",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -107,7 +107,7 @@ func (a *Client) ListSupportedOperators(ctx context.Context, params *ListSupport
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ListSupportedOperators",
 		Method:             "GET",
-		PathPattern:        "/supported-operators",
+		PathPattern:        "/v1/supported-operators",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},
@@ -132,7 +132,7 @@ func (a *Client) ReportMonitoredOperatorStatus(ctx context.Context, params *Repo
 	result, err := a.transport.Submit(&runtime.ClientOperation{
 		ID:                 "ReportMonitoredOperatorStatus",
 		Method:             "PUT",
-		PathPattern:        "/clusters/{cluster_id}/monitored_operators",
+		PathPattern:        "/v1/clusters/{cluster_id}/monitored_operators",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http", "https"},

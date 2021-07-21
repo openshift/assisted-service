@@ -42,7 +42,7 @@ func (o *CreateClusterManifestURL) SetBasePath(bp string) {
 func (o *CreateClusterManifestURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{cluster_id}/manifests"
+	var _path = "/v1/clusters/{cluster_id}/manifests"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
@@ -53,7 +53,7 @@ func (o *CreateClusterManifestURL) Build() (*url.URL, error) {
 
 	_basePath := o._basePath
 	if _basePath == "" {
-		_basePath = "/api/assisted-install/v1"
+		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 

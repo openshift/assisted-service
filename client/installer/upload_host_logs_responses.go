@@ -78,7 +78,7 @@ type UploadHostLogsNoContent struct {
 }
 
 func (o *UploadHostLogsNoContent) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsNoContent ", 204)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsNoContent ", 204)
 }
 
 func (o *UploadHostLogsNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -100,7 +100,7 @@ type UploadHostLogsUnauthorized struct {
 }
 
 func (o *UploadHostLogsUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UploadHostLogsUnauthorized) GetPayload() *models.InfraError {
@@ -133,7 +133,7 @@ type UploadHostLogsForbidden struct {
 }
 
 func (o *UploadHostLogsForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UploadHostLogsForbidden) GetPayload() *models.InfraError {
@@ -166,7 +166,7 @@ type UploadHostLogsNotFound struct {
 }
 
 func (o *UploadHostLogsNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UploadHostLogsNotFound) GetPayload() *models.Error {
@@ -199,7 +199,7 @@ type UploadHostLogsInternalServerError struct {
 }
 
 func (o *UploadHostLogsInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UploadHostLogsInternalServerError) GetPayload() *models.Error {
@@ -232,7 +232,7 @@ type UploadHostLogsServiceUnavailable struct {
 }
 
 func (o *UploadHostLogsServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts/{host_id}/logs][%d] uploadHostLogsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *UploadHostLogsServiceUnavailable) GetPayload() *models.Error {

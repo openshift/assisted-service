@@ -29,7 +29,7 @@ func NewEnableHost(ctx *middleware.Context, handler EnableHostHandler) *EnableHo
 	return &EnableHost{Context: ctx, Handler: handler}
 }
 
-/*EnableHost swagger:route POST /clusters/{cluster_id}/hosts/{host_id}/actions/enable installer enableHost
+/*EnableHost swagger:route POST /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable installer enableHost
 
 Enables a host for inclusion in the cluster.
 

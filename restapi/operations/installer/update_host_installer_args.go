@@ -29,7 +29,7 @@ func NewUpdateHostInstallerArgs(ctx *middleware.Context, handler UpdateHostInsta
 	return &UpdateHostInstallerArgs{Context: ctx, Handler: handler}
 }
 
-/*UpdateHostInstallerArgs swagger:route PATCH /clusters/{cluster_id}/hosts/{host_id}/installer-args installer updateHostInstallerArgs
+/*UpdateHostInstallerArgs swagger:route PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/installer-args installer updateHostInstallerArgs
 
 Updates a host's installer arguments.
 

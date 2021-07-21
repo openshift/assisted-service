@@ -79,7 +79,7 @@ type GetHostOK struct {
 }
 
 func (o *GetHostOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostOK  %+v", 200, o.Payload)
 }
 
 func (o *GetHostOK) GetPayload() *models.Host {
@@ -112,7 +112,7 @@ type GetHostUnauthorized struct {
 }
 
 func (o *GetHostUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetHostUnauthorized) GetPayload() *models.InfraError {
@@ -145,7 +145,7 @@ type GetHostForbidden struct {
 }
 
 func (o *GetHostForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetHostForbidden) GetPayload() *models.InfraError {
@@ -178,7 +178,7 @@ type GetHostNotFound struct {
 }
 
 func (o *GetHostNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetHostNotFound) GetPayload() *models.Error {
@@ -211,7 +211,7 @@ type GetHostMethodNotAllowed struct {
 }
 
 func (o *GetHostMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetHostMethodNotAllowed) GetPayload() *models.Error {
@@ -244,7 +244,7 @@ type GetHostInternalServerError struct {
 }
 
 func (o *GetHostInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}][%d] getHostInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}][%d] getHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetHostInternalServerError) GetPayload() *models.Error {

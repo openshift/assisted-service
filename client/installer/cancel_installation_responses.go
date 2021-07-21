@@ -85,7 +85,7 @@ type CancelInstallationAccepted struct {
 }
 
 func (o *CancelInstallationAccepted) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationAccepted  %+v", 202, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/cancel][%d] cancelInstallationAccepted  %+v", 202, o.Payload)
 }
 
 func (o *CancelInstallationAccepted) GetPayload() *models.Cluster {
@@ -118,7 +118,7 @@ type CancelInstallationUnauthorized struct {
 }
 
 func (o *CancelInstallationUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/cancel][%d] cancelInstallationUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *CancelInstallationUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type CancelInstallationForbidden struct {
 }
 
 func (o *CancelInstallationForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/cancel][%d] cancelInstallationForbidden  %+v", 403, o.Payload)
 }
 
 func (o *CancelInstallationForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type CancelInstallationNotFound struct {
 }
 
 func (o *CancelInstallationNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/cancel][%d] cancelInstallationNotFound  %+v", 404, o.Payload)
 }
 
 func (o *CancelInstallationNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type CancelInstallationMethodNotAllowed struct {
 }
 
 func (o *CancelInstallationMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/cancel][%d] cancelInstallationMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *CancelInstallationMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type CancelInstallationConflict struct {
 }
 
 func (o *CancelInstallationConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/cancel][%d] cancelInstallationConflict  %+v", 409, o.Payload)
 }
 
 func (o *CancelInstallationConflict) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type CancelInstallationInternalServerError struct {
 }
 
 func (o *CancelInstallationInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/actions/cancel][%d] cancelInstallationInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/actions/cancel][%d] cancelInstallationInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *CancelInstallationInternalServerError) GetPayload() *models.Error {

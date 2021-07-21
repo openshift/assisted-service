@@ -85,7 +85,7 @@ type ListClusterManifestsOK struct {
 }
 
 func (o *ListClusterManifestsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests][%d] listClusterManifestsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListClusterManifestsOK) GetPayload() models.ListManifests {
@@ -116,7 +116,7 @@ type ListClusterManifestsUnauthorized struct {
 }
 
 func (o *ListClusterManifestsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests][%d] listClusterManifestsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListClusterManifestsUnauthorized) GetPayload() *models.InfraError {
@@ -149,7 +149,7 @@ type ListClusterManifestsForbidden struct {
 }
 
 func (o *ListClusterManifestsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests][%d] listClusterManifestsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListClusterManifestsForbidden) GetPayload() *models.InfraError {
@@ -182,7 +182,7 @@ type ListClusterManifestsNotFound struct {
 }
 
 func (o *ListClusterManifestsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests][%d] listClusterManifestsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ListClusterManifestsNotFound) GetPayload() *models.Error {
@@ -215,7 +215,7 @@ type ListClusterManifestsMethodNotAllowed struct {
 }
 
 func (o *ListClusterManifestsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests][%d] listClusterManifestsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListClusterManifestsMethodNotAllowed) GetPayload() *models.Error {
@@ -248,7 +248,7 @@ type ListClusterManifestsConflict struct {
 }
 
 func (o *ListClusterManifestsConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests][%d] listClusterManifestsConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsConflict  %+v", 409, o.Payload)
 }
 
 func (o *ListClusterManifestsConflict) GetPayload() *models.Error {
@@ -281,7 +281,7 @@ type ListClusterManifestsInternalServerError struct {
 }
 
 func (o *ListClusterManifestsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests][%d] listClusterManifestsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests][%d] listClusterManifestsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListClusterManifestsInternalServerError) GetPayload() *models.Error {

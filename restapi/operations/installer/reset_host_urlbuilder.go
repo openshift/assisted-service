@@ -43,7 +43,7 @@ func (o *ResetHostURL) SetBasePath(bp string) {
 func (o *ResetHostURL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/clusters/{cluster_id}/hosts/{host_id}/actions/reset"
+	var _path = "/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset"
 
 	clusterID := o.ClusterID.String()
 	if clusterID != "" {
@@ -61,7 +61,7 @@ func (o *ResetHostURL) Build() (*url.URL, error) {
 
 	_basePath := o._basePath
 	if _basePath == "" {
-		_basePath = "/api/assisted-install/v1"
+		_basePath = "/api/assisted-install"
 	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 

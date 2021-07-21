@@ -55,7 +55,7 @@ type ListSupportedOpenshiftVersionsOK struct {
 }
 
 func (o *ListSupportedOpenshiftVersionsOK) Error() string {
-	return fmt.Sprintf("[GET /openshift_versions][%d] listSupportedOpenshiftVersionsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/openshift_versions][%d] listSupportedOpenshiftVersionsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListSupportedOpenshiftVersionsOK) GetPayload() models.OpenshiftVersions {
@@ -86,7 +86,7 @@ type ListSupportedOpenshiftVersionsServiceUnavailable struct {
 }
 
 func (o *ListSupportedOpenshiftVersionsServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /openshift_versions][%d] listSupportedOpenshiftVersionsServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[GET /v1/openshift_versions][%d] listSupportedOpenshiftVersionsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *ListSupportedOpenshiftVersionsServiceUnavailable) GetPayload() *models.Error {

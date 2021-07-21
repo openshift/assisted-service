@@ -91,7 +91,7 @@ type GenerateClusterISOCreated struct {
 }
 
 func (o *GenerateClusterISOCreated) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOCreated  %+v", 201, o.Payload)
 }
 
 func (o *GenerateClusterISOCreated) GetPayload() *models.Cluster {
@@ -124,7 +124,7 @@ type GenerateClusterISOBadRequest struct {
 }
 
 func (o *GenerateClusterISOBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GenerateClusterISOBadRequest) GetPayload() *models.Error {
@@ -157,7 +157,7 @@ type GenerateClusterISOUnauthorized struct {
 }
 
 func (o *GenerateClusterISOUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GenerateClusterISOUnauthorized) GetPayload() *models.InfraError {
@@ -190,7 +190,7 @@ type GenerateClusterISOForbidden struct {
 }
 
 func (o *GenerateClusterISOForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GenerateClusterISOForbidden) GetPayload() *models.InfraError {
@@ -223,7 +223,7 @@ type GenerateClusterISONotFound struct {
 }
 
 func (o *GenerateClusterISONotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISONotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISONotFound  %+v", 404, o.Payload)
 }
 
 func (o *GenerateClusterISONotFound) GetPayload() *models.Error {
@@ -256,7 +256,7 @@ type GenerateClusterISOMethodNotAllowed struct {
 }
 
 func (o *GenerateClusterISOMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GenerateClusterISOMethodNotAllowed) GetPayload() *models.Error {
@@ -289,7 +289,7 @@ type GenerateClusterISOConflict struct {
 }
 
 func (o *GenerateClusterISOConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOConflict  %+v", 409, o.Payload)
 }
 
 func (o *GenerateClusterISOConflict) GetPayload() *models.Error {
@@ -322,7 +322,7 @@ type GenerateClusterISOInternalServerError struct {
 }
 
 func (o *GenerateClusterISOInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/downloads/image][%d] generateClusterISOInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/downloads/image][%d] generateClusterISOInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GenerateClusterISOInternalServerError) GetPayload() *models.Error {

@@ -96,7 +96,7 @@ type ReportMonitoredOperatorStatusOK struct {
 }
 
 func (o *ReportMonitoredOperatorStatusOK) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusOK ", 200)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusOK ", 200)
 }
 
 func (o *ReportMonitoredOperatorStatusOK) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -118,7 +118,7 @@ type ReportMonitoredOperatorStatusBadRequest struct {
 }
 
 func (o *ReportMonitoredOperatorStatusBadRequest) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusBadRequest) GetPayload() *models.Error {
@@ -151,7 +151,7 @@ type ReportMonitoredOperatorStatusUnauthorized struct {
 }
 
 func (o *ReportMonitoredOperatorStatusUnauthorized) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusUnauthorized) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type ReportMonitoredOperatorStatusForbidden struct {
 }
 
 func (o *ReportMonitoredOperatorStatusForbidden) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusForbidden) GetPayload() *models.InfraError {
@@ -217,7 +217,7 @@ type ReportMonitoredOperatorStatusNotFound struct {
 }
 
 func (o *ReportMonitoredOperatorStatusNotFound) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusNotFound) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type ReportMonitoredOperatorStatusMethodNotAllowed struct {
 }
 
 func (o *ReportMonitoredOperatorStatusMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusMethodNotAllowed) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type ReportMonitoredOperatorStatusConflict struct {
 }
 
 func (o *ReportMonitoredOperatorStatusConflict) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusConflict  %+v", 409, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusConflict) GetPayload() *models.Error {
@@ -316,7 +316,7 @@ type ReportMonitoredOperatorStatusInternalServerError struct {
 }
 
 func (o *ReportMonitoredOperatorStatusInternalServerError) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusInternalServerError) GetPayload() *models.Error {
@@ -349,7 +349,7 @@ type ReportMonitoredOperatorStatusServiceUnavailable struct {
 }
 
 func (o *ReportMonitoredOperatorStatusServiceUnavailable) Error() string {
-	return fmt.Sprintf("[PUT /clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[PUT /v1/clusters/{cluster_id}/monitored_operators][%d] reportMonitoredOperatorStatusServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *ReportMonitoredOperatorStatusServiceUnavailable) GetPayload() *models.Error {

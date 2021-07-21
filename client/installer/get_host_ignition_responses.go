@@ -85,7 +85,7 @@ type GetHostIgnitionOK struct {
 }
 
 func (o *GetHostIgnitionOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionOK  %+v", 200, o.Payload)
 }
 
 func (o *GetHostIgnitionOK) GetPayload() *models.HostIgnitionParams {
@@ -118,7 +118,7 @@ type GetHostIgnitionUnauthorized struct {
 }
 
 func (o *GetHostIgnitionUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetHostIgnitionUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type GetHostIgnitionForbidden struct {
 }
 
 func (o *GetHostIgnitionForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetHostIgnitionForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type GetHostIgnitionNotFound struct {
 }
 
 func (o *GetHostIgnitionNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetHostIgnitionNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type GetHostIgnitionMethodNotAllowed struct {
 }
 
 func (o *GetHostIgnitionMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetHostIgnitionMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type GetHostIgnitionConflict struct {
 }
 
 func (o *GetHostIgnitionConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionConflict  %+v", 409, o.Payload)
 }
 
 func (o *GetHostIgnitionConflict) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type GetHostIgnitionInternalServerError struct {
 }
 
 func (o *GetHostIgnitionInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/ignition][%d] getHostIgnitionInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetHostIgnitionInternalServerError) GetPayload() *models.Error {

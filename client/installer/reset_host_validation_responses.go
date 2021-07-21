@@ -85,7 +85,7 @@ type ResetHostValidationOK struct {
 }
 
 func (o *ResetHostValidationOK) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationOK  %+v", 200, o.Payload)
 }
 
 func (o *ResetHostValidationOK) GetPayload() *models.Host {
@@ -118,7 +118,7 @@ type ResetHostValidationBadRequest struct {
 }
 
 func (o *ResetHostValidationBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *ResetHostValidationBadRequest) GetPayload() *models.Error {
@@ -151,7 +151,7 @@ type ResetHostValidationUnauthorized struct {
 }
 
 func (o *ResetHostValidationUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ResetHostValidationUnauthorized) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type ResetHostValidationForbidden struct {
 }
 
 func (o *ResetHostValidationForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ResetHostValidationForbidden) GetPayload() *models.InfraError {
@@ -217,7 +217,7 @@ type ResetHostValidationNotFound struct {
 }
 
 func (o *ResetHostValidationNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ResetHostValidationNotFound) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type ResetHostValidationConflict struct {
 }
 
 func (o *ResetHostValidationConflict) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationConflict  %+v", 409, o.Payload)
 }
 
 func (o *ResetHostValidationConflict) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type ResetHostValidationInternalServerError struct {
 }
 
 func (o *ResetHostValidationInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}][%d] resetHostValidationInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ResetHostValidationInternalServerError) GetPayload() *models.Error {

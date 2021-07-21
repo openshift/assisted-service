@@ -29,7 +29,7 @@ func NewGenerateClusterISO(ctx *middleware.Context, handler GenerateClusterISOHa
 	return &GenerateClusterISO{Context: ctx, Handler: handler}
 }
 
-/*GenerateClusterISO swagger:route POST /clusters/{cluster_id}/downloads/image installer generateClusterISO
+/*GenerateClusterISO swagger:route POST /v1/clusters/{cluster_id}/downloads/image installer generateClusterISO
 
 Creates a new OpenShift per-cluster Discovery ISO.
 

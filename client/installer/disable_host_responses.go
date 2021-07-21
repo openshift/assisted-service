@@ -85,7 +85,7 @@ type DisableHostOK struct {
 }
 
 func (o *DisableHostOK) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostOK  %+v", 200, o.Payload)
 }
 
 func (o *DisableHostOK) GetPayload() *models.Cluster {
@@ -118,7 +118,7 @@ type DisableHostUnauthorized struct {
 }
 
 func (o *DisableHostUnauthorized) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DisableHostUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type DisableHostForbidden struct {
 }
 
 func (o *DisableHostForbidden) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DisableHostForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type DisableHostNotFound struct {
 }
 
 func (o *DisableHostNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DisableHostNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type DisableHostMethodNotAllowed struct {
 }
 
 func (o *DisableHostMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DisableHostMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type DisableHostConflict struct {
 }
 
 func (o *DisableHostConflict) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *DisableHostConflict) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type DisableHostInternalServerError struct {
 }
 
 func (o *DisableHostInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable][%d] disableHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DisableHostInternalServerError) GetPayload() *models.Error {

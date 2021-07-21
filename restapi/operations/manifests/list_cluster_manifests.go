@@ -29,7 +29,7 @@ func NewListClusterManifests(ctx *middleware.Context, handler ListClusterManifes
 	return &ListClusterManifests{Context: ctx, Handler: handler}
 }
 
-/*ListClusterManifests swagger:route GET /clusters/{cluster_id}/manifests manifests listClusterManifests
+/*ListClusterManifests swagger:route GET /v1/clusters/{cluster_id}/manifests manifests listClusterManifests
 
 Lists manifests for customizing cluster installation.
 

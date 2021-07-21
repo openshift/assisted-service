@@ -85,7 +85,7 @@ type GetNextStepsOK struct {
 }
 
 func (o *GetNextStepsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsOK  %+v", 200, o.Payload)
 }
 
 func (o *GetNextStepsOK) GetPayload() *models.Steps {
@@ -118,7 +118,7 @@ type GetNextStepsUnauthorized struct {
 }
 
 func (o *GetNextStepsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetNextStepsUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type GetNextStepsForbidden struct {
 }
 
 func (o *GetNextStepsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetNextStepsForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type GetNextStepsNotFound struct {
 }
 
 func (o *GetNextStepsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetNextStepsNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type GetNextStepsMethodNotAllowed struct {
 }
 
 func (o *GetNextStepsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetNextStepsMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type GetNextStepsInternalServerError struct {
 }
 
 func (o *GetNextStepsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetNextStepsInternalServerError) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type GetNextStepsServiceUnavailable struct {
 }
 
 func (o *GetNextStepsServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/hosts/{host_id}/instructions][%d] getNextStepsServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetNextStepsServiceUnavailable) GetPayload() *models.Error {

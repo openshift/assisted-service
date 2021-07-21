@@ -84,7 +84,7 @@ type UpdateClusterInstallConfigCreated struct {
 }
 
 func (o *UpdateClusterInstallConfigCreated) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigCreated ", 201)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigCreated ", 201)
 }
 
 func (o *UpdateClusterInstallConfigCreated) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -106,7 +106,7 @@ type UpdateClusterInstallConfigBadRequest struct {
 }
 
 func (o *UpdateClusterInstallConfigBadRequest) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *UpdateClusterInstallConfigBadRequest) GetPayload() *models.Error {
@@ -139,7 +139,7 @@ type UpdateClusterInstallConfigUnauthorized struct {
 }
 
 func (o *UpdateClusterInstallConfigUnauthorized) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *UpdateClusterInstallConfigUnauthorized) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type UpdateClusterInstallConfigForbidden struct {
 }
 
 func (o *UpdateClusterInstallConfigForbidden) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigForbidden  %+v", 403, o.Payload)
 }
 
 func (o *UpdateClusterInstallConfigForbidden) GetPayload() *models.InfraError {
@@ -205,7 +205,7 @@ type UpdateClusterInstallConfigNotFound struct {
 }
 
 func (o *UpdateClusterInstallConfigNotFound) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigNotFound  %+v", 404, o.Payload)
 }
 
 func (o *UpdateClusterInstallConfigNotFound) GetPayload() *models.Error {
@@ -238,7 +238,7 @@ type UpdateClusterInstallConfigMethodNotAllowed struct {
 }
 
 func (o *UpdateClusterInstallConfigMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *UpdateClusterInstallConfigMethodNotAllowed) GetPayload() *models.Error {
@@ -271,7 +271,7 @@ type UpdateClusterInstallConfigInternalServerError struct {
 }
 
 func (o *UpdateClusterInstallConfigInternalServerError) Error() string {
-	return fmt.Sprintf("[PATCH /clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[PATCH /v1/clusters/{cluster_id}/install-config][%d] updateClusterInstallConfigInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *UpdateClusterInstallConfigInternalServerError) GetPayload() *models.Error {

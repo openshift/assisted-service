@@ -91,7 +91,7 @@ type GetPresignedForClusterFilesOK struct {
 }
 
 func (o *GetPresignedForClusterFilesOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesOK  %+v", 200, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesOK) GetPayload() *models.Presigned {
@@ -124,7 +124,7 @@ type GetPresignedForClusterFilesBadRequest struct {
 }
 
 func (o *GetPresignedForClusterFilesBadRequest) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesBadRequest) GetPayload() *models.Error {
@@ -157,7 +157,7 @@ type GetPresignedForClusterFilesUnauthorized struct {
 }
 
 func (o *GetPresignedForClusterFilesUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesUnauthorized) GetPayload() *models.InfraError {
@@ -190,7 +190,7 @@ type GetPresignedForClusterFilesForbidden struct {
 }
 
 func (o *GetPresignedForClusterFilesForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesForbidden) GetPayload() *models.InfraError {
@@ -223,7 +223,7 @@ type GetPresignedForClusterFilesNotFound struct {
 }
 
 func (o *GetPresignedForClusterFilesNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesNotFound) GetPayload() *models.Error {
@@ -256,7 +256,7 @@ type GetPresignedForClusterFilesMethodNotAllowed struct {
 }
 
 func (o *GetPresignedForClusterFilesMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesMethodNotAllowed) GetPayload() *models.Error {
@@ -289,7 +289,7 @@ type GetPresignedForClusterFilesConflict struct {
 }
 
 func (o *GetPresignedForClusterFilesConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesConflict  %+v", 409, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesConflict) GetPayload() *models.Error {
@@ -322,7 +322,7 @@ type GetPresignedForClusterFilesInternalServerError struct {
 }
 
 func (o *GetPresignedForClusterFilesInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/downloads/files-presigned][%d] getPresignedForClusterFilesInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetPresignedForClusterFilesInternalServerError) GetPayload() *models.Error {

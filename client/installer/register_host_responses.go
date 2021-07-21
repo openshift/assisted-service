@@ -97,7 +97,7 @@ type RegisterHostCreated struct {
 }
 
 func (o *RegisterHostCreated) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostCreated  %+v", 201, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostCreated  %+v", 201, o.Payload)
 }
 
 func (o *RegisterHostCreated) GetPayload() *models.HostRegistrationResponse {
@@ -130,7 +130,7 @@ type RegisterHostBadRequest struct {
 }
 
 func (o *RegisterHostBadRequest) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostBadRequest  %+v", 400, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostBadRequest  %+v", 400, o.Payload)
 }
 
 func (o *RegisterHostBadRequest) GetPayload() *models.Error {
@@ -163,7 +163,7 @@ type RegisterHostUnauthorized struct {
 }
 
 func (o *RegisterHostUnauthorized) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *RegisterHostUnauthorized) GetPayload() *models.InfraError {
@@ -196,7 +196,7 @@ type RegisterHostForbidden struct {
 }
 
 func (o *RegisterHostForbidden) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostForbidden  %+v", 403, o.Payload)
 }
 
 func (o *RegisterHostForbidden) GetPayload() *models.InfraError {
@@ -229,7 +229,7 @@ type RegisterHostNotFound struct {
 }
 
 func (o *RegisterHostNotFound) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostNotFound  %+v", 404, o.Payload)
 }
 
 func (o *RegisterHostNotFound) GetPayload() *models.Error {
@@ -262,7 +262,7 @@ type RegisterHostMethodNotAllowed struct {
 }
 
 func (o *RegisterHostMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *RegisterHostMethodNotAllowed) GetPayload() *models.Error {
@@ -295,7 +295,7 @@ type RegisterHostConflict struct {
 }
 
 func (o *RegisterHostConflict) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostConflict  %+v", 409, o.Payload)
 }
 
 func (o *RegisterHostConflict) GetPayload() *models.Error {
@@ -328,7 +328,7 @@ type RegisterHostInternalServerError struct {
 }
 
 func (o *RegisterHostInternalServerError) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *RegisterHostInternalServerError) GetPayload() *models.Error {
@@ -361,7 +361,7 @@ type RegisterHostServiceUnavailable struct {
 }
 
 func (o *RegisterHostServiceUnavailable) Error() string {
-	return fmt.Sprintf("[POST /clusters/{cluster_id}/hosts][%d] registerHostServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[POST /v1/clusters/{cluster_id}/hosts][%d] registerHostServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *RegisterHostServiceUnavailable) GetPayload() *models.Error {

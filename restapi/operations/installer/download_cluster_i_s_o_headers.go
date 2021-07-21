@@ -29,7 +29,7 @@ func NewDownloadClusterISOHeaders(ctx *middleware.Context, handler DownloadClust
 	return &DownloadClusterISOHeaders{Context: ctx, Handler: handler}
 }
 
-/*DownloadClusterISOHeaders swagger:route HEAD /clusters/{cluster_id}/downloads/image installer downloadClusterISOHeaders
+/*DownloadClusterISOHeaders swagger:route HEAD /v1/clusters/{cluster_id}/downloads/image installer downloadClusterISOHeaders
 
 Downloads the OpenShift per-cluster Discovery ISO Headers only.
 

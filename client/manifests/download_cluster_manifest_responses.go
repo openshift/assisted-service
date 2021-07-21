@@ -88,7 +88,7 @@ type DownloadClusterManifestOK struct {
 }
 
 func (o *DownloadClusterManifestOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestOK  %+v", 200, o.Payload)
 }
 
 func (o *DownloadClusterManifestOK) GetPayload() io.Writer {
@@ -119,7 +119,7 @@ type DownloadClusterManifestUnauthorized struct {
 }
 
 func (o *DownloadClusterManifestUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DownloadClusterManifestUnauthorized) GetPayload() *models.InfraError {
@@ -152,7 +152,7 @@ type DownloadClusterManifestForbidden struct {
 }
 
 func (o *DownloadClusterManifestForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DownloadClusterManifestForbidden) GetPayload() *models.InfraError {
@@ -185,7 +185,7 @@ type DownloadClusterManifestNotFound struct {
 }
 
 func (o *DownloadClusterManifestNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DownloadClusterManifestNotFound) GetPayload() *models.Error {
@@ -218,7 +218,7 @@ type DownloadClusterManifestMethodNotAllowed struct {
 }
 
 func (o *DownloadClusterManifestMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DownloadClusterManifestMethodNotAllowed) GetPayload() *models.Error {
@@ -251,7 +251,7 @@ type DownloadClusterManifestConflict struct {
 }
 
 func (o *DownloadClusterManifestConflict) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestConflict  %+v", 409, o.Payload)
 }
 
 func (o *DownloadClusterManifestConflict) GetPayload() *models.Error {
@@ -284,7 +284,7 @@ type DownloadClusterManifestInternalServerError struct {
 }
 
 func (o *DownloadClusterManifestInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/manifests/files][%d] downloadClusterManifestInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DownloadClusterManifestInternalServerError) GetPayload() *models.Error {

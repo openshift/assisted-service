@@ -846,263 +846,263 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/actions/cancel"] = installer.NewCancelInstallation(o.context, o.InstallerCancelInstallationHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/cancel"] = installer.NewCancelInstallation(o.context, o.InstallerCancelInstallationHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/actions/complete_installation"] = installer.NewCompleteInstallation(o.context, o.InstallerCompleteInstallationHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/complete_installation"] = installer.NewCompleteInstallation(o.context, o.InstallerCompleteInstallationHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/manifests"] = manifests.NewCreateClusterManifest(o.context, o.ManifestsCreateClusterManifestHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/manifests"] = manifests.NewCreateClusterManifest(o.context, o.ManifestsCreateClusterManifestHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/assisted-service-iso"] = assisted_service_iso.NewCreateISOAndUploadToS3(o.context, o.AssistedServiceIsoCreateISOAndUploadToS3Handler)
+	o.handlers["POST"]["/v1/assisted-service-iso"] = assisted_service_iso.NewCreateISOAndUploadToS3(o.context, o.AssistedServiceIsoCreateISOAndUploadToS3Handler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{cluster_id}/manifests"] = manifests.NewDeleteClusterManifest(o.context, o.ManifestsDeleteClusterManifestHandler)
+	o.handlers["DELETE"]["/v1/clusters/{cluster_id}/manifests"] = manifests.NewDeleteClusterManifest(o.context, o.ManifestsDeleteClusterManifestHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{cluster_id}"] = installer.NewDeregisterCluster(o.context, o.InstallerDeregisterClusterHandler)
+	o.handlers["DELETE"]["/v1/clusters/{cluster_id}"] = installer.NewDeregisterCluster(o.context, o.InstallerDeregisterClusterHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewDeregisterHost(o.context, o.InstallerDeregisterHostHandler)
+	o.handlers["DELETE"]["/v1/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewDeregisterHost(o.context, o.InstallerDeregisterHostHandler)
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewDisableHost(o.context, o.InstallerDisableHostHandler)
+	o.handlers["DELETE"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewDisableHost(o.context, o.InstallerDisableHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/downloads/files"] = installer.NewDownloadClusterFiles(o.context, o.InstallerDownloadClusterFilesHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/files"] = installer.NewDownloadClusterFiles(o.context, o.InstallerDownloadClusterFilesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISO(o.context, o.InstallerDownloadClusterISOHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISO(o.context, o.InstallerDownloadClusterISOHandler)
 	if o.handlers["HEAD"] == nil {
 		o.handlers["HEAD"] = make(map[string]http.Handler)
 	}
-	o.handlers["HEAD"]["/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISOHeaders(o.context, o.InstallerDownloadClusterISOHeadersHandler)
+	o.handlers["HEAD"]["/v1/clusters/{cluster_id}/downloads/image"] = installer.NewDownloadClusterISOHeaders(o.context, o.InstallerDownloadClusterISOHeadersHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/downloads/kubeconfig"] = installer.NewDownloadClusterKubeconfig(o.context, o.InstallerDownloadClusterKubeconfigHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/kubeconfig"] = installer.NewDownloadClusterKubeconfig(o.context, o.InstallerDownloadClusterKubeconfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/logs"] = installer.NewDownloadClusterLogs(o.context, o.InstallerDownloadClusterLogsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/logs"] = installer.NewDownloadClusterLogs(o.context, o.InstallerDownloadClusterLogsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/manifests/files"] = manifests.NewDownloadClusterManifest(o.context, o.ManifestsDownloadClusterManifestHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/manifests/files"] = manifests.NewDownloadClusterManifest(o.context, o.ManifestsDownloadClusterManifestHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition"] = installer.NewDownloadHostIgnition(o.context, o.InstallerDownloadHostIgnitionHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/downloads/ignition"] = installer.NewDownloadHostIgnition(o.context, o.InstallerDownloadHostIgnitionHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewDownloadHostLogs(o.context, o.InstallerDownloadHostLogsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewDownloadHostLogs(o.context, o.InstallerDownloadHostLogsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/assisted-service-iso/data"] = assisted_service_iso.NewDownloadISO(o.context, o.AssistedServiceIsoDownloadISOHandler)
+	o.handlers["GET"]["/v1/assisted-service-iso/data"] = assisted_service_iso.NewDownloadISO(o.context, o.AssistedServiceIsoDownloadISOHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewEnableHost(o.context, o.InstallerEnableHostHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewEnableHost(o.context, o.InstallerEnableHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/downloads/image"] = installer.NewGenerateClusterISO(o.context, o.InstallerGenerateClusterISOHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/downloads/image"] = installer.NewGenerateClusterISO(o.context, o.InstallerGenerateClusterISOHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}"] = installer.NewGetCluster(o.context, o.InstallerGetClusterHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}"] = installer.NewGetCluster(o.context, o.InstallerGetClusterHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/default-config"] = installer.NewGetClusterDefaultConfig(o.context, o.InstallerGetClusterDefaultConfigHandler)
+	o.handlers["GET"]["/v1/clusters/default-config"] = installer.NewGetClusterDefaultConfig(o.context, o.InstallerGetClusterDefaultConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/host-requirements"] = installer.NewGetClusterHostRequirements(o.context, o.InstallerGetClusterHostRequirementsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/host-requirements"] = installer.NewGetClusterHostRequirements(o.context, o.InstallerGetClusterHostRequirementsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/install-config"] = installer.NewGetClusterInstallConfig(o.context, o.InstallerGetClusterInstallConfigHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/install-config"] = installer.NewGetClusterInstallConfig(o.context, o.InstallerGetClusterInstallConfigHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/credentials"] = installer.NewGetCredentials(o.context, o.InstallerGetCredentialsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/credentials"] = installer.NewGetCredentials(o.context, o.InstallerGetCredentialsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/discovery-ignition"] = installer.NewGetDiscoveryIgnition(o.context, o.InstallerGetDiscoveryIgnitionHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/discovery-ignition"] = installer.NewGetDiscoveryIgnition(o.context, o.InstallerGetDiscoveryIgnitionHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/free_addresses"] = installer.NewGetFreeAddresses(o.context, o.InstallerGetFreeAddressesHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/free_addresses"] = installer.NewGetFreeAddresses(o.context, o.InstallerGetFreeAddressesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewGetHost(o.context, o.InstallerGetHostHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}"] = installer.NewGetHost(o.context, o.InstallerGetHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewGetHostIgnition(o.context, o.InstallerGetHostIgnitionHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewGetHostIgnition(o.context, o.InstallerGetHostIgnitionHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/preflight-requirements"] = installer.NewGetPreflightRequirements(o.context, o.InstallerGetPreflightRequirementsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/preflight-requirements"] = installer.NewGetPreflightRequirements(o.context, o.InstallerGetPreflightRequirementsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/assisted-service-iso/presigned"] = assisted_service_iso.NewGetPresignedForAssistedServiceISO(o.context, o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler)
+	o.handlers["GET"]["/v1/assisted-service-iso/presigned"] = assisted_service_iso.NewGetPresignedForAssistedServiceISO(o.context, o.AssistedServiceIsoGetPresignedForAssistedServiceISOHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/downloads/files-presigned"] = installer.NewGetPresignedForClusterFiles(o.context, o.InstallerGetPresignedForClusterFilesHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/downloads/files-presigned"] = installer.NewGetPresignedForClusterFiles(o.context, o.InstallerGetPresignedForClusterFilesHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/actions/install"] = installer.NewInstallCluster(o.context, o.InstallerInstallClusterHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/install"] = installer.NewInstallCluster(o.context, o.InstallerInstallClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/actions/install"] = installer.NewInstallHost(o.context, o.InstallerInstallHostHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/install"] = installer.NewInstallHost(o.context, o.InstallerInstallHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/actions/install_hosts"] = installer.NewInstallHosts(o.context, o.InstallerInstallHostsHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/install_hosts"] = installer.NewInstallHosts(o.context, o.InstallerInstallHostsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/manifests"] = manifests.NewListClusterManifests(o.context, o.ManifestsListClusterManifestsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/manifests"] = manifests.NewListClusterManifests(o.context, o.ManifestsListClusterManifestsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters"] = installer.NewListClusters(o.context, o.InstallerListClustersHandler)
+	o.handlers["GET"]["/v1/clusters"] = installer.NewListClusters(o.context, o.InstallerListClustersHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/component_versions"] = versions.NewListComponentVersions(o.context, o.VersionsListComponentVersionsHandler)
+	o.handlers["GET"]["/v1/component_versions"] = versions.NewListComponentVersions(o.context, o.VersionsListComponentVersionsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/events"] = events.NewListEvents(o.context, o.EventsListEventsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/events"] = events.NewListEvents(o.context, o.EventsListEventsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/hosts"] = installer.NewListHosts(o.context, o.InstallerListHostsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts"] = installer.NewListHosts(o.context, o.InstallerListHostsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/domains"] = managed_domains.NewListManagedDomains(o.context, o.ManagedDomainsListManagedDomainsHandler)
+	o.handlers["GET"]["/v1/domains"] = managed_domains.NewListManagedDomains(o.context, o.ManagedDomainsListManagedDomainsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/clusters/{cluster_id}/monitored_operators"] = operators.NewListOfClusterOperators(o.context, o.OperatorsListOfClusterOperatorsHandler)
+	o.handlers["GET"]["/v1/clusters/{cluster_id}/monitored_operators"] = operators.NewListOfClusterOperators(o.context, o.OperatorsListOfClusterOperatorsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/supported-operators/{operator_name}"] = operators.NewListOperatorProperties(o.context, o.OperatorsListOperatorPropertiesHandler)
+	o.handlers["GET"]["/v1/supported-operators/{operator_name}"] = operators.NewListOperatorProperties(o.context, o.OperatorsListOperatorPropertiesHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/openshift_versions"] = versions.NewListSupportedOpenshiftVersions(o.context, o.VersionsListSupportedOpenshiftVersionsHandler)
+	o.handlers["GET"]["/v1/openshift_versions"] = versions.NewListSupportedOpenshiftVersions(o.context, o.VersionsListSupportedOpenshiftVersionsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/supported-operators"] = operators.NewListSupportedOperators(o.context, o.OperatorsListSupportedOperatorsHandler)
+	o.handlers["GET"]["/v1/supported-operators"] = operators.NewListSupportedOperators(o.context, o.OperatorsListSupportedOperatorsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewPostStepReply(o.context, o.InstallerPostStepReplyHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewPostStepReply(o.context, o.InstallerPostStepReplyHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/add_hosts_clusters"] = installer.NewRegisterAddHostsCluster(o.context, o.InstallerRegisterAddHostsClusterHandler)
+	o.handlers["POST"]["/v1/add_hosts_clusters"] = installer.NewRegisterAddHostsCluster(o.context, o.InstallerRegisterAddHostsClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters"] = installer.NewRegisterCluster(o.context, o.InstallerRegisterClusterHandler)
+	o.handlers["POST"]["/v1/clusters"] = installer.NewRegisterCluster(o.context, o.InstallerRegisterClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts"] = installer.NewRegisterHost(o.context, o.InstallerRegisterHostHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts"] = installer.NewRegisterHost(o.context, o.InstallerRegisterHostHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
-	o.handlers["PUT"]["/clusters/{cluster_id}/monitored_operators"] = operators.NewReportMonitoredOperatorStatus(o.context, o.OperatorsReportMonitoredOperatorStatusHandler)
+	o.handlers["PUT"]["/v1/clusters/{cluster_id}/monitored_operators"] = operators.NewReportMonitoredOperatorStatus(o.context, o.OperatorsReportMonitoredOperatorStatusHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/actions/reset"] = installer.NewResetCluster(o.context, o.InstallerResetClusterHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/actions/reset"] = installer.NewResetCluster(o.context, o.InstallerResetClusterHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/actions/reset"] = installer.NewResetHost(o.context, o.InstallerResetHostHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset"] = installer.NewResetHost(o.context, o.InstallerResetHostHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}"] = installer.NewResetHostValidation(o.context, o.InstallerResetHostValidationHandler)
+	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/reset-validation/{validation_id}"] = installer.NewResetHostValidation(o.context, o.InstallerResetHostValidationHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/clusters/{cluster_id}"] = installer.NewUpdateCluster(o.context, o.InstallerUpdateClusterHandler)
+	o.handlers["PATCH"]["/v1/clusters/{cluster_id}"] = installer.NewUpdateCluster(o.context, o.InstallerUpdateClusterHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/clusters/{cluster_id}/install-config"] = installer.NewUpdateClusterInstallConfig(o.context, o.InstallerUpdateClusterInstallConfigHandler)
+	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/install-config"] = installer.NewUpdateClusterInstallConfig(o.context, o.InstallerUpdateClusterInstallConfigHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
-	o.handlers["PUT"]["/clusters/{cluster_id}/logs_progress"] = installer.NewUpdateClusterLogsProgress(o.context, o.InstallerUpdateClusterLogsProgressHandler)
+	o.handlers["PUT"]["/v1/clusters/{cluster_id}/logs_progress"] = installer.NewUpdateClusterLogsProgress(o.context, o.InstallerUpdateClusterLogsProgressHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/clusters/{cluster_id}/discovery-ignition"] = installer.NewUpdateDiscoveryIgnition(o.context, o.InstallerUpdateDiscoveryIgnitionHandler)
+	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/discovery-ignition"] = installer.NewUpdateDiscoveryIgnition(o.context, o.InstallerUpdateDiscoveryIgnitionHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewUpdateHostIgnition(o.context, o.InstallerUpdateHostIgnitionHandler)
+	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/ignition"] = installer.NewUpdateHostIgnition(o.context, o.InstallerUpdateHostIgnitionHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
-	o.handlers["PUT"]["/clusters/{cluster_id}/hosts/{host_id}/progress"] = installer.NewUpdateHostInstallProgress(o.context, o.InstallerUpdateHostInstallProgressHandler)
+	o.handlers["PUT"]["/v1/clusters/{cluster_id}/hosts/{host_id}/progress"] = installer.NewUpdateHostInstallProgress(o.context, o.InstallerUpdateHostInstallProgressHandler)
 	if o.handlers["PATCH"] == nil {
 		o.handlers["PATCH"] = make(map[string]http.Handler)
 	}
-	o.handlers["PATCH"]["/clusters/{cluster_id}/hosts/{host_id}/installer-args"] = installer.NewUpdateHostInstallerArgs(o.context, o.InstallerUpdateHostInstallerArgsHandler)
+	o.handlers["PATCH"]["/v1/clusters/{cluster_id}/hosts/{host_id}/installer-args"] = installer.NewUpdateHostInstallerArgs(o.context, o.InstallerUpdateHostInstallerArgsHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
-	o.handlers["PUT"]["/clusters/{cluster_id}/hosts/{host_id}/logs_progress"] = installer.NewUpdateHostLogsProgress(o.context, o.InstallerUpdateHostLogsProgressHandler)
+	o.handlers["PUT"]["/v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress"] = installer.NewUpdateHostLogsProgress(o.context, o.InstallerUpdateHostLogsProgressHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/uploads/ingress-cert"] = installer.NewUploadClusterIngressCert(o.context, o.InstallerUploadClusterIngressCertHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/uploads/ingress-cert"] = installer.NewUploadClusterIngressCert(o.context, o.InstallerUploadClusterIngressCertHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewUploadHostLogs(o.context, o.InstallerUploadHostLogsHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts/{host_id}/logs"] = installer.NewUploadHostLogs(o.context, o.InstallerUploadHostLogsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
+	o.handlers["POST"]["/v1/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/infra-envs"] = installer.NewV2RegisterInfraEnv(o.context, o.InstallerV2RegisterInfraEnvHandler)
+	o.handlers["POST"]["/v2/infra-envs"] = installer.NewV2RegisterInfraEnv(o.context, o.InstallerV2RegisterInfraEnvHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

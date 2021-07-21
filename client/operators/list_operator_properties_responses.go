@@ -73,7 +73,7 @@ type ListOperatorPropertiesOK struct {
 }
 
 func (o *ListOperatorPropertiesOK) Error() string {
-	return fmt.Sprintf("[GET /supported-operators/{operator_name}][%d] listOperatorPropertiesOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesOK  %+v", 200, o.Payload)
 }
 
 func (o *ListOperatorPropertiesOK) GetPayload() models.OperatorProperties {
@@ -104,7 +104,7 @@ type ListOperatorPropertiesUnauthorized struct {
 }
 
 func (o *ListOperatorPropertiesUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /supported-operators/{operator_name}][%d] listOperatorPropertiesUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListOperatorPropertiesUnauthorized) GetPayload() *models.InfraError {
@@ -137,7 +137,7 @@ type ListOperatorPropertiesForbidden struct {
 }
 
 func (o *ListOperatorPropertiesForbidden) Error() string {
-	return fmt.Sprintf("[GET /supported-operators/{operator_name}][%d] listOperatorPropertiesForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListOperatorPropertiesForbidden) GetPayload() *models.InfraError {
@@ -170,7 +170,7 @@ type ListOperatorPropertiesNotFound struct {
 }
 
 func (o *ListOperatorPropertiesNotFound) Error() string {
-	return fmt.Sprintf("[GET /supported-operators/{operator_name}][%d] listOperatorPropertiesNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ListOperatorPropertiesNotFound) GetPayload() *models.Error {
@@ -203,7 +203,7 @@ type ListOperatorPropertiesInternalServerError struct {
 }
 
 func (o *ListOperatorPropertiesInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /supported-operators/{operator_name}][%d] listOperatorPropertiesInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/supported-operators/{operator_name}][%d] listOperatorPropertiesInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListOperatorPropertiesInternalServerError) GetPayload() *models.Error {

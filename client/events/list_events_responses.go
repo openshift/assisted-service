@@ -79,7 +79,7 @@ type ListEventsOK struct {
 }
 
 func (o *ListEventsOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsOK  %+v", 200, o.Payload)
 }
 
 func (o *ListEventsOK) GetPayload() models.EventList {
@@ -110,7 +110,7 @@ type ListEventsUnauthorized struct {
 }
 
 func (o *ListEventsUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *ListEventsUnauthorized) GetPayload() *models.InfraError {
@@ -143,7 +143,7 @@ type ListEventsForbidden struct {
 }
 
 func (o *ListEventsForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsForbidden  %+v", 403, o.Payload)
 }
 
 func (o *ListEventsForbidden) GetPayload() *models.InfraError {
@@ -176,7 +176,7 @@ type ListEventsNotFound struct {
 }
 
 func (o *ListEventsNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsNotFound  %+v", 404, o.Payload)
 }
 
 func (o *ListEventsNotFound) GetPayload() *models.Error {
@@ -209,7 +209,7 @@ type ListEventsMethodNotAllowed struct {
 }
 
 func (o *ListEventsMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *ListEventsMethodNotAllowed) GetPayload() *models.Error {
@@ -242,7 +242,7 @@ type ListEventsInternalServerError struct {
 }
 
 func (o *ListEventsInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}/events][%d] listEventsInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}/events][%d] listEventsInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *ListEventsInternalServerError) GetPayload() *models.Error {

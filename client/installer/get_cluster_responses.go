@@ -85,7 +85,7 @@ type GetClusterOK struct {
 }
 
 func (o *GetClusterOK) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterOK  %+v", 200, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterOK  %+v", 200, o.Payload)
 }
 
 func (o *GetClusterOK) GetPayload() *models.Cluster {
@@ -118,7 +118,7 @@ type GetClusterUnauthorized struct {
 }
 
 func (o *GetClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *GetClusterUnauthorized) GetPayload() *models.InfraError {
@@ -151,7 +151,7 @@ type GetClusterForbidden struct {
 }
 
 func (o *GetClusterForbidden) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *GetClusterForbidden) GetPayload() *models.InfraError {
@@ -184,7 +184,7 @@ type GetClusterNotFound struct {
 }
 
 func (o *GetClusterNotFound) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *GetClusterNotFound) GetPayload() *models.Error {
@@ -217,7 +217,7 @@ type GetClusterMethodNotAllowed struct {
 }
 
 func (o *GetClusterMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *GetClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -250,7 +250,7 @@ type GetClusterInternalServerError struct {
 }
 
 func (o *GetClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *GetClusterInternalServerError) GetPayload() *models.Error {
@@ -283,7 +283,7 @@ type GetClusterServiceUnavailable struct {
 }
 
 func (o *GetClusterServiceUnavailable) Error() string {
-	return fmt.Sprintf("[GET /clusters/{cluster_id}][%d] getClusterServiceUnavailable  %+v", 503, o.Payload)
+	return fmt.Sprintf("[GET /v1/clusters/{cluster_id}][%d] getClusterServiceUnavailable  %+v", 503, o.Payload)
 }
 
 func (o *GetClusterServiceUnavailable) GetPayload() *models.Error {

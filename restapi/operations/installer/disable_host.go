@@ -29,7 +29,7 @@ func NewDisableHost(ctx *middleware.Context, handler DisableHostHandler) *Disabl
 	return &DisableHost{Context: ctx, Handler: handler}
 }
 
-/*DisableHost swagger:route DELETE /clusters/{cluster_id}/hosts/{host_id}/actions/enable installer disableHost
+/*DisableHost swagger:route DELETE /v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable installer disableHost
 
 Disables a host for inclusion in the cluster.
 

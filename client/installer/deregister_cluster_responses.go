@@ -84,7 +84,7 @@ type DeregisterClusterNoContent struct {
 }
 
 func (o *DeregisterClusterNoContent) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterNoContent ", 204)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}][%d] deregisterClusterNoContent ", 204)
 }
 
 func (o *DeregisterClusterNoContent) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
@@ -106,7 +106,7 @@ type DeregisterClusterUnauthorized struct {
 }
 
 func (o *DeregisterClusterUnauthorized) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterUnauthorized  %+v", 401, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}][%d] deregisterClusterUnauthorized  %+v", 401, o.Payload)
 }
 
 func (o *DeregisterClusterUnauthorized) GetPayload() *models.InfraError {
@@ -139,7 +139,7 @@ type DeregisterClusterForbidden struct {
 }
 
 func (o *DeregisterClusterForbidden) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterForbidden  %+v", 403, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}][%d] deregisterClusterForbidden  %+v", 403, o.Payload)
 }
 
 func (o *DeregisterClusterForbidden) GetPayload() *models.InfraError {
@@ -172,7 +172,7 @@ type DeregisterClusterNotFound struct {
 }
 
 func (o *DeregisterClusterNotFound) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterNotFound  %+v", 404, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}][%d] deregisterClusterNotFound  %+v", 404, o.Payload)
 }
 
 func (o *DeregisterClusterNotFound) GetPayload() *models.Error {
@@ -205,7 +205,7 @@ type DeregisterClusterMethodNotAllowed struct {
 }
 
 func (o *DeregisterClusterMethodNotAllowed) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterMethodNotAllowed  %+v", 405, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}][%d] deregisterClusterMethodNotAllowed  %+v", 405, o.Payload)
 }
 
 func (o *DeregisterClusterMethodNotAllowed) GetPayload() *models.Error {
@@ -238,7 +238,7 @@ type DeregisterClusterConflict struct {
 }
 
 func (o *DeregisterClusterConflict) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterConflict  %+v", 409, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}][%d] deregisterClusterConflict  %+v", 409, o.Payload)
 }
 
 func (o *DeregisterClusterConflict) GetPayload() *models.Error {
@@ -271,7 +271,7 @@ type DeregisterClusterInternalServerError struct {
 }
 
 func (o *DeregisterClusterInternalServerError) Error() string {
-	return fmt.Sprintf("[DELETE /clusters/{cluster_id}][%d] deregisterClusterInternalServerError  %+v", 500, o.Payload)
+	return fmt.Sprintf("[DELETE /v1/clusters/{cluster_id}][%d] deregisterClusterInternalServerError  %+v", 500, o.Payload)
 }
 
 func (o *DeregisterClusterInternalServerError) GetPayload() *models.Error {
