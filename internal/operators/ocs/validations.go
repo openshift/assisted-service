@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/openshift/assisted-service/internal/cluster/validations"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/models"
@@ -35,6 +36,11 @@ func (o *operator) validateRequirements(cluster *models.Cluster) (api.Validation
 	var status string
 	hosts := cluster.Hosts
 	numAvailableHosts := int64(len(hosts))
+
+	if !validations.ValidateAdditionalNTPSource(cluster.AdditionalNtpSource) {
+		status = "NTP source must be provided for OCS."
+		return api.Failure, status
+	}
 
 	if numAvailableHosts < o.config.OCSNumMinimumHosts {
 		status = "A minimum of 3 hosts is required to deploy OCS."

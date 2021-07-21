@@ -11,6 +11,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/kelseyhightower/envconfig"
 	. "github.com/onsi/ginkgo"
+	"github.com/onsi/ginkgo/extensions/table"
 	. "github.com/onsi/gomega"
 	clust "github.com/openshift/assisted-service/internal/cluster"
 	"github.com/openshift/assisted-service/internal/common"
@@ -18,6 +19,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
+	"github.com/openshift/assisted-service/internal/operators/api"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/conversions"
@@ -92,6 +94,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 		diskID1                                       = "/dev/disk/by-id/test-disk-1"
 		diskID2                                       = "/dev/disk/by-id/test-disk-2"
 		diskID3                                       = "/dev/disk/by-id/test-disk-3"
+		ntpSource                                     = "1.1.1.1,clock.redhat.com"
 	)
 
 	mockHostAPIIsRequireUserActionResetFalse := func() {
@@ -876,6 +879,7 @@ var _ = Describe("Ocs Operator use-cases", func() {
 					MonitoredOperators:       operators,
 					OpenshiftVersion:         t.OpenShiftVersion,
 					NetworkType:              swag.String(models.ClusterNetworkTypeOVNKubernetes),
+					AdditionalNtpSource:      ntpSource,
 				},
 			}
 
@@ -921,3 +925,52 @@ func getClusterFromDB(clusterId strfmt.UUID, db *gorm.DB) common.Cluster {
 	Expect(err).ShouldNot(HaveOccurred())
 	return *c
 }
+
+var _ = Describe("Ocs Operator", func() {
+	var (
+		ctx       = context.TODO()
+		operator  = ocs.NewOcsOperator(common.GetTestLog())
+		diskID1   = "/dev/disk/by-id/test-disk-1"
+		diskID2   = "/dev/disk/by-id/test-disk-2"
+		clusterId = strfmt.UUID(uuid.New().String())
+		masterOne = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1, ClusterID: clusterId,
+			Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+				}})}
+		masterTwo = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1, ClusterID: clusterId,
+			Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+				}})}
+		masterThree = &models.Host{Role: models.HostRoleMaster, InstallationDiskID: diskID1, ClusterID: clusterId,
+			Inventory: ocs.Inventory(&ocs.InventoryResources{Cpus: 12, Ram: 32 * conversions.GiB,
+				Disks: []*models.Disk{
+					{SizeBytes: 20 * conversions.GB, DriveType: "HDD", ID: diskID1, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+					{SizeBytes: 40 * conversions.GB, DriveType: "SSD", ID: diskID2, InstallationEligibility: models.DiskInstallationEligibility{Eligible: true}},
+				}})}
+	)
+
+	Context("NTP source", func() {
+		table.DescribeTable("compact mode when ", func(cluster *common.Cluster, expectedResult api.ValidationResult) {
+			res, _ := operator.ValidateCluster(ctx, cluster)
+			Expect(res).Should(Equal(expectedResult))
+		},
+			table.Entry("NTP not defined",
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterId, Hosts: []*models.Host{
+					masterOne, masterTwo, masterThree,
+				}}},
+				api.ValidationResult{Status: api.Failure, ValidationId: operator.GetClusterValidationID(), Reasons: []string{"NTP source must be provided for OCS."}},
+			),
+			table.Entry("NTP defined",
+				&common.Cluster{Cluster: models.Cluster{ID: &clusterId, AdditionalNtpSource: "1.1.1.1,clock.redhat.com", Hosts: []*models.Host{
+					masterOne, masterTwo, masterThree,
+				}}},
+				api.ValidationResult{Status: api.Success, ValidationId: operator.GetClusterValidationID(), Reasons: []string{"OCS Requirements for Compact Mode are satisfied."}},
+			),
+		)
+	})
+},
+)

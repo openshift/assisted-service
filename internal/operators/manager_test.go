@@ -44,7 +44,8 @@ var _ = BeforeEach(func() {
 	clusterID := strfmt.UUID(uuid.New().String())
 	cluster = &common.Cluster{
 		Cluster: models.Cluster{
-			ID: &clusterID,
+			AdditionalNtpSource: "1.1.1.1,clock.redhat.com",
+			ID:                  &clusterID,
 		},
 	}
 	cluster.ImageInfo = &models.ImageInfo{}
