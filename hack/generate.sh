@@ -24,16 +24,31 @@ function lint_swagger() {
 
 function generate_go_server() {
     rm -rf restapi
-    docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
-        quay.io/goswagger/swagger:v0.25.0 generate server --template=stratoscale -f ${__root}/swagger.yaml \
-        --template-dir=/templates/contrib
-}
+    for swagger_file in $(find "${PWD}" -name 'swagger*.yaml' -type f); do
+        file=$(basename "${swagger_file}")
+        version=${file#*_}
+        version=${version%.*}
+        docker run -u "$(id -u)":"$(id -u)" -v "${__root}":"${__root}":rw,Z -v /etc/passwd:/etc/passwd -w "${__root}" \
+            quay.io/goswagger/swagger:v0.25.0 generate server --spec="${swagger_file}" \
+            --template=stratoscale --template-dir=/templates/contrib \
+            --server-package="restapi/restapi_${version}" --model-package="models/${version}"
+    done
 
+    goimports -w restapi
+}
 function generate_go_client() {
     rm -rf client models
-    docker run -u $(id -u):$(id -u) -v ${__root}:${__root}:rw,Z -v /etc/passwd:/etc/passwd -w ${__root} \
-        quay.io/goswagger/swagger:v0.25.0 generate client --template=stratoscale -f swagger.yaml \
-        --template-dir=/templates/contrib
+    for swagger_file in $(find "${PWD}" -name 'swagger*.yaml' -type f); do
+        file=$(basename "${swagger_file}")
+        version=${file#*_}
+        version=${version%.*}
+        docker run -u "$(id -u)":"$(id -u)" -v "${__root}":"${__root}":rw,Z -v /etc/passwd:/etc/passwd -w "${__root}" \
+        quay.io/goswagger/swagger:v0.25.0 generate client --spec="${swagger_file}" \
+        --template=stratoscale --template-dir=/templates/contrib \
+        --client-package="client/client_${version}" --model-package="models/${version}"
+    done
+
+    goimports -w client models
 }
 
 function generate_python_client() {
@@ -51,6 +66,7 @@ function generate_python_client() {
 }
 
 function generate_mocks() {
+    find "${__root}" -name 'mock_*.go' -type f -delete
     go generate $(go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
 }
 
