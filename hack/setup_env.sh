@@ -33,6 +33,12 @@ function golang() {
   set -u
 }
 
+function spectral() {
+  echo "Installing spectral..."
+  curl -L https://github.com/stoplightio/spectral/releases/download/v5.9.1/spectral-linux -o /usr/local/bin/spectral
+  chmod u+x /usr/local/bin/spectral
+}
+
 function assisted_service() {
   latest_kubectl_version=$(curl --retry 5 -L -s https://dl.k8s.io/release/stable.txt)
   curl --retry 5 -L "https://dl.k8s.io/release/${latest_kubectl_version}/bin/linux/amd64/kubectl" -o /tmp/kubectl && \
@@ -42,6 +48,8 @@ function assisted_service() {
     yum clean all
 
   kustomize
+
+  spectral
 
   curl --retry 5 -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh \
     | sh -s -- -b $(go env GOPATH)/bin v1.36.0
