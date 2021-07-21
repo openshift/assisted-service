@@ -36,7 +36,7 @@ function golang() {
 function spectral() {
   echo "Installing spectral..."
   curl -L https://github.com/stoplightio/spectral/releases/download/v5.9.1/spectral-linux -o /usr/local/bin/spectral
-  chmod u+x /usr/local/bin/spectral
+  chmod +x /usr/local/bin/spectral
 }
 
 function assisted_service() {

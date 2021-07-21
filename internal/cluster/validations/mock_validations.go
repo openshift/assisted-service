@@ -5,10 +5,9 @@
 package validations
 
 import (
-	reflect "reflect"
-
 	gomock "github.com/golang/mock/gomock"
 	auth "github.com/openshift/assisted-service/pkg/auth"
+	reflect "reflect"
 )
 
 // MockPullSecretValidator is a mock of PullSecretValidator interface
