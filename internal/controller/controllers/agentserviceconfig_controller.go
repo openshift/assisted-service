@@ -69,7 +69,6 @@ const (
 
 	defaultIngressCertCMName      string = "default-ingress-cert"
 	defaultIngressCertCMNamespace string = "openshift-config-managed"
-	defaultOpenshiftMonitoringNS  string = "openshift-monitoring"
 
 	configmapAnnotation = "unsupported.agent-install.openshift.io/assisted-service-configmap"
 
@@ -144,6 +143,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		r.ensureDatabaseStorage,
 		r.ensureAgentService,
 		r.ensureAgentRoute,
+		r.ensureServiceMonitor,
 		r.ensureAgentLocalAuthSecret,
 		r.ensurePostgresSecret,
 		r.ensureIngressCertCM,
