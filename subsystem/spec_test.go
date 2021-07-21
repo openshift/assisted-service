@@ -8,7 +8,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client"
+	client "github.com/openshift/assisted-service/client/client_v1"
 )
 
 var _ = Describe("test spec endpoint", func() {

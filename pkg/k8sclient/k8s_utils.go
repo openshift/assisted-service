@@ -7,7 +7,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	configv1 "github.com/openshift/api/config/v1"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 )

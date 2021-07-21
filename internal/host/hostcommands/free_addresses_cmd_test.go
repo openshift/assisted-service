@@ -10,7 +10,7 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 var _ = Describe("free_addresses", func() {

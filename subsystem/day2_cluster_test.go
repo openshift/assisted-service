@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/client_v1/installer"
 	"github.com/openshift/assisted-service/internal/bminventory"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 const (

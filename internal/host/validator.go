@@ -18,7 +18,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/network"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

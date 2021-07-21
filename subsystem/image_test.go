@@ -14,12 +14,12 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client/assisted_service_iso"
-	"github.com/openshift/assisted-service/client/events"
-	"github.com/openshift/assisted-service/client/installer"
-	"github.com/openshift/assisted-service/client/versions"
+	"github.com/openshift/assisted-service/client/client_v1/assisted_service_iso"
+	"github.com/openshift/assisted-service/client/client_v1/events"
+	"github.com/openshift/assisted-service/client/client_v1/installer"
+	"github.com/openshift/assisted-service/client/client_v1/versions"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 var _ = Describe("system-test image tests", func() {

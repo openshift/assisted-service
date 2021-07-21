@@ -2,7 +2,7 @@ package host
 
 import (
 	"github.com/filanov/stateswitch"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 const (

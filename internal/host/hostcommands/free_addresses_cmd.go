@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/alessio/shellescape"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

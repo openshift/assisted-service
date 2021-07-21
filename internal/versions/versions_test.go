@@ -14,8 +14,8 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/oc"
-	"github.com/openshift/assisted-service/models"
-	operations "github.com/openshift/assisted-service/restapi/operations/versions"
+	models "github.com/openshift/assisted-service/models/v1"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/versions"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/square/go-jose.v2/json"
 )

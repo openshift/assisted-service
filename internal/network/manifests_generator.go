@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/restapi"
-	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
+	models "github.com/openshift/assisted-service/models/v1"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/thoas/go-funk"

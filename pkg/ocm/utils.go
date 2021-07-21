@@ -7,7 +7,7 @@ import (
 
 	sdkClient "github.com/openshift-online/ocm-sdk-go"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/restapi"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
 )
 
 const (

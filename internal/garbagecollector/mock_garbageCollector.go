@@ -11,7 +11,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	s3wrapper "github.com/openshift/assisted-service/pkg/s3wrapper"
-	installer "github.com/openshift/assisted-service/restapi/operations/installer"
+	installer "github.com/openshift/assisted-service/restapi/restapi_v1/operations/installer"
 )
 
 // MockGarbageCollectors is a mock of GarbageCollectors interface.

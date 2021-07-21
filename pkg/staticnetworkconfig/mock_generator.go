@@ -6,7 +6,7 @@ package staticnetworkconfig
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	models "github.com/openshift/assisted-service/models"
+	models models "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 

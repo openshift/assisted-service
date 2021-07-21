@@ -9,11 +9,11 @@ import (
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client"
-	"github.com/openshift/assisted-service/client/installer"
-	operatorsClient "github.com/openshift/assisted-service/client/operators"
+	client "github.com/openshift/assisted-service/client/client_v1"
+	"github.com/openshift/assisted-service/client/client_v1/installer"
+	operatorsClient "github.com/openshift/assisted-service/client/client_v1/operators"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 

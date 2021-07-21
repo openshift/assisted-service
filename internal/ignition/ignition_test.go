@@ -23,7 +23,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/openshift/assisted-service/pkg/auth"
 	"github.com/openshift/assisted-service/pkg/mirrorregistries"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
@@ -1147,7 +1147,7 @@ var _ = Describe("Ignition SSH key building", func() {
 		It("Multiple keys with escaping and white space", func() {
 			buildIgnitionAndAssertSubString(`
 			ssh-rsa key coyote\123@acme.com
-			
+
 			ssh-rsa key2 c\0899oyote@acme.com
 			`, true, `"sshAuthorizedKeys":["ssh-rsa key coyote\\123@acme.com","ssh-rsa key2 c\\0899oyote@acme.com"]`)
 		})

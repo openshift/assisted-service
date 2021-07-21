@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client/installer"
+	"github.com/openshift/assisted-service/client/client_v1/installer"
 )
 
 var _ = Describe("GetClusterDefaultConfig", func() {

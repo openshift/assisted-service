@@ -15,7 +15,7 @@ import (
 	"github.com/onsi/gomega/types"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/sirupsen/logrus"
 )
 

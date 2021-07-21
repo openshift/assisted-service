@@ -8,8 +8,8 @@ import (
 	context "context"
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
-	models "github.com/openshift/assisted-service/models"
-	versions "github.com/openshift/assisted-service/restapi/operations/versions"
+	models models "github.com/openshift/assisted-service/models/v1"
+	versions "github.com/openshift/assisted-service/restapi/restapi_v1/operations/versions"
 	reflect "reflect"
 )
 

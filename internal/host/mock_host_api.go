@@ -10,7 +10,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	gorm "github.com/jinzhu/gorm"
 	common "github.com/openshift/assisted-service/internal/common"
-	models "github.com/openshift/assisted-service/models"
+	models models "github.com/openshift/assisted-service/models/v1"
 	logrus "github.com/sirupsen/logrus"
 	types "k8s.io/apimachinery/pkg/types"
 	reflect "reflect"

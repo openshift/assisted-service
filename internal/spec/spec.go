@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"path"
 
-	"github.com/openshift/assisted-service/client"
-	"github.com/openshift/assisted-service/restapi"
+	client "github.com/openshift/assisted-service/client/client_v1"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
 )
 
 var openapiPath = path.Join(client.DefaultBasePath, "openapi")

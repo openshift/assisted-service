@@ -9,7 +9,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	api "github.com/openshift/assisted-service/internal/operators/api"
-	models "github.com/openshift/assisted-service/models"
+	models models "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 

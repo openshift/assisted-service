@@ -15,8 +15,8 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/mocks"
-	"github.com/openshift/assisted-service/models"
-	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
+	models "github.com/openshift/assisted-service/models/v1"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/manifests"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

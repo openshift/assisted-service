@@ -17,12 +17,12 @@ import (
 	"github.com/google/uuid"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client"
-	clientInstaller "github.com/openshift/assisted-service/client/installer"
+	client "github.com/openshift/assisted-service/client/client_v1"
+	clientInstaller "github.com/openshift/assisted-service/client/client_v1/installer"
 	"github.com/openshift/assisted-service/mocks"
 	. "github.com/openshift/assisted-service/pkg/context"
-	"github.com/openshift/assisted-service/restapi"
-	"github.com/openshift/assisted-service/restapi/operations/installer"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
+	"github.com/openshift/assisted-service/restapi/restapi_v1/operations/installer"
 	"github.com/sirupsen/logrus"
 )
 

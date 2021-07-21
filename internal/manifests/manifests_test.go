@@ -18,10 +18,10 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/manifests"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/manifests"
 )
 
 func TestValidator(t *testing.T) {

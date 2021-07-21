@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v2"

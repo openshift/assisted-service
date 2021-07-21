@@ -10,7 +10,7 @@ import (
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/pkg/leader"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	"github.com/openshift/assisted-service/restapi/operations/installer"
+	"github.com/openshift/assisted-service/restapi/restapi_v1/operations/installer"
 	"github.com/sirupsen/logrus"
 )
 

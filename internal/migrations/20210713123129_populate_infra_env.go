@@ -3,7 +3,7 @@ package migrations
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	gormigrate "gopkg.in/gormigrate.v1"
 )
 

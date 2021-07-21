@@ -3,7 +3,7 @@ package common
 import (
 	"encoding/json"
 
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 type ImageStatuses map[string]*models.ContainerImageAvailability

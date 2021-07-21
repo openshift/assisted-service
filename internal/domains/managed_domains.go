@@ -6,9 +6,9 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/restapi"
-	operations "github.com/openshift/assisted-service/restapi/operations/managed_domains"
+	models "github.com/openshift/assisted-service/models/v1"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/managed_domains"
 	"github.com/pkg/errors"
 )
 

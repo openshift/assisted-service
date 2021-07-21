@@ -6,7 +6,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	operations "github.com/openshift/assisted-service/restapi/operations/managed_domains"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/managed_domains"
 )
 
 func TestHandler_ListManagedDomains(t *testing.T) {

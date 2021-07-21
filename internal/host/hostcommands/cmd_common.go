@@ -3,7 +3,7 @@ package hostcommands
 import (
 	"context"
 
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/sirupsen/logrus"
 )
 

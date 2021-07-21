@@ -5,7 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client/versions"
+	"github.com/openshift/assisted-service/client/client_v1/versions"
 )
 
 var _ = Describe("[minimal-set]test versions", func() {

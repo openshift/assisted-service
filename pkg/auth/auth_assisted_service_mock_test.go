@@ -8,14 +8,14 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/openshift/assisted-service/pkg/filemiddleware"
-	"github.com/openshift/assisted-service/restapi"
-	"github.com/openshift/assisted-service/restapi/operations/assisted_service_iso"
-	eventsapi "github.com/openshift/assisted-service/restapi/operations/events"
-	"github.com/openshift/assisted-service/restapi/operations/installer"
-	managed_domains_api "github.com/openshift/assisted-service/restapi/operations/managed_domains"
-	versionsapi "github.com/openshift/assisted-service/restapi/operations/versions"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
+	"github.com/openshift/assisted-service/restapi/restapi_v1/operations/assisted_service_iso"
+	eventsapi "github.com/openshift/assisted-service/restapi/restapi_v1/operations/events"
+	"github.com/openshift/assisted-service/restapi/restapi_v1/operations/installer"
+	managed_domains_api "github.com/openshift/assisted-service/restapi/restapi_v1/operations/managed_domains"
+	versionsapi "github.com/openshift/assisted-service/restapi/restapi_v1/operations/versions"
 )
 
 type fakeInventory struct{}

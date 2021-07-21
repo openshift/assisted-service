@@ -8,9 +8,9 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/hashicorp/go-version"
 	"github.com/openshift/assisted-service/internal/oc"
-	"github.com/openshift/assisted-service/models"
-	"github.com/openshift/assisted-service/restapi"
-	operations "github.com/openshift/assisted-service/restapi/operations/versions"
+	models "github.com/openshift/assisted-service/models/v1"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/versions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

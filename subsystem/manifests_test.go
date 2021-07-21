@@ -8,10 +8,10 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client/installer"
-	"github.com/openshift/assisted-service/client/manifests"
+	"github.com/openshift/assisted-service/client/client_v1/installer"
+	"github.com/openshift/assisted-service/client/client_v1/manifests"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 var _ = Describe("manifests tests", func() {

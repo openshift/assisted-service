@@ -8,7 +8,7 @@ import (
 	context "context"
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
-	installer "github.com/openshift/assisted-service/restapi/operations/installer"
+	installer "github.com/openshift/assisted-service/restapi/restapi_v1/operations/installer"
 	reflect "reflect"
 )
 

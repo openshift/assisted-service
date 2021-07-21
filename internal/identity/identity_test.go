@@ -7,7 +7,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/pkg/ocm"
-	"github.com/openshift/assisted-service/restapi"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
 )
 
 func TestValidator(t *testing.T) {

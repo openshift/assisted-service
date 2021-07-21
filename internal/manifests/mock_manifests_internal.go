@@ -7,8 +7,8 @@ package manifests
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	models "github.com/openshift/assisted-service/models"
-	manifests "github.com/openshift/assisted-service/restapi/operations/manifests"
+	models models "github.com/openshift/assisted-service/models/v1"
+	manifests "github.com/openshift/assisted-service/restapi/restapi_v1/operations/manifests"
 	reflect "reflect"
 )
 

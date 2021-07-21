@@ -6,10 +6,10 @@ import (
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/openshift/assisted-service/internal/common"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	"github.com/openshift/assisted-service/restapi"
-	"github.com/openshift/assisted-service/restapi/operations/events"
+	restapi "github.com/openshift/assisted-service/restapi/restapi_v1"
+	"github.com/openshift/assisted-service/restapi/restapi_v1/operations/events"
 	"github.com/sirupsen/logrus"
 )
 

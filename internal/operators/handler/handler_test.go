@@ -16,7 +16,7 @@ import (
 	"github.com/openshift/assisted-service/internal/operators"
 	operatorsHandler "github.com/openshift/assisted-service/internal/operators/handler"
 	"github.com/openshift/assisted-service/internal/operators/lso"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/sirupsen/logrus"
 )
 

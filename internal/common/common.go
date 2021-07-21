@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-openapi/swag"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 const (

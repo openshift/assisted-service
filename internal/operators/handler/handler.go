@@ -12,9 +12,9 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/operators"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	logutil "github.com/openshift/assisted-service/pkg/log"
-	restoperators "github.com/openshift/assisted-service/restapi/operations/operators"
+	restoperators "github.com/openshift/assisted-service/restapi/restapi_v1/operations/operators"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

@@ -8,7 +8,7 @@ import (
 	"github.com/alecthomas/units"
 	"github.com/go-openapi/strfmt"
 	"github.com/openshift/assisted-service/internal/events"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sirupsen/logrus"

@@ -20,10 +20,10 @@ import (
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
 	"github.com/openshift/assisted-service/mocks"
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/openshift/assisted-service/pkg/conversions"
 	"github.com/openshift/assisted-service/pkg/s3wrapper"
-	operations "github.com/openshift/assisted-service/restapi/operations/manifests"
+	operations "github.com/openshift/assisted-service/restapi/restapi_v1/operations/manifests"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
 )

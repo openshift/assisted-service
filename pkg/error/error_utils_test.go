@@ -7,8 +7,8 @@ import (
 	"github.com/go-openapi/swag"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/openshift/assisted-service/client/installer"
-	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/client/client_v1/installer"
+	models "github.com/openshift/assisted-service/models/v1"
 )
 
 func TestErrorUtils(t *testing.T) {

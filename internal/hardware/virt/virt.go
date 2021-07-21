@@ -1,7 +1,7 @@
 package virt
 
 import (
-	"github.com/openshift/assisted-service/models"
+	models "github.com/openshift/assisted-service/models/v1"
 	"github.com/thoas/go-funk"
 )
 
