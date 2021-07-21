@@ -2645,7 +2645,7 @@ var _ = Describe("Get host by Kube key", func() {
 	It("get host by kube key success", func() {
 		h1 := common.Host{
 			KubeKeyNamespace: kubeKeyNamespace,
-			Host:             models.Host{ClusterID: id, ID: &id},
+			Host:             models.Host{ClusterID: id, InfraEnvID: id, ID: &id},
 		}
 		Expect(db.Create(&h1).Error).ShouldNot(HaveOccurred())
 

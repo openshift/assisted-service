@@ -593,6 +593,7 @@ func (m *Manager) UpdateNTP(ctx context.Context, h *models.Host, ntpSources []*m
 		return errors.Wrapf(err, "Failed to marshal NTP sources for host %s", h.ID.String())
 	}
 
+	m.log.Infof("Updateing ntp source of host %s to %s", h.ID, string(bytes))
 	return db.Model(h).Update("ntp_sources", string(bytes)).Error
 }
 

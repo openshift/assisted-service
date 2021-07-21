@@ -415,7 +415,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("empty installer args with static ip config", func() {
-			db.Model(&cluster).Update("image_static_network_config", "rkhkjgdfd")
+			db.Model(&cluster).Update("static_network_configured", true)
 			host.InstallerArgs = ""
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
@@ -424,7 +424,7 @@ var _ = Describe("installcmd arguments", func() {
 		})
 
 		It("non-empty installer args with static ip config", func() {
-			db.Model(&cluster).Update("image_static_network_config", "rkhkjgdfd")
+			db.Model(&cluster).Update("static_network_configured", true)
 			host.InstallerArgs = `["--append-karg","nameserver=8.8.8.8","-n"]`
 			stepReply, err := installCmd.GetSteps(ctx, &host)
 			Expect(err).NotTo(HaveOccurred())
@@ -706,6 +706,7 @@ var _ = Describe("construct host install arguments", func() {
 	It("ip=<nic>:dhcp and copy-network added with static config", func() {
 		cluster.MachineNetworkCidr = "192.186.10.0/24"
 		cluster.ImageInfo.StaticNetworkConfig = "something"
+		cluster.StaticNetworkConfigured = true
 		host.Inventory = `{
 			"interfaces":[
 				{
@@ -923,6 +924,7 @@ func createHostInDb(db *gorm.DB, clusterId strfmt.UUID, role models.HostRole, bo
 	host := models.Host{
 		ID:                &id,
 		ClusterID:         clusterId,
+		InfraEnvID:        clusterId,
 		Status:            swag.String(models.HostStatusDiscovering),
 		Role:              role,
 		Bootstrap:         bootstrap,

@@ -317,6 +317,8 @@ var _ = Describe("Metrics tests", func() {
 		var err error
 		clusterID, err = registerCluster(ctx, userBMClient, "test-metrics-cluster", pullSecret)
 		Expect(err).NotTo(HaveOccurred())
+		// in order to simulate infra env generation
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 	})
 
 	AfterEach(func() {
@@ -762,6 +764,8 @@ var _ = Describe("Metrics tests", func() {
 		It("'api-vip-connected' failed", func() {
 
 			day2ClusterID := registerDay2Cluster(ctx)
+			// in order to simulate infra env generation
+			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
 
 			// create a validation success
 			h := registerNode(ctx, day2ClusterID, "master-0")
@@ -787,6 +791,8 @@ var _ = Describe("Metrics tests", func() {
 		It("'api-vip-connected' got fixed", func() {
 
 			day2ClusterID := registerDay2Cluster(ctx)
+			// in order to simulate infra env generation
+			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
 
 			// create a validation failure
 			h := registerNode(ctx, day2ClusterID, "master-0")

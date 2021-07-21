@@ -22,13 +22,15 @@ import (
 )
 
 var _ = Describe("chrony manifest", func() {
-	createHost := func(sources []*models.NtpSource) *models.Host {
+	createHost := func(clusterId strfmt.UUID, sources []*models.NtpSource) *models.Host {
 		b, err := json.Marshal(&sources)
 		Expect(err).ShouldNot(HaveOccurred())
 		hostID := strfmt.UUID(uuid.New().String())
 		return &models.Host{
 			ID:         &hostID,
 			NtpSources: string(b),
+			ClusterID:  clusterId,
+			InfraEnvID: clusterId,
 		}
 	}
 
@@ -52,9 +54,10 @@ var _ = Describe("chrony manifest", func() {
 				common.TestNTPSourceUnsynced,
 			}
 
+			clusterId := strfmt.UUID(uuid.New().String())
 			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost(toMarshal))
-			hosts = append(hosts, createHost(toMarshal))
+			hosts = append(hosts, createHost(clusterId, toMarshal))
+			hosts = append(hosts, createHost(clusterId, toMarshal))
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
@@ -71,8 +74,9 @@ var _ = Describe("chrony manifest", func() {
 				common.TestNTPSourceSynced,
 			}
 
+			clusterId := strfmt.UUID(uuid.New().String())
 			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost(toMarshal))
+			hosts = append(hosts, createHost(clusterId, toMarshal))
 			hosts[0].Status = swag.String(models.HostStatusDisabled)
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
@@ -90,9 +94,10 @@ var _ = Describe("chrony manifest", func() {
 				common.TestNTPSourceUnsynced,
 			}
 
+			clusterId := strfmt.UUID(uuid.New().String())
 			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost(toMarshal))
-			hosts = append(hosts, createHost([]*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
+			hosts = append(hosts, createHost(clusterId, toMarshal))
+			hosts = append(hosts, createHost(clusterId, []*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
 
 			response, err := createChronyManifestContent(&common.Cluster{Cluster: models.Cluster{
 				Hosts: hosts,
@@ -128,11 +133,11 @@ var _ = Describe("chrony manifest", func() {
 			clusterId = strfmt.UUID(uuid.New().String())
 
 			hosts := make([]*models.Host, 0)
-			hosts = append(hosts, createHost([]*models.NtpSource{
+			hosts = append(hosts, createHost(clusterId, []*models.NtpSource{
 				common.TestNTPSourceSynced,
 				common.TestNTPSourceUnsynced,
 			}))
-			hosts = append(hosts, createHost([]*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
+			hosts = append(hosts, createHost(clusterId, []*models.NtpSource{{SourceName: "3.3.3.3", SourceState: models.SourceStateSynced}}))
 
 			cluster = common.Cluster{
 				Cluster: models.Cluster{

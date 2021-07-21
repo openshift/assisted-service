@@ -317,7 +317,7 @@ type Generator interface {
 // IgnitionBuilder defines the ignition formatting methods for the various images
 //go:generate mockgen -source=ignition.go -package=ignition -destination=mock_ignition.go
 type IgnitionBuilder interface {
-	FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
+	FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error)
 	FormatSecondDayWorkerIgnitionFile(address string, machineConfigPoolName string) ([]byte, error)
 }
 
@@ -903,7 +903,7 @@ func (g *installerGenerator) updateIgnitions() error {
 				return err
 			}
 
-			if g.cluster.ImageInfo.StaticNetworkConfig != "" {
+			if g.cluster.StaticNetworkConfigured {
 				if err := g.addStaticNetworkConfigToIgnition(ignition); err != nil {
 					return err
 				}
@@ -1262,12 +1262,13 @@ func SetHostnameForNodeIgnition(ignition []byte, host *models.Host) ([]byte, err
 	return configBytes, nil
 }
 
-func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
-	pullSecretToken, err := clusterPkg.AgentToken(cluster, authType)
+func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(infraEnv *common.InfraEnv, cfg IgnitionConfig, safeForLogs bool, authType auth.AuthType) (string, error) {
+	pullSecretToken, err := clusterPkg.AgentToken(infraEnv, authType)
 	if err != nil {
 		return "", err
 	}
-	proxySettings, err := proxySettingsForIgnition(cluster.HTTPProxy, cluster.HTTPSProxy, cluster.NoProxy)
+	httpProxy, httpsProxy, noProxy := common.GetProxyConfigs(infraEnv.Proxy)
+	proxySettings, err := proxySettingsForIgnition(httpProxy, httpsProxy, noProxy)
 	if err != nil {
 		return "", err
 	}
@@ -1275,7 +1276,7 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 	if cfg.InstallRHCa {
 		rhCa = url.PathEscape(RedhatRootCA)
 	}
-	userSshKey, err := getUserSSHKey(cluster.ImageInfo.SSHPublicKey)
+	userSshKey, err := getUserSSHKey(infraEnv.SSHAuthorizedKey)
 	if err != nil {
 		ib.log.WithError(err).Errorln("Unable to build user SSH public key JSON")
 		return "", err
@@ -1284,17 +1285,17 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		"userSshKey":           userSshKey,
 		"AgentDockerImg":       cfg.AgentDockerImg,
 		"ServiceBaseURL":       strings.TrimSpace(cfg.ServiceBaseURL),
-		"clusterId":            cluster.ID.String(),
+		"clusterId":            infraEnv.ID.String(),
 		"PullSecretToken":      pullSecretToken,
 		"AGENT_MOTD":           url.PathEscape(agentMessageOfTheDay),
 		"AGENT_FIX_BZ1964591":  url.PathEscape(agentFixBZ1964591),
 		"IPv6_CONF":            url.PathEscape(common.Ipv6DuidDiscoveryConf),
-		"PULL_SECRET":          url.PathEscape(cluster.PullSecret),
+		"PULL_SECRET":          url.PathEscape(infraEnv.PullSecret),
 		"RH_ROOT_CA":           rhCa,
 		"PROXY_SETTINGS":       proxySettings,
-		"HTTPProxy":            cluster.HTTPProxy,
-		"HTTPSProxy":           cluster.HTTPSProxy,
-		"NoProxy":              cluster.NoProxy,
+		"HTTPProxy":            httpProxy,
+		"HTTPSProxy":           httpsProxy,
+		"NoProxy":              noProxy,
 		"SkipCertVerification": strconv.FormatBool(cfg.SkipCertVerification),
 		"AgentTimeoutStartSec": strconv.FormatInt(int64(cfg.AgentTimeoutStart.Seconds()), 10),
 		"SELINUX_POLICY":       base64.StdEncoding.EncodeToString([]byte(selinuxPolicy)),
@@ -1317,10 +1318,10 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 		ignitionParams["ServiceIPs"] = dataurl.EncodeBytes([]byte(GetServiceIPHostnames(cfg.ServiceIPs)))
 	}
 
-	if cluster.ImageInfo.StaticNetworkConfig != "" && cluster.ImageInfo.Type == models.ImageTypeFullIso {
-		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(cluster)
+	if infraEnv.StaticNetworkConfig != "" && infraEnv.Type == models.ImageTypeFullIso {
+		filesList, newErr := ib.prepareStaticNetworkConfigForIgnition(infraEnv)
 		if newErr != nil {
-			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for cluster %s", cluster.ID)
+			ib.log.WithError(newErr).Errorf("Failed to add static network config to ignition for infra env  %s", infraEnv.ID)
 			return "", newErr
 		}
 		ignitionParams["StaticNetworkConfig"] = filesList
@@ -1352,21 +1353,21 @@ func (ib *ignitionBuilder) FormatDiscoveryIgnitionFile(cluster *common.Cluster, 
 	}
 
 	res := buf.String()
-	if cluster.IgnitionConfigOverrides != "" {
-		res, err = MergeIgnitionConfig(buf.Bytes(), []byte(cluster.IgnitionConfigOverrides))
+	if infraEnv.IgnitionConfigOverride != "" {
+		res, err = MergeIgnitionConfig(buf.Bytes(), []byte(infraEnv.IgnitionConfigOverride))
 		if err != nil {
 			return "", err
 		}
-		ib.log.Infof("Applying ignition overrides %s for cluster %s, resulting ignition: %s", cluster.IgnitionConfigOverrides, cluster.ID, res)
+		ib.log.Infof("Applying ignition override %s for infra env %s, resulting ignition: %s", infraEnv.IgnitionConfigOverride, infraEnv.ID, res)
 	}
 
 	return res, nil
 }
 
-func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(cluster *common.Cluster) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
-	filesList, err := ib.staticNetworkConfig.GenerateStaticNetworkConfigData(cluster.ImageInfo.StaticNetworkConfig)
+func (ib *ignitionBuilder) prepareStaticNetworkConfigForIgnition(infraEnv *common.InfraEnv) ([]staticnetworkconfig.StaticNetworkConfigData, error) {
+	filesList, err := ib.staticNetworkConfig.GenerateStaticNetworkConfigData(infraEnv.StaticNetworkConfig)
 	if err != nil {
-		ib.log.WithError(err).Errorf("staticNetworkGenerator failed to produce the static network connection files for cluster %s", cluster.ID)
+		ib.log.WithError(err).Errorf("staticNetworkGenerator failed to produce the static network connection files for cluster %s", infraEnv.ID)
 		return nil, err
 	}
 	for i := range filesList {

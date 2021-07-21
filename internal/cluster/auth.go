@@ -8,12 +8,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-func AgentToken(c *common.Cluster, authType auth.AuthType) (token string, err error) {
+func AgentToken(infraEnv *common.InfraEnv, authType auth.AuthType) (token string, err error) {
 	switch authType {
 	case auth.TypeRHSSO:
-		token, err = cloudPullSecretToken(c.PullSecret)
+		token, err = cloudPullSecretToken(infraEnv.PullSecret)
 	case auth.TypeLocal:
-		token, err = gencrypto.LocalJWT(c.ID.String())
+		token, err = gencrypto.LocalJWT(infraEnv.ID.String())
 	case auth.TypeNone:
 		token = ""
 	default:

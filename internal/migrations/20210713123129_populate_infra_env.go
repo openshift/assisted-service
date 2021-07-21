@@ -27,6 +27,10 @@ func populateInfraEnv() *gormigrate.Migration {
 				return err
 			}
 
+			if err := tx.AutoMigrate(&common.Cluster{}).Error; err != nil {
+				return err
+			}
+
 			dbClusters, err := getClustersFromDB(tx)
 			if err != nil {
 				return err
@@ -63,6 +67,10 @@ func populateInfraEnv() *gormigrate.Migration {
 					},
 				}
 				tx.Create(&infraenv)
+
+				cluster_updates := map[string]interface{}{}
+				cluster_updates["static_network_configured"] = (cluster.ImageInfo.StaticNetworkConfig != "")
+				tx.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).Updates(cluster_updates)
 			}
 		}
 

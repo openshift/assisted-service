@@ -170,6 +170,8 @@ var _ = Describe("Cluster", func() {
 	})
 
 	It("register an unregistered host success", func() {
+		// in order to simulate infra env generation
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 		h := registerHost(clusterID)
 		_, err1 := userBMClient.Installer.DeregisterHost(ctx, &installer.DeregisterHostParams{
 			ClusterID: clusterID,
@@ -232,6 +234,8 @@ var _ = Describe("Cluster", func() {
 	})
 
 	It("list clusters - get unregistered cluster", func() {
+		// in order to simulate infra env generation
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 		_ = registerHost(clusterID)
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err1).ShouldNot(HaveOccurred())
@@ -252,6 +256,8 @@ var _ = Describe("Cluster", func() {
 	})
 
 	It("list clusters - get unregistered cluster with hosts", func() {
+		// in order to simulate infra env generation
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 		_ = registerHost(clusterID)
 		_, err1 := userBMClient.Installer.DeregisterCluster(ctx, &installer.DeregisterClusterParams{ClusterID: clusterID})
 		Expect(err1).ShouldNot(HaveOccurred())
@@ -273,6 +279,8 @@ var _ = Describe("Cluster", func() {
 	})
 
 	It("cluster CRUD", func() {
+		// in order to simulate infra env generation
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 		_ = registerHost(clusterID)
 		Expect(err).NotTo(HaveOccurred())
 
@@ -301,6 +309,8 @@ var _ = Describe("Cluster", func() {
 
 	It("cluster update", func() {
 		By("update cluster with valid ssh key")
+		// in order to simulate infra env generation
+		generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 		host1 := registerHost(clusterID)
 		host2 := registerHost(clusterID)
 
@@ -617,6 +627,8 @@ var _ = Describe("ListClusters", func() {
 	Context("Filter by opensfhift cluster ID", func() {
 
 		BeforeEach(func() {
+			// in order to simulate infra env generation
+			generateClusterISO(*cluster.ID, models.ImageTypeMinimalIso)
 			registerHostsAndSetRolesDHCP(*cluster.ID, 5)
 			_ = installCluster(*cluster.ID)
 		})
@@ -754,6 +766,8 @@ var _ = Describe("cluster install - DHCP", func() {
 		var clusterID strfmt.UUID
 		BeforeEach(func() {
 			clusterID = *cluster.ID
+			// in order to simulate infra env generation
+			generateClusterISO(clusterID, models.ImageTypeMinimalIso)
 			registerHostsAndSetRolesDHCP(clusterID, 5)
 		})
 
@@ -786,6 +800,8 @@ var _ = Describe("cluster install - DHCP", func() {
 
 	It("moves between DHCP modes", func() {
 		clusterID := *cluster.ID
+		// in order to simulate infra env generation
+		generateClusterISO(*cluster.ID, models.ImageTypeMinimalIso)
 		registerHostsAndSetRolesDHCP(clusterID, 5)
 		reply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{
@@ -1018,6 +1034,8 @@ var _ = Describe("cluster install", func() {
 		Expect(err).NotTo(HaveOccurred())
 		cluster = registerClusterReply.GetPayload()
 		log.Infof("Register cluster %s", cluster.ID.String())
+		// in order to simulate infra env generation
+		generateClusterISO(*cluster.ID, models.ImageTypeMinimalIso)
 	})
 
 	It("auto-assign", func() {
@@ -3228,6 +3246,9 @@ var _ = Describe("cluster install, with default network params", func() {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		cluster = registerClusterReply.GetPayload()
+
+		// in order to simulate infra env generation
+		generateClusterISO(*cluster.ID, models.ImageTypeMinimalIso)
 	})
 
 	It("install cluster", func() {

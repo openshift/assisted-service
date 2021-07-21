@@ -32,7 +32,7 @@ type Host struct {
 
 	// The cluster that this host is associated with.
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"primary_key;foreignkey:Cluster"`
+	ClusterID strfmt.UUID `json:"cluster_id,omitempty" gorm:"foreignkey:Cluster"`
 
 	// connectivity
 	Connectivity string `json:"connectivity,omitempty" gorm:"type:text"`
@@ -71,7 +71,7 @@ type Host struct {
 
 	// The InfraEnv that this host is associated with.
 	// Format: uuid
-	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty" gorm:"foreignkey:InfraEnvID"`
+	InfraEnvID strfmt.UUID `json:"infra_env_id,omitempty" gorm:"primary_key;foreignkey:InfraEnvID"`
 
 	// Contains the inventory disk id to install on.
 	InstallationDiskID string `json:"installation_disk_id,omitempty"`

@@ -45,6 +45,7 @@ func GenerateTestHostByKind(hostID, clusterID strfmt.UUID, state, kind string, r
 	now := strfmt.DateTime(time.Now())
 	return models.Host{
 		ID:              &hostID,
+		InfraEnvID:      clusterID,
 		ClusterID:       clusterID,
 		Status:          swag.String(state),
 		Inventory:       common.GenerateTestDefaultInventory(),
@@ -67,6 +68,7 @@ func GenerateTestHostWithNetworkAddress(hostID, clusterID strfmt.UUID, role mode
 		ID:                &hostID,
 		RequestedHostname: netAddr.Hostname,
 		ClusterID:         clusterID,
+		InfraEnvID:        clusterID,
 		Status:            swag.String(status),
 		Inventory:         common.GenerateTestInventoryWithNetwork(netAddr),
 		Role:              role,

@@ -3574,12 +3574,12 @@ definitions:
       cluster_id:
         type: string
         format: uuid
-        x-go-custom-tag: gorm:"primary_key;foreignkey:Cluster"
+        x-go-custom-tag: gorm:"foreignkey:Cluster"
         description: The cluster that this host is associated with.
       infra_env_id:
         type: string
         format: uuid
-        x-go-custom-tag: gorm:"foreignkey:InfraEnvID"
+        x-go-custom-tag: gorm:"primary_key;foreignkey:InfraEnvID"
         description: The InfraEnv that this host is associated with.
       status:
         type: string

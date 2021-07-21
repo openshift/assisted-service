@@ -266,7 +266,7 @@ func constructHostInstallerArgs(cluster *common.Cluster, host *models.Host, log 
 		return "", err
 	}
 
-	if cluster.ImageInfo.StaticNetworkConfig != "" && !funk.Contains(installerArgs, "--copy-network") {
+	if cluster.StaticNetworkConfigured && !funk.Contains(installerArgs, "--copy-network") {
 		// network not configured statically or
 		// installer args already contain command for network configuration
 		installerArgs = append(installerArgs, "--copy-network")

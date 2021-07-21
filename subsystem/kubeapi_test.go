@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -248,6 +249,24 @@ func getClusterFromDB(
 	}
 	Expect(err).To(BeNil())
 	return cluster
+}
+
+func getInfraEnvFromDB(ctx context.Context, db *gorm.DB, infraEnvID strfmt.UUID, timeout int) *common.InfraEnv {
+	var err error
+	infraEnv := &common.InfraEnv{}
+	start := time.Now()
+	for time.Duration(timeout)*time.Second > time.Since(start) {
+		infraEnv, err = common.GetInfraEnvFromDB(db, infraEnvID)
+		if err == nil {
+			return infraEnv
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			Expect(err).To(BeNil())
+		}
+		time.Sleep(time.Second)
+	}
+	Expect(err).To(BeNil())
+	return infraEnv
 }
 
 func getClusterDeploymentAgents(ctx context.Context, client k8sclient.Client, clusterDeployment types.NamespacedName) *v1beta1.AgentList {
@@ -1192,7 +1211,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		Expect(cluster.ImageGenerated).Should(Equal(true))
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		Expect(infraEnv.Generated).Should(Equal(true))
 		By("Validate proxy settings.", func() {
 			Expect(cluster.NoProxy).Should(Equal("192.168.1.1"))
 			Expect(cluster.HTTPProxy).Should(Equal("http://192.168.1.2"))
@@ -1201,7 +1221,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		By("Validate additional NTP settings.")
 		Expect(cluster.AdditionalNtpSource).Should(ContainSubstring("192.168.1.4"))
 		By("InfraEnv image type defaults to minimal-iso.")
-		Expect(cluster.ImageInfo.Type).Should(Equal(models.ImageTypeMinimalIso))
+		Expect(infraEnv.Type).Should(Equal(models.ImageTypeMinimalIso))
 	})
 
 	It("deploy clusterDeployment and infraEnv with ignition override", func() {
@@ -1231,8 +1251,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
 		Expect(cluster.IgnitionConfigOverrides).Should(Equal(fakeIgnitionConfigOverride))
-		Expect(cluster.ImageGenerated).Should(Equal(true))
+		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
 	It("deploy clusterDeployment full install with infraenv in different namespace", func() {
@@ -1340,7 +1361,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		Expect(cluster.ImageGenerated).Should(Equal(true))
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
 	It("deploy infraEnv in default namespace before clusterDeployment", func() {
@@ -1381,7 +1403,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		Expect(cluster.ImageGenerated).Should(Equal(true))
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
 	It("deploy clusterDeployment and infraEnv and with an invalid ignition override", func() {
@@ -1409,8 +1432,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateFailedToCreate+": error parsing ignition: config is not valid")
 		cluster = getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
 		Expect(cluster.IgnitionConfigOverrides).ShouldNot(Equal(fakeIgnitionConfigOverride))
-		Expect(cluster.ImageGenerated).Should(Equal(false))
-
 	})
 
 	It("deploy clusterDeployment with hyperthreading configuration", func() {
@@ -1553,8 +1574,9 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, v1beta1.ImageStateCreated)
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		Expect(cluster.ImageInfo.StaticNetworkConfig).Should(ContainSubstring(hostStaticNetworkConfig.NetworkYaml))
-		Expect(cluster.ImageGenerated).Should(Equal(true))
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		Expect(infraEnv.StaticNetworkConfig).Should(ContainSubstring(hostStaticNetworkConfig.NetworkYaml))
+		Expect(infraEnv.Generated).Should(Equal(true))
 	})
 
 	It("deploy clusterDeployment and infraEnv and with an invalid NMState config YAML", func() {
@@ -1588,7 +1610,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		// InfraEnv Reconcile takes longer, since it needs to generate the image.
 		checkInfraEnvCondition(ctx, infraEnvKubeName, v1beta1.ImageCreatedCondition, fmt.Sprintf("%s: internal error", v1beta1.ImageStateFailedToCreate))
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKubeName, waitForReconcileTimeout)
-		Expect(cluster.ImageGenerated).Should(Equal(false))
+		infraEnv := getInfraEnvFromDB(ctx, db, *cluster.ID, waitForReconcileTimeout)
+		Expect(infraEnv.Generated).Should(Equal(false))
 	})
 
 	It("SNO deploy clusterDeployment full install and validate MetaData", func() {

@@ -832,45 +832,45 @@ var _ = Describe("proxySettingsForIgnition", func() {
 var _ = Describe("IgnitionBuilder", func() {
 	var (
 		ctrl                              *gomock.Controller
-		cluster                           common.Cluster
+		infraEnv                          common.InfraEnv
 		log                               logrus.FieldLogger
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
-		clusterID                         strfmt.UUID
+		infraEnvID                        strfmt.UUID
 	)
 
 	BeforeEach(func() {
 		log = common.GetTestLog()
-		clusterID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
+		infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
-		cluster = common.Cluster{Cluster: models.Cluster{
-			ID:            &clusterID,
+		infraEnv = common.InfraEnv{InfraEnv: models.InfraEnv{
+			ID:            infraEnvID,
 			PullSecretSet: false,
 		}, PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
-		cluster.ImageInfo = &models.ImageInfo{}
+		//cluster.ImageInfo = &models.ImageInfo{}
 		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
 	})
 
 	Context("with auth enabled", func() {
 
 		It("ignition_file_fails_missing_Pull_Secret_token", func() {
-			clusterID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
-			clusterWithoutToken := common.Cluster{Cluster: models.Cluster{
-				ID:            &clusterID,
+			infraEnvID = strfmt.UUID("a640ef36-dcb1-11ea-87d0-0242ac130003")
+			infraEnvWithoutToken := common.InfraEnv{InfraEnv: models.InfraEnv{
+				ID:            infraEnvID,
 				PullSecretSet: false,
 			}, PullSecret: "{\"auths\":{\"registry.redhat.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"}
 
-			_, err := builder.FormatDiscoveryIgnitionFile(&clusterWithoutToken, IgnitionConfig{}, false, auth.TypeRHSSO)
+			_, err := builder.FormatDiscoveryIgnitionFile(&infraEnvWithoutToken, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 			Expect(err).ShouldNot(BeNil())
 		})
 
 		It("ignition_file_contains_pull_secret_token", func() {
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+			text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 			Expect(err).Should(BeNil())
 			Expect(text).Should(ContainSubstring("PULL_SECRET_TOKEN"))
@@ -879,7 +879,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("auth_disabled_no_pull_secret_token", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeNone)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeNone)
 
 		Expect(err).Should(BeNil())
 		Expect(text).ShouldNot(ContainSubstring("PULL_SECRET_TOKEN"))
@@ -889,7 +889,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring(fmt.Sprintf("--url %s", serviceBaseURL)))
@@ -899,7 +899,7 @@ var _ = Describe("IgnitionBuilder", func() {
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, true, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, config, true, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).ShouldNot(ContainSubstring("cloud.openshift.com"))
@@ -909,7 +909,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("enabled_cert_verification", func() {
 		config := IgnitionConfig{SkipCertVerification: false}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("--insecure=false"))
@@ -918,7 +918,7 @@ var _ = Describe("IgnitionBuilder", func() {
 	It("disabled_cert_verification", func() {
 		config := IgnitionConfig{SkipCertVerification: true}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("--insecure=true"))
@@ -926,31 +926,41 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("cert_verification_enabled_by_default", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring("--insecure=false"))
 	})
 
 	It("ignition_file_contains_http_proxy", func() {
-		cluster.HTTPProxy = "http://10.10.1.1:3128"
-		cluster.NoProxy = "quay.io"
+		proxy := models.Proxy{
+			HTTPProxy: swag.String("http://10.10.1.1:3128"),
+			NoProxy:   swag.String("quay.io"),
+		}
+		infraEnv.Proxy = &proxy
+		//cluster.HTTPProxy = "http://10.10.1.1:3128"
+		//cluster.NoProxy = "quay.io"
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["quay.io"] }`))
 	})
 
 	It("ignition_file_contains_asterisk_no_proxy", func() {
-		cluster.HTTPProxy = "http://10.10.1.1:3128"
-		cluster.NoProxy = "*"
+		proxy := models.Proxy{
+			HTTPProxy: swag.String("http://10.10.1.1:3128"),
+			NoProxy:   swag.String("*"),
+		}
+		infraEnv.Proxy = &proxy
+		//cluster.HTTPProxy = "http://10.10.1.1:3128"
+		//cluster.NoProxy = "*"
 		serviceBaseURL := "file://10.56.20.70:7878"
 		config := IgnitionConfig{ServiceBaseURL: serviceBaseURL}
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, config, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, config, false, auth.TypeRHSSO)
 
 		Expect(err).Should(BeNil())
 		Expect(text).Should(ContainSubstring(`"proxy": { "httpProxy": "http://10.10.1.1:3128", "noProxy": ["*"] }`))
@@ -958,7 +968,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("produces a valid ignition v3.1 spec by default", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
 		config, report, err := config_31.Parse([]byte(text))
@@ -969,7 +979,7 @@ var _ = Describe("IgnitionBuilder", func() {
 
 	It("produces a valid ignition v3.1 spec with overrides", func() {
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
 		config, report, err := config_31.Parse([]byte(text))
@@ -977,9 +987,9 @@ var _ = Describe("IgnitionBuilder", func() {
 		Expect(report.IsFatal()).To(BeFalse())
 		numOfFiles := len(config.Storage.Files)
 
-		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		infraEnv.IgnitionConfigOverride = `{"ignition": {"version": "3.1.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		text, err = builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+		text, err = builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 
 		config, report, err = config_31.Parse([]byte(text))
@@ -989,9 +999,9 @@ var _ = Describe("IgnitionBuilder", func() {
 	})
 
 	It("fails when given overrides with an incompatible version", func() {
-		cluster.IgnitionConfigOverrides = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
+		infraEnv.IgnitionConfigOverride = `{"ignition": {"version": "2.2.0"}, "storage": {"files": [{"path": "/tmp/example", "contents": {"source": "data:text/plain;base64,aGVscGltdHJhcHBlZGluYXN3YWdnZXJzcGVj"}}]}}`
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-		_, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+		_, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 
 		Expect(err).To(HaveOccurred())
 	})
@@ -1015,10 +1025,10 @@ var _ = Describe("IgnitionBuilder", func() {
 
 		It("produces a valid ignition v3.1 spec with static ips paramters", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
-			cluster.ImageInfo.StaticNetworkConfig = formattedInput
-			cluster.ImageInfo.Type = models.ImageTypeFullIso
+			infraEnv.StaticNetworkConfig = formattedInput
+			infraEnv.Type = models.ImageTypeFullIso
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+			text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
 			Expect(err).NotTo(HaveOccurred())
@@ -1033,10 +1043,10 @@ var _ = Describe("IgnitionBuilder", func() {
 		})
 		It("Doesn't include static network config for minimal isos", func() {
 			mockStaticNetworkConfig.EXPECT().GenerateStaticNetworkConfigData(formattedInput).Return(staticnetworkConfigOutput, nil).Times(1)
-			cluster.ImageInfo.StaticNetworkConfig = formattedInput
-			cluster.ImageInfo.Type = models.ImageTypeMinimalIso
+			infraEnv.StaticNetworkConfig = formattedInput
+			infraEnv.Type = models.ImageTypeMinimalIso
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
-			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+			text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
 			Expect(err).NotTo(HaveOccurred())
@@ -1057,7 +1067,7 @@ var _ = Describe("IgnitionBuilder", func() {
 			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(true).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorCA().Return([]byte("some ca config"), nil).Times(1)
 			mockMirrorRegistriesConfigBuilder.EXPECT().GetMirrorRegistries().Return([]byte("some mirror registries config"), nil).Times(1)
-			text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+			text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 			Expect(err).NotTo(HaveOccurred())
 			config, report, err := config_31.Parse([]byte(text))
 			Expect(err).NotTo(HaveOccurred())
@@ -1076,15 +1086,15 @@ var _ = Describe("IgnitionBuilder", func() {
 var _ = Describe("Ignition SSH key building", func() {
 	var (
 		ctrl                              *gomock.Controller
-		cluster                           common.Cluster
+		infraEnv                          common.InfraEnv
 		builder                           IgnitionBuilder
 		mockStaticNetworkConfig           *staticnetworkconfig.MockStaticNetworkConfig
 		mockMirrorRegistriesConfigBuilder *mirrorregistries.MockMirrorRegistriesConfigBuilder
-		clusterID                         strfmt.UUID
+		infraEnvID                        strfmt.UUID
 	)
 	buildIgnitionAndAssertSubString := func(SSHPublicKey string, shouldExist bool, subStr string) {
-		cluster.ImageInfo.SSHPublicKey = SSHPublicKey
-		text, err := builder.FormatDiscoveryIgnitionFile(&cluster, IgnitionConfig{}, false, auth.TypeRHSSO)
+		infraEnv.SSHAuthorizedKey = SSHPublicKey
+		text, err := builder.FormatDiscoveryIgnitionFile(&infraEnv, IgnitionConfig{}, false, auth.TypeRHSSO)
 		Expect(err).NotTo(HaveOccurred())
 		if shouldExist {
 			Expect(text).Should(ContainSubstring(subStr))
@@ -1093,18 +1103,18 @@ var _ = Describe("Ignition SSH key building", func() {
 		}
 	}
 	BeforeEach(func() {
-		clusterID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
+		infraEnvID = strfmt.UUID("a64fff36-dcb1-11ea-87d0-0242ac130003")
 		ctrl = gomock.NewController(GinkgoT())
 		mockStaticNetworkConfig = staticnetworkconfig.NewMockStaticNetworkConfig(ctrl)
 		mockMirrorRegistriesConfigBuilder = mirrorregistries.NewMockMirrorRegistriesConfigBuilder(ctrl)
-		cluster = common.Cluster{
-			Cluster: models.Cluster{
-				ID:            &clusterID,
+		infraEnv = common.InfraEnv{
+			InfraEnv: models.InfraEnv{
+				ID:            infraEnvID,
 				PullSecretSet: false,
 			},
 			PullSecret: "{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}",
 		}
-		cluster.ImageInfo = &models.ImageInfo{}
+		//cluster.ImageInfo = &models.ImageInfo{}
 		builder = NewBuilder(log, mockStaticNetworkConfig, mockMirrorRegistriesConfigBuilder)
 		mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(1)
 	})

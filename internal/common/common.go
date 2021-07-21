@@ -120,3 +120,10 @@ func IsNtpSynced(c *Cluster) (bool, error) {
 	}
 	return (max-min)/60 <= MaximumAllowedTimeDiffMinutes, nil
 }
+
+func GetProxyConfigs(proxy *models.Proxy) (string, string, string) {
+	if proxy == nil {
+		return "", "", ""
+	}
+	return swag.StringValue(proxy.HTTPProxy), swag.StringValue(proxy.HTTPSProxy), swag.StringValue(proxy.NoProxy)
+}

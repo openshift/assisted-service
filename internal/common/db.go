@@ -54,6 +54,9 @@ type Cluster struct {
 
 	// Timestamp to trigger monitor. Monitor will be triggered if timestamp is recent
 	TriggerMonitorTimestamp time.Time
+
+	// StaticNetworkConfigured indicates if static network configuration was set for the ISO used by clusters' nodes
+	StaticNetworkConfigured bool `json:"static_network_configured"`
 }
 
 type Event struct {
@@ -89,12 +92,14 @@ type InfraEnv struct {
 
 	// Generated indicates if the discovery image was generated successfully. It will be used internally
 	// when an image needs to be generated. In case the user request to generate an image with custom parameters,
-	// and the generation failed, the value of ImageGenerated will be set to 'false'. In that case, providing the
+	// and the generation failed, the value of Generated will be set to 'false'. In that case, providing the
 	// same request with the same custom parameters will re-attempt to generate the image.
 	Generated bool `json:"generated"`
 
+	// Timestamp set for time when image ws actually generated
 	GeneratedAt strfmt.DateTime `json:"generated_at" gorm:"type:timestamp with time zone"`
 
+	// Timestamp for expiration of the image
 	ImageExpiresAt strfmt.DateTime `json:"image_expires_at" gorm:"type:timestamp with time zone"`
 }
 
@@ -197,6 +202,16 @@ func GetHostFromDBWhere(db *gorm.DB, where ...interface{}) (*Host, error) {
 		return nil, err
 	}
 	return &host, nil
+}
+
+func GetInfraEnvFromDB(db *gorm.DB, infraEnvID strfmt.UUID) (*InfraEnv, error) {
+	var infraEnv InfraEnv
+
+	err := db.First(&infraEnv, "id = ?", infraEnvID.String()).Error
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to get infra env %s", infraEnvID)
+	}
+	return &infraEnv, nil
 }
 
 func DeleteRecordsByClusterID(db *gorm.DB, clusterID strfmt.UUID, value interface{}, where ...interface{}) error {
