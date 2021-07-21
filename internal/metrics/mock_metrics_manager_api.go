@@ -8,7 +8,7 @@ import (
 	context "context"
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 	time "time"
 )
@@ -49,7 +49,7 @@ func (mr *MockAPIMockRecorder) ClusterRegistered(clusterVersion, clusterID, emai
 }
 
 // HostValidationFailed mocks base method
-func (m *MockAPI) HostValidationFailed(clusterVersion, emailDomain string, hostValidationType models.HostValidationID) {
+func (m *MockAPI) HostValidationFailed(clusterVersion, emailDomain string, hostValidationType v1.HostValidationID) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "HostValidationFailed", clusterVersion, emailDomain, hostValidationType)
 }
@@ -61,7 +61,7 @@ func (mr *MockAPIMockRecorder) HostValidationFailed(clusterVersion, emailDomain,
 }
 
 // HostValidationChanged mocks base method
-func (m *MockAPI) HostValidationChanged(clusterVersion, emailDomain string, hostValidationType models.HostValidationID) {
+func (m *MockAPI) HostValidationChanged(clusterVersion, emailDomain string, hostValidationType v1.HostValidationID) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "HostValidationChanged", clusterVersion, emailDomain, hostValidationType)
 }
@@ -73,7 +73,7 @@ func (mr *MockAPIMockRecorder) HostValidationChanged(clusterVersion, emailDomain
 }
 
 // ClusterValidationFailed mocks base method
-func (m *MockAPI) ClusterValidationFailed(clusterVersion, emailDomain string, clusterValidationType models.ClusterValidationID) {
+func (m *MockAPI) ClusterValidationFailed(clusterVersion, emailDomain string, clusterValidationType v1.ClusterValidationID) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClusterValidationFailed", clusterVersion, emailDomain, clusterValidationType)
 }
@@ -85,7 +85,7 @@ func (mr *MockAPIMockRecorder) ClusterValidationFailed(clusterVersion, emailDoma
 }
 
 // ClusterValidationChanged mocks base method
-func (m *MockAPI) ClusterValidationChanged(clusterVersion, emailDomain string, clusterValidationType models.ClusterValidationID) {
+func (m *MockAPI) ClusterValidationChanged(clusterVersion, emailDomain string, clusterValidationType v1.ClusterValidationID) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ClusterValidationChanged", clusterVersion, emailDomain, clusterValidationType)
 }
@@ -145,7 +145,7 @@ func (mr *MockAPIMockRecorder) ClusterInstallationFinished(ctx, result, prevStat
 }
 
 // ReportHostInstallationMetrics mocks base method
-func (m *MockAPI) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *models.Disk, h *models.Host, previousProgress *models.HostProgressInfo, currentStage models.HostStage) {
+func (m *MockAPI) ReportHostInstallationMetrics(ctx context.Context, clusterVersion string, clusterID strfmt.UUID, emailDomain string, boot *v1.Disk, h *v1.Host, previousProgress *v1.HostProgressInfo, currentStage v1.HostStage) {
 	m.ctrl.T.Helper()
 	m.ctrl.Call(m, "ReportHostInstallationMetrics", ctx, clusterVersion, clusterID, emailDomain, boot, h, previousProgress, currentStage)
 }

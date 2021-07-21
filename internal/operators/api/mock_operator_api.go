@@ -8,7 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 
@@ -80,10 +80,10 @@ func (mr *MockOperatorMockRecorder) GetDependencies() *gomock.Call {
 }
 
 // GetHostRequirements mocks base method
-func (m *MockOperator) GetHostRequirements(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) (*models.ClusterHostRequirementsDetails, error) {
+func (m *MockOperator) GetHostRequirements(arg0 context.Context, arg1 *common.Cluster, arg2 *v1.Host) (*v1.ClusterHostRequirementsDetails, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostRequirements", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*models.ClusterHostRequirementsDetails)
+	ret0, _ := ret[0].(*v1.ClusterHostRequirementsDetails)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -109,10 +109,10 @@ func (mr *MockOperatorMockRecorder) GetHostValidationID() *gomock.Call {
 }
 
 // GetMonitoredOperator mocks base method
-func (m *MockOperator) GetMonitoredOperator() *models.MonitoredOperator {
+func (m *MockOperator) GetMonitoredOperator() *v1.MonitoredOperator {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMonitoredOperator")
-	ret0, _ := ret[0].(*models.MonitoredOperator)
+	ret0, _ := ret[0].(*v1.MonitoredOperator)
 	return ret0
 }
 
@@ -137,10 +137,10 @@ func (mr *MockOperatorMockRecorder) GetName() *gomock.Call {
 }
 
 // GetPreflightRequirements mocks base method
-func (m *MockOperator) GetPreflightRequirements(arg0 context.Context, arg1 *common.Cluster) (*models.OperatorHardwareRequirements, error) {
+func (m *MockOperator) GetPreflightRequirements(arg0 context.Context, arg1 *common.Cluster) (*v1.OperatorHardwareRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPreflightRequirements", arg0, arg1)
-	ret0, _ := ret[0].(*models.OperatorHardwareRequirements)
+	ret0, _ := ret[0].(*v1.OperatorHardwareRequirements)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -152,10 +152,10 @@ func (mr *MockOperatorMockRecorder) GetPreflightRequirements(arg0, arg1 interfac
 }
 
 // GetProperties mocks base method
-func (m *MockOperator) GetProperties() models.OperatorProperties {
+func (m *MockOperator) GetProperties() v1.OperatorProperties {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetProperties")
-	ret0, _ := ret[0].(models.OperatorProperties)
+	ret0, _ := ret[0].(v1.OperatorProperties)
 	return ret0
 }
 
@@ -181,7 +181,7 @@ func (mr *MockOperatorMockRecorder) ValidateCluster(arg0, arg1 interface{}) *gom
 }
 
 // ValidateHost mocks base method
-func (m *MockOperator) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) (ValidationResult, error) {
+func (m *MockOperator) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *v1.Host) (ValidationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateHost", arg0, arg1, arg2)
 	ret0, _ := ret[0].(ValidationResult)

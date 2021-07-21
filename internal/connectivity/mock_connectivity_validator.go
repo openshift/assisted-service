@@ -6,7 +6,7 @@ package connectivity
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 
@@ -34,10 +34,10 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // GetHostValidInterfaces mocks base method
-func (m *MockValidator) GetHostValidInterfaces(host *models.Host) ([]*models.Interface, error) {
+func (m *MockValidator) GetHostValidInterfaces(host *v1.Host) ([]*v1.Interface, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidInterfaces", host)
-	ret0, _ := ret[0].([]*models.Interface)
+	ret0, _ := ret[0].([]*v1.Interface)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

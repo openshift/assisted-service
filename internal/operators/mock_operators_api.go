@@ -9,7 +9,7 @@ import (
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
 	api "github.com/openshift/assisted-service/internal/operators/api"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 
@@ -65,10 +65,10 @@ func (mr *MockAPIMockRecorder) GenerateManifests(arg0, arg1 interface{}) *gomock
 }
 
 // GetMonitoredOperatorsList mocks base method
-func (m *MockAPI) GetMonitoredOperatorsList() map[string]*models.MonitoredOperator {
+func (m *MockAPI) GetMonitoredOperatorsList() map[string]*v1.MonitoredOperator {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMonitoredOperatorsList")
-	ret0, _ := ret[0].(map[string]*models.MonitoredOperator)
+	ret0, _ := ret[0].(map[string]*v1.MonitoredOperator)
 	return ret0
 }
 
@@ -79,10 +79,10 @@ func (mr *MockAPIMockRecorder) GetMonitoredOperatorsList() *gomock.Call {
 }
 
 // GetOperatorByName mocks base method
-func (m *MockAPI) GetOperatorByName(arg0 string) (*models.MonitoredOperator, error) {
+func (m *MockAPI) GetOperatorByName(arg0 string) (*v1.MonitoredOperator, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOperatorByName", arg0)
-	ret0, _ := ret[0].(*models.MonitoredOperator)
+	ret0, _ := ret[0].(*v1.MonitoredOperator)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -94,10 +94,10 @@ func (mr *MockAPIMockRecorder) GetOperatorByName(arg0 interface{}) *gomock.Call 
 }
 
 // GetOperatorProperties mocks base method
-func (m *MockAPI) GetOperatorProperties(arg0 string) (models.OperatorProperties, error) {
+func (m *MockAPI) GetOperatorProperties(arg0 string) (v1.OperatorProperties, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetOperatorProperties", arg0)
-	ret0, _ := ret[0].(models.OperatorProperties)
+	ret0, _ := ret[0].(v1.OperatorProperties)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -109,10 +109,10 @@ func (mr *MockAPIMockRecorder) GetOperatorProperties(arg0 interface{}) *gomock.C
 }
 
 // GetPreflightRequirementsBreakdownForCluster mocks base method
-func (m *MockAPI) GetPreflightRequirementsBreakdownForCluster(arg0 context.Context, arg1 *common.Cluster) ([]*models.OperatorHardwareRequirements, error) {
+func (m *MockAPI) GetPreflightRequirementsBreakdownForCluster(arg0 context.Context, arg1 *common.Cluster) ([]*v1.OperatorHardwareRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPreflightRequirementsBreakdownForCluster", arg0, arg1)
-	ret0, _ := ret[0].([]*models.OperatorHardwareRequirements)
+	ret0, _ := ret[0].([]*v1.OperatorHardwareRequirements)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -124,10 +124,10 @@ func (mr *MockAPIMockRecorder) GetPreflightRequirementsBreakdownForCluster(arg0,
 }
 
 // GetRequirementsBreakdownForHostInCluster mocks base method
-func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]*models.OperatorHostRequirements, error) {
+func (m *MockAPI) GetRequirementsBreakdownForHostInCluster(arg0 context.Context, arg1 *common.Cluster, arg2 *v1.Host) ([]*v1.OperatorHostRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetRequirementsBreakdownForHostInCluster", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]*models.OperatorHostRequirements)
+	ret0, _ := ret[0].([]*v1.OperatorHostRequirements)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -153,10 +153,10 @@ func (mr *MockAPIMockRecorder) GetSupportedOperators() *gomock.Call {
 }
 
 // GetSupportedOperatorsByType mocks base method
-func (m *MockAPI) GetSupportedOperatorsByType(arg0 models.OperatorType) []*models.MonitoredOperator {
+func (m *MockAPI) GetSupportedOperatorsByType(arg0 v1.OperatorType) []*v1.MonitoredOperator {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetSupportedOperatorsByType", arg0)
-	ret0, _ := ret[0].([]*models.MonitoredOperator)
+	ret0, _ := ret[0].([]*v1.MonitoredOperator)
 	return ret0
 }
 
@@ -167,10 +167,10 @@ func (mr *MockAPIMockRecorder) GetSupportedOperatorsByType(arg0 interface{}) *go
 }
 
 // ResolveDependencies mocks base method
-func (m *MockAPI) ResolveDependencies(arg0 []*models.MonitoredOperator) ([]*models.MonitoredOperator, error) {
+func (m *MockAPI) ResolveDependencies(arg0 []*v1.MonitoredOperator) ([]*v1.MonitoredOperator, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ResolveDependencies", arg0)
-	ret0, _ := ret[0].([]*models.MonitoredOperator)
+	ret0, _ := ret[0].([]*v1.MonitoredOperator)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -197,7 +197,7 @@ func (mr *MockAPIMockRecorder) ValidateCluster(arg0, arg1 interface{}) *gomock.C
 }
 
 // ValidateHost mocks base method
-func (m *MockAPI) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *models.Host) ([]api.ValidationResult, error) {
+func (m *MockAPI) ValidateHost(arg0 context.Context, arg1 *common.Cluster, arg2 *v1.Host) ([]api.ValidationResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateHost", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]api.ValidationResult)

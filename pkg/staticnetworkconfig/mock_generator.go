@@ -6,7 +6,7 @@ package staticnetworkconfig
 
 import (
 	gomock "github.com/golang/mock/gomock"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 
@@ -49,7 +49,7 @@ func (mr *MockStaticNetworkConfigMockRecorder) GenerateStaticNetworkConfigData(h
 }
 
 // FormatStaticNetworkConfigForDB mocks base method
-func (m *MockStaticNetworkConfig) FormatStaticNetworkConfigForDB(staticNetworkConfig []*models.HostStaticNetworkConfig) string {
+func (m *MockStaticNetworkConfig) FormatStaticNetworkConfigForDB(staticNetworkConfig []*v1.HostStaticNetworkConfig) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FormatStaticNetworkConfigForDB", staticNetworkConfig)
 	ret0, _ := ret[0].(string)
@@ -63,7 +63,7 @@ func (mr *MockStaticNetworkConfigMockRecorder) FormatStaticNetworkConfigForDB(st
 }
 
 // ValidateStaticConfigParams mocks base method
-func (m *MockStaticNetworkConfig) ValidateStaticConfigParams(staticNetworkConfig []*models.HostStaticNetworkConfig) error {
+func (m *MockStaticNetworkConfig) ValidateStaticConfigParams(staticNetworkConfig []*v1.HostStaticNetworkConfig) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ValidateStaticConfigParams", staticNetworkConfig)
 	ret0, _ := ret[0].(error)

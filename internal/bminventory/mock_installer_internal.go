@@ -9,7 +9,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	installer "github.com/openshift/assisted-service/restapi/restapi_v1/operations/installer"
 	io "io"
 	types "k8s.io/apimachinery/pkg/types"
@@ -40,10 +40,10 @@ func (m *MockInstallerInternals) EXPECT() *MockInstallerInternalsMockRecorder {
 }
 
 // AddOpenshiftVersion mocks base method
-func (m *MockInstallerInternals) AddOpenshiftVersion(arg0 context.Context, arg1, arg2 string) (*models.OpenshiftVersion, error) {
+func (m *MockInstallerInternals) AddOpenshiftVersion(arg0 context.Context, arg1, arg2 string) (*v1.OpenshiftVersion, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddOpenshiftVersion", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*models.OpenshiftVersion)
+	ret0, _ := ret[0].(*v1.OpenshiftVersion)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -174,10 +174,10 @@ func (mr *MockInstallerInternalsMockRecorder) GetCommonHostInternal(arg0, arg1, 
 }
 
 // GetCredentialsInternal mocks base method
-func (m *MockInstallerInternals) GetCredentialsInternal(arg0 context.Context, arg1 installer.GetCredentialsParams) (*models.Credentials, error) {
+func (m *MockInstallerInternals) GetCredentialsInternal(arg0 context.Context, arg1 installer.GetCredentialsParams) (*v1.Credentials, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetCredentialsInternal", arg0, arg1)
-	ret0, _ := ret[0].(*models.Credentials)
+	ret0, _ := ret[0].(*v1.Credentials)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -321,10 +321,10 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateHostApprovedInternal(arg0, a
 }
 
 // UpdateHostIgnitionInternal mocks base method
-func (m *MockInstallerInternals) UpdateHostIgnitionInternal(arg0 context.Context, arg1 installer.UpdateHostIgnitionParams) (*models.Host, error) {
+func (m *MockInstallerInternals) UpdateHostIgnitionInternal(arg0 context.Context, arg1 installer.UpdateHostIgnitionParams) (*v1.Host, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateHostIgnitionInternal", arg0, arg1)
-	ret0, _ := ret[0].(*models.Host)
+	ret0, _ := ret[0].(*v1.Host)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -336,10 +336,10 @@ func (mr *MockInstallerInternalsMockRecorder) UpdateHostIgnitionInternal(arg0, a
 }
 
 // UpdateHostInstallerArgsInternal mocks base method
-func (m *MockInstallerInternals) UpdateHostInstallerArgsInternal(arg0 context.Context, arg1 installer.UpdateHostInstallerArgsParams) (*models.Host, error) {
+func (m *MockInstallerInternals) UpdateHostInstallerArgsInternal(arg0 context.Context, arg1 installer.UpdateHostInstallerArgsParams) (*v1.Host, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateHostInstallerArgsInternal", arg0, arg1)
-	ret0, _ := ret[0].(*models.Host)
+	ret0, _ := ret[0].(*v1.Host)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -8,7 +8,7 @@ import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
 	common "github.com/openshift/assisted-service/internal/common"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 
@@ -36,10 +36,10 @@ func (m *MockValidator) EXPECT() *MockValidatorMockRecorder {
 }
 
 // GetHostValidDisks mocks base method
-func (m *MockValidator) GetHostValidDisks(host *models.Host) ([]*models.Disk, error) {
+func (m *MockValidator) GetHostValidDisks(host *v1.Host) ([]*v1.Disk, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostValidDisks", host)
-	ret0, _ := ret[0].([]*models.Disk)
+	ret0, _ := ret[0].([]*v1.Disk)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -51,7 +51,7 @@ func (mr *MockValidatorMockRecorder) GetHostValidDisks(host interface{}) *gomock
 }
 
 // GetHostInstallationPath mocks base method
-func (m *MockValidator) GetHostInstallationPath(host *models.Host) string {
+func (m *MockValidator) GetHostInstallationPath(host *v1.Host) string {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetHostInstallationPath", host)
 	ret0, _ := ret[0].(string)
@@ -65,10 +65,10 @@ func (mr *MockValidatorMockRecorder) GetHostInstallationPath(host interface{}) *
 }
 
 // GetClusterHostRequirements mocks base method
-func (m *MockValidator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error) {
+func (m *MockValidator) GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *v1.Host) (*v1.ClusterHostRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetClusterHostRequirements", ctx, cluster, host)
-	ret0, _ := ret[0].(*models.ClusterHostRequirements)
+	ret0, _ := ret[0].(*v1.ClusterHostRequirements)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -80,7 +80,7 @@ func (mr *MockValidatorMockRecorder) GetClusterHostRequirements(ctx, cluster, ho
 }
 
 // DiskIsEligible mocks base method
-func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error) {
+func (m *MockValidator) DiskIsEligible(ctx context.Context, disk *v1.Disk, cluster *common.Cluster, host *v1.Host) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DiskIsEligible", ctx, disk, cluster, host)
 	ret0, _ := ret[0].([]string)
@@ -95,10 +95,10 @@ func (mr *MockValidatorMockRecorder) DiskIsEligible(ctx, disk, cluster, host int
 }
 
 // ListEligibleDisks mocks base method
-func (m *MockValidator) ListEligibleDisks(inventory *models.Inventory) []*models.Disk {
+func (m *MockValidator) ListEligibleDisks(inventory *v1.Inventory) []*v1.Disk {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListEligibleDisks", inventory)
-	ret0, _ := ret[0].([]*models.Disk)
+	ret0, _ := ret[0].([]*v1.Disk)
 	return ret0
 }
 
@@ -109,7 +109,7 @@ func (mr *MockValidatorMockRecorder) ListEligibleDisks(inventory interface{}) *g
 }
 
 // GetInstallationDiskSpeedThresholdMs mocks base method
-func (m *MockValidator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error) {
+func (m *MockValidator) GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *v1.Host) (int64, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetInstallationDiskSpeedThresholdMs", ctx, cluster, host)
 	ret0, _ := ret[0].(int64)
@@ -124,10 +124,10 @@ func (mr *MockValidatorMockRecorder) GetInstallationDiskSpeedThresholdMs(ctx, cl
 }
 
 // GetPreflightHardwareRequirements mocks base method
-func (m *MockValidator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error) {
+func (m *MockValidator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*v1.PreflightHardwareRequirements, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetPreflightHardwareRequirements", ctx, cluster)
-	ret0, _ := ret[0].(*models.PreflightHardwareRequirements)
+	ret0, _ := ret[0].(*v1.PreflightHardwareRequirements)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

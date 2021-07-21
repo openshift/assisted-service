@@ -8,7 +8,7 @@ import (
 	context "context"
 	middleware "github.com/go-openapi/runtime/middleware"
 	gomock "github.com/golang/mock/gomock"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	versions "github.com/openshift/assisted-service/restapi/restapi_v1/operations/versions"
 	reflect "reflect"
 )
@@ -37,10 +37,10 @@ func (m *MockHandler) EXPECT() *MockHandlerMockRecorder {
 }
 
 // AddOpenshiftVersion mocks base method
-func (m *MockHandler) AddOpenshiftVersion(arg0, arg1 string) (*models.OpenshiftVersion, error) {
+func (m *MockHandler) AddOpenshiftVersion(arg0, arg1 string) (*v1.OpenshiftVersion, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddOpenshiftVersion", arg0, arg1)
-	ret0, _ := ret[0].(*models.OpenshiftVersion)
+	ret0, _ := ret[0].(*v1.OpenshiftVersion)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -142,10 +142,10 @@ func (mr *MockHandlerMockRecorder) GetReleaseVersion(arg0 interface{}) *gomock.C
 }
 
 // GetVersion mocks base method
-func (m *MockHandler) GetVersion(arg0 string) (*models.OpenshiftVersion, error) {
+func (m *MockHandler) GetVersion(arg0 string) (*v1.OpenshiftVersion, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetVersion", arg0)
-	ret0, _ := ret[0].(*models.OpenshiftVersion)
+	ret0, _ := ret[0].(*v1.OpenshiftVersion)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

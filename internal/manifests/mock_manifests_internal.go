@@ -7,7 +7,7 @@ package manifests
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	manifests "github.com/openshift/assisted-service/restapi/restapi_v1/operations/manifests"
 	reflect "reflect"
 )
@@ -36,10 +36,10 @@ func (m *MockClusterManifestsInternals) EXPECT() *MockClusterManifestsInternalsM
 }
 
 // CreateClusterManifestInternal mocks base method
-func (m *MockClusterManifestsInternals) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.CreateClusterManifestParams) (*models.Manifest, error) {
+func (m *MockClusterManifestsInternals) CreateClusterManifestInternal(arg0 context.Context, arg1 manifests.CreateClusterManifestParams) (*v1.Manifest, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateClusterManifestInternal", arg0, arg1)
-	ret0, _ := ret[0].(*models.Manifest)
+	ret0, _ := ret[0].(*v1.Manifest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -65,10 +65,10 @@ func (mr *MockClusterManifestsInternalsMockRecorder) DeleteClusterManifestIntern
 }
 
 // ListClusterManifestsInternal mocks base method
-func (m *MockClusterManifestsInternals) ListClusterManifestsInternal(arg0 context.Context, arg1 manifests.ListClusterManifestsParams) (models.ListManifests, error) {
+func (m *MockClusterManifestsInternals) ListClusterManifestsInternal(arg0 context.Context, arg1 manifests.ListClusterManifestsParams) (v1.ListManifests, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListClusterManifestsInternal", arg0, arg1)
-	ret0, _ := ret[0].(models.ListManifests)
+	ret0, _ := ret[0].(v1.ListManifests)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

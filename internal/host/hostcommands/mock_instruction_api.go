@@ -7,7 +7,7 @@ package hostcommands
 import (
 	context "context"
 	gomock "github.com/golang/mock/gomock"
-	models models "github.com/openshift/assisted-service/models/v1"
+	v1 "github.com/openshift/assisted-service/models/v1"
 	reflect "reflect"
 )
 
@@ -35,10 +35,10 @@ func (m *MockInstructionApi) EXPECT() *MockInstructionApiMockRecorder {
 }
 
 // GetNextSteps mocks base method
-func (m *MockInstructionApi) GetNextSteps(arg0 context.Context, arg1 *models.Host) (models.Steps, error) {
+func (m *MockInstructionApi) GetNextSteps(arg0 context.Context, arg1 *v1.Host) (v1.Steps, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetNextSteps", arg0, arg1)
-	ret0, _ := ret[0].(models.Steps)
+	ret0, _ := ret[0].(v1.Steps)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
