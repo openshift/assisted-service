@@ -73,6 +73,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerDeregisterHostHandler: installer.DeregisterHostHandlerFunc(func(params installer.DeregisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DeregisterHost has not yet been implemented")
 		}),
+		InstallerDeregisterInfraEnvHandler: installer.DeregisterInfraEnvHandlerFunc(func(params installer.DeregisterInfraEnvParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DeregisterInfraEnv has not yet been implemented")
+		}),
 		InstallerDisableHostHandler: installer.DisableHostHandlerFunc(func(params installer.DisableHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.DisableHost has not yet been implemented")
 		}),
@@ -102,6 +105,12 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		AssistedServiceIsoDownloadISOHandler: assisted_service_iso.DownloadISOHandlerFunc(func(params assisted_service_iso.DownloadISOParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation assisted_service_iso.DownloadISO has not yet been implemented")
+		}),
+		InstallerDownloadInfraEnvDiscoveryImageHandler: installer.DownloadInfraEnvDiscoveryImageHandlerFunc(func(params installer.DownloadInfraEnvDiscoveryImageParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadInfraEnvDiscoveryImage has not yet been implemented")
+		}),
+		InstallerDownloadInfraEnvDiscoveryImageHeadersHandler: installer.DownloadInfraEnvDiscoveryImageHeadersHandlerFunc(func(params installer.DownloadInfraEnvDiscoveryImageHeadersParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.DownloadInfraEnvDiscoveryImageHeaders has not yet been implemented")
 		}),
 		InstallerEnableHostHandler: installer.EnableHostHandlerFunc(func(params installer.EnableHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.EnableHost has not yet been implemented")
@@ -139,6 +148,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerGetHostIgnitionHandler: installer.GetHostIgnitionHandlerFunc(func(params installer.GetHostIgnitionParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetHostIgnition has not yet been implemented")
 		}),
+		InstallerGetInfraEnvHandler: installer.GetInfraEnvHandlerFunc(func(params installer.GetInfraEnvParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.GetInfraEnv has not yet been implemented")
+		}),
 		InstallerGetNextStepsHandler: installer.GetNextStepsHandlerFunc(func(params installer.GetNextStepsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.GetNextSteps has not yet been implemented")
 		}),
@@ -175,6 +187,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerListHostsHandler: installer.ListHostsHandlerFunc(func(params installer.ListHostsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.ListHosts has not yet been implemented")
 		}),
+		InstallerListInfraEnvsHandler: installer.ListInfraEnvsHandlerFunc(func(params installer.ListInfraEnvsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.ListInfraEnvs has not yet been implemented")
+		}),
 		ManagedDomainsListManagedDomainsHandler: managed_domains.ListManagedDomainsHandlerFunc(func(params managed_domains.ListManagedDomainsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation managed_domains.ListManagedDomains has not yet been implemented")
 		}),
@@ -201,6 +216,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerRegisterHostHandler: installer.RegisterHostHandlerFunc(func(params installer.RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.RegisterHost has not yet been implemented")
+		}),
+		InstallerRegisterInfraEnvHandler: installer.RegisterInfraEnvHandlerFunc(func(params installer.RegisterInfraEnvParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.RegisterInfraEnv has not yet been implemented")
 		}),
 		OperatorsReportMonitoredOperatorStatusHandler: operators.ReportMonitoredOperatorStatusHandlerFunc(func(params operators.ReportMonitoredOperatorStatusParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation operators.ReportMonitoredOperatorStatus has not yet been implemented")
@@ -238,6 +256,9 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUpdateHostLogsProgressHandler: installer.UpdateHostLogsProgressHandlerFunc(func(params installer.UpdateHostLogsProgressParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UpdateHostLogsProgress has not yet been implemented")
 		}),
+		InstallerUpdateInfraEnvHandler: installer.UpdateInfraEnvHandlerFunc(func(params installer.UpdateInfraEnvParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.UpdateInfraEnv has not yet been implemented")
+		}),
 		InstallerUploadClusterIngressCertHandler: installer.UploadClusterIngressCertHandlerFunc(func(params installer.UploadClusterIngressCertParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadClusterIngressCert has not yet been implemented")
 		}),
@@ -258,9 +279,6 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		}),
 		InstallerV2RegisterHostHandler: installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterHost has not yet been implemented")
-		}),
-		InstallerV2RegisterInfraEnvHandler: installer.V2RegisterInfraEnvHandlerFunc(func(params installer.V2RegisterInfraEnvParams, principal interface{}) middleware.Responder {
-			return middleware.NotImplemented("operation installer.V2RegisterInfraEnv has not yet been implemented")
 		}),
 
 		// Applies when the "X-Secret-Key" header is set
@@ -346,6 +364,8 @@ type AssistedInstallAPI struct {
 	InstallerDeregisterClusterHandler installer.DeregisterClusterHandler
 	// InstallerDeregisterHostHandler sets the operation handler for the deregister host operation
 	InstallerDeregisterHostHandler installer.DeregisterHostHandler
+	// InstallerDeregisterInfraEnvHandler sets the operation handler for the deregister infra env operation
+	InstallerDeregisterInfraEnvHandler installer.DeregisterInfraEnvHandler
 	// InstallerDisableHostHandler sets the operation handler for the disable host operation
 	InstallerDisableHostHandler installer.DisableHostHandler
 	// InstallerDownloadClusterFilesHandler sets the operation handler for the download cluster files operation
@@ -366,6 +386,10 @@ type AssistedInstallAPI struct {
 	InstallerDownloadHostLogsHandler installer.DownloadHostLogsHandler
 	// AssistedServiceIsoDownloadISOHandler sets the operation handler for the download i s o operation
 	AssistedServiceIsoDownloadISOHandler assisted_service_iso.DownloadISOHandler
+	// InstallerDownloadInfraEnvDiscoveryImageHandler sets the operation handler for the download infra env discovery image operation
+	InstallerDownloadInfraEnvDiscoveryImageHandler installer.DownloadInfraEnvDiscoveryImageHandler
+	// InstallerDownloadInfraEnvDiscoveryImageHeadersHandler sets the operation handler for the download infra env discovery image headers operation
+	InstallerDownloadInfraEnvDiscoveryImageHeadersHandler installer.DownloadInfraEnvDiscoveryImageHeadersHandler
 	// InstallerEnableHostHandler sets the operation handler for the enable host operation
 	InstallerEnableHostHandler installer.EnableHostHandler
 	// InstallerGenerateClusterISOHandler sets the operation handler for the generate cluster i s o operation
@@ -390,6 +414,8 @@ type AssistedInstallAPI struct {
 	InstallerGetHostHandler installer.GetHostHandler
 	// InstallerGetHostIgnitionHandler sets the operation handler for the get host ignition operation
 	InstallerGetHostIgnitionHandler installer.GetHostIgnitionHandler
+	// InstallerGetInfraEnvHandler sets the operation handler for the get infra env operation
+	InstallerGetInfraEnvHandler installer.GetInfraEnvHandler
 	// InstallerGetNextStepsHandler sets the operation handler for the get next steps operation
 	InstallerGetNextStepsHandler installer.GetNextStepsHandler
 	// InstallerGetPreflightRequirementsHandler sets the operation handler for the get preflight requirements operation
@@ -414,6 +440,8 @@ type AssistedInstallAPI struct {
 	EventsListEventsHandler events.ListEventsHandler
 	// InstallerListHostsHandler sets the operation handler for the list hosts operation
 	InstallerListHostsHandler installer.ListHostsHandler
+	// InstallerListInfraEnvsHandler sets the operation handler for the list infra envs operation
+	InstallerListInfraEnvsHandler installer.ListInfraEnvsHandler
 	// ManagedDomainsListManagedDomainsHandler sets the operation handler for the list managed domains operation
 	ManagedDomainsListManagedDomainsHandler managed_domains.ListManagedDomainsHandler
 	// OperatorsListOfClusterOperatorsHandler sets the operation handler for the list of cluster operators operation
@@ -432,6 +460,8 @@ type AssistedInstallAPI struct {
 	InstallerRegisterClusterHandler installer.RegisterClusterHandler
 	// InstallerRegisterHostHandler sets the operation handler for the register host operation
 	InstallerRegisterHostHandler installer.RegisterHostHandler
+	// InstallerRegisterInfraEnvHandler sets the operation handler for the register infra env operation
+	InstallerRegisterInfraEnvHandler installer.RegisterInfraEnvHandler
 	// OperatorsReportMonitoredOperatorStatusHandler sets the operation handler for the report monitored operator status operation
 	OperatorsReportMonitoredOperatorStatusHandler operators.ReportMonitoredOperatorStatusHandler
 	// InstallerResetClusterHandler sets the operation handler for the reset cluster operation
@@ -456,6 +486,8 @@ type AssistedInstallAPI struct {
 	InstallerUpdateHostInstallerArgsHandler installer.UpdateHostInstallerArgsHandler
 	// InstallerUpdateHostLogsProgressHandler sets the operation handler for the update host logs progress operation
 	InstallerUpdateHostLogsProgressHandler installer.UpdateHostLogsProgressHandler
+	// InstallerUpdateInfraEnvHandler sets the operation handler for the update infra env operation
+	InstallerUpdateInfraEnvHandler installer.UpdateInfraEnvHandler
 	// InstallerUploadClusterIngressCertHandler sets the operation handler for the upload cluster ingress cert operation
 	InstallerUploadClusterIngressCertHandler installer.UploadClusterIngressCertHandler
 	// InstallerUploadHostLogsHandler sets the operation handler for the upload host logs operation
@@ -470,8 +502,6 @@ type AssistedInstallAPI struct {
 	InstallerV2PostStepReplyHandler installer.V2PostStepReplyHandler
 	// InstallerV2RegisterHostHandler sets the operation handler for the v2 register host operation
 	InstallerV2RegisterHostHandler installer.V2RegisterHostHandler
-	// InstallerV2RegisterInfraEnvHandler sets the operation handler for the v2 register infra env operation
-	InstallerV2RegisterInfraEnvHandler installer.V2RegisterInfraEnvHandler
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
 	ServeError func(http.ResponseWriter, *http.Request, error)
@@ -585,6 +615,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerDeregisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.DeregisterHostHandler")
 	}
+	if o.InstallerDeregisterInfraEnvHandler == nil {
+		unregistered = append(unregistered, "installer.DeregisterInfraEnvHandler")
+	}
 	if o.InstallerDisableHostHandler == nil {
 		unregistered = append(unregistered, "installer.DisableHostHandler")
 	}
@@ -614,6 +647,12 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.AssistedServiceIsoDownloadISOHandler == nil {
 		unregistered = append(unregistered, "assisted_service_iso.DownloadISOHandler")
+	}
+	if o.InstallerDownloadInfraEnvDiscoveryImageHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadInfraEnvDiscoveryImageHandler")
+	}
+	if o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler == nil {
+		unregistered = append(unregistered, "installer.DownloadInfraEnvDiscoveryImageHeadersHandler")
 	}
 	if o.InstallerEnableHostHandler == nil {
 		unregistered = append(unregistered, "installer.EnableHostHandler")
@@ -651,6 +690,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerGetHostIgnitionHandler == nil {
 		unregistered = append(unregistered, "installer.GetHostIgnitionHandler")
 	}
+	if o.InstallerGetInfraEnvHandler == nil {
+		unregistered = append(unregistered, "installer.GetInfraEnvHandler")
+	}
 	if o.InstallerGetNextStepsHandler == nil {
 		unregistered = append(unregistered, "installer.GetNextStepsHandler")
 	}
@@ -687,6 +729,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerListHostsHandler == nil {
 		unregistered = append(unregistered, "installer.ListHostsHandler")
 	}
+	if o.InstallerListInfraEnvsHandler == nil {
+		unregistered = append(unregistered, "installer.ListInfraEnvsHandler")
+	}
 	if o.ManagedDomainsListManagedDomainsHandler == nil {
 		unregistered = append(unregistered, "managed_domains.ListManagedDomainsHandler")
 	}
@@ -713,6 +758,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerRegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.RegisterHostHandler")
+	}
+	if o.InstallerRegisterInfraEnvHandler == nil {
+		unregistered = append(unregistered, "installer.RegisterInfraEnvHandler")
 	}
 	if o.OperatorsReportMonitoredOperatorStatusHandler == nil {
 		unregistered = append(unregistered, "operators.ReportMonitoredOperatorStatusHandler")
@@ -750,6 +798,9 @@ func (o *AssistedInstallAPI) Validate() error {
 	if o.InstallerUpdateHostLogsProgressHandler == nil {
 		unregistered = append(unregistered, "installer.UpdateHostLogsProgressHandler")
 	}
+	if o.InstallerUpdateInfraEnvHandler == nil {
+		unregistered = append(unregistered, "installer.UpdateInfraEnvHandler")
+	}
 	if o.InstallerUploadClusterIngressCertHandler == nil {
 		unregistered = append(unregistered, "installer.UploadClusterIngressCertHandler")
 	}
@@ -770,9 +821,6 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerV2RegisterHostHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterHostHandler")
-	}
-	if o.InstallerV2RegisterInfraEnvHandler == nil {
-		unregistered = append(unregistered, "installer.V2RegisterInfraEnvHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -914,6 +962,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
+	o.handlers["DELETE"]["/v2/infra-envs/{infra_env_id}"] = installer.NewDeregisterInfraEnv(o.context, o.InstallerDeregisterInfraEnvHandler)
+	if o.handlers["DELETE"] == nil {
+		o.handlers["DELETE"] = make(map[string]http.Handler)
+	}
 	o.handlers["DELETE"]["/v1/clusters/{cluster_id}/hosts/{host_id}/actions/enable"] = installer.NewDisableHost(o.context, o.InstallerDisableHostHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -951,6 +1003,14 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/v1/assisted-service-iso/data"] = assisted_service_iso.NewDownloadISO(o.context, o.AssistedServiceIsoDownloadISOHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/image"] = installer.NewDownloadInfraEnvDiscoveryImage(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHandler)
+	if o.handlers["HEAD"] == nil {
+		o.handlers["HEAD"] = make(map[string]http.Handler)
+	}
+	o.handlers["HEAD"]["/v2/infra-envs/{infra_env_id}/image"] = installer.NewDownloadInfraEnvDiscoveryImageHeaders(o.context, o.InstallerDownloadInfraEnvDiscoveryImageHeadersHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -1002,6 +1062,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}"] = installer.NewGetInfraEnv(o.context, o.InstallerGetInfraEnvHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/v1/clusters/{cluster_id}/hosts/{host_id}/instructions"] = installer.NewGetNextSteps(o.context, o.InstallerGetNextStepsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -1050,6 +1114,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
+	o.handlers["GET"]["/v2/infra-envs"] = installer.NewListInfraEnvs(o.context, o.InstallerListInfraEnvsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
 	o.handlers["GET"]["/v1/domains"] = managed_domains.NewListManagedDomains(o.context, o.ManagedDomainsListManagedDomainsHandler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
@@ -1083,6 +1151,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v1/clusters/{cluster_id}/hosts"] = installer.NewRegisterHost(o.context, o.InstallerRegisterHostHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs"] = installer.NewRegisterInfraEnv(o.context, o.InstallerRegisterInfraEnvHandler)
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
@@ -1131,6 +1203,10 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
 	o.handlers["PUT"]["/v1/clusters/{cluster_id}/hosts/{host_id}/logs_progress"] = installer.NewUpdateHostLogsProgress(o.context, o.InstallerUpdateHostLogsProgressHandler)
+	if o.handlers["PATCH"] == nil {
+		o.handlers["PATCH"] = make(map[string]http.Handler)
+	}
+	o.handlers["PATCH"]["/v2/infra-envs/{infra_env_id}"] = installer.NewUpdateInfraEnv(o.context, o.InstallerUpdateInfraEnvHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
@@ -1159,10 +1235,6 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2RegisterHost(o.context, o.InstallerV2RegisterHostHandler)
-	if o.handlers["POST"] == nil {
-		o.handlers["POST"] = make(map[string]http.Handler)
-	}
-	o.handlers["POST"]["/v2/infra-envs"] = installer.NewV2RegisterInfraEnv(o.context, o.InstallerV2RegisterInfraEnvHandler)
 }
 
 // Serve creates a http handler to serve the API over HTTP

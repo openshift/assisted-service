@@ -49,7 +49,7 @@ func populateInfraEnv() *gormigrate.Migration {
 						ClusterID:              *cluster.ID,
 						Href:                   *cluster.Href,
 						IgnitionConfigOverride: cluster.IgnitionConfigOverrides,
-						Kind:                   "InfraEnv",
+						Kind:                   models.InfraEnvKindInfraEnv,
 						Name:                   cluster.Name,
 						Proxy: &models.Proxy{
 							HTTPProxy:  &cluster.HTTPProxy,

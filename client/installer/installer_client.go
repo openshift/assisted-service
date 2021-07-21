@@ -31,6 +31,9 @@ type API interface {
 	   DeregisterHost Deregisters an OpenShift host.*/
 	DeregisterHost(ctx context.Context, params *DeregisterHostParams) (*DeregisterHostNoContent, error)
 	/*
+	   DeregisterInfraEnv Deletes an InfraEnv.*/
+	DeregisterInfraEnv(ctx context.Context, params *DeregisterInfraEnvParams) (*DeregisterInfraEnvNoContent, error)
+	/*
 	   DisableHost Disables a host for inclusion in the cluster.*/
 	DisableHost(ctx context.Context, params *DisableHostParams) (*DisableHostOK, error)
 	/*
@@ -54,6 +57,12 @@ type API interface {
 	/*
 	   DownloadHostLogs Download host logs.*/
 	DownloadHostLogs(ctx context.Context, params *DownloadHostLogsParams, writer io.Writer) (*DownloadHostLogsOK, error)
+	/*
+	   DownloadInfraEnvDiscoveryImage Downloads the discovery image.*/
+	DownloadInfraEnvDiscoveryImage(ctx context.Context, params *DownloadInfraEnvDiscoveryImageParams, writer io.Writer) (*DownloadInfraEnvDiscoveryImageOK, error)
+	/*
+	   DownloadInfraEnvDiscoveryImageHeaders Downloads the discovery image Headers only.*/
+	DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params *DownloadInfraEnvDiscoveryImageHeadersParams) (*DownloadInfraEnvDiscoveryImageHeadersOK, error)
 	/*
 	   EnableHost Enables a host for inclusion in the cluster.*/
 	EnableHost(ctx context.Context, params *EnableHostParams) (*EnableHostOK, error)
@@ -94,6 +103,9 @@ type API interface {
 	   GetHostIgnition Get the customized ignition file for this host*/
 	GetHostIgnition(ctx context.Context, params *GetHostIgnitionParams) (*GetHostIgnitionOK, error)
 	/*
+	   GetInfraEnv Retrieves the details of the InfraEnv.*/
+	GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error)
+	/*
 	   GetNextSteps Retrieves the next operations that the host agent needs to perform.*/
 	GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error)
 	/*
@@ -118,6 +130,9 @@ type API interface {
 	   ListHosts Retrieves the list of OpenShift hosts.*/
 	ListHosts(ctx context.Context, params *ListHostsParams) (*ListHostsOK, error)
 	/*
+	   ListInfraEnvs Retrieves the list of InfraEnvs.*/
+	ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error)
+	/*
 	   PostStepReply Posts the result of the operations from the host agent.*/
 	PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error)
 	/*
@@ -129,6 +144,9 @@ type API interface {
 	/*
 	   RegisterHost Registers a new OpenShift host.*/
 	RegisterHost(ctx context.Context, params *RegisterHostParams) (*RegisterHostCreated, error)
+	/*
+	   RegisterInfraEnv Creates a new OpenShift Discovery ISO.*/
+	RegisterInfraEnv(ctx context.Context, params *RegisterInfraEnvParams) (*RegisterInfraEnvCreated, error)
 	/*
 	   ResetCluster Resets a failed installation.*/
 	ResetCluster(ctx context.Context, params *ResetClusterParams) (*ResetClusterAccepted, error)
@@ -165,6 +183,9 @@ type API interface {
 	   UpdateHostLogsProgress Update log collection state and progress.*/
 	UpdateHostLogsProgress(ctx context.Context, params *UpdateHostLogsProgressParams) (*UpdateHostLogsProgressNoContent, error)
 	/*
+	   UpdateInfraEnv Updates an InfraEnv.*/
+	UpdateInfraEnv(ctx context.Context, params *UpdateInfraEnvParams) (*UpdateInfraEnvCreated, error)
+	/*
 	   UploadClusterIngressCert Transfer the ingress certificate for the cluster.*/
 	UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error)
 	/*
@@ -185,9 +206,6 @@ type API interface {
 	/*
 	   V2RegisterHost Registers a new OpenShift agent.*/
 	V2RegisterHost(ctx context.Context, params *V2RegisterHostParams) (*V2RegisterHostCreated, error)
-	/*
-	   V2RegisterInfraEnv Creates a new OpenShift Discovery ISO.*/
-	V2RegisterInfraEnv(ctx context.Context, params *V2RegisterInfraEnvParams) (*V2RegisterInfraEnvCreated, error)
 }
 
 // New creates a new installer API client.
@@ -305,6 +323,31 @@ func (a *Client) DeregisterHost(ctx context.Context, params *DeregisterHostParam
 		return nil, err
 	}
 	return result.(*DeregisterHostNoContent), nil
+
+}
+
+/*
+DeregisterInfraEnv Deletes an InfraEnv.
+*/
+func (a *Client) DeregisterInfraEnv(ctx context.Context, params *DeregisterInfraEnvParams) (*DeregisterInfraEnvNoContent, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DeregisterInfraEnv",
+		Method:             "DELETE",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DeregisterInfraEnvReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DeregisterInfraEnvNoContent), nil
 
 }
 
@@ -505,6 +548,56 @@ func (a *Client) DownloadHostLogs(ctx context.Context, params *DownloadHostLogsP
 		return nil, err
 	}
 	return result.(*DownloadHostLogsOK), nil
+
+}
+
+/*
+DownloadInfraEnvDiscoveryImage Downloads the discovery image.
+*/
+func (a *Client) DownloadInfraEnvDiscoveryImage(ctx context.Context, params *DownloadInfraEnvDiscoveryImageParams, writer io.Writer) (*DownloadInfraEnvDiscoveryImageOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadInfraEnvDiscoveryImage",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/image",
+		ProducesMediaTypes: []string{"application/octet-stream"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadInfraEnvDiscoveryImageReader{formats: a.formats, writer: writer},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadInfraEnvDiscoveryImageOK), nil
+
+}
+
+/*
+DownloadInfraEnvDiscoveryImageHeaders Downloads the discovery image Headers only.
+*/
+func (a *Client) DownloadInfraEnvDiscoveryImageHeaders(ctx context.Context, params *DownloadInfraEnvDiscoveryImageHeadersParams) (*DownloadInfraEnvDiscoveryImageHeadersOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "DownloadInfraEnvDiscoveryImageHeaders",
+		Method:             "HEAD",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}/image",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &DownloadInfraEnvDiscoveryImageHeadersReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*DownloadInfraEnvDiscoveryImageHeadersOK), nil
 
 }
 
@@ -812,6 +905,31 @@ func (a *Client) GetHostIgnition(ctx context.Context, params *GetHostIgnitionPar
 }
 
 /*
+GetInfraEnv Retrieves the details of the InfraEnv.
+*/
+func (a *Client) GetInfraEnv(ctx context.Context, params *GetInfraEnvParams) (*GetInfraEnvOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "GetInfraEnv",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &GetInfraEnvReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*GetInfraEnvOK), nil
+
+}
+
+/*
 GetNextSteps Retrieves the next operations that the host agent needs to perform.
 */
 func (a *Client) GetNextSteps(ctx context.Context, params *GetNextStepsParams) (*GetNextStepsOK, error) {
@@ -1012,6 +1130,31 @@ func (a *Client) ListHosts(ctx context.Context, params *ListHostsParams) (*ListH
 }
 
 /*
+ListInfraEnvs Retrieves the list of InfraEnvs.
+*/
+func (a *Client) ListInfraEnvs(ctx context.Context, params *ListInfraEnvsParams) (*ListInfraEnvsOK, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "ListInfraEnvs",
+		Method:             "GET",
+		PathPattern:        "/v2/infra-envs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &ListInfraEnvsReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListInfraEnvsOK), nil
+
+}
+
+/*
 PostStepReply Posts the result of the operations from the host agent.
 */
 func (a *Client) PostStepReply(ctx context.Context, params *PostStepReplyParams) (*PostStepReplyNoContent, error) {
@@ -1108,6 +1251,31 @@ func (a *Client) RegisterHost(ctx context.Context, params *RegisterHostParams) (
 		return nil, err
 	}
 	return result.(*RegisterHostCreated), nil
+
+}
+
+/*
+RegisterInfraEnv Creates a new OpenShift Discovery ISO.
+*/
+func (a *Client) RegisterInfraEnv(ctx context.Context, params *RegisterInfraEnvParams) (*RegisterInfraEnvCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "RegisterInfraEnv",
+		Method:             "POST",
+		PathPattern:        "/v2/infra-envs",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &RegisterInfraEnvReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*RegisterInfraEnvCreated), nil
 
 }
 
@@ -1389,6 +1557,31 @@ func (a *Client) UpdateHostLogsProgress(ctx context.Context, params *UpdateHostL
 }
 
 /*
+UpdateInfraEnv Updates an InfraEnv.
+*/
+func (a *Client) UpdateInfraEnv(ctx context.Context, params *UpdateInfraEnvParams) (*UpdateInfraEnvCreated, error) {
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "UpdateInfraEnv",
+		Method:             "PATCH",
+		PathPattern:        "/v2/infra-envs/{infra_env_id}",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http", "https"},
+		Params:             params,
+		Reader:             &UpdateInfraEnvReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
+		Context:            ctx,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*UpdateInfraEnvCreated), nil
+
+}
+
+/*
 UploadClusterIngressCert Transfer the ingress certificate for the cluster.
 */
 func (a *Client) UploadClusterIngressCert(ctx context.Context, params *UploadClusterIngressCertParams) (*UploadClusterIngressCertCreated, error) {
@@ -1560,30 +1753,5 @@ func (a *Client) V2RegisterHost(ctx context.Context, params *V2RegisterHostParam
 		return nil, err
 	}
 	return result.(*V2RegisterHostCreated), nil
-
-}
-
-/*
-V2RegisterInfraEnv Creates a new OpenShift Discovery ISO.
-*/
-func (a *Client) V2RegisterInfraEnv(ctx context.Context, params *V2RegisterInfraEnvParams) (*V2RegisterInfraEnvCreated, error) {
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "v2RegisterInfraEnv",
-		Method:             "POST",
-		PathPattern:        "/v2/infra-envs",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http", "https"},
-		Params:             params,
-		Reader:             &V2RegisterInfraEnvReader{formats: a.formats},
-		AuthInfo:           a.authInfo,
-		Context:            ctx,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*V2RegisterInfraEnvCreated), nil
 
 }

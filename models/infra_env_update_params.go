@@ -14,26 +14,23 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// InfraenvCreateParams infraenv create params
+// InfraEnvUpdateParams infra env update params
 //
-// swagger:model infraenv_create_params
-type InfraenvCreateParams struct {
+// swagger:model infra-env-update-params
+type InfraEnvUpdateParams struct {
 
 	// A comma-separated list of NTP sources (name or IP) going to be added to all the hosts.
-	AdditionalNtpSources string `json:"additional_ntp_sources,omitempty"`
+	AdditionalNtpSources *string `json:"additional_ntp_sources,omitempty"`
 
 	// If set, all hosts that register will be associated with the specified cluster.
 	// Format: uuid
-	ClusterID strfmt.UUID `json:"cluster_id,omitempty"`
+	ClusterID *strfmt.UUID `json:"cluster_id,omitempty"`
 
 	// JSON formatted string containing the user overrides for the initial ignition config.
 	IgnitionConfigOverride string `json:"ignition_config_override,omitempty"`
 
 	// image type
 	ImageType ImageType `json:"image_type,omitempty"`
-
-	// Name of the InfraEnv.
-	Name string `json:"name,omitempty"`
 
 	// proxy
 	Proxy *Proxy `json:"proxy,omitempty"`
@@ -42,14 +39,14 @@ type InfraenvCreateParams struct {
 	PullSecret string `json:"pull_secret,omitempty"`
 
 	// SSH public key for debugging the installation.
-	SSHAuthorizedKey string `json:"ssh_authorized_key,omitempty"`
+	SSHAuthorizedKey *string `json:"ssh_authorized_key,omitempty"`
 
 	// static network config
 	StaticNetworkConfig []*HostStaticNetworkConfig `json:"static_network_config"`
 }
 
-// Validate validates this infraenv create params
-func (m *InfraenvCreateParams) Validate(formats strfmt.Registry) error {
+// Validate validates this infra env update params
+func (m *InfraEnvUpdateParams) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateClusterID(formats); err != nil {
@@ -74,7 +71,7 @@ func (m *InfraenvCreateParams) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *InfraenvCreateParams) validateClusterID(formats strfmt.Registry) error {
+func (m *InfraEnvUpdateParams) validateClusterID(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.ClusterID) { // not required
 		return nil
@@ -87,7 +84,7 @@ func (m *InfraenvCreateParams) validateClusterID(formats strfmt.Registry) error 
 	return nil
 }
 
-func (m *InfraenvCreateParams) validateImageType(formats strfmt.Registry) error {
+func (m *InfraEnvUpdateParams) validateImageType(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.ImageType) { // not required
 		return nil
@@ -103,7 +100,7 @@ func (m *InfraenvCreateParams) validateImageType(formats strfmt.Registry) error 
 	return nil
 }
 
-func (m *InfraenvCreateParams) validateProxy(formats strfmt.Registry) error {
+func (m *InfraEnvUpdateParams) validateProxy(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.Proxy) { // not required
 		return nil
@@ -121,7 +118,7 @@ func (m *InfraenvCreateParams) validateProxy(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *InfraenvCreateParams) validateStaticNetworkConfig(formats strfmt.Registry) error {
+func (m *InfraEnvUpdateParams) validateStaticNetworkConfig(formats strfmt.Registry) error {
 
 	if swag.IsZero(m.StaticNetworkConfig) { // not required
 		return nil
@@ -147,7 +144,7 @@ func (m *InfraenvCreateParams) validateStaticNetworkConfig(formats strfmt.Regist
 }
 
 // MarshalBinary interface implementation
-func (m *InfraenvCreateParams) MarshalBinary() ([]byte, error) {
+func (m *InfraEnvUpdateParams) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -155,8 +152,8 @@ func (m *InfraenvCreateParams) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *InfraenvCreateParams) UnmarshalBinary(b []byte) error {
-	var res InfraenvCreateParams
+func (m *InfraEnvUpdateParams) UnmarshalBinary(b []byte) error {
+	var res InfraEnvUpdateParams
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}
