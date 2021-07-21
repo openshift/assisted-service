@@ -304,6 +304,7 @@ var _ = Describe("cluster reconcile", func() {
 				Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
 
 				validateCreation(cluster)
+
 			})
 
 			It("create single node cluster", func() {
@@ -517,7 +518,7 @@ var _ = Describe("cluster reconcile", func() {
 		Expect(clusterInstall.Status.DebugInfo.EventsURL).To(HavePrefix(expectedEventUrlPrefix))
 	})
 
-	It("validate Logs URL", func() {
+	It("validate Logs URL - before and after host log collection", func() {
 		serviceBaseURL := "http://acme.com"
 		cr.ServiceBaseURL = serviceBaseURL
 		sId := strfmt.UUID(uuid.New().String())
@@ -527,9 +528,22 @@ var _ = Describe("cluster reconcile", func() {
 				Status: swag.String(models.ClusterStatusInsufficient),
 			},
 		}
+		hosts := make([]*models.Host, 0, 1)
+		for i := 0; i < 1; i++ {
+			id := strfmt.UUID(uuid.New().String())
+			h := &models.Host{
+				ID:     &id,
+				Status: swag.String(models.HostStatusKnown),
+			}
+			hosts = append(hosts, h)
+		}
+		backEndCluster.Hosts = hosts
 
 		expectedLogUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/logs", serviceBaseURL, sId)
-
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&common.Host{Approved: true}, nil).Times(1)
+		mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&common.Host{Approved: true, Host: models.Host{LogsCollectedAt: strfmt.DateTime(time.Now())}}, nil).Times(1)
 		By("before installation")
 		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
 		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
@@ -545,10 +559,55 @@ var _ = Describe("cluster reconcile", func() {
 			Name:      agentClusterInstallName,
 		}
 		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
-		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(HavePrefix(expectedLogUrlPrefix))
-
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(Equal(""))
 		By("during installation")
 		backEndCluster.Status = swag.String(models.ClusterStatusInstalling)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err = cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(HavePrefix(expectedLogUrlPrefix))
+
+		By("after installation")
+		backEndCluster.Status = swag.String(models.ClusterStatusInstalled)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err = cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(HavePrefix(expectedLogUrlPrefix))
+	})
+
+	It("validate Logs URL - before and after controller log collection", func() {
+		serviceBaseURL := "http://acme.com"
+		cr.ServiceBaseURL = serviceBaseURL
+		sId := strfmt.UUID(uuid.New().String())
+		backEndCluster := &common.Cluster{
+			Cluster: models.Cluster{
+				ID:     &sId,
+				Status: swag.String(models.ClusterStatusInsufficient),
+			},
+		}
+		expectedLogUrlPrefix := fmt.Sprintf("%s/api/assisted-install/v1/clusters/%s/logs", serviceBaseURL, sId)
+		By("before installation")
+		cluster := newClusterDeployment(clusterName, testNamespace, defaultClusterSpec)
+		Expect(c.Create(ctx, cluster)).ShouldNot(HaveOccurred())
+		aci := newAgentClusterInstall(agentClusterInstallName, testNamespace, defaultAgentClusterInstallSpec, cluster)
+		Expect(c.Create(ctx, aci)).ShouldNot(HaveOccurred())
+		request := newClusterDeploymentRequest(cluster)
+		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+		_, err := cr.Reconcile(ctx, request)
+		Expect(err).ShouldNot(HaveOccurred())
+		clusterInstall := &hiveext.AgentClusterInstall{}
+		agentClusterInstallKey := types.NamespacedName{
+			Namespace: testNamespace,
+			Name:      agentClusterInstallName,
+		}
+		Expect(c.Get(ctx, agentClusterInstallKey, clusterInstall)).ShouldNot(HaveOccurred())
+		Expect(clusterInstall.Status.DebugInfo.LogsURL).To(Equal(""))
+		By("during installation")
+		backEndCluster.Status = swag.String(models.ClusterStatusInstalling)
+		backEndCluster.ControllerLogsCollectedAt = strfmt.DateTime(time.Now())
+
 		mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 		_, err = cr.Reconcile(ctx, request)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -972,6 +1031,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Kind = swag.String(models.ClusterKindCluster)
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(2)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
 			password := "test"
 			username := "admin"
 			kubeconfigNoIngress := "kubeconfig content NOINGRESS"
@@ -1207,7 +1267,7 @@ var _ = Describe("cluster reconcile", func() {
 				Return(nil, errors.Errorf(expectedErr))
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -1230,6 +1290,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(false, "").Times(1)
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(5)
 			request := newClusterDeploymentRequest(cluster)
 			result, err := cr.Reconcile(ctx, request)
 			Expect(err).To(BeNil())
@@ -1246,7 +1307,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusPendingForInput)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(5)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(5)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(10)
 
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -1266,7 +1327,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusReady)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(15)
 
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
@@ -1288,6 +1349,7 @@ var _ = Describe("cluster reconcile", func() {
 		It("ready for installation - but not all hosts are ready", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusReady)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(5)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(false).Times(10)
 
 			Expect(c.Update(ctx, cluster)).Should(BeNil())
@@ -1311,7 +1373,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Status = swag.String(models.ClusterStatusReady)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
 
 			aci.Spec.ProvisionRequirements.WorkerAgents = 0
 			Expect(c.Update(ctx, aci)).Should(BeNil())
@@ -1338,6 +1400,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(2)
 			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(3)
 			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: false}, nil).Times(2)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(5)
 
 			aci.Spec.ProvisionRequirements.WorkerAgents = 0
 			Expect(c.Update(ctx, aci)).Should(BeNil())
@@ -1370,7 +1433,7 @@ var _ = Describe("cluster reconcile", func() {
 			}
 			backEndCluster.Hosts = []*models.Host{h}
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(2)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 			request := newClusterDeploymentRequest(cluster)
@@ -1400,7 +1463,7 @@ var _ = Describe("cluster reconcile", func() {
 			backEndCluster.Hosts = []*models.Host{h}
 			expectedErr := "internal error"
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil).Times(1)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(1)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(2)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(1)
 			mockInstallerInternal.EXPECT().InstallSingleDay2HostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(errors.New(expectedErr))
 			request := newClusterDeploymentRequest(cluster)
@@ -1426,7 +1489,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 
 			request := newClusterDeploymentRequest(cluster)
@@ -1462,7 +1525,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(models.ListManifests{}, nil).Times(1)
 			mockManifestsApi.EXPECT().CreateClusterManifestInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("error")).Times(1)
 			request := newClusterDeploymentRequest(cluster)
@@ -1488,7 +1551,7 @@ var _ = Describe("cluster reconcile", func() {
 			mockInstallerInternal.EXPECT().GetClusterByKubeKey(gomock.Any()).Return(backEndCluster, nil)
 			mockClusterApi.EXPECT().IsReadyForInstallation(gomock.Any()).Return(true, "").Times(1)
 			mockHostApi.EXPECT().IsInstallable(gomock.Any()).Return(true).Times(10)
-			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(10)
+			mockInstallerInternal.EXPECT().GetCommonHostInternal(gomock.Any(), gomock.Any(), gomock.Any()).Return(&common.Host{Approved: true}, nil).Times(15)
 			mockManifestsApi.EXPECT().ListClusterManifestsInternal(gomock.Any(), gomock.Any()).Return(nil, errors.Errorf("error")).Times(1)
 
 			request := newClusterDeploymentRequest(cluster)

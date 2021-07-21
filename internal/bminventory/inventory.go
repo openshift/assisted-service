@@ -4359,6 +4359,15 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 		if err != nil {
 			return err
 		}
+
+		dbHost, err := b.GetCommonHostInternal(ctx, params.ClusterID.String(), params.HostID.String())
+		if err != nil {
+			return err
+		}
+
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, params.HostID, models.EventSeverityInfo,
+			fmt.Sprintf("Uploaded logs for host %s cluster %s",
+				hostutil.GetHostnameForMsg(&dbHost.Host), params.ClusterID.String()), time.Now())
 		return nil
 	}
 
@@ -4384,6 +4393,9 @@ func (b *bareMetalInventory) uploadLogs(ctx context.Context, params installer.Up
 			log.WithError(err).Errorf("Failed update cluster %s log progress %s", params.ClusterID, string(models.LogsStateCollecting))
 			return common.NewApiError(http.StatusInternalServerError, err)
 		}
+		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityInfo,
+			fmt.Sprintf("Uploaded logs for cluster %s",
+				params.ClusterID.String()), time.Now())
 	}
 
 	log.Infof("Done uploading file %s", fileName)
