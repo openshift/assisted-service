@@ -118,10 +118,8 @@ function ocp_mirror_release() {
   pull_secret_file="${1}"
   source_image="${2}"
   dest_mirror_repo="${3}"
-  dest_mirror_image="${4}"
 
-  oc adm -a ${pull_secret_file} release mirror \
-         --from=${source_image} \
-         --to=${dest_mirror_repo} \
-         --to-release-image=${dest_mirror_image}
+  oc adm -a "${pull_secret_file}" release mirror \
+         --from="${source_image}" \
+         --to="${dest_mirror_repo}"
 }
