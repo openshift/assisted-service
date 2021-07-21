@@ -37,15 +37,10 @@ function setup_disconnected_parameters() {
 
     ${__root}/hack/setup_env.sh hive_from_upstream
 
-    # The mirror should point all the release images and not just the OpenShift release image itself.
-    # An arbitrary image (cli) is chosen to retreive its pull spec, in order to mirror its repository.
-    cli_image=$(podman run --quiet --rm --net=none "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" image cli)
-
     ocp_mirror_release \
         "${PULL_SECRET_FILE}" \
         "${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE}" \
-        "${LOCAL_REGISTRY}/$(get_image_repository_only ${cli_image})" \
-        "${LOCAL_REGISTRY}/$(get_image_without_registry ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
+        "${LOCAL_REGISTRY}/$(get_image_repository_only ${ASSISTED_OPENSHIFT_INSTALL_RELEASE_IMAGE})"
 }
 
 set -o xtrace
