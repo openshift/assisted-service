@@ -138,6 +138,41 @@ var _ = Describe("Bootstrap Ignition Update", func() {
 		Expect(foundNMConfig).To(BeTrue(), "file /etc/NetworkManager/conf.d/99-kni.conf not present in bootstrap.ign")
 	})
 
+	Context("Identify host role", func() {
+		var hosts []*models.Host
+
+		BeforeEach(func() {
+			hosts = []*models.Host{
+				{
+					RequestedHostname: "openshift-master-0",
+				},
+			}
+		})
+		test := func(masters, workers []*models.Host, masterExpected bool) {
+			masterHostnames := getHostnames(masters)
+			workerHostnames := getHostnames(workers)
+			Expect(err).ToNot(HaveOccurred())
+			for i := range config.Storage.Files {
+				if isBMHFile(&config.Storage.Files[i]) {
+					bmhFile, err := fileToBMH(&config.Storage.Files[i]) //nolint,shadow
+					Expect(err).ToNot(HaveOccurred())
+					Expect(bmhIsMaster(bmhFile, masterHostnames, workerHostnames)).To(Equal(masterExpected))
+					return
+				}
+			}
+			Fail("No BMH file found")
+		}
+		It("Set as master by hostname", func() {
+			test(hosts, nil, true)
+		})
+		It("Set as worker by hostname", func() {
+			test(nil, hosts, false)
+		})
+		It("Set as master by backward compatibility", func() {
+			test(nil, nil, true)
+		})
+	})
+
 	Describe("update bootstrap.ign", func() {
 		Context("with 1 master", func() {
 			It("got a tmp workDir", func() {
