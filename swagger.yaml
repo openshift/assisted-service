@@ -3173,6 +3173,253 @@ paths:
           schema:
             $ref: '#/definitions/error'
 
+
+  /v2/infra-envs/{infra_env_id}/hosts:
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Registers a new OpenShift agent.
+      operationId: v2RegisterHost
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The InfraEnv that the agent is associated with.
+          type: string
+          format: uuid
+          required: true
+        - in: body
+          name: new-host-params
+          description: The description of the agent being registered.
+          required: true
+          schema:
+            $ref: '#/definitions/host-create-params'
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is registering the agent.
+          type: string
+          required: false
+      responses:
+        "201":
+          description: Success.
+          schema:
+            $ref: '#/definitions/host_registration_response'
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "409":
+          description: Cluster cannot accept new agents due to its current state.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-envs/{infra_env_id}/hosts/{host_id}:
+    get:
+      tags:
+        - installer
+      security:
+        - userAuth: [admin, read-only-admin, user]
+      description: Retrieves the details of the OpenShift host.
+      operationId: v2GetHost
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra env of the host that should be retrieved.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host that should be retrieved.
+          type: string
+          format: uuid
+          required: true
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/host'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+
+  /v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions:
+    get:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Retrieves the next operations that the host agent needs to perform.
+      operationId: v2GetNextSteps
+      parameters:
+        - in: path
+          name: infra_env_id
+          description: The infra env of the host that is retrieving instructions.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host that is retrieving instructions.
+          type: string
+          format: uuid
+          required: true
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is retrieving instructions.
+          type: string
+          required: false
+      responses:
+        "200":
+          description: Success.
+          schema:
+            $ref: '#/definitions/steps'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+    post:
+      tags:
+        - installer
+      security:
+        - agentAuth: []
+      description: Posts the result of the operations from the host agent.
+      operationId: v2PostStepReply
+      parameters:
+        - in: header
+          name: discovery_agent_version
+          description: The software version of the discovery agent that is posting results.
+          type: string
+          required: false
+        - in: path
+          name: infra_env_id
+          description: The infra env of the host that is posting results.
+          type: string
+          format: uuid
+          required: true
+        - in: path
+          name: host_id
+          description: The host that is posting results.
+          type: string
+          format: uuid
+          required: true
+        - name: reply
+          description: The results to be posted.
+          in: body
+          schema:
+            $ref: '#/definitions/step-reply'
+      responses:
+        "204":
+          description: Success.
+        "400":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "401":
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "403":
+          description: Forbidden.
+          schema:
+            $ref: '#/definitions/infra_error'
+        "404":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "405":
+          description: Method Not Allowed.
+          schema:
+            $ref: '#/definitions/error'
+        "500":
+          description: Error.
+          schema:
+            $ref: '#/definitions/error'
+        "501":
+          description: Not implemented.
+          schema:
+            $ref: '#/definitions/error'
+        "503":
+          description: Unavailable.
+          schema:
+            $ref: '#/definitions/error'
+
+
 definitions:
   vsphere_platform:
     type: object
@@ -3446,6 +3693,7 @@ definitions:
         $ref: '#/definitions/cluster-host-requirements-details'
         description: Single node OpenShift node requirements
 
+
   event-list:
     type: array
     items:
@@ -3546,7 +3794,6 @@ definitions:
               retry_seconds:
                 type: integer
                 description: How long in seconds to wait before retrying registration if the command fails
-
 
   host:
     type: object
@@ -4412,6 +4659,8 @@ definitions:
         description: static network configuration string in the format expected by discovery ignition generation
       type:
         $ref: '#/definitions/image_type'
+
+
 
   host_static_network_config:
     type: object

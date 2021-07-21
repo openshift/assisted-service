@@ -280,6 +280,22 @@ func (f fakeInventory) V2RegisterInfraEnv(ctx context.Context, params installer.
 	return installer.NewV2RegisterInfraEnvNotImplemented()
 }
 
+func (f fakeInventory) V2RegisterHost(ctx context.Context, params installer.V2RegisterHostParams) middleware.Responder {
+	return installer.NewV2RegisterHostNotImplemented()
+}
+
+func (f fakeInventory) V2GetHost(ctx context.Context, params installer.V2GetHostParams) middleware.Responder {
+	return installer.NewV2GetHostNotImplemented()
+}
+
+func (f fakeInventory) V2GetNextSteps(ctx context.Context, params installer.V2GetNextStepsParams) middleware.Responder {
+	return installer.NewV2GetNextStepsNotImplemented()
+}
+
+func (f fakeInventory) V2PostStepReply(ctx context.Context, params installer.V2PostStepReplyParams) middleware.Responder {
+	return installer.NewV2PostStepReplyNotImplemented()
+}
+
 var _ restapi.InstallerAPI = fakeInventory{}
 
 type fakeEventsAPI struct{}

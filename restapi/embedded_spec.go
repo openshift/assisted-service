@@ -4780,6 +4780,372 @@ func init() {
           }
         }
       }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts": {
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Registers a new OpenShift agent.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2RegisterHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv that the agent is associated with.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The description of the agent being registered.",
+            "name": "new-host-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-create-params"
+            }
+          },
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is registering the agent.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host_registration_response"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Cluster cannot accept new agents due to its current state.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the details of the OpenShift host.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2GetHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that should be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that should be retrieved.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Retrieves the next operations that the host agent needs to perform.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2GetNextSteps",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that is retrieving instructions.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that is retrieving instructions.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is retrieving instructions.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/steps"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Posts the result of the operations from the host agent.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2PostStepReply",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is posting results.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that is posting results.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that is posting results.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The results to be posted.",
+            "name": "reply",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/step-reply"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
     }
   },
   "definitions": {
@@ -12655,6 +13021,372 @@ func init() {
           },
           "501": {
             "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts": {
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Registers a new OpenShift agent.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2RegisterHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The InfraEnv that the agent is associated with.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The description of the agent being registered.",
+            "name": "new-host-params",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/host-create-params"
+            }
+          },
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is registering the agent.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host_registration_response"
+            }
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "409": {
+            "description": "Cluster cannot accept new agents due to its current state.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}": {
+      "get": {
+        "security": [
+          {
+            "userAuth": [
+              "admin",
+              "read-only-admin",
+              "user"
+            ]
+          }
+        ],
+        "description": "Retrieves the details of the OpenShift host.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2GetHost",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that should be retrieved.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that should be retrieved.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/host"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      }
+    },
+    "/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions": {
+      "get": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Retrieves the next operations that the host agent needs to perform.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2GetNextSteps",
+        "parameters": [
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that is retrieving instructions.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that is retrieving instructions.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is retrieving instructions.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success.",
+            "schema": {
+              "$ref": "#/definitions/steps"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          }
+        }
+      },
+      "post": {
+        "security": [
+          {
+            "agentAuth": []
+          }
+        ],
+        "description": "Posts the result of the operations from the host agent.",
+        "tags": [
+          "installer"
+        ],
+        "operationId": "v2PostStepReply",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "The software version of the discovery agent that is posting results.",
+            "name": "discovery_agent_version",
+            "in": "header"
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The infra env of the host that is posting results.",
+            "name": "infra_env_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "uuid",
+            "description": "The host that is posting results.",
+            "name": "host_id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "description": "The results to be posted.",
+            "name": "reply",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/step-reply"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Success."
+          },
+          "400": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "401": {
+            "description": "Unauthorized.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "403": {
+            "description": "Forbidden.",
+            "schema": {
+              "$ref": "#/definitions/infra_error"
+            }
+          },
+          "404": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "405": {
+            "description": "Method Not Allowed.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "500": {
+            "description": "Error.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "501": {
+            "description": "Not implemented.",
+            "schema": {
+              "$ref": "#/definitions/error"
+            }
+          },
+          "503": {
+            "description": "Unavailable.",
             "schema": {
               "$ref": "#/definitions/error"
             }

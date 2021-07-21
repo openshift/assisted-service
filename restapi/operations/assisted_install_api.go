@@ -244,6 +244,18 @@ func NewAssistedInstallAPI(spec *loads.Document) *AssistedInstallAPI {
 		InstallerUploadLogsHandler: installer.UploadLogsHandlerFunc(func(params installer.UploadLogsParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.UploadLogs has not yet been implemented")
 		}),
+		InstallerV2GetHostHandler: installer.V2GetHostHandlerFunc(func(params installer.V2GetHostParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2GetHost has not yet been implemented")
+		}),
+		InstallerV2GetNextStepsHandler: installer.V2GetNextStepsHandlerFunc(func(params installer.V2GetNextStepsParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2GetNextSteps has not yet been implemented")
+		}),
+		InstallerV2PostStepReplyHandler: installer.V2PostStepReplyHandlerFunc(func(params installer.V2PostStepReplyParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2PostStepReply has not yet been implemented")
+		}),
+		InstallerV2RegisterHostHandler: installer.V2RegisterHostHandlerFunc(func(params installer.V2RegisterHostParams, principal interface{}) middleware.Responder {
+			return middleware.NotImplemented("operation installer.V2RegisterHost has not yet been implemented")
+		}),
 		InstallerV2RegisterInfraEnvHandler: installer.V2RegisterInfraEnvHandlerFunc(func(params installer.V2RegisterInfraEnvParams, principal interface{}) middleware.Responder {
 			return middleware.NotImplemented("operation installer.V2RegisterInfraEnv has not yet been implemented")
 		}),
@@ -445,6 +457,14 @@ type AssistedInstallAPI struct {
 	InstallerUploadHostLogsHandler installer.UploadHostLogsHandler
 	// InstallerUploadLogsHandler sets the operation handler for the upload logs operation
 	InstallerUploadLogsHandler installer.UploadLogsHandler
+	// InstallerV2GetHostHandler sets the operation handler for the v2 get host operation
+	InstallerV2GetHostHandler installer.V2GetHostHandler
+	// InstallerV2GetNextStepsHandler sets the operation handler for the v2 get next steps operation
+	InstallerV2GetNextStepsHandler installer.V2GetNextStepsHandler
+	// InstallerV2PostStepReplyHandler sets the operation handler for the v2 post step reply operation
+	InstallerV2PostStepReplyHandler installer.V2PostStepReplyHandler
+	// InstallerV2RegisterHostHandler sets the operation handler for the v2 register host operation
+	InstallerV2RegisterHostHandler installer.V2RegisterHostHandler
 	// InstallerV2RegisterInfraEnvHandler sets the operation handler for the v2 register infra env operation
 	InstallerV2RegisterInfraEnvHandler installer.V2RegisterInfraEnvHandler
 	// ServeError is called when an error is received, there is a default handler
@@ -730,6 +750,18 @@ func (o *AssistedInstallAPI) Validate() error {
 	}
 	if o.InstallerUploadLogsHandler == nil {
 		unregistered = append(unregistered, "installer.UploadLogsHandler")
+	}
+	if o.InstallerV2GetHostHandler == nil {
+		unregistered = append(unregistered, "installer.V2GetHostHandler")
+	}
+	if o.InstallerV2GetNextStepsHandler == nil {
+		unregistered = append(unregistered, "installer.V2GetNextStepsHandler")
+	}
+	if o.InstallerV2PostStepReplyHandler == nil {
+		unregistered = append(unregistered, "installer.V2PostStepReplyHandler")
+	}
+	if o.InstallerV2RegisterHostHandler == nil {
+		unregistered = append(unregistered, "installer.V2RegisterHostHandler")
 	}
 	if o.InstallerV2RegisterInfraEnvHandler == nil {
 		unregistered = append(unregistered, "installer.V2RegisterInfraEnvHandler")
@@ -1099,6 +1131,22 @@ func (o *AssistedInstallAPI) initHandlerCache() {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
 	o.handlers["POST"]["/v1/clusters/{cluster_id}/logs"] = installer.NewUploadLogs(o.context, o.InstallerUploadLogsHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}"] = installer.NewV2GetHost(o.context, o.InstallerV2GetHostHandler)
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions"] = installer.NewV2GetNextSteps(o.context, o.InstallerV2GetNextStepsHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts/{host_id}/instructions"] = installer.NewV2PostStepReply(o.context, o.InstallerV2PostStepReplyHandler)
+	if o.handlers["POST"] == nil {
+		o.handlers["POST"] = make(map[string]http.Handler)
+	}
+	o.handlers["POST"]["/v2/infra-envs/{infra_env_id}/hosts"] = installer.NewV2RegisterHost(o.context, o.InstallerV2RegisterHostHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
