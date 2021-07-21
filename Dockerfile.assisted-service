@@ -42,4 +42,6 @@ COPY --from=builder /build/assisted-service /assisted-service
 COPY --from=builder /build/assisted-service-operator /assisted-service-operator
 COPY --from=pybuilder /assisted-service-client/assisted-service-client-*.tar.gz /clients/
 COPY /config/onprem-iso-config.ign /data/onprem-iso-config.ign
+ENV GODEBUG=madvdontneed=1
+ENV GOGC=50
 CMD ["/assisted-service"]

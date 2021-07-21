@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"strings"
 	"time"
@@ -452,6 +453,12 @@ func main() {
 		}
 
 		apiEnabler.Enable()
+	}()
+
+	go func() {
+		if log.Level == logrus.DebugLevel {
+			log.Println(http.ListenAndServe("localhost:6060", nil))
+		}
 	}()
 
 	go func() {
