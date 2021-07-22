@@ -42,6 +42,7 @@ import (
 	"github.com/openshift/assisted-service/pkg/staticnetworkconfig"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"github.com/thoas/go-funk"
 	"github.com/vincent-petithory/dataurl"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v2"
@@ -528,7 +529,24 @@ func (g *installerGenerator) bootstrapInPlaceIgnitionsCreate(installerPath strin
 	return nil
 }
 
-func bmhIsMaster(bmh *bmh_v1alpha1.BareMetalHost) bool {
+func getHostnames(hosts []*models.Host) []string {
+	ret := make([]string, 0)
+	for _, h := range hosts {
+		ret = append(ret, hostutil.GetHostnameForMsg(h))
+	}
+	return ret
+
+}
+
+func bmhIsMaster(bmh *bmh_v1alpha1.BareMetalHost, masterHostnames, workerHostnames []string) bool {
+	if funk.ContainsString(masterHostnames, bmh.Name) {
+		return true
+	}
+	if funk.ContainsString(workerHostnames, bmh.Name) {
+		return false
+	}
+
+	// For backward compatibility in case the name is not in the (masterHostnames, workerHostnames)
 	return strings.Contains(bmh.Name, "-master-")
 }
 
@@ -616,7 +634,12 @@ func (g *installerGenerator) updateBootstrap(bootstrapPath string) error {
 
 			// get corresponding host
 			var host *models.Host
-			if bmhIsMaster(bmh) {
+			masterHostnames := getHostnames(masters)
+			workerHostnames := getHostnames(workers)
+
+			// The BMH files in the ignition are sorted according to hostname (please see the implementation in installcfg/installcfg.go).
+			// The masters and workers are also sorted by hostname.  This enables us to correlate correctly the host and the BMH file
+			if bmhIsMaster(bmh, masterHostnames, workerHostnames) {
 				if len(masters) == 0 {
 					return errors.Errorf("Not enough registered masters to match with BareMetalHosts")
 				}
@@ -949,8 +972,12 @@ func sortHosts(hosts []*models.Host) ([]*models.Host, []*models.Host) {
 	}
 
 	// sort them so the result is repeatable
-	sort.SliceStable(masters, func(i, j int) bool { return masters[i].RequestedHostname < masters[j].RequestedHostname })
-	sort.SliceStable(workers, func(i, j int) bool { return workers[i].RequestedHostname < workers[j].RequestedHostname })
+	sort.SliceStable(masters, func(i, j int) bool {
+		return hostutil.GetHostnameForMsg(masters[i]) < hostutil.GetHostnameForMsg(masters[j])
+	})
+	sort.SliceStable(workers, func(i, j int) bool {
+		return hostutil.GetHostnameForMsg(workers[i]) < hostutil.GetHostnameForMsg(workers[j])
+	})
 	return masters, workers
 }
 
