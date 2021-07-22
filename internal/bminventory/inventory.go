@@ -1974,7 +1974,7 @@ func (b *bareMetalInventory) updateDhcpNetworkParams(updates map[string]interfac
 	}
 	return nil
 }
-func (b *bareMetalInventory) updatePlatformParams(params installer.UpdateClusterParams, cluster *common.Cluster, updates map[string]interface{}) {
+func (b *bareMetalInventory) updatePlatformParams(params installer.UpdateClusterParams, updates map[string]interface{}) {
 	platform := params.ClusterUpdateParams.Platform
 	if platform == nil || platform.Type == "" {
 		return
@@ -2020,7 +2020,7 @@ func (b *bareMetalInventory) updateClusterData(_ context.Context, cluster *commo
 
 	b.setProxyUsage(params.ClusterUpdateParams.HTTPProxy, params.ClusterUpdateParams.HTTPSProxy, params.ClusterUpdateParams.NoProxy, usages)
 
-	b.updatePlatformParams(params, cluster, updates)
+	b.updatePlatformSources(params, updates, usages)
 
 	if err = b.updateNetworkParams(params, cluster, updates, usages, log, interactivity); err != nil {
 		return err
@@ -2174,6 +2174,17 @@ func setCommonUserNetworkManagedParams(params *models.ClusterUpdateParams, singl
 
 	setMachineNetworkCIDRForUpdate(updates, machineCidr)
 	return nil, false
+}
+
+func (b *bareMetalInventory) updatePlatformSources(params installer.UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage) {
+	b.updatePlatformParams(params, updates)
+
+	if params.ClusterUpdateParams.Platform != nil {
+		isNonDefaultPlatform := params.ClusterUpdateParams.Platform.Type != models.PlatformTypeBaremetal
+		withCredentials := params.ClusterUpdateParams.Platform.Vsphere != nil && params.ClusterUpdateParams.Platform.Vsphere.VCenter != nil && params.ClusterUpdateParams.Platform.Vsphere.Password != nil && params.ClusterUpdateParams.Platform.Vsphere.Username != nil
+		b.setUsage(isNonDefaultPlatform, usage.PlatformSelectionUsage, &map[string]interface{}{
+			"platform_type": params.ClusterUpdateParams.Platform.Type, "with_credentials": withCredentials}, usages)
+	}
 }
 
 func (b *bareMetalInventory) updateNtpSources(params installer.UpdateClusterParams, updates map[string]interface{}, usages map[string]models.Usage, log logrus.FieldLogger) error {
