@@ -141,6 +141,7 @@ func deployAgentClusterInstallCRD(ctx context.Context, client k8sclient.Client, 
 }
 
 func deployClusterDeploymentCRD(ctx context.Context, client k8sclient.Client, spec *hivev1.ClusterDeploymentSpec) {
+	By(fmt.Sprintf("test '%s' creating cluster deployment '%s'", GinkgoT().Name(), spec.ClusterName))
 	err := client.Create(ctx, &hivev1.ClusterDeployment{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "ClusterDeployment",
