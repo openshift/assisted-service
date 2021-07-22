@@ -12,10 +12,12 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 )
 
 var (
+	defaultCIDRv6 = "1001:db8::10/120"
 	validHwInfoV6 = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
 		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
@@ -23,7 +25,7 @@ var (
 		Interfaces: []*models.Interface{
 			{
 				IPV6Addresses: []string{
-					"1001:db8::10/120",
+					defaultCIDRv6,
 				},
 			},
 		},
@@ -97,10 +99,11 @@ var _ = Describe("IPv6 installation", func() {
 func registerHostsAndSetRolesV6(clusterID strfmt.UUID, numHosts int) []*models.Host {
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
-
+	ips := hostutil.GenerateIPv6Addresses(numHosts, defaultCIDRv6)
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
 		host := &registerHost(clusterID).Host
+		validHwInfoV6.Interfaces[0].IPV6Addresses = []string{ips[i]}
 		generateEssentialHostStepsWithInventory(ctx, host, hostname, validHwInfoV6)
 		var role models.HostRoleUpdateParams
 		if i < 3 {
@@ -117,7 +120,7 @@ func registerHostsAndSetRolesV6(clusterID strfmt.UUID, numHosts int) []*models.H
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
 	}
-	generateFullMeshConnectivity(ctx, "1001:db8::10", hosts...)
+	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	apiVip := "1001:db8::64"
 	ingressVip := "1001:db8::65"
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{

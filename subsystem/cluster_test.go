@@ -28,6 +28,7 @@ import (
 	"github.com/openshift/assisted-service/internal/bminventory"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
@@ -73,6 +74,7 @@ const (
 	minHosts          = 3
 	loop0Id           = "wwn-0x1111111111111111111111"
 	sdbId             = "wwn-0x2222222222222222222222"
+	defaultCIDRv4     = "1.2.3.10/24"
 )
 
 var (
@@ -92,22 +94,6 @@ var (
 		SizeBytes: validDiskSize,
 	}
 
-	validWorkerHwInfo = &models.Inventory{
-		CPU:    &models.CPU{Count: 2},
-		Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
-		Disks:  []*models.Disk{&loop0, &sdb},
-		Interfaces: []*models.Interface{
-			{
-				IPV4Addresses: []string{
-					"1.2.3.4/24",
-				},
-				MacAddress: "e6:53:3d:a7:77:b4",
-			},
-		},
-		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
-		Timestamp:    1601853088,
-		Routes:       common.TestDefaultRouteConfiguration,
-	}
 	validHwInfo = &models.Inventory{
 		CPU:    &models.CPU{Count: 16},
 		Memory: &models.Memory{PhysicalBytes: int64(32 * units.GiB), UsableBytes: int64(32 * units.GiB)},
@@ -115,7 +101,7 @@ var (
 		Interfaces: []*models.Interface{
 			{
 				IPV4Addresses: []string{
-					"1.2.3.4/24",
+					defaultCIDRv4,
 				},
 				MacAddress: "e6:53:3d:a7:77:b4",
 			},
@@ -124,6 +110,7 @@ var (
 		Timestamp:    1601853088,
 		Routes:       common.TestDefaultRouteConfiguration,
 	}
+
 	validFreeAddresses = models.FreeNetworksAddresses{
 		{
 			Network: "1.2.3.0/24",
@@ -140,6 +127,25 @@ var (
 		},
 	}
 )
+
+func getValidWorkerHwInfoWithCIDR(cidr string) *models.Inventory {
+	return &models.Inventory{
+		CPU:    &models.CPU{Count: 2},
+		Memory: &models.Memory{PhysicalBytes: int64(8 * units.GiB), UsableBytes: int64(8 * units.GiB)},
+		Disks:  []*models.Disk{&loop0, &sdb},
+		Interfaces: []*models.Interface{
+			{
+				IPV4Addresses: []string{
+					cidr,
+				},
+				MacAddress: "e6:53:3d:a7:77:b4",
+			},
+		},
+		SystemVendor: &models.SystemVendor{Manufacturer: "manu", ProductName: "prod", SerialNumber: "3534"},
+		Timestamp:    1601853088,
+		Routes:       common.TestDefaultRouteConfiguration,
+	}
+}
 
 var _ = Describe("Cluster", func() {
 	ctx := context.Background()
@@ -1041,25 +1047,26 @@ var _ = Describe("cluster install", func() {
 	It("auto-assign", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
-		hosts := register3nodes(ctx, clusterID)
+		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
 		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
 		By("change first host hw info to worker and expect the cluster to become insufficient")
-		generateHWPostStepReply(ctx, h1, validWorkerHwInfo, "h1")
+		generateHWPostStepReply(ctx, h1, getValidWorkerHwInfoWithCIDR(ips[0]), "h1")
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
 		By("add two more hosts with master inventory expect the cluster to be ready")
-		h4 := registerNode(ctx, clusterID, "h4")
+		newIPs := hostutil.GenerateIPv4Addresses(3, ips[2])
+		h4 := registerNode(ctx, clusterID, "h4", newIPs[0])
 		h5 := &registerHost(clusterID).Host
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
-		generateEssentialHostSteps(ctx, h5, "h5")
+		generateEssentialHostSteps(ctx, h5, "h5", newIPs[1])
 
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5)
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
@@ -1070,8 +1077,8 @@ var _ = Describe("cluster install", func() {
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
 
-		generateEssentialHostStepsWithInventory(ctx, h6, "h6", validWorkerHwInfo)
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5, h6)
+		generateEssentialHostStepsWithInventory(ctx, h6, "h6", getValidWorkerHwInfoWithCIDR(newIPs[2]))
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5, h6)
 		waitForHostState(ctx, clusterID, *h6.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
@@ -1113,7 +1120,7 @@ var _ = Describe("cluster install", func() {
 	It("Schedulable masters", func() {
 		By("register 3 hosts all with master hw information cluster expected to be ready")
 		clusterID := *cluster.ID
-		hosts := register3nodes(ctx, clusterID)
+		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
 		h1, h2, h3 := hosts[0], hosts[1], hosts[2]
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
 			IgnoreStateInfo)
@@ -1121,9 +1128,10 @@ var _ = Describe("cluster install", func() {
 		By("add two more hosts with worker inventory expect the cluster to be ready")
 		h4 := &registerHost(clusterID).Host
 		h5 := &registerHost(clusterID).Host
-		generateEssentialHostStepsWithInventory(ctx, h4, "h4", validWorkerHwInfo)
-		generateEssentialHostStepsWithInventory(ctx, h5, "h5", validWorkerHwInfo)
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5)
+		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
+		generateEssentialHostStepsWithInventory(ctx, h4, "h4", getValidWorkerHwInfoWithCIDR(newIPs[0]))
+		generateEssentialHostStepsWithInventory(ctx, h5, "h5", getValidWorkerHwInfoWithCIDR(newIPs[1]))
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, defaultWaitForClusterStateTimeout,
@@ -1228,7 +1236,7 @@ var _ = Describe("cluster install", func() {
 		It("MachineNetworkCIDR successful allocating", func() {
 			clusterID := *cluster.ID
 			apiVip := "1.2.3.8"
-			_ = registerNode(ctx, clusterID, "test-host")
+			_ = registerNode(ctx, clusterID, "test-host", defaultCIDRv4)
 			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{
 					APIVip:            &apiVip,
@@ -1245,7 +1253,7 @@ var _ = Describe("cluster install", func() {
 		It("MachineNetworkCIDR successful deallocating ", func() {
 			clusterID := *cluster.ID
 			apiVip := "1.2.3.8"
-			host := registerNode(ctx, clusterID, "test-host")
+			host := registerNode(ctx, clusterID, "test-host", defaultCIDRv4)
 			c, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 				ClusterUpdateParams: &models.ClusterUpdateParams{
 					APIVip:            &apiVip,
@@ -1279,7 +1287,7 @@ var _ = Describe("cluster install", func() {
 			Expect(c.Payload.APIVip).Should(Equal(""))
 			Expect(c.Payload.IngressVip).Should(Equal(""))
 			Expect(c.Payload.MachineNetworkCidr).Should(Equal(""))
-			_ = registerNode(ctx, clusterID, "test-host")
+			_ = registerNode(ctx, clusterID, "test-host", defaultCIDRv4)
 			Expect(waitForMachineNetworkCIDR(
 				ctx, clusterID, "1.2.3.0/24", defaultWaitForMachineNetworkCIDRTimeout)).Should(HaveOccurred())
 			c1, err1 := userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{ClusterID: clusterID})
@@ -1851,7 +1859,7 @@ var _ = Describe("cluster install", func() {
 			By("Download before upload")
 			{
 
-				nodes := register3nodes(ctx, clusterID)
+				nodes, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
 				file, err := ioutil.TempFile("", "tmp")
 				Expect(err).NotTo(HaveOccurred())
 				_, err = userBMClient.Installer.DownloadClusterLogs(ctx, &installer.DownloadClusterLogsParams{ClusterID: clusterID, HostID: nodes[1].ID}, file)
@@ -1863,7 +1871,7 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				_ = register3nodes(ctx, clusterID)
+				_, _ = register3nodes(ctx, clusterID, defaultCIDRv4)
 				_, err = agentBMClient.Installer.UploadLogs(ctx, &installer.UploadLogsParams{ClusterID: clusterID, LogsType: string(models.LogsTypeController), Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 				logsType := string(models.LogsTypeController)
@@ -1880,7 +1888,7 @@ var _ = Describe("cluster install", func() {
 			{
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
-				hosts := register3nodes(ctx, clusterID)
+				hosts, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
 				_, err = agentBMClient.Installer.UploadHostLogs(ctx, &installer.UploadHostLogsParams{ClusterID: clusterID, HostID: *hosts[0].ID, Upfile: kubeconfigFile})
 				Expect(err).NotTo(HaveOccurred())
 
@@ -1903,7 +1911,7 @@ var _ = Describe("cluster install", func() {
 				cmd := exec.Command("head", "-c", "200MB", "/dev/urandom")
 				err = cmd.Run()
 				Expect(err).NotTo(HaveOccurred())
-				nodes := register3nodes(ctx, clusterID)
+				nodes, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
 				// test hosts logs
 				kubeconfigFile, err := os.Open(filePath)
 				Expect(err).NotTo(HaveOccurred())
@@ -1942,7 +1950,7 @@ var _ = Describe("cluster install", func() {
 		})
 
 		It("Download cluster logs", func() {
-			nodes := register3nodes(ctx, clusterID)
+			nodes, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
 			for _, host := range nodes {
 				kubeconfigFile, err := os.Open("test_kubeconfig")
 				Expect(err).NotTo(HaveOccurred())
@@ -2126,7 +2134,7 @@ var _ = Describe("cluster install", func() {
 			})
 			It("cancel installation with a disabled host", func() {
 				By("register a new worker")
-				disabledHost := registerNode(ctx, clusterID, "hostname")
+				disabledHost := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2242,6 +2250,7 @@ var _ = Describe("cluster install", func() {
 				Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
 				By("verify hosts state")
+				ips := hostutil.GenerateIPv4Addresses(len(c.Hosts), defaultCIDRv4)
 				for i, host := range c.Hosts {
 					if enableReset {
 						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
@@ -2260,9 +2269,9 @@ var _ = Describe("cluster install", func() {
 					Expect(err).ShouldNot(HaveOccurred())
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
 						defaultWaitForHostStateTimeout)
-					generateEssentialHostSteps(ctx, host, fmt.Sprintf("host-after-reset-%d", i))
+					generateEssentialHostSteps(ctx, host, fmt.Sprintf("host-after-reset-%d", i), ips[i])
 				}
-				generateFullMeshConnectivity(ctx, "1.2.3.10", c.Hosts...)
+				generateFullMeshConnectivity(ctx, ips[0], c.Hosts...)
 				for _, host := range c.Hosts {
 					waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
 						defaultWaitForHostStateTimeout)
@@ -2300,6 +2309,7 @@ var _ = Describe("cluster install", func() {
 					Expect(swag.StringValue(c.Status)).Should(Equal(models.ClusterStatusInsufficient))
 
 					By("register hosts and disable bootstrap")
+					ips := hostutil.GenerateIPv4Addresses(len(c.Hosts), defaultCIDRv4)
 					for i, host := range c.Hosts {
 						Expect(swag.StringValue(host.Status)).Should(Equal(models.HostStatusResetting))
 						_, ok := getStepInList(getNextSteps(clusterID, *host.ID), models.StepTypeResetInstallation)
@@ -2313,9 +2323,9 @@ var _ = Describe("cluster install", func() {
 						Expect(err).ShouldNot(HaveOccurred())
 						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusDiscovering,
 							defaultWaitForHostStateTimeout)
-						generateEssentialHostSteps(ctx, host, fmt.Sprintf("host-after-reset-%d", i))
+						generateEssentialHostSteps(ctx, host, fmt.Sprintf("host-after-reset-%d", i), ips[i])
 					}
-					generateFullMeshConnectivity(ctx, "1.2.3.10", c.Hosts...)
+					generateFullMeshConnectivity(ctx, ips[0], c.Hosts...)
 					for _, host := range c.Hosts {
 						waitForHostState(ctx, clusterID, *host.ID, models.HostStatusKnown,
 							defaultWaitForHostStateTimeout)
@@ -2328,7 +2338,7 @@ var _ = Describe("cluster install", func() {
 							Expect(err).NotTo(HaveOccurred())
 						}
 					}
-					h := registerNode(ctx, clusterID, "hostname")
+					h := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
 					_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 						ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 							{ID: *h.ID, Role: models.HostRoleUpdateParamsMaster},
@@ -2418,7 +2428,7 @@ var _ = Describe("cluster install", func() {
 			})
 			It("reset cluster with a disabled host", func() {
 				By("register a new worker")
-				disabledHost := registerNode(ctx, clusterID, "hostname")
+				disabledHost := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2477,7 +2487,7 @@ var _ = Describe("cluster install", func() {
 
 			It("reset cluster with hosts after reboot and one disabled host", func() {
 				By("register a new worker")
-				disabledHost := registerNode(ctx, clusterID, "hostname")
+				disabledHost := registerNode(ctx, clusterID, "hostname", defaultCIDRv4)
 				_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 					ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 						{ID: *disabledHost.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2615,9 +2625,10 @@ spec:
 
 		checkUpdateAtWhileStatic(ctx, clusterID)
 
-		hosts := register3nodes(ctx, clusterID)
+		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
+		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
 		h4 := &registerHost(clusterID).Host
-		h5 := registerNode(ctx, clusterID, "h5")
+		h5 := registerNode(ctx, clusterID, "h5", newIPs[0])
 
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
@@ -2649,9 +2660,9 @@ spec:
 		waitForClusterState(ctx, clusterID, models.ClusterStatusInsufficient, defaultWaitForClusterStateTimeout, clusterInsufficientStateInfo)
 
 		// update host4 again (now it has inventory) -> state must be ready
-		generateEssentialHostSteps(ctx, h4, "h4")
+		generateEssentialHostSteps(ctx, h4, "h4", newIPs[1])
 		// update role for the host4 to master -> state must be ready
-		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts[0], hosts[1], hosts[2], h4, h5)
+		generateFullMeshConnectivity(ctx, ips[0], hosts[0], hosts[1], hosts[2], h4, h5)
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *h4.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2665,11 +2676,11 @@ spec:
 	It("install_cluster_states", func() {
 		clusterID := *cluster.ID
 		waitForClusterState(ctx, clusterID, models.ClusterStatusPendingForInput, 60*time.Second, clusterPendingForInputStateInfo)
-
-		wh1 := registerNode(ctx, clusterID, "wh1")
-		wh2 := registerNode(ctx, clusterID, "wh2")
-		wh3 := registerNode(ctx, clusterID, "wh3")
-		generateFullMeshConnectivity(ctx, "1.2.3.10", wh1, wh2, wh3)
+		ips := hostutil.GenerateIPv4Addresses(6, defaultCIDRv4)
+		wh1 := registerNode(ctx, clusterID, "wh1", ips[0])
+		wh2 := registerNode(ctx, clusterID, "wh2", ips[1])
+		wh3 := registerNode(ctx, clusterID, "wh3", ips[2])
+		generateFullMeshConnectivity(ctx, ips[0], wh1, wh2, wh3)
 
 		apiVip := "1.2.3.5"
 		ingressVip := "1.2.3.6"
@@ -2699,11 +2710,11 @@ spec:
 		Expect(len(clusterReply.Payload.HostNetworks)).To(Equal(1))
 		Expect(clusterReply.Payload.HostNetworks[0].Cidr).To(Equal("1.2.3.0/24"))
 
-		mh1 := registerNode(ctx, clusterID, "mh1")
+		mh1 := registerNode(ctx, clusterID, "mh1", ips[3])
 		generateFAPostStepReply(ctx, mh1, validFreeAddresses)
-		mh2 := registerNode(ctx, clusterID, "mh2")
-		mh3 := registerNode(ctx, clusterID, "mh3")
-		generateFullMeshConnectivity(ctx, "1.2.3.10", mh1, mh2, mh3, wh1, wh2, wh3)
+		mh2 := registerNode(ctx, clusterID, "mh2", ips[4])
+		mh3 := registerNode(ctx, clusterID, "mh3", ips[5])
+		generateFullMeshConnectivity(ctx, ips[0], mh1, mh2, mh3, wh1, wh2, wh3)
 		clusterReply, _ = userBMClient.Installer.GetCluster(ctx, &installer.GetClusterParams{
 			ClusterID: clusterID,
 		})
@@ -2819,11 +2830,12 @@ spec:
 		Expect(err).To(Not(HaveOccurred()))
 
 		By("Register 3 more hosts with valid hw info")
-		h2 := registerNode(ctx, clusterID, "h2")
-		h3 := registerNode(ctx, clusterID, "h3")
-		h4 := registerNode(ctx, clusterID, "h4")
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
+		h2 := registerNode(ctx, clusterID, "h2", ips[0])
+		h3 := registerNode(ctx, clusterID, "h3", ips[1])
+		h4 := registerNode(ctx, clusterID, "h4", ips[2])
 
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, defaultWaitForClusterStateTimeout)
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
@@ -2842,7 +2854,7 @@ spec:
 	It("unique_hostname_validation", func() {
 		clusterID := *cluster.ID
 		//define h1 as known master
-		hosts := register3nodes(ctx, clusterID)
+		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
@@ -2854,15 +2866,16 @@ spec:
 		h1 := getHost(clusterID, *hosts[0].ID)
 		h2 := getHost(clusterID, *hosts[1].ID)
 		h3 := getHost(clusterID, *hosts[2].ID)
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
 		waitForHostState(ctx, clusterID, *h1.ID, "known", 60*time.Second)
 		Expect(h1.RequestedHostname).Should(Equal("h1"))
 
 		By("Registering host with same hostname")
+		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
 		//after name clash --> h1 and h4 are insufficient
-		h4 := registerNode(ctx, clusterID, "h1")
+		h4 := registerNode(ctx, clusterID, "h1", newIPs[0])
 		h4 = getHost(clusterID, *h4.ID)
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 		waitForHostState(ctx, clusterID, *h1.ID, "insufficient", 60*time.Second)
 		Expect(h4.RequestedHostname).Should(Equal("h1"))
 		h1 = getHost(clusterID, *h1.ID)
@@ -2884,7 +2897,7 @@ spec:
 		Expect(err).Should(HaveOccurred())
 
 		By("Registering one more host with same hostname")
-		disabledHost := registerNode(ctx, clusterID, "h1")
+		disabledHost := registerNode(ctx, clusterID, "h1", newIPs[1])
 		disabledHost = getHost(clusterID, *disabledHost.ID)
 		waitForHostState(ctx, clusterID, *disabledHost.ID, models.HostStatusInsufficient,
 			defaultWaitForHostStateTimeout)
@@ -2897,7 +2910,7 @@ spec:
 		Expect(err).NotTo(HaveOccurred())
 
 		By("Changing hostname, verify host is known now")
-		generateEssentialHostSteps(ctx, h4, "h4")
+		generateEssentialHostSteps(ctx, h4, "h4", newIPs[0])
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 		h4 = getHost(clusterID, *h4.ID)
 		Expect(h4.RequestedHostname).Should(Equal("h4"))
@@ -2913,7 +2926,7 @@ spec:
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusKnown, defaultWaitForHostStateTimeout)
 
 		By("add one more worker to get 2 functioning workers")
-		h5 := registerNode(ctx, clusterID, "h5")
+		h5 := registerNode(ctx, clusterID, "h5", newIPs[1])
 		_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *h5.ID, Role: models.HostRoleUpdateParamsWorker},
@@ -2921,7 +2934,7 @@ spec:
 			ClusterID: clusterID,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5)
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
 
 		By("waiting for cluster to be in ready state")
 		waitForClusterState(ctx, clusterID, models.ClusterStatusReady, 60*time.Second, clusterReadyStateInfo)
@@ -2935,7 +2948,7 @@ spec:
 		localhost := "localhost"
 		clusterID := *cluster.ID
 
-		hosts := register3nodes(ctx, clusterID)
+		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
@@ -2949,7 +2962,7 @@ spec:
 		Expect(h1.RequestedHostname).Should(Equal("h1"))
 
 		By("Changing hostname reply to localhost")
-		generateEssentialHostSteps(ctx, h1, localhost)
+		generateEssentialHostSteps(ctx, h1, localhost, ips[0])
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, 60*time.Second)
 		h1Host := getHost(clusterID, *h1.ID)
 		Expect(h1Host.RequestedHostname).Should(Equal(localhost))
@@ -3002,7 +3015,7 @@ spec:
 
 	It("set_requested_hostnames", func() {
 		clusterID := *cluster.ID
-		hosts := register3nodes(ctx, clusterID)
+		hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
 		_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 			ClusterUpdateParams: &models.ClusterUpdateParams{HostsRoles: []*models.ClusterUpdateParamsHostsRolesItems0{
 				{ID: *hosts[0].ID, Role: models.HostRoleUpdateParamsMaster},
@@ -3041,8 +3054,9 @@ spec:
 
 		// register new host with the same name in inventory
 		By("Registering new host with same hostname as in node's inventory")
-		h4 := registerNode(ctx, clusterID, "h3")
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
+		newIPs := hostutil.GenerateIPv4Addresses(2, ips[2])
+		h4 := registerNode(ctx, clusterID, "h3", newIPs[0])
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 		h4 = getHost(clusterID, *h4.ID)
 		waitForHostState(ctx, clusterID, *h4.ID, models.HostStatusInsufficient, time.Minute)
 		waitForHostState(ctx, clusterID, *h3.ID, models.HostStatusInsufficient, time.Minute)
@@ -3052,9 +3066,9 @@ spec:
 		Expect(err).Should(HaveOccurred())
 
 		By("Registering new host with same hostname as in node's requested_hostname")
-		h5 := registerNode(ctx, clusterID, "reqh0")
+		h5 := registerNode(ctx, clusterID, "reqh0", newIPs[1])
 		h5 = getHost(clusterID, *h5.ID)
-		generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4, h5)
+		generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4, h5)
 		waitForHostState(ctx, clusterID, *h5.ID, models.HostStatusInsufficient, time.Minute)
 		waitForHostState(ctx, clusterID, *h1.ID, models.HostStatusInsufficient, time.Minute)
 
@@ -3378,9 +3392,10 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 	ctx := context.Background()
 	hosts := make([]*models.Host, 0)
 
+	ips := hostutil.GenerateIPv4Addresses(numHosts, defaultCIDRv4)
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
-		host := registerNode(ctx, clusterID, hostname)
+		host := registerNode(ctx, clusterID, hostname, ips[i])
 		var role models.HostRoleUpdateParams
 		if i < 3 {
 			role = models.HostRoleUpdateParamsMaster
@@ -3396,7 +3411,7 @@ func registerHostsAndSetRoles(clusterID strfmt.UUID, numHosts int) []*models.Hos
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
 	}
-	generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	apiVip := ""
 	ingressVip := ""
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
@@ -3456,9 +3471,10 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 	}
+	ips := hostutil.GenerateIPv4Addresses(numHosts, defaultCIDRv4)
 	for i := 0; i < numHosts; i++ {
 		hostname := fmt.Sprintf("h%d", i)
-		host := registerNode(ctx, clusterID, hostname)
+		host := registerNode(ctx, clusterID, hostname, ips[i])
 		var role models.HostRoleUpdateParams
 		if i < 3 {
 			role = models.HostRoleUpdateParamsMaster
@@ -3474,7 +3490,7 @@ func registerHostsAndSetRolesDHCP(clusterID strfmt.UUID, numHosts int) []*models
 		Expect(err).NotTo(HaveOccurred())
 		hosts = append(hosts, host)
 	}
-	generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+	generateFullMeshConnectivity(ctx, ips[0], hosts...)
 	_, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
 		ClusterUpdateParams: &models.ClusterUpdateParams{
 			MachineNetworkCidr: swag.String("1.2.3.0/24"),
@@ -3526,9 +3542,10 @@ func generateConnectivityPostStepReply(ctx context.Context, h *models.Host, conn
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func generateFullMeshConnectivity(ctx context.Context, startIPAddress string, hosts ...*models.Host) {
+func generateFullMeshConnectivity(ctx context.Context, startCIDR string, hosts ...*models.Host) {
 
-	ip := net.ParseIP(startIPAddress)
+	ip, _, err := net.ParseCIDR(startCIDR)
+	Expect(err).NotTo(HaveOccurred())
 	hostToAddr := make(map[strfmt.UUID]string)
 
 	for _, h := range hosts {

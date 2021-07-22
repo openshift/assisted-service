@@ -41,6 +41,8 @@ const (
 	counterFilesystemUsagePercentage              = "assisted_installer_filesystem_usage_percentage"
 	counterMonitoredHosts                         = "assisted_installer_monitored_hosts"
 	counterMonitoredClusters                      = "assisted_installer_monitored_clusters"
+	histogramNetworkLatencyMilliseconds           = "assisted_installer_host_network_latency_in_ms"
+	histogramPacketLossPercentage                 = "assisted_installer_packet_loss_percentage"
 )
 
 const (
@@ -65,6 +67,8 @@ const (
 	counterDescriptionFilesystemUsagePercentage              = "The percentage of the filesystem usage by the service"
 	counterDescriptionMonitoredHosts                         = "Number of hosts monitored by host monitor"
 	counterDescriptionMonitoredClusters                      = "Number of clusters monitored by cluster monitor"
+	histogramDescriptionNetworkLatencyMilliseconds           = "Histogram/sum/count of the L3 network latency in milliseconds between hosts"
+	histogramDescriptionPacketLossPercentage                 = "Histogram/sum/count of the L3 packet loss percentage between hosts"
 )
 
 const (
@@ -90,6 +94,8 @@ const (
 	imageLabel                 = "imageName"
 	hosts                      = "hosts"
 	clusters                   = "clusters"
+	sourceRoleLabel            = "sourceRole"
+	targetRoleLabel            = "targetRole"
 )
 
 type API interface {
@@ -108,6 +114,8 @@ type API interface {
 	FileSystemUsage(usageInPercentage float64)
 	MonitoredHostsCount(monitoredHosts int64)
 	MonitoredClusterCount(monitoredClusters int64)
+	NetworkLatencyBetweenHosts(clusterVersion string, sourceRole, targetRole models.HostRole, latency float64)
+	PacketLossBetweenHosts(clusterVersion string, sourceRole, targetRole models.HostRole, packetLoss float64)
 }
 
 type MetricsManager struct {
@@ -135,6 +143,8 @@ type MetricsManager struct {
 	serviceLogicFilesystemUsagePercentage              *prometheus.GaugeVec
 	serviceLogicMonitoredHosts                         *prometheus.GaugeVec
 	serviceLogicMonitoredClusters                      *prometheus.GaugeVec
+	serviceLogicNetworkLatencyMilliseconds             *prometheus.HistogramVec
+	serviceLogicPacketLossPercentage                   *prometheus.HistogramVec
 }
 
 var _ API = &MetricsManager{}
@@ -310,6 +320,21 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler events.Hand
 			Name:      counterMonitoredClusters,
 			Help:      counterDescriptionMonitoredClusters,
 		}, []string{hosts}),
+
+		serviceLogicNetworkLatencyMilliseconds: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      histogramNetworkLatencyMilliseconds,
+			Help:      histogramDescriptionNetworkLatencyMilliseconds,
+			Buckets:   []float64{0, 25, 50, 75, 100, 150, 200, 300, 400, 500, 1000},
+		}, []string{openshiftVersionLabel, sourceRoleLabel, targetRoleLabel}),
+		serviceLogicPacketLossPercentage: prometheus.NewHistogramVec(prometheus.HistogramOpts{
+			Namespace: namespace,
+			Subsystem: subsystem,
+			Name:      histogramPacketLossPercentage,
+			Help:      histogramDescriptionPacketLossPercentage,
+			Buckets:   []float64{0, 10, 20, 30, 40, 50, 60, 70, 80, 90},
+		}, []string{openshiftVersionLabel, sourceRoleLabel, targetRoleLabel}),
 	}
 
 	registry.MustRegister(
@@ -332,6 +357,8 @@ func NewMetricsManager(registry prometheus.Registerer, eventsHandler events.Hand
 		m.serviceLogicFilesystemUsagePercentage,
 		m.serviceLogicMonitoredHosts,
 		m.serviceLogicMonitoredClusters,
+		m.serviceLogicNetworkLatencyMilliseconds,
+		m.serviceLogicPacketLossPercentage,
 	)
 	return m
 }
@@ -500,6 +527,13 @@ func (m *MetricsManager) MonitoredHostsCount(monitoredHosts int64) {
 
 func (m *MetricsManager) MonitoredClusterCount(monitoredClusters int64) {
 	m.serviceLogicMonitoredClusters.WithLabelValues(clusters).Set(float64(monitoredClusters))
+}
+
+func (m *MetricsManager) NetworkLatencyBetweenHosts(openshiftVersion string, sourceRole, targetRole models.HostRole, latency float64) {
+	m.serviceLogicNetworkLatencyMilliseconds.WithLabelValues(openshiftVersion, string(sourceRole), string(targetRole)).Observe(latency)
+}
+func (m *MetricsManager) PacketLossBetweenHosts(openshiftVersion string, sourceRole, targetRole models.HostRole, packetLoss float64) {
+	m.serviceLogicNetworkLatencyMilliseconds.WithLabelValues(openshiftVersion, string(sourceRole), string(targetRole)).Observe(packetLoss)
 }
 
 func bytesToGib(bytes int64) int64 {
