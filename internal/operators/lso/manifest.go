@@ -34,18 +34,16 @@ spec:
 	return buf.Bytes(), nil
 }
 
-func Manifests() (map[string][]byte, map[string][]byte, error) {
+func Manifests() (map[string][]byte, []byte, error) {
 	lsoSubs, err := lsoSubscription()
 	if err != nil {
 		return nil, nil, err
 	}
 	openshiftManifests := make(map[string][]byte)
-	manifests := make(map[string][]byte)
 	openshiftManifests["99_openshift-lso_ns.yaml"] = []byte(localStorageNamespace)
 	openshiftManifests["99_openshift-lso_operator_group.yaml"] = []byte(lsoOperatorGroup)
 	openshiftManifests["99_openshift-lso_subscription.yaml"] = lsoSubs
-	manifests["99_openshift-lso_lvset_cr.yaml"] = []byte(localVolumeSet)
-	return openshiftManifests, manifests, nil
+	return openshiftManifests, []byte(localVolumeSet), nil
 }
 
 const lsoOperatorGroup = `apiVersion: operators.coreos.com/v1

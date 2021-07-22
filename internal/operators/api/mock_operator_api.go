@@ -36,11 +36,11 @@ func (m *MockOperator) EXPECT() *MockOperatorMockRecorder {
 }
 
 // GenerateManifests mocks base method
-func (m *MockOperator) GenerateManifests(arg0 *common.Cluster) (map[string][]byte, map[string][]byte, error) {
+func (m *MockOperator) GenerateManifests(arg0 *common.Cluster) (map[string][]byte, []byte, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GenerateManifests", arg0)
 	ret0, _ := ret[0].(map[string][]byte)
-	ret1, _ := ret[1].(map[string][]byte)
+	ret1, _ := ret[1].([]byte)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }

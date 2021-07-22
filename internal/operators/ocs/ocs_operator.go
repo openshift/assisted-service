@@ -111,7 +111,7 @@ func (o *operator) ValidateHost(_ context.Context, cluster *common.Cluster, host
 }
 
 // GenerateManifests generates manifests for the operator
-func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, map[string][]byte, error) {
+func (o *operator) GenerateManifests(cluster *common.Cluster) (map[string][]byte, []byte, error) {
 	o.log.Info("No. of OCS eligible disks are ", o.config.OCSDisksAvailable)
 	return Manifests(o.config)
 }

@@ -37,7 +37,7 @@ type Operator interface {
 	// ValidateHost verifies whether this operator is valid for given host
 	ValidateHost(ctx context.Context, cluster *common.Cluster, hosts *models.Host) (ValidationResult, error)
 	// GenerateManifests generates manifests for the operator
-	GenerateManifests(*common.Cluster) (map[string][]byte, map[string][]byte, error)
+	GenerateManifests(*common.Cluster) (map[string][]byte, []byte, error)
 	// GetHostRequirements provides operator's requirements towards the host
 	GetHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirementsDetails, error)
 	// GetClusterValidationID returns cluster validation ID for the Operator

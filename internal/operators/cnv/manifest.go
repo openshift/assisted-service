@@ -35,7 +35,7 @@ func configSource(config Config) manifestConfig {
 }
 
 // Manifests returns manifests needed to deploy CNV
-func Manifests(config Config) (map[string][]byte, map[string][]byte, error) {
+func Manifests(config Config) (map[string][]byte, []byte, error) {
 	configSource := configSource(config)
 	cnvSubsManifest, err := subscription(configSource)
 
@@ -56,13 +56,11 @@ func Manifests(config Config) (map[string][]byte, map[string][]byte, error) {
 	}
 
 	openshiftManifests := make(map[string][]byte)
-	manifests := make(map[string][]byte)
 
 	openshiftManifests["99_openshift-cnv_subscription.yaml"] = cnvSubsManifest
 	openshiftManifests["99_openshift-cnv_ns.yaml"] = cnvNs
 	openshiftManifests["99_openshift-cnv_operator_group.yaml"] = cnvGrp
-	manifests["99_openshift-cnv_hco.yaml"] = cnvHco
-	return openshiftManifests, manifests, nil
+	return openshiftManifests, cnvHco, nil
 }
 
 func subscription(config manifestConfig) ([]byte, error) {

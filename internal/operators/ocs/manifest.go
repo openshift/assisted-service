@@ -34,9 +34,8 @@ func generateStorageClusterManifest(StorageClusterManifest string, ocsDiskCounts
 
 }
 
-func Manifests(ocsConfig *Config) (map[string][]byte, map[string][]byte, error) {
+func Manifests(ocsConfig *Config) (map[string][]byte, []byte, error) {
 	openshiftManifests := make(map[string][]byte)
-	manifests := make(map[string][]byte)
 	var ocsSC []byte
 	var err error
 
@@ -51,15 +50,14 @@ func Manifests(ocsConfig *Config) (map[string][]byte, map[string][]byte, error) 
 			return nil, nil, err
 		}
 	}
-	manifests["99_openshift-ocssc.yaml"] = ocsSC
 	openshiftManifests["99_openshift-ocs_ns.yaml"] = []byte(ocsNamespace)
 	ocsSubscription, err := ocsSubscription()
 	if err != nil {
-		return map[string][]byte{}, map[string][]byte{}, err
+		return map[string][]byte{}, []byte{}, err
 	}
 	openshiftManifests["99_openshift-ocs_subscription.yaml"] = []byte(ocsSubscription)
 	openshiftManifests["99_openshift-ocs_operator_group.yaml"] = []byte(ocsOperatorGroup)
-	return openshiftManifests, manifests, nil
+	return openshiftManifests, ocsSC, nil
 }
 
 func ocsSubscription() (string, error) {

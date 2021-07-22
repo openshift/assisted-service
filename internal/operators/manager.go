@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"path"
 
@@ -20,7 +21,15 @@ import (
 	"github.com/thoas/go-funk"
 )
 
-const customManifestFile = "custom_manifests.yaml"
+const customManifestFile = "custom_manifests.json"
+
+// Manifest store the operator manifest used by assisted-installer to create CRs of the OLM.
+type Manifest struct {
+	// Name of the operator the CR manifest we want create
+	Name string
+	// Content of the manifest of the opreator
+	Content string
+}
 
 // Manager is responsible for performing operations against additional operators
 type Manager struct {
@@ -102,7 +111,7 @@ func (mgr *Manager) GetRequirementsBreakdownForHostInCluster(ctx context.Context
 // GenerateManifests generates manifests for all enabled operators.
 // Returns map assigning manifest content to its desired file name
 func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Cluster) error {
-	customManifest := ""
+	var customManifests []Manifest
 	// Generate manifests for all the generic operators
 	for _, clusterOperator := range cluster.MonitoredOperators {
 		if clusterOperator.OperatorType != models.OperatorTypeOlm {
@@ -111,7 +120,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 
 		operator := mgr.olmOperators[clusterOperator.Name]
 		if operator != nil {
-			openshiftManifests, manifests, err := operator.GenerateManifests(cluster)
+			openshiftManifests, manifest, err := operator.GenerateManifests(cluster)
 			if err != nil {
 				mgr.log.Error(fmt.Sprintf("Cannot generate %s manifests due to ", clusterOperator.Name), err)
 				return err
@@ -123,15 +132,16 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 				}
 			}
 
-			for _, v := range manifests {
-				customManifest = fmt.Sprintf("%s---\n%s\n", customManifest, v)
-			}
-
+			customManifests = append(customManifests, Manifest{Name: clusterOperator.Name, Content: base64.StdEncoding.EncodeToString(manifest)})
 		}
 	}
 
-	if customManifest != "" {
-		if err := mgr.createCustomManifest(ctx, cluster, customManifest); err != nil {
+	if len(customManifests) > 0 {
+		content, err := json.Marshal(customManifests)
+		if err != nil {
+			return err
+		}
+		if err := mgr.createCustomManifest(ctx, cluster, string(content)); err != nil {
 			return err
 		}
 	}
@@ -139,7 +149,7 @@ func (mgr *Manager) GenerateManifests(ctx context.Context, cluster *common.Clust
 	return nil
 }
 
-// createCustomManifest create a file called custom_manifests.yaml, which is later obtained by the
+// createCustomManifest create a file called custom_manifests.json, which is later obtained by the
 // assisted-installer-controller, which apply this manifest file after the OLM is deployed,
 // so user can provide here even CRs provisioned by the OLM.
 func (mgr *Manager) createCustomManifest(ctx context.Context, cluster *common.Cluster, content string) error {
