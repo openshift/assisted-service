@@ -262,6 +262,21 @@ func (mr *MockInstallerInternalsMockRecorder) RegisterClusterInternal(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RegisterClusterInternal", reflect.TypeOf((*MockInstallerInternals)(nil).RegisterClusterInternal), arg0, arg1, arg2)
 }
 
+// TransformClusterToDay2Internal mocks base method
+func (m *MockInstallerInternals) TransformClusterToDay2Internal(arg0 context.Context, arg1 strfmt.UUID) (*common.Cluster, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TransformClusterToDay2Internal", arg0, arg1)
+	ret0, _ := ret[0].(*common.Cluster)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// TransformClusterToDay2Internal indicates an expected call of TransformClusterToDay2Internal
+func (mr *MockInstallerInternalsMockRecorder) TransformClusterToDay2Internal(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransformClusterToDay2Internal", reflect.TypeOf((*MockInstallerInternals)(nil).TransformClusterToDay2Internal), arg0, arg1)
+}
+
 // UpdateClusterInstallConfigInternal mocks base method
 func (m *MockInstallerInternals) UpdateClusterInstallConfigInternal(arg0 context.Context, arg1 installer.UpdateClusterInstallConfigParams) (*common.Cluster, error) {
 	m.ctrl.T.Helper()

@@ -2651,6 +2651,140 @@ var _ = Describe("Get cluster by Kube key", func() {
 	})
 })
 
+var _ = Describe("Transform day1 cluster to a day2 cluster", func() {
+
+	var (
+		db         *gorm.DB
+		clusterApi *Manager
+		ctrl       *gomock.Controller
+		cfg        Config
+		ctx        = context.Background()
+		dbName     string
+	)
+
+	BeforeEach(func() {
+		db, dbName = common.PrepareTestDB()
+		ctrl = gomock.NewController(GinkgoT())
+		clusterApi = NewManager(getDefaultConfig(), common.GetTestLog(), db, nil, nil, nil, nil, nil, nil, nil, nil, nil)
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	tests := []struct {
+		name          string
+		clusterStatus string
+		clusterKind   string
+		errorExpected bool
+	}{
+		{
+			name:          "successfully transform day1 cluster to a day2 cluster - status installed",
+			clusterStatus: models.ClusterStatusInstalled,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: false,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - kind AddHostsCluster",
+			clusterStatus: models.ClusterStatusInstalled,
+			clusterKind:   models.ClusterKindAddHostsCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status insufficient",
+			clusterStatus: models.ClusterStatusInsufficient,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status ready",
+			clusterStatus: models.ClusterStatusReady,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status error",
+			clusterStatus: models.ClusterStatusError,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - preparing-for-installation",
+			clusterStatus: models.ClusterStatusPreparingForInstallation,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status pending-for-input",
+			clusterStatus: models.ClusterStatusPendingForInput,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status installing",
+			clusterStatus: models.ClusterStatusInstalling,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status finalizing",
+			clusterStatus: models.ClusterStatusFinalizing,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status adding-hosts",
+			clusterStatus: models.ClusterStatusAddingHosts,
+			clusterKind:   models.ClusterKindAddHostsCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status cancelled",
+			clusterStatus: models.ClusterStatusCancelled,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+		{
+			name:          "fail to transform day1 cluster to a day2 cluster - status installing-pending-user-action",
+			clusterStatus: models.ClusterStatusInstallingPendingUserAction,
+			clusterKind:   models.ClusterKindCluster,
+			errorExpected: true,
+		},
+	}
+
+	for i := range tests {
+		t := tests[i]
+		It(t.name, func() {
+			id := strfmt.UUID(uuid.New().String())
+			cluster := &common.Cluster{Cluster: models.Cluster{
+				ID:                 &id,
+				Kind:               swag.String(t.clusterKind),
+				OpenshiftVersion:   common.TestDefaultConfig.OpenShiftVersion,
+				Status:             swag.String(t.clusterStatus),
+				MachineNetworkCidr: "1.2.3.0/24",
+				APIVip:             "1.2.3.5",
+				IngressVip:         "1.2.3.6",
+				BaseDNSDomain:      "test.com",
+				PullSecretSet:      true,
+			}}
+			Expect(db.Create(&cluster).Error).ShouldNot(HaveOccurred())
+			err1 := clusterApi.TransformClusterToDay2(ctx, cluster, db)
+			Expect(err1 != nil).To(Equal(t.errorExpected))
+			if !t.errorExpected {
+				var c common.Cluster
+				Expect(db.Take(&c, "id = ?", cluster.ID.String()).Error).ToNot(HaveOccurred())
+				Expect(c.Kind).To(Equal(swag.String(models.ClusterKindAddHostsCluster)))
+				Expect(c.Status).To(Equal(swag.String(models.ClusterStatusAddingHosts)))
+				apiVipDnsname := fmt.Sprintf("api.%s.%s", c.Name, c.BaseDNSDomain)
+				Expect(c.APIVipDNSName).To(Equal(swag.String(apiVipDnsname)))
+			}
+
+		})
+	}
+})
+
 var _ = Describe("Update AMS subscription ID", func() {
 
 	var (

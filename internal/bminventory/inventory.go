@@ -139,6 +139,7 @@ type InstallerInternals interface {
 	InstallSingleDay2HostInternal(ctx context.Context, clusterId strfmt.UUID, hostId strfmt.UUID) error
 	UpdateClusterInstallConfigInternal(ctx context.Context, params installer.UpdateClusterInstallConfigParams) (*common.Cluster, error)
 	CancelInstallationInternal(ctx context.Context, params installer.CancelInstallationParams) (*common.Cluster, error)
+	TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error)
 	AddOpenshiftVersion(ctx context.Context, ocpReleaseImage, pullSecret string) (*models.OpenshiftVersion, error)
 }
 
@@ -1557,6 +1558,29 @@ func (b *bareMetalInventory) GetClusterDefaultConfig(_ context.Context, _ instal
 	body.InactiveDeletionHours = int64(b.gcConfig.DeregisterInactiveAfter.Hours())
 
 	return installer.NewGetClusterDefaultConfigOK().WithPayload(&body)
+}
+
+func (b *bareMetalInventory) TransformClusterToDay2Internal(ctx context.Context, clusterID strfmt.UUID) (*common.Cluster, error) {
+	log := logutil.FromContext(ctx, b.log)
+	log.Infof("transforming day1 cluster %s into day2 cluster", clusterID)
+
+	var cluster *common.Cluster
+	var err error
+
+	if cluster, err = common.GetClusterFromDB(b.db, clusterID, common.UseEagerLoading); err != nil {
+		log.WithError(err).Errorf("failed to find cluster %s", clusterID)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NewApiError(http.StatusNotFound, err)
+		}
+		return nil, common.NewApiError(http.StatusInternalServerError, err)
+	}
+
+	err = b.clusterApi.TransformClusterToDay2(ctx, cluster, b.db)
+	if err != nil {
+		return nil, err
+	}
+
+	return b.GetClusterInternal(ctx, installer.GetClusterParams{ClusterID: clusterID})
 }
 
 func (b *bareMetalInventory) UpdateClusterInstallConfig(ctx context.Context, params installer.UpdateClusterInstallConfigParams) middleware.Responder {

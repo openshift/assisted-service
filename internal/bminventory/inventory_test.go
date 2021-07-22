@@ -5955,6 +5955,48 @@ var _ = Describe("InstallSingleDay2Host test", func() {
 	})
 })
 
+var _ = Describe("Transform day1 cluster to a day2 cluster test", func() {
+
+	var (
+		bm        *bareMetalInventory
+		cfg       Config
+		db        *gorm.DB
+		ctx       = context.Background()
+		clusterID strfmt.UUID
+		dbName    string
+	)
+
+	BeforeEach(func() {
+		Expect(envconfig.Process("test", &cfg)).ShouldNot(HaveOccurred())
+		db, dbName = common.PrepareTestDB()
+		clusterID = strfmt.UUID(uuid.New().String())
+		err := db.Create(&common.Cluster{Cluster: models.Cluster{
+			ID:               &clusterID,
+			Kind:             swag.String(models.ClusterKindCluster),
+			OpenshiftVersion: common.TestDefaultConfig.OpenShiftVersion,
+			Status:           swag.String(models.ClusterStatusInstalled),
+		}}).Error
+		Expect(err).ShouldNot(HaveOccurred())
+		bm = createInventory(db, cfg)
+	})
+
+	AfterEach(func() {
+		common.DeleteTestDB(db, dbName)
+		ctrl.Finish()
+	})
+
+	It("successfully transform day1 cluster to a day2 cluster", func() {
+		mockClusterApi.EXPECT().TransformClusterToDay2(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil)
+		_, err := bm.TransformClusterToDay2Internal(ctx, clusterID)
+		Expect(err).ShouldNot(HaveOccurred())
+	})
+	It("fail to transform day1 cluster to a day2 cluster", func() {
+		mockClusterApi.EXPECT().TransformClusterToDay2(gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(errors.New("blah"))
+		_, err := bm.TransformClusterToDay2Internal(ctx, clusterID)
+		Expect(err).Should(HaveOccurred())
+	})
+})
+
 var _ = Describe("Install Hosts test", func() {
 
 	var (
