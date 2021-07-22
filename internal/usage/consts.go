@@ -17,4 +17,6 @@ const (
 	DiskSelectionUsage string = "Disk Selection"
 	//user networkType selection
 	NetworkTypeSelectionUsage string = "NetworkType"
+	//usage of platform provider other than baremetal
+	PlatformSelectionUsage string = "Platform selection"
 )
