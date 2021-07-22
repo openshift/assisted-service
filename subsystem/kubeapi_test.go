@@ -25,6 +25,7 @@ import (
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/internal/events"
 	"github.com/openshift/assisted-service/internal/gencrypto"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"github.com/openshift/assisted-service/pkg/auth"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
@@ -620,15 +621,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *cluster.ID, hostname)
+			host := registerNode(ctx, *cluster.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
 		}
-		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		By("Approve Agents")
 		for _, host := range hosts {
 			hostkey := types.NamespacedName{
@@ -795,15 +797,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *cluster.ID, hostname)
+			host := registerNode(ctx, *cluster.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
 		}
-		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		By("Approve Agents")
 		for _, host := range hosts {
 			hostkey := types.NamespacedName{
@@ -841,7 +844,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -882,7 +885,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -948,7 +951,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -987,7 +990,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1050,7 +1053,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1109,7 +1112,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1285,7 +1288,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: "default",
 			Name:      host.ID.String(),
@@ -1632,7 +1635,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1814,7 +1817,8 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
+		host := registerNode(ctx, *cluster.ID, "hostname1", ips[0])
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1844,7 +1848,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster2 := getClusterFromDB(ctx, kubeClient, db, clusterKey2, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster2.ID.String())
 		h := &registerHostByUUID(*cluster2.ID, *host.ID).Host
-		generateEssentialHostSteps(ctx, h, "hostname2")
+		generateEssentialHostSteps(ctx, h, "hostname2", ips[1])
 		generateEssentialPrepareForInstallationSteps(ctx, h)
 
 		By("Check Agent is updated with new ClusterDeployment")
@@ -1883,7 +1887,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -1933,15 +1937,16 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(3, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *cluster.ID, hostname)
+			host := registerNode(ctx, *cluster.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsFailingReason)
 		}
-		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		for _, host := range hosts {
 			checkAgentCondition(ctx, host.ID.String(), v1beta1.ValidatedCondition, v1beta1.ValidationsPassingReason)
 		}
@@ -2038,12 +2043,13 @@ var _ = Describe("[kube-api]cluster installation", func() {
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
 		hosts := make([]*models.Host, 0)
+		ips := hostutil.GenerateIPv4Addresses(4, defaultCIDRv4)
 		for i := 0; i < 3; i++ {
 			hostname := fmt.Sprintf("h%d", i)
-			host := registerNode(ctx, *cluster.ID, hostname)
+			host := registerNode(ctx, *cluster.ID, hostname, ips[i])
 			hosts = append(hosts, host)
 		}
-		generateFullMeshConnectivity(ctx, "1.2.3.10", hosts...)
+		generateFullMeshConnectivity(ctx, ips[0], hosts...)
 		By("Check ACI Logs URL is empty")
 		// Should not show the URL since no logs yet to be collected
 		installkey := types.NamespacedName{
@@ -2144,7 +2150,7 @@ var _ = Describe("[kube-api]cluster installation", func() {
 
 		By("Add Day 2 host and approve agent")
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostnameday2")
+		host := registerNode(ctx, *cluster.ID, "hostnameday2", ips[3])
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2267,7 +2273,7 @@ spec:
 		}
 		cluster := getClusterFromDB(ctx, kubeClient, db, clusterKey, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		key := types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),
@@ -2332,7 +2338,7 @@ spec:
 
 		By("Register a Host and validate that an agent CR was created")
 		configureLocalAgentClient(cluster.ID.String())
-		registerNode(ctx, *cluster.ID, "hostname1")
+		registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		Eventually(func() int {
 			return len(getClusterDeploymentAgents(ctx, kubeClient, clusterKey).Items)
 		}, "2m", "2s").Should(Equal(1))
@@ -2465,7 +2471,7 @@ var _ = Describe("bmac reconcile flow", func() {
 
 		cluster := getClusterFromDB(ctx, kubeClient, db, key, waitForReconcileTimeout)
 		configureLocalAgentClient(cluster.ID.String())
-		host := registerNode(ctx, *cluster.ID, "hostname1")
+		host := registerNode(ctx, *cluster.ID, "hostname1", defaultCIDRv4)
 		agentNsName = types.NamespacedName{
 			Namespace: Options.Namespace,
 			Name:      host.ID.String(),

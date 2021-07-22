@@ -2598,7 +2598,6 @@ var _ = Describe("Disabled Host Validation", func() {
 		cfg := Config{}
 		err := envconfig.Process(common.EnvConfigPrefix, &cfg)
 		Expect(err).To(HaveOccurred())
-		fmt.Println("\n" + err.Error())
 		Expect(err.Error()).To(Equal("envconfig.Process: assigning MYAPP_DISABLED_HOST_VALIDATIONS to DisabledHostvalidations: converting 'validation-1,,' to type host.DisabledHostValidations. details: empty host validation ID found in 'validation-1,,'"))
 	})
 

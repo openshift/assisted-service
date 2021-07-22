@@ -22,6 +22,7 @@ import (
 	"github.com/openshift/assisted-service/internal/metrics"
 	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/models"
+	"github.com/openshift/assisted-service/pkg/commonutils"
 	"github.com/openshift/assisted-service/pkg/leader"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	"github.com/pkg/errors"
@@ -535,10 +536,21 @@ func (m *Manager) SetUploadLogsAt(ctx context.Context, h *models.Host, db *gorm.
 
 func (m *Manager) UpdateConnectivityReport(ctx context.Context, h *models.Host, connectivityReport string) error {
 	if h.Connectivity != connectivityReport {
+		//retrieve cluster
+		var cluster common.Cluster
+		err := m.db.First(&cluster, "id = ?", h.ClusterID).Error
+		if err != nil {
+			return errors.Wrapf(err, "failed to find cluster %s", h.ClusterID)
+		}
+		if len(connectivityReport) > 0 {
+			m.captureConnectivityReportMetrics(ctx, cluster.OpenshiftVersion, h, connectivityReport, cluster.Hosts)
+		}
+
 		// Only if the connectivity between the hosts changed change the updated_at field
 		if err := m.db.Model(h).Update("connectivity", connectivityReport).Error; err != nil {
 			return errors.Wrapf(err, "failed to set connectivity to host %s", h.ID.String())
 		}
+
 	}
 	return nil
 }
@@ -1137,4 +1149,26 @@ func (m *Manager) GetHostByKubeKey(key types.NamespacedName) (*common.Host, erro
 
 func (m *Manager) UnRegisterHost(ctx context.Context, hostID, clusterID string) error {
 	return m.db.Where("id = ? and cluster_id = ?", hostID, clusterID).Delete(&common.Host{}).Error
+}
+
+func (m *Manager) captureConnectivityReportMetrics(ctx context.Context, openshiftVersion string, h *models.Host, report string, hosts []*models.Host) {
+	log := logutil.FromContext(ctx, logrus.New())
+	defer commonutils.MeasureOperation("CaptureConnectivityReportMetrics", log, m.metricApi)
+
+	connectivityReport, err := hostutil.UnmarshalConnectivityReport(h.Connectivity)
+	if err != nil {
+		log.Errorf("unable to unmarshal connectivity report for host ID %s:%v", h.ID, err)
+		return
+	}
+	for _, r := range connectivityReport.RemoteHosts {
+		for _, l3 := range r.L3Connectivity {
+			_, targetRole, err := GetHostnameAndRoleByIP(l3.RemoteIPAddress, hosts)
+			if err != nil {
+				log.Warn(err)
+				continue
+			}
+			m.metricApi.NetworkLatencyBetweenHosts(openshiftVersion, h.Role, targetRole, l3.AverageRTTMs)
+			m.metricApi.PacketLossBetweenHosts(openshiftVersion, h.Role, targetRole, l3.PacketLossPercentage)
+		}
+	}
 }

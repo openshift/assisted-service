@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os/exec"
+	"io/ioutil"
+	"net/http"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +21,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -145,12 +147,12 @@ func filterMetrics(metrics []string, substrings ...string) []string {
 
 func getMetricRecords() []string {
 	url := fmt.Sprintf("http://%s/metrics", Options.InventoryHost)
-
-	cmd := exec.Command("curl", "-s", url)
-	output, err := cmd.Output()
+	resp, err := http.Get(url)
 	Expect(err).NotTo(HaveOccurred())
-
-	return strings.Split(string(output), "\n")
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	Expect(err).NotTo(HaveOccurred())
+	return strings.Split(string(body), "\n")
 }
 
 func getValidationMetricCounter(validationID, expectedMetric string) int {
@@ -768,7 +770,7 @@ var _ = Describe("Metrics tests", func() {
 			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
 
 			// create a validation success
-			h := registerNode(ctx, day2ClusterID, "master-0")
+			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, true)
 			waitForHostValidationStatus(day2ClusterID, *h.ID, "success", models.HostValidationIDAPIVipConnected)
 
@@ -795,7 +797,7 @@ var _ = Describe("Metrics tests", func() {
 			generateClusterISO(day2ClusterID, models.ImageTypeMinimalIso)
 
 			// create a validation failure
-			h := registerNode(ctx, day2ClusterID, "master-0")
+			h := registerNode(ctx, day2ClusterID, "master-0", defaultCIDRv4)
 			generateApiVipPostStepReply(ctx, h, false)
 			waitForHostValidationStatus(day2ClusterID, *h.ID, "failure", models.HostValidationIDAPIVipConnected)
 
@@ -809,16 +811,17 @@ var _ = Describe("Metrics tests", func() {
 
 		It("'belongs-to-majority-group' failed", func() {
 
+			ips := hostutil.GenerateIPv4Addresses(4, defaultCIDRv4)
 			// create a validation success
-			h1 := registerNode(ctx, clusterID, "h1")
-			h2 := registerNode(ctx, clusterID, "h2")
-			h3 := registerNode(ctx, clusterID, "h3")
-			h4 := registerNode(ctx, clusterID, "h4")
-			generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
+			h1 := registerNode(ctx, clusterID, "h1", ips[0])
+			h2 := registerNode(ctx, clusterID, "h2", ips[1])
+			h3 := registerNode(ctx, clusterID, "h3", ips[2])
+			h4 := registerNode(ctx, clusterID, "h4", ips[3])
+			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
 
 			// create a validation failure
-			generateFullMeshConnectivity(ctx, "1.2.3.10", h2, h3, h4)
+			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
 			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
 
 			// check generated events
@@ -838,17 +841,17 @@ var _ = Describe("Metrics tests", func() {
 		})
 
 		It("'belongs-to-majority-group' got fixed", func() {
-
+			ips := hostutil.GenerateIPv4Addresses(4, defaultCIDRv4)
 			// create a validation failure
-			h1 := registerNode(ctx, clusterID, "h1")
-			h2 := registerNode(ctx, clusterID, "h2")
-			h3 := registerNode(ctx, clusterID, "h3")
-			h4 := registerNode(ctx, clusterID, "h4")
-			generateFullMeshConnectivity(ctx, "1.2.3.10", h2, h3, h4)
+			h1 := registerNode(ctx, clusterID, "h1", ips[0])
+			h2 := registerNode(ctx, clusterID, "h2", ips[1])
+			h3 := registerNode(ctx, clusterID, "h3", ips[2])
+			h4 := registerNode(ctx, clusterID, "h4", ips[3])
+			generateFullMeshConnectivity(ctx, ips[0], h2, h3, h4)
 			waitForHostValidationStatus(clusterID, *h1.ID, "failure", models.HostValidationIDBelongsToMajorityGroup)
 
 			// create a validation success
-			generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3, h4)
+			generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3, h4)
 			waitForHostValidationStatus(clusterID, *h1.ID, "success", models.HostValidationIDBelongsToMajorityGroup)
 
 			// check generated events
@@ -907,7 +910,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'all-hosts-are-ready-to-install' failed", func() {
 
 			// create a validation success
-			hosts := register3nodes(ctx, clusterID)
+			hosts, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDAllHostsAreReadyToInstall)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDAllHostsAreReadyToInstall), clusterValidationChangedMetric)
@@ -933,7 +936,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'all-hosts-are-ready-to-install' got fixed", func() {
 
 			// create a validation failure
-			hosts := register3nodes(ctx, clusterID)
+			hosts, ips := register3nodes(ctx, clusterID, defaultCIDRv4)
 			_, err := userBMClient.Installer.DisableHost(ctx, &installer.DisableHostParams{
 				ClusterID: clusterID,
 				HostID:    *hosts[0].ID,
@@ -947,7 +950,7 @@ var _ = Describe("Metrics tests", func() {
 				HostID:    *hosts[0].ID,
 			})
 			Expect(err).NotTo(HaveOccurred())
-			generateEssentialHostSteps(ctx, hosts[0], "h1")
+			generateEssentialHostSteps(ctx, hosts[0], "h1", ips[0])
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDAllHostsAreReadyToInstall)
 
 			// check generated events
@@ -957,7 +960,7 @@ var _ = Describe("Metrics tests", func() {
 		It("'sufficient-masters-count' failed", func() {
 
 			// create a validation success
-			hosts := register3nodes(ctx, clusterID)
+			hosts, _ := register3nodes(ctx, clusterID, defaultCIDRv4)
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDSufficientMastersCount), clusterValidationChangedMetric)
@@ -982,7 +985,7 @@ var _ = Describe("Metrics tests", func() {
 			waitForClusterValidationStatus(clusterID, "failure", models.ClusterValidationIDSufficientMastersCount)
 
 			// create a validation success
-			register3nodes(ctx, clusterID)
+			register3nodes(ctx, clusterID, defaultCIDRv4)
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDSufficientMastersCount)
 
 			// check generated events
@@ -991,9 +994,10 @@ var _ = Describe("Metrics tests", func() {
 
 		It("'ntp-server-configured' failed", func() {
 
+			ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 			// create a validation success
-			h1 := registerNode(ctx, clusterID, "h1")
-			registerNode(ctx, clusterID, "h2")
+			h1 := registerNode(ctx, clusterID, "h1", ips[0])
+			registerNode(ctx, clusterID, "h2", ips[1])
 			waitForClusterValidationStatus(clusterID, "success", models.ClusterValidationIDNtpServerConfigured)
 
 			oldChangedMetricCounter := getValidationMetricCounter(string(models.ClusterValidationIDNtpServerConfigured), clusterValidationChangedMetric)
@@ -1017,10 +1021,10 @@ var _ = Describe("Metrics tests", func() {
 		})
 
 		It("'ntp-server-configured' got fixed", func() {
-
+			ips := hostutil.GenerateIPv4Addresses(2, defaultCIDRv4)
 			// create a validation failure
-			h1 := registerNode(ctx, clusterID, "h1")
-			registerNode(ctx, clusterID, "h2")
+			h1 := registerNode(ctx, clusterID, "h1", ips[0])
+			registerNode(ctx, clusterID, "h2", ips[1])
 			nonSyncedInventory := &models.Inventory{
 				Timestamp: validHwInfo.Timestamp + (common.MaximumAllowedTimeDiffMinutes+1)*60,
 			}

@@ -3,6 +3,7 @@ package subsystem
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"time"
 
 	"github.com/go-openapi/strfmt"
@@ -13,6 +14,7 @@ import (
 	"github.com/openshift/assisted-service/client/installer"
 	operatorsClient "github.com/openshift/assisted-service/client/operators"
 	"github.com/openshift/assisted-service/internal/common"
+	"github.com/openshift/assisted-service/internal/host/hostutil"
 	"github.com/openshift/assisted-service/models"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
@@ -188,10 +190,12 @@ func generateHWPostStepReply(ctx context.Context, h *models.Host, hwInfo *models
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func generateConnectivityCheckPostStepReply(ctx context.Context, h *models.Host, success bool) {
+func generateConnectivityCheckPostStepReply(ctx context.Context, h *models.Host, targetCIDR string, success bool) {
+	targetIP, _, err := net.ParseCIDR(targetCIDR)
+	Expect(err).NotTo(HaveOccurred())
 	response := models.ConnectivityReport{
 		RemoteHosts: []*models.ConnectivityRemoteHost{
-			{L3Connectivity: []*models.L3Connectivity{{Successful: success}}},
+			{L3Connectivity: []*models.L3Connectivity{{RemoteIPAddress: targetIP.String(), Successful: success}}},
 		},
 	}
 	bytes, err := json.Marshal(&response)
@@ -268,8 +272,10 @@ func generateContainerImageAvailabilityPostStepReply(ctx context.Context, h *mod
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func generateEssentialHostSteps(ctx context.Context, h *models.Host, name string) {
-	generateEssentialHostStepsWithInventory(ctx, h, name, validHwInfo)
+func generateEssentialHostSteps(ctx context.Context, h *models.Host, name, cidr string) {
+	hwInfo := validHwInfo
+	hwInfo.Interfaces[0].IPV4Addresses = []string{cidr}
+	generateEssentialHostStepsWithInventory(ctx, h, name, hwInfo)
 }
 
 func generateEssentialHostStepsWithInventory(ctx context.Context, h *models.Host, name string, inventory *models.Inventory) {
@@ -285,9 +291,9 @@ func generateEssentialPrepareForInstallationSteps(ctx context.Context, hosts ...
 	}
 }
 
-func registerNode(ctx context.Context, clusterID strfmt.UUID, name string) *models.Host {
+func registerNode(ctx context.Context, clusterID strfmt.UUID, name, ip string) *models.Host {
 	h := &registerHost(clusterID).Host
-	generateEssentialHostSteps(ctx, h, name)
+	generateEssentialHostSteps(ctx, h, name, ip)
 	generateEssentialPrepareForInstallationSteps(ctx, h)
 	return h
 }
@@ -360,14 +366,15 @@ func updateVipParams(ctx context.Context, clusterID strfmt.UUID) {
 	Expect(err).ShouldNot(HaveOccurred())
 }
 
-func register3nodes(ctx context.Context, clusterID strfmt.UUID) []*models.Host {
-	h1 := registerNode(ctx, clusterID, "h1")
-	h2 := registerNode(ctx, clusterID, "h2")
-	h3 := registerNode(ctx, clusterID, "h3")
+func register3nodes(ctx context.Context, clusterID strfmt.UUID, cidr string) ([]*models.Host, []string) {
+	ips := hostutil.GenerateIPv4Addresses(3, cidr)
+	h1 := registerNode(ctx, clusterID, "h1", ips[0])
+	h2 := registerNode(ctx, clusterID, "h2", ips[1])
+	h3 := registerNode(ctx, clusterID, "h3", ips[2])
 	updateVipParams(ctx, clusterID)
-	generateFullMeshConnectivity(ctx, "1.2.3.10", h1, h2, h3)
+	generateFullMeshConnectivity(ctx, ips[0], h1, h2, h3)
 
-	return []*models.Host{h1, h2, h3}
+	return []*models.Host{h1, h2, h3}, ips
 }
 
 func reportMonitoredOperatorStatus(ctx context.Context, client *client.AssistedInstall, clusterID strfmt.UUID, opName string, opStatus models.OperatorStatus) {
