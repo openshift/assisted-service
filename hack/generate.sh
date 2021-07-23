@@ -40,6 +40,7 @@ function generate_python_client() {
 }
 
 function generate_mocks() {
+    find "${__root}" -name 'mock_*.go' -type f -delete
     go generate $(go list ./... | grep -v 'assisted-service/models\|assisted-service/client\|assisted-service/restapi')
 }
 
