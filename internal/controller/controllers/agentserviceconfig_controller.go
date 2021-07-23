@@ -33,6 +33,7 @@ import (
 	"github.com/openshift/assisted-service/models"
 	logutil "github.com/openshift/assisted-service/pkg/log"
 	conditionsv1 "github.com/openshift/custom-resource-status/conditions/v1"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -96,6 +97,7 @@ type AgentServiceConfigReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -141,6 +143,7 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		r.ensureFilesystemStorage,
 		r.ensureDatabaseStorage,
 		r.ensureAgentService,
+		r.ensureServiceMonitor,
 		r.ensureAgentRoute,
 		r.ensureAgentLocalAuthSecret,
 		r.ensurePostgresSecret,
@@ -167,6 +170,28 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		Message: msg,
 	})
 	return ctrl.Result{}, r.Status().Update(ctx, instance)
+}
+
+func (r *AgentServiceConfigReconciler) ensureServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
+	service := &corev1.Service{}
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
+		return err
+	}
+
+	sm, mutateFn := r.newServiceMonitor(instance, service)
+	if result, err := controllerutil.CreateOrUpdate(ctx, r.Client, sm, mutateFn); err != nil {
+		conditionsv1.SetStatusConditionNoHeartbeat(&instance.Status.Conditions, conditionsv1.Condition{
+			Type:    aiv1beta1.ConditionReconcileCompleted,
+			Status:  corev1.ConditionFalse,
+			Reason:  aiv1beta1.ReasonStorageFailure,
+			Message: "Failed to ensure Service Monitor: " + err.Error(),
+		})
+		return err
+	} else if result != controllerutil.OperationResultNone {
+		log.Info("ServiceMonitor created")
+	}
+
+	return nil
 }
 
 func (r *AgentServiceConfigReconciler) ensureFilesystemStorage(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
@@ -483,6 +508,7 @@ func (r *AgentServiceConfigReconciler) SetupWithManager(mgr ctrl.Manager) error 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&aiv1beta1.AgentServiceConfig{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&monitoringv1.ServiceMonitor{}).
 		Owns(&corev1.Service{}).
 		Owns(&corev1.Secret{}).
 		Owns(&routev1.Route{}).
@@ -588,6 +614,46 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 	}
 
 	return route, mutateFn
+}
+
+func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.AgentServiceConfig, service *corev1.Service) (*monitoringv1.ServiceMonitor, controllerutil.MutateFn) {
+	endpoints := make([]monitoringv1.Endpoint, len(service.Spec.Ports))
+	for _, port := range service.Spec.Ports {
+		endpoints = append(endpoints, monitoringv1.Endpoint{Port: port.Name})
+	}
+
+	labels := make(map[string]string)
+	for k, v := range service.ObjectMeta.Labels {
+		labels[k] = v
+	}
+
+	smSpec := monitoringv1.ServiceMonitorSpec{
+		Selector: metav1.LabelSelector{
+			MatchLabels: labels,
+		},
+		Endpoints: endpoints,
+	}
+
+	sm := &monitoringv1.ServiceMonitor{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      service.ObjectMeta.Name,
+			Namespace: r.Namespace,
+			Labels:    labels,
+		},
+		Spec: smSpec,
+	}
+
+	mutateFn := func() error {
+		if err := controllerutil.SetControllerReference(instance, sm, r.Scheme); err != nil {
+			return err
+		}
+
+		sm.Spec = smSpec
+		sm.ObjectMeta.Labels = labels
+		return nil
+	}
+
+	return sm, mutateFn
 }
 
 func (r *AgentServiceConfigReconciler) newAgentLocalAuthSecret(instance *aiv1beta1.AgentServiceConfig) (*corev1.Secret, controllerutil.MutateFn, error) {
