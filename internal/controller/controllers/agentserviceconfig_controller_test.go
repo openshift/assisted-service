@@ -19,7 +19,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -35,10 +34,11 @@ const (
 )
 
 func newTestReconciler(initObjs ...runtime.Object) *AgentServiceConfigReconciler {
-	c := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(initObjs...).Build()
+	schemes := GetKubeClientSchemes()
+	c := fakeclient.NewClientBuilder().WithScheme(schemes).WithRuntimeObjects(initObjs...).Build()
 	return &AgentServiceConfigReconciler{
 		Client: c,
-		Scheme: scheme.Scheme,
+		Scheme: schemes,
 		Log:    logrus.New(),
 		// TODO(djzager): If we need to verify emitted events
 		// https://github.com/kubernetes/kubernetes/blob/ea0764452222146c47ec826977f49d7001b0ea8c/pkg/controller/statefulset/stateful_pod_control_test.go#L474

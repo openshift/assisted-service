@@ -97,6 +97,7 @@ type AgentServiceConfigReconciler struct {
 // +kubebuilder:rbac:groups=core,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=core,resources=services,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=route.openshift.io,resources=routes,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=monitoring.coreos.com,resources=servicemonitors,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups="",resources=events,verbs=create;patch
 
 func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -142,8 +143,8 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 		r.ensureFilesystemStorage,
 		r.ensureDatabaseStorage,
 		r.ensureAgentService,
-		r.ensureAgentRoute,
 		r.ensureServiceMonitor,
+		r.ensureAgentRoute,
 		r.ensureAgentLocalAuthSecret,
 		r.ensurePostgresSecret,
 		r.ensureIngressCertCM,
@@ -173,8 +174,8 @@ func (r *AgentServiceConfigReconciler) Reconcile(origCtx context.Context, req ct
 
 func (r *AgentServiceConfigReconciler) ensureServiceMonitor(ctx context.Context, log logrus.FieldLogger, instance *aiv1beta1.AgentServiceConfig) error {
 	service := &corev1.Service{}
-	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: instance.Namespace}, service); err != nil {
-		return nil
+	if err := r.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: r.Namespace}, service); err != nil {
+		return err
 	}
 
 	sm, mutateFn := r.newServiceMonitor(instance, service)
@@ -616,8 +617,6 @@ func (r *AgentServiceConfigReconciler) newAgentRoute(instance *aiv1beta1.AgentSe
 }
 
 func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.AgentServiceConfig, service *corev1.Service) (*monitoringv1.ServiceMonitor, controllerutil.MutateFn) {
-	boolTrue := true
-
 	endpoints := make([]monitoringv1.Endpoint, len(service.Spec.Ports))
 	for _, port := range service.Spec.Ports {
 		endpoints = append(endpoints, monitoringv1.Endpoint{Port: port.Name})
@@ -626,18 +625,6 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.Age
 	labels := make(map[string]string)
 	for k, v := range service.ObjectMeta.Labels {
 		labels[k] = v
-	}
-
-	// Owner references only work inside the same namespace
-	ownerReferences := []metav1.OwnerReference{
-		{
-			APIVersion:         "v1",
-			BlockOwnerDeletion: &boolTrue,
-			Controller:         &boolTrue,
-			Kind:               "Service",
-			Name:               service.Name,
-			UID:                service.UID,
-		},
 	}
 
 	smSpec := monitoringv1.ServiceMonitorSpec{
@@ -649,10 +636,9 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.Age
 
 	sm := &monitoringv1.ServiceMonitor{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            service.ObjectMeta.Name,
-			Namespace:       instance.Namespace,
-			Labels:          labels,
-			OwnerReferences: ownerReferences,
+			Name:      service.ObjectMeta.Name,
+			Namespace: r.Namespace,
+			Labels:    labels,
 		},
 		Spec: smSpec,
 	}
@@ -664,7 +650,6 @@ func (r *AgentServiceConfigReconciler) newServiceMonitor(instance *aiv1beta1.Age
 
 		sm.Spec = smSpec
 		sm.ObjectMeta.Labels = labels
-		sm.ObjectMeta.OwnerReferences = ownerReferences
 		return nil
 	}
 

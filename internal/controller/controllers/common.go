@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	bmh_v1alpha1 "github.com/metal3-io/baremetal-operator/apis/metal3.io/v1alpha1"
+	routev1 "github.com/openshift/api/route/v1"
 	hiveext "github.com/openshift/assisted-service/api/hiveextension/v1beta1"
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/pkg/requestid"
@@ -24,7 +25,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	"k8s.io/client-go/scale/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -155,6 +156,7 @@ func GetKubeClientSchemes() *runtime.Scheme {
 	utilruntime.Must(bmh_v1alpha1.AddToScheme(schemes))
 	utilruntime.Must(machinev1beta1.AddToScheme(schemes))
 	utilruntime.Must(monitoringv1.AddToScheme(schemes))
+	utilruntime.Must(routev1.AddToScheme(schemes))
 	return schemes
 }
 

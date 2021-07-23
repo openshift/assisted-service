@@ -26,6 +26,7 @@ import (
 	aiv1beta1 "github.com/openshift/assisted-service/api/v1beta1"
 	"github.com/openshift/assisted-service/internal/controller/controllers"
 	"github.com/openshift/assisted-service/models"
+	monitoringv1 "github.com/prometheus-operator/prometheus-operator/pkg/apis/monitoring/v1"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -52,6 +53,8 @@ func init() {
 	// +kubebuilder:scaffold:scheme
 
 	utilruntime.Must(routev1.AddToScheme(scheme))
+
+	utilruntime.Must(monitoringv1.AddToScheme(scheme))
 }
 
 func main() {
