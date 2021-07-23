@@ -3627,11 +3627,29 @@ func (b *bareMetalInventory) GetPresignedForClusterFiles(ctx context.Context, pa
 }
 
 func (b *bareMetalInventory) DownloadClusterFiles(ctx context.Context, params installer.DownloadClusterFilesParams) middleware.Responder {
-	respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
-	if err != nil {
-		return common.GenerateErrorResponder(err)
+	log := logutil.FromContext(ctx, b.log)
+
+	if params.FileName == "discovery.ign" {
+		infraEnv, err := common.GetInfraEnvFromDB(b.db, params.ClusterID)
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+
+		cfg, err := b.IgnitionBuilder.FormatDiscoveryIgnitionFile(infraEnv, b.IgnitionConfig, false, b.authHandler.AuthType())
+		if err != nil {
+			log.WithError(err).Error("Failed to format ignition config")
+			return common.GenerateErrorResponder(err)
+		}
+
+		configParams := models.DiscoveryIgnitionParams{Config: cfg}
+		return installer.NewGetDiscoveryIgnitionOK().WithPayload(&configParams)
+	} else {
+		respBody, contentLength, err := b.DownloadClusterFilesInternal(ctx, params)
+		if err != nil {
+			return common.GenerateErrorResponder(err)
+		}
+		return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
 	}
-	return filemiddleware.NewResponder(installer.NewDownloadClusterFilesOK().WithPayload(respBody), params.FileName, contentLength)
 }
 
 func (b *bareMetalInventory) DownloadClusterFilesInternal(ctx context.Context, params installer.DownloadClusterFilesParams) (io.ReadCloser, int64, error) {
@@ -3723,7 +3741,7 @@ func (b *bareMetalInventory) checkFileForDownload(ctx context.Context, clusterID
 	switch fileName {
 	case constants.Kubeconfig:
 		err = clusterPkg.CanDownloadKubeconfig(cluster)
-	case manifests.ManifestFolder, "discovery.ign":
+	case manifests.ManifestFolder:
 		// do nothing. manifests can be downloaded at any given cluster state
 	default:
 		err = clusterPkg.CanDownloadFiles(cluster)
