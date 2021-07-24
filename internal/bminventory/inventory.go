@@ -821,6 +821,7 @@ func (b *bareMetalInventory) updateImageInfoPostUpload(ctx context.Context, infr
 				return errors.New("Failed to generate image: error generating URL")
 			}
 		} else {
+			// TODO(djzager): Needs to be updated with image-service work, MGMT-3934
 			var downloadClusterISOURL = &installer.DownloadClusterISOURL{ClusterID: infraEnv.ID}
 			clusterISOURL, err := downloadClusterISOURL.Build()
 			if err != nil {
@@ -1071,11 +1072,6 @@ func (b *bareMetalInventory) createAndUploadNewImage(ctx context.Context, log lo
 		log.WithError(err).Errorf("failed to format ignition config file for cluster %s", infraEnv.ID)
 		msg := "Failed to generate image: error formatting ignition file"
 		b.eventsHandler.AddEvent(ctx, params.ClusterID, nil, models.EventSeverityError, msg, time.Now())
-		return common.NewApiError(http.StatusInternalServerError, err)
-	}
-
-	if err = b.objectHandler.Upload(ctx, []byte(ignitionConfig), fmt.Sprintf("%s/discovery.ign", infraEnv.ID)); err != nil {
-		log.WithError(err).Errorf("Upload discovery ignition failed for cluster %s", infraEnv.ID)
 		return common.NewApiError(http.StatusInternalServerError, err)
 	}
 
