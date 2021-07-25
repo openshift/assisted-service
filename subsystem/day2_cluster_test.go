@@ -440,3 +440,96 @@ var _ = Describe("Day2 cluster tests", func() {
 	})
 
 })
+
+var _ = Describe("Installation progress", func() {
+	var (
+		ctx = context.Background()
+		c   *models.Cluster
+	)
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	It("Test installation progress - day2", func() {
+
+		By("register cluster", func() {
+
+			// register cluster
+
+			registerAddHostsClusterReply, err := userBMClient.Installer.RegisterAddHostsCluster(ctx, &installer.RegisterAddHostsClusterParams{
+				NewAddHostsClusterParams: &models.AddHostsClusterCreateParams{
+					Name:             swag.String("day2-cluster"),
+					OpenshiftVersion: swag.String(openshiftVersion),
+					APIVipDnsname:    swag.String("api_vip_dnsname"),
+					ID:               strToUUID(uuid.New().String()),
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			c = registerAddHostsClusterReply.GetPayload()
+
+			_, err = userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					PullSecret: swag.String(pullSecret),
+				},
+				ClusterID: *c.ID,
+			})
+			Expect(err).NotTo(HaveOccurred())
+			// in order to simulate infra env generation
+			generateClusterISO(*c.ID, models.ImageTypeMinimalIso)
+
+			// add day2 host
+
+			registerHost(*c.ID)
+			c = getCluster(*c.ID)
+
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(0)))
+		})
+
+		By("install hosts", func() {
+
+			generateEssentialHostSteps(ctx, c.Hosts[0], "hostname", defaultCIDRv4)
+			generateApiVipPostStepReply(ctx, c.Hosts[0], true)
+			waitForHostState(ctx, *c.ID, *c.Hosts[0].ID, "known", 60*time.Second)
+
+			_, err := userBMClient.Installer.InstallHosts(ctx, &installer.InstallHostsParams{ClusterID: *c.ID})
+			Expect(err).NotTo(HaveOccurred())
+
+			c = getCluster(*c.ID)
+			Expect(*c.Hosts[0].Status).Should(Equal("installing"))
+			Expect(c.Hosts[0].Role).Should(Equal(models.HostRoleWorker))
+
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(0)))
+		})
+
+		By("report hosts' progress - 1st report", func() {
+
+			updateProgress(*c.Hosts[0].ID, *c.ID, models.HostStageStartingInstallation)
+			c = getCluster(*c.ID)
+			Expect(*c.Hosts[0].Status).Should(Equal("installing-in-progress"))
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(25)))
+		})
+
+		By("report hosts' progress - 2nd report", func() {
+
+			updateProgress(*c.Hosts[0].ID, *c.ID, models.HostStageInstalling)
+			c = getCluster(*c.ID)
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(50)))
+		})
+
+		By("report hosts' progress - 3rd report", func() {
+
+			updateProgress(*c.Hosts[0].ID, *c.ID, models.HostStageWritingImageToDisk)
+			c = getCluster(*c.ID)
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(75)))
+		})
+
+		By("report hosts' progress - last report", func() {
+
+			updateProgress(*c.Hosts[0].ID, *c.ID, models.HostStageRebooting)
+			c = getCluster(*c.ID)
+			Expect(*c.Hosts[0].Status).Should(Equal(models.HostStatusAddedToExistingCluster))
+			Expect(c.Hosts[0].Progress.InstallationPercentage).To(Equal(int64(100)))
+		})
+	})
+})

@@ -3821,8 +3821,6 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
-	//FIXME: do we need a transaction here? I am guessing that if the call failed the host will retry anyway no?!
-	// Adding a transaction will require to update all lower layer to work with tx instead of db.
 	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
 		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {
 			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
