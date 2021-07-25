@@ -1658,18 +1658,6 @@ var _ = Describe("[kube-api]cluster installation", func() {
 			return aci.Status.DebugInfo.LogsURL
 		}, "30s", "10s").Should(Equal(""))
 
-		By("Check NTP Source")
-		generateNTPPostStepReply(ctx, host, []*models.NtpSource{
-			{SourceName: common.TestNTPSourceSynced.SourceName, SourceState: models.SourceStateUnreachable},
-		})
-		Eventually(func() bool {
-			agent := getAgentCRD(ctx, kubeClient, key)
-			return agent.Status.NtpSources != nil &&
-				agent.Status.NtpSources[0].SourceName == common.TestNTPSourceSynced.SourceName &&
-				agent.Status.NtpSources[0].SourceState == models.SourceStateUnreachable
-
-		}, "60s", "1s").Should(BeTrue())
-
 		By("Verify Agent labels")
 		labels[v1beta1.InfraEnvNameLabel] = infraNsName.Name
 		Eventually(func() map[string]string {
