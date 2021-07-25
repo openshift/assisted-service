@@ -31,6 +31,14 @@ func GenerateTestCluster(clusterID strfmt.UUID, machineNetworkCidr string) commo
 	}
 }
 
+func GenerateTestInfraEnv(infraEnvID strfmt.UUID) common.InfraEnv {
+	return common.InfraEnv{
+		InfraEnv: models.InfraEnv{
+			ID: infraEnvID,
+		},
+	}
+}
+
 /* Host */
 
 func GenerateTestHost(hostID, clusterID strfmt.UUID, state string) models.Host {

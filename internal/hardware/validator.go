@@ -30,12 +30,14 @@ type Validator interface {
 	GetHostValidDisks(host *models.Host) ([]*models.Disk, error)
 	GetHostInstallationPath(host *models.Host) string
 	GetClusterHostRequirements(ctx context.Context, cluster *common.Cluster, host *models.Host) (*models.ClusterHostRequirements, error)
+	GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error)
 	DiskIsEligible(ctx context.Context, disk *models.Disk, cluster *common.Cluster, host *models.Host) ([]string, error)
 	ListEligibleDisks(inventory *models.Inventory) []*models.Disk
 	GetInstallationDiskSpeedThresholdMs(ctx context.Context, cluster *common.Cluster, host *models.Host) (int64, error)
 	// GetPreflightHardwareRequirements provides hardware (host) requirements that can be calculated only using cluster information.
 	// Returned information describe requirements coming from OCP and OLM operators.
 	GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error)
+	GetPreflightInfraEnvHardwareRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.PreflightHardwareRequirements, error)
 }
 
 func NewValidator(log logrus.FieldLogger, cfg ValidatorCfg, operatorsAPI operators.API) Validator {
@@ -160,7 +162,7 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 		return nil, err
 	}
 
-	ocpRequirements, err := v.getOCPHostRoleRequirementsForVersion(cluster, host.Role)
+	ocpRequirements, err := v.getOCPClusterHostRoleRequirementsForVersion(cluster, host.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -173,18 +175,44 @@ func (v *validator) GetClusterHostRequirements(ctx context.Context, cluster *com
 	}, nil
 }
 
+func (v *validator) GetInfraEnvHostRequirements(ctx context.Context, infraEnv *common.InfraEnv, host *models.Host) (*models.ClusterHostRequirements, error) {
+	ocpRequirements, err := v.getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv, host.Role)
+	if err != nil {
+		return nil, err
+	}
+	total := totalizeRequirements(ocpRequirements, nil)
+	return &models.ClusterHostRequirements{
+		HostID:    *host.ID,
+		Ocp:       &ocpRequirements,
+		Operators: nil,
+		Total:     &total,
+	}, nil
+}
+
 func (v *validator) GetPreflightHardwareRequirements(ctx context.Context, cluster *common.Cluster) (*models.PreflightHardwareRequirements, error) {
 	operatorsRequirements, err := v.operatorsAPI.GetPreflightRequirementsBreakdownForCluster(ctx, cluster)
 	if err != nil {
 		return nil, err
 	}
-	ocpRequirements, err := v.getPreflightOCPRequirements(cluster)
+	ocpRequirements, err := v.getClusterPreflightOCPRequirements(cluster)
 	if err != nil {
 		return nil, err
 	}
 
 	return &models.PreflightHardwareRequirements{
 		Operators: operatorsRequirements,
+		Ocp:       ocpRequirements,
+	}, nil
+}
+
+func (v *validator) GetPreflightInfraEnvHardwareRequirements(ctx context.Context, infraEnv *common.InfraEnv) (*models.PreflightHardwareRequirements, error) {
+	ocpRequirements, err := v.getInfraEnvPreflightOCPRequirements(infraEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	return &models.PreflightHardwareRequirements{
+		Operators: nil,
 		Ocp:       ocpRequirements,
 	}, nil
 }
@@ -229,8 +257,8 @@ func totalizeRequirements(ocpRequirements models.ClusterHostRequirementsDetails,
 	return total
 }
 
-func (v *validator) getOCPHostRoleRequirementsForVersion(cluster *common.Cluster, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {
-	requirements, err := v.getOCPRequirementsForVersion(cluster)
+func (v *validator) getOCPClusterHostRoleRequirementsForVersion(cluster *common.Cluster, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {
+	requirements, err := v.getOCPRequirementsForVersion(cluster.OpenshiftVersion)
 	if err != nil {
 		return models.ClusterHostRequirementsDetails{}, err
 	}
@@ -244,14 +272,44 @@ func (v *validator) getOCPHostRoleRequirementsForVersion(cluster *common.Cluster
 	return *requirements.WorkerRequirements, nil
 }
 
-func (v *validator) getPreflightOCPRequirements(cluster *common.Cluster) (*models.HostTypeHardwareRequirementsWrapper, error) {
-	requirements, err := v.getOCPRequirementsForVersion(cluster)
+func (v *validator) getOCPInfraEnvHostRoleRequirementsForVersion(infraEnv *common.InfraEnv, role models.HostRole) (models.ClusterHostRequirementsDetails, error) {
+	requirements, err := v.getOCPRequirementsForVersion(infraEnv.OpenshiftVersion)
+	if err != nil {
+		return models.ClusterHostRequirementsDetails{}, err
+	}
+
+	if role == models.HostRoleMaster {
+		return *requirements.MasterRequirements, nil
+	}
+	if role == models.HostRoleWorker || role == models.HostRoleAutoAssign {
+		return *requirements.WorkerRequirements, nil
+	}
+	return models.ClusterHostRequirementsDetails{}, fmt.Errorf("Invalid role for host %s", role)
+}
+
+func (v *validator) getClusterPreflightOCPRequirements(cluster *common.Cluster) (*models.HostTypeHardwareRequirementsWrapper, error) {
+	requirements, err := v.getOCPRequirementsForVersion(cluster.OpenshiftVersion)
 	if err != nil {
 		return nil, err
 	}
 	return &models.HostTypeHardwareRequirementsWrapper{
 		Master: &models.HostTypeHardwareRequirements{
 			Quantitative: v.getMasterRequirements(cluster, requirements),
+		},
+		Worker: &models.HostTypeHardwareRequirements{
+			Quantitative: requirements.WorkerRequirements,
+		},
+	}, nil
+}
+
+func (v *validator) getInfraEnvPreflightOCPRequirements(infraEnv *common.InfraEnv) (*models.HostTypeHardwareRequirementsWrapper, error) {
+	requirements, err := v.getOCPRequirementsForVersion(infraEnv.OpenshiftVersion)
+	if err != nil {
+		return nil, err
+	}
+	return &models.HostTypeHardwareRequirementsWrapper{
+		Master: &models.HostTypeHardwareRequirements{
+			Quantitative: requirements.MasterRequirements,
 		},
 		Worker: &models.HostTypeHardwareRequirements{
 			Quantitative: requirements.WorkerRequirements,
@@ -266,8 +324,8 @@ func (v *validator) getMasterRequirements(cluster *common.Cluster, requirements 
 	return requirements.MasterRequirements
 }
 
-func (v *validator) getOCPRequirementsForVersion(cluster *common.Cluster) (*models.VersionedHostRequirements, error) {
-	return v.VersionedRequirements.GetVersionedHostRequirements(cluster.OpenshiftVersion)
+func (v *validator) getOCPRequirementsForVersion(openshiftVersion string) (*models.VersionedHostRequirements, error) {
+	return v.VersionedRequirements.GetVersionedHostRequirements(openshiftVersion)
 }
 
 func compileDiskReasonTemplate(template string, wildcards ...interface{}) *regexp.Regexp {

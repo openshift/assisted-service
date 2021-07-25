@@ -96,28 +96,30 @@ func (r *refreshPreprocessor) preprocess(c *validationContext) (map[string]bool,
 		conditions[cn.id.String()] = cn.fn(c)
 	}
 
-	// Validate operators
-	results, err := r.operatorsApi.ValidateHost(context.TODO(), c.cluster, c.host)
-	if err != nil {
-		return nil, nil, err
-	}
-	for _, result := range results {
-		id := validationID(result.ValidationId)
-		conditions[id.String()] = result.Status == api.Success
-		category, err := id.category()
+	if c.infraEnv == nil {
+		// Validate operators
+		results, err := r.operatorsApi.ValidateHost(context.TODO(), c.cluster, c.host)
 		if err != nil {
-			logrus.WithError(err).Warn("id.category()")
 			return nil, nil, err
 		}
+		for _, result := range results {
+			id := validationID(result.ValidationId)
+			conditions[id.String()] = result.Status == api.Success
+			category, err := id.category()
+			if err != nil {
+				logrus.WithError(err).Warn("id.category()")
+				return nil, nil, err
+			}
 
-		status := ValidationStatus(result.Status)
+			status := ValidationStatus(result.Status)
 
-		validationsOutput[category] = append(validationsOutput[category], ValidationResult{
-			ID:      id,
-			Status:  status,
-			Message: strings.Join(result.Reasons, "\n"),
-		})
-		sortByValidationResultID(validationsOutput[category])
+			validationsOutput[category] = append(validationsOutput[category], ValidationResult{
+				ID:      id,
+				Status:  status,
+				Message: strings.Join(result.Reasons, "\n"),
+			})
+			sortByValidationResultID(validationsOutput[category])
+		}
 	}
 
 	return conditions, validationsOutput, nil
