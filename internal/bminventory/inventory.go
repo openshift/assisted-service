@@ -3821,6 +3821,8 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 			WithPayload(common.GenerateError(http.StatusNotFound, err))
 	}
 
+	//FIXME: do we need a transaction here? I am guessing that if the call failed the host will retry anyway no?!
+	// Adding a transaction will require to update all lower layer to work with tx instead of db.
 	if params.HostProgress.CurrentStage != host.Progress.CurrentStage || params.HostProgress.ProgressInfo != host.Progress.ProgressInfo {
 		if err := b.hostApi.UpdateInstallProgress(ctx, &host.Host, params.HostProgress); err != nil {
 			log.WithError(err).Errorf("failed to update host %s progress", params.HostID)
@@ -3835,6 +3837,11 @@ func (b *bareMetalInventory) UpdateHostInstallProgress(ctx context.Context, para
 		log.Info(fmt.Sprintf("Host %s in cluster %s: %s", host.ID, host.ClusterID, event))
 		msg := fmt.Sprintf("Host %s: %s", hostutil.GetHostnameForMsg(&host.Host), event)
 		b.eventsHandler.AddEvent(ctx, host.ClusterID, host.ID, models.EventSeverityInfo, msg, time.Now())
+
+		if err := b.clusterApi.UpdateInstallProgress(ctx, params.ClusterID); err != nil {
+			log.WithError(err).Errorf("failed to update cluster %s progress", params.ClusterID)
+			return installer.NewUpdateHostInstallProgressInternalServerError().WithPayload(common.GenerateError(http.StatusInternalServerError, err))
+		}
 	}
 
 	return installer.NewUpdateHostInstallProgressOK()

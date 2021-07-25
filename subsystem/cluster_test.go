@@ -29,6 +29,7 @@ import (
 	"github.com/openshift/assisted-service/internal/common"
 	"github.com/openshift/assisted-service/internal/host"
 	"github.com/openshift/assisted-service/internal/host/hostutil"
+	"github.com/openshift/assisted-service/internal/operators"
 	"github.com/openshift/assisted-service/internal/operators/cnv"
 	"github.com/openshift/assisted-service/internal/operators/lso"
 	"github.com/openshift/assisted-service/internal/operators/ocs"
@@ -429,7 +430,7 @@ func waitForHostState(ctx context.Context, clusterID strfmt.UUID, hostID strfmt.
 
 		// Wait for host state to be consistent
 		if successInRow >= minSuccessesInRow {
-			log.Infof("host %s has status %s", clusterID, state)
+			log.Infof("host %s has status %s", hostID, state)
 			return
 		}
 
@@ -3585,3 +3586,129 @@ func generateFullMeshConnectivity(ctx context.Context, startCIDR string, hosts .
 		generateConnectivityPostStepReply(ctx, h, &connectivityReport)
 	}
 }
+
+var _ = Describe("Installation progress", func() {
+	var (
+		ctx         = context.Background()
+		c           *models.Cluster
+		clusterCIDR = "10.128.0.0/14"
+		serviceCIDR = "172.30.0.0/16"
+	)
+
+	AfterEach(func() {
+		clearDB()
+	})
+
+	expectProgressToBeInRange := func(c *models.Cluster, preparingForInstallationRange, installingRange, finalizingRange []int) {
+
+		Expect(c.Progress).NotTo(BeNil())
+		Expect(c.Progress.PreparingForInstallationStagePercentage >= int64(preparingForInstallationRange[0]) &&
+			c.Progress.PreparingForInstallationStagePercentage <= int64(preparingForInstallationRange[1])).To(BeTrue())
+		Expect(c.Progress.InstallingStagePercentage >= int64(installingRange[0]) &&
+			c.Progress.InstallingStagePercentage <= int64(installingRange[1])).To(BeTrue())
+		Expect(c.Progress.FinalizingStagePercentage >= int64(finalizingRange[0]) &&
+			c.Progress.FinalizingStagePercentage <= int64(finalizingRange[1])).To(BeTrue())
+		totalPercentage := common.ProgressWeightPreparingForInstallationStage*float64(c.Progress.PreparingForInstallationStagePercentage) +
+			common.ProgressWeightInstallingStage*float64(c.Progress.InstallingStagePercentage) +
+			common.ProgressWeightFinalizingStage*float64(c.Progress.FinalizingStagePercentage)
+		Expect(c.Progress.TotalPercentage).To(Equal(int64(totalPercentage)))
+	}
+
+	expectProgressToBe := func(c *models.Cluster, preparingForInstallationStagePercentage, installingStagePercentage, finalizingStagePercentage int) {
+
+		preparingForInstallationRange := []int{preparingForInstallationStagePercentage, preparingForInstallationStagePercentage}
+		installingRange := []int{installingStagePercentage, installingStagePercentage}
+		finalizingRange := []int{finalizingStagePercentage, finalizingStagePercentage}
+		expectProgressToBeInRange(c, preparingForInstallationRange, installingRange, finalizingRange)
+	}
+
+	It("Test installation progress", func() {
+
+		By("register cluster", func() {
+
+			// register cluster
+
+			registerClusterReply, err := userBMClient.Installer.RegisterCluster(ctx, &installer.RegisterClusterParams{
+				NewClusterParams: &models.ClusterCreateParams{
+					BaseDNSDomain:            "example.com",
+					ClusterNetworkCidr:       &clusterCIDR,
+					ClusterNetworkHostPrefix: 23,
+					Name:                     swag.String("test-cluster"),
+					OpenshiftVersion:         swag.String(openshiftVersion),
+					PullSecret:               swag.String(pullSecret),
+					ServiceNetworkCidr:       &serviceCIDR,
+					SSHPublicKey:             sshPublicKey,
+				},
+			})
+			Expect(err).NotTo(HaveOccurred())
+			c = registerClusterReply.GetPayload()
+
+			// add hosts
+
+			generateClusterISO(*c.ID, models.ImageTypeMinimalIso)
+			registerHostsAndSetRolesDHCP(*c.ID, 6)
+
+			// add OLM operators
+
+			updateClusterReply, err := userBMClient.Installer.UpdateCluster(ctx, &installer.UpdateClusterParams{
+				ClusterID: *c.ID,
+				ClusterUpdateParams: &models.ClusterUpdateParams{
+					OlmOperators: []*models.OperatorCreateParams{
+						{Name: lso.Operator.Name},
+						{Name: ocs.Operator.Name},
+					},
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+			c = updateClusterReply.GetPayload()
+
+			log.Infof("Register cluster %s", *c.ID)
+
+			expectProgressToBe(c, 0, 0, 0)
+		})
+
+		By("preparing-for-installation stage", func() {
+
+			c = installCluster(*c.ID)
+			expectProgressToBe(c, 100, 0, 0)
+		})
+
+		By("installing stage - report hosts' progress", func() {
+
+			// intermediate report
+
+			for _, h := range c.Hosts {
+				updateProgress(*h.ID, *c.ID, models.HostStageWritingImageToDisk)
+			}
+			c = getCluster(*c.ID)
+
+			expectProgressToBeInRange(c, []int{100, 100}, []int{1, 50}, []int{0, 0})
+
+			// last report
+
+			for _, h := range c.Hosts {
+				updateProgress(*h.ID, *c.ID, models.HostStageDone)
+			}
+			c = getCluster(*c.ID)
+
+			expectProgressToBe(c, 100, 100, 0)
+		})
+
+		By("finalizing stage - report operators' progress", func() {
+
+			waitForClusterState(ctx, *c.ID, models.ClusterStatusFinalizing, defaultWaitForClusterStateTimeout, clusterFinalizingStateInfo)
+
+			reportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, operators.OperatorConsole.Name, models.OperatorStatusAvailable)
+			c = getCluster(*c.ID)
+			expectProgressToBe(c, 100, 100, 33)
+
+			reportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, lso.Operator.Name, models.OperatorStatusAvailable)
+			c = getCluster(*c.ID)
+			expectProgressToBe(c, 100, 100, 66)
+
+			reportMonitoredOperatorStatus(ctx, agentBMClient, *c.ID, ocs.Operator.Name, models.OperatorStatusFailed)
+			c = getCluster(*c.ID)
+			expectProgressToBe(c, 100, 100, 100)
+		})
+	})
+})

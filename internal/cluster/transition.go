@@ -623,6 +623,13 @@ func setPendingUserReset(ctx context.Context, c *common.Cluster, db *gorm.DB, ho
 	return nil
 }
 
+func addProgressParamsInstallingStage(extra []interface{}) []interface{} {
+	preparingForInstallationStagePercentage := int64(100)
+	totalPercentage := int64(common.ProgressWeightPreparingForInstallationStage * float64(preparingForInstallationStagePercentage))
+	return append(extra, "progress_preparing_for_installation_stage_percentage", preparingForInstallationStagePercentage,
+		"progress_total_percentage", totalPercentage)
+}
+
 func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, clusterStatus string) ([]interface{}, error) {
 	extra := []interface{}{}
 	switch clusterStatus {
@@ -636,6 +643,7 @@ func addExtraParams(log logrus.FieldLogger, cluster *common.Cluster, clusterStat
 			}
 			extra = append(make([]interface{}, 0), "api_vip", hostIP, "ingress_vip", hostIP)
 		}
+		extra = addProgressParamsInstallingStage(extra)
 	}
 	return extra, nil
 }

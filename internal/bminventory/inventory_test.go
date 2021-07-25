@@ -1882,6 +1882,7 @@ var _ = Describe("UpdateHostInstallProgress", func() {
 			By("update with new data", func() {
 				mockEvents.EXPECT().AddEvent(gomock.Any(), clusterID, &hostID, models.EventSeverityInfo, gomock.Any(), gomock.Any())
 				mockHostApi.EXPECT().UpdateInstallProgress(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
+				mockClusterApi.EXPECT().UpdateInstallProgress(ctx, clusterID)
 				reply := bm.UpdateHostInstallProgress(ctx, installer.UpdateHostInstallProgressParams{
 					ClusterID:    clusterID,
 					HostProgress: progressParams,
