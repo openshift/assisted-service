@@ -2554,18 +2554,22 @@ func (b *bareMetalInventory) ListClusters(ctx context.Context, params installer.
 	}
 	var dbClusters []*common.Cluster
 	var clusters []*models.Cluster
-	whereCondition := identity.AddUserFilter(ctx, "")
+	whereCondition := make([]string, 0)
+
+	if user := identity.AddUserFilter(ctx, ""); user != "" {
+		whereCondition = append(whereCondition, user)
+	}
 
 	if params.OpenshiftClusterID != nil {
-		whereCondition += fmt.Sprintf(" AND openshift_cluster_id = '%s'", *params.OpenshiftClusterID)
+		whereCondition = append(whereCondition, fmt.Sprintf("openshift_cluster_id = '%s'", *params.OpenshiftClusterID))
 	}
 
 	if len(params.AmsSubscriptionIds) > 0 {
-		whereCondition += fmt.Sprintf(" AND ams_subscription_id IN %s", common.ToSqlList(params.AmsSubscriptionIds))
+		whereCondition = append(whereCondition, fmt.Sprintf("ams_subscription_id IN %s", common.ToSqlList(params.AmsSubscriptionIds)))
 	}
 
 	dbClusters, err := common.GetClustersFromDBWhere(db, common.UseEagerLoading,
-		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)), whereCondition)
+		common.DeleteRecordsState(swag.BoolValue(params.GetUnregisteredClusters)), strings.Join(whereCondition, " AND "))
 	if err != nil {
 		log.WithError(err).Error("Failed to list clusters in db")
 		return common.NewApiError(http.StatusInternalServerError, err)

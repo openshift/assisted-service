@@ -4768,69 +4768,87 @@ var _ = Describe("List clusters", func() {
 		kubeconfigFile.Close()
 	})
 
-	It("List unregistered clusters success", func() {
-		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
-		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
-		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
-		payload := resp.(*installer.ListClustersOK).Payload
-		Expect(len(payload)).Should(Equal(1))
-		Expect(payload[0].ID.String()).Should(Equal(clusterID.String()))
-		Expect(payload[0].TotalHostCount).Should(Equal(int64(1)))
-		Expect(payload[0].EnabledHostCount).Should(Equal(int64(1)))
-		Expect(payload[0].ReadyHostCount).Should(Equal(int64(1)))
-		Expect(len(payload[0].Hosts)).Should(Equal(0))
-	})
-
-	It("List unregistered clusters with hosts success", func() {
-		Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
-		Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
-		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true), WithHosts: true})
-		clusterList := resp.(*installer.ListClustersOK).Payload
-		Expect(len(clusterList)).Should(Equal(1))
-		Expect(clusterList[0].ID.String()).Should(Equal(clusterID.String()))
-		Expect(len(clusterList[0].Hosts)).Should(Equal(1))
-		Expect(clusterList[0].Hosts[0].ID.String()).Should(Equal(hostID.String()))
-	})
-
-	It("List unregistered clusters failure - cluster was permanently deleted", func() {
-		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
-		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
-		resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
-		payload := resp.(*installer.ListClustersOK).Payload
-		Expect(len(payload)).Should(Equal(0))
-	})
-
-	It("List unregistered clusters failure - not an admin user", func() {
-		payload := &ocm.AuthPayload{}
-		payload.Role = ocm.UserRole
-		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
-		Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
-		Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
-		resp := bm.ListClusters(authCtx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
-		Expect(resp).Should(BeAssignableToTypeOf(installer.NewListClustersForbidden()))
-	})
-
-	It("filters based on openshift cluster ID", func() {
-		payload := &ocm.AuthPayload{Role: ocm.UserRole}
-		authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
-
-		By("searching for an existing openshift cluster ID", func() {
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: openshiftClusterID})
+	Context("List unregistered clusters", func() {
+		It("success", func() {
+			Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+			Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+			resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 			payload := resp.(*installer.ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(1))
+			Expect(payload[0].ID.String()).Should(Equal(clusterID.String()))
+			Expect(payload[0].TotalHostCount).Should(Equal(int64(1)))
+			Expect(payload[0].EnabledHostCount).Should(Equal(int64(1)))
+			Expect(payload[0].ReadyHostCount).Should(Equal(int64(1)))
+			Expect(len(payload[0].Hosts)).Should(Equal(0))
 		})
 
-		By("discarding cluster ID field", func() {
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{})
-			payload := resp.(*installer.ListClustersOK).Payload
-			Expect(len(payload)).Should(Equal(1))
+		It("with hosts success", func() {
+			Expect(db.Delete(&c).Error).ShouldNot(HaveOccurred())
+			Expect(db.Delete(&host1).Error).ShouldNot(HaveOccurred())
+			resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true), WithHosts: true})
+			clusterList := resp.(*installer.ListClustersOK).Payload
+			Expect(len(clusterList)).Should(Equal(1))
+			Expect(clusterList[0].ID.String()).Should(Equal(clusterID.String()))
+			Expect(len(clusterList[0].Hosts)).Should(Equal(1))
+			Expect(clusterList[0].Hosts[0].ID.String()).Should(Equal(hostID.String()))
 		})
 
-		By("searching for a non-existing openshift cluster ID", func() {
-			resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+		It("failure - cluster was permanently deleted", func() {
+			Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
+			Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
+			resp := bm.ListClusters(ctx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
 			payload := resp.(*installer.ListClustersOK).Payload
 			Expect(len(payload)).Should(Equal(0))
 		})
+
+		It("failure - not an admin user", func() {
+			payload := &ocm.AuthPayload{}
+			payload.Role = ocm.UserRole
+			authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+			Expect(db.Unscoped().Delete(&c).Error).ShouldNot(HaveOccurred())
+			Expect(db.Unscoped().Delete(&host1).Error).ShouldNot(HaveOccurred())
+			resp := bm.ListClusters(authCtx, installer.ListClustersParams{GetUnregisteredClusters: swag.Bool(true)})
+			Expect(resp).Should(BeAssignableToTypeOf(installer.NewListClustersForbidden()))
+		})
+	})
+
+	Context("Filter based openshift cluster ID", func() {
+		tests := []struct {
+			role ocm.RoleType
+		}{
+			{
+				role: ocm.UserRole,
+			},
+			{
+				role: ocm.AdminRole,
+			},
+		}
+
+		for index := range tests {
+			test := tests[index]
+			It(fmt.Sprintf("%s role", test.role), func() {
+				payload := &ocm.AuthPayload{Role: test.role}
+				authCtx := context.WithValue(ctx, restapi.AuthKey, payload)
+
+				By("searching for an existing openshift cluster ID", func() {
+					resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: openshiftClusterID})
+					payload := resp.(*installer.ListClustersOK).Payload
+					Expect(len(payload)).Should(Equal(1))
+				})
+
+				By("discarding cluster ID field", func() {
+					resp := bm.ListClusters(authCtx, installer.ListClustersParams{})
+					payload := resp.(*installer.ListClustersOK).Payload
+					Expect(len(payload)).Should(Equal(1))
+				})
+
+				By("searching for a non-existing openshift cluster ID", func() {
+					resp := bm.ListClusters(authCtx, installer.ListClustersParams{OpenshiftClusterID: strToUUID("00000000-0000-0000-0000-000000000000")})
+					payload := resp.(*installer.ListClustersOK).Payload
+					Expect(len(payload)).Should(Equal(0))
+				})
+			})
+		}
 	})
 
 	It("filters based on AMS subscription ID", func() {
