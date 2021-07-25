@@ -337,15 +337,17 @@ func (b *bareMetalInventory) RegisterCluster(ctx context.Context, params install
 }
 
 func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, params installer.RegisterClusterParams) installer.RegisterClusterParams {
-	if params.NewClusterParams.ClusterNetworkCidr == nil {
-		params.NewClusterParams.ClusterNetworkCidr = &b.Config.DefaultClusterNetworkCidr
+	if params.NewClusterParams.NetworkConfiguration == nil {
+		params.NewClusterParams.NetworkConfiguration = &models.NetworkConfiguration{
+			ClusterNetwork: []*models.ClusterNetwork{
+				{Cidr: models.Subnet(b.Config.DefaultClusterNetworkCidr), HostPrefix: b.Config.DefaultClusterNetworkHostPrefix},
+			},
+			ServiceNetwork: []*models.ServiceNetwork{
+				{Cidr: models.Subnet(b.Config.DefaultServiceNetworkCidr)},
+			},
+		}
 	}
-	if params.NewClusterParams.ClusterNetworkHostPrefix == 0 {
-		params.NewClusterParams.ClusterNetworkHostPrefix = b.Config.DefaultClusterNetworkHostPrefix
-	}
-	if params.NewClusterParams.ServiceNetworkCidr == nil {
-		params.NewClusterParams.ServiceNetworkCidr = &b.Config.DefaultServiceNetworkCidr
-	}
+
 	if params.NewClusterParams.VipDhcpAllocation == nil {
 		params.NewClusterParams.VipDhcpAllocation = swag.Bool(true)
 	}
@@ -362,6 +364,13 @@ func (b *bareMetalInventory) setDefaultRegisterClusterParams(_ context.Context, 
 		params.NewClusterParams.Platform = &models.Platform{
 			Type: models.PlatformTypeBaremetal,
 		}
+	}
+	if params.NewClusterParams.AdditionalNtpSource == nil {
+		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
+	}
+	if params.NewClusterParams.HTTPProxy != nil &&
+		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
+		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
 	}
 
 	return params
@@ -401,18 +410,13 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
 
-	if params.NewClusterParams.HTTPProxy != nil &&
-		(params.NewClusterParams.HTTPSProxy == nil || *params.NewClusterParams.HTTPSProxy == "") {
-		params.NewClusterParams.HTTPSProxy = params.NewClusterParams.HTTPProxy
-	}
+	params = b.setDefaultRegisterClusterParams(ctx, params)
 
 	if err = validateProxySettings(params.NewClusterParams.HTTPProxy,
 		params.NewClusterParams.HTTPSProxy,
 		params.NewClusterParams.NoProxy, params.NewClusterParams.OpenshiftVersion); err != nil {
 		return nil, common.NewApiError(http.StatusBadRequest, err)
 	}
-
-	params = b.setDefaultRegisterClusterParams(ctx, params)
 
 	if swag.StringValue(params.NewClusterParams.HighAvailabilityMode) == models.ClusterHighAvailabilityModeNone {
 		// verify minimal OCP version
@@ -437,9 +441,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 	}
 
-	if params.NewClusterParams.AdditionalNtpSource == nil {
-		params.NewClusterParams.AdditionalNtpSource = &b.Config.DefaultNTPSource
-	} else {
+	if params.NewClusterParams.AdditionalNtpSource != nil {
 		ntpSource := swag.StringValue(params.NewClusterParams.AdditionalNtpSource)
 
 		if ntpSource != "" && !validations.ValidateAdditionalNTPSource(ntpSource) {
@@ -469,6 +471,14 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		}
 
 		monitoredOperators = append(monitoredOperators, newOLMOperators...)
+	}
+
+	var installCfgNetworking []byte
+	if params.NewClusterParams.NetworkConfiguration != nil {
+		installCfgNetworking, err = json.Marshal(params.NewClusterParams.NetworkConfiguration)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	cluster := common.Cluster{
@@ -501,6 +511,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 			Hyperthreading:           swag.StringValue(params.NewClusterParams.Hyperthreading),
 			SchedulableMasters:       params.NewClusterParams.SchedulableMasters,
 			Platform:                 params.NewClusterParams.Platform,
+			NetworkConfiguration:     string(installCfgNetworking),
 		},
 		KubeKeyName:             kubeKey.Name,
 		KubeKeyNamespace:        kubeKey.Namespace,

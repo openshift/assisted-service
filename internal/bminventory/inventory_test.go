@@ -7862,6 +7862,25 @@ var _ = Describe("TestRegisterCluster", func() {
 		Expect(actual.Payload.OpenshiftVersion).To(Equal(common.TestDefaultConfig.ReleaseVersion))
 		Expect(actual.Payload.OcpReleaseImage).To(Equal(common.TestDefaultConfig.ReleaseImage))
 	})
+
+	It("Install config networking defaults", func() {
+		mockClusterRegisterSuccess(bm, true)
+		mockAMSSubscription(ctx)
+		reply := bm.RegisterCluster(ctx, installer.RegisterClusterParams{
+			NewClusterParams: &models.ClusterCreateParams{
+				Name:             swag.String("some-cluster-name"),
+				PullSecret:       swag.String(`{\"auths\":{\"cloud.openshift.com\":{\"auth\":\"dG9rZW46dGVzdAo=\",\"email\":\"coyote@acme.com\"}}}"`),
+				OpenshiftVersion: swag.String(common.TestDefaultConfig.OpenShiftVersion),
+			},
+		})
+		Expect(reflect.TypeOf(reply)).Should(Equal(reflect.TypeOf(installer.NewRegisterClusterCreated())))
+		actual := reply.(*installer.RegisterClusterCreated)
+		var installCfgNetworking models.NetworkConfiguration
+		Expect(json.Unmarshal([]byte(actual.Payload.NetworkConfiguration), &installCfgNetworking)).ShouldNot(HaveOccurred())
+		Expect(installCfgNetworking.ClusterNetwork).To(HaveLen(1))
+		Expect(installCfgNetworking.ServiceNetwork).To(HaveLen(1))
+		Expect(installCfgNetworking.MachineNetwork).To(HaveLen(0))
+	})
 })
 
 type eventMsgMatcher struct {

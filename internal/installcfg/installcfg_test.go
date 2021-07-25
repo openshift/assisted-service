@@ -411,6 +411,64 @@ var _ = Describe("installcfg", func() {
 		Expect(data.Compute[0].Hyperthreading).Should(Equal("Disabled"))
 	})
 
+	Context("networking", func() {
+		// TODO MGMT-7365: Deprecate single network
+		It("Single network fields", func() {
+			var result InstallerConfigBaremetal
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+			data, err := installConfig.GetInstallConfig(&cluster, false, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(yaml.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
+			Expect(result.Networking.ClusterNetwork).To(HaveLen(1))
+			Expect(result.Networking.MachineNetwork).To(HaveLen(1))
+			Expect(result.Networking.ServiceNetwork).To(HaveLen(1))
+		})
+
+		It("Multiple network fields", func() {
+			installConfigNetworking := models.NetworkConfiguration{
+				ClusterNetwork: []*models.ClusterNetwork{
+					{
+						Cidr:       "1.3.0.0/16",
+						HostPrefix: 24,
+					},
+					{
+						Cidr:       "1.3.0.0/16",
+						HostPrefix: 24,
+					},
+				},
+				MachineNetwork: []*models.MachineNetwork{
+					{
+						Cidr: "1.2.3.0/24",
+					},
+					{
+						Cidr: "1.2.3.0/24",
+					},
+				},
+				ServiceNetwork: []*models.ServiceNetwork{
+					{
+						Cidr: "1.2.5.0/24",
+					},
+					{
+						Cidr: "1.4.0.0/16",
+					},
+				},
+			}
+
+			b, err := json.Marshal(installConfigNetworking)
+			Expect(err).ShouldNot(HaveOccurred())
+			cluster.NetworkConfiguration = string(b)
+
+			var result InstallerConfigBaremetal
+			mockMirrorRegistriesConfigBuilder.EXPECT().IsMirrorRegistriesConfigured().Return(false).Times(2)
+			data, err := installConfig.GetInstallConfig(&cluster, false, "")
+			Expect(err).ShouldNot(HaveOccurred())
+			Expect(yaml.Unmarshal(data, &result)).ShouldNot(HaveOccurred())
+			Expect(result.Networking.ClusterNetwork).To(HaveLen(2))
+			Expect(result.Networking.MachineNetwork).To(HaveLen(2))
+			Expect(result.Networking.ServiceNetwork).To(HaveLen(2))
+		})
+	})
+
 	AfterEach(func() {
 		// cleanup
 		ctrl.Finish()

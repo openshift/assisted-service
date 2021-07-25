@@ -72,20 +72,24 @@ type imageContentSource struct {
 	Source  string   `yaml:"source"`
 }
 
+type ClusterNetwork struct {
+	Cidr       string `yaml:"cidr"`
+	HostPrefix int    `yaml:"hostPrefix"`
+}
+
+type MachineNetwork struct {
+	Cidr string `yaml:"cidr"`
+}
+
 type InstallerConfigBaremetal struct {
 	APIVersion string `yaml:"apiVersion"`
 	BaseDomain string `yaml:"baseDomain"`
 	Proxy      *proxy `yaml:"proxy,omitempty"`
 	Networking struct {
-		NetworkType    string `yaml:"networkType"`
-		ClusterNetwork []struct {
-			Cidr       string `yaml:"cidr"`
-			HostPrefix int    `yaml:"hostPrefix"`
-		} `yaml:"clusterNetwork"`
-		MachineNetwork []struct {
-			Cidr string `yaml:"cidr"`
-		} `yaml:"machineNetwork,omitempty"`
-		ServiceNetwork []string `yaml:"serviceNetwork"`
+		NetworkType    string           `yaml:"networkType"`
+		ClusterNetwork []ClusterNetwork `yaml:"clusterNetwork"`
+		MachineNetwork []MachineNetwork `yaml:"machineNetwork,omitempty"`
+		ServiceNetwork []string         `yaml:"serviceNetwork"`
 	} `yaml:"networking"`
 	Metadata struct {
 		Name string `yaml:"name"`
@@ -178,31 +182,6 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 	cfg := &InstallerConfigBaremetal{
 		APIVersion: "v1",
 		BaseDomain: cluster.BaseDNSDomain,
-		Networking: struct {
-			NetworkType    string `yaml:"networkType"`
-			ClusterNetwork []struct {
-				Cidr       string `yaml:"cidr"`
-				HostPrefix int    `yaml:"hostPrefix"`
-			} `yaml:"clusterNetwork"`
-			MachineNetwork []struct {
-				Cidr string `yaml:"cidr"`
-			} `yaml:"machineNetwork,omitempty"`
-			ServiceNetwork []string `yaml:"serviceNetwork"`
-		}{
-			NetworkType: networkType,
-			ClusterNetwork: []struct {
-				Cidr       string `yaml:"cidr"`
-				HostPrefix int    `yaml:"hostPrefix"`
-			}{
-				{Cidr: cluster.ClusterNetworkCidr, HostPrefix: int(cluster.ClusterNetworkHostPrefix)},
-			},
-			MachineNetwork: []struct {
-				Cidr string `yaml:"cidr"`
-			}{
-				{Cidr: cluster.MachineNetworkCidr},
-			},
-			ServiceNetwork: []string{cluster.ServiceNetworkCidr},
-		},
 		Metadata: struct {
 			Name string `yaml:"name"`
 		}{
@@ -230,6 +209,37 @@ func (i *installConfigBuilder) getBasicInstallConfig(cluster *common.Cluster) (*
 		},
 		PullSecret: cluster.PullSecret,
 		SSHKey:     cluster.SSHPublicKey,
+	}
+
+	cfg.Networking.NetworkType = networkType
+
+	// TODO MGMT-7365: Deprecate single network
+	if cluster.NetworkConfiguration == "" {
+		cfg.Networking.ClusterNetwork = []ClusterNetwork{{
+			Cidr: cluster.ClusterNetworkCidr, HostPrefix: int(cluster.ClusterNetworkHostPrefix),
+		}}
+		cfg.Networking.MachineNetwork = []MachineNetwork{{
+			Cidr: cluster.MachineNetworkCidr,
+		}}
+		cfg.Networking.ServiceNetwork = []string{cluster.ServiceNetworkCidr}
+	} else {
+		// Deprecated single values are ignored
+		var installConfigNetworking models.NetworkConfiguration
+		if err := json.Unmarshal([]byte(cluster.NetworkConfiguration), &installConfigNetworking); err != nil {
+			return nil, errors.Wrapf(err, "Failed to unmarshal %q", cluster.NetworkConfiguration)
+		}
+
+		for _, network := range installConfigNetworking.ClusterNetwork {
+			cfg.Networking.ClusterNetwork = append(cfg.Networking.ClusterNetwork,
+				ClusterNetwork{Cidr: string(network.Cidr), HostPrefix: int(network.HostPrefix)})
+		}
+		for _, network := range installConfigNetworking.MachineNetwork {
+			cfg.Networking.MachineNetwork = append(cfg.Networking.MachineNetwork,
+				MachineNetwork{Cidr: string(network.Cidr)})
+		}
+		for _, network := range installConfigNetworking.ServiceNetwork {
+			cfg.Networking.ServiceNetwork = append(cfg.Networking.ServiceNetwork, string(network.Cidr))
+		}
 	}
 
 	if cluster.HTTPProxy != "" || cluster.HTTPSProxy != "" {
@@ -389,11 +399,7 @@ func (i *installConfigBuilder) getInstallConfig(cluster *common.Cluster, addRhCa
 		bootstrapCidr := network.GetMachineCidrForUserManagedNetwork(cluster, i.log)
 		if bootstrapCidr != "" {
 			i.log.Infof("None-Platform: Selected bootstrap machine network CIDR %s for cluster %s", bootstrapCidr, cluster.ID.String())
-			cfg.Networking.MachineNetwork = []struct {
-				Cidr string `yaml:"cidr"`
-			}{
-				{Cidr: bootstrapCidr},
-			}
+			cfg.Networking.MachineNetwork = []MachineNetwork{{Cidr: bootstrapCidr}}
 			cluster.MachineNetworkCidr = bootstrapCidr
 			cfg.Networking.NetworkType = swag.StringValue(cluster.NetworkType)
 
