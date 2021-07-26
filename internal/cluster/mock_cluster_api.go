@@ -653,3 +653,17 @@ func (mr *MockAPIMockRecorder) DeregisterInactiveCluster(ctx, maxDeregisterPerIn
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeregisterInactiveCluster", reflect.TypeOf((*MockAPI)(nil).DeregisterInactiveCluster), ctx, maxDeregisterPerInterval, inactiveSince)
 }
+
+// TransformClusterToDay2 mocks base method
+func (m *MockAPI) TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "TransformClusterToDay2", ctx, cluster, db)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// TransformClusterToDay2 indicates an expected call of TransformClusterToDay2
+func (mr *MockAPIMockRecorder) TransformClusterToDay2(ctx, cluster, db interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TransformClusterToDay2", reflect.TypeOf((*MockAPI)(nil).TransformClusterToDay2), ctx, cluster, db)
+}

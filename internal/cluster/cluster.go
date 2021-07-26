@@ -108,6 +108,7 @@ type API interface {
 	CompleteInstallation(ctx context.Context, db *gorm.DB, cluster *common.Cluster, successfullyFinished bool, reason string) (*common.Cluster, error)
 	PermanentClustersDeletion(ctx context.Context, olderThan strfmt.DateTime, objectHandler s3wrapper.API) error
 	DeregisterInactiveCluster(ctx context.Context, maxDeregisterPerInterval int, inactiveSince strfmt.DateTime) error
+	TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error
 }
 
 type LogTimeoutConfig struct {
@@ -1184,4 +1185,36 @@ func (m *Manager) CompleteInstallation(ctx context.Context, db *gorm.DB,
 	}
 	m.eventsHandler.AddEvent(ctx, *cluster.ID, nil, severity, eventMsg, time.Now())
 	return clusterAfterUpdate, nil
+}
+
+func (m *Manager) TransformClusterToDay2(ctx context.Context, cluster *common.Cluster, db *gorm.DB) error {
+	log := logutil.FromContext(ctx, m.log)
+	if *cluster.Status != models.ClusterStatusInstalled {
+		err := errors.Errorf("cannot transform cluster %s to day2. Expected cluster status: %s, but cluster status is: %s",
+			cluster.ID.String(), models.ClusterStatusInstalled, *cluster.Status)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	if *cluster.Kind != models.ClusterKindCluster {
+		err := errors.Errorf("cannot transform cluster %s to day2. Expected cluster kind: %s, but cluster kind is: %s",
+			cluster.ID.String(), models.ClusterKindCluster, *cluster.Kind)
+		log.Error(err)
+		return common.NewApiError(http.StatusBadRequest, err)
+	}
+
+	apiVipDnsname := fmt.Sprintf("api.%s.%s", cluster.Name, cluster.BaseDNSDomain)
+	dbReply := db.Model(&common.Cluster{}).Where("id = ?", cluster.ID.String()).
+		Updates(map[string]interface{}{
+			"status":           swag.String(models.ClusterStatusAddingHosts),
+			"kind":             swag.String(models.ClusterKindAddHostsCluster),
+			"api_vip_dns_name": swag.String(apiVipDnsname),
+		})
+
+	if dbReply.Error != nil {
+		err := errors.Errorf("failed to update cluster: %s", cluster.ID.String())
+		log.Error(err)
+		return common.NewApiError(http.StatusInternalServerError, err)
+	}
+	return nil
 }
