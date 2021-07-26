@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-openapi/swag"
 	"github.com/openshift/assisted-service/models"
+	"github.com/thoas/go-funk"
 )
 
 const (
@@ -126,4 +127,29 @@ func GetProxyConfigs(proxy *models.Proxy) (string, string, string) {
 		return "", "", ""
 	}
 	return swag.StringValue(proxy.HTTPProxy), swag.StringValue(proxy.HTTPSProxy), swag.StringValue(proxy.NoProxy)
+}
+
+func GetNetworksCidrs(obj interface{}) []*string {
+	addresses := make([]*string, 0)
+
+	addresses = append(addresses, GetNetworkCidrAttr(obj, "ClusterNetworks")...)
+	addresses = append(addresses, GetNetworkCidrAttr(obj, "ServiceNetworks")...)
+	addresses = append(addresses, GetNetworkCidrAttr(obj, "MachineNetworks")...)
+
+	return addresses
+}
+
+func GetNetworkCidrAttr(obj interface{}, fieldName string) []*string {
+	addresses := make([]*string, 0)
+
+	field := funk.Get(obj, fieldName)
+	if field == nil {
+		return addresses
+	}
+
+	funk.ForEach(field, func(elem interface{}) {
+		addresses = append(addresses, swag.String(string(funk.Get(elem, "Cidr").(models.Subnet))))
+	})
+
+	return addresses
 }
