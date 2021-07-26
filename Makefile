@@ -59,7 +59,6 @@ ROUTE53_SECRET := ${ROUTE53_SECRET}
 OCM_CLIENT_ID := ${OCM_CLIENT_ID}
 OCM_CLIENT_SECRET := ${OCM_CLIENT_SECRET}
 AUTH_TYPE := $(or ${AUTH_TYPE},none)
-WITH_AMS_SUBSCRIPTIONS := $(or ${WITH_AMS_SUBSCRIPTIONS},False)
 CHECK_CLUSTER_VERSION := $(or ${CHECK_CLUSTER_VERSION},False)
 ENABLE_SINGLE_NODE_DNSMASQ := $(or ${ENABLE_SINGLE_NODE_DNSMASQ},True)
 DELETE_PVC := $(or ${DELETE_PVC},False)
@@ -270,7 +269,7 @@ deploy-service-requirements: | deploy-namespace deploy-inventory-service-file
 	python3 ./tools/deploy_local_auth_secret.py --namespace "$(NAMESPACE)" --target "$(TARGET)" --apply-manifest $(APPLY_MANIFEST)
 	python3 ./tools/deploy_assisted_installer_configmap.py --target "$(TARGET)" --domain "$(INGRESS_DOMAIN)" \
 		--base-dns-domains "$(BASE_DNS_DOMAINS)" --namespace "$(NAMESPACE)" \
-		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" --with-ams-subscriptions "$(WITH_AMS_SUBSCRIPTIONS)" $(TEST_FLAGS) \
+		$(INSTALLATION_TIMEOUT_FLAG) $(DEPLOY_TAG_OPTION) --auth-type "$(AUTH_TYPE)" $(TEST_FLAGS) \
 		--ocp-versions '$(subst ",\",$(OPENSHIFT_VERSIONS))' --public-registries "$(PUBLIC_CONTAINER_REGISTRIES)" \
 		--check-cvo $(CHECK_CLUSTER_VERSION) --apply-manifest $(APPLY_MANIFEST) $(ENABLE_KUBE_API_CMD) $(E2E_TESTS_CONFIG) \
 		--storage $(STORAGE) --ipv6-support $(IPV6_SUPPORT) --enable-sno-dnsmasq $(ENABLE_SINGLE_NODE_DNSMASQ) \
@@ -318,7 +317,7 @@ create-ocp-manifests:
 	$(MAKE) deploy-postgres deploy-ocm-secret deploy-s3-secret deploy-service deploy-ui
 
 ci-deploy-for-subsystem: _verify_cluster generate-keys
-	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export TEST_FLAGS=--subsystem-test && export AUTH_TYPE="rhsso" && export DUMMY_IGNITION=${DUMMY_IGNITION} && \
 	export IPV6_SUPPORT="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
@@ -328,7 +327,7 @@ patch-service: _verify_cluster update-local-image
 deploy-test: _verify_cluster generate-keys update-local-image
 	-$(KUBECTL) delete deployments.apps assisted-service &> /dev/null
 	export SERVICE=${LOCAL_SERVICE} && export TEST_FLAGS=--subsystem-test && \
-	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && export WITH_AMS_SUBSCRIPTIONS="True" && \
+	export AUTH_TYPE="rhsso" && export DUMMY_IGNITION="True" && \
 	export IPV6_SUPPORT="True" && \
 	$(MAKE) deploy-wiremock deploy-all
 
@@ -370,7 +369,7 @@ subsystem-run: test subsystem-clean
 subsystem-run-kube-api: enable-kube-api-for-subsystem test-kube-api subsystem-clean
 
 test:
-	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso WITH_AMS_SUBSCRIPTIONS=true
+	$(MAKE) _run_subsystem_test AUTH_TYPE=rhsso
 
 test-kube-api:
 	$(MAKE) _run_subsystem_test AUTH_TYPE=local ENABLE_KUBE_API=true FOCUS="$(or ${FOCUS},kube-api)"

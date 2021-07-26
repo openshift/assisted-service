@@ -22,9 +22,6 @@ parameters:
 - name: AUTH_TYPE
   value: ''
   required: true
-- name: WITH_AMS_SUBSCRIPTIONS
-  value: ''
-  required: true
 - name: OCM_BASE_URL
   value: ''
   required: true
@@ -232,8 +229,6 @@ objects:
                 value: ${OPENSHIFT_VERSIONS}
               - name: AUTH_TYPE
                 value: ${AUTH_TYPE}
-              - name: WITH_AMS_SUBSCRIPTIONS
-                value: ${WITH_AMS_SUBSCRIPTIONS}
               - name: JWKS_URL
                 value: ${JWKS_URL}
               - name: ALLOWED_DOMAINS

@@ -25,13 +25,12 @@ type Client struct {
 }
 
 type Config struct {
-	BaseURL              string `envconfig:"OCM_BASE_URL" default:""`
-	ClientID             string `envconfig:"OCM_SERVICE_CLIENT_ID" default:""`
-	ClientSecret         string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
-	SelfToken            string `envconfig:"OCM_SELF_TOKEN" default:""`
-	TokenURL             string `envconfig:"OCM_TOKEN_URL" default:""`
-	LogLevel             string `envconfig:"OCM_LOG_LEVEL" default:"info"`
-	WithAMSSubscriptions bool   `envconfig:"WITH_AMS_SUBSCRIPTIONS" default:"false"`
+	BaseURL      string `envconfig:"OCM_BASE_URL" default:""`
+	ClientID     string `envconfig:"OCM_SERVICE_CLIENT_ID" default:""`
+	ClientSecret string `envconfig:"OCM_SERVICE_CLIENT_SECRET" default:""`
+	SelfToken    string `envconfig:"OCM_SELF_TOKEN" default:""`
+	TokenURL     string `envconfig:"OCM_TOKEN_URL" default:""`
+	LogLevel     string `envconfig:"OCM_LOG_LEVEL" default:"info"`
 }
 
 type SdKLogger struct {

@@ -511,7 +511,7 @@ func (b *bareMetalInventory) RegisterClusterInternal(
 		return nil, common.NewApiError(http.StatusInternalServerError, err)
 	}
 
-	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
+	if b.ocmClient != nil {
 		if err = b.integrateWithAMSClusterRegistration(ctx, &cluster); err != nil {
 			err = errors.Wrapf(err, "cluster %s failed to integrate with AMS on cluster registration", id)
 			return nil, common.NewApiError(http.StatusInternalServerError, err)
@@ -711,7 +711,7 @@ func (b *bareMetalInventory) DeregisterClusterInternal(ctx context.Context, para
 		return common.NewApiError(http.StatusNotFound, err)
 	}
 
-	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
+	if b.ocmClient != nil {
 		if err = b.integrateWithAMSClusterDeregistration(ctx, cluster); err != nil {
 			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster deregistration", params.ClusterID)
 			return common.NewApiError(http.StatusInternalServerError, err)
@@ -1340,7 +1340,7 @@ func (b *bareMetalInventory) InstallClusterInternal(ctx context.Context, params 
 			return
 		}
 
-		if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions {
+		if b.ocmClient != nil {
 			if err = b.integrateWithAMSClusterPreInstallation(asyncCtx, cluster.AmsSubscriptionID, strfmt.UUID(openshiftClusterID)); err != nil {
 				log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster pre installation", params.ClusterID)
 				return
@@ -1845,7 +1845,7 @@ func (b *bareMetalInventory) updateClusterInternal(ctx context.Context, params i
 	b.usageApi.Save(tx, params.ClusterID, usages)
 
 	newClusterName := swag.StringValue(params.ClusterUpdateParams.Name)
-	if b.ocmClient != nil && b.ocmClient.Config.WithAMSSubscriptions && newClusterName != "" && newClusterName != cluster.Name {
+	if b.ocmClient != nil && newClusterName != "" && newClusterName != cluster.Name {
 		if err = b.integrateWithAMSClusterUpdateName(ctx, cluster, *params.ClusterUpdateParams.Name); err != nil {
 			log.WithError(err).Errorf("Cluster %s failed to integrate with AMS on cluster update with new name %s", params.ClusterID, newClusterName)
 			return nil, err

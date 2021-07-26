@@ -278,7 +278,7 @@ var _ = Describe("Transition tests", func() {
 				var ocmClient *ocm.Client = nil
 
 				if t.updateAMSSubscription {
-					ocmClient = &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{WithAMSSubscriptions: true}}
+					ocmClient = &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{}}
 				}
 
 				if t.updateSuccessfullyFinished {
@@ -3422,7 +3422,7 @@ var _ = Describe("Refresh Cluster - Installing Cases", func() {
 				}
 				if t.withOCMClient {
 					mockAccountsMgmt = ocm.NewMockOCMAccountsMgmt(ctrl)
-					ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{WithAMSSubscriptions: true}}
+					ocmClient := &ocm.Client{AccountsMgmt: mockAccountsMgmt, Config: &ocm.Config{}}
 					clusterApi = NewManager(getDefaultConfig(), common.GetTestLog().WithField("pkg", "cluster-monitor"), db,
 						mockEvents, mockHostAPI, mockMetric, nil, nil, operatorsManager, ocmClient, mockS3Api, nil)
 					if !t.requiresAMSUpdate {
