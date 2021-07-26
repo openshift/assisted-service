@@ -57,7 +57,6 @@ type InstructionConfig struct {
 	InstallationTimeout      uint              `envconfig:"INSTALLATION_TIMEOUT" default:"0"`
 	DiskCheckTimeout         time.Duration     `envconfig:"DISK_CHECK_TIMEOUT" default:"8m"`
 	ImageAvailabilityTimeout time.Duration     `envconfig:"IMAGE_AVAILABILITY_TIMEOUT" default:"16m"`
-	SupportFreeAddresses     bool              `envconfig:"SUPPORT_FREE_ADDRESSES" default:"true"`
 	DisabledSteps            []models.StepType `envconfig:"DISABLED_STEPS" default:""`
 	ReleaseImageMirror       string
 	CheckClusterVersion      bool
@@ -68,7 +67,7 @@ func NewInstructionManager(log logrus.FieldLogger, db *gorm.DB, hwValidator hard
 	connectivityCmd := NewConnectivityCheckCmd(log, db, connectivityValidator, instructionConfig.AgentImage)
 	installCmd := NewInstallCmd(log, db, hwValidator, ocRelease, instructionConfig, eventsHandler, versionHandler)
 	inventoryCmd := NewInventoryCmd(log, instructionConfig.AgentImage)
-	freeAddressesCmd := newFreeAddressesCmd(log, instructionConfig.AgentImage, instructionConfig.SupportFreeAddresses)
+	freeAddressesCmd := newFreeAddressesCmd(log, instructionConfig.AgentImage)
 	resetCmd := NewResetInstallationCmd(log)
 	stopCmd := NewStopInstallationCmd(log)
 	logsCmd := NewLogsCmd(log, db, instructionConfig)
@@ -149,7 +148,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 			enabledSteps := []*models.Step{}
 			for _, step := range steps {
 				if i.isStepDisabled(step.StepType) {
-					log.WithField("disabledStepsMap", i.disabledStepsMap).Infof("Step '%v' is disabled. Will not include it in instructions", step.StepType)
+					log.Infof("Step '%v' is disabled. Will not include it in instructions", step.StepType)
 					continue
 				}
 				if step.StepID == "" {
@@ -167,7 +166,7 @@ func (i *InstructionManager) GetNextSteps(ctx context.Context, host *models.Host
 }
 
 func generateDisabledStepsMap(log logrus.FieldLogger, disabledSteps []models.StepType) map[models.StepType]bool {
-	result := map[models.StepType]bool{}
+	result := make(map[models.StepType]bool)
 	for _, step := range disabledSteps {
 		if err := step.Validate(nil); err != nil {
 			// invalid step type

@@ -50,7 +50,6 @@ var _ = Describe("instruction_manager", func() {
 		hwValidator = hardware.NewMockValidator(ctrl)
 		mockRelease = oc.NewMockRelease(ctrl)
 		cnValidator = connectivity.NewMockValidator(ctrl)
-		instructionConfig.SupportFreeAddresses = true
 		instMng = NewInstructionManager(common.GetTestLog(), db, hwValidator, mockRelease, instructionConfig, cnValidator, mockEvents, mockVersions)
 		hostId = strfmt.UUID(uuid.New().String())
 		clusterId = strfmt.UUID(uuid.New().String())
@@ -255,6 +254,17 @@ var _ = Describe("instruction_manager", func() {
 					models.StepTypeDhcpLeaseAllocate,
 				})
 				checkStep(models.HostStatusError, []models.StepType{})
+			})
+			It("Should skip 'StepTypeFreeNetworkAddresses' when: HostState=insufficient DisabledSteps=StepTypeFreeNetworkAddresses", func() {
+				instMng = createInstMngWithDisabledSteps([]models.StepType{
+					models.StepTypeFreeNetworkAddresses,
+				})
+				checkStep(models.HostStatusInsufficient, []models.StepType{
+					models.StepTypeInventory,
+					models.StepTypeConnectivityCheck,
+					models.StepTypeDhcpLeaseAllocate,
+					models.StepTypeNtpSynchronizer,
+				})
 			})
 		})
 	})
