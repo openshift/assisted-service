@@ -533,7 +533,7 @@ func (m *MetricsManager) NetworkLatencyBetweenHosts(openshiftVersion string, sou
 	m.serviceLogicNetworkLatencyMilliseconds.WithLabelValues(openshiftVersion, string(sourceRole), string(targetRole)).Observe(latency)
 }
 func (m *MetricsManager) PacketLossBetweenHosts(openshiftVersion string, sourceRole, targetRole models.HostRole, packetLoss float64) {
-	m.serviceLogicNetworkLatencyMilliseconds.WithLabelValues(openshiftVersion, string(sourceRole), string(targetRole)).Observe(packetLoss)
+	m.serviceLogicPacketLossPercentage.WithLabelValues(openshiftVersion, string(sourceRole), string(targetRole)).Observe(packetLoss)
 }
 
 func bytesToGib(bytes int64) int64 {
