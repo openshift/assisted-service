@@ -1548,7 +1548,7 @@ func (r *ClusterDeploymentsReconciler) areLogsCollected(ctx context.Context, log
 	for _, h := range cluster.Hosts {
 		commonh, err := r.Installer.GetCommonHostInternal(ctx, cluster.ID.String(), h.ID.String())
 		if err != nil {
-			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", commonh.ID.String(), cluster.ID.String())
+			log.WithError(err).Errorf("Failed to get common host %s from cluster %s", h.ID.String(), cluster.ID.String())
 			return false, err
 		}
 		if !swag.IsZero(commonh.LogsCollectedAt) { // timestamp update, meaning logs were collected from a host
