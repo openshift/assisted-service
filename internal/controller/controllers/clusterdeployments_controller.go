@@ -452,7 +452,7 @@ func (r *ClusterDeploymentsReconciler) ensureAdminPasswordSecret(ctx context.Con
 		"username": []byte(cred.Username),
 		"password": []byte(cred.Password),
 	}
-	return r.createClusterCredentialSecret(ctx, log, cluster, c, name, data, "kubeadmincreds")
+	return r.createClusterCredentialSecret(ctx, log, cluster, name, data, "kubeadmincreds")
 }
 
 func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster) (*corev1.Secret, error) {
@@ -478,7 +478,7 @@ func (r *ClusterDeploymentsReconciler) updateKubeConfigSecret(ctx context.Contex
 		"kubeconfig": respBytes,
 	}
 	if k8serrors.IsNotFound(getErr) {
-		return r.createClusterCredentialSecret(ctx, log, cluster, c, name, data, "kubeconfig")
+		return r.createClusterCredentialSecret(ctx, log, cluster, name, data, "kubeconfig")
 	}
 	s.Data = data
 	return s, r.Update(ctx, s)
@@ -506,10 +506,10 @@ func (r *ClusterDeploymentsReconciler) ensureKubeConfigNoIngressSecret(ctx conte
 		"kubeconfig": respBytes,
 	}
 
-	return r.createClusterCredentialSecret(ctx, log, cluster, c, name, data, "kubeconfig")
+	return r.createClusterCredentialSecret(ctx, log, cluster, name, data, "kubeconfig")
 }
 
-func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, c *common.Cluster, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
+func (r *ClusterDeploymentsReconciler) createClusterCredentialSecret(ctx context.Context, log logrus.FieldLogger, cluster *hivev1.ClusterDeployment, name string, data map[string][]byte, secretType string) (*corev1.Secret, error) {
 	s := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -542,7 +542,7 @@ func (r *ClusterDeploymentsReconciler) isReadyForInstallation(ctx context.Contex
 		return false, nil
 	}
 
-	registered, approvedHosts, err := r.getNumOfClusterAgents(ctx, clusterInstall, c)
+	registered, approvedHosts, err := r.getNumOfClusterAgents(ctx, c)
 	if err != nil {
 		log.WithError(err).Error("failed to fetch agents")
 		return false, err
@@ -1144,13 +1144,13 @@ func (r *ClusterDeploymentsReconciler) updateStatus(ctx context.Context, log log
 			}
 			var registeredHosts, approvedHosts int
 			if status == models.ClusterStatusReady {
-				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(ctx, clusterInstall, c)
+				registeredHosts, approvedHosts, err = r.getNumOfClusterAgents(ctx, c)
 				if err != nil {
 					log.WithError(err).Error("failed to fetch cluster's agents")
 					return ctrl.Result{Requeue: true}, nil
 				}
 			}
-			clusterRequirementsMet(clusterInstall, status, c, registeredHosts, approvedHosts)
+			clusterRequirementsMet(clusterInstall, status, registeredHosts, approvedHosts)
 			clusterValidated(clusterInstall, status, c)
 			clusterCompleted(clusterInstall, status, swag.StringValue(c.StatusInfo), c.MonitoredOperators)
 			clusterFailed(clusterInstall, status, swag.StringValue(c.StatusInfo))
@@ -1211,7 +1211,7 @@ func (r *ClusterDeploymentsReconciler) eventsURL(log logrus.FieldLogger, cluster
 	return eventsURL, nil
 }
 
-func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(ctx context.Context, clusterInstall *hiveext.AgentClusterInstall, c *common.Cluster) (int, int, error) {
+func (r *ClusterDeploymentsReconciler) getNumOfClusterAgents(ctx context.Context, c *common.Cluster) (int, int, error) {
 	registeredHosts := 0
 	approvedHosts := 0
 	for _, h := range c.Hosts {
@@ -1257,7 +1257,7 @@ func clusterSpecSynced(cluster *hiveext.AgentClusterInstall, syncErr error) {
 	})
 }
 
-func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, c *common.Cluster, registeredHosts, approvedHosts int) {
+func clusterRequirementsMet(clusterInstall *hiveext.AgentClusterInstall, status string, registeredHosts, approvedHosts int) {
 	var condStatus corev1.ConditionStatus
 	var reason string
 	var msg string
